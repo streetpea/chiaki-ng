@@ -75,7 +75,7 @@ static MunitResult test_iv_ps4_pre10(const MunitParameter params[], void *user)
 	return MUNIT_OK;
 }
 
-static MunitResult test_iv_regist(const MunitParameter params[], void *user)
+static MunitResult test_iv_regist_ps4(const MunitParameter params[], void *user)
 {
 	static const uint8_t ambassador[] = { 0x3e, 0x7e, 0x7a, 0x82, 0x59, 0x73, 0xad, 0xab, 0x2f, 0x69, 0x43, 0x46, 0xbd, 0x44, 0xda, 0xb5 };
 	static const uint8_t iv_expected[] = { 0xac, 0x48, 0x99, 0x77, 0xf9, 0x2a, 0xc5, 0x5b, 0xb9, 0x09, 0x3c, 0x33, 0xb6, 0x11, 0x3c, 0x46 };
@@ -83,7 +83,7 @@ static MunitResult test_iv_regist(const MunitParameter params[], void *user)
 	ChiakiRPCrypt rpcrypt;
 	ChiakiErrorCode err;
 
-	chiaki_rpcrypt_init_regist(&rpcrypt, ambassador, 0, 0);
+	chiaki_rpcrypt_init_regist(&rpcrypt, CHIAKI_TARGET_PS4_10, ambassador, 0, 0);
 
 	uint8_t iv[CHIAKI_RPCRYPT_KEY_SIZE];
 
@@ -95,7 +95,27 @@ static MunitResult test_iv_regist(const MunitParameter params[], void *user)
 	return MUNIT_OK;
 }
 
-static MunitResult test_bright_regist(const MunitParameter params[], void *user)
+static MunitResult test_iv_regist_ps5(const MunitParameter params[], void *user)
+{
+	static const uint8_t ambassador[] = { 0x3e, 0x7e, 0x7a, 0x82, 0x59, 0x73, 0xad, 0xab, 0x2f, 0x69, 0x43, 0x46, 0xbd, 0x44, 0xda, 0xb5 };
+	static const uint8_t iv_expected[] = { 0x90, 0x44, 0x40, 0x82, 0x73, 0xf8, 0x04, 0x4d, 0xca, 0x76, 0x7b, 0x5a, 0x16, 0x39, 0x4d, 0x64 };
+
+	ChiakiRPCrypt rpcrypt;
+	ChiakiErrorCode err;
+
+	chiaki_rpcrypt_init_regist(&rpcrypt, CHIAKI_TARGET_PS5_1, ambassador, 0, 0);
+
+	uint8_t iv[CHIAKI_RPCRYPT_KEY_SIZE];
+
+	err = chiaki_rpcrypt_generate_iv(&rpcrypt, iv, 0);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return MUNIT_ERROR;
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, iv, iv_expected);
+
+	return MUNIT_OK;
+}
+
+static MunitResult test_bright_regist_ps4(const MunitParameter params[], void *user)
 {
 	static const uint8_t ambassador[] = { 0xdc, 0xa1, 0xc8, 0x4d, 0xfe, 0x50, 0xd6, 0x57, 0x22, 0xda, 0x09, 0x65, 0x42, 0x31, 0xe7, 0xc2 };
 	static const uint8_t bright_expected[] = { 0xed, 0xfc, 0x1d, 0xc5, 0xa2, 0xfe, 0x2d, 0x7f, 0x09, 0x19, 0x85, 0x75, 0x33, 0x6c, 0x13, 0x16 };
@@ -104,7 +124,22 @@ static MunitResult test_bright_regist(const MunitParameter params[], void *user)
 	ChiakiRPCrypt rpcrypt;
 	ChiakiErrorCode err;
 
-	chiaki_rpcrypt_init_regist(&rpcrypt, ambassador, key_0_off, 78703893);
+	chiaki_rpcrypt_init_regist(&rpcrypt, CHIAKI_TARGET_PS4_10, ambassador, key_0_off, 78703893);
+	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, rpcrypt.bright, bright_expected);
+
+	return MUNIT_OK;
+}
+
+static MunitResult test_bright_regist_ps5(const MunitParameter params[], void *user)
+{
+	static const uint8_t ambassador[] = { 0xdc, 0xa1, 0xc8, 0x4d, 0xfe, 0x50, 0xd6, 0x57, 0x22, 0xda, 0x09, 0x65, 0x42, 0x31, 0xe7, 0xc2 };
+	static const uint8_t bright_expected[] = { 0xe2, 0x9d, 0x64, 0x4c, 0x14, 0x1b, 0x9d, 0x61, 0x74, 0x31, 0xa5, 0x6d, 0x34, 0xcf, 0xc1, 0x7f };
+	size_t key_0_off = 0x1e;
+
+	ChiakiRPCrypt rpcrypt;
+	ChiakiErrorCode err;
+
+	chiaki_rpcrypt_init_regist(&rpcrypt, CHIAKI_TARGET_PS5_1, ambassador, key_0_off, 78703893);
 	munit_assert_memory_equal(CHIAKI_RPCRYPT_KEY_SIZE, rpcrypt.bright, bright_expected);
 
 	return MUNIT_OK;
@@ -225,16 +260,32 @@ MunitTest tests_rpcrypt[] = {
 		NULL
 	},
 	{
-		"/iv_regist",
-		test_iv_regist,
+		"/iv_regist_ps4",
+		test_iv_regist_ps4,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,
 		NULL
 	},
 	{
-		"/bright_regist",
-		test_bright_regist,
+		"/iv_regist_ps5",
+		test_iv_regist_ps5,
+		NULL,
+		NULL,
+		MUNIT_TEST_OPTION_NONE,
+		NULL
+	},
+	{
+		"/bright_regist_ps4",
+		test_bright_regist_ps4,
+		NULL,
+		NULL,
+		MUNIT_TEST_OPTION_NONE,
+		NULL
+	},
+	{
+		"/bright_regist_ps5",
+		test_bright_regist_ps5,
 		NULL,
 		NULL,
 		MUNIT_TEST_OPTION_NONE,

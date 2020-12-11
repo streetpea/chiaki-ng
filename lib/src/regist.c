@@ -178,9 +178,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(ChiakiTarget 
 	{
 		size_t key_0_off = buf[0x18D] & 0x1F;
 		size_t key_1_off = buf[0] >> 3;
-		chiaki_rpcrypt_init_regist(crypt, ambassador, key_0_off, pin);
+		ChiakiErrorCode err = chiaki_rpcrypt_init_regist(crypt, target, ambassador, key_0_off, pin);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
 		uint8_t aeropause[0x10];
-		chiaki_rpcrypt_aeropause(key_1_off, aeropause, crypt->ambassador);
+		err = chiaki_rpcrypt_aeropause(target, key_1_off, aeropause, crypt->ambassador);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
 		memcpy(buf + 0xc7, aeropause + 8, 8);
 		memcpy(buf + 0x191, aeropause, 8);
 		psn_online_id = NULL; // don't need this
