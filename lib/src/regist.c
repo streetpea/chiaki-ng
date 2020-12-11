@@ -42,17 +42,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_start(ChiakiRegist *regist, ChiakiLo
 	if(!regist->info.host)
 		return CHIAKI_ERR_MEMORY;
 
+	ChiakiErrorCode err = CHIAKI_ERR_UNKNOWN;
 	if(regist->info.psn_online_id)
 	{
 		regist->info.psn_online_id = strdup(regist->info.psn_online_id);
 		if(!regist->info.psn_online_id)
+		{
+			err = CHIAKI_ERR_MEMORY;
 			goto error_host;
+		}
 	}
 
 	regist->cb = cb;
 	regist->cb_user = cb_user;
 
-	ChiakiErrorCode err = chiaki_stop_pipe_init(&regist->stop_pipe);
+	err = chiaki_stop_pipe_init(&regist->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_psn_id;
 
@@ -98,8 +102,24 @@ static const char *const request_head_fmt =
 	"Connection: close\r\n"
 	"Content-Length: %llu\r\n";
 
-static const char *request_path = "/sie/ps4/rp/sess/rgst";
+static const char *request_path_ps5 = "/sie/ps5/rp/sess/rgst";
+static const char *request_path_ps4 = "/sie/ps4/rp/sess/rgst";
 static const char *request_path_ps4_pre10 = "/sce/rp/regist";
+
+static const char *request_path(ChiakiTarget target)
+{
+	switch(target)
+	{
+		case CHIAKI_TARGET_PS5_UNKNOWN:
+		case CHIAKI_TARGET_PS5_1:
+			return request_path_ps5;
+		case CHIAKI_TARGET_PS4_8:
+		case CHIAKI_TARGET_PS4_9:
+			return request_path_ps4_pre10;
+		default:
+			return request_path_ps4;
+	}
+}
 
 static const char *const request_rp_version_fmt = "RP-Version: %s\r\n";
 
@@ -119,8 +139,7 @@ static const char *const request_inner_online_id_fmt =
 
 static int request_header_format(char *buf, size_t buf_size, size_t payload_size, ChiakiTarget target)
 {
-	int cur = snprintf(buf, buf_size, request_head_fmt,
-			target < CHIAKI_TARGET_PS4_10 ? request_path_ps4_pre10 : request_path,
+	int cur = snprintf(buf, buf_size, request_head_fmt, request_path(target),
 			(unsigned long long)payload_size);
 	if(cur < 0 || cur >= payload_size)
 		return -1;
@@ -339,12 +358,16 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
+	const char *src = chiaki_target_is_ps5(regist->info.target) ? "SRC3" : "SRC2";
+	const char *res = chiaki_target_is_ps5(regist->info.target) ? "RES3" : "RES2";
+	size_t res_size = strlen(res);
+
 	CHIAKI_LOGI(regist->log, "Regist sending search packet");
 	int r;
 	if(regist->info.broadcast)
-		r = sendto_broadcast(regist->log, sock, "SRC2", 4, 0, &send_addr, send_addr_len);
+		r = sendto_broadcast(regist->log, sock, src, strlen(src) + 1, 0, &send_addr, send_addr_len);
 	else
-		r = send(sock, "SRC2", 4, 0);
+		r = send(sock, src, strlen(src) + 1, 0);
 	if(r < 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to send search: %s", strerror(errno));
@@ -379,10 +402,10 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 			goto done;
 		}
 
-		CHIAKI_LOGV(regist->log, "Regist received packet:");
+		CHIAKI_LOGV(regist->log, "Regist received packet: %d >= %d", n, res_size);
 		chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, n);
 
-		if(n >= 4 && memcmp(buf, "RES2", 4) == 0)
+		if(n >= res_size && !memcmp(buf, res, res_size))
 		{
 			char addr[64];
 			const char *addr_str = sockaddr_str(recv_addr, addr, sizeof(addr));

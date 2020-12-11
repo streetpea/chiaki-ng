@@ -29,6 +29,7 @@ class RegistDialog : public QDialog
 		QRadioButton *ps4_pre9_radio_button;
 		QRadioButton *ps4_pre10_radio_button;
 		QRadioButton *ps4_10_radio_button;
+		QRadioButton *ps5_radio_button;
 		QLineEdit *psn_online_id_edit;
 		QLineEdit *psn_account_id_edit;
 		QLineEdit *pin_edit;

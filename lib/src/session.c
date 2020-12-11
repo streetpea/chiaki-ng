@@ -62,18 +62,26 @@ const char *chiaki_rp_version_string(ChiakiTarget version)
 			return "9.0";
 		case CHIAKI_TARGET_PS4_10:
 			return "10.0";
+		case CHIAKI_TARGET_PS5_1:
+			return "1.0";
 		default:
 			return NULL;
 	}
 }
 
-CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str)
+CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str, bool is_ps5)
 {
-	if(strcmp(rp_version_str, "8.0") == 0)
+	if(is_ps5)
+	{
+		if(!strcmp(rp_version_str, "1.0"))
+			return CHIAKI_TARGET_PS5_1;
+		return CHIAKI_TARGET_PS5_UNKNOWN;
+	}
+	if(!strcmp(rp_version_str, "8.0"))
 		return CHIAKI_TARGET_PS4_8;
-	if(strcmp(rp_version_str, "9.0") == 0)
+	if(!strcmp(rp_version_str, "9.0"))
 		return CHIAKI_TARGET_PS4_9;
-	if(strcmp(rp_version_str, "10.0") == 0)
+	if(!strcmp(rp_version_str, "10.0"))
 		return CHIAKI_TARGET_PS4_10;
 	return CHIAKI_TARGET_PS4_UNKNOWN;
 }
@@ -205,6 +213,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	chiaki_controller_state_set_idle(&session->controller_state);
 
+	session->connect_info.ps5 = connect_info->ps5;
 	memcpy(session->connect_info.regist_key, connect_info->regist_key, sizeof(session->connect_info.regist_key));
 	memcpy(session->connect_info.morning, connect_info->morning, sizeof(session->connect_info.morning));
 
@@ -359,17 +368,17 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Starting session request");
 
-	ChiakiTarget server_target = CHIAKI_TARGET_PS4_UNKNOWN;
+	ChiakiTarget server_target = session->connect_info.ps5 ? CHIAKI_TARGET_PS5_UNKNOWN : CHIAKI_TARGET_PS4_UNKNOWN;
 	success = session_thread_request_session(session, &server_target);
 
-	if(!success && server_target != CHIAKI_TARGET_PS4_UNKNOWN)
+	if(!success && chiaki_target_is_unknown(server_target))
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session with Server's RP-Version");
 		session->target = server_target;
 		success = session_thread_request_session(session, &server_target);
 	}
 
-	if(!success && server_target != CHIAKI_TARGET_PS4_UNKNOWN)
+	if(!success && chiaki_target_is_unknown(server_target))
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session even harder with Server's RP-Version!!!");
 		session->target = server_target;
@@ -757,7 +766,7 @@ static bool session_thread_request_session(ChiakiSession *session, ChiakiTarget 
 	{
 		CHIAKI_LOGI(session->log, "Reported RP-Version mismatch. ours = %s, server = %s",
 				rp_version_str ? rp_version_str : "", response.rp_version);
-		*target_out = chiaki_rp_version_parse(response.rp_version);
+		*target_out = chiaki_rp_version_parse(response.rp_version, session->connect_info.ps5);
 		if(*target_out != CHIAKI_TARGET_PS4_UNKNOWN)
 			CHIAKI_LOGI(session->log, "Detected Server RP-Version %s", chiaki_rp_version_string(*target_out));
 		else if(!strcmp(response.rp_version, "5.0"))

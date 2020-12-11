@@ -35,7 +35,7 @@ CHIAKI_EXPORT const char *chiaki_rp_application_reason_string(uint32_t reason);
  */
 CHIAKI_EXPORT const char *chiaki_rp_version_string(ChiakiTarget target);
 
-CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str);
+CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str, bool is_ps5);
 
 
 #define CHIAKI_RP_DID_SIZE 32
@@ -70,6 +70,7 @@ CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile
 
 typedef struct chiaki_connect_info_t
 {
+	bool ps5;
 	const char *host; // null terminated
 	char regist_key[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
 	uint8_t morning[0x10];
@@ -149,6 +150,7 @@ typedef struct chiaki_session_t
 {
 	struct
 	{
+		bool ps5;
 		struct addrinfo *host_addrinfos;
 		struct addrinfo *host_addrinfo_selected;
 		char hostname[128];

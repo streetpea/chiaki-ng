@@ -11,6 +11,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,10 +62,20 @@ typedef enum
 {
 	// values must not change
 	CHIAKI_TARGET_PS4_UNKNOWN = 0,
-	CHIAKI_TARGET_PS4_8 = 800,
-	CHIAKI_TARGET_PS4_9 = 900,
-	CHIAKI_TARGET_PS4_10 = 1000
+	CHIAKI_TARGET_PS4_8 =           800,
+	CHIAKI_TARGET_PS4_9 =           900,
+	CHIAKI_TARGET_PS4_10 =         1000,
+	CHIAKI_TARGET_PS5_UNKNOWN = 1000000,
+	CHIAKI_TARGET_PS5_1 =       1000100
 } ChiakiTarget;
+
+static inline bool chiaki_target_is_unknown(ChiakiTarget target)
+{
+	return target == CHIAKI_TARGET_PS5_UNKNOWN
+		|| target == CHIAKI_TARGET_PS4_UNKNOWN;
+}
+
+static inline bool chiaki_target_is_ps5(ChiakiTarget target) { return target >= CHIAKI_TARGET_PS5_UNKNOWN; }
 
 /**
  * Perform initialization of global state needed for using the Chiaki lib
