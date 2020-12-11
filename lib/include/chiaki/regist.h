@@ -37,12 +37,13 @@ typedef struct chiaki_regist_info_t
 
 typedef struct chiaki_registered_host_t
 {
+	ChiakiTarget target;
 	char ap_ssid[0x30];
 	char ap_bssid[0x20];
 	char ap_key[0x50];
 	char ap_name[0x20];
-	uint8_t ps4_mac[6];
-	char ps4_nickname[0x20];
+	uint8_t server_mac[6];
+	char server_nickname[0x20];
 	char rp_regist_key[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
 	uint32_t rp_key_type;
 	uint8_t rp_key[0x10];

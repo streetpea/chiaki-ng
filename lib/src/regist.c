@@ -633,20 +633,22 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 	}
 
 	memset(host, 0, sizeof(*host));
+	host->target = regist->info.target;
 
 	bool mac_found = false;
 	bool regist_key_found = false;
 	bool key_found = false;
+	bool ps5 = chiaki_target_is_ps5(regist->info.target);
 
 	for(ChiakiHttpHeader *header=headers; header; header=header->next)
 	{
 #define COPY_STRING(name, key_str) \
-		if(strcmp(header->key, key_str) == 0) \
+		if(strcmp(header->key, (key_str)) == 0) \
 		{ \
 			size_t len = strlen(header->value); \
 			if(len >= sizeof(host->name)) \
 			{ \
-				CHIAKI_LOGE(regist->log, "Regist value for " key_str " in response is too long"); \
+				CHIAKI_LOGE(regist->log, "Regist value for %s in response is too long", (key_str)); \
 				continue; \
 			} \
 			memcpy(host->name, header->value, len); \
@@ -657,10 +659,10 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 		COPY_STRING(ap_bssid, "AP-Bssid")
 		COPY_STRING(ap_key, "AP-Key")
 		COPY_STRING(ap_name, "AP-Name")
-		COPY_STRING(ps4_nickname, "PS4-Nickname")
+		COPY_STRING(server_nickname, ps5 ? "PS5-Nickname" : "PS4-Nickname")
 #undef COPY_STRING
 
-		if(strcmp(header->key, "PS4-RegistKey") == 0)
+		if(strcmp(header->key, ps5 ? "PS5-RegistKey" : "PS4-RegistKey") == 0)
 		{
 			memset(host->rp_regist_key, 0, sizeof(host->rp_regist_key));
 			size_t buf_size = sizeof(host->rp_regist_key);
@@ -693,14 +695,14 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 				key_found = true;
 			}
 		}
-		else if(strcmp(header->key, "PS4-Mac") == 0)
+		else if(strcmp(header->key, ps5 ? "PS5-Mac" : "PS4-Mac") == 0)
 		{
-			size_t buf_size = sizeof(host->ps4_mac);
-			err = parse_hex((uint8_t *)host->ps4_mac, &buf_size, header->value, strlen(header->value));
-			if(err != CHIAKI_ERR_SUCCESS || buf_size != sizeof(host->ps4_mac))
+			size_t buf_size = sizeof(host->server_mac);
+			err = parse_hex((uint8_t *)host->server_mac, &buf_size, header->value, strlen(header->value));
+			if(err != CHIAKI_ERR_SUCCESS || buf_size != sizeof(host->server_mac))
 			{
 				CHIAKI_LOGE(regist->log, "Regist received invalid MAC Address in response");
-				memset(host->ps4_mac, 0, sizeof(host->ps4_mac));
+				memset(host->server_mac, 0, sizeof(host->server_mac));
 			}
 			else
 			{

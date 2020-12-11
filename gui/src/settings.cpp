@@ -5,10 +5,67 @@
 
 #include <chiaki/config.h>
 
-#define SETTINGS_VERSION 1
+#define SETTINGS_VERSION 2
+
+static void MigrateSettingsTo2(QSettings *settings)
+{
+	QList<QMap<QString, QVariant>> hosts;
+	int count = settings->beginReadArray("registered_hosts");
+	for(int i=0; i<count; i++)
+	{
+		settings->setArrayIndex(i);
+		QMap<QString, QVariant> host;
+		for(QString k : settings->allKeys())
+			host[k] = settings->value(k);
+	}
+	settings->endArray();
+	settings->beginWriteArray("registered_hosts");
+	int i=0;
+	for(const auto &host : hosts)
+	{
+		settings->setArrayIndex(i);
+		settings->setValue("target", (int)CHIAKI_TARGET_PS4_10);
+		for(auto it = host.constBegin(); it != host.constEnd(); it++)
+		{
+			QString k = it.key();
+			if(k == "ps4_nickname")
+				k = "server_nickname";
+			else if(k == "ps4_mac")
+				k = "server_mac";
+			settings->setValue(k, it.value());
+		}
+		i++;
+	}
+	settings->endArray();
+}
+
+static void MigrateSettings(QSettings *settings)
+{
+	int version_prev = settings->value("version", 0).toInt();
+	if(version_prev < 1)
+		return;
+	if(version_prev > SETTINGS_VERSION)
+	{
+		CHIAKI_LOGE(NULL, "Settings version %d is higher than application one (%d)", version_prev, SETTINGS_VERSION);
+		return;
+	}
+	while(version_prev < 1)
+	{
+		version_prev++;
+		switch(version_prev)
+		{
+			case 2:
+				MigrateSettingsTo2(settings);
+				break;
+			default:
+				break;
+		}
+	}
+}
 
 Settings::Settings(QObject *parent) : QObject(parent)
 {
+	MigrateSettings(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
@@ -183,7 +240,7 @@ void Settings::LoadRegisteredHosts()
 	{
 		settings.setArrayIndex(i);
 		RegisteredHost host = RegisteredHost::LoadFromSettings(&settings);
-		registered_hosts[host.GetPS4MAC()] = host;
+		registered_hosts[host.GetServerMAC()] = host;
 	}
 	settings.endArray();
 }
@@ -203,7 +260,7 @@ void Settings::SaveRegisteredHosts()
 
 void Settings::AddRegisteredHost(const RegisteredHost &host)
 {
-	registered_hosts[host.GetPS4MAC()] = host;
+	registered_hosts[host.GetServerMAC()] = host;
 	SaveRegisteredHosts();
 	emit RegisteredHostsUpdated();
 }

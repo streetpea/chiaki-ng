@@ -76,7 +76,7 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 
 	if(display_server.discovered || display_server.registered)
 	{
-		top_text += (display_server.discovered ? display_server.discovery_host.host_name : display_server.registered_host.GetPS4Nickname()) + "\n";
+		top_text += (display_server.discovered ? display_server.discovery_host.host_name : display_server.registered_host.GetServerNickname()) + "\n";
 	}
 
 	top_text += tr("Address: %1").arg(display_server.GetHostAddr());
@@ -84,7 +84,7 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 	if(display_server.discovered || display_server.registered)
 	{
 		top_text += "\n" + tr("ID: %1 (%2)").arg(
-				display_server.discovered ? display_server.discovery_host.GetHostMAC().ToString() : display_server.registered_host.GetPS4MAC().ToString(),
+				display_server.discovered ? display_server.discovery_host.GetHostMAC().ToString() : display_server.registered_host.GetServerMAC().ToString(),
 				display_server.registered ? tr("registered") : tr("unregistered"));
 	}
 

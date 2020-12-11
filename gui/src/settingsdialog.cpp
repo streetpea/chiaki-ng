@@ -348,8 +348,8 @@ void SettingsDialog::UpdateRegisteredHosts()
 	auto hosts = settings->GetRegisteredHosts();
 	for(const auto &host : hosts)
 	{
-		auto item = new QListWidgetItem(QString("%1 (%2)").arg(host.GetPS4MAC().ToString(), host.GetPS4Nickname()));
-		item->setData(Qt::UserRole, QVariant::fromValue(host.GetPS4MAC()));
+		auto item = new QListWidgetItem(QString("%1 (%2)").arg(host.GetServerMAC().ToString(), host.GetServerNickname()));
+		item->setData(Qt::UserRole, QVariant::fromValue(host.GetServerMAC()));
 		registered_hosts_list_widget->addItem(item);
 	}
 }

@@ -205,14 +205,14 @@ void RegistExecuteDialog::Finished()
 
 void RegistExecuteDialog::Success(RegisteredHost host)
 {
-	CHIAKI_LOGI(&log, "Successfully registered %s", host.GetPS4Nickname().toLocal8Bit().constData());
+	CHIAKI_LOGI(&log, "Successfully registered %s", host.GetServerNickname().toLocal8Bit().constData());
 	this->registered_host = host;
 
-	if(settings->GetRegisteredHostRegistered(host.GetPS4MAC()))
+	if(settings->GetRegisteredHostRegistered(host.GetServerMAC()))
 	{
 		int r = QMessageBox::question(this,
 				tr("Console already registered"),
-				tr("The console with ID %1 has already been registered. Should the previous record be overwritten?").arg(host.GetPS4MAC().ToString()));
+				tr("The console with ID %1 has already been registered. Should the previous record be overwritten?").arg(host.GetServerMAC().ToString()));
 		if(r == QMessageBox::No)
 		{
 			accept();
@@ -222,7 +222,7 @@ void RegistExecuteDialog::Success(RegisteredHost host)
 
 	settings->AddRegisteredHost(host);
 
-	QMessageBox::information(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered!").arg(host.GetPS4Nickname(), host.GetPS4MAC().ToString()));
+	QMessageBox::information(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered!").arg(host.GetServerNickname(), host.GetServerMAC().ToString()));
 
 	accept();
 }
