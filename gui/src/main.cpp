@@ -162,7 +162,8 @@ int real_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-		StreamSessionConnectInfo connect_info(&settings, host, regist_key, morning, parser.isSet(fullscreen_option));
+		// TODO: target here
+		StreamSessionConnectInfo connect_info(&settings, CHIAKI_TARGET_PS4_10, host, regist_key, morning, parser.isSet(fullscreen_option));
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI

@@ -813,6 +813,40 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			goto error;
 	}
 
+	char streaming_type_b64[256];
+	bool have_streaming_type = chiaki_target_is_ps5(session->target);
+	if(have_streaming_type)
+	{
+		uint32_t streaming_type;
+		switch(session->connect_info.video_profile.codec)
+		{
+			case CHIAKI_CODEC_H265:
+				streaming_type = 2;
+				break;
+			case CHIAKI_CODEC_H265_HDR:
+				streaming_type = 3;
+				break;
+			default:
+				streaming_type = 1;
+				break;
+		}
+		uint8_t streaming_type_buf[4] = {
+			streaming_type & 0xff,
+			(streaming_type >> 8) & 0xff,
+			(streaming_type >> 0x10) & 0xff,
+			(streaming_type >> 0x18) & 0xff
+		};
+		uint8_t streaming_type_enc[4] = { 0 };
+		err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++,
+				streaming_type_buf, streaming_type_enc, 4);
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error;
+
+		err = chiaki_base64_encode(streaming_type_enc, 4, streaming_type_b64, sizeof(streaming_type_b64));
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto error;
+	}
+
 	static const char request_fmt[] =
 			"GET %s HTTP/1.1\r\n"
 			"Host: %s:%d\r\n"
@@ -827,11 +861,16 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			"RP-OSType: %s\r\n"
 			"RP-ConPath: 1\r\n"
 			"%s%s%s"
+			"%s%s%s"
 			"\r\n";
 
-	const char *path = (session->target == CHIAKI_TARGET_PS4_8 || session->target == CHIAKI_TARGET_PS4_9)
-		? "/sce/rp/session/ctrl"
-		: "/sie/ps4/rp/sess/ctrl";
+	const char *path;
+	if(session->target == CHIAKI_TARGET_PS4_8 || session->target == CHIAKI_TARGET_PS4_9)
+		path = "/sce/rp/session/ctrl";
+	else if(chiaki_target_is_ps5(session->target))
+		path = "/sie/ps5/rp/sess/ctrl";
+	else
+		path = "/sie/ps4/rp/sess/ctrl";
 	const char *rp_version = chiaki_rp_version_string(session->target);
 
 	char buf[512];
@@ -840,7 +879,10 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			rp_version ? rp_version : "", did_b64, ostype_b64,
 			have_bitrate ? "RP-StartBitrate: " : "",
 			have_bitrate ? bitrate_b64 : "",
-			have_bitrate ? "\r\n" : "");
+			have_bitrate ? "\r\n" : "",
+			have_streaming_type ? "RP-StreamingType: " : "",
+			have_streaming_type ? streaming_type_b64 : "",
+			have_streaming_type ? "\r\n" : "");
 	if(request_len < 0 || request_len >= sizeof(buf))
 		goto error;
 

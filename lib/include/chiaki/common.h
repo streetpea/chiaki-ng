@@ -61,7 +61,7 @@ CHIAKI_EXPORT void chiaki_aligned_free(void *ptr);
 typedef enum
 {
 	// values must not change
-	CHIAKI_TARGET_PS4_UNKNOWN = 0,
+	CHIAKI_TARGET_PS4_UNKNOWN =       0,
 	CHIAKI_TARGET_PS4_8 =           800,
 	CHIAKI_TARGET_PS4_9 =           900,
 	CHIAKI_TARGET_PS4_10 =         1000,
@@ -81,6 +81,13 @@ static inline bool chiaki_target_is_ps5(ChiakiTarget target) { return target >= 
  * Perform initialization of global state needed for using the Chiaki lib
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init();
+
+typedef enum
+{
+	CHIAKI_CODEC_H264 = 0,
+	CHIAKI_CODEC_H265,
+	CHIAKI_CODEC_H265_HDR
+} ChiakiCodec;
 
 #ifdef __cplusplus
 }

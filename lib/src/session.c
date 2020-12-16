@@ -169,7 +169,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 
 	session->log = log;
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-	session->target = CHIAKI_TARGET_PS4_10;
+	session->target = connect_info->ps5 ? CHIAKI_TARGET_PS5_1 : CHIAKI_TARGET_PS4_10;
 
 	ChiakiErrorCode err = chiaki_cond_init(&session->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -366,9 +366,9 @@ static void *session_thread_func(void *arg)
 
 	CHECK_STOP(quit);
 
-	CHIAKI_LOGI(session->log, "Starting session request");
+	CHIAKI_LOGI(session->log, "Starting session request for %s", session->connect_info.ps5 ? "PS5" : "PS4");
 
-	ChiakiTarget server_target = session->connect_info.ps5 ? CHIAKI_TARGET_PS5_UNKNOWN : CHIAKI_TARGET_PS4_UNKNOWN;
+	ChiakiTarget server_target = CHIAKI_TARGET_PS4_UNKNOWN;
 	success = session_thread_request_session(session, &server_target) == CHIAKI_ERR_SUCCESS;
 
 	if(!success && chiaki_target_is_unknown(server_target))
@@ -667,9 +667,13 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			"RP-Registkey: %s\r\n"
 			"Rp-Version: %s\r\n"
 			"\r\n";
-	const char *path = (session->target == CHIAKI_TARGET_PS4_8 || session->target == CHIAKI_TARGET_PS4_9)
-		? "/sce/rp/session"
-		: "/sie/ps4/rp/sess/init";
+	const char *path;
+	if(session->target == CHIAKI_TARGET_PS4_8 || session->target == CHIAKI_TARGET_PS4_9)
+		path = "/sce/rp/session";
+	else if(chiaki_target_is_ps5(session->target))
+		path = "/sie/ps5/rp/sess/init";
+	else
+		path = "/sie/ps4/rp/sess/init";
 
 	size_t regist_key_len = sizeof(session->connect_info.regist_key);
 	for(size_t i=0; i<regist_key_len; i++)

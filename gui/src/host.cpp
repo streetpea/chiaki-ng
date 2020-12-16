@@ -11,7 +11,8 @@ RegisteredHost::RegisteredHost()
 }
 
 RegisteredHost::RegisteredHost(const RegisteredHost &o)
-	: ap_ssid(o.ap_ssid),
+	: target(o.target),
+	ap_ssid(o.ap_ssid),
 	ap_bssid(o.ap_bssid),
 	ap_key(o.ap_key),
 	ap_name(o.ap_name),
