@@ -35,6 +35,9 @@ message TakionMessage {
         PERIODICTIMESTAMP = 27;
         SERVERSETTINGS = 28;
         DIRECTMESSAGE = 29;
+        MICCONNECTION = 30;
+        TAKIONPROTOCOLREQUEST = 31;
+        TAKIONPROTOCOLREQUESTACK = 32;
     }
     
     optional BigPayload big_payload = 2;
@@ -64,6 +67,9 @@ message TakionMessage {
     optional PeriodicTimestampPayload periodic_timestamp_payload = 27;
     optional ServerSettingsPayload server_settings_payload = 28;
     optional DirectMessagePayload direct_message_payload = 29;
+    optional MicConnectionPayload mic_connection_payload = 30;
+    optional TakionProtocolRequestPayload takion_protocol_request = 31;
+    optional TakionProtocolRequestAckPayload takion_protocol_request_ack = 32;
 }
 
 message EventCode {
@@ -249,6 +255,12 @@ message ResolutionPayload {
     required bytes video_header = 3;
 }
 
+message AudioChannelPayload {
+    required uint32 audio_channel_type = 1;
+    required bytes audio_header = 2;
+    optional bool is_raw_pcm = 3;
+}
+
 message StreamInfoPayload {
     repeated ResolutionPayload resolution = 1;
     required bytes audio_header = 2;
@@ -256,6 +268,7 @@ message StreamInfoPayload {
     optional uint32 afk_timeout = 4;
     optional uint32 afk_timeout_disconnect = 5;
     optional uint32 congestion_control_interval = 6;
+    repeated AudioChannelPayload audio_channel = 7;
 }
 
 message XmbCommandPayload {
@@ -274,6 +287,8 @@ message ConnectionQualityPayload {
     optional uint32 upstream_bitrate = 2;
     optional float upstream_loss = 3;
     optional bool disable_upstream_audio = 4;
+    optional double rtt = 5;
+    optional uint64 loss = 6;
 }
 
 message PlayTimeLeftPayload {
@@ -296,6 +311,8 @@ message ControllerConnectionPayload {
         DUALSHOCK4 = 2;
         VITA = 3;
         XINPUT = 4;
+        MOBILE = 5;
+        BOND = 6;
     }
 }
 
@@ -338,6 +355,7 @@ message DeepLinkPayload {
         GAME_ALERT = 2;
         SYSTEM_SERVICE_STATUS = 3;
         DEBUG_VSH_MENU = 4;
+        RAW = 5;
     }
     
     optional uint32 request_id = 2;
@@ -345,15 +363,30 @@ message DeepLinkPayload {
     optional string invitation_id = 4;
     optional string session_id = 5;
     optional string item_id = 6;
-    optional string is_system_ui_qverlaid = 7;
+    optional string is_system_ui_overlaid = 7;
     optional uint32 result = 8;
     optional bool should_show = 9;
+    optional string raw_data = 10;
+}
+
+message MicInfoPayload {
+    required MicInfoType mic_info_type = 1;
+    enum MicInfoType {
+        MIC_CONNECT = 0;
+        MIC_MUTE = 1;
+    }
+
+    optional uint32 controller_id = 2;
+    optional bool connected = 3;
+    optional bool muted = 4;
+    optional bool result = 5;
 }
 
 message DirectMessagePayload {
     required DirectMessageType direct_message_type = 1;
     enum DirectMessageType {
         DEEPLINK = 0;
+        MICINFO = 1;
     }
     
     required Destination destination = 2;
@@ -365,7 +398,19 @@ message DirectMessagePayload {
     optional bytes data = 3;
 }
 
+message MicConnectionPayload {
+    required int32 controller_id = 1;
+    required bool connected = 2;
+    optional bool result = 3;
+}
 
+message TakionProtocolRequestPayload {
+    repeated uint32 supported_takion_versions = 1;
+}
+
+message TakionProtocolRequestAckPayload {
+    optional uint32 takion_protocol_version = 1;
+}
 
 message SenkushaPayload {
     required Command command = 1;
