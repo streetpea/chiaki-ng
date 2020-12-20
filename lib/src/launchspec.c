@@ -58,7 +58,9 @@ static const char launchspec_fmt[] =
 			"\"region\":\"US\","
 			"\"languagesUsed\":[\"en\",\"jp\"]"
 		"},"
-		"\"handshakeKey\":\"%s\"" // 6
+		"%s" // 6
+		"%s" // 7
+		"\"handshakeKey\":\"%s\"" // 8
 	"}";
 
 CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLaunchSpec *launch_spec)
@@ -68,9 +70,19 @@ CHIAKI_EXPORT int chiaki_launchspec_format(char *buf, size_t buf_size, ChiakiLau
 	if(err != CHIAKI_ERR_SUCCESS)
 		return -1;
 
+	char *extras[2];
+	if(chiaki_target_is_ps5(launch_spec->target)) // TODO: probably also for ps4, but only 12
+	{
+		extras[0] = "\"videoCodec\":\"avc\","; // TODO: hevc too
+		extras[1] = "\"dynamicRange\":\"SDR\","; // TODO: HDR too
+	}
+	else
+		extras[0] = extras[1] = "";
+
 	int written = snprintf(buf, buf_size, launchspec_fmt,
 			launch_spec->width, launch_spec->height, launch_spec->max_fps,
-			launch_spec->bw_kbps_sent, launch_spec->mtu, launch_spec->rtt, handshake_key_b64);
+			launch_spec->bw_kbps_sent, launch_spec->mtu, launch_spec->rtt,
+			extras[0], extras[1], handshake_key_b64);
 	if(written < 0 || written >= buf_size)
 		return -1;
 	return written;

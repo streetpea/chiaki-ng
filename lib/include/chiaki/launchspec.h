@@ -14,12 +14,14 @@ extern "C" {
 
 typedef struct chiaki_launch_spec_t
 {
+	ChiakiTarget target;
 	unsigned int mtu;
 	unsigned int rtt;
 	uint8_t *handshake_key;
 	unsigned int width;
 	unsigned int height;
 	unsigned int max_fps;
+	ChiakiCodec codec;
 	unsigned int bw_kbps_sent;
 } ChiakiLaunchSpec;
 

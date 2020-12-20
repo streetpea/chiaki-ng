@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 
+#include "chiaki/common.h"
 #include <chiaki/streamconnection.h>
 #include <chiaki/session.h>
 #include <chiaki/launchspec.h>
@@ -142,7 +143,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	takion_info.ip_dontfrag = false;
 
 	takion_info.enable_crypt = true;
-	takion_info.protocol_version = 9;
+	takion_info.protocol_version = chiaki_target_is_ps5(session->target) ? 12 : 9;
 
 	takion_info.cb = stream_connection_takion_cb;
 	takion_info.cb_user = stream_connection;
@@ -694,6 +695,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	ChiakiSession *session = stream_connection->session;
 
 	ChiakiLaunchSpec launch_spec;
+	launch_spec.target = session->target;
 	launch_spec.mtu = session->mtu_in;
 	launch_spec.rtt = session->rtt_us / 1000;
 	launch_spec.handshake_key = session->handshake_key;
@@ -701,6 +703,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 	launch_spec.width = session->connect_info.video_profile.width;
 	launch_spec.height = session->connect_info.video_profile.height;
 	launch_spec.max_fps = session->connect_info.video_profile.max_fps;
+	launch_spec.codec = session->connect_info.video_profile.codec;
 	launch_spec.bw_kbps_sent = session->connect_info.video_profile.bitrate;
 
 	union
@@ -755,7 +758,7 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 
 	msg.type = tkproto_TakionMessage_PayloadType_BIG;
 	msg.has_big_payload = true;
-	msg.big_payload.client_version = 9;
+	msg.big_payload.client_version = stream_connection->takion.version;
 	msg.big_payload.session_key.arg = session->session_id;
 	msg.big_payload.session_key.funcs.encode = chiaki_pb_encode_string;
 	msg.big_payload.launch_spec.arg = launch_spec_buf.b64;

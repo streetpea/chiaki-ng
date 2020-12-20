@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
+#include "chiaki/feedback.h"
 #include <chiaki/takion.h>
 #include <chiaki/congestioncontrol.h>
 #include <chiaki/random.h>
@@ -180,17 +181,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	ChiakiErrorCode ret = CHIAKI_ERR_SUCCESS;
 
 	takion->log = info->log;
+	takion->version = info->protocol_version;
 
-	switch(info->protocol_version)
+	switch(takion->version)
 	{
 		case 7:
 			takion->av_packet_parse = chiaki_takion_v7_av_packet_parse;
 			break;
 		case 9:
+		case 12:
 			takion->av_packet_parse = chiaki_takion_v9_av_packet_parse;
 			break;
 		default:
-			CHIAKI_LOGE(takion->log, "Unknown Takion Protocol Version %u", (unsigned int)info->protocol_version);
+			CHIAKI_LOGE(takion->log, "Unknown Takion Protocol Version %u", (unsigned int)takion->version);
 			return CHIAKI_ERR_INVALID_DATA;
 	}
 
@@ -541,14 +544,24 @@ beach:
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, ChiakiFeedbackState *feedback_state)
 {
-	uint8_t buf[0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE];
+	uint8_t buf[0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE_MAX];
 	buf[0] = TAKION_PACKET_TYPE_FEEDBACK_STATE;
 	*((chiaki_unaligned_uint16_t *)(buf + 1)) = htons(seq_num);
 	buf[3] = 0; // TODO
 	*((chiaki_unaligned_uint32_t *)(buf + 4)) = 0; // key pos
 	*((chiaki_unaligned_uint32_t *)(buf + 8)) = 0; // gmac
-	chiaki_feedback_state_format(buf + 0xc, feedback_state);
-	return takion_send_feedback_packet(takion, buf, sizeof(buf));
+	size_t buf_sz;
+	if(takion->version <= 9)
+	{
+		buf_sz = CHIAKI_FEEDBACK_STATE_BUF_SIZE_V9;
+		chiaki_feedback_state_format_v9(buf + 0xc, feedback_state);
+	}
+	else
+	{
+		buf_sz = CHIAKI_FEEDBACK_STATE_BUF_SIZE_V12;
+		chiaki_feedback_state_format_v9(buf + 0xc, feedback_state);
+	}
+	return takion_send_feedback_packet(takion, buf, buf_sz);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_history(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, uint8_t *payload, size_t payload_size)

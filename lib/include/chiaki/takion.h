@@ -110,6 +110,7 @@ typedef struct chiaki_takion_connect_info_t
 typedef struct chiaki_takion_t
 {
 	ChiakiLog *log;
+	uint8_t version;
 
 	/**
 	 * Whether encryption should be used.

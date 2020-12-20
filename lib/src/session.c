@@ -370,6 +370,7 @@ static void *session_thread_func(void *arg)
 
 	ChiakiTarget server_target = CHIAKI_TARGET_PS4_UNKNOWN;
 	success = session_thread_request_session(session, &server_target) == CHIAKI_ERR_SUCCESS;
+	// TODO: Check Network error return
 
 	if(!success && chiaki_target_is_unknown(server_target))
 	{
@@ -653,7 +654,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		CHIAKI_LOGE(session->log, "Session request connect failed eventually.");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-		return false;
+		return CHIAKI_ERR_NETWORK;
 	}
 
 	CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_PORT);
@@ -690,7 +691,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-		return false;
+		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	const char *rp_version_str = chiaki_rp_version_string(session->target);
