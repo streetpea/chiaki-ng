@@ -189,8 +189,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 			takion->av_packet_parse = chiaki_takion_v7_av_packet_parse;
 			break;
 		case 9:
-		case 12:
 			takion->av_packet_parse = chiaki_takion_v9_av_packet_parse;
+			break;
+		case 12:
+			takion->av_packet_parse = chiaki_takion_v12_av_packet_parse;
 			break;
 		default:
 			CHIAKI_LOGE(takion->log, "Unknown Takion Protocol Version %u", (unsigned int)takion->version);
@@ -1243,7 +1245,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	}
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)
+static ChiakiErrorCode av_packet_parse(bool v12, ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)
 {
 	memset(packet, 0, sizeof(ChiakiTakionAVPacket));
 
@@ -1261,7 +1263,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 
 	uint8_t *av = buf+1;
 	size_t av_size = buf_size-1;
-	size_t av_header_size = packet->is_video ? CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO : CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO;
+	size_t av_header_size = v12
+		? (packet->is_video ? CHIAKI_TAKION_V12_AV_HEADER_SIZE_VIDEO : CHIAKI_TAKION_V12_AV_HEADER_SIZE_AUDIO)
+		: (packet->is_video ? CHIAKI_TAKION_V9_AV_HEADER_SIZE_VIDEO : CHIAKI_TAKION_V9_AV_HEADER_SIZE_AUDIO);
 	if(av_size < av_header_size + 1)
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
@@ -1320,10 +1324,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPac
 		av_size -= 3;
 	}
 
+	if(v12 && !packet->is_video)
+	{
+		packet->byte_before_audio_data = *av;
+		av += 1;
+		av_size -= 1;
+	}
+
 	packet->data = av;
 	packet->data_size = av_size;
 
 	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v9_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)
+{
+	return av_packet_parse(false, packet, key_state, buf, buf_size);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v12_av_packet_parse(ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)
+{
+	return av_packet_parse(true, packet, key_state, buf, buf_size);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_format_header(uint8_t *buf, size_t buf_size, size_t *header_size_out, ChiakiTakionAVPacket *packet)

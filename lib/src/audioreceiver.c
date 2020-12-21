@@ -78,7 +78,9 @@ CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_re
 
 	if(packet->data_size != (size_t)unit_size * (size_t)packet->units_in_frame_total)
 	{
-		CHIAKI_LOGE(audio_receiver->log, "Audio AV Packet size mismatch");
+		CHIAKI_LOGE(audio_receiver->log, "Audio AV Packet size mismatch %#llx vs %#llx",
+				(unsigned long long)packet->data_size,
+				(unsigned long long)(unit_size * packet->units_in_frame_total));
 		return;
 	}
 
