@@ -89,6 +89,16 @@ typedef enum
 	CHIAKI_CODEC_H265_HDR
 } ChiakiCodec;
 
+static inline bool chiaki_codec_is_h265(ChiakiCodec codec)
+{
+	return codec == CHIAKI_CODEC_H265 || codec == CHIAKI_CODEC_H265_HDR;
+}
+
+static inline bool chiaki_codec_is_hdr(ChiakiCodec codec)
+{
+	return codec == CHIAKI_CODEC_H265_HDR;
+}
+
 #ifdef __cplusplus
 }
 #endif

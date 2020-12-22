@@ -204,11 +204,12 @@ void Settings::SetAudioBufferSize(unsigned int size)
 
 ChiakiConnectVideoProfile Settings::GetVideoProfile()
 {
-	ChiakiConnectVideoProfile profile;
+	ChiakiConnectVideoProfile profile = {};
 	chiaki_connect_video_profile_preset(&profile, GetResolution(), GetFPS());
 	unsigned int bitrate = GetBitrate();
 	if(bitrate)
 		profile.bitrate = bitrate;
+	profile.codec = CHIAKI_CODEC_H264; // TODO: add a setting
 	return profile;
 }
 
