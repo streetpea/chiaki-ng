@@ -28,7 +28,7 @@ class Settings
 		{
 			UNKNOWN,
 			HOST_NAME,
-			HOST_IP,
+			HOST_ADDR,
 			PSN_ONLINE_ID,
 			PSN_ACCOUNT_ID,
 			RP_KEY,
@@ -43,7 +43,7 @@ class Settings
 		// the goal is to read/write inernal flat configuration file
 		const std::map<Settings::ConfigurationItem, std::regex> re_map = {
 			{ HOST_NAME, std::regex("^\\[\\s*(.+)\\s*\\]") },
-			{ HOST_IP, std::regex("^\\s*host_ip\\s*=\\s*\"?(\\d+\\.\\d+\\.\\d+\\.\\d+)\"?") },
+			{ HOST_ADDR, std::regex("^\\s*host_(?:ip|addr)\\s*=\\s*\"?((\\d+\\.\\d+\\.\\d+\\.\\d+)|([A-Za-z0-9-]{1,255}))\"?") },
 			{ PSN_ONLINE_ID, std::regex("^\\s*psn_online_id\\s*=\\s*\"?(\\w+)\"?") },
 			{ PSN_ACCOUNT_ID, std::regex("^\\s*psn_account_id\\s*=\\s*\"?([\\w/=+]+)\"?") },
 			{ RP_KEY, std::regex("^\\s*rp_key\\s*=\\s*\"?([\\w/=+]+)\"?") },
@@ -75,7 +75,7 @@ class Settings
 		void SetVideoFPS(Host * host, ChiakiVideoFPSPreset value);
 		void SetVideoResolution(Host * host, std::string value);
 		void SetVideoFPS(Host * host, std::string value);
-		std::string GetHostIPAddr(Host * host);
+		std::string GetHostAddr(Host * host);
 		std::string GetHostName(Host * host);
 		bool SetHostRPKeyType(Host * host, std::string value);
 		int GetHostRPKeyType(Host * host);

@@ -259,12 +259,12 @@ void Settings::SetCPUOverclock(Host * host, std::string value)
 }
 #endif
 
-std::string Settings::GetHostIPAddr(Host * host)
+std::string Settings::GetHostAddr(Host * host)
 {
 	if(host != nullptr)
 		return host->host_addr;
 	else
-		CHIAKI_LOGE(this->log, "Cannot GetHostIPAddr from nullptr host");
+		CHIAKI_LOGE(this->log, "Cannot GetHostAddr from nullptr host");
 	return "";
 }
 
@@ -393,7 +393,7 @@ void Settings::ParseFile()
 	config_file.open(this->filename, std::fstream::in);
 	std::string line;
 	std::string value;
-	bool rp_key_b, rp_regist_key_b, rp_key_type_b;
+	bool rp_key_b = false, rp_regist_key_b = false, rp_key_type_b = false;
 	Host *current_host = nullptr;
 	if(config_file.is_open())
 	{
@@ -413,16 +413,15 @@ void Settings::ParseFile()
 					// current host is in context
 					current_host = this->GetOrCreateHost(&value);
 					// all following case will edit the current_host config
-					break;
-				case HOST_IP:
-					CHIAKI_LOGV(this->log, "HOST_IP %s", value.c_str());
-					if(current_host != nullptr)
-						current_host->host_addr = value;
 
-					// reset bool flags
 					rp_key_b=false;
 					rp_regist_key_b=false;
 					rp_key_type_b=false;
+					break;
+				case HOST_ADDR:
+					CHIAKI_LOGV(this->log, "HOST_ADDR %s", value.c_str());
+					if(current_host != nullptr)
+						current_host->host_addr = value;
 					break;
 				case PSN_ONLINE_ID:
 					CHIAKI_LOGV(this->log, "PSN_ONLINE_ID %s", value.c_str());
@@ -510,7 +509,7 @@ int Settings::WriteFile()
 			CHIAKI_LOGD(this->log, "Write Host config file %s", it->first.c_str());
 
 			config_file << "[" << it->first << "]\n"
-				<< "host_ip = \"" << it->second.host_addr << "\"\n";
+				<< "host_addr = \"" << it->second.host_addr << "\"\n";
 
 			if(it->second.video_resolution)
 				config_file << "video_resolution = \""

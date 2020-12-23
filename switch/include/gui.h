@@ -32,7 +32,9 @@ class HostInterface
 		HostInterface(brls::List * hostList, IO * io, Host * host, Settings * settings);
 		~HostInterface();
 
-		void Register(bool pin_incorrect);
+		static void Register(IO * io, Host * host,
+			Settings * settings, std::function<void()> success_cb = nullptr);
+		void Register();
 		void Wakeup(brls::View * view);
 		void Connect(brls::View * view);
 		void ConnectSession();
@@ -51,7 +53,13 @@ class MainApplication
 		IO * io;
 		brls::TabFrame * rootFrame;
 		std::map<Host *, brls::List *> host_menuitems;
+		// add_host local settings
+		std::string remote_display_name = "";
+		std::string remote_addr = "";
+		int remote_ps4_version = 8000000;
+
 		bool BuildConfigurationMenu(brls::List *, Host * host = nullptr);
+		void BuildAddHostConfigurationMenu(brls::List *);
 	public:
 		MainApplication(std::map<std::string, Host> * hosts,
 				Settings * settings, DiscoveryManager * discoverymanager,
