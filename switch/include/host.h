@@ -59,9 +59,9 @@ class Host
 		std::string ap_bssid;
 		std::string ap_key;
 		std::string ap_name;
-		std::string ps4_nickname;
+		std::string server_nickname;
 		// mac address = 48 bits
-		uint8_t ps4_mac[6] = {0};
+		uint8_t server_mac[6] = {0};
 		char rp_regist_key[CHIAKI_SESSION_AUTH_SIZE] = {0};
 		uint32_t rp_key_type = 0;
 		uint8_t rp_key[0x10] = {0};

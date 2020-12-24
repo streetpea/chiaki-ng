@@ -52,12 +52,12 @@ void HostInterface::Register(bool pin_incorrect)
 {
 	if(pin_incorrect)
 	{
-		DIALOG(srfpvyps, "Session Registration Failed, Please verify your PS4 settings");
+		DIALOG(srfpvyps, "Session Registration Failed, Please verify your PlayStation settings");
 		return;
 	}
 
 	// the host is not registered yet
-	brls::Dialog* peprpc = new brls::Dialog("Please enter your PS4 registration PIN code");
+	brls::Dialog* peprpc = new brls::Dialog("Please enter your PlayStation registration PIN code");
 	brls::GenericEvent::Callback cb_peprpc = [this, peprpc](brls::View* view)
 	{
 		bool pin_provided = false;
@@ -101,18 +101,18 @@ void HostInterface::Wakeup(brls::View * view)
 	if(!this->host->rp_key_data)
 	{
 		// the host is not registered yet
-		DIALOG(prypf, "Please register your PS4 first");
+		DIALOG(prypf, "Please register your PlayStation first");
 	}
 	else
 	{
 		int r = host->Wakeup();
 		if(r == 0)
 		{
-			brls::Application::notify("PS4 Wakeup packet sent");
+			brls::Application::notify("PlayStation Wakeup packet sent");
 		}
 		else
 		{
-			brls::Application::notify("PS4 Wakeup packet failed");
+			brls::Application::notify("PlayStation Wakeup packet failed");
 		}
 	}
 }
@@ -123,7 +123,7 @@ void HostInterface::Connect(brls::View * view)
 	if(this->host->state != CHIAKI_DISCOVERY_HOST_STATE_READY)
 	{
 		// host in standby mode
-		DIALOG(ptoyp, "Please turn on your PS4");
+		DIALOG(ptoyp, "Please turn on your PlayStation");
 		return;
 	}
 
@@ -211,7 +211,7 @@ bool HostInterface::Stream()
 	// brls::Application::setDisplayFramerate(true);
 
 	// push raw opengl stream over borealis
-	brls::Application::pushView(new PS4RemotePlay(this->io, this->host));
+	brls::Application::pushView(new PSRemotePlay(this->io, this->host));
 	return true;
 }
 
@@ -276,7 +276,7 @@ bool MainApplication::Load()
 
 	// Create a view
 	this->rootFrame = new brls::TabFrame();
-	this->rootFrame->setTitle("Chiaki: Open Source PS4 Remote Play Client");
+	this->rootFrame->setTitle("Chiaki: Open Source PlayStation Remote Play Client");
 	this->rootFrame->setIcon(BOREALIS_ASSET("icon.jpg"));
 
 	brls::List* config = new brls::List();
@@ -428,12 +428,12 @@ bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 		ls->addView(info);
 
 		std::string host_name_string = this->settings->GetHostName(host);
-		brls::ListItem* host_name = new brls::ListItem("PS4 Hostname");
+		brls::ListItem* host_name = new brls::ListItem("PS Hostname");
 		host_name->setValue(host_name_string.c_str());
 		ls->addView(host_name);
 
 		std::string host_ipaddr_string = settings->GetHostIPAddr(host);
-		brls::ListItem* host_ipaddr = new brls::ListItem("PS4 IP Address");
+		brls::ListItem* host_ipaddr = new brls::ListItem("PS IP Address");
 		host_ipaddr->setValue(host_ipaddr_string.c_str());
 		ls->addView(host_ipaddr);
 
@@ -457,7 +457,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 	return true;
 }
 
-PS4RemotePlay::PS4RemotePlay(IO * io, Host * host)
+PSRemotePlay::PSRemotePlay(IO * io, Host * host)
 	: io(io), host(host)
 {
 	// store joycon/touchpad keys
@@ -468,7 +468,7 @@ PS4RemotePlay::PS4RemotePlay(IO * io, Host * host)
 	// this->base_time=glfwGetTime();
 }
 
-void PS4RemotePlay::draw(NVGcontext* vg, int x, int y, unsigned width, unsigned height, brls::Style* style, brls::FrameContext* ctx)
+void PSRemotePlay::draw(NVGcontext* vg, int x, int y, unsigned width, unsigned height, brls::Style* style, brls::FrameContext* ctx)
 {
 	this->io->MainLoop(&this->state);
 	this->host->SendFeedbackState(&state);
@@ -493,7 +493,7 @@ void PS4RemotePlay::draw(NVGcontext* vg, int x, int y, unsigned width, unsigned 
 	// nvgText(vg, 5,10, fps_str, NULL);
 }
 
-PS4RemotePlay::~PS4RemotePlay()
+PSRemotePlay::~PSRemotePlay()
 {
 }
 

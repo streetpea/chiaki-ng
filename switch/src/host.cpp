@@ -230,8 +230,8 @@ void Host::RegistCB(ChiakiRegistEvent * event)
 				this->ap_ssid = r_host->ap_ssid;
 				this->ap_key = r_host->ap_key;
 				this->ap_name = r_host->ap_name;
-				memcpy( &(this->ps4_mac), &(r_host->ps4_mac), sizeof(this->ps4_mac) );
-				this->ps4_nickname = r_host->ps4_nickname;
+				memcpy( &(this->server_mac), &(r_host->server_mac), sizeof(this->server_mac) );
+				this->server_nickname = r_host->server_nickname;
 				memcpy( &(this->rp_regist_key),  &(r_host->rp_regist_key), sizeof(this->rp_regist_key) );
 				this->rp_key_type = r_host->rp_key_type;
 				memcpy( &(this->rp_key), &(r_host->rp_key), sizeof(this->rp_key) );

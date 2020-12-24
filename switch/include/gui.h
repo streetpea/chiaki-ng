@@ -61,7 +61,7 @@ class MainApplication
 		bool Load();
 };
 
-class PS4RemotePlay : public brls::View
+class PSRemotePlay : public brls::View
 {
 	private:
 		brls::AppletFrame * frame;
@@ -77,8 +77,8 @@ class PS4RemotePlay : public brls::View
 		// int fps = 0;
 
 	public:
-		PS4RemotePlay(IO * io, Host * host);
-		~PS4RemotePlay();
+		PSRemotePlay(IO * io, Host * host);
+		~PSRemotePlay();
 
 		void draw(NVGcontext * vg, int x, int y, unsigned width, unsigned height, brls::Style * style, brls::FrameContext * ctx) override;
 };
