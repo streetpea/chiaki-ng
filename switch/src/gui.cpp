@@ -53,13 +53,15 @@ void HostInterface::Register(IO * io, Host * host, Settings * settings, std::fun
 	// user must provide psn id for registration
 	std::string account_id = settings->GetPSNAccountID(host);
 	std::string online_id = settings->GetPSNOnlineID(host);
-	if(host->system_version >= 7000000 && account_id.length() <= 0)
+	ChiakiTarget target = host->GetChiakiTarget();
+
+	if(target >= CHIAKI_TARGET_PS4_9 && account_id.length() <= 0)
 	{
 		// PS4 firmware > 7.0
 		DIALOG(upaid, "Undefined PSN Account ID (Please configure a valid psn_account_id)");
 		return;
 	}
-	else if( host->system_version < 7000000 && host->system_version > 0 && online_id.length() <= 0)
+	else if(target < CHIAKI_TARGET_PS4_9 && online_id.length() <= 0)
 	{
 		// use oline ID for ps4 < 7.0
 		DIALOG(upoid, "Undefined PSN Online ID (Please configure a valid psn_online_id)");
@@ -141,7 +143,7 @@ void HostInterface::Register()
 
 void HostInterface::Wakeup(brls::View * view)
 {
-	if(!this->host->rp_key_data)
+	if(!this->host->HasRPkey())
 	{
 		// the host is not registered yet
 		DIALOG(prypf, "Please register your PlayStation first");
@@ -163,7 +165,7 @@ void HostInterface::Wakeup(brls::View * view)
 void HostInterface::Connect(brls::View * view)
 {
 	// check that all requirements are met
-	if(!this->host->discovered && !this->host->rp_key_data)
+	if(!this->host->IsDiscovered() && !this->host->HasRPkey())
 	{
 		// at this point the host must be discovered or registered manually
 		// to validate the system_version accuracy
@@ -171,14 +173,14 @@ void HostInterface::Connect(brls::View * view)
 	}
 
 	// ignore state for remote hosts
-	if(this->host->discovered && this->host->state != CHIAKI_DISCOVERY_HOST_STATE_READY)
+	if(this->host->IsDiscovered() && this->host->IsReady())
 	{
 		// host in standby mode
 		DIALOG(ptoyp, "Please turn on your PlayStation");
 		return;
 	}
 
-	if(!this->host->rp_key_data)
+	if(!this->host->HasRPkey())
 	{
 		this->Register();
 	}
@@ -309,14 +311,14 @@ bool MainApplication::Load()
 		{
 			// add host to the gui only if the host is registered or discovered
 			if(this->host_menuitems.find(&it->second) == this->host_menuitems.end()
-				&& (it->second.rp_key_data == true || it->second.discovered == true))
+				&& (it->second.HasRPkey() == true || it->second.IsDiscovered() == true))
 			{
 				brls::List* new_host = new brls::List();
 				this->host_menuitems[&it->second] = new_host;
 				// create host if udefined
 				HostInterface host_menu = HostInterface(new_host, this->io, &it->second, this->settings);
 				BuildConfigurationMenu(new_host, &it->second);
-				this->rootFrame->addTab(it->second.host_name.c_str(), new_host);
+				this->rootFrame->addTab(it->second.GetHostName().c_str(), new_host);
 			}
 		}
 	}
@@ -325,6 +327,26 @@ bool MainApplication::Load()
 
 bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 {
+	std::string psn_account_id_string = this->settings->GetPSNAccountID(host);
+	brls::ListItem* psn_account_id = new brls::ListItem("PSN Account ID",  "PS5 or PS4 v7.0 and greater (base64 account_id)");
+	psn_account_id->setValue(psn_account_id_string.c_str());
+	auto psn_account_id_cb = [this, host, psn_account_id](brls::View * view)
+	{
+		char account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2] = {0};
+		bool input = this->io->ReadUserKeyboard(account_id, sizeof(account_id));
+		if(input)
+		{
+			// update gui
+			psn_account_id->setValue(account_id);
+			// push in setting
+			this->settings->SetPSNAccountID(host, account_id);
+			// write on disk
+			this->settings->WriteFile();
+		}
+	};
+	psn_account_id->getClickEvent()->subscribe(psn_account_id_cb);
+	ls->addView(psn_account_id);
+
 	std::string psn_online_id_string = this->settings->GetPSNOnlineID(host);
 	brls::ListItem* psn_online_id = new brls::ListItem("PSN Online ID");
 	psn_online_id->setValue(psn_online_id_string.c_str());
@@ -344,26 +366,6 @@ bool MainApplication::BuildConfigurationMenu(brls::List * ls, Host * host)
 	};
 	psn_online_id->getClickEvent()->subscribe(psn_online_id_cb);
 	ls->addView(psn_online_id);
-
-	std::string psn_account_id_string = this->settings->GetPSNAccountID(host);
-	brls::ListItem* psn_account_id = new brls::ListItem("PSN Account ID",  "v7.0 and greater");
-	psn_account_id->setValue(psn_account_id_string.c_str());
-	auto psn_account_id_cb = [this, host, psn_account_id](brls::View * view)
-	{
-		char account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2] = {0};
-		bool input = this->io->ReadUserKeyboard(account_id, sizeof(account_id));
-		if(input)
-		{
-			// update gui
-			psn_account_id->setValue(account_id);
-			// push in setting
-			this->settings->SetPSNAccountID(host, account_id);
-			// write on disk
-			this->settings->WriteFile();
-		}
-	};
-	psn_account_id->getClickEvent()->subscribe(psn_account_id_cb);
-	ls->addView(psn_account_id);
 
 	int value;
 	ChiakiVideoResolutionPreset resolution_preset = this->settings->GetVideoResolution(host);
@@ -517,25 +519,32 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List * add_host)
 	// brls::ListItem* port = new brls::ListItem("Remote session port",  "tcp/udp 9295");
 	// brls::ListItem* port = new brls::ListItem("Remote stream port",  "udp 9296");
 	// brls::ListItem* port = new brls::ListItem("Remote Senkusha port",  "udp 9297");
-	brls::SelectListItem* ps4_version = new brls::SelectListItem("PS4 Version",
-					{ "PS4 > 8", "7 < PS4 < 8",  "PS4 < 7"});
-	auto ps4_version_cb = [this, ps4_version](int result)
+	brls::SelectListItem* ps_version = new brls::SelectListItem("PlayStation Version",
+					{ "PS5", "PS4 > 8", "7 < PS4 < 8",  "PS4 < 7"});
+	auto ps_version_cb = [this, ps_version](int result)
 	{
 		switch(result)
 		{
 			case 0:
-				this->remote_ps4_version = 8000000;
+				// ps5 v1
+				this->remote_ps_version = CHIAKI_TARGET_PS5_1;
 				break;
 			case 1:
-				this->remote_ps4_version = 7000000;
+				// ps4 v8
+				this->remote_ps_version = CHIAKI_TARGET_PS4_10;
 				break;
 			case 2:
-				this->remote_ps4_version = 6000000;
+				// ps4 v7
+				this->remote_ps_version = CHIAKI_TARGET_PS4_9;
+				break;
+			case 3:
+				// ps4 v6
+				this->remote_ps_version = CHIAKI_TARGET_PS4_8;
 				break;
 		}
 	};
-	ps4_version->getValueSelectedEvent()->subscribe(ps4_version_cb);
-	add_host->addView(ps4_version);
+	ps_version->getValueSelectedEvent()->subscribe(ps_version_cb);
+	add_host->addView(ps_version);
 
 	brls::ListItem* register_host = new brls::ListItem("Register");
 	auto register_host_cb = [this](brls::View * view)
@@ -553,9 +562,9 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List * add_host)
 			err = true;
 		}
 
-		if(this->remote_ps4_version < 0)
+		if(this->remote_ps_version < 0)
 		{
-			brls::Application::notify("No PS4 Version provided");
+			brls::Application::notify("No PlayStation Version provided");
 			err = true;
 		}
 
@@ -563,8 +572,8 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List * add_host)
 			return;
 
 		Host * host = this->settings->GetOrCreateHost(&this->remote_display_name);
-		host->host_addr = this->remote_addr;
-		host->system_version = this->remote_ps4_version;
+		host->SetHostAddr(this->remote_addr);
+		host->SetChiakiTarget(this->remote_ps_version);
 
 		HostInterface::Register(this->io, host, this->settings);
 	};

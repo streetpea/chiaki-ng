@@ -36,6 +36,7 @@ class Settings
 			RP_REGIST_KEY,
 			VIDEO_RESOLUTION,
 			VIDEO_FPS,
+			TARGET,
 		} ConfigurationItem;
 
 		// dummy parser implementation
@@ -51,6 +52,7 @@ class Settings
 			{ RP_REGIST_KEY, std::regex("^\\s*rp_regist_key\\s*=\\s*\"?([\\w/=+]+)\"?") },
 			{ VIDEO_RESOLUTION, std::regex("^\\s*video_resolution\\s*=\\s*\"?(1080p|720p|540p|360p)\"?") },
 			{ VIDEO_FPS, std::regex("^\\s*video_fps\\s*=\\s*\"?(60|30)\"?") },
+			{ TARGET, std::regex("^\\s*target\\s*=\\s*\"?(\\d+)\"?") },
 		};
 
 		ConfigurationItem ParseLine(std::string * line, std::string * value);
@@ -75,6 +77,8 @@ class Settings
 		void SetVideoFPS(Host * host, ChiakiVideoFPSPreset value);
 		void SetVideoResolution(Host * host, std::string value);
 		void SetVideoFPS(Host * host, std::string value);
+		bool SetChiakiTarget(Host * host, ChiakiTarget target);
+		bool SetChiakiTarget(Host * host, std::string value);
 		std::string GetHostAddr(Host * host);
 		std::string GetHostName(Host * host);
 		bool SetHostRPKeyType(Host * host, std::string value);
@@ -83,6 +87,7 @@ class Settings
 		std::string GetHostRPRegistKey(Host * host);
 		bool SetHostRPKey(Host * host, std::string rp_key_b64);
 		bool SetHostRPRegistKey(Host * host, std::string rp_regist_key_b64);
+		ChiakiTarget GetChiakiTarget(Host * host);
 		void ParseFile();
 		int WriteFile();
 };

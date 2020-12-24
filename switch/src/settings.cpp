@@ -262,7 +262,7 @@ void Settings::SetCPUOverclock(Host * host, std::string value)
 std::string Settings::GetHostAddr(Host * host)
 {
 	if(host != nullptr)
-		return host->host_addr;
+		return host->GetHostAddr();
 	else
 		CHIAKI_LOGE(this->log, "Cannot GetHostAddr from nullptr host");
 	return "";
@@ -271,7 +271,7 @@ std::string Settings::GetHostAddr(Host * host)
 std::string Settings::GetHostName(Host * host)
 {
 	if(host != nullptr)
-		return host->host_name;
+		return host->GetHostName();
 	else
 		CHIAKI_LOGE(this->log, "Cannot GetHostName from nullptr host");
 	return "";
@@ -386,6 +386,31 @@ bool Settings::SetHostRPRegistKey(Host * host, std::string rp_regist_key_b64)
 	return false;
 }
 
+ChiakiTarget Settings::GetChiakiTarget(Host * host)
+{
+	return host->GetChiakiTarget();
+}
+
+bool Settings::SetChiakiTarget(Host * host, ChiakiTarget target)
+{
+	if(host != nullptr)
+	{
+		host->SetChiakiTarget(target);
+		return true;
+	}
+	else
+	{
+		CHIAKI_LOGE(this->log, "Cannot SetChiakiTarget from nullptr host");
+		return false;
+	}
+}
+
+bool Settings::SetChiakiTarget(Host * host, std::string value)
+{
+	// TODO Check possible target values
+	return this->SetChiakiTarget(host, static_cast<ChiakiTarget>(std::atoi(value.c_str())));
+}
+
 void Settings::ParseFile()
 {
 	CHIAKI_LOGI(this->log, "Parse config file %s", this->filename);
@@ -456,6 +481,11 @@ void Settings::ParseFile()
 				case VIDEO_FPS:
 					this->SetVideoFPS(current_host, value);
 					break;
+				case TARGET:
+					CHIAKI_LOGV(this->log, "TARGET %s", value.c_str());
+					if(current_host != nullptr)
+						this->SetChiakiTarget(current_host, value);
+					break;
 			} // ci switch
 			if(rp_key_b && rp_regist_key_b && rp_key_type_b)
 				// the current host contains rp key data
@@ -509,8 +539,10 @@ int Settings::WriteFile()
 			CHIAKI_LOGD(this->log, "Write Host config file %s", it->first.c_str());
 
 			config_file << "[" << it->first << "]\n"
-				<< "host_addr = \"" << it->second.host_addr << "\"\n";
+				<< "host_addr = \"" << it->second.GetHostAddr() << "\"\n"
+				<< "target = " << it->second.GetChiakiTarget() << "\"\n";
 
+			config_file << "target = \"" << it->second.psn_account_id << "\"\n";
 			if(it->second.video_resolution)
 				config_file << "video_resolution = \""
 					<< this->ResolutionPresetToString(this->GetVideoResolution(&it->second))
@@ -535,7 +567,8 @@ int Settings::WriteFile()
 				config_file << "rp_key = \"" << this->GetHostRPKey(&it->second) << "\"\n"
 					<< "rp_regist_key = \"" << this->GetHostRPRegistKey(&it->second) << "\"\n"
 					<< "rp_key_type = " << rp_key_type << "\n";
-			} //
+			}
+
 			config_file << "\n";
 		} // for host
 	} // is_open

@@ -74,14 +74,13 @@ int Host::Register(std::string pin)
 {
 	// use pin and accont_id to negociate secrets for session
 	//
-	// convert psn_account_id into uint8_t[CHIAKI_PSN_ACCOUNT_ID_SIZE]
-	// CHIAKI_PSN_ACCOUNT_ID_SIZE == 8
 	std::string account_id = this->settings->GetPSNAccountID(this);
 	std::string online_id = this->settings->GetPSNOnlineID(this);
 	size_t account_id_size = sizeof(uint8_t[CHIAKI_PSN_ACCOUNT_ID_SIZE]);
 
-	// PS4 firmware > 7.0
-	if(this->system_version >= 7000000)
+	regist_info.target = this->target;
+
+	if(this->target >= CHIAKI_TARGET_PS4_9)
 	{
 		// use AccountID for ps4 > 7.0
 		if(account_id.length() > 0)
@@ -95,12 +94,8 @@ int Host::Register(std::string pin)
 			CHIAKI_LOGE(this->log, "Undefined PSN Account ID (Please configure a valid psn_account_id)");
 			return HOST_REGISTER_ERROR_SETTING_PSNACCOUNTID;
 		}
-		if(this->system_version >= 8000000)
-			regist_info.target = CHIAKI_TARGET_PS4_10;
-		else
-			regist_info.target = CHIAKI_TARGET_PS4_9;
 	}
-	else if( this->system_version < 7000000 && this->system_version > 0)
+	else if(this->target > CHIAKI_TARGET_PS4_UNKNOWN)
 	{
 		// use oline ID for ps4 < 7.0
 		if(online_id.length() > 0)
@@ -113,7 +108,6 @@ int Host::Register(std::string pin)
 			CHIAKI_LOGE(this->log, "Undefined PSN Online ID (Please configure a valid psn_online_id)");
 			return HOST_REGISTER_ERROR_SETTING_PSNONLINEID;
 		}
-		regist_info.target = CHIAKI_TARGET_PS4_8;
 	}
 	else
 	{
@@ -147,6 +141,12 @@ int Host::InitSession(IO * user)
 
 	chiaki_connect_info.host = this->host_addr.c_str();
 	chiaki_connect_info.video_profile = this->video_profile;
+
+	if(this->target >= CHIAKI_TARGET_PS5_UNKNOWN)
+		chiaki_connect_info.ps5 = true;
+	else
+		chiaki_connect_info.ps5 = false;
+
 	memcpy(chiaki_connect_info.regist_key, this->rp_regist_key, sizeof(chiaki_connect_info.regist_key));
 	memcpy(chiaki_connect_info.morning, this->rp_key, sizeof(chiaki_connect_info.morning));
 	// set keybord state to 0
@@ -277,3 +277,62 @@ bool Host::GetVideoResolution(int * ret_width, int * ret_height)
 	return true;
 }
 
+std::string Host::GetHostName()
+{
+	return this->host_name;
+}
+
+std::string Host::GetHostAddr()
+{
+	return this->host_addr;
+}
+
+ChiakiTarget Host::GetChiakiTarget()
+{
+	return this->target;
+}
+
+void Host::SetChiakiTarget(ChiakiTarget target)
+{
+	this->target = target;
+}
+
+void Host::SetHostAddr(std::string host_addr)
+{
+	this->host_addr = host_addr;
+}
+
+void Host::SetRegistEventTypeFinishedCanceled(std::function<void()> chiaki_regist_event_type_finished_canceled)
+{
+	this->chiaki_regist_event_type_finished_canceled = chiaki_regist_event_type_finished_canceled;
+}
+
+void Host::SetRegistEventTypeFinishedFailed(std::function<void()> chiaki_regist_event_type_finished_failed)
+{
+	this->chiaki_regist_event_type_finished_failed = chiaki_regist_event_type_finished_failed;
+}
+
+void Host::SetRegistEventTypeFinishedSuccess(std::function<void()> chiaki_regist_event_type_finished_success)
+{
+	this->chiaki_regist_event_type_finished_success = chiaki_regist_event_type_finished_success;
+}
+
+bool Host::IsRegistered()
+{
+	return this->registered;
+}
+
+bool Host::IsDiscovered()
+{
+	return this->discovered;
+}
+
+bool Host::IsReady()
+{
+	return this->state == CHIAKI_DISCOVERY_HOST_STATE_READY;
+}
+
+bool Host::HasRPkey()
+{
+	return this->rp_key_data;
+}

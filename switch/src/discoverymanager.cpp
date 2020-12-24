@@ -186,29 +186,19 @@ void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost * discovered_host)
 	CHIAKI_LOGI(this->log, "--");
 	CHIAKI_LOGI(this->log, "Discovered Host:");
 	CHIAKI_LOGI(this->log, "State:                             %s", chiaki_discovery_host_state_string(discovered_host->state));
-	/*
-	   host attr
-	   uint32_t host_addr;
-	   int system_version;
-	   int device_discovery_protocol_version;
-	   std::string host_name;
-	   std::string host_type;
-	   std::string host_id;
-	*/
+
 	host->state = discovered_host->state;
 
 	// add host ptr to list
-	if(discovered_host->system_version)
+	if(discovered_host->system_version && discovered_host->device_discovery_protocol_version)
 	{
 		// example: 07020001
-		host->system_version = atoi(discovered_host->system_version);
-		CHIAKI_LOGI(this->log, "System Version:                    %s", discovered_host->system_version);
-	}
+		ChiakiTarget target = chiaki_discovery_host_system_version_target(discovered_host);
+		host->SetChiakiTarget(target);
 
-	if(discovered_host->device_discovery_protocol_version)
-	{
-		host->device_discovery_protocol_version = atoi(discovered_host->device_discovery_protocol_version);
+		CHIAKI_LOGI(this->log, "System Version:                    %s", discovered_host->system_version);
 		CHIAKI_LOGI(this->log, "Device Discovery Protocol Version: %s", discovered_host->device_discovery_protocol_version);
+		CHIAKI_LOGI(this->log, "PlayStation ChiakiTarget Version:  %d", target);
 	}
 
 	if(discovered_host->host_request_port)

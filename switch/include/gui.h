@@ -56,7 +56,7 @@ class MainApplication
 		// add_host local settings
 		std::string remote_display_name = "";
 		std::string remote_addr = "";
-		int remote_ps4_version = 8000000;
+		ChiakiTarget remote_ps_version = CHIAKI_TARGET_PS5_1;
 
 		bool BuildConfigurationMenu(brls::List *, Host * host = nullptr);
 		void BuildAddHostConfigurationMenu(brls::List *);
