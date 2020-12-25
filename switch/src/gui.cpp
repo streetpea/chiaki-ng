@@ -21,21 +21,21 @@ using namespace brls::i18n::literals; // for _i18n
 	brls::Logger::info("Dialog: {0}", r);
 
 
-HostInterface::HostInterface(brls::List * hostList, IO * io, Host * host, Settings * settings)
-	: hostList(hostList), io(io), host(host), settings(settings)
+HostInterface::HostInterface(IO * io, Host * host, Settings * settings)
+	: io(io), host(host), settings(settings)
 {
 	brls::ListItem* connect = new brls::ListItem("Connect");
 	connect->getClickEvent()->subscribe(std::bind(&HostInterface::Connect, this, std::placeholders::_1));
-	this->hostList->addView(connect);
+	this->addView(connect);
 
 	brls::ListItem* wakeup = new brls::ListItem("Wakeup");
 	wakeup->getClickEvent()->subscribe(std::bind(&HostInterface::Wakeup, this, std::placeholders::_1));
-	this->hostList->addView(wakeup);
+	this->addView(wakeup);
 
 	// message delimiter
 	brls::Label* info = new brls::Label(brls::LabelStyle::REGULAR,
 			"Host configuration", true);
-	this->hostList->addView(info);
+	this->addView(info);
 
 	// push opengl chiaki stream
 	// when the host is connected
@@ -313,10 +313,9 @@ bool MainApplication::Load()
 			if(this->host_menuitems.find(&it->second) == this->host_menuitems.end()
 				&& (it->second.HasRPkey() == true || it->second.IsDiscovered() == true))
 			{
-				brls::List* new_host = new brls::List();
+				HostInterface * new_host = new HostInterface(this->io, &it->second, this->settings);
 				this->host_menuitems[&it->second] = new_host;
 				// create host if udefined
-				HostInterface host_menu = HostInterface(new_host, this->io, &it->second, this->settings);
 				BuildConfigurationMenu(new_host, &it->second);
 				this->rootFrame->addTab(it->second.GetHostName().c_str(), new_host);
 			}

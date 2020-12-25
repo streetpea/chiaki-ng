@@ -19,17 +19,15 @@
 #include "discoverymanager.h"
 #include "io.h"
 
-class HostInterface
+class HostInterface : public brls::List
 {
 	private:
-		brls::TabFrame * root;
 		IO * io;
 		Host * host;
 		Settings * settings;
-		brls::List * hostList;
 		bool connected = false;
 	public:
-		HostInterface(brls::List * hostList, IO * io, Host * host, Settings * settings);
+		HostInterface(IO * io, Host * host, Settings * settings);
 		~HostInterface();
 
 		static void Register(IO * io, Host * host,
@@ -52,7 +50,7 @@ class MainApplication
 		DiscoveryManager * discoverymanager;
 		IO * io;
 		brls::TabFrame * rootFrame;
-		std::map<Host *, brls::List *> host_menuitems;
+		std::map<Host *, HostInterface *> host_menuitems;
 		// add_host local settings
 		std::string remote_display_name = "";
 		std::string remote_addr = "";
