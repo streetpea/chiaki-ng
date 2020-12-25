@@ -142,7 +142,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 		return 1;
 	}
 
-	((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT); // TODO: IPv6
+	((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4); // TODO: IPv6, PS5, should probably use the service
 
 	ChiakiDiscoveryPacket packet;
 	memset(&packet, 0, sizeof(packet));
@@ -151,7 +151,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	chiaki_discovery_send(&discovery, &packet, host_addr, host_addr_len);
 
 	while(1)
-		sleep(1);
+		sleep(1); // TODO: wtf
 
 	return 0;
 }

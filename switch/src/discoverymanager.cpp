@@ -63,7 +63,6 @@ void DiscoveryManager::SetService(bool enable)
 
 		sockaddr_in addr = {};
 		addr.sin_family = AF_INET;
-		addr.sin_port = htons(CHIAKI_DISCOVERY_PORT);
 		addr.sin_addr.s_addr = GetIPv4BroadcastAddr();
 		options.send_addr = reinterpret_cast<sockaddr *>(&addr);
 		options.send_addr_size = sizeof(addr);

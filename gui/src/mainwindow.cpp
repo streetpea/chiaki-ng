@@ -212,7 +212,8 @@ void MainWindow::SendWakeup(const DisplayServer *server)
 
 	try
 	{
-		discovery_manager.SendWakeup(server->GetHostAddr(), server->registered_host.GetRPRegistKey());
+		discovery_manager.SendWakeup(server->GetHostAddr(), server->registered_host.GetRPRegistKey(),
+				chiaki_target_is_ps5(server->registered_host.GetTarget()));
 	}
 	catch(const Exception &e)
 	{

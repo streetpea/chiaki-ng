@@ -73,5 +73,5 @@ CHIAKI_EXPORT int chiaki_cli_cmd_wakeup(ChiakiLog *log, int argc, char *argv[])
 
 	uint64_t credential = (uint64_t)strtoull(arguments.registkey, NULL, 16);
 
-	return chiaki_discovery_wakeup(log, NULL, arguments.host, credential);
+	return chiaki_discovery_wakeup(log, NULL, arguments.host, credential, false);
 }

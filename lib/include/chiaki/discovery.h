@@ -21,8 +21,10 @@ typedef unsigned short sa_family_t;
 extern "C" {
 #endif
 
-#define CHIAKI_DISCOVERY_PORT 987
-#define CHIAKI_DISCOVERY_PROTOCOL_VERSION "00020020"
+#define CHIAKI_DISCOVERY_PORT_PS4 987
+#define CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS4 "00020020"
+#define CHIAKI_DISCOVERY_PORT_PS5 9302
+#define CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS5 "00030010"
 
 typedef enum chiaki_discovery_cmd_t
 {
@@ -101,7 +103,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread
  * Convenience function to send a wakeup packet
  * @param discovery Discovery to send the packet on. May be NULL, in which case a new temporary Discovery will be created
  */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDiscovery *discovery, const char *host, uint64_t user_credential);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDiscovery *discovery, const char *host, uint64_t user_credential, bool ps5);
 
 #ifdef __cplusplus
 }
