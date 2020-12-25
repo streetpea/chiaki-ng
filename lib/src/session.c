@@ -349,7 +349,6 @@ static bool session_check_state_pred_pin(void *user)
 static void *session_thread_func(void *arg)
 {
 	ChiakiSession *session = arg;
-	bool success;
 
 	chiaki_mutex_lock(&session->state_mutex);
 
@@ -369,24 +368,27 @@ static void *session_thread_func(void *arg)
 	CHIAKI_LOGI(session->log, "Starting session request for %s", session->connect_info.ps5 ? "PS5" : "PS4");
 
 	ChiakiTarget server_target = CHIAKI_TARGET_PS4_UNKNOWN;
-	success = session_thread_request_session(session, &server_target) == CHIAKI_ERR_SUCCESS;
-	// TODO: Check Network error return
+	ChiakiErrorCode err = session_thread_request_session(session, &server_target);
 
-	if(!success && chiaki_target_is_unknown(server_target))
+	if(err == CHIAKI_ERR_VERSION_MISMATCH && !chiaki_target_is_unknown(server_target))
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session with Server's RP-Version");
 		session->target = server_target;
-		success = session_thread_request_session(session, &server_target) == CHIAKI_ERR_SUCCESS;
+		err = session_thread_request_session(session, &server_target);
 	}
+	else if(err != CHIAKI_ERR_SUCCESS)
+		QUIT(quit);
 
-	if(!success && chiaki_target_is_unknown(server_target))
+	if(err == CHIAKI_ERR_VERSION_MISMATCH && !chiaki_target_is_unknown(server_target))
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session even harder with Server's RP-Version!!!");
 		session->target = server_target;
-		success = session_thread_request_session(session, NULL) == CHIAKI_ERR_SUCCESS;
+		err = session_thread_request_session(session, NULL);
 	}
+	else if(err != CHIAKI_ERR_SUCCESS)
+		QUIT(quit);
 
-	if(!success)
+	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
 	CHIAKI_LOGI(session->log, "Session request successful");
@@ -398,7 +400,7 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Starting ctrl");
 
-	ChiakiErrorCode err = chiaki_ctrl_start(&session->ctrl);
+	err = chiaki_ctrl_start(&session->ctrl);
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
@@ -760,6 +762,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	SessionResponse response;
 	parse_session_response(&response, &http_response);
 
+	ChiakiErrorCode r = CHIAKI_ERR_UNKNOWN;
 	if(response.success)
 	{
 		size_t nonce_len = CHIAKI_RPCRYPT_KEY_SIZE;
@@ -770,6 +773,8 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			response.success = false;
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
+		else
+			r = CHIAKI_ERR_SUCCESS;
 	}
 	else if((response.error_code == CHIAKI_RP_APPLICATION_REASON_RP_VERSION
 				|| response.error_code == CHIAKI_RP_APPLICATION_REASON_UNKNOWN)
@@ -778,7 +783,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		CHIAKI_LOGI(session->log, "Reported RP-Version mismatch. ours = %s, server = %s",
 				rp_version_str ? rp_version_str : "", response.rp_version);
 		*target_out = chiaki_rp_version_parse(response.rp_version, session->connect_info.ps5);
-		if(*target_out != CHIAKI_TARGET_PS4_UNKNOWN)
+		if(!chiaki_target_is_unknown(*target_out))
 			CHIAKI_LOGI(session->log, "Detected Server RP-Version %s", chiaki_rp_version_string(*target_out));
 		else if(!strcmp(response.rp_version, "5.0"))
 		{
@@ -790,6 +795,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			CHIAKI_LOGE(session->log, "Server RP-Version is unknown");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_VERSION_MISMATCH;
 		}
+		r = CHIAKI_ERR_VERSION_MISMATCH;
 	}
 	else
 	{
@@ -804,6 +810,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 				break;
 			case CHIAKI_RP_APPLICATION_REASON_RP_VERSION:
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_RP_VERSION_MISMATCH;
+				r = CHIAKI_ERR_VERSION_MISMATCH;
 				break;
 			default:
 				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
@@ -813,7 +820,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 
 	chiaki_http_response_fini(&http_response);
 	CHIAKI_SOCKET_CLOSE(session_sock);
-	return response.success ? CHIAKI_ERR_SUCCESS : CHIAKI_ERR_UNKNOWN;
+	return r;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session)
