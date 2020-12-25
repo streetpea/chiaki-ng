@@ -6,13 +6,18 @@
 #include <chiaki/discovery.h>
 
 #include <QWidget>
+#include <QSvgRenderer>
 
 class ServerIconWidget : public QWidget
 {
 	Q_OBJECT
 
 	private:
+		bool ps5 = false;
 		ChiakiDiscoveryHostState state = CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
+		QSvgRenderer svg_renderer;
+
+		void LoadSvg();
 
 	protected:
 		void paintEvent(QPaintEvent *event) override;
@@ -20,7 +25,7 @@ class ServerIconWidget : public QWidget
 	public:
 		explicit ServerIconWidget(QWidget *parent = nullptr);
 
-		void SetState(ChiakiDiscoveryHostState state)	{ this->state = state; update(); }
+		void SetState(bool ps5, ChiakiDiscoveryHostState state);
 };
 
 #endif // CHIAKI_SERVERICONWIDGET_H

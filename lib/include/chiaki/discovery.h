@@ -71,6 +71,7 @@ typedef struct chiaki_discovery_host_t
 #undef STRING_MEMBER
 } ChiakiDiscoveryHost;
 
+CHIAKI_EXPORT bool chiaki_discovery_host_is_ps5(ChiakiDiscoveryHost *host);
 
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet);
 

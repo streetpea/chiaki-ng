@@ -129,6 +129,7 @@ static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hos
 	{
 		ChiakiDiscoveryHost *h = hosts + i;
 		DiscoveryHost o = {};
+		o.ps5 = chiaki_discovery_host_is_ps5(h);
 		o.state = h->state;
 		o.host_request_port = o.host_request_port;
 #define CONVERT_STRING(name) if(h->name) { o.name = QString::fromLocal8Bit(h->name); }

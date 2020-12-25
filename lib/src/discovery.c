@@ -32,6 +32,12 @@ const char *chiaki_discovery_host_state_string(ChiakiDiscoveryHostState state)
 	}
 }
 
+CHIAKI_EXPORT bool chiaki_discovery_host_is_ps5(ChiakiDiscoveryHost *host)
+{
+	return host->device_discovery_protocol_version
+		&& !strcmp(host->device_discovery_protocol_version, CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS5);
+}
+
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet)
 {
 	if(!packet->protocol_version)

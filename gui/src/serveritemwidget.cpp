@@ -70,7 +70,8 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 	delete_action->setEnabled(!display_server.discovered);
 	wake_action->setEnabled(display_server.registered);
 
-	icon_widget->SetState(display_server.discovered ? display_server.discovery_host.state : CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
+	icon_widget->SetState(display_server.IsPS5(),
+			display_server.discovered ? display_server.discovery_host.state : CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
 
 	QString top_text = "";
 

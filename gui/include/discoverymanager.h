@@ -12,6 +12,7 @@
 
 struct DiscoveryHost
 {
+	bool ps5;
 	ChiakiDiscoveryHostState state;
 	uint16_t host_request_port;
 #define STRING_MEMBER(name) QString name;
