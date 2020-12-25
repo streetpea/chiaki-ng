@@ -44,9 +44,8 @@ class HostInterface : public brls::List
 class MainApplication
 {
 	private:
-		ChiakiLog * log;
-		std::map<std::string, Host> * hosts;
 		Settings * settings;
+		ChiakiLog * log;
 		DiscoveryManager * discoverymanager;
 		IO * io;
 		brls::TabFrame * rootFrame;
@@ -59,9 +58,7 @@ class MainApplication
 		bool BuildConfigurationMenu(brls::List *, Host * host = nullptr);
 		void BuildAddHostConfigurationMenu(brls::List *);
 	public:
-		MainApplication(std::map<std::string, Host> * hosts,
-				Settings * settings, DiscoveryManager * discoverymanager,
-				IO * io, ChiakiLog * log);
+		MainApplication(DiscoveryManager * discoverymanager, IO * io);
 
 		~MainApplication();
 		bool Load();

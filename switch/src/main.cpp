@@ -107,49 +107,39 @@ extern "C" void userAppExit()
 
 int main(int argc, char* argv[])
 {
-	// init chiaki lib
-	ChiakiLog log;
-#if defined(__SWITCH__) && !defined(CHIAKI_ENABLE_SWITCH_NXLINK)
-	// null log for switch version
-	chiaki_log_init(&log, 0, chiaki_log_cb_print, NULL);
-#else
-	chiaki_log_init(&log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
-#endif
-
 	// load chiaki lib
-	CHIAKI_LOGI(&log, "Loading chaki lib");
+	Settings * settings = Settings::GetInstance();
+	ChiakiLog * log = settings->GetLogger();
+
+	CHIAKI_LOGI(log, "Loading chaki lib");
 
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(&log, "Chiaki lib init failed: %s\n", chiaki_error_string(err));
+		CHIAKI_LOGE(log, "Chiaki lib init failed: %s\n", chiaki_error_string(err));
 		return 1;
 	}
 
-	CHIAKI_LOGI(&log, "Loading SDL audio / joystick");
+	CHIAKI_LOGI(log, "Loading SDL audio / joystick");
 	if(SDL_Init( SDL_INIT_AUDIO | SDL_INIT_JOYSTICK ))
 	{
-		CHIAKI_LOGE(&log, "SDL initialization failed: %s", SDL_GetError());
+		CHIAKI_LOGE(log, "SDL initialization failed: %s", SDL_GetError());
 		return 1;
 	}
 
 	// build sdl OpenGl and AV decoders graphical interface
-	IO io = IO(&log); // open Input Output class
+	IO io = IO(log); // open Input Output class
 
-	// manage ps4 setting discovery wakeup and registration
-	std::map<std::string, Host> hosts;
 	// create host objects form config file
-	Settings settings = Settings(&log, &hosts);
-	CHIAKI_LOGI(&log, "Read chiaki settings file");
+	CHIAKI_LOGI(log, "Read chiaki settings file");
 	// FIXME use GUI for config
-	settings.ParseFile();
 	Host * host = nullptr;
 
-	DiscoveryManager discoverymanager = DiscoveryManager(&settings);
-	MainApplication app = MainApplication(&hosts, &settings, &discoverymanager, &io, &log);
+	DiscoveryManager discoverymanager = DiscoveryManager(settings);
+	MainApplication app = MainApplication(&discoverymanager, &io);
 	app.Load();
 
-	CHIAKI_LOGI(&log, "Quit applet");
+	CHIAKI_LOGI(log, "Quit applet");
 	SDL_Quit();
 	return 0;
 }

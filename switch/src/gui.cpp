@@ -246,12 +246,11 @@ bool HostInterface::CloseStream(ChiakiQuitEvent * quit)
 	return false;
 }
 
-MainApplication::MainApplication(std::map<std::string, Host> * hosts,
-		Settings * settings, DiscoveryManager * discoverymanager,
-		IO * io, ChiakiLog * log)
-	: hosts(hosts), settings(settings), discoverymanager(discoverymanager),
-	io(io), log(log)
+MainApplication::MainApplication(DiscoveryManager * discoverymanager, IO * io)
+	: discoverymanager(discoverymanager), io(io)
 {
+	this->settings = Settings::GetInstance();
+	this->log = this->settings->GetLogger();
 }
 
 MainApplication::~MainApplication()
@@ -305,9 +304,11 @@ bool MainApplication::Load()
 
 	// Add the root view to the stack
 	brls::Application::pushView(this->rootFrame);
+
+	std::map<std::string, Host> * hosts = this->settings->GetHostsMap();
 	while(brls::Application::mainLoop())
 	{
-		for(auto it = this->hosts->begin(); it != this->hosts->end(); it++)
+		for(auto it = hosts->begin(); it != hosts->end(); it++)
 		{
 			// add host to the gui only if the host is registered or discovered
 			if(this->host_menuitems.find(&it->second) == this->host_menuitems.end()
