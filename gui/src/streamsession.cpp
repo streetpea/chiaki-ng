@@ -19,7 +19,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTar
 {
 	key_map = settings->GetControllerMappingForDecoding();
 	decoder = settings->GetDecoder();
-	hw_decode_engine = settings->GetHardwareDecodeEngine();
+	hw_decoder = settings->GetHardwareDecoder();
 	audio_out_device = settings->GetAudioOutDevice();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
@@ -35,16 +35,16 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTar
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
-static bool VideoSampleCb(uint8_t *buf, size_t buf_size, void *user);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
 static void SessionSetsuCb(SetsuEvent *event, void *user);
 #endif
+static void FfmpegFrameCb(ChiakiFfmpegDecoder *decoder, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
 	log(this, connect_info.log_level_mask, connect_info.log_file),
-	video_decoder(nullptr),
+	ffmpeg_decoder(nullptr),
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	pi_decoder(nullptr),
 #endif
@@ -63,7 +63,22 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	else
 	{
 #endif
-		video_decoder = new VideoDecoder(connect_info.hw_decode_engine, log.GetChiakiLog());
+		ffmpeg_decoder = new ChiakiFfmpegDecoder;
+		ChiakiLogSniffer sniffer;
+		chiaki_log_sniffer_init(&sniffer, CHIAKI_LOG_ALL, GetChiakiLog());
+		ChiakiErrorCode err = chiaki_ffmpeg_decoder_init(ffmpeg_decoder,
+				chiaki_log_sniffer_get_log(&sniffer),
+				connect_info.video_profile.codec,
+				connect_info.hw_decoder.isEmpty() ? NULL : connect_info.hw_decoder.toUtf8().constData(),
+				FfmpegFrameCb, this);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			QString log = QString::fromUtf8(chiaki_log_sniffer_get_buffer(&sniffer));
+			chiaki_log_sniffer_fini(&sniffer);
+			throw ChiakiException("Failed to initialize FFMPEG Decoder:\n" + log);
+		}
+		chiaki_log_sniffer_fini(&sniffer);
+		ffmpeg_decoder->log = GetChiakiLog();
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
@@ -101,7 +116,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 	chiaki_controller_state_set_idle(&keyboard_state);
 
-	ChiakiErrorCode err = chiaki_session_init(&session, &chiaki_connect_info, log.GetChiakiLog());
+	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
 
@@ -116,7 +131,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	else
 	{
 #endif
-		chiaki_session_set_video_sample_cb(&session, VideoSampleCb, this);
+		chiaki_session_set_video_sample_cb(&session, chiaki_ffmpeg_decoder_video_sample_cb, ffmpeg_decoder);
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
@@ -160,7 +175,11 @@ StreamSession::~StreamSession()
 		free(pi_decoder);
 	}
 #endif
-	delete video_decoder;
+	if(ffmpeg_decoder)
+	{
+		chiaki_ffmpeg_decoder_fini(ffmpeg_decoder);
+		delete ffmpeg_decoder;
+	}
 }
 
 void StreamSession::Start()
@@ -346,11 +365,6 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 	audio_io->write((const char *)buf, static_cast<qint64>(samples_count * 2 * 2));
 }
 
-void StreamSession::PushVideoSample(uint8_t *buf, size_t buf_size)
-{
-	video_decoder->PushFrame(buf, buf_size);
-}
-
 void StreamSession::Event(ChiakiEvent *event)
 {
 	switch(event->type)
@@ -431,6 +445,11 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 }
 #endif
 
+void StreamSession::TriggerFfmpegFrameAvailable()
+{
+	emit FfmpegFrameAvailable();
+}
+
 class StreamSessionPrivate
 {
 	public:
@@ -440,11 +459,11 @@ class StreamSessionPrivate
 		}
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
-		static void PushVideoSample(StreamSession *session, uint8_t *buf, size_t buf_size)		{ session->PushVideoSample(buf, buf_size); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
 #endif
+		static void TriggerFfmpegFrameAvailable(StreamSession *session)							{ session->TriggerFfmpegFrameAvailable(); }
 };
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user)
@@ -457,13 +476,6 @@ static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushAudioFrame(session, buf, samples_count);
-}
-
-static bool VideoSampleCb(uint8_t *buf, size_t buf_size, void *user)
-{
-	auto session = reinterpret_cast<StreamSession *>(user);
-	StreamSessionPrivate::PushVideoSample(session, buf, buf_size);
-	return true;
 }
 
 static void EventCb(ChiakiEvent *event, void *user)
@@ -479,3 +491,9 @@ static void SessionSetsuCb(SetsuEvent *event, void *user)
 	StreamSessionPrivate::HandleSetsuEvent(session, event);
 }
 #endif
+
+static void FfmpegFrameCb(ChiakiFfmpegDecoder *decoder, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::TriggerFfmpegFrameAvailable(session);
+}

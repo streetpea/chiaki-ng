@@ -4,7 +4,6 @@ int real_main(int argc, char *argv[]);
 int main(int argc, char *argv[]) { return real_main(argc, argv); }
 
 #include <streamwindow.h>
-#include <videodecoder.h>
 #include <mainwindow.h>
 #include <streamsession.h>
 #include <settings.h>

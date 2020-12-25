@@ -105,3 +105,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init()
 
 	return CHIAKI_ERR_SUCCESS;
 }
+
+CHIAKI_EXPORT const char *chiaki_codec_name(ChiakiCodec codec)
+{
+	switch(codec)
+	{
+		case CHIAKI_CODEC_H264:
+			return "H264";
+		case CHIAKI_CODEC_H265:
+			return "H265";
+		case CHIAKI_CODEC_H265_HDR:
+			return "H265/HDR";
+		default:
+			return "unknown";
+	}
+}

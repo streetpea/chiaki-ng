@@ -27,7 +27,7 @@ class SettingsDialog : public QDialog
 		QLineEdit *audio_buffer_size_edit;
 		QComboBox *audio_device_combo_box;
 		QCheckBox *pi_decoder_check_box;
-		QComboBox *hardware_decode_combo_box;
+		QComboBox *hw_decoder_combo_box;
 
 		QListWidget *registered_hosts_list_widget;
 		QPushButton *delete_registered_host_button;

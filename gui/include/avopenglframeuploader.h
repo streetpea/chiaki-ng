@@ -6,8 +6,10 @@
 #include <QObject>
 #include <QOpenGLWidget>
 
+#include <chiaki/ffmpegdecoder.h>
+
+class StreamSession;
 class AVOpenGLWidget;
-class VideoDecoder;
 class QSurface;
 
 class AVOpenGLFrameUploader: public QObject
@@ -15,16 +17,16 @@ class AVOpenGLFrameUploader: public QObject
 	Q_OBJECT
 
 	private:
-		VideoDecoder *decoder;
+		StreamSession *session;
 		AVOpenGLWidget *widget;
 		QOpenGLContext *context;
 		QSurface *surface;
 
 	private slots:
-		void UpdateFrame();
+		void UpdateFrameFromDecoder();
 
 	public:
-		AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidget *widget, QOpenGLContext *context, QSurface *surface);
+		AVOpenGLFrameUploader(StreamSession *session, AVOpenGLWidget *widget, QOpenGLContext *context, QSurface *surface);
 };
 
 #endif // CHIAKI_AVOPENGLFRAMEUPLOADER_H

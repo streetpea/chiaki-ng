@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <avopenglwidget.h>
-#include <videodecoder.h>
 #include <avopenglframeuploader.h>
+#include <streamsession.h>
 
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
@@ -123,14 +123,15 @@ QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat()
 	return format;
 }
 
-AVOpenGLWidget::AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent)
+AVOpenGLWidget::AVOpenGLWidget(StreamSession *session, QWidget *parent)
 	: QOpenGLWidget(parent),
-	decoder(decoder)
+	session(session)
 {
+	enum AVPixelFormat pixel_format = chiaki_ffmpeg_decoder_get_pixel_format(session->GetFfmpegDecoder());
 	conversion_config = nullptr;
 	for(auto &cc: conversion_configs)
 	{
-		if(decoder->PixelFormat() == cc.pixel_format)
+		if(pixel_format == cc.pixel_format)
 		{
 			conversion_config = &cc;
 			break;
@@ -245,7 +246,7 @@ void AVOpenGLWidget::initializeGL()
 	auto f = QOpenGLContext::currentContext()->extraFunctions();
 
 	const char *gl_version = (const char *)f->glGetString(GL_VERSION);
-	CHIAKI_LOGI(decoder->GetChiakiLog(), "OpenGL initialized with version \"%s\"", gl_version ? gl_version : "(null)");
+	CHIAKI_LOGI(session->GetChiakiLog(), "OpenGL initialized with version \"%s\"", gl_version ? gl_version : "(null)");
 
 #ifdef DEBUG_OPENGL
 	auto logger = new QOpenGLDebugLogger(this);
@@ -266,7 +267,7 @@ void AVOpenGLWidget::initializeGL()
 		QVector<GLchar> info_log(info_log_size);
 		f->glGetShaderInfoLog(shader, info_log_size, &info_log_size, info_log.data());
 		f->glDeleteShader(shader);
-		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to Compile Shader:\n%s", info_log.data());
+		CHIAKI_LOGE(session->GetChiakiLog(), "Failed to Compile Shader:\n%s", info_log.data());
 	};
 
 	GLuint shader_vert = f->glCreateShader(GL_VERTEX_SHADER);
@@ -294,7 +295,7 @@ void AVOpenGLWidget::initializeGL()
 		QVector<GLchar> info_log(info_log_size);
 		f->glGetProgramInfoLog(program, info_log_size, &info_log_size, info_log.data());
 		f->glDeleteProgram(program);
-		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to Link Shader Program:\n%s", info_log.data());
+		CHIAKI_LOGE(session->GetChiakiLog(), "Failed to Link Shader Program:\n%s", info_log.data());
 		return;
 	}
 
@@ -346,14 +347,14 @@ void AVOpenGLWidget::initializeGL()
 	frame_uploader_context->setShareContext(context());
 	if(!frame_uploader_context->create())
 	{
-		CHIAKI_LOGE(decoder->GetChiakiLog(), "Failed to create upload OpenGL context");
+		CHIAKI_LOGE(session->GetChiakiLog(), "Failed to create upload OpenGL context");
 		return;
 	}
 
 	frame_uploader_surface = new QOffscreenSurface();
 	frame_uploader_surface->setFormat(context()->format());
 	frame_uploader_surface->create();
-	frame_uploader = new AVOpenGLFrameUploader(decoder, this, frame_uploader_context, frame_uploader_surface);
+	frame_uploader = new AVOpenGLFrameUploader(session, this, frame_uploader_context, frame_uploader_surface);
 	frame_fg = 0;
 
 	frame_uploader_thread = new QThread(this);

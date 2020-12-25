@@ -5,6 +5,7 @@
 
 #include <chiaki/session.h>
 #include <chiaki/opusdecoder.h>
+#include <chiaki/ffmpegdecoder.h>
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 #include <chiaki/pidecoder.h>
@@ -14,7 +15,6 @@
 #include <setsu.h>
 #endif
 
-#include "videodecoder.h"
 #include "exception.h"
 #include "sessionlog.h"
 #include "controllermanager.h"
@@ -41,7 +41,7 @@ struct StreamSessionConnectInfo
 	Settings *settings;
 	QMap<Qt::Key, int> key_map;
 	Decoder decoder;
-	HardwareDecodeEngine hw_decode_engine;
+	QString hw_decoder;
 	QString audio_out_device;
 	uint32_t log_level_mask;
 	QString log_file;
@@ -78,7 +78,8 @@ class StreamSession : public QObject
 
 		ChiakiControllerState keyboard_state;
 
-		VideoDecoder *video_decoder;
+		ChiakiFfmpegDecoder *ffmpeg_decoder;
+		void TriggerFfmpegFrameAvailable();
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 		ChiakiPiDecoder *pi_decoder;
 #endif
@@ -91,7 +92,6 @@ class StreamSession : public QObject
 		QMap<Qt::Key, int> key_map;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
-		void PushVideoSample(uint8_t *buf, size_t buf_size);
 		void Event(ChiakiEvent *event);
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
@@ -112,8 +112,9 @@ class StreamSession : public QObject
 
 		void SetLoginPIN(const QString &pin);
 
+		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
 		QList<Controller *> GetControllers()	{ return controllers.values(); }
-		VideoDecoder *GetVideoDecoder()	{ return video_decoder; }
+		ChiakiFfmpegDecoder *GetFfmpegDecoder()	{ return ffmpeg_decoder; }
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 		ChiakiPiDecoder *GetPiDecoder()	{ return pi_decoder; }
 #endif
@@ -122,7 +123,7 @@ class StreamSession : public QObject
 		void HandleMouseEvent(QMouseEvent *event);
 
 	signals:
-		void CurrentImageUpdated();
+		void FfmpegFrameAvailable();
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 

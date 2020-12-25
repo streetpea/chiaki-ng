@@ -2,31 +2,38 @@
 
 #include <avopenglframeuploader.h>
 #include <avopenglwidget.h>
-#include <videodecoder.h>
+#include <streamsession.h>
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 
-AVOpenGLFrameUploader::AVOpenGLFrameUploader(VideoDecoder *decoder, AVOpenGLWidget *widget, QOpenGLContext *context, QSurface *surface)
+AVOpenGLFrameUploader::AVOpenGLFrameUploader(StreamSession *session, AVOpenGLWidget *widget, QOpenGLContext *context, QSurface *surface)
 	: QObject(nullptr),
-	decoder(decoder),
+	session(session),
 	widget(widget),
 	context(context),
 	surface(surface)
 {
-	connect(decoder, SIGNAL(FramesAvailable()), this, SLOT(UpdateFrame()));
+	connect(session, &StreamSession::FfmpegFrameAvailable, this, &AVOpenGLFrameUploader::UpdateFrameFromDecoder);
 }
 
-void AVOpenGLFrameUploader::UpdateFrame()
+void AVOpenGLFrameUploader::UpdateFrameFromDecoder()
 {
+	ChiakiFfmpegDecoder *decoder = session->GetFfmpegDecoder();
+	if(!decoder)
+	{
+		CHIAKI_LOGE(session->GetChiakiLog(), "Session has no ffmpeg decoder");
+		return;
+	}
+
 	if(QOpenGLContext::currentContext() != context)
 		context->makeCurrent(surface);
 
-	AVFrame *next_frame = decoder->PullFrame();
+	AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder);
 	if(!next_frame)
 		return;
 
-	bool success = widget->GetBackgroundFrame()->Update(next_frame, decoder->GetChiakiLog());
+	bool success = widget->GetBackgroundFrame()->Update(next_frame, decoder->log);
 	av_frame_free(&next_frame);
 
 	if(success)

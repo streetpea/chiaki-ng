@@ -14,8 +14,6 @@ if(WIN32)
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
-find_package(FFMPEG REQUIRED COMPONENTS avcodec avutil)
-
 set(RESOURCE_FILES "")
 
 if(APPLE)
@@ -28,8 +26,6 @@ add_executable(chiaki WIN32
 		src/main.cpp
 		include/streamwindow.h
 		src/streamwindow.cpp
-		include/videodecoder.h
-		src/videodecoder.cpp
 		include/mainwindow.h
 		src/mainwindow.cpp
 		include/dynamicgridwidget.h
@@ -73,7 +69,6 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki FFMPEG::avcodec FFMPEG::avutil)
 target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
 if(APPLE)
 	target_link_libraries(chiaki Qt5::MacExtras)
@@ -86,6 +81,9 @@ endif()
 if(CHIAKI_ENABLE_SETSU)
 	target_link_libraries(chiaki setsu)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SETSU)
+endif()
+if(NOT CHIAKI_ENABLE_FFMPEG_DECODER)
+	message(FATAL_ERROR "Chiaki GUI requires CHIAKI_ENABLE_FFMPEG_DECODER=ON")
 endif()
 
 set_target_properties(chiaki PROPERTIES

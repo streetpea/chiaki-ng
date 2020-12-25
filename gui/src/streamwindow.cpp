@@ -47,9 +47,9 @@ void StreamWindow::Init()
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
-	if(session->GetVideoDecoder())
+	if(session->GetFfmpegDecoder())
 	{
-		av_widget = new AVOpenGLWidget(session->GetVideoDecoder(), this);
+		av_widget = new AVOpenGLWidget(session, this);
 		setCentralWidget(av_widget);
 	}
 	else

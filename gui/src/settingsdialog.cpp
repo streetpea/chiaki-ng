@@ -5,7 +5,6 @@
 #include <settingskeycapturedialog.h>
 #include <registdialog.h>
 #include <sessionlog.h>
-#include <videodecoder.h>
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -23,6 +22,7 @@
 #include <QFutureWatcher>
 
 #include <chiaki/config.h>
+#include <chiaki/ffmpegdecoder.h>
 
 const char * const about_string =
 	"<h1>Chiaki</h1> by thestr4ng3r, version " CHIAKI_VERSION
@@ -202,22 +202,22 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	pi_decoder_check_box = nullptr;
 #endif
 
-	hardware_decode_combo_box = new QComboBox(this);
-	static const QList<QPair<HardwareDecodeEngine, const char *>> hardware_decode_engines = {
-		{ HW_DECODE_NONE, "none"},
-		{ HW_DECODE_VAAPI, "vaapi"},
-		{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox"},
-		{ HW_DECODE_CUDA, "cuda"}
-	};
-	auto current_hardware_decode_engine = settings->GetHardwareDecodeEngine();
-	for(const auto &p : hardware_decode_engines)
+	hw_decoder_combo_box = new QComboBox(this);
+	hw_decoder_combo_box->addItem("none", QString());
+	auto current_hw_decoder = settings->GetHardwareDecoder();
+	enum AVHWDeviceType hw_dev = AV_HWDEVICE_TYPE_NONE;
+	while(true)
 	{
-		hardware_decode_combo_box->addItem(p.second, (int)p.first);
-		if(current_hardware_decode_engine == p.first)
-			hardware_decode_combo_box->setCurrentIndex(hardware_decode_combo_box->count() - 1);
+		hw_dev = av_hwdevice_iterate_types(hw_dev);
+		if(hw_dev == AV_HWDEVICE_TYPE_NONE)
+			break;
+		QString name = QString::fromUtf8(av_hwdevice_get_type_name(hw_dev));
+		hw_decoder_combo_box->addItem(name, name);
+		if(current_hw_decoder == name)
+			hw_decoder_combo_box->setCurrentIndex(hw_decoder_combo_box->count() - 1);
 	}
-	connect(hardware_decode_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
-	decode_settings_layout->addRow(tr("Hardware decode method:"), hardware_decode_combo_box);
+	connect(hw_decoder_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
+	decode_settings_layout->addRow(tr("Hardware decode method:"), hw_decoder_combo_box);
 	UpdateHardwareDecodeEngineComboBox();
 
 	// Registered Consoles
@@ -329,12 +329,12 @@ void SettingsDialog::AudioOutputSelected()
 
 void SettingsDialog::HardwareDecodeEngineSelected()
 {
-	settings->SetHardwareDecodeEngine((HardwareDecodeEngine)hardware_decode_combo_box->currentData().toInt());
+	settings->SetHardwareDecoder(hw_decoder_combo_box->currentData().toString());
 }
 
 void SettingsDialog::UpdateHardwareDecodeEngineComboBox()
 {
-	hardware_decode_combo_box->setEnabled(settings->GetDecoder() == Decoder::Ffmpeg);
+	hw_decoder_combo_box->setEnabled(settings->GetDecoder() == Decoder::Ffmpeg);
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()

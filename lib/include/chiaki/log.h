@@ -50,6 +50,20 @@ CHIAKI_EXPORT void chiaki_log_hexdump_raw(ChiakiLog *log, ChiakiLogLevel level, 
 #define CHIAKI_LOGW(log, ...) do { chiaki_log((log), CHIAKI_LOG_WARNING, __VA_ARGS__); } while(0)
 #define CHIAKI_LOGE(log, ...) do { chiaki_log((log), CHIAKI_LOG_ERROR, __VA_ARGS__); } while(0)
 
+typedef struct chiaki_log_sniffer_t
+{
+	ChiakiLog *forward_log; // The original log, where everything is forwarded
+	ChiakiLog sniff_log; // The log where others will log into
+	uint32_t sniff_level_mask;
+	char *buf; // always null-terminated
+	size_t buf_len; // strlen(buf)
+} ChiakiLogSniffer;
+
+CHIAKI_EXPORT void chiaki_log_sniffer_init(ChiakiLogSniffer *sniffer, uint32_t level_mask, ChiakiLog *forward_log);
+CHIAKI_EXPORT void chiaki_log_sniffer_fini(ChiakiLogSniffer *sniffer);
+static inline ChiakiLog *chiaki_log_sniffer_get_log(ChiakiLogSniffer *sniffer) { return &sniffer->sniff_log; }
+static inline const char *chiaki_log_sniffer_get_buffer(ChiakiLogSniffer *sniffer) { return sniffer->buf; }
+
 #ifdef __cplusplus
 }
 #endif

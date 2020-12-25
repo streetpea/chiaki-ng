@@ -75,6 +75,12 @@ set(SOURCE_FILES
 		src/regist.c
 		src/opusdecoder.c)
 
+if(CHIAKI_ENABLE_FFMPEG_DECODER)
+	list(APPEND HEADER_FILES include/chiaki/ffmpegdecoder.h)
+	list(APPEND SOURCE_FILES src/ffmpegdecoder.c)
+endif()
+set(CHIAKI_LIB_ENABLE_PI_DECODER "${CHIAKI_ENABLE_FFMPEG_DECODER}")
+
 if(CHIAKI_ENABLE_PI_DECODER)
 	list(APPEND HEADER_FILES include/chiaki/pidecoder.h)
 	list(APPEND SOURCE_FILES src/pidecoder.c)
@@ -126,6 +132,10 @@ endif()
 
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
+
+if(CHIAKI_ENABLE_FFMPEG_DECODER)
+	target_link_libraries(chiaki-lib FFMPEG::avcodec FFMPEG::avutil)
+endif()
 
 if(CHIAKI_ENABLE_PI_DECODER)
 	target_link_libraries(chiaki-lib ILClient::ILClient)

@@ -15,7 +15,7 @@ extern "C"
 
 #define MAX_PANES 3
 
-class VideoDecoder;
+class StreamSession;
 class AVOpenGLFrameUploader;
 class QOffscreenSurface;
 
@@ -53,7 +53,7 @@ class AVOpenGLWidget: public QOpenGLWidget
 	Q_OBJECT
 
 	private:
-		VideoDecoder *decoder;
+		StreamSession *session;
 
 		GLuint program;
 		GLuint vbo;
@@ -74,7 +74,7 @@ class AVOpenGLWidget: public QOpenGLWidget
 	public:
 		static QSurfaceFormat CreateSurfaceFormat();
 
-		explicit AVOpenGLWidget(VideoDecoder *decoder, QWidget *parent = nullptr);
+		explicit AVOpenGLWidget(StreamSession *session, QWidget *parent = nullptr);
 		~AVOpenGLWidget() override;
 
 		void SwapFrames();

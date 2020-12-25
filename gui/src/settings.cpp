@@ -37,6 +37,10 @@ static void MigrateSettingsTo2(QSettings *settings)
 		i++;
 	}
 	settings->endArray();
+	QString hw_decoder = settings->value("settings/hw_decode_engine").toString();
+	settings->remove("settings/hw_decode_engine");
+	if(hw_decoder != "none")
+		settings->setValue("settings/hw_decoder", hw_decoder);
 }
 
 static void MigrateSettings(QSettings *settings)
@@ -160,25 +164,14 @@ void Settings::SetDecoder(Decoder decoder)
 	settings.setValue("settings/decoder", decoder_values[decoder]);
 }
 
-static const QMap<HardwareDecodeEngine, QString> hw_decode_engine_values = {
-	{ HW_DECODE_NONE, "none" },
-	{ HW_DECODE_VAAPI, "vaapi" },
-	{ HW_DECODE_VDPAU, "vdpau" },
-	{ HW_DECODE_VIDEOTOOLBOX, "videotoolbox" },
-	{ HW_DECODE_CUDA, "cuda" }
-};
-
-static const HardwareDecodeEngine hw_decode_engine_default = HW_DECODE_NONE;
-
-HardwareDecodeEngine Settings::GetHardwareDecodeEngine() const
+QString Settings::GetHardwareDecoder() const
 {
-	auto v = settings.value("settings/hw_decode_engine", hw_decode_engine_values[hw_decode_engine_default]).toString();
-	return hw_decode_engine_values.key(v, hw_decode_engine_default);
+	return settings.value("settings/hw_decoder").toString();
 }
 
-void Settings::SetHardwareDecodeEngine(HardwareDecodeEngine engine)
+void Settings::SetHardwareDecoder(const QString &hw_decoder)
 {
-	settings.setValue("settings/hw_decode_engine", hw_decode_engine_values[engine]);
+	settings.setValue("settings/hw_decoder", hw_decoder);
 }
 
 unsigned int Settings::GetAudioBufferSize() const
