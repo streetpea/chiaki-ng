@@ -3,22 +3,22 @@
 #ifndef CHIAKI_HOST_H
 #define CHIAKI_HOST_H
 
-#include <string>
-#include <map>
 #include <netinet/in.h>
+#include <map>
+#include <string>
 
-#include <chiaki/log.h>
-#include <chiaki/regist.h>
-#include <chiaki/discovery.h>
-#include <chiaki/opusdecoder.h>
 #include <chiaki/controller.h>
+#include <chiaki/discovery.h>
+#include <chiaki/log.h>
+#include <chiaki/opusdecoder.h>
+#include <chiaki/regist.h>
 
 #include "exception.h"
 #include "io.h"
 #include "settings.h"
 
 class DiscoveryManager;
-static void Discovery(ChiakiDiscoveryHost*, void *);
+static void Discovery(ChiakiDiscoveryHost *, void *);
 static void InitAudioCB(unsigned int channels, unsigned int rate, void * user);
 static bool VideoCB(uint8_t * buf, size_t buf_size, void * user);
 static void AudioCB(int16_t * buf, size_t samples_count, void * user);
@@ -82,10 +82,11 @@ class Host
 		ChiakiOpusDecoder opus_decoder;
 		ChiakiConnectVideoProfile video_profile;
 		ChiakiControllerState keyboard_state;
-		friend class DiscoveryManager;
 		friend class Settings;
+		friend class DiscoveryManager;
+
 	public:
-		Host(ChiakiLog * log, Settings * settings, std::string host_name);
+		Host(std::string host_name);
 		~Host();
 		int Register(std::string pin);
 		int Wakeup();
@@ -93,7 +94,7 @@ class Host
 		int FiniSession();
 		void StopSession();
 		void StartSession();
-		void SendFeedbackState(ChiakiControllerState*);
+		void SendFeedbackState(ChiakiControllerState *);
 		void RegistCB(ChiakiRegistEvent *);
 		bool GetVideoResolution(int * ret_width, int * ret_height);
 		std::string GetHostName();
@@ -108,6 +109,7 @@ class Host
 		bool IsDiscovered();
 		bool IsReady();
 		bool HasRPkey();
+		bool IsPS5();
 };
 
 #endif

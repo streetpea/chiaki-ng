@@ -4,32 +4,31 @@
 #include <switch.h>
 #endif
 
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include <discoverymanager.h>
 
-#define PING_MS     500
-#define HOSTS_MAX   16
-#define DROP_PINGS  3
+#define PING_MS 500
+#define HOSTS_MAX 16
+#define DROP_PINGS 3
 
 static void Discovery(ChiakiDiscoveryHost * discovered_hosts, size_t hosts_count, void * user)
 {
-	DiscoveryManager * dm = (DiscoveryManager *) user;
-	for(size_t i=0; i < hosts_count; i++)
+	DiscoveryManager * dm = (DiscoveryManager *)user;
+	for(size_t i = 0; i < hosts_count; i++)
 	{
-		dm->DiscoveryCB(discovered_hosts+i);
+		dm->DiscoveryCB(discovered_hosts + i);
 	}
 }
 
-
-DiscoveryManager::DiscoveryManager(Settings *settings)
-	: settings(settings), host_addr(nullptr), host_addr_len(0)
+DiscoveryManager::DiscoveryManager()
 {
-		this->log = this->settings->GetLogger();
+	this->settings = Settings::GetInstance();
+	this->log = this->settings->GetLogger();
 }
 
 DiscoveryManager::~DiscoveryManager()
@@ -87,12 +86,12 @@ uint32_t DiscoveryManager::GetIPv4BroadcastAddr()
 	uint32_t current_addr, subnet_mask;
 	// init nintendo net interface service
 	Result rc = nifmInitialize(NifmServiceType_User);
-	if (R_SUCCEEDED(rc))
+	if(R_SUCCEEDED(rc))
 	{
 		// read current IP and netmask
 		rc = nifmGetCurrentIpConfigInfo(
-				&current_addr, &subnet_mask,
-				NULL, NULL, NULL);
+			&current_addr, &subnet_mask,
+			NULL, NULL, NULL);
 		nifmExit();
 	}
 	else
@@ -106,15 +105,13 @@ uint32_t DiscoveryManager::GetIPv4BroadcastAddr()
 #endif
 }
 
-int DiscoveryManager::Send(struct sockaddr *host_addr, size_t host_addr_len)
+int DiscoveryManager::Send(struct sockaddr * host_addr, size_t host_addr_len)
 {
 	if(!host_addr)
 	{
 		CHIAKI_LOGE(log, "Null sockaddr");
 		return 1;
 	}
-	((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT);
-
 	ChiakiDiscoveryPacket packet;
 	memset(&packet, 0, sizeof(packet));
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
@@ -136,7 +133,7 @@ int DiscoveryManager::Send(const char * discover_ip_dest)
 	struct sockaddr * host_addr = nullptr;
 	socklen_t host_addr_len = 0;
 
-	for(struct addrinfo *ai=host_addrinfos; ai; ai=ai->ai_next)
+	for(struct addrinfo * ai = host_addrinfos; ai; ai = ai->ai_next)
 	{
 		if(ai->ai_protocol != IPPROTO_UDP)
 			continue;
@@ -165,7 +162,6 @@ int DiscoveryManager::Send()
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = GetIPv4BroadcastAddr();
-	addr.sin_port = htons(CHIAKI_DISCOVERY_PORT);
 
 	this->host_addr_len = sizeof(sockaddr_in);
 	this->host_addr = (struct sockaddr *)malloc(host_addr_len);
@@ -174,14 +170,13 @@ int DiscoveryManager::Send()
 	return DiscoveryManager::Send(this->host_addr, this->host_addr_len);
 }
 
-
 void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost * discovered_host)
 {
 	// the user ptr is passed as
 	// chiaki_discovery_thread_start arg
 
 	std::string key = discovered_host->host_name;
-	Host *host = this->settings->GetOrCreateHost(&key);
+	Host * host = this->settings->GetOrCreateHost(&key);
 
 	CHIAKI_LOGI(this->log, "--");
 	CHIAKI_LOGI(this->log, "Discovered Host:");
@@ -230,4 +225,3 @@ void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost * discovered_host)
 
 	CHIAKI_LOGI(this->log, "--");
 }
-

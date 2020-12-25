@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 // chiaki modules
-#include <chiaki/log.h>
 #include <chiaki/discovery.h>
+#include <chiaki/log.h>
 
 // discover and wakeup ps4 host
 // from local network
 #include "discoverymanager.h"
-#include "settings.h"
-#include "io.h"
 #include "gui.h"
+#include "io.h"
+#include "settings.h"
 
 #ifdef __SWITCH__
 #include <switch.h>
@@ -51,11 +51,11 @@ static int s_nxlinkSock = -1;
 static void initNxLink()
 {
 	// use chiaki socket config initialization
-	if (R_FAILED(socketInitialize(&g_chiakiSocketInitConfig)))
+	if(R_FAILED(socketInitialize(&g_chiakiSocketInitConfig)))
 		return;
 
 	s_nxlinkSock = nxlinkStdio();
-	if (s_nxlinkSock >= 0)
+	if(s_nxlinkSock >= 0)
 		printf("initNxLink");
 	else
 		socketExit();
@@ -63,7 +63,7 @@ static void initNxLink()
 
 static void deinitNxLink()
 {
-	if (s_nxlinkSock >= 0)
+	if(s_nxlinkSock >= 0)
 	{
 		close(s_nxlinkSock);
 		s_nxlinkSock = -1;
@@ -105,7 +105,7 @@ extern "C" void userAppExit()
 }
 #endif // __SWITCH__
 
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
 	// load chiaki lib
 	Settings * settings = Settings::GetInstance();
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 	}
 
 	CHIAKI_LOGI(log, "Loading SDL audio / joystick");
-	if(SDL_Init( SDL_INIT_AUDIO | SDL_INIT_JOYSTICK ))
+	if(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK))
 	{
 		CHIAKI_LOGE(log, "SDL initialization failed: %s", SDL_GetError());
 		return 1;
@@ -129,13 +129,7 @@ int main(int argc, char* argv[])
 
 	// build sdl OpenGl and AV decoders graphical interface
 	IO io = IO(log); // open Input Output class
-
-	// create host objects form config file
-	CHIAKI_LOGI(log, "Read chiaki settings file");
-	// FIXME use GUI for config
-	Host * host = nullptr;
-
-	DiscoveryManager discoverymanager = DiscoveryManager(settings);
+	DiscoveryManager discoverymanager = DiscoveryManager();
 	MainApplication app = MainApplication(&discoverymanager, &io);
 	app.Load();
 
@@ -143,4 +137,3 @@ int main(int argc, char* argv[])
 	SDL_Quit();
 	return 0;
 }
-

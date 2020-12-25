@@ -12,8 +12,6 @@ Settings::Settings()
 #else
 	chiaki_log_init(&this->log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
 #endif
-	CHIAKI_LOGI(&this->log, "Read chiaki settings file %s", this->filename);
-	this->ParseFile();
 }
 
 Settings::ConfigurationItem Settings::ParseLine(std::string * line, std::string * value)
@@ -43,7 +41,10 @@ Settings * Settings::instance = nullptr;
 Settings * Settings::GetInstance()
 {
 	if(instance == nullptr)
+	{
 		instance = new Settings;
+		instance->ParseFile();
+	}
 	return instance;
 }
 
@@ -64,7 +65,7 @@ Host * Settings::GetOrCreateHost(std::string * host_name)
 	if(this->hosts.find(*host_name) == hosts.end())
 	{
 		// create host if udefined
-		Host h = Host(&this->log, this, *host_name);
+		Host h = Host(*host_name);
 		this->hosts.emplace(*host_name, h);
 		created = true;
 	}
