@@ -183,6 +183,7 @@ void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost * discovered_host)
 	CHIAKI_LOGI(this->log, "State:                             %s", chiaki_discovery_host_state_string(discovered_host->state));
 
 	host->state = discovered_host->state;
+	host->discovered = true;
 
 	// add host ptr to list
 	if(discovered_host->system_version && discovered_host->device_discovery_protocol_version)
