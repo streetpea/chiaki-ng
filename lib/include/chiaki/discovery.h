@@ -73,6 +73,8 @@ typedef struct chiaki_discovery_host_t
 
 CHIAKI_EXPORT bool chiaki_discovery_host_is_ps5(ChiakiDiscoveryHost *host);
 
+CHIAKI_EXPORT ChiakiTarget chiaki_discovery_host_system_version_target(ChiakiDiscoveryHost *host);
+
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet);
 
 typedef struct chiaki_discovery_t

@@ -38,6 +38,32 @@ CHIAKI_EXPORT bool chiaki_discovery_host_is_ps5(ChiakiDiscoveryHost *host)
 		&& !strcmp(host->device_discovery_protocol_version, CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS5);
 }
 
+CHIAKI_EXPORT ChiakiTarget chiaki_discovery_host_system_version_target(ChiakiDiscoveryHost *host)
+{
+	// traslate discovered system_version into ChiakiTarget
+
+	int version = atoi(host->system_version);
+	bool is_ps5 = chiaki_discovery_host_is_ps5(host);
+
+	if(version >= 8050001 && is_ps5)
+		// PS5 >= 1.0
+		return CHIAKI_TARGET_PS5_1;
+	if(version >= 8050000 && is_ps5)
+		// PS5 >= 0
+		return CHIAKI_TARGET_PS5_UNKNOWN;
+
+	if(version >= 8000000)
+		// PS4 >= 8.0
+		return CHIAKI_TARGET_PS4_10;
+	if(version >= 7000000)
+		// PS4 >= 7.0
+		return CHIAKI_TARGET_PS4_9;
+	if(version > 0)
+		return CHIAKI_TARGET_PS4_8;
+
+	return CHIAKI_TARGET_PS4_UNKNOWN;
+}
+
 CHIAKI_EXPORT int chiaki_discovery_packet_fmt(char *buf, size_t buf_size, ChiakiDiscoveryPacket *packet)
 {
 	if(!packet->protocol_version)
