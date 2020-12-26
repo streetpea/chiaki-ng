@@ -148,8 +148,6 @@ int Host::InitSession(IO * user)
 
 	memcpy(chiaki_connect_info.regist_key, this->rp_regist_key, sizeof(chiaki_connect_info.regist_key));
 	memcpy(chiaki_connect_info.morning, this->rp_key, sizeof(chiaki_connect_info.morning));
-	// set keybord state to 0
-	memset(&(this->keyboard_state), 0, sizeof(keyboard_state));
 
 	ChiakiErrorCode err = chiaki_session_init(&(this->session), &chiaki_connect_info, this->log);
 	if(err != CHIAKI_ERR_SUCCESS)

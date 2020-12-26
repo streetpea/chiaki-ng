@@ -56,7 +56,7 @@ static void initNxLink()
 
 	s_nxlinkSock = nxlinkStdio();
 	if(s_nxlinkSock >= 0)
-		printf("initNxLink");
+		printf("initNxLink\n");
 	else
 		socketExit();
 }
@@ -83,6 +83,12 @@ extern "C" void userAppInit()
 	// load socket custom config
 	socketInitialize(&g_chiakiSocketInitConfig);
 	setsysInitialize();
+
+    // padConfigureInput(1, HidNpadStyleSet_NpadStandard);
+    // PadState pad;
+    // padInitializeDefault(&pad);
+
+    //hidInitializeTouchScreen();
 }
 
 extern "C" void userAppExit()

@@ -439,6 +439,8 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 	switch(event->type)
 	{
 		case SDL_JOYAXISMOTION:
+			// printf("SDL_JOYAXISMOTION jaxis %d axis %d value %d\n",
+			// event->jaxis.which, event->jaxis.axis, event->jaxis.value);
 			if(event->jaxis.which == 0)
 			{
 				// left joystick
@@ -474,7 +476,7 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 			break;
 		case SDL_JOYBUTTONDOWN:
 			// printf("Joystick %d button %d DOWN\n",
-			//	event->jbutton.which, event->jbutton.button);
+			// 	event->jbutton.which, event->jbutton.button);
 			switch(event->jbutton.button)
 			{
 				case 0:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_MOON; break; // KEY_A
@@ -501,7 +503,7 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 			break;
 		case SDL_JOYBUTTONUP:
 			// printf("Joystick %d button %d UP\n",
-			//	event->jbutton.which, event->jbutton.button);
+			// 	event->jbutton.which, event->jbutton.button);
 			switch(event->jbutton.button)
 			{
 				case 0:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_MOON; break; // KEY_A

@@ -81,7 +81,6 @@ class Host
 		ChiakiSession session;
 		ChiakiOpusDecoder opus_decoder;
 		ChiakiConnectVideoProfile video_profile;
-		ChiakiControllerState keyboard_state;
 		friend class Settings;
 		friend class DiscoveryManager;
 

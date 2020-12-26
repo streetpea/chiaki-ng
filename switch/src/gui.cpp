@@ -37,10 +37,6 @@ HostInterface::HostInterface(IO * io, Host * host, Settings * settings)
 			"Host configuration", true);
 	this->addView(info);
 
-	// push opengl chiaki stream
-	// when the host is connected
-	this->io->SetEventConnectedCallback(std::bind(&HostInterface::Stream, this));
-	this->io->SetEventQuitCallback(std::bind(&HostInterface::CloseStream, this, std::placeholders::_1));
 }
 
 HostInterface::~HostInterface()
@@ -173,7 +169,7 @@ void HostInterface::Connect(brls::View * view)
 	}
 
 	// ignore state for remote hosts
-	if(this->host->IsDiscovered() && this->host->IsReady())
+	if(this->host->IsDiscovered() && !this->host->IsReady())
 	{
 		// host in standby mode
 		DIALOG(ptoyp, "Please turn on your PlayStation");
@@ -197,6 +193,11 @@ void HostInterface::ConnectSession()
 	// ignore all user inputs (avoid double connect)
 	// user inputs are restored with the CloseStream
 	brls::Application::blockInputs();
+
+	// push opengl chiaki stream
+	// when the host is connected
+	this->io->SetEventConnectedCallback(std::bind(&HostInterface::Stream, this));
+	this->io->SetEventQuitCallback(std::bind(&HostInterface::CloseStream, this, std::placeholders::_1));
 
 	// connect host sesssion
 	this->host->InitSession(this->io);
@@ -596,7 +597,7 @@ PSRemotePlay::PSRemotePlay(IO * io, Host * host)
 void PSRemotePlay::draw(NVGcontext* vg, int x, int y, unsigned width, unsigned height, brls::Style* style, brls::FrameContext* ctx)
 {
 	this->io->MainLoop(&this->state);
-	this->host->SendFeedbackState(&state);
+	this->host->SendFeedbackState(&this->state);
 
 	// FPS calculation
 	// this->frame_counter += 1;
