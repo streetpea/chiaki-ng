@@ -555,13 +555,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
 	size_t buf_sz;
 	if(takion->version <= 9)
 	{
-		buf_sz = CHIAKI_FEEDBACK_STATE_BUF_SIZE_V9;
+		buf_sz = 0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE_V9;
 		chiaki_feedback_state_format_v9(buf + 0xc, feedback_state);
 	}
 	else
 	{
-		buf_sz = CHIAKI_FEEDBACK_STATE_BUF_SIZE_V12;
-		chiaki_feedback_state_format_v9(buf + 0xc, feedback_state);
+		buf_sz = 0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE_V12;
+		chiaki_feedback_state_format_v12(buf + 0xc, feedback_state);
 	}
 	return takion_send_feedback_packet(takion, buf, buf_sz);
 }
