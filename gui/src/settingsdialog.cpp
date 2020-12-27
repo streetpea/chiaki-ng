@@ -348,7 +348,10 @@ void SettingsDialog::UpdateRegisteredHosts()
 	auto hosts = settings->GetRegisteredHosts();
 	for(const auto &host : hosts)
 	{
-		auto item = new QListWidgetItem(QString("%1 (%2)").arg(host.GetServerMAC().ToString(), host.GetServerNickname()));
+		auto item = new QListWidgetItem(QString("%1 (%2, %3)")
+				.arg(host.GetServerMAC().ToString(),
+					chiaki_target_is_ps5(host.GetTarget()) ? "PS5" : "PS4",
+					host.GetServerNickname()));
 		item->setData(Qt::UserRole, QVariant::fromValue(host.GetServerMAC()));
 		registered_hosts_list_widget->addItem(item);
 	}
