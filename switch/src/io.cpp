@@ -7,6 +7,7 @@
 #endif
 
 #include "io.h"
+#include "settings.h"
 
 // https://github.com/torvalds/linux/blob/41ba50b0572e90ed3d24fe4def54567e9050bc47/drivers/hid/hid-sony.c#L2742
 #define DS4_TRACKPAD_MAX_X 1920
@@ -24,7 +25,7 @@
 // use OpenGl to decode YUV
 // the aim is to spare CPU load on nintendo switch
 
-static const char* shader_vert_glsl = R"glsl(
+static const char *shader_vert_glsl = R"glsl(
 #version 150 core
 in vec2 pos_attr;
 out vec2 uv_var;
@@ -60,12 +61,23 @@ static const float vert_pos[] = {
 	0.0f, 0.0f,
 	0.0f, 1.0f,
 	1.0f, 0.0f,
-	1.0f, 1.0f
-};
+	1.0f, 1.0f};
 
-IO::IO(ChiakiLog * log)
-	: log(log)
+IO *IO::instance = nullptr;
+
+IO *IO::GetInstance()
 {
+	if(instance == nullptr)
+	{
+		instance = new IO;
+	}
+	return instance;
+}
+
+IO::IO()
+{
+	Settings *settings = Settings::GetInstance();
+	this->log = settings->GetLogger();
 }
 
 IO::~IO()
@@ -99,11 +111,15 @@ void IO::SetMesaConfig()
 }
 
 #ifdef DEBUG_OPENGL
-#define D(x){ (x); CheckGLError(__func__, __FILE__, __LINE__); }
-void IO::CheckGLError(const char* func, const char* file, int line)
+#define D(x)                                        \
+	{                                               \
+		(x);                                        \
+		CheckGLError(__func__, __FILE__, __LINE__); \
+	}
+void IO::CheckGLError(const char *func, const char *file, int line)
 {
 	GLenum err;
-	while( (err = glGetError()) != GL_NO_ERROR )
+	while((err = glGetError()) != GL_NO_ERROR)
 	{
 		CHIAKI_LOGE(this->log, "glGetError: %x function: %s from %s line %d", err, func, file, line);
 		//GL_INVALID_VALUE, 0x0501
@@ -115,37 +131,51 @@ void IO::CheckGLError(const char* func, const char* file, int line)
 	}
 }
 
-#define DS(x){ DumpShaderError(x, __func__, __FILE__, __LINE__); }
-void IO::DumpShaderError(GLuint shader, const char* func, const char* file, int line)
+#define DS(x)                                             \
+	{                                                     \
+		DumpShaderError(x, __func__, __FILE__, __LINE__); \
+	}
+void IO::DumpShaderError(GLuint shader, const char *func, const char *file, int line)
 {
-	GLchar str[512+1];
+	GLchar str[512 + 1];
 	GLsizei len = 0;
 	glGetShaderInfoLog(shader, 512, &len, str);
-	if (len > 512) len = 512;
+	if(len > 512)
+		len = 512;
 	str[len] = '\0';
 	CHIAKI_LOGE(this->log, "glGetShaderInfoLog: %s function: %s from %s line %d", str, func, file, line);
 }
 
-#define DP(x){ DumpProgramError(x, __func__, __FILE__, __LINE__); }
-void IO::DumpProgramError(GLuint prog, const char* func, const char* file, int line)
+#define DP(x)                                              \
+	{                                                      \
+		DumpProgramError(x, __func__, __FILE__, __LINE__); \
+	}
+void IO::DumpProgramError(GLuint prog, const char *func, const char *file, int line)
 {
-	GLchar str[512+1];
+	GLchar str[512 + 1];
 	GLsizei len = 0;
 	glGetProgramInfoLog(prog, 512, &len, str);
-	if (len > 512) len = 512;
+	if(len > 512)
+		len = 512;
 	str[len] = '\0';
 	CHIAKI_LOGE(this->log, "glGetProgramInfoLog: %s function: %s from %s line %d", str, func, file, line);
 }
 
 #else
 // do nothing
-#define D(x){ (x); }
-#define DS(x){ }
-#define DP(x){ }
+#define D(x) \
+	{        \
+		(x); \
+	}
+#define DS(x) \
+	{         \
+	}
+#define DP(x) \
+	{         \
+	}
 #endif
 
-
-bool IO::VideoCB(uint8_t * buf, size_t buf_size)
+bool IO::VideoCB(uint8_t *buf, size_t buf_size)
 {
 	// callback function to decode video buffer
 
@@ -153,7 +183,7 @@ bool IO::VideoCB(uint8_t * buf, size_t buf_size)
 	av_init_packet(&packet);
 	packet.data = buf;
 	packet.size = buf_size;
-	AVFrame * frame = av_frame_alloc();
+	AVFrame *frame = av_frame_alloc();
 	if(!frame)
 	{
 		CHIAKI_LOGE(this->log, "UpdateFrame Failed to alloc AVFrame");
@@ -204,7 +234,6 @@ send_packet:
 	return true;
 }
 
-
 void IO::InitAudioCB(unsigned int channels, unsigned int rate)
 {
 	SDL_AudioSpec want, have, test;
@@ -241,12 +270,12 @@ void IO::InitAudioCB(unsigned int channels, unsigned int rate)
 	}
 }
 
-void IO::AudioCB(int16_t * buf, size_t samples_count)
+void IO::AudioCB(int16_t *buf, size_t samples_count)
 {
-	for(int x=0; x < samples_count*2; x++)
+	for(int x = 0; x < samples_count * 2; x++)
 	{
 		// boost audio volume
-		int sample = buf[x]*1.80;
+		int sample = buf[x] * 1.80;
 		// Hard clipping (audio compression)
 		// truncate value that overflow/underflow int16
 		if(sample > INT16_MAX)
@@ -260,9 +289,9 @@ void IO::AudioCB(int16_t * buf, size_t samples_count)
 			CHIAKI_LOGD(this->log, "Audio Hard clipping INT16_MIN > %d", sample);
 		}
 		else
-			buf[x] = (int16_t) sample;
+			buf[x] = (int16_t)sample;
 	}
-	int success = SDL_QueueAudio(this->sdl_audio_device_id, buf, sizeof(int16_t)*samples_count*2);
+	int success = SDL_QueueAudio(this->sdl_audio_device_id, buf, sizeof(int16_t) * samples_count * 2);
 	if(success != 0)
 		CHIAKI_LOGE(this->log, "SDL_QueueAudio failed: %s\n", SDL_GetError());
 }
@@ -288,33 +317,6 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 	}
 	return true;
 }
-
-void IO::EventCB(ChiakiEvent *event)
-{
-	switch(event->type)
-	{
-		case CHIAKI_EVENT_CONNECTED:
-			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_CONNECTED");
-			if(this->chiaki_event_connected_cb != nullptr)
-				this->quit = !this->chiaki_event_connected_cb();
-			else
-				this->quit = false;
-			break;
-		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
-			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_LOGIN_PIN_REQUEST");
-			if(this->chiaki_even_login_pin_request_cb != nullptr)
-				this->quit = !this->chiaki_even_login_pin_request_cb(event->login_pin_request.pin_incorrect);
-			break;
-		case CHIAKI_EVENT_QUIT:
-			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_QUIT");
-			if(this->chiaki_event_quit_cb != nullptr)
-				this->quit = !this->chiaki_event_quit_cb(&event->quit);
-			else
-				this->quit = true;
-			break;
-	}
-}
-
 
 bool IO::FreeVideo()
 {
@@ -344,12 +346,12 @@ bool IO::ReadUserKeyboard(char *buffer, size_t buffer_size)
 	SwkbdConfig kbd;
 	Result rc = swkbdCreate(&kbd, 0);
 
-	if (R_SUCCEEDED(rc))
+	if(R_SUCCEEDED(rc))
 	{
 		swkbdConfigMakePresetDefault(&kbd);
 		rc = swkbdShow(&kbd, buffer, buffer_size);
 
-		if (R_SUCCEEDED(rc))
+		if(R_SUCCEEDED(rc))
 		{
 			CHIAKI_LOGI(this->log, "Got user input: %s\n", buffer);
 		}
@@ -377,7 +379,7 @@ bool IO::ReadGameTouchScreen(ChiakiControllerState *state)
 	bool ret = false;
 	if(!touch_count)
 	{
-		for(int i=0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+		for(int i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 		{
 			if(state->touches[i].id != -1)
 			{
@@ -393,7 +395,7 @@ bool IO::ReadGameTouchScreen(ChiakiControllerState *state)
 	}
 
 	touchPosition touch;
-	for(int i=0; i < touch_count && i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	for(int i = 0; i < touch_count && i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
 		hidTouchRead(&touch, i);
 
@@ -403,11 +405,10 @@ bool IO::ReadGameTouchScreen(ChiakiControllerState *state)
 		uint16_t y = touch.py * (DS4_TRACKPAD_MAX_Y / SWITCH_TOUCHSCREEN_MAX_Y);
 
 		// use nintendo switch border's 5% to
-		if(x <= (SWITCH_TOUCHSCREEN_MAX_X * 0.05) || x >= (SWITCH_TOUCHSCREEN_MAX_X * 0.95)
-			|| y <= (SWITCH_TOUCHSCREEN_MAX_Y * 0.05) || y >= (SWITCH_TOUCHSCREEN_MAX_Y * 0.95))
+		if(x <= (SWITCH_TOUCHSCREEN_MAX_X * 0.05) || x >= (SWITCH_TOUCHSCREEN_MAX_X * 0.95) || y <= (SWITCH_TOUCHSCREEN_MAX_Y * 0.05) || y >= (SWITCH_TOUCHSCREEN_MAX_Y * 0.95))
 		{
 			state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
-			// printf("CHIAKI_CONTROLLER_BUTTON_TOUCHPAD\n");
+																 // printf("CHIAKI_CONTROLLER_BUTTON_TOUCHPAD\n");
 		}
 		else
 		{
@@ -459,7 +460,7 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 				else
 					ret = false;
 			}
-			else if (event->jaxis.which == 1)
+			else if(event->jaxis.which == 1)
 			{
 				// right joystick
 				if(event->jaxis.axis == 0)
@@ -479,26 +480,58 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 			// 	event->jbutton.which, event->jbutton.button);
 			switch(event->jbutton.button)
 			{
-				case 0:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_MOON; break; // KEY_A
-				case 1:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_CROSS; break; // KEY_B
-				case 2:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_PYRAMID; break; // KEY_X
-				case 3:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_BOX; break; // KEY_Y
-				case 12: state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT; break; // KEY_DLEFT
-				case 14: state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT; break; // KEY_DRIGHT
-				case 13: state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_UP; break; // KEY_DUP
-				case 15: state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN; break; // KEY_DDOWN
-				case 6:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_L1; break; // KEY_L
-				case 7:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_R1; break; // KEY_R
-				case 8:  state->l2_state = 0xff; break; // KEY_ZL
-				case 9:  state->r2_state = 0xff; break; // KEY_ZR
-				case 4:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_L3; break; // KEY_LSTICK
-				case 5:  state->buttons |= CHIAKI_CONTROLLER_BUTTON_R3; break; // KEY_RSTICK
-				case 10: state->buttons |= CHIAKI_CONTROLLER_BUTTON_OPTIONS; break; // KEY_PLUS
+				case 0:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_MOON;
+					break; // KEY_A
+				case 1:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_CROSS;
+					break; // KEY_B
+				case 2:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_PYRAMID;
+					break; // KEY_X
+				case 3:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_BOX;
+					break; // KEY_Y
+				case 12:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+					break; // KEY_DLEFT
+				case 14:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+					break; // KEY_DRIGHT
+				case 13:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+					break; // KEY_DUP
+				case 15:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+					break; // KEY_DDOWN
+				case 6:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_L1;
+					break; // KEY_L
+				case 7:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_R1;
+					break; // KEY_R
+				case 8:
+					state->l2_state = 0xff;
+					break; // KEY_ZL
+				case 9:
+					state->r2_state = 0xff;
+					break; // KEY_ZR
+				case 4:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_L3;
+					break; // KEY_LSTICK
+				case 5:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_R3;
+					break; // KEY_RSTICK
+				case 10:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_OPTIONS;
+					break; // KEY_PLUS
 				// FIXME
-			 	// case 11: state->buttons |= CHIAKI_CONTROLLER_BUTTON_SHARE; break; // KEY_MINUS
-				case 11: state->buttons |= CHIAKI_CONTROLLER_BUTTON_PS; break; // KEY_MINUS
+				// case 11: state->buttons |= CHIAKI_CONTROLLER_BUTTON_SHARE; break; // KEY_MINUS
+				case 11:
+					state->buttons |= CHIAKI_CONTROLLER_BUTTON_PS;
+					break; // KEY_MINUS
 				default:
-						 ret = false;
+					ret = false;
 			}
 			break;
 		case SDL_JOYBUTTONUP:
@@ -506,25 +539,57 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 			// 	event->jbutton.which, event->jbutton.button);
 			switch(event->jbutton.button)
 			{
-				case 0:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_MOON; break; // KEY_A
-				case 1:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_CROSS; break; // KEY_B
-				case 2:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_PYRAMID; break; // KEY_X
-				case 3:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_BOX; break; // KEY_Y
-				case 12: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT; break; // KEY_DLEFT
-				case 14: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT; break; // KEY_DRIGHT
-				case 13: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_UP; break; // KEY_DUP
-				case 15: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN; break; // KEY_DDOWN
-				case 6:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_L1; break; // KEY_L
-				case 7:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_R1; break; // KEY_R
-				case 8:  state->l2_state = 0x00; break; // KEY_ZL
-				case 9:  state->r2_state = 0x00; break; // KEY_ZR
-				case 4:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_L3; break; // KEY_LSTICK
-				case 5:  state->buttons ^= CHIAKI_CONTROLLER_BUTTON_R3; break; // KEY_RSTICK
-				case 10: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_OPTIONS; break; // KEY_PLUS
-			 	//case 11: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_SHARE; break; // KEY_MINUS
-				case 11: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_PS; break; // KEY_MINUS
+				case 0:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_MOON;
+					break; // KEY_A
+				case 1:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_CROSS;
+					break; // KEY_B
+				case 2:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_PYRAMID;
+					break; // KEY_X
+				case 3:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_BOX;
+					break; // KEY_Y
+				case 12:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+					break; // KEY_DLEFT
+				case 14:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+					break; // KEY_DRIGHT
+				case 13:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+					break; // KEY_DUP
+				case 15:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+					break; // KEY_DDOWN
+				case 6:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_L1;
+					break; // KEY_L
+				case 7:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_R1;
+					break; // KEY_R
+				case 8:
+					state->l2_state = 0x00;
+					break; // KEY_ZL
+				case 9:
+					state->r2_state = 0x00;
+					break; // KEY_ZR
+				case 4:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_L3;
+					break; // KEY_LSTICK
+				case 5:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_R3;
+					break; // KEY_RSTICK
+				case 10:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_OPTIONS;
+					break; // KEY_PLUS
+						   //case 11: state->buttons ^= CHIAKI_CONTROLLER_BUTTON_SHARE; break; // KEY_MINUS
+				case 11:
+					state->buttons ^= CHIAKI_CONTROLLER_BUTTON_PS;
+					break; // KEY_MINUS
 				default:
-						 ret = false;
+					ret = false;
 			}
 			break;
 		default:
@@ -582,7 +647,7 @@ bool IO::InitOpenGlTextures()
 	D(glGenTextures(PLANES_COUNT, this->tex));
 	D(glGenBuffers(PLANES_COUNT, this->pbo));
 	uint8_t uv_default[] = {0x7f, 0x7f};
-	for(int i=0; i < PLANES_COUNT; i++)
+	for(int i = 0; i < PLANES_COUNT; i++)
 	{
 		D(glBindTexture(GL_TEXTURE_2D, this->tex[i]));
 		D(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
@@ -595,7 +660,7 @@ bool IO::InitOpenGlTextures()
 	D(glUseProgram(this->prog));
 	// bind only as many planes as we need
 	const char *plane_names[] = {"plane1", "plane2", "plane3"};
-	for(int i=0; i < PLANES_COUNT; i++)
+	for(int i = 0; i < PLANES_COUNT; i++)
 		D(glUniform1i(glGetUniformLocation(this->prog, plane_names[i]), i));
 
 	D(glGenVertexArrays(1, &this->vao));
@@ -615,14 +680,14 @@ bool IO::InitOpenGlTextures()
 	return true;
 }
 
-GLuint IO::CreateAndCompileShader(GLenum type, const char* source)
+GLuint IO::CreateAndCompileShader(GLenum type, const char *source)
 {
 	GLint success;
 	GLchar msg[512];
 
 	GLuint handle;
 	D(handle = glCreateShader(type));
-	if (!handle)
+	if(!handle)
 	{
 		CHIAKI_LOGE(this->log, "%u: cannot create shader", type);
 		DP(this->prog);
@@ -632,7 +697,7 @@ GLuint IO::CreateAndCompileShader(GLenum type, const char* source)
 	D(glCompileShader(handle));
 	D(glGetShaderiv(handle, GL_COMPILE_STATUS, &success));
 
-	if (!success)
+	if(!success)
 	{
 		D(glGetShaderInfoLog(handle, sizeof(msg), nullptr, msg));
 		CHIAKI_LOGE(this->log, "%u: %s\n", type, msg);
@@ -658,7 +723,7 @@ bool IO::InitOpenGlShader()
 
 	GLint success;
 	D(glGetProgramiv(this->prog, GL_LINK_STATUS, &success));
-	if (!success)
+	if(!success)
 	{
 		char buf[512];
 		glGetProgramInfoLog(this->prog, sizeof(buf), nullptr, buf);
@@ -672,15 +737,15 @@ bool IO::InitOpenGlShader()
 	return true;
 }
 
-inline void IO::SetOpenGlYUVPixels(AVFrame * frame)
+inline void IO::SetOpenGlYUVPixels(AVFrame *frame)
 {
 	D(glUseProgram(this->prog));
 
 	int planes[][3] = {
 		// { width_divide, height_divider, data_per_pixel }
-		{ 1, 1, 1 }, // Y
-		{ 2, 2, 1 }, // U
-		{ 2, 2, 1 }  // V
+		{1, 1, 1}, // Y
+		{2, 2, 1}, // U
+		{2, 2, 1}  // V
 	};
 
 	this->mtx.lock();
@@ -689,7 +754,7 @@ inline void IO::SetOpenGlYUVPixels(AVFrame * frame)
 		int width = frame->width / planes[i][0];
 		int height = frame->height / planes[i][1];
 		int size = width * height * planes[i][2];
-		uint8_t * buf;
+		uint8_t *buf;
 
 		D(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbo[i]));
 		D(glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW));
@@ -700,7 +765,7 @@ inline void IO::SetOpenGlYUVPixels(AVFrame * frame)
 			D(glGetBufferParameteriv(GL_PIXEL_UNPACK_BUFFER, GL_BUFFER_SIZE, &data));
 			CHIAKI_LOGE(this->log, "AVOpenGLFrame failed to map PBO");
 			CHIAKI_LOGE(this->log, "Info buf == %p. size %d frame %d * %d, divs %d, %d, pbo %d GL_BUFFER_SIZE %x",
-					buf, size, frame->width, frame->height, planes[i][0], planes[i][1], pbo[i], data);
+				buf, size, frame->width, frame->height, planes[i][0], planes[i][1], pbo[i], data);
 			continue;
 		}
 
@@ -712,10 +777,10 @@ inline void IO::SetOpenGlYUVPixels(AVFrame * frame)
 		else
 		{
 			// UV
-			for(int l=0; l<height; l++)
+			for(int l = 0; l < height; l++)
 				memcpy(buf + width * l * planes[i][2],
-						frame->data[i] + frame->linesize[i] * l,
-						width * planes[i][2]);
+					frame->data[i] + frame->linesize[i] * l,
+					width * planes[i][2]);
 		}
 		D(glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER));
 		D(glBindTexture(GL_TEXTURE_2D, tex[i]));
@@ -736,7 +801,7 @@ inline void IO::OpenGlDraw()
 	//avcodec_flush_buffers(this->codec_context);
 	D(glBindVertexArray(this->vao));
 
-	for(int i=0; i< PLANES_COUNT; i++)
+	for(int i = 0; i < PLANES_COUNT; i++)
 	{
 		D(glActiveTexture(GL_TEXTURE0 + i));
 		D(glBindTexture(GL_TEXTURE_2D, this->tex[i]));
@@ -753,10 +818,10 @@ bool IO::InitJoystick()
 	// open CONTROLLER_PLAYER_1 and CONTROLLER_PLAYER_2
 	// when railed, both joycons are mapped to joystick #0,
 	// else joycons are individually mapped to joystick #0, joystick #1, ...
-	for (int i = 0; i < SDL_JOYSTICK_COUNT; i++)
+	for(int i = 0; i < SDL_JOYSTICK_COUNT; i++)
 	{
 		this->sdl_joystick_ptr[i] = SDL_JoystickOpen(i);
-		if (sdl_joystick_ptr[i] == nullptr)
+		if(sdl_joystick_ptr[i] == nullptr)
 		{
 			CHIAKI_LOGE(this->log, "SDL_JoystickOpen: %s\n", SDL_GetError());
 			return false;
@@ -767,7 +832,7 @@ bool IO::InitJoystick()
 
 bool IO::FreeJoystick()
 {
-	for (int i = 0; i < SDL_JOYSTICK_COUNT; i++)
+	for(int i = 0; i < SDL_JOYSTICK_COUNT; i++)
 	{
 		if(SDL_JoystickGetAttached(sdl_joystick_ptr[i]))
 			SDL_JoystickClose(sdl_joystick_ptr[i]);
@@ -775,7 +840,7 @@ bool IO::FreeJoystick()
 	return true;
 }
 
-bool IO::MainLoop(ChiakiControllerState * state)
+bool IO::MainLoop(ChiakiControllerState *state)
 {
 	D(glUseProgram(this->prog));
 
@@ -798,4 +863,3 @@ bool IO::MainLoop(ChiakiControllerState * state)
 
 	return !this->quit;
 }
-

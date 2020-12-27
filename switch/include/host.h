@@ -19,11 +19,11 @@
 
 class DiscoveryManager;
 static void Discovery(ChiakiDiscoveryHost *, void *);
-static void InitAudioCB(unsigned int channels, unsigned int rate, void * user);
-static bool VideoCB(uint8_t * buf, size_t buf_size, void * user);
-static void AudioCB(int16_t * buf, size_t samples_count, void * user);
-static void RegistEventCB(ChiakiRegistEvent * event, void * user);
-static void EventCB(ChiakiEvent * event, void * user);
+static void InitAudioCB(unsigned int channels, unsigned int rate, void *user);
+static bool VideoCB(uint8_t *buf, size_t buf_size, void *user);
+static void AudioCB(int16_t *buf, size_t samples_count, void *user);
+static void EventCB(ChiakiEvent *event, void *user);
+static void RegistEventCB(ChiakiRegistEvent *event, void *user);
 
 enum RegistError
 {
@@ -37,8 +37,8 @@ class Settings;
 class Host
 {
 	private:
-		ChiakiLog * log = nullptr;
-		Settings * settings = nullptr;
+		ChiakiLog *log = nullptr;
+		Settings *settings = nullptr;
 		//video config
 		ChiakiVideoResolutionPreset video_resolution = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 		ChiakiVideoFPSPreset video_fps = CHIAKI_VIDEO_FPS_PRESET_60;
@@ -52,6 +52,9 @@ class Host
 		std::function<void()> chiaki_regist_event_type_finished_canceled = nullptr;
 		std::function<void()> chiaki_regist_event_type_finished_failed = nullptr;
 		std::function<void()> chiaki_regist_event_type_finished_success = nullptr;
+		std::function<void()> chiaki_event_connected_cb = nullptr;
+		std::function<void(bool)> chiaki_even_login_pin_request_cb = nullptr;
+		std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb = nullptr;
 
 		// internal state
 		bool discovered = false;
@@ -95,7 +98,8 @@ class Host
 		void StartSession();
 		void SendFeedbackState(ChiakiControllerState *);
 		void RegistCB(ChiakiRegistEvent *);
-		bool GetVideoResolution(int * ret_width, int * ret_height);
+		void ConnectionEventCB(ChiakiEvent *);
+		bool GetVideoResolution(int *ret_width, int *ret_height);
 		std::string GetHostName();
 		std::string GetHostAddr();
 		ChiakiTarget GetChiakiTarget();
@@ -104,6 +108,9 @@ class Host
 		void SetRegistEventTypeFinishedCanceled(std::function<void()> chiaki_regist_event_type_finished_canceled);
 		void SetRegistEventTypeFinishedFailed(std::function<void()> chiaki_regist_event_type_finished_failed);
 		void SetRegistEventTypeFinishedSuccess(std::function<void()> chiaki_regist_event_type_finished_success);
+		void SetEventConnectedCallback(std::function<void()> chiaki_event_connected_cb);
+		void SetEventLoginPinRequestCallback(std::function<void(bool)> chiaki_even_login_pin_request_cb);
+		void SetEventQuitCallback(std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb);
 		bool IsRegistered();
 		bool IsDiscovered();
 		bool IsReady();

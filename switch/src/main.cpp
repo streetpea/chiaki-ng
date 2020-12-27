@@ -134,9 +134,8 @@ int main(int argc, char * argv[])
 	}
 
 	// build sdl OpenGl and AV decoders graphical interface
-	IO io = IO(log); // open Input Output class
 	DiscoveryManager discoverymanager = DiscoveryManager();
-	MainApplication app = MainApplication(&discoverymanager, &io);
+	MainApplication app = MainApplication(&discoverymanager);
 	app.Load();
 
 	CHIAKI_LOGI(log, "Quit applet");

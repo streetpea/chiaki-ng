@@ -7,33 +7,33 @@
 #include "host.h"
 #include "io.h"
 
-static void InitAudioCB(unsigned int channels, unsigned int rate, void * user)
+static void InitAudioCB(unsigned int channels, unsigned int rate, void *user)
 {
-	IO * io = (IO *)user;
+	IO *io = (IO *)user;
 	io->InitAudioCB(channels, rate);
 }
 
-static bool VideoCB(uint8_t * buf, size_t buf_size, void * user)
+static bool VideoCB(uint8_t *buf, size_t buf_size, void *user)
 {
-	IO * io = (IO *)user;
+	IO *io = (IO *)user;
 	return io->VideoCB(buf, buf_size);
 }
 
-static void AudioCB(int16_t * buf, size_t samples_count, void * user)
+static void AudioCB(int16_t *buf, size_t samples_count, void *user)
 {
-	IO * io = (IO *)user;
+	IO *io = (IO *)user;
 	io->AudioCB(buf, samples_count);
 }
 
-static void EventCB(ChiakiEvent * event, void * user)
+static void EventCB(ChiakiEvent *event, void *user)
 {
-	IO * io = (IO *)user;
-	io->EventCB(event);
+	Host *host = (Host *)user;
+	host->ConnectionEventCB(event);
 }
 
-static void RegistEventCB(ChiakiRegistEvent * event, void * user)
+static void RegistEventCB(ChiakiRegistEvent *event, void *user)
 {
-	Host * host = (Host *)user;
+	Host *host = (Host *)user;
 	host->RegistCB(event);
 }
 
@@ -132,7 +132,7 @@ int Host::Register(std::string pin)
 	return HOST_REGISTER_OK;
 }
 
-int Host::InitSession(IO * user)
+int Host::InitSession(IO *user)
 {
 	chiaki_connect_video_profile_preset(&(this->video_profile),
 		this->video_resolution, this->video_fps);
@@ -158,7 +158,7 @@ int Host::InitSession(IO * user)
 	chiaki_opus_decoder_get_sink(&this->opus_decoder, &audio_sink);
 	chiaki_session_set_audio_sink(&(this->session), &audio_sink);
 	chiaki_session_set_video_sample_cb(&(this->session), VideoCB, user);
-	chiaki_session_set_event_cb(&(this->session), EventCB, user);
+	chiaki_session_set_event_cb(&(this->session), EventCB, this);
 	return 0;
 }
 
@@ -166,6 +166,7 @@ int Host::FiniSession()
 {
 	if(this->session_init)
 	{
+		this->session_init = false;
 		chiaki_session_join(&this->session);
 		chiaki_session_fini(&this->session);
 		chiaki_opus_decoder_fini(&this->opus_decoder);
@@ -188,13 +189,35 @@ void Host::StartSession()
 	}
 }
 
-void Host::SendFeedbackState(ChiakiControllerState * state)
+void Host::SendFeedbackState(ChiakiControllerState *state)
 {
 	// send controller/joystick key
 	chiaki_session_set_controller_state(&this->session, state);
 }
 
-void Host::RegistCB(ChiakiRegistEvent * event)
+void Host::ConnectionEventCB(ChiakiEvent *event)
+{
+	switch(event->type)
+	{
+		case CHIAKI_EVENT_CONNECTED:
+			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_CONNECTED");
+			if(this->chiaki_event_connected_cb != nullptr)
+				this->chiaki_event_connected_cb();
+			break;
+		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
+			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_LOGIN_PIN_REQUEST");
+			if(this->chiaki_even_login_pin_request_cb != nullptr)
+				this->chiaki_even_login_pin_request_cb(event->login_pin_request.pin_incorrect);
+			break;
+		case CHIAKI_EVENT_QUIT:
+			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_QUIT");
+			if(this->chiaki_event_quit_cb != nullptr)
+				this->chiaki_event_quit_cb(&event->quit);
+			break;
+	}
+}
+
+void Host::RegistCB(ChiakiRegistEvent *event)
 {
 	// Chiaki callback fuction
 	// fuction called by lib chiaki regist
@@ -205,71 +228,71 @@ void Host::RegistCB(ChiakiRegistEvent * event)
 	this->registered = false;
 	switch(event->type)
 	{
-	case CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED:
-		CHIAKI_LOGI(this->log, "Register event CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED");
-		if(this->chiaki_regist_event_type_finished_canceled != nullptr)
+		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED:
+			CHIAKI_LOGI(this->log, "Register event CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED");
+			if(this->chiaki_regist_event_type_finished_canceled != nullptr)
+			{
+				this->chiaki_regist_event_type_finished_canceled();
+			}
+			break;
+		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
+			CHIAKI_LOGI(this->log, "Register event CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED");
+			if(this->chiaki_regist_event_type_finished_failed != nullptr)
+			{
+				this->chiaki_regist_event_type_finished_failed();
+			}
+			break;
+		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
 		{
-			this->chiaki_regist_event_type_finished_canceled();
-		}
-		break;
-	case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
-		CHIAKI_LOGI(this->log, "Register event CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED");
-		if(this->chiaki_regist_event_type_finished_failed != nullptr)
-		{
-			this->chiaki_regist_event_type_finished_failed();
-		}
-		break;
-	case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
-	{
-		ChiakiRegisteredHost * r_host = event->registered_host;
-		CHIAKI_LOGI(this->log, "Register event CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS");
-		// copy values form ChiakiRegisteredHost object
-		this->ap_ssid = r_host->ap_ssid;
-		this->ap_key = r_host->ap_key;
-		this->ap_name = r_host->ap_name;
-		memcpy(&(this->server_mac), &(r_host->server_mac), sizeof(this->server_mac));
-		this->server_nickname = r_host->server_nickname;
-		memcpy(&(this->rp_regist_key), &(r_host->rp_regist_key), sizeof(this->rp_regist_key));
-		this->rp_key_type = r_host->rp_key_type;
-		memcpy(&(this->rp_key), &(r_host->rp_key), sizeof(this->rp_key));
-		// mark host as registered
-		this->registered = true;
-		this->rp_key_data = true;
-		CHIAKI_LOGI(this->log, "Register Success %s", this->host_name.c_str());
+			ChiakiRegisteredHost *r_host = event->registered_host;
+			CHIAKI_LOGI(this->log, "Register event CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS");
+			// copy values form ChiakiRegisteredHost object
+			this->ap_ssid = r_host->ap_ssid;
+			this->ap_key = r_host->ap_key;
+			this->ap_name = r_host->ap_name;
+			memcpy(&(this->server_mac), &(r_host->server_mac), sizeof(this->server_mac));
+			this->server_nickname = r_host->server_nickname;
+			memcpy(&(this->rp_regist_key), &(r_host->rp_regist_key), sizeof(this->rp_regist_key));
+			this->rp_key_type = r_host->rp_key_type;
+			memcpy(&(this->rp_key), &(r_host->rp_key), sizeof(this->rp_key));
+			// mark host as registered
+			this->registered = true;
+			this->rp_key_data = true;
+			CHIAKI_LOGI(this->log, "Register Success %s", this->host_name.c_str());
 
-		if(this->chiaki_regist_event_type_finished_success != nullptr)
-			this->chiaki_regist_event_type_finished_success();
+			if(this->chiaki_regist_event_type_finished_success != nullptr)
+				this->chiaki_regist_event_type_finished_success();
 
-		break;
-	}
+			break;
+		}
 	}
 	// close registration socket
 	chiaki_regist_stop(&this->regist);
 	chiaki_regist_fini(&this->regist);
 }
 
-bool Host::GetVideoResolution(int * ret_width, int * ret_height)
+bool Host::GetVideoResolution(int *ret_width, int *ret_height)
 {
 	switch(this->video_resolution)
 	{
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
-		*ret_width = 640;
-		*ret_height = 360;
-		break;
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
-		*ret_width = 950;
-		*ret_height = 540;
-		break;
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
-		*ret_width = 1280;
-		*ret_height = 720;
-		break;
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
-		*ret_width = 1920;
-		*ret_height = 1080;
-		break;
-	default:
-		return false;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+			*ret_width = 640;
+			*ret_height = 360;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
+			*ret_width = 950;
+			*ret_height = 540;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
+			*ret_width = 1280;
+			*ret_height = 720;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
+			*ret_width = 1920;
+			*ret_height = 1080;
+			break;
+		default:
+			return false;
 	}
 	return true;
 }
@@ -312,6 +335,21 @@ void Host::SetRegistEventTypeFinishedFailed(std::function<void()> chiaki_regist_
 void Host::SetRegistEventTypeFinishedSuccess(std::function<void()> chiaki_regist_event_type_finished_success)
 {
 	this->chiaki_regist_event_type_finished_success = chiaki_regist_event_type_finished_success;
+}
+
+void Host::SetEventConnectedCallback(std::function<void()> chiaki_event_connected_cb)
+{
+	this->chiaki_event_connected_cb = chiaki_event_connected_cb;
+}
+
+void Host::SetEventLoginPinRequestCallback(std::function<void(bool)> chiaki_even_login_pin_request_cb)
+{
+	this->chiaki_even_login_pin_request_cb = chiaki_even_login_pin_request_cb;
+}
+
+void Host::SetEventQuitCallback(std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb)
+{
+	this->chiaki_event_quit_cb = chiaki_event_quit_cb;
 }
 
 bool Host::IsRegistered()
