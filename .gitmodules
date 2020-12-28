@@ -6,10 +6,10 @@
 	url = https://github.com/nanopb/nanopb.git
 [submodule "third-party/jerasure"]
 	path = third-party/jerasure
-	url = https://github.com/thestr4ng3r/jerasure.git
+	url = https://git.sr.ht/~thestr4ng3r/jerasure
 [submodule "third-party/gf-complete"]
 	path = third-party/gf-complete
-	url = https://github.com/thestr4ng3r/gf-complete.git
+	url = https://git.sr.ht/~thestr4ng3r/gf-complete
 [submodule "android/app/src/main/cpp/oboe"]
 	path = android/app/src/main/cpp/oboe
 	url = https://github.com/google/oboe

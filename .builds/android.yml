@@ -4,7 +4,7 @@ packages:
 - docker
 
 sources:
-- https://github.com/thestr4ng3r/chiaki
+- https://git.sr.ht/~thestr4ng3r/chiaki
 
 artifacts:
 - Chiaki.apk

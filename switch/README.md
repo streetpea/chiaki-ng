@@ -55,7 +55,7 @@ this file contains sensitive data. (do not share this file)
 host_ip = X.X.X.X
 # required: sony oline id (login)
 psn_online_id = ps4_online_id
-# required (PS4>7.0 Only): https://github.com/thestr4ng3r/chiaki#obtaining-your-psn-accountid
+# required (PS4>7.0 Only): https://git.sr.ht/~thestr4ng3r/chiaki/tree/master/item/README.md#obtaining-your-psn-accountid
 psn_account_id = ps4_base64_account_id
 # optional(default 60): remote play fps (must be 30 or 60)
 video_fps = 60

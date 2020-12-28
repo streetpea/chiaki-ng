@@ -48,13 +48,3 @@ for:
     artifacts:
       - path: Chiaki.dmg
         name: Chiaki
-
-#deploy:
-#  description: 'Chiaki Binaries'
-#  provider: GitHub
-#  draft: true
-#  auth_token:
-#    secure: Amvzm3PMM5nv+iFsqaU7TZ9fgyYt/YIrOLV0QMiCyOoUlLRIaiYxWiJ7maTpxhZ9
-#  artifact: "Chiaki"
-#  on:
-#    appveyor_repo_tag: true

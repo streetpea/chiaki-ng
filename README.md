@@ -17,8 +17,6 @@ for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potent
 Everything necessary for a full streaming session, including the initial
 registration and wakeup of the console, is supported.
 The following features however are yet to be implemented:
-* H264 Error Concealment (FEC and active error recovery however are implemented)
-* Touchpad support (Triggering the Touchpad Button is currently possible from the keyboard though)
 * Rumble
 * Accelerometer/Gyroscope
 
@@ -30,10 +28,10 @@ You can either download a pre-built release (easier) or build Chiaki from source
 
 Builds are provided for Linux, Android, macOS and Windows.
 
-You can download them [here](https://github.com/thestr4ng3r/chiaki/releases).
+You can download them [here](https://git.sr.ht/~thestr4ng3r/chiaki/refs).
 
 * **Linux**: The provided file is an [AppImage](https://appimage.org/). Simply make it executable (`chmod +x <file>.AppImage`) and run it.
-* **Android**: Install from [Google Play](https://play.google.com/store/apps/details?id=com.metallic.chiaki), [F-Droid](https://f-droid.org/packages/com.metallic.chiaki/) or download the APK from GitHub.
+* **Android**: Install from [Google Play](https://play.google.com/store/apps/details?id=com.metallic.chiaki), [F-Droid](https://f-droid.org/packages/com.metallic.chiaki/) or download the APK from Sourcehut.
 * **macOS**: Drag the application from the `.dmg` into your Applications folder.
 * **Windows**: Extract the `.zip` file and execute `chiaki.exe`.
 * **Switch**: Follow README specific [instructions](./switch/README.md)

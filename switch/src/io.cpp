@@ -15,7 +15,7 @@
 #define SWITCH_TOUCHSCREEN_MAX_Y 720
 
 // source:
-// https://github.com/thestr4ng3r/chiaki/blob/master/gui/src/avopenglwidget.cpp
+// gui/src/avopenglwidget.cpp
 //
 // examples :
 // https://www.roxlu.com/2014/039/decoding-h264-and-yuv420p-playback
