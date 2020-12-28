@@ -24,6 +24,7 @@ class SettingsDialog : public QDialog
 		QComboBox *resolution_combo_box;
 		QComboBox *fps_combo_box;
 		QLineEdit *bitrate_edit;
+		QComboBox *codec_combo_box;
 		QLineEdit *audio_buffer_size_edit;
 		QComboBox *audio_device_combo_box;
 		QCheckBox *pi_decoder_check_box;
@@ -41,6 +42,7 @@ class SettingsDialog : public QDialog
 		void ResolutionSelected();
 		void FPSSelected();
 		void BitrateEdited();
+		void CodecSelected();
 		void AudioBufferSizeEdited();
 		void AudioOutputSelected();
 		void HardwareDecodeEngineSelected();

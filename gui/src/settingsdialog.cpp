@@ -174,6 +174,21 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(bitrate_edit, &QLineEdit::textEdited, this, &SettingsDialog::BitrateEdited);
 	UpdateBitratePlaceholder();
 
+	codec_combo_box = new QComboBox(this);
+	static const QList<QPair<ChiakiCodec, QString>> codec_strings = {
+		{ CHIAKI_CODEC_H264, "H264" },
+		{ CHIAKI_CODEC_H265, "H265 (PS5 only)" }
+	};
+	auto current_codec = settings->GetCodec();
+	for(const auto &p : codec_strings)
+	{
+		codec_combo_box->addItem(p.second, (int)p.first);
+		if(current_codec == p.first)
+			codec_combo_box->setCurrentIndex(codec_combo_box->count() - 1);
+	}
+	connect(codec_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(CodecSelected()));
+	stream_settings_layout->addRow(tr("Codec:"), codec_combo_box);
+
 	audio_buffer_size_edit = new QLineEdit(this);
 	audio_buffer_size_edit->setValidator(new QIntValidator(1024, 0x20000, audio_buffer_size_edit));
 	unsigned int audio_buffer_size = settings->GetAudioBufferSizeRaw();
@@ -315,6 +330,11 @@ void SettingsDialog::FPSSelected()
 void SettingsDialog::BitrateEdited()
 {
 	settings->SetBitrate(bitrate_edit->text().toUInt());
+}
+
+void SettingsDialog::CodecSelected()
+{
+	settings->SetCodec((ChiakiCodec)codec_combo_box->currentData().toInt());
 }
 
 void SettingsDialog::AudioBufferSizeEdited()

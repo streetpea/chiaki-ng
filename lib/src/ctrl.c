@@ -971,6 +971,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 				&& session->connect_info.video_profile_auto_downgrade
 				&& session->connect_info.video_profile.height == 1080)
 		{
+			// regular PS4 doesn't support >= 1080p
 			CHIAKI_LOGI(session->log, "1080p was selected but server would not support it. Downgrading.");
 			chiaki_connect_video_profile_preset(
 				&session->connect_info.video_profile,
@@ -978,6 +979,13 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 				session->connect_info.video_profile.max_fps == 60
 					? CHIAKI_VIDEO_FPS_PRESET_60
 					: CHIAKI_VIDEO_FPS_PRESET_30);
+		}
+		if((server_type == 0 || server_type == 1)
+				&& session->connect_info.video_profile.codec != CHIAKI_CODEC_H264)
+		{
+			// PS4 doesn't support anything except h264
+			CHIAKI_LOGI(session->log, "A codec other than H264 was selected but server would not support it. Downgrading.");
+			session->connect_info.video_profile.codec = CHIAKI_CODEC_H264;
 		}
 	}
 	else

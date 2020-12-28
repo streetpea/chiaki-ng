@@ -75,6 +75,9 @@ class Settings : public QObject
 		unsigned int GetBitrate() const;
 		void SetBitrate(unsigned int bitrate);
 
+		ChiakiCodec GetCodec() const;
+		void SetCodec(ChiakiCodec codec);
+
 		Decoder GetDecoder() const;
 		void SetDecoder(Decoder decoder);
 

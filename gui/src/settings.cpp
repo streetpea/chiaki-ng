@@ -132,6 +132,24 @@ void Settings::SetBitrate(unsigned int bitrate)
 	settings.setValue("settings/bitrate", bitrate);
 }
 
+static const QMap<ChiakiCodec, QString> codecs = {
+	{ CHIAKI_CODEC_H264, "h264"},
+	{ CHIAKI_CODEC_H265, "h265"}
+};
+
+static const ChiakiCodec codec_default = CHIAKI_CODEC_H265;
+
+ChiakiCodec Settings::GetCodec() const
+{
+	auto v = settings.value("settings/codec", codecs[codec_default]).toString();
+	return codecs.key(v, codec_default);
+}
+
+void Settings::SetCodec(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec", codecs[codec]);
+}
+
 unsigned int Settings::GetAudioBufferSizeDefault() const
 {
 	return 9600;
@@ -202,7 +220,7 @@ ChiakiConnectVideoProfile Settings::GetVideoProfile()
 	unsigned int bitrate = GetBitrate();
 	if(bitrate)
 		profile.bitrate = bitrate;
-	profile.codec = CHIAKI_CODEC_H264; // TODO: add a setting
+	profile.codec = GetCodec();
 	return profile;
 }
 

@@ -88,6 +88,7 @@ CHIAKI_EXPORT ChiakiTarget chiaki_rp_version_parse(const char *rp_version_str, b
 
 CHIAKI_EXPORT void chiaki_connect_video_profile_preset(ChiakiConnectVideoProfile *profile, ChiakiVideoResolutionPreset resolution, ChiakiVideoFPSPreset fps)
 {
+	profile->codec = CHIAKI_CODEC_H264;
 	switch(resolution)
 	{
 		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:

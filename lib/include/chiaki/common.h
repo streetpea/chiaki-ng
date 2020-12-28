@@ -85,9 +85,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init();
 
 typedef enum
 {
+	// values must not change
 	CHIAKI_CODEC_H264 = 0,
-	CHIAKI_CODEC_H265,
-	CHIAKI_CODEC_H265_HDR
+	CHIAKI_CODEC_H265 = 1,
+	CHIAKI_CODEC_H265_HDR = 2
 } ChiakiCodec;
 
 static inline bool chiaki_codec_is_h265(ChiakiCodec codec)
