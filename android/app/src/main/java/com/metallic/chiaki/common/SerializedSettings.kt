@@ -106,7 +106,7 @@ private fun Moshi.serializedSettingsAdapter() =
 private const val KEY_FORMAT = "format"
 private const val FORMAT = "chiaki-settings"
 private const val KEY_VERSION = "version"
-private const val VERSION = 1
+private const val VERSION = 2
 private const val KEY_SETTINGS = "settings"
 
 fun exportAllSettings(db: AppDatabase) = SerializedSettings.fromDatabase(db)

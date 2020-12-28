@@ -52,6 +52,12 @@
             app:key="@string/preferences_bitrate_key"
             app:title="@string/preferences_bitrate_title"
             app:icon="@drawable/ic_bitrate"/>
+
+        <ListPreference
+            app:key="@string/preferences_codec_key"
+            app:title="@string/preferences_codec_title"
+            app:summary="%s"
+            app:icon="@drawable/ic_codec"/>
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -66,8 +66,16 @@
                 android:id="@+id/ps4VersionRadioGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 app:layout_constraintTop_toBottomOf="@id/broadcastCheckBox">
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/ps5RadioButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/regist_option_ps5"
+                    android:layout_weight="1"
+                    android:checked="true"/>
 
                 <com.google.android.material.radiobutton.MaterialRadioButton
                     android:id="@+id/ps4VersionGE8RadioButton"
@@ -90,7 +98,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/regist_option_ps4_lt_7"
-                    android:layout_weight="1"/>
+                        android:layout_weight="1"/>
             </RadioGroup>
 
             <com.google.android.material.textview.MaterialTextView

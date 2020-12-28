@@ -10,6 +10,7 @@ sealed class DisplayHost
 	abstract val host: String
 	abstract val name: String?
 	abstract val id: String?
+	abstract val isPS5: Boolean
 
 	val isRegistered get() = registeredHost != null
 }
@@ -22,6 +23,7 @@ class DiscoveredDisplayHost(
 	override val host get() = discoveredHost.hostAddr ?: ""
 	override val name get() = discoveredHost.hostName ?: registeredHost?.serverNickname
 	override val id get() = discoveredHost.hostId ?: registeredHost?.serverMac?.toString()
+	override val isPS5 get() = discoveredHost.isPS5
 
 	override fun equals(other: Any?): Boolean =
 		if(other !is DiscoveredDisplayHost)
@@ -42,6 +44,7 @@ class ManualDisplayHost(
 	override val host get() = manualHost.host
 	override val name get() = registeredHost?.serverNickname
 	override val id get() = registeredHost?.serverMac?.toString()
+	override val isPS5: Boolean get() = registeredHost?.target?.isPS5 ?: false
 
 	override fun equals(other: Any?): Boolean =
 		if(other !is ManualDisplayHost)

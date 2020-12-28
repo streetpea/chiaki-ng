@@ -41,23 +41,32 @@ enum class VideoFPSPreset(val value: Int)
 	FPS_60(60)
 }
 
+enum class Codec(val value: Int)
+{
+	CODEC_H264(0),
+	CODEC_H265(1),
+	CODEC_H265_HDR(2)
+}
+
 @Parcelize
 data class ConnectVideoProfile(
 	val width: Int,
 	val height: Int,
 	val maxFPS: Int,
-	val bitrate: Int
+	val bitrate: Int,
+	val codec: Codec
 ): Parcelable
 {
 	companion object
 	{
-		fun preset(resolutionPreset: VideoResolutionPreset, fpsPreset: VideoFPSPreset)
-				= ChiakiNative.videoProfilePreset(resolutionPreset.value, fpsPreset.value)
+		fun preset(resolutionPreset: VideoResolutionPreset, fpsPreset: VideoFPSPreset, codec: Codec)
+				= ChiakiNative.videoProfilePreset(resolutionPreset.value, fpsPreset.value, codec)
 	}
 }
 
 @Parcelize
 data class ConnectInfo(
+	val ps5: Boolean,
 	val host: String,
 	val registKey: ByteArray,
 	val morning: ByteArray,
@@ -76,7 +85,7 @@ private class ChiakiNative
 		@JvmStatic external fun errorCodeToString(value: Int): String
 		@JvmStatic external fun quitReasonToString(value: Int): String
 		@JvmStatic external fun quitReasonIsStopped(value: Int): Boolean
-		@JvmStatic external fun videoProfilePreset(resolutionPreset: Int, fpsPreset: Int): ConnectVideoProfile
+		@JvmStatic external fun videoProfilePreset(resolutionPreset: Int, fpsPreset: Int, codec: Codec): ConnectVideoProfile
 		@JvmStatic external fun sessionCreate(result: CreateResult, connectInfo: ConnectInfo, logFile: String?, logVerbose: Boolean, javaSession: Session)
 		@JvmStatic external fun sessionFree(ptr: Long)
 		@JvmStatic external fun sessionStart(ptr: Long): Int
@@ -284,6 +293,8 @@ data class DiscoveryHost(
 		READY,
 		STANDBY
 	}
+	
+	val isPS5 get() = deviceDiscoveryProtocolVersion == "00030010"
 }
 
 

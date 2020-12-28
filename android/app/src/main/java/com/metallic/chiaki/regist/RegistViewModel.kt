@@ -7,11 +7,12 @@ import androidx.lifecycle.ViewModel
 
 class RegistViewModel: ViewModel()
 {
-	enum class PS4Version {
-		GE_8,
-		GE_7,
-		LT_7
+	enum class ConsoleVersion {
+		PS5,
+		PS4_GE_8,
+		PS4_GE_7,
+		PS4_LT_7
 	}
 
-	val ps4Version = MutableLiveData<PS4Version>(PS4Version.GE_8)
+	val ps4Version = MutableLiveData<ConsoleVersion>(ConsoleVersion.PS5)
 }

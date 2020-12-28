@@ -16,6 +16,7 @@ import com.metallic.chiaki.common.exportAndShareAllSettings
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.common.importSettingsFromUri
+import com.metallic.chiaki.lib.Codec
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
 
@@ -42,6 +43,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.resolutionKey -> preferences.resolution.value
 		preferences.fpsKey -> preferences.fps.value
 		preferences.bitrateKey -> preferences.bitrate?.toString() ?: ""
+		preferences.codecKey -> preferences.codec.value
 		else -> defValue
 	}
 
@@ -60,6 +62,11 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 				preferences.fps = fps
 			}
 			preferences.bitrateKey -> preferences.bitrate = value?.toIntOrNull()
+			preferences.codecKey ->
+			{
+				val codec = Preferences.Codec.values().firstOrNull { it.value == value } ?: return
+				preferences.codec = codec
+			}
 		}
 	}
 }
@@ -110,6 +117,11 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		viewModel.bitrateAuto.observe(this, Observer {
 			bitratePreference?.summaryProvider = bitrateSummaryProvider
 		})
+
+		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_codec_key))?.let {
+			it.entryValues = Preferences.codecAll.map { codec -> codec.value }.toTypedArray()
+			it.entries = Preferences.codecAll.map { codec -> getString(codec.title) }.toTypedArray()
+		}
 
 		val registeredHostsPreference = preferenceScreen.findPreference<Preference>("registered_hosts")
 		viewModel.registeredHostsCount.observe(this, Observer {

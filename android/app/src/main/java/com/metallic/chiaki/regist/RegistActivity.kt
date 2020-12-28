@@ -49,27 +49,29 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 
 		registButton.setOnClickListener { doRegist() }
 
-		ps4VersionRadioGroup.check(when(viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_8) {
-			RegistViewModel.PS4Version.GE_8 -> R.id.ps4VersionGE8RadioButton
-			RegistViewModel.PS4Version.GE_7 -> R.id.ps4VersionGE7RadioButton
-			RegistViewModel.PS4Version.LT_7 -> R.id.ps4VersionLT7RadioButton
+		ps4VersionRadioGroup.check(when(viewModel.ps4Version.value ?: RegistViewModel.ConsoleVersion.PS5) {
+			RegistViewModel.ConsoleVersion.PS5 -> R.id.ps5RadioButton
+			RegistViewModel.ConsoleVersion.PS4_GE_8 -> R.id.ps4VersionGE8RadioButton
+			RegistViewModel.ConsoleVersion.PS4_GE_7 -> R.id.ps4VersionGE7RadioButton
+			RegistViewModel.ConsoleVersion.PS4_LT_7 -> R.id.ps4VersionLT7RadioButton
 		})
 
 		ps4VersionRadioGroup.setOnCheckedChangeListener { _, checkedId ->
 			viewModel.ps4Version.value = when(checkedId)
 			{
-				R.id.ps4VersionGE8RadioButton -> RegistViewModel.PS4Version.GE_8
-				R.id.ps4VersionGE7RadioButton -> RegistViewModel.PS4Version.GE_7
-				R.id.ps4VersionLT7RadioButton -> RegistViewModel.PS4Version.LT_7
-				else -> RegistViewModel.PS4Version.GE_7
+				R.id.ps5RadioButton -> RegistViewModel.ConsoleVersion.PS5
+				R.id.ps4VersionGE8RadioButton -> RegistViewModel.ConsoleVersion.PS4_GE_8
+				R.id.ps4VersionGE7RadioButton -> RegistViewModel.ConsoleVersion.PS4_GE_7
+				R.id.ps4VersionLT7RadioButton -> RegistViewModel.ConsoleVersion.PS4_LT_7
+				else -> RegistViewModel.ConsoleVersion.PS5
 			}
 		}
 
 		viewModel.ps4Version.observe(this, Observer {
-			psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.PS4Version.LT_7) View.GONE else View.VISIBLE
+			psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.ConsoleVersion.PS4_LT_7) View.GONE else View.VISIBLE
 			psnIdTextInputLayout.hint = getString(when(it!!)
 			{
-				RegistViewModel.PS4Version.LT_7 -> R.string.hint_regist_psn_online_id
+				RegistViewModel.ConsoleVersion.PS4_LT_7 -> R.string.hint_regist_psn_online_id
 				else -> R.string.hint_regist_psn_account_id
 			})
 		})
@@ -77,22 +79,22 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 
 	private fun doRegist()
 	{
-		val ps4Version = viewModel.ps4Version.value ?: RegistViewModel.PS4Version.GE_7
+		val ps4Version = viewModel.ps4Version.value ?: RegistViewModel.ConsoleVersion.PS5
 
 		val host = hostEditText.text.toString().trim()
 		val hostValid = host.isNotEmpty()
 		val broadcast = broadcastCheckBox.isChecked
 
 		val psnId = psnIdEditText.text.toString().trim()
-		val psnOnlineId: String? = if(ps4Version == RegistViewModel.PS4Version.LT_7) psnId else null
+		val psnOnlineId: String? = if(ps4Version == RegistViewModel.ConsoleVersion.PS4_LT_7) psnId else null
 		val psnAccountId: ByteArray? =
-			if(ps4Version != RegistViewModel.PS4Version.LT_7)
+			if(ps4Version != RegistViewModel.ConsoleVersion.PS4_LT_7)
 				try { Base64.decode(psnId, Base64.DEFAULT) } catch(e: IllegalArgumentException) { null }
 			else
 				null
 		val psnIdValid = when(ps4Version)
 		{
-			RegistViewModel.PS4Version.LT_7 -> psnOnlineId?.isNotEmpty() ?: false
+			RegistViewModel.ConsoleVersion.PS4_LT_7 -> psnOnlineId?.isNotEmpty() ?: false
 			else -> psnAccountId != null && psnAccountId.size == RegistInfo.ACCOUNT_ID_SIZE
 		}
 
@@ -105,7 +107,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 			if(!psnIdValid)
 				getString(when(ps4Version)
 				{
-					RegistViewModel.PS4Version.LT_7 -> R.string.regist_psn_online_id_invalid
+					RegistViewModel.ConsoleVersion.PS4_LT_7 -> R.string.regist_psn_online_id_invalid
 					else -> R.string.regist_psn_account_id_invalid
 				})
 			else
@@ -117,9 +119,10 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 
 		val target = when(ps4Version)
 		{
-			RegistViewModel.PS4Version.GE_8 -> Target.PS4_10
-			RegistViewModel.PS4Version.GE_7 -> Target.PS4_9
-			RegistViewModel.PS4Version.LT_7 -> Target.PS4_8
+			RegistViewModel.ConsoleVersion.PS5 -> Target.PS5_1
+			RegistViewModel.ConsoleVersion.PS4_GE_8 -> Target.PS4_10
+			RegistViewModel.ConsoleVersion.PS4_GE_7 -> Target.PS4_9
+			RegistViewModel.ConsoleVersion.PS4_LT_7 -> Target.PS4_8
 		}
 
 		val registInfo = RegistInfo(target, host, broadcast, psnOnlineId, psnAccountId, pin.toInt())

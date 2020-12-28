@@ -88,11 +88,13 @@
             android:id="@+id/stateIndicatorImageView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:src="@drawable/ic_console"
+            android:src="@drawable/ic_console_ps5"
             app:layout_constraintTop_toBottomOf="@id/idTextView"
+            app:layout_constraintBottom_toTopOf="@id/bottomInfoTextView"
             android:layout_marginLeft="32dp"
             android:layout_marginRight="32dp"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"/>
 
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/bottomInfoTextView"
@@ -103,7 +105,6 @@
             android:fontFamily="sans-serif-condensed-light"
             android:gravity="center"
             tools:text="App: Persona 5\nTitle ID: 1337"
-            app:layout_constraintTop_toBottomOf="@id/stateIndicatorImageView"
             app:layout_constraintBottom_toBottomOf="parent"
             android:layout_marginBottom="8dp"
             android:maxLines="2"

@@ -75,15 +75,18 @@ class DisplayHostRecyclerViewAdapter(
 			} ?: ""
 			it.discoveredIndicatorLayout.visibility = if(host is DiscoveredDisplayHost) View.VISIBLE else View.GONE
 			it.stateIndicatorImageView.setImageResource(
-				if(host is DiscoveredDisplayHost)
-					when(host.discoveredHost.state)
+				when
+				{
+					host is DiscoveredDisplayHost -> when(host.discoveredHost.state)
 					{
-						DiscoveryHost.State.STANDBY -> R.drawable.ic_console_standby
-						DiscoveryHost.State.READY -> R.drawable.ic_console_ready
-						else -> R.drawable.ic_console
+						DiscoveryHost.State.STANDBY -> if(host.isPS5) R.drawable.ic_console_ps5_standby else R.drawable.ic_console_standby
+						DiscoveryHost.State.READY -> if(host.isPS5) R.drawable.ic_console_ps5_ready else R.drawable.ic_console_ready
+						else -> if(host.isPS5) R.drawable.ic_console_ps5 else R.drawable.ic_console
 					}
-				else
-					R.drawable.ic_console)
+					host.isPS5 -> R.drawable.ic_console_ps5
+					else -> R.drawable.ic_console
+				}
+			)
 			it.setOnClickListener { clickCallback(host) }
 
 			val canWakeup = host.registeredHost != null

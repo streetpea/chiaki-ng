@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import androidx.preference.PreferenceManager
 import com.metallic.chiaki.R
+import com.metallic.chiaki.lib.Codec
 import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.lib.VideoFPSPreset
 import com.metallic.chiaki.lib.VideoResolutionPreset
@@ -31,12 +32,20 @@ class Preferences(context: Context)
 		FPS_60("60", R.string.preferences_fps_title_60, VideoFPSPreset.FPS_60)
 	}
 
+	enum class Codec(val value: String, @StringRes val title: Int, val codec: com.metallic.chiaki.lib.Codec)
+	{
+		CODEC_H264("h264", R.string.preferences_codec_title_h264, com.metallic.chiaki.lib.Codec.CODEC_H264),
+		CODEC_H265("h265", R.string.preferences_codec_title_h265, com.metallic.chiaki.lib.Codec.CODEC_H265)
+	}
+
 	companion object
 	{
 		val resolutionDefault = Resolution.RES_720P
 		val resolutionAll = Resolution.values()
 		val fpsDefault = FPS.FPS_60
 		val fpsAll = FPS.values()
+		val codecDefault = Codec.CODEC_H265
+		val codecAll = Codec.values()
 	}
 
 	private val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -97,12 +106,19 @@ class Preferences(context: Context)
 	private val bitrateAutoSubject by lazy { BehaviorSubject.createDefault(bitrateAuto) }
 	val bitrateAutoObservable: Observable<Int> get() = bitrateAutoSubject
 
-	private val videoProfileDefaultBitrate get() = ConnectVideoProfile.preset(resolution.preset, fps.preset)
+	val codecKey get() = resources.getString(R.string.preferences_codec_key)
+	var codec
+		get() = sharedPreferences.getString(codecKey, codecDefault.value)?.let { value ->
+			Codec.values().firstOrNull { it.value == value }
+		}  ?: codecDefault
+		set(value) { sharedPreferences.edit().putString(codecKey, value.value).apply() }
+
+	private val videoProfileDefaultBitrate get() = ConnectVideoProfile.preset(resolution.preset, fps.preset, codec.codec)
 	val videoProfile get() = videoProfileDefaultBitrate.let {
 		val bitrate = bitrate
 		if(bitrate == null)
 			it
 		else
-			ConnectVideoProfile(it.width, it.height, it.maxFPS, bitrate)
+			it.copy(bitrate = bitrate)
 	}
 }

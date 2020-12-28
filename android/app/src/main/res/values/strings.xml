@@ -30,6 +30,7 @@
     <string name="regist_option_ps4_lt_7">PS4 &lt; 7.0</string>
     <string name="regist_option_ps4_ge_7">PS4 ≥ 7.0, &lt; 8</string>
     <string name="regist_option_ps4_ge_8">PS4 ≥ 8.0</string>
+    <string name="regist_option_ps5">PS5</string>
     <string name="regist_psn_account_id_help">About obtaining your Account ID, see</string>
     <string name="regist_psn_account_id_help_url">https://git.sr.ht/~thestr4ng3r/chiaki/tree/master/item/README.md#obtaining-your-psn-accountid</string>
     <string name="hint_regist_psn_online_id">PSN Online ID (username, case-sensitive)</string>
@@ -71,6 +72,7 @@
     <string name="preferences_resolution_title">Resolution</string>
     <string name="preferences_fps_title">FPS</string>
     <string name="preferences_bitrate_title">Bitrate</string>
+    <string name="preferences_codec_title">Codec</string>
     <string name="preferences_log_verbose_title">Verbose Logging</string>
     <string name="preferences_log_verbose_summary">Warning: This logs a LOT! Don\'t enable for regular use.</string>
     <string name="preferences_resolution_title_360p">360p</string>
@@ -80,6 +82,8 @@
     <string name="preferences_fps_title_30">30</string>
     <string name="preferences_fps_title_60">60</string>
     <string name="preferences_bitrate_auto">Auto (%d)</string>
+    <string name="preferences_codec_title_h264">H264</string>
+    <string name="preferences_codec_title_h265">H265 (PS5 only)</string>
     <string name="preferences_swap_cross_moon_title">Swap Cross/Moon and Box/Pyramid Buttons</string>
     <string name="preferences_swap_cross_moon_summary">Swap face buttons if default mapping is incorrect (e.g. for 8BitDo controllers)</string>
     <string name="alert_message_delete_registered_host">Are you sure you want to delete the registered console %s with ID %s?</string>
@@ -103,4 +107,5 @@
     <string name="preferences_resolution_key">stream_resolution</string>
     <string name="preferences_fps_key">stream_fps</string>
     <string name="preferences_bitrate_key">stream_bitrate</string>
+    <string name="preferences_codec_key">stream_codec</string>
 </resources>

@@ -115,13 +115,13 @@ JNIEXPORT jboolean JNICALL JNI_FCN(quitReasonIsStopped)(JNIEnv *env, jobject obj
 	return value == CHIAKI_QUIT_REASON_STOPPED;
 }
 
-JNIEXPORT jobject JNICALL JNI_FCN(videoProfilePreset)(JNIEnv *env, jobject obj, jint resolution_preset, jint fps_preset)
+JNIEXPORT jobject JNICALL JNI_FCN(videoProfilePreset)(JNIEnv *env, jobject obj, jint resolution_preset, jint fps_preset, jobject codec)
 {
 	ChiakiConnectVideoProfile profile = { 0 };
 	chiaki_connect_video_profile_preset(&profile, (ChiakiVideoResolutionPreset)resolution_preset, (ChiakiVideoFPSPreset)fps_preset);
 	jclass profile_class = E->FindClass(env, BASE_PACKAGE"/ConnectVideoProfile");
-	jmethodID profile_ctor = E->GetMethodID(env, profile_class, "<init>", "(IIII)V");
-	return E->NewObject(env, profile_class, profile_ctor, profile.width, profile.height, profile.max_fps, profile.bitrate);
+	jmethodID profile_ctor = E->GetMethodID(env, profile_class, "<init>", "(IIIIL"BASE_PACKAGE"/Codec;)V");
+	return E->NewObject(env, profile_class, profile_ctor, profile.width, profile.height, profile.max_fps, profile.bitrate, codec);
 }
 
 typedef struct android_chiaki_session_t
@@ -198,6 +198,7 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	jclass result_class = E->GetObjectClass(env, result);
 
 	jclass connect_info_class = E->GetObjectClass(env, connect_info_obj);
+	jboolean ps5 = E->GetBooleanField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "ps5", "Z"));
 	jstring host_string = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "host", "Ljava/lang/String;"));
 	jbyteArray regist_key_array = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "registKey", "[B"));
 	jbyteArray morning_array = E->GetObjectField(env, connect_info_obj, E->GetFieldID(env, connect_info_class, "morning", "[B"));
@@ -205,6 +206,8 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	jclass connect_video_profile_class = E->GetObjectClass(env, connect_video_profile_obj);
 
 	ChiakiConnectInfo connect_info = { 0 };
+	connect_info.ps5 = ps5;
+
 	const char *str_borrow = E->GetStringUTFChars(env, host_string, NULL);
 	connect_info.host = host_str = strdup(str_borrow);
 	E->ReleaseStringUTFChars(env, host_string, str_borrow);
@@ -239,6 +242,13 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	connect_info.video_profile.max_fps = (unsigned int)E->GetIntField(env, connect_video_profile_obj, E->GetFieldID(env, connect_video_profile_class, "maxFPS", "I"));
 	connect_info.video_profile.bitrate = (unsigned int)E->GetIntField(env, connect_video_profile_obj, E->GetFieldID(env, connect_video_profile_class, "bitrate", "I"));
 
+	jobject codec_obj = E->GetObjectField(env, connect_video_profile_obj, E->GetFieldID(env, connect_video_profile_class, "codec", "L"BASE_PACKAGE"/Codec;"));
+	jclass codec_class = E->GetObjectClass(env, codec_obj);
+	jint target_value = E->GetIntField(env, codec_obj, E->GetFieldID(env, codec_class, "value", "I"));
+	connect_info.video_profile.codec = (ChiakiCodec)target_value;
+
+	connect_info.video_profile_auto_downgrade = true;
+
 	session = CHIAKI_NEW(AndroidChiakiSession);
 	if(!session)
 	{
@@ -247,7 +257,8 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	}
 	memset(session, 0, sizeof(AndroidChiakiSession));
 	session->log = log;
-	err = android_chiaki_video_decoder_init(&session->video_decoder, log, connect_info.video_profile.width, connect_info.video_profile.height);
+	err = android_chiaki_video_decoder_init(&session->video_decoder, log, connect_info.video_profile.width, connect_info.video_profile.height,
+			connect_info.ps5 ? connect_info.video_profile.codec : CHIAKI_CODEC_H264);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		free(session);
@@ -592,6 +603,8 @@ typedef struct android_chiaki_regist_t
 	jobject java_regist;
 	jmethodID java_regist_event_meth;
 
+	jclass java_target_class;
+
 	jobject java_regist_event_canceled;
 	jobject java_regist_event_failed;
 	jclass java_regist_event_success_class;
@@ -601,11 +614,10 @@ typedef struct android_chiaki_regist_t
 	jmethodID java_regist_host_ctor;
 } AndroidChiakiRegist;
 
-static jobject create_jni_target(JNIEnv *env, ChiakiTarget target)
+static jobject create_jni_target(JNIEnv *env, jclass target_class, ChiakiTarget target)
 {
-	jclass cls = E->FindClass(env, BASE_PACKAGE"/Target");
-	jmethodID meth = E->GetStaticMethodID(env, cls, "fromValue", "(I)L"BASE_PACKAGE"/Target;");
-	return E->CallStaticObjectMethod(env, cls, meth, (jint)target);
+	jmethodID meth = E->GetStaticMethodID(env, target_class, "fromValue", "(I)L"BASE_PACKAGE"/Target;");
+	return E->CallStaticObjectMethod(env, target_class, meth, (jint)target);
 }
 
 static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
@@ -629,7 +641,7 @@ static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
 		{
 			ChiakiRegisteredHost *host = event->registered_host;
 			jobject java_host = E->NewObject(env, regist->java_regist_host_class, regist->java_regist_host_ctor,
-					create_jni_target(env, host->target),
+					create_jni_target(env, regist->java_target_class, host->target),
 					jnistr_from_ascii(env, host->ap_ssid),
 					jnistr_from_ascii(env, host->ap_bssid),
 					jnistr_from_ascii(env, host->ap_key),
@@ -654,6 +666,7 @@ static void android_chiaki_regist_fini_partial(JNIEnv *env, AndroidChiakiRegist 
 {
 	android_chiaki_jni_log_fini(&regist->log, env);
 	E->DeleteGlobalRef(env, regist->java_regist);
+	E->DeleteGlobalRef(env, regist->java_target_class);
 	E->DeleteGlobalRef(env, regist->java_regist_event_canceled);
 	E->DeleteGlobalRef(env, regist->java_regist_event_failed);
 	E->DeleteGlobalRef(env, regist->java_regist_event_success_class);
@@ -676,6 +689,8 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 	regist->java_regist = E->NewGlobalRef(env, java_regist);
 	regist->java_regist_event_meth = E->GetMethodID(env, E->GetObjectClass(env, regist->java_regist), "event", "(L"BASE_PACKAGE"/RegistEvent;)V");
 
+	regist->java_target_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/Target"));
+
 	regist->java_regist_event_canceled = E->NewGlobalRef(env, get_kotlin_global_object(env, BASE_PACKAGE"/RegistEventCanceled"));
 	regist->java_regist_event_failed = E->NewGlobalRef(env, get_kotlin_global_object(env, BASE_PACKAGE"/RegistEventFailed"));
 	regist->java_regist_event_success_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/RegistEventSuccess"));
@@ -688,8 +703,8 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 			  "Ljava/lang/String;" // apBssid: String
 			  "Ljava/lang/String;" // apKey: String
 			  "Ljava/lang/String;" // apName: String
-			  "[B" // ps4Mac: ByteArray
-			  "Ljava/lang/String;" // ps4Nickname: String
+			  "[B" // serverMac: ByteArray
+			  "Ljava/lang/String;" // serverNickname: String
 			  "[B" // rpRegistKey: ByteArray
 			  "I" // rpKeyType: UInt
 			  "[B" // rpKey: ByteArray

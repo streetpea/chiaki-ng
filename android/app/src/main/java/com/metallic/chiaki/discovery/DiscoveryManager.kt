@@ -21,7 +21,7 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
-val DiscoveryHost.ps4Mac get() = this.hostId?.hexToByteArray()?.let {
+val DiscoveryHost.serverMac get() = this.hostId?.hexToByteArray()?.let {
 	if(it.size == MacAddress.LENGTH)
 		MacAddress(it)
 	else
