@@ -5,6 +5,12 @@
 #include <string.h>
 #include <assert.h>
 
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#else
+#include <netinet/in.h>
+#endif
+
 static void *discovery_service_thread_func(void *user);
 static void discovery_service_ping(ChiakiDiscoveryService *service);
 static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service);
