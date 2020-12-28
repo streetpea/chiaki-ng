@@ -67,15 +67,7 @@ android {
         properties.load(propertiesFile.newDataInputStream())
     }
 
-    def keystoreFile = file("../../keystore.jks")
-    if(System.getenv("TRAVIS") == "true" && keystoreFile.exists()) {
-        println("Enabling Signing on Travis")
-        buildTypes.release.signingConfig = signingConfigs.release
-        signingConfigs.release.storeFile = keystoreFile
-        signingConfigs.release.storePassword = System.getenv("android_keystore_pw")
-        signingConfigs.release.keyAlias = "chiaki"
-        signingConfigs.release.keyPassword = System.getenv("android_keystore_alias_pw")
-    } else if(properties.containsKey("chiakiKeystore")) {
+	if(properties.containsKey("chiakiKeystore")) {
         println("Enabling Local Signing")
         buildTypes.release.signingConfig = signingConfigs.release
         buildTypes.debug.signingConfig = signingConfigs.release
