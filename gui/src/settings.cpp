@@ -17,8 +17,10 @@ static void MigrateSettingsTo2(QSettings *settings)
 		QMap<QString, QVariant> host;
 		for(QString k : settings->allKeys())
 			host[k] = settings->value(k);
+		hosts.append(host);
 	}
 	settings->endArray();
+	settings->remove("registered_hosts");
 	settings->beginWriteArray("registered_hosts");
 	int i=0;
 	for(const auto &host : hosts)
@@ -53,12 +55,13 @@ static void MigrateSettings(QSettings *settings)
 		CHIAKI_LOGE(NULL, "Settings version %d is higher than application one (%d)", version_prev, SETTINGS_VERSION);
 		return;
 	}
-	while(version_prev < 1)
+	while(version_prev < SETTINGS_VERSION)
 	{
 		version_prev++;
 		switch(version_prev)
 		{
 			case 2:
+				CHIAKI_LOGI(NULL, "Migrating settings to 2");
 				MigrateSettingsTo2(settings);
 				break;
 			default:
