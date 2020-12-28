@@ -37,7 +37,7 @@ void ServerIconWidget::paintEvent(QPaintEvent *event)
 	painter.setRenderHint(QPainter::Antialiasing);
 
 	auto render_element = [&view_box, &icon_rect, this](QPainter &painter, const QString &id) {
-		QRectF src = svg_renderer.transformForElement(id).mapRect(svg_renderer.boundsOnElement(id));
+		QRectF src = /*svg_renderer.transformForElement(id).mapRect(*/svg_renderer.boundsOnElement(id)/*)*/;
 		QRectF dst = src.translated(-view_box.left(), -view_box.top());
 		dst = QRectF(
 				icon_rect.width() * dst.left() / view_box.width(),
