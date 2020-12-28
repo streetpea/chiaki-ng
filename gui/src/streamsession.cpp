@@ -105,6 +105,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.ps5 = chiaki_target_is_ps5(connect_info.target);
 	chiaki_connect_info.host = host_str.constData();
 	chiaki_connect_info.video_profile = connect_info.video_profile;
+	chiaki_connect_info.video_profile_auto_downgrade = true;
 
 	if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
 		throw ChiakiException("RegistKey invalid");

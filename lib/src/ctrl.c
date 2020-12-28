@@ -963,7 +963,24 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		}
 	}
 
-	if(!response.server_type_valid)
+	if(response.server_type_valid)
+	{
+		uint8_t server_type = response.rp_server_type[0]; // 0 = PS4, 1 = PS4 Pro, 2 = PS5
+		CHIAKI_LOGI(session->log, "Ctrl got Server Type: %u", (unsigned int)server_type);
+		if(server_type == 0
+				&& session->connect_info.video_profile_auto_downgrade
+				&& session->connect_info.video_profile.height == 1080)
+		{
+			CHIAKI_LOGI(session->log, "1080p was selected but server would not support it. Downgrading.");
+			chiaki_connect_video_profile_preset(
+				&session->connect_info.video_profile,
+				CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
+				session->connect_info.video_profile.max_fps == 60
+					? CHIAKI_VIDEO_FPS_PRESET_60
+					: CHIAKI_VIDEO_FPS_PRESET_30);
+		}
+	}
+	else
 		CHIAKI_LOGE(session->log, "No valid Server Type in ctrl response");
 
 	ctrl->sock = sock;
