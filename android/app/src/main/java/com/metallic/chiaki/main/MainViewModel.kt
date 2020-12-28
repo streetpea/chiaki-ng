@@ -31,7 +31,7 @@ class MainViewModel(val database: AppDatabase, val preferences: Preferences): Vi
 			database.registeredHostDao().getAll().toObservable(),
 			discoveryManager.discoveredHosts)
 			{ manualHosts, registeredHosts, discoveredHosts ->
-				val macRegisteredHosts = registeredHosts.associateBy { it.ps4Mac }
+				val macRegisteredHosts = registeredHosts.associateBy { it.serverMac }
 				val idRegisteredHosts = registeredHosts.associateBy { it.id }
 				discoveredHosts.map {
 					DiscoveredDisplayHost(it.ps4Mac?.let { mac -> macRegisteredHosts[mac] }, it)

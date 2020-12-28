@@ -81,7 +81,7 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 		if(registeredHost == null)
 			getString(R.string.add_manual_regist_on_connect)
 		else
-			"${registeredHost.ps4Nickname ?: ""} (${registeredHost.ps4Mac})"
+			"${registeredHost.serverNickname ?: ""} (${registeredHost.serverMac})"
 
 	private fun saveHost()
 	{

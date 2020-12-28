@@ -29,7 +29,7 @@ class SettingsRegisteredHostsAdapter: RecyclerView.Adapter<SettingsRegisteredHos
 	{
 		val view = holder.itemView
 		val host = hosts[position]
-		view.nameTextView.text = host.ps4Nickname
-		view.summaryTextView.text = host.ps4Mac.toString()
+		view.nameTextView.text = host.serverNickname
+		view.summaryTextView.text = host.serverMac.toString()
 	}
 }

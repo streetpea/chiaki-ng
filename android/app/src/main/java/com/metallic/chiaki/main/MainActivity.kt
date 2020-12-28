@@ -209,7 +209,7 @@ class MainActivity : AppCompatActivity()
 	private fun wakeupHost(host: DisplayHost)
 	{
 		val registeredHost = host.registeredHost ?: return
-		viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey)
+		viewModel.discoveryManager.sendWakeup(host.host, registeredHost.rpRegistKey, registeredHost.target.isPS5)
 	}
 
 	private fun editHost(host: DisplayHost)

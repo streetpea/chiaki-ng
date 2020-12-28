@@ -20,8 +20,8 @@ class DiscoveredDisplayHost(
 ): DisplayHost()
 {
 	override val host get() = discoveredHost.hostAddr ?: ""
-	override val name get() = discoveredHost.hostName ?: registeredHost?.ps4Nickname
-	override val id get() = discoveredHost.hostId ?: registeredHost?.ps4Mac?.toString()
+	override val name get() = discoveredHost.hostName ?: registeredHost?.serverNickname
+	override val id get() = discoveredHost.hostId ?: registeredHost?.serverMac?.toString()
 
 	override fun equals(other: Any?): Boolean =
 		if(other !is DiscoveredDisplayHost)
@@ -40,8 +40,8 @@ class ManualDisplayHost(
 ): DisplayHost()
 {
 	override val host get() = manualHost.host
-	override val name get() = registeredHost?.ps4Nickname
-	override val id get() = registeredHost?.ps4Mac?.toString()
+	override val name get() = registeredHost?.serverNickname
+	override val id get() = registeredHost?.serverMac?.toString()
 
 	override fun equals(other: Any?): Boolean =
 		if(other !is ManualDisplayHost)

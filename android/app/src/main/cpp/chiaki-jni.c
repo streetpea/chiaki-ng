@@ -574,11 +574,11 @@ JNIEXPORT void JNICALL JNI_FCN(discoveryServiceFree)(JNIEnv *env, jobject obj, j
 	free(service);
 }
 
-JNIEXPORT jint JNICALL JNI_FCN(discoveryServiceWakeup)(JNIEnv *env, jobject obj, jlong ptr, jstring host_string, jlong user_credential)
+JNIEXPORT jint JNICALL JNI_FCN(discoveryServiceWakeup)(JNIEnv *env, jobject obj, jlong ptr, jstring host_string, jlong user_credential, jboolean ps5)
 {
 	AndroidDiscoveryService *service = (AndroidDiscoveryService *)ptr;
 	const char *host = E->GetStringUTFChars(env, host_string, NULL);
-	ChiakiErrorCode r = chiaki_discovery_wakeup(&global_log, service ? &service->service.discovery : NULL, host, (uint64_t)user_credential);
+	ChiakiErrorCode r = chiaki_discovery_wakeup(&global_log, service ? &service->service.discovery : NULL, host, (uint64_t)user_credential, ps5);
 	E->ReleaseStringUTFChars(env, host_string, host);
 	return r;
 }
@@ -601,6 +601,13 @@ typedef struct android_chiaki_regist_t
 	jmethodID java_regist_host_ctor;
 } AndroidChiakiRegist;
 
+static jobject create_jni_target(JNIEnv *env, ChiakiTarget target)
+{
+	jclass cls = E->FindClass(env, BASE_PACKAGE"/Target");
+	jmethodID meth = E->GetStaticMethodID(env, cls, "fromValue", "(I)L"BASE_PACKAGE"/Target;");
+	return E->CallStaticObjectMethod(env, cls, meth, (jint)target);
+}
+
 static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
 {
 	AndroidChiakiRegist *regist = user;
@@ -622,12 +629,13 @@ static void android_chiaki_regist_cb(ChiakiRegistEvent *event, void *user)
 		{
 			ChiakiRegisteredHost *host = event->registered_host;
 			jobject java_host = E->NewObject(env, regist->java_regist_host_class, regist->java_regist_host_ctor,
+					create_jni_target(env, host->target),
 					jnistr_from_ascii(env, host->ap_ssid),
 					jnistr_from_ascii(env, host->ap_bssid),
 					jnistr_from_ascii(env, host->ap_key),
 					jnistr_from_ascii(env, host->ap_name),
-					jnibytearray_create(env, host->ps4_mac, sizeof(host->ps4_mac)),
-					jnistr_from_ascii(env, host->ps4_nickname),
+					jnibytearray_create(env, host->server_mac, sizeof(host->server_mac)),
+					jnistr_from_ascii(env, host->server_nickname),
 					jnibytearray_create(env, (const uint8_t *)host->rp_regist_key, sizeof(host->rp_regist_key)),
 					(jint)host->rp_key_type,
 					jnibytearray_create(env, host->rp_key, sizeof(host->rp_key)));
@@ -675,6 +683,7 @@ JNIEXPORT void JNICALL JNI_FCN(registStart)(JNIEnv *env, jobject obj, jobject re
 
 	regist->java_regist_host_class = E->NewGlobalRef(env, E->FindClass(env, BASE_PACKAGE"/RegistHost"));
 	regist->java_regist_host_ctor = E->GetMethodID(env, regist->java_regist_host_class, "<init>", "("
+			  "L"BASE_PACKAGE"/Target;" // target: Target
 			  "Ljava/lang/String;" // apSsid: String
 			  "Ljava/lang/String;" // apBssid: String
 			  "Ljava/lang/String;" // apKey: String

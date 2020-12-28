@@ -11,9 +11,20 @@ import kotlin.math.abs
 
 enum class Target(val value: Int)
 {
+	PS4_UNKNOWN(0),
 	PS4_8(800),
 	PS4_9(900),
-	PS4_10(1000)
+	PS4_10(1000),
+	PS5_UNKNOWN(1000000),
+	PS5_1(1000100);
+
+	companion object
+	{
+		@JvmStatic
+		fun fromValue(value: Int) = values().firstOrNull { it.value == value } ?: PS4_10
+	}
+
+	val isPS5 get() = value >= PS5_UNKNOWN.value
 }
 
 enum class VideoResolutionPreset(val value: Int)
@@ -76,7 +87,7 @@ private class ChiakiNative
 		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
 		@JvmStatic external fun discoveryServiceCreate(result: CreateResult, options: DiscoveryServiceOptions, javaService: DiscoveryService)
 		@JvmStatic external fun discoveryServiceFree(ptr: Long)
-		@JvmStatic external fun discoveryServiceWakeup(ptr: Long, host: String, userCredential: Long)
+		@JvmStatic external fun discoveryServiceWakeup(ptr: Long, host: String, userCredential: Long, ps5: Boolean)
 		@JvmStatic external fun registStart(result: CreateResult, registInfo: RegistInfo, javaLog: ChiakiLog, javaRegist: Regist)
 		@JvmStatic external fun registStop(ptr: Long)
 		@JvmStatic external fun registFree(ptr: Long)
@@ -289,8 +300,8 @@ class DiscoveryService(
 {
 	companion object
 	{
-		fun wakeup(service: DiscoveryService?, host: String, userCredential: ULong) =
-			ChiakiNative.discoveryServiceWakeup(service?.nativePtr ?: 0, host, userCredential.toLong())
+		fun wakeup(service: DiscoveryService?, host: String, userCredential: ULong, ps5: Boolean) =
+			ChiakiNative.discoveryServiceWakeup(service?.nativePtr ?: 0, host, userCredential.toLong(), ps5)
 	}
 
 	private var nativePtr: Long
@@ -339,12 +350,13 @@ data class RegistInfo(
 }
 
 data class RegistHost(
+	val target: Target,
 	val apSsid: String,
 	val apBssid: String,
 	val apKey: String,
 	val apName: String,
-	val ps4Mac: ByteArray,
-	val ps4Nickname: String,
+	val serverMac: ByteArray,
+	val serverNickname: String,
 	val rpRegistKey: ByteArray,
 	val rpKeyType: UInt,
 	val rpKey: ByteArray

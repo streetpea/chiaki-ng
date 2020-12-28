@@ -92,14 +92,14 @@ class DiscoveryManager
 		disposable.dispose()
 	}
 
-	fun sendWakeup(host: String, registKey: ByteArray)
+	fun sendWakeup(host: String, registKey: ByteArray, ps5: Boolean)
 	{
 		val registKeyString = registKey.indexOfFirst { it == 0.toByte() }.let { end -> registKey.copyOfRange(0, if(end >= 0) end else registKey.size) }.toString(StandardCharsets.UTF_8)
 		val credential = try { registKeyString.toULong(16) } catch(e: NumberFormatException) {
 			Log.e("DiscoveryManager", "Failed to convert registKey to int", e)
 			return
 		}
-		DiscoveryService.wakeup(discoveryService, host, credential)
+		DiscoveryService.wakeup(discoveryService, host, credential, ps5)
 	}
 
 	private fun updateService()

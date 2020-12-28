@@ -114,7 +114,7 @@ class RegistExecuteActivity: AppCompatActivity()
 		if(dialog != null)
 			return
 
-		val macStr = viewModel.host?.ps4Mac?.let { MacAddress(it).toString() } ?: ""
+		val macStr = viewModel.host?.serverMac?.let { MacAddress(it).toString() } ?: ""
 
 		dialog = MaterialAlertDialogBuilder(this)
 			.setMessage(getString(R.string.alert_regist_duplicate, macStr))

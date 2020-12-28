@@ -78,7 +78,7 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 	private fun registSuccess(host: RegistHost)
 	{
 		this.host = host
-		database.registeredHostDao().getByMac(MacAddress(host.ps4Mac))
+		database.registeredHostDao().getByMac(MacAddress(host.serverMac))
 			.subscribeOn(Schedulers.io())
 			.observeOn(AndroidSchedulers.mainThread())
 			.doOnSuccess {
@@ -98,7 +98,7 @@ class RegistExecuteViewModel(val database: AppDatabase): ViewModel()
 		val dao = database.registeredHostDao()
 		val manualHostDao = database.manualHostDao()
 		val registeredHost = RegisteredHost(host)
-		dao.deleteByMac(registeredHost.ps4Mac)
+		dao.deleteByMac(registeredHost.serverMac)
 			.andThen(dao.insert(registeredHost))
 			.let {
 				if(assignManualHostId != null)
