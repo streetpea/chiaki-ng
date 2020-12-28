@@ -11,7 +11,9 @@ class RegistViewModel: ViewModel()
 		PS5,
 		PS4_GE_8,
 		PS4_GE_7,
-		PS4_LT_7
+		PS4_LT_7;
+
+		val isPS5 get() = this == PS5
 	}
 
 	val ps4Version = MutableLiveData<ConsoleVersion>(ConsoleVersion.PS5)

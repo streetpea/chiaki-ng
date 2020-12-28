@@ -21,8 +21,10 @@
     <string name="display_host_app_title_id">App: %s\nTitle ID: %s</string>
     <string name="action_register">Register Console</string>
     <string name="action_add_manual">Add Console Manually</string>
-    <string name="regist_pin_instructions_before">On the PS4, navigate to</string>
-    <string name="regist_pin_instructions_navigation">Settings →\nRemote Play Connection Settings →\nAdd Device</string>
+    <string name="regist_pin_instructions_ps4_before">On the PS4, navigate to</string>
+    <string name="regist_pin_instructions_ps4_navigation">Settings →\nRemote Play Connection Settings →\nAdd Device</string>
+    <string name="regist_pin_instructions_ps5_before">On the PS5, navigate to</string>
+    <string name="regist_pin_instructions_ps5_navigation">Settings →\nSystem → Remote Play →\nLink Device</string>
     <string name="regist_pin_instructions_after">to obtain the PIN</string>
     <string name="title_regist">Register Console</string>
     <string name="hint_regist_host">Host</string>

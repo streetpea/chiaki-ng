@@ -29,7 +29,7 @@ class SettingsRegisteredHostsAdapter: RecyclerView.Adapter<SettingsRegisteredHos
 	{
 		val view = holder.itemView
 		val host = hosts[position]
-		view.nameTextView.text = host.serverNickname
+		view.nameTextView.text = "${host.serverNickname} (${if(host.target.isPS5) "PS5" else "PS4"})"
 		view.summaryTextView.text = host.serverMac.toString()
 	}
 }

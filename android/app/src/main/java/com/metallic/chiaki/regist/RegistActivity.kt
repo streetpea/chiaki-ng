@@ -74,6 +74,8 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 				RegistViewModel.ConsoleVersion.PS4_LT_7 -> R.string.hint_regist_psn_online_id
 				else -> R.string.hint_regist_psn_account_id
 			})
+			pinHelpBeforeTextView.setText(if(it.isPS5) R.string.regist_pin_instructions_ps5_before else R.string.regist_pin_instructions_ps4_before)
+			pinHelpNavigationTextView.setText(if(it.isPS5) R.string.regist_pin_instructions_ps5_navigation else R.string.regist_pin_instructions_ps4_navigation)
 		})
 	}
 
