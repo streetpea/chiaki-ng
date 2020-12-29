@@ -113,7 +113,7 @@ void StreamWindow::closeEvent(QCloseEvent *event)
 			switch(connect_info.settings->GetDisconnectAction())
 			{
 				case DisconnectAction::Ask: {
-					auto res = QMessageBox::question(this, tr("Disconnect Session"), tr("Do you want the PS4 to go into sleep mode?"),
+					auto res = QMessageBox::question(this, tr("Disconnect Session"), tr("Do you want the Console to go into sleep mode?"),
 							QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 					switch(res)
 					{

@@ -7,7 +7,7 @@
 
 [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/c81ogebvsmo43dd3?svg=true)](https://ci.appveyor.com/project/thestr4ng3r/chiaki) [![builds.sr.ht Status](https://builds.sr.ht/~thestr4ng3r/chiaki.svg)](https://builds.sr.ht/~thestr4ng3r/chiaki?)
 
-Chiaki is a Free and Open Source Software Client for PlayStation 4 Remote Play
+Chiaki is a Free and Open Source Software Client for PlayStation 4 and PlayStation 5 Remote Play
 for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potentially even more platforms.
 
 ![Screenshot](assets/screenshot.png)
@@ -51,11 +51,11 @@ For more detailed platform-specific instructions, see [doc/platform-build.md](do
 in
 ## Usage
 
-If your PS4 is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
+If your Console is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.
 Otherwise, you can add it manually.
-To do so, click the "+" icon in the top right, and enter your PS4's IP address.
+To do so, click the "+" icon in the top right, and enter your Console's IP address.
 
-You will then need to register your PS4 with Chiaki. You will need two more pieces of information to do this.
+You will then need to register your Console with Chiaki. You will need two more pieces of information to do this.
 
 ### Obtaining your PSN AccountID
 
@@ -66,10 +66,10 @@ Simply run it in a terminal and follow the instructions. Once you know your ID, 
 
 ### Obtaining a Registration PIN
 
-To register a PS4 with a PIN, it must be put into registration mode. To do this, on your PS4, simply go to:
-Settings -> Remote Play (ensure this is ticked) -> Add Device
+To register a Console with a PIN, it must be put into registration mode. To do this on a PS4, simply go to:
+Settings -> Remote Play -> Add Device, or on a PS5: Settings -> System -> Remote Play -> Link Device.
 
-You can now double-click your PS4 in Chiaki's main window to start Remote Play.
+You can now double-click your Console in Chiaki's main window to start Remote Play.
 
 ## Joining the Community or Getting Help
 
