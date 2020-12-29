@@ -66,6 +66,7 @@ void ServerIconWidget::paintEvent(QPaintEvent *event)
 			(int)(devicePixelRatioF() * height()),
 			QImage::Format_ARGB32_Premultiplied);
 	{
+		temp_image.setDevicePixelRatio(devicePixelRatioF());
 		temp_image.fill(QColor(0, 0, 0, 0));
 		QPainter temp_painter(&temp_image);
 		render_element(temp_painter, "console");
