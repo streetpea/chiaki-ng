@@ -447,24 +447,13 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 		ls->addView(host_name);
 
 		std::string host_addr_string = settings->GetHostAddr(host);
-		brls::ListItem *host_addr = new brls::ListItem("PS4 Address");
+		brls::ListItem *host_addr = new brls::ListItem("PS Address");
 		host_addr->setValue(host_addr_string.c_str());
 		ls->addView(host_addr);
 
-		std::string host_rp_regist_key_string = settings->GetHostRPRegistKey(host);
-		brls::ListItem *host_rp_regist_key = new brls::ListItem("RP Register Key");
-		host_rp_regist_key->setValue(host_rp_regist_key_string.c_str());
-		ls->addView(host_rp_regist_key);
-
-		std::string host_rp_key_string = settings->GetHostRPKey(host);
-		brls::ListItem *host_rp_key = new brls::ListItem("RP Key");
-		host_rp_key->setValue(host_rp_key_string.c_str());
-		ls->addView(host_rp_key);
-
-		std::string host_rp_key_type_string = std::to_string(settings->GetHostRPKeyType(host));
-		brls::ListItem *host_rp_key_type = new brls::ListItem("RP Key type");
-		host_rp_key_type->setValue(host_rp_key_type_string.c_str());
-		ls->addView(host_rp_key_type);
+		brls::ListItem *host_regist_state_item = new brls::ListItem("Register Status");
+		host_regist_state_item->setValue(!settings->GetHostRPKey(host).empty() ? "registered" : "unregistered");
+		ls->addView(host_regist_state_item);
 	}
 
 	return true;
