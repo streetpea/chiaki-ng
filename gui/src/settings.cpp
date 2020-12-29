@@ -301,7 +301,7 @@ void Settings::LoadManualHosts()
 		if(host.GetID() < 0)
 			continue;
 		if(manual_hosts_id_next <= host.GetID())
-			manual_hosts_id_next = host.GetID();
+			manual_hosts_id_next = host.GetID() + 1;
 		manual_hosts[host.GetID()] = host;
 	}
 	settings.endArray();
