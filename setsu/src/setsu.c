@@ -157,8 +157,9 @@ static bool is_device_interesting(struct udev_device *dev)
 {
 	static const uint32_t device_ids[] = {
 		// vendor id, model id
-		0x054c,       0x05c4, // DualShock 4 Gen 1 USB
-		0x054c,       0x09cc // DualShock 4 Gen 2 USB
+		0x054c,       0x05c4, // DualShock 4 Gen 1
+		0x054c,       0x09cc, // DualShock 4 Gen 2
+		0x54c,        0x0ce6 // DualSense
 	};
 
 	// Filter mouse-device (/dev/input/mouse*) away and only keep the evdev (/dev/input/event*) one: 
