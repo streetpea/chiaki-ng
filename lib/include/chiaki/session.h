@@ -155,7 +155,7 @@ typedef struct chiaki_session_t
 		bool ps5;
 		struct addrinfo *host_addrinfos;
 		struct addrinfo *host_addrinfo_selected;
-		char hostname[128];
+		char hostname[256];
 		char regist_key[CHIAKI_RPCRYPT_KEY_SIZE];
 		uint8_t morning[CHIAKI_RPCRYPT_KEY_SIZE];
 		uint8_t did[CHIAKI_RP_DID_SIZE];

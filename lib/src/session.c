@@ -596,11 +596,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		set_port(sa, htons(SESSION_PORT));
 
 		// TODO: this can block, make cancelable somehow
-		int r = getnameinfo(sa, (socklen_t)ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, 0);
+		int r = getnameinfo(sa, (socklen_t)ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, NI_NUMERICHOST);
 		if(r != 0)
 		{
-			free(sa);
-			continue;
+			CHIAKI_LOGE(session->log, "getnameinfo failed with %s, filling the hostname with fallback", gai_strerror(r));
+			memcpy(session->connect_info.hostname, "unknown", 8);
 		}
 
 		CHIAKI_LOGI(session->log, "Trying to request session from %s:%d", session->connect_info.hostname, SESSION_PORT);
