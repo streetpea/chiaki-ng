@@ -52,6 +52,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_io(nullptr)
 {
 	connected = false;
+	ChiakiErrorCode err;
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
@@ -66,7 +67,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		ffmpeg_decoder = new ChiakiFfmpegDecoder;
 		ChiakiLogSniffer sniffer;
 		chiaki_log_sniffer_init(&sniffer, CHIAKI_LOG_ALL, GetChiakiLog());
-		ChiakiErrorCode err = chiaki_ffmpeg_decoder_init(ffmpeg_decoder,
+		err = chiaki_ffmpeg_decoder_init(ffmpeg_decoder,
 				chiaki_log_sniffer_get_log(&sniffer),
 				chiaki_target_is_ps5(connect_info.target) ? connect_info.video_profile.codec : CHIAKI_CODEC_H264,
 				connect_info.hw_decoder.isEmpty() ? NULL : connect_info.hw_decoder.toUtf8().constData(),
