@@ -381,6 +381,13 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			emit LoginPINRequested(event->login_pin_request.pin_incorrect);
 			break;
+		case CHIAKI_EVENT_RUMBLE:
+			// TODO
+			//CHIAKI_LOGD(GetChiakiLog(), "Rumble %#02x, %#02x, %#02x",
+			//		event->rumble.unknown, event->rumble.left, event->rumble.right);
+			break;
+		default:
+			break;
 	}
 }
 

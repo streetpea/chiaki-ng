@@ -56,7 +56,6 @@ typedef enum takion_packet_type_t {
 	TAKION_PACKET_TYPE_HANDSHAKE = 4,
 	TAKION_PACKET_TYPE_CONGESTION = 5,
 	TAKION_PACKET_TYPE_FEEDBACK_STATE = 6,
-	TAKION_PACKET_TYPE_RUMBLE_EVENT = 7,
 	TAKION_PACKET_TYPE_CLIENT_INFO = 8,
 	TAKION_PACKET_TYPE_PAD_INFO_EVENT = 9
 } TakionPacketType;
@@ -961,7 +960,9 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 		if(zero_a != 0)
 			CHIAKI_LOGW(takion->log, "Takion received data with unexpected nonzero %#x at buf+6", zero_a);
 
-		if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF && data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_9)
+		if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF
+				&& data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE
+				&& data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_9)
 		{
 			CHIAKI_LOGW(takion->log, "Takion received data with unexpected data type %#x", data_type);
 			chiaki_log_hexdump(takion->log, CHIAKI_LOG_WARNING, entry->packet_buf, entry->packet_size);

@@ -114,6 +114,12 @@ typedef struct chiaki_audio_stream_info_event_t
 	ChiakiAudioHeader audio_header;
 } ChiakiAudioStreamInfoEvent;
 
+typedef struct chiaki_rumble_event_t
+{
+	uint8_t unknown;
+	uint8_t left;
+	uint8_t right;
+} ChiakiRumbleEvent;
 
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
@@ -121,6 +127,7 @@ typedef enum {
 	CHIAKI_EVENT_KEYBOARD_OPEN,
 	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
 	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
+	CHIAKI_EVENT_RUMBLE,
 	CHIAKI_EVENT_QUIT,
 } ChiakiEventType;
 
@@ -131,6 +138,7 @@ typedef struct chiaki_event_t
 	{
 		ChiakiQuitEvent quit;
 		ChiakiKeyboardEvent keyboard;
+		ChiakiRumbleEvent rumble;
 		struct
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect

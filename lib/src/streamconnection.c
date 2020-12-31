@@ -45,6 +45,8 @@ void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event);
 
 static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user);
 static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
+static void stream_connection_takion_data_protobuf(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
+static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection);
 static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection);
 static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
@@ -368,9 +370,21 @@ static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user)
 
 static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size)
 {
-	if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF)
-		return;
+	switch(data_type)
+	{
+		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF:
+			stream_connection_takion_data_protobuf(stream_connection, buf, buf_size);
+			break;
+		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE:
+			stream_connection_takion_data_rumble(stream_connection, buf, buf_size);
+			break;
+		default:
+			break;
+	}
+}
 
+static void stream_connection_takion_data_protobuf(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
+{
 	chiaki_mutex_lock(&stream_connection->state_mutex);
 	switch(stream_connection->state)
 	{
@@ -385,6 +399,23 @@ static void stream_connection_takion_data(ChiakiStreamConnection *stream_connect
 			break;
 	}
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
+
+}
+
+static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
+{
+	if(buf_size < 3)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection got rumble packet with size %#llx < 3",
+				(unsigned long long)buf_size);
+		return;
+	}
+	ChiakiEvent event = { 0 };
+	event.type = CHIAKI_EVENT_RUMBLE;
+	event.rumble.unknown = buf[0];
+	event.rumble.left = buf[1];
+	event.rumble.right = buf[2];
+	chiaki_session_send_event(stream_connection->session, &event);
 }
 
 static void stream_connection_takion_data_handle_disconnect(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)

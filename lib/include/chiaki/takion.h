@@ -26,6 +26,7 @@ extern "C" {
 
 typedef enum chiaki_takion_message_data_type_t {
 	CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF = 0,
+	CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE = 7,
 	CHIAKI_TAKION_MESSAGE_DATA_TYPE_9 = 9
 } ChiakiTakionMessageDataType;
 
