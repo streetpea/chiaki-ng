@@ -108,6 +108,14 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.video_profile = connect_info.video_profile;
 	chiaki_connect_info.video_profile_auto_downgrade = true;
 
+#if CHIAKI_LIB_ENABLE_PI_DECODER
+	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)
+	{
+		CHIAKI_LOGW(GetChiakiLog(), "A codec other than H264 was requested for Pi Decoder. Falling back to it.");
+		chiaki_connect_info.video_profile.codec = CHIAKI_CODEC_H264;
+	}
+#endif
+
 	if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
 		throw ChiakiException("RegistKey invalid");
 	memcpy(chiaki_connect_info.regist_key, connect_info.regist_key.constData(), sizeof(chiaki_connect_info.regist_key));
