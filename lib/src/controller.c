@@ -14,7 +14,7 @@ CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state
 	state->right_x = 0;
 	state->right_y = 0;
 	state->touch_id_next = 0;
-	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	for(size_t i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
 		state->touches[i].id = -1;
 		state->touches[i].x = 0;
@@ -24,7 +24,7 @@ CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state
 
 CHIAKI_EXPORT int8_t chiaki_controller_state_start_touch(ChiakiControllerState *state, uint16_t x, uint16_t y)
 {
-	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	for(size_t i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
 		if(state->touches[i].id < 0)
 		{
@@ -40,7 +40,7 @@ CHIAKI_EXPORT int8_t chiaki_controller_state_start_touch(ChiakiControllerState *
 
 CHIAKI_EXPORT void chiaki_controller_state_stop_touch(ChiakiControllerState *state, uint8_t id)
 {
-	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	for(size_t i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
 		if(state->touches[i].id == id)
 		{
@@ -53,7 +53,7 @@ CHIAKI_EXPORT void chiaki_controller_state_stop_touch(ChiakiControllerState *sta
 CHIAKI_EXPORT void chiaki_controller_state_set_touch_pos(ChiakiControllerState *state, uint8_t id, uint16_t x, uint16_t y)
 {
 	id &= TOUCH_ID_MASK;
-	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	for(size_t i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
 		if(state->touches[i].id == id)
 		{
@@ -64,8 +64,8 @@ CHIAKI_EXPORT void chiaki_controller_state_set_touch_pos(ChiakiControllerState *
 	}
 }
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define ABS(a) ((a) > 0 ? (a) : -(a))
+#define MAX(a, b)	  ((a) > (b) ? (a) : (b))
+#define ABS(a)		  ((a) > 0 ? (a) : -(a))
 #define MAX_ABS(a, b) (ABS(a) > ABS(b) ? (a) : (b))
 
 CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, ChiakiControllerState *a, ChiakiControllerState *b)
@@ -79,7 +79,7 @@ CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, Chiaki
 	out->right_y = MAX_ABS(a->right_y, b->right_y);
 
 	out->touch_id_next = 0;
-	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	for(size_t i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
 		ChiakiControllerTouch *touch = a->touches[i].id >= 0 ? &a->touches[i] : (b->touches[i].id >= 0 ? &b->touches[i] : NULL);
 		if(!touch)

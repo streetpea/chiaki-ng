@@ -27,9 +27,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe)
 	int addr_size = sizeof(stop_pipe->addr);
 
 	stop_pipe->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if(stop_pipe->fd < 0){
+	if(stop_pipe->fd < 0)
 		return CHIAKI_ERR_UNKNOWN;
-	}
 	stop_pipe->addr.sin_family = AF_INET;
 	// bind to localhost
 	stop_pipe->addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);

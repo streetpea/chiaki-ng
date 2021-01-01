@@ -23,7 +23,8 @@ static DWORD WINAPI win32_thread_func(LPVOID param)
 #endif
 
 #ifdef __SWITCH__
-int64_t get_thread_limit(){
+int64_t get_thread_limit()
+{
 	uint64_t resource_limit_handle_value = INVALID_HANDLE;
 	svcGetInfo(&resource_limit_handle_value, InfoType_ResourceLimit, INVALID_HANDLE, 0);
 	int64_t thread_cur_value = 0, thread_lim_value = 0;
@@ -45,9 +46,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiT
 		return CHIAKI_ERR_THREAD;
 #else
 #ifdef __SWITCH__
-	if(get_thread_limit() <= 1){
+	if(get_thread_limit() <= 1)
 		return CHIAKI_ERR_THREAD;
-	}
 #endif
 	int r = pthread_create(&thread->thread, NULL, func, arg);
 	if(r != 0)
@@ -90,12 +90,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_set_name(ChiakiThread *thread, const
 	if(r != 0)
 		return CHIAKI_ERR_THREAD;
 #else
-	(void)thread; (void)name;
+	(void)thread;
+	(void)name;
 #endif
 #endif
 	return CHIAKI_ERR_SUCCESS;
 }
-
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex, bool rec)
 {
@@ -172,9 +172,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_unlock(ChiakiMutex *mutex)
 	return CHIAKI_ERR_SUCCESS;
 }
 
-
-
-
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond)
 {
 #if _WIN32
@@ -213,8 +210,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_fini(ChiakiCond *cond)
 #endif
 	return CHIAKI_ERR_SUCCESS;
 }
-
-
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mutex)
 {
@@ -323,7 +318,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait_pred(ChiakiCond *cond, Chiak
 #endif
 	}
 	return CHIAKI_ERR_SUCCESS;
-
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_signal(ChiakiCond *cond)
@@ -349,9 +343,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_broadcast(ChiakiCond *cond)
 #endif
 	return CHIAKI_ERR_SUCCESS;
 }
-
-
-
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_bool_pred_cond_init(ChiakiBoolPredCond *cond)
 {
@@ -383,7 +374,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_bool_pred_cond_fini(ChiakiBoolPredCond *con
 
 	return CHIAKI_ERR_SUCCESS;
 }
-
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_bool_pred_cond_lock(ChiakiBoolPredCond *cond)
 {

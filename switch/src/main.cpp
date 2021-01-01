@@ -111,11 +111,11 @@ extern "C" void userAppExit()
 }
 #endif // __SWITCH__
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 	// load chiaki lib
-	Settings * settings = Settings::GetInstance();
-	ChiakiLog * log = settings->GetLogger();
+	Settings *settings = Settings::GetInstance();
+	ChiakiLog *log = settings->GetLogger();
 
 	CHIAKI_LOGI(log, "Loading chaki lib");
 

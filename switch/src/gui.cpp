@@ -100,7 +100,7 @@ void HostInterface::Register(Host *host, std::function<void()> success_cb)
 	brls::Dialog *peprpc = new brls::Dialog("Please enter your PlayStation registration PIN code");
 	brls::GenericEvent::Callback cb_peprpc = [host, io, peprpc](brls::View *view) {
 		bool pin_provided = false;
-		char pin_input[9] = {0};
+		char pin_input[9] = { 0 };
 		std::string error_message;
 
 		// use callback to ensure that the message is showed on screen
@@ -330,7 +330,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	brls::ListItem *psn_account_id = new brls::ListItem("PSN Account ID", "PS5 or PS4 v7.0 and greater (base64 account_id)");
 	psn_account_id->setValue(psn_account_id_string.c_str());
 	auto psn_account_id_cb = [this, host, psn_account_id](brls::View *view) {
-		char account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2] = {0};
+		char account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2] = { 0 };
 		bool input = this->io->ReadUserKeyboard(account_id, sizeof(account_id));
 		if(input)
 		{
@@ -349,7 +349,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	brls::ListItem *psn_online_id = new brls::ListItem("PSN Online ID");
 	psn_online_id->setValue(psn_online_id_string.c_str());
 	auto psn_online_id_cb = [this, host, psn_online_id](brls::View *view) {
-		char online_id[256] = {0};
+		char online_id[256] = { 0 };
 		bool input = this->io->ReadUserKeyboard(online_id, sizeof(online_id));
 		if(input)
 		{
@@ -380,7 +380,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	}
 
 	brls::SelectListItem *resolution = new brls::SelectListItem(
-		"Resolution", {"720p", "540p", "360p"}, value);
+		"Resolution", { "720p", "540p", "360p" }, value);
 
 	auto resolution_cb = [this, host](int result) {
 		ChiakiVideoResolutionPreset value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
@@ -414,7 +414,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	}
 
 	brls::SelectListItem *fps = new brls::SelectListItem(
-		"FPS", {"60", "30"}, value);
+		"FPS", { "60", "30" }, value);
 
 	auto fps_cb = [this, host](int result) {
 		ChiakiVideoFPSPreset value = CHIAKI_VIDEO_FPS_PRESET_60;
@@ -467,7 +467,7 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 
 	brls::ListItem *display_name = new brls::ListItem("Display name");
 	auto display_name_cb = [this, display_name](brls::View *view) {
-		char name[16] = {0};
+		char name[16] = { 0 };
 		bool input = this->io->ReadUserKeyboard(name, sizeof(name));
 		if(input)
 		{
@@ -482,7 +482,7 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 
 	brls::ListItem *address = new brls::ListItem("Remote IP/name");
 	auto address_cb = [this, address](brls::View *view) {
-		char addr[256] = {0};
+		char addr[256] = { 0 };
 		bool input = this->io->ReadUserKeyboard(addr, sizeof(addr));
 		if(input)
 		{
@@ -500,7 +500,7 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 	// brls::ListItem* port = new brls::ListItem("Remote stream port",  "udp 9296");
 	// brls::ListItem* port = new brls::ListItem("Remote Senkusha port",  "udp 9297");
 	brls::SelectListItem *ps_version = new brls::SelectListItem("PlayStation Version",
-		{"PS5", "PS4 > 8", "7 < PS4 < 8", "PS4 < 7"});
+		{ "PS5", "PS4 > 8", "7 < PS4 < 8", "PS4 < 7" });
 	auto ps_version_cb = [this, ps_version](int result) {
 		switch(result)
 		{

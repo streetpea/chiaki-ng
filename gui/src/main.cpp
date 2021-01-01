@@ -111,7 +111,7 @@ int real_main(int argc, char *argv[])
 	if(args[0] == "list")
 	{
 		for(const auto &host : settings.GetRegisteredHosts())
-		printf("Host: %s \n", host.GetServerNickname().toLocal8Bit().constData());
+			printf("Host: %s \n", host.GetServerNickname().toLocal8Bit().constData());
 		return 0;
 	}
 	if(args[0] == "stream")

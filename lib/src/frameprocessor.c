@@ -150,7 +150,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcess
 		CHIAKI_LOGE(frame_processor->log, "Packet's unit index is too high");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
-	
+
 	if(!packet->data_size)
 	{
 		CHIAKI_LOGW(frame_processor->log, "Unit is empty");
@@ -162,7 +162,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcess
 		CHIAKI_LOGW(frame_processor->log, "Unit is bigger than pre-calculated size!");
 		return CHIAKI_ERR_INVALID_DATA;
 	}
-	
+
 	ChiakiFrameUnit *unit = frame_processor->unit_slots + packet->unit_index;
 	if(unit->data_size)
 	{

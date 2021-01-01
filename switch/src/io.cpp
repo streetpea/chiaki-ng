@@ -646,7 +646,7 @@ bool IO::InitOpenGlTextures()
 
 	D(glGenTextures(PLANES_COUNT, this->tex));
 	D(glGenBuffers(PLANES_COUNT, this->pbo));
-	uint8_t uv_default[] = {0x7f, 0x7f};
+	uint8_t uv_default[] = { 0x7f, 0x7f };
 	for(int i = 0; i < PLANES_COUNT; i++)
 	{
 		D(glBindTexture(GL_TEXTURE_2D, this->tex[i]));
@@ -659,7 +659,7 @@ bool IO::InitOpenGlTextures()
 
 	D(glUseProgram(this->prog));
 	// bind only as many planes as we need
-	const char *plane_names[] = {"plane1", "plane2", "plane3"};
+	const char *plane_names[] = { "plane1", "plane2", "plane3" };
 	for(int i = 0; i < PLANES_COUNT; i++)
 		D(glUniform1i(glGetUniformLocation(this->prog, plane_names[i]), i));
 

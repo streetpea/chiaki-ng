@@ -23,7 +23,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *au
 	return CHIAKI_ERR_SUCCESS;
 }
 
-
 CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receiver)
 {
 #ifdef CHIAKI_LIB_ENABLE_OPUS
@@ -31,7 +30,6 @@ CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receive
 #endif
 	chiaki_mutex_fini(&audio_receiver->mutex);
 }
-
 
 CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_receiver, ChiakiAudioHeader *audio_header)
 {
@@ -79,15 +77,15 @@ CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_re
 	if(packet->data_size != (size_t)unit_size * (size_t)packet->units_in_frame_total)
 	{
 		CHIAKI_LOGE(audio_receiver->log, "Audio AV Packet size mismatch %#llx vs %#llx",
-				(unsigned long long)packet->data_size,
-				(unsigned long long)(unit_size * packet->units_in_frame_total));
+			(unsigned long long)packet->data_size,
+			(unsigned long long)(unit_size * packet->units_in_frame_total));
 		return;
 	}
 
 	if(packet->frame_index > (1 << 15))
 		audio_receiver->frame_index_startup = false;
 
-	for(size_t i=0; i<source_units_count+fec_units_count; i++)
+	for(size_t i = 0; i < source_units_count + fec_units_count; i++)
 	{
 		ChiakiSeqNum16 frame_index;
 		if(i < source_units_count)

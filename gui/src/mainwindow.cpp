@@ -167,7 +167,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	grid_widget->setContentsMargins(0, 0, 0, 0);
 
 	resize(800, 600);
-	
+
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::ManualHostsUpdated, this, &MainWindow::UpdateDisplayServers);
@@ -330,7 +330,7 @@ void MainWindow::UpdateDisplayServers()
 
 		display_servers.append(server);
 	}
-	
+
 	UpdateServerWidgets();
 }
 

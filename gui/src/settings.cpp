@@ -88,10 +88,10 @@ uint32_t Settings::GetLogLevelMask()
 }
 
 static const QMap<ChiakiVideoResolutionPreset, QString> resolutions = {
-	{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p"},
-	{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p"},
-	{ CHIAKI_VIDEO_RESOLUTION_PRESET_720p, "720p"},
-	{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p"}
+	{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p" },
+	{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p" },
+	{ CHIAKI_VIDEO_RESOLUTION_PRESET_720p, "720p" },
+	{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p" }
 };
 
 static const ChiakiVideoResolutionPreset resolution_default = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
@@ -136,8 +136,8 @@ void Settings::SetBitrate(unsigned int bitrate)
 }
 
 static const QMap<ChiakiCodec, QString> codecs = {
-	{ CHIAKI_CODEC_H264, "h264"},
-	{ CHIAKI_CODEC_H265, "h265"}
+	{ CHIAKI_CODEC_H264, "h264" },
+	{ CHIAKI_CODEC_H265, "h265" }
 };
 
 static const ChiakiCodec codec_default = CHIAKI_CODEC_H265;

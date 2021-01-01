@@ -68,7 +68,6 @@ static QSet<QString> chiaki_motion_controller_guids({
 	"030000008f0e00001431000000000000",
 });
 
-
 static ControllerManager *instance = nullptr;
 
 #define UPDATE_INTERVAL_MS 4

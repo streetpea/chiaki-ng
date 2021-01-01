@@ -645,7 +645,6 @@ static void senkusha_takion_data(ChiakiSenkusha *senkusha, ChiakiTakionMessageDa
 			senkusha->state_finished = true;
 			chiaki_cond_signal(&senkusha->state_cond);
 		}
-
 	}
 	chiaki_mutex_unlock(&senkusha->state_mutex);
 }
@@ -878,4 +877,3 @@ static ChiakiErrorCode senkusha_send_data_wait_for_ack(ChiakiSenkusha *senkusha,
 
 	return err;
 }
-

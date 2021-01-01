@@ -89,7 +89,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(disconnect_action_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(DisconnectActionSelected()));
 
 	general_layout->addRow(tr("Action on Disconnect:"), disconnect_action_combo_box);
-	
+
 	audio_device_combo_box = new QComboBox(this);
 	audio_device_combo_box->addItem(tr("Auto"));
 	auto current_audio_device = settings->GetAudioOutDevice();
@@ -112,7 +112,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 		auto available_devices = audio_devices_future_watcher->result();
 		while(audio_device_combo_box->count() > 1) // remove all but "Auto"
 			audio_device_combo_box->removeItem(1);
-		for (QAudioDeviceInfo di : available_devices)
+		for(QAudioDeviceInfo di : available_devices)
 			audio_device_combo_box->addItem(di.deviceName(), di.deviceName());
 		int audio_out_device_index = audio_device_combo_box->findData(settings->GetAudioOutDevice());
 		audio_device_combo_box->setCurrentIndex(audio_out_device_index < 0 ? 0 : audio_out_device_index);
@@ -136,10 +136,10 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	resolution_combo_box = new QComboBox(this);
 	static const QList<QPair<ChiakiVideoResolutionPreset, const char *>> resolution_strings = {
-		{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p"},
-		{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p"},
-		{ CHIAKI_VIDEO_RESOLUTION_PRESET_720p, "720p"},
-		{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p (PS5 and PS4 Pro only)"}
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p" },
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p" },
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_720p, "720p" },
+		{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p (PS5 and PS4 Pro only)" }
 	};
 	auto current_res = settings->GetResolution();
 	for(const auto &p : resolution_strings)

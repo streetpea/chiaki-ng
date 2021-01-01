@@ -74,4 +74,3 @@ CHIAKI_EXPORT void chiaki_packet_stats_get(ChiakiPacketStats *stats, bool reset,
 		reset_stats(stats);
 	chiaki_mutex_unlock(&stats->mutex);
 }
-

@@ -16,9 +16,9 @@
 #define HOSTS_MAX 16
 #define DROP_PINGS 3
 
-static void Discovery(ChiakiDiscoveryHost * discovered_hosts, size_t hosts_count, void * user)
+static void Discovery(ChiakiDiscoveryHost *discovered_hosts, size_t hosts_count, void *user)
 {
-	DiscoveryManager * dm = (DiscoveryManager *)user;
+	DiscoveryManager *dm = (DiscoveryManager *)user;
 	for(size_t i = 0; i < hosts_count; i++)
 	{
 		dm->DiscoveryCB(discovered_hosts + i);
@@ -105,7 +105,7 @@ uint32_t DiscoveryManager::GetIPv4BroadcastAddr()
 #endif
 }
 
-int DiscoveryManager::Send(struct sockaddr * host_addr, size_t host_addr_len)
+int DiscoveryManager::Send(struct sockaddr *host_addr, size_t host_addr_len)
 {
 	if(!host_addr)
 	{
@@ -120,9 +120,9 @@ int DiscoveryManager::Send(struct sockaddr * host_addr, size_t host_addr_len)
 	return 0;
 }
 
-int DiscoveryManager::Send(const char * discover_ip_dest)
+int DiscoveryManager::Send(const char *discover_ip_dest)
 {
-	struct addrinfo * host_addrinfos;
+	struct addrinfo *host_addrinfos;
 	int r = getaddrinfo(discover_ip_dest, NULL, NULL, &host_addrinfos);
 	if(r != 0)
 	{
@@ -130,10 +130,10 @@ int DiscoveryManager::Send(const char * discover_ip_dest)
 		return 1;
 	}
 
-	struct sockaddr * host_addr = nullptr;
+	struct sockaddr *host_addr = nullptr;
 	socklen_t host_addr_len = 0;
 
-	for(struct addrinfo * ai = host_addrinfos; ai; ai = ai->ai_next)
+	for(struct addrinfo *ai = host_addrinfos; ai; ai = ai->ai_next)
 	{
 		if(ai->ai_protocol != IPPROTO_UDP)
 			continue;
@@ -170,13 +170,13 @@ int DiscoveryManager::Send()
 	return DiscoveryManager::Send(this->host_addr, this->host_addr_len);
 }
 
-void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost * discovered_host)
+void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost *discovered_host)
 {
 	// the user ptr is passed as
 	// chiaki_discovery_thread_start arg
 
 	std::string key = discovered_host->host_name;
-	Host * host = this->settings->GetOrCreateHost(&key);
+	Host *host = this->settings->GetOrCreateHost(&key);
 
 	CHIAKI_LOGI(this->log, "--");
 	CHIAKI_LOGI(this->log, "Discovered Host:");

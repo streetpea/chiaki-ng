@@ -19,9 +19,7 @@
 
 #include "utils.h"
 
-
 #define KEY_BUF_CHUNK_SIZE 0x1000
-
 
 static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret);
 
@@ -110,7 +108,6 @@ CHIAKI_EXPORT void chiaki_gkcrypt_fini(ChiakiGKCrypt *gkcrypt)
 	}
 }
 
-
 static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index, const uint8_t *handshake_key, const uint8_t *ecdh_secret)
 {
 	uint8_t data[3 + CHIAKI_HANDSHAKE_KEY_SIZE + 2];
@@ -123,37 +120,41 @@ static ChiakiErrorCode gkcrypt_gen_key_iv(ChiakiGKCrypt *gkcrypt, uint8_t index,
 
 	uint8_t hmac[CHIAKI_GKCRYPT_BLOCK_SIZE*2];
 	size_t hmac_size = sizeof(hmac);
-	#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 	mbedtls_md_context_t ctx;
 	mbedtls_md_init(&ctx);
 
-	if(mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256) , 1) != 0){
+	if(mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1) != 0)
+	{
 		mbedtls_md_free(&ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(mbedtls_md_hmac_starts(&ctx, ecdh_secret, CHIAKI_ECDH_SECRET_SIZE) != 0){
+	if(mbedtls_md_hmac_starts(&ctx, ecdh_secret, CHIAKI_ECDH_SECRET_SIZE) != 0)
+	{
 		mbedtls_md_free(&ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(mbedtls_md_hmac_update(&ctx, data, sizeof(data)) != 0){
+	if(mbedtls_md_hmac_update(&ctx, data, sizeof(data)) != 0)
+	{
 		mbedtls_md_free(&ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	if(mbedtls_md_hmac_finish(&ctx, hmac) != 0){
+	if(mbedtls_md_hmac_finish(&ctx, hmac) != 0)
+	{
 		mbedtls_md_free(&ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	mbedtls_md_free(&ctx);
 
-	#else
+#else
 	if(!HMAC(EVP_sha256(), ecdh_secret, CHIAKI_ECDH_SECRET_SIZE, data, sizeof(data), hmac, (unsigned int *)&hmac_size))
 		return CHIAKI_ERR_UNKNOWN;
 
-	#endif
+#endif
 	assert(hmac_size == sizeof(hmac));
 
 	memcpy(gkcrypt->key_base, hmac, CHIAKI_GKCRYPT_BLOCK_SIZE);
@@ -220,7 +221,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 	mbedtls_aes_context ctx;
 	mbedtls_aes_init(&ctx);
 
-	if(mbedtls_aes_setkey_enc(&ctx, gkcrypt->key_base, 128) != 0){
+	if(mbedtls_aes_setkey_enc(&ctx, gkcrypt->key_base, 128) != 0)
+	{
 		mbedtls_aes_free(&ctx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -248,9 +250,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 		counter_add(cur, gkcrypt->iv, counter_offset++);
 
 #ifdef CHIAKI_LIB_ENABLE_MBEDTLS
-	for(int i=0; i<buf_size; i=i+16){
+	for(int i = 0; i < buf_size; i = i + 16)
+	{
 		// loop over all blocks of 16 bytes (128 bits)
-		if(mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, buf+i, buf+i) != 0){
+		if(mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, buf + i, buf + i) != 0)
+		{
 			mbedtls_aes_free(&ctx);
 			return CHIAKI_ERR_UNKNOWN;
 		}
@@ -373,13 +377,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, uint64
 	mbedtls_gcm_context actx;
 	mbedtls_gcm_init(&actx);
 	// set gmac_key 128 bits key
-	if(mbedtls_gcm_setkey(&actx, MBEDTLS_CIPHER_ID_AES, gmac_key, CHIAKI_GKCRYPT_BLOCK_SIZE*8) != 0){
+	if(mbedtls_gcm_setkey(&actx, MBEDTLS_CIPHER_ID_AES, gmac_key, CHIAKI_GKCRYPT_BLOCK_SIZE * 8) != 0)
+	{
 		mbedtls_gcm_free(&actx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
 	// encrypt without additional data
-	if(mbedtls_gcm_starts(&actx, MBEDTLS_GCM_ENCRYPT, iv, CHIAKI_GKCRYPT_BLOCK_SIZE, NULL, 0) != 0){
+	if(mbedtls_gcm_starts(&actx, MBEDTLS_GCM_ENCRYPT, iv, CHIAKI_GKCRYPT_BLOCK_SIZE, NULL, 0) != 0)
+	{
 		mbedtls_gcm_free(&actx);
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -387,9 +393,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, uint64
 	// to get the same result as:
 	// EVP_EncryptUpdate(ctx, NULL, &len, buf, (int)buf_size)
 	if(mbedtls_gcm_crypt_and_tag(&actx, MBEDTLS_GCM_ENCRYPT,
-		0, iv, CHIAKI_GKCRYPT_BLOCK_SIZE,
-		buf, buf_size, NULL, NULL,
-		CHIAKI_GKCRYPT_GMAC_SIZE, gmac_out) != 0){
+		   0, iv, CHIAKI_GKCRYPT_BLOCK_SIZE,
+		   buf, buf_size, NULL, NULL,
+		   CHIAKI_GKCRYPT_GMAC_SIZE, gmac_out) != 0)
+	{
 
 		mbedtls_gcm_free(&actx);
 		return CHIAKI_ERR_UNKNOWN;

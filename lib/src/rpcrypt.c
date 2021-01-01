@@ -1488,7 +1488,7 @@ static ChiakiErrorCode bright_ambassador(ChiakiTarget target, uint8_t *bright, u
 		0x20, 0x98, 0xfd, 0x34, 0xca, 0x7a, 0x66, 0x20, 0x58, 0xd2,
 		0x36, 0x7f, 0x2b, 0xa7, 0xd1, 0xde, 0x6f, 0x36, 0xb4, 0xf2,
 		0x3b, 0x20, 0x5d, 0x02
-	}; 
+	};
 
 	if(target < CHIAKI_TARGET_PS4_10)
 		return CHIAKI_ERR_INVALID_DATA;
@@ -1865,7 +1865,6 @@ static const uint8_t *rpcrypt_hmac_key(ChiakiRPCrypt *rpcrypt)
 	}
 }
 
-
 #ifdef CHIAKI_LIB_ENABLE_MBEDTLS
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter)
 {
@@ -1967,7 +1966,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt,
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 5] = (uint8_t)((counter >> 0x10) & 0xff);
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 6] = (uint8_t)((counter >> 0x08) & 0xff);
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 7] = (uint8_t)((counter >> 0x00) & 0xff);
-
 
 	uint8_t hmac[32];
 	unsigned int hmac_len = 0;

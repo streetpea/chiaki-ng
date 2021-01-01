@@ -7,7 +7,7 @@
 #include <QVBoxLayout>
 #include <QKeyEvent>
 
-SettingsKeyCaptureDialog::SettingsKeyCaptureDialog(QWidget* parent)
+SettingsKeyCaptureDialog::SettingsKeyCaptureDialog(QWidget *parent)
 {
 	setWindowTitle(tr("Key Capture"));
 
@@ -23,7 +23,7 @@ SettingsKeyCaptureDialog::SettingsKeyCaptureDialog(QWidget* parent)
 	connect(button, &QPushButton::clicked, this, &QDialog::accept);
 }
 
-void SettingsKeyCaptureDialog::keyReleaseEvent(QKeyEvent* event)
+void SettingsKeyCaptureDialog::keyReleaseEvent(QKeyEvent *event)
 {
 	KeyCaptured(Qt::Key(event->key()));
 	accept();

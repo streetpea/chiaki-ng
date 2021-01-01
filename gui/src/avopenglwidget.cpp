@@ -109,7 +109,6 @@ static const float vert_pos[] = {
 	1.0f, 1.0f
 };
 
-
 QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat()
 {
 	QSurfaceFormat format;
@@ -129,7 +128,7 @@ AVOpenGLWidget::AVOpenGLWidget(StreamSession *session, QWidget *parent)
 {
 	enum AVPixelFormat pixel_format = chiaki_ffmpeg_decoder_get_pixel_format(session->GetFfmpegDecoder());
 	conversion_config = nullptr;
-	for(auto &cc: conversion_configs)
+	for(auto &cc : conversion_configs)
 	{
 		if(pixel_format == cc.pixel_format)
 		{

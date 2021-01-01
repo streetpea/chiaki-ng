@@ -28,10 +28,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes_crypt(uint8_t *buf, size_t buf
 	mbedtls_entropy_init(&entropy);
 
 	mbedtls_ctr_drbg_set_prediction_resistance(&ctr_drbg, MBEDTLS_CTR_DRBG_PR_OFF);
-	if(mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) "RANDOM_GEN", 10 ) != 0 ){
+	if(mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *)"RANDOM_GEN", 10) != 0)
+	{
 		return CHIAKI_ERR_UNKNOWN;
 	}
-	if(mbedtls_ctr_drbg_random(&ctr_drbg, buf, buf_size) != 0){
+	if(mbedtls_ctr_drbg_random(&ctr_drbg, buf, buf_size) != 0)
+	{
 		return CHIAKI_ERR_UNKNOWN;
 	}
 

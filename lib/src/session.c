@@ -540,10 +540,8 @@ quit:
 #undef QUIT
 }
 
-
-
-
-typedef struct session_response_t {
+typedef struct session_response_t
+{
 	uint32_t error_code;
 	const char *nonce;
 	const char *rp_version;
@@ -651,7 +649,6 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		session->connect_info.host_addrinfo_selected = ai;
 		break;
 	}
-
 
 	if(CHIAKI_SOCKET_IS_INVALID(session_sock))
 	{

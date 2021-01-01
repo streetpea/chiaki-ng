@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <chiaki/common.h>
-#include <chiaki/random.h>
 #include <chiaki/fec.h>
+#include <chiaki/random.h>
 
 #include <galois.h>
 
+#include <errno.h>
 #include <stdlib.h>
 #include <time.h>
-#include <errno.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -98,7 +98,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_lib_init()
 		WORD wsa_version = MAKEWORD(2, 2);
 		WSADATA wsa_data;
 		int err = WSAStartup(wsa_version, &wsa_data);
-		if (err != 0)
+		if(err != 0)
 			return CHIAKI_ERR_NETWORK;
 	}
 #endif

@@ -56,7 +56,6 @@ static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnect
 static void stream_connection_takion_av(ChiakiStreamConnection *stream_connection, ChiakiTakionAVPacket *packet);
 static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *stream_connection);
 
-
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnection *stream_connection, ChiakiSession *session)
 {
 	stream_connection->session = session;
@@ -120,7 +119,6 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 	chiaki_cond_fini(&stream_connection->state_cond);
 	chiaki_mutex_fini(&stream_connection->state_mutex);
 }
-
 
 static bool state_finished_cond_check(void *user)
 {
@@ -399,7 +397,6 @@ static void stream_connection_takion_data_protobuf(ChiakiStreamConnection *strea
 			break;
 	}
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
-
 }
 
 static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
@@ -640,7 +637,6 @@ static bool pb_decode_resolution(pb_istream_t *stream, const pb_field_t *field, 
 	return true;
 }
 
-
 static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	tkproto_TakionMessage msg;
@@ -709,11 +705,9 @@ error:
 	chiaki_cond_signal(&stream_connection->state_cond);
 }
 
-
-
 static bool chiaki_pb_encode_zero_encrypted_key(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
 {
-	if (!pb_encode_tag_for_field(stream, field))
+	if(!pb_encode_tag_for_field(stream, field))
 		return false;
 	uint8_t data[] = { 0, 0, 0, 0 };
 	return pb_encode_string(stream, data, sizeof(data));
@@ -867,7 +861,6 @@ static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection 
 	return err;
 }
 
-
 static void stream_connection_takion_av(ChiakiStreamConnection *stream_connection, ChiakiTakionAVPacket *packet)
 {
 	chiaki_gkcrypt_decrypt(stream_connection->gkcrypt_remote, packet->key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, packet->data, packet->data_size);
@@ -877,7 +870,6 @@ static void stream_connection_takion_av(ChiakiStreamConnection *stream_connectio
 	else
 		chiaki_audio_receiver_av_packet(stream_connection->audio_receiver, packet);
 }
-
 
 static ChiakiErrorCode stream_connection_send_heartbeat(ChiakiStreamConnection *stream_connection)
 {

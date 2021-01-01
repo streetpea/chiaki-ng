@@ -13,7 +13,7 @@ Settings::Settings()
 #endif
 }
 
-Settings::ConfigurationItem Settings::ParseLine(std::string * line, std::string * value)
+Settings::ConfigurationItem Settings::ParseLine(std::string *line, std::string *value)
 {
 	Settings::ConfigurationItem ci;
 	std::smatch m;
@@ -35,9 +35,9 @@ size_t Settings::GetB64encodeSize(size_t in)
 	return ((4 * in / 3) + 3) & ~3;
 }
 
-Settings * Settings::instance = nullptr;
+Settings *Settings::instance = nullptr;
 
-Settings * Settings::GetInstance()
+Settings *Settings::GetInstance()
 {
 	if(instance == nullptr)
 	{
@@ -47,17 +47,17 @@ Settings * Settings::GetInstance()
 	return instance;
 }
 
-ChiakiLog * Settings::GetLogger()
+ChiakiLog *Settings::GetLogger()
 {
 	return &this->log;
 }
 
-std::map<std::string, Host> * Settings::GetHostsMap()
+std::map<std::string, Host> *Settings::GetHostsMap()
 {
 	return &this->hosts;
 }
 
-Host * Settings::GetOrCreateHost(std::string * host_name)
+Host *Settings::GetOrCreateHost(std::string *host_name)
 {
 	bool created = false;
 	// update of create Host instance
@@ -69,7 +69,7 @@ Host * Settings::GetOrCreateHost(std::string * host_name)
 		created = true;
 	}
 
-	Host * host = &(this->hosts.at(*host_name));
+	Host *host = &(this->hosts.at(*host_name));
 	if(created)
 	{
 		// copy default settings
@@ -90,7 +90,7 @@ void Settings::ParseFile()
 	std::string line;
 	std::string value;
 	bool rp_key_b = false, rp_regist_key_b = false, rp_key_type_b = false;
-	Host * current_host = nullptr;
+	Host *current_host = nullptr;
 	if(config_file.is_open())
 	{
 		CHIAKI_LOGV(&this->log, "Config file opened");
@@ -102,63 +102,63 @@ void Settings::ParseFile()
 			ci = this->ParseLine(&line, &value);
 			switch(ci)
 			{
-			// got to next line
-			case UNKNOWN:
-				CHIAKI_LOGV(&this->log, "UNKNOWN config");
-				break;
-			case HOST_NAME:
-				CHIAKI_LOGV(&this->log, "HOST_NAME %s", value.c_str());
-				// current host is in context
-				current_host = this->GetOrCreateHost(&value);
-				// all following case will edit the current_host config
+				// got to next line
+				case UNKNOWN:
+					CHIAKI_LOGV(&this->log, "UNKNOWN config");
+					break;
+				case HOST_NAME:
+					CHIAKI_LOGV(&this->log, "HOST_NAME %s", value.c_str());
+					// current host is in context
+					current_host = this->GetOrCreateHost(&value);
+					// all following case will edit the current_host config
 
-				rp_key_b = false;
-				rp_regist_key_b = false;
-				rp_key_type_b = false;
-				break;
-			case HOST_ADDR:
-				CHIAKI_LOGV(&this->log, "HOST_ADDR %s", value.c_str());
-				if(current_host != nullptr)
-					current_host->host_addr = value;
-				break;
-			case PSN_ONLINE_ID:
-				CHIAKI_LOGV(&this->log, "PSN_ONLINE_ID %s", value.c_str());
-				// current_host == nullptr
-				// means we are in global ini section
-				// update default setting
-				this->SetPSNOnlineID(current_host, value);
-				break;
-			case PSN_ACCOUNT_ID:
-				CHIAKI_LOGV(&this->log, "PSN_ACCOUNT_ID %s", value.c_str());
-				this->SetPSNAccountID(current_host, value);
-				break;
-			case RP_KEY:
-				CHIAKI_LOGV(&this->log, "RP_KEY %s", value.c_str());
-				if(current_host != nullptr)
-					rp_key_b = this->SetHostRPKey(current_host, value);
-				break;
-			case RP_KEY_TYPE:
-				CHIAKI_LOGV(&this->log, "RP_KEY_TYPE %s", value.c_str());
-				if(current_host != nullptr)
-					// TODO Check possible rp_type values
-					rp_key_type_b = this->SetHostRPKeyType(current_host, value);
-				break;
-			case RP_REGIST_KEY:
-				CHIAKI_LOGV(&this->log, "RP_REGIST_KEY %s", value.c_str());
-				if(current_host != nullptr)
-					rp_regist_key_b = this->SetHostRPRegistKey(current_host, value);
-				break;
-			case VIDEO_RESOLUTION:
-				this->SetVideoResolution(current_host, value);
-				break;
-			case VIDEO_FPS:
-				this->SetVideoFPS(current_host, value);
-				break;
-			case TARGET:
-				CHIAKI_LOGV(&this->log, "TARGET %s", value.c_str());
-				if(current_host != nullptr)
-					this->SetChiakiTarget(current_host, value);
-				break;
+					rp_key_b = false;
+					rp_regist_key_b = false;
+					rp_key_type_b = false;
+					break;
+				case HOST_ADDR:
+					CHIAKI_LOGV(&this->log, "HOST_ADDR %s", value.c_str());
+					if(current_host != nullptr)
+						current_host->host_addr = value;
+					break;
+				case PSN_ONLINE_ID:
+					CHIAKI_LOGV(&this->log, "PSN_ONLINE_ID %s", value.c_str());
+					// current_host == nullptr
+					// means we are in global ini section
+					// update default setting
+					this->SetPSNOnlineID(current_host, value);
+					break;
+				case PSN_ACCOUNT_ID:
+					CHIAKI_LOGV(&this->log, "PSN_ACCOUNT_ID %s", value.c_str());
+					this->SetPSNAccountID(current_host, value);
+					break;
+				case RP_KEY:
+					CHIAKI_LOGV(&this->log, "RP_KEY %s", value.c_str());
+					if(current_host != nullptr)
+						rp_key_b = this->SetHostRPKey(current_host, value);
+					break;
+				case RP_KEY_TYPE:
+					CHIAKI_LOGV(&this->log, "RP_KEY_TYPE %s", value.c_str());
+					if(current_host != nullptr)
+						// TODO Check possible rp_type values
+						rp_key_type_b = this->SetHostRPKeyType(current_host, value);
+					break;
+				case RP_REGIST_KEY:
+					CHIAKI_LOGV(&this->log, "RP_REGIST_KEY %s", value.c_str());
+					if(current_host != nullptr)
+						rp_regist_key_b = this->SetHostRPRegistKey(current_host, value);
+					break;
+				case VIDEO_RESOLUTION:
+					this->SetVideoResolution(current_host, value);
+					break;
+				case VIDEO_FPS:
+					this->SetVideoFPS(current_host, value);
+					break;
+				case TARGET:
+					CHIAKI_LOGV(&this->log, "TARGET %s", value.c_str());
+					if(current_host != nullptr)
+						this->SetChiakiTarget(current_host, value);
+					break;
 			} // ci switch
 			if(rp_key_b && rp_regist_key_b && rp_key_type_b)
 				// the current host contains rp key data
@@ -231,7 +231,7 @@ int Settings::WriteFile()
 
 			if(it->second.rp_key_data || it->second.registered)
 			{
-				char rp_key_type[33] = {0};
+				char rp_key_type[33] = { 0 };
 				snprintf(rp_key_type, sizeof(rp_key_type), "%d", it->second.rp_key_type);
 				// save registered rp key for auto login
 				config_file << "rp_key = \"" << this->GetHostRPKey(&it->second) << "\"\n"
@@ -250,14 +250,14 @@ std::string Settings::ResolutionPresetToString(ChiakiVideoResolutionPreset resol
 {
 	switch(resolution)
 	{
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
-		return "360p";
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
-		return "540p";
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
-		return "720p";
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
-		return "1080p";
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+			return "360p";
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
+			return "540p";
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
+			return "720p";
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
+			return "1080p";
 	}
 	return "UNKNOWN";
 }
@@ -266,14 +266,14 @@ int Settings::ResolutionPresetToInt(ChiakiVideoResolutionPreset resolution)
 {
 	switch(resolution)
 	{
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
-		return 360;
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
-		return 540;
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
-		return 720;
-	case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
-		return 1080;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+			return 360;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
+			return 540;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
+			return 720;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
+			return 1080;
 	}
 	return 0;
 }
@@ -300,10 +300,10 @@ std::string Settings::FPSPresetToString(ChiakiVideoFPSPreset fps)
 {
 	switch(fps)
 	{
-	case CHIAKI_VIDEO_FPS_PRESET_30:
-		return "30";
-	case CHIAKI_VIDEO_FPS_PRESET_60:
-		return "60";
+		case CHIAKI_VIDEO_FPS_PRESET_30:
+			return "30";
+		case CHIAKI_VIDEO_FPS_PRESET_60:
+			return "60";
 	}
 	return "UNKNOWN";
 }
@@ -312,10 +312,10 @@ int Settings::FPSPresetToInt(ChiakiVideoFPSPreset fps)
 {
 	switch(fps)
 	{
-	case CHIAKI_VIDEO_FPS_PRESET_30:
-		return 30;
-	case CHIAKI_VIDEO_FPS_PRESET_60:
-		return 60;
+		case CHIAKI_VIDEO_FPS_PRESET_30:
+			return 30;
+		case CHIAKI_VIDEO_FPS_PRESET_60:
+			return 60;
 	}
 	return 0;
 }
@@ -334,7 +334,7 @@ ChiakiVideoFPSPreset Settings::StringToFPSPreset(std::string value)
 	return CHIAKI_VIDEO_FPS_PRESET_30;
 }
 
-std::string Settings::GetHostName(Host * host)
+std::string Settings::GetHostName(Host *host)
 {
 	if(host != nullptr)
 		return host->GetHostName();
@@ -343,7 +343,7 @@ std::string Settings::GetHostName(Host * host)
 	return "";
 }
 
-std::string Settings::GetHostAddr(Host * host)
+std::string Settings::GetHostAddr(Host *host)
 {
 	if(host != nullptr)
 		return host->GetHostAddr();
@@ -352,7 +352,7 @@ std::string Settings::GetHostAddr(Host * host)
 	return "";
 }
 
-std::string Settings::GetPSNOnlineID(Host * host)
+std::string Settings::GetPSNOnlineID(Host *host)
 {
 	if(host == nullptr || host->psn_online_id.length() == 0)
 		return this->global_psn_online_id;
@@ -360,7 +360,7 @@ std::string Settings::GetPSNOnlineID(Host * host)
 		return host->psn_online_id;
 }
 
-void Settings::SetPSNOnlineID(Host * host, std::string psn_online_id)
+void Settings::SetPSNOnlineID(Host *host, std::string psn_online_id)
 {
 	if(host == nullptr)
 		this->global_psn_online_id = psn_online_id;
@@ -368,7 +368,7 @@ void Settings::SetPSNOnlineID(Host * host, std::string psn_online_id)
 		host->psn_online_id = psn_online_id;
 }
 
-std::string Settings::GetPSNAccountID(Host * host)
+std::string Settings::GetPSNAccountID(Host *host)
 {
 	if(host == nullptr || host->psn_account_id.length() == 0)
 		return this->global_psn_account_id;
@@ -376,7 +376,7 @@ std::string Settings::GetPSNAccountID(Host * host)
 		return host->psn_account_id;
 }
 
-void Settings::SetPSNAccountID(Host * host, std::string psn_account_id)
+void Settings::SetPSNAccountID(Host *host, std::string psn_account_id)
 {
 	if(host == nullptr)
 		this->global_psn_account_id = psn_account_id;
@@ -384,7 +384,7 @@ void Settings::SetPSNAccountID(Host * host, std::string psn_account_id)
 		host->psn_account_id = psn_account_id;
 }
 
-ChiakiVideoResolutionPreset Settings::GetVideoResolution(Host * host)
+ChiakiVideoResolutionPreset Settings::GetVideoResolution(Host *host)
 {
 	if(host == nullptr)
 		return this->global_video_resolution;
@@ -392,7 +392,7 @@ ChiakiVideoResolutionPreset Settings::GetVideoResolution(Host * host)
 		return host->video_resolution;
 }
 
-void Settings::SetVideoResolution(Host * host, ChiakiVideoResolutionPreset value)
+void Settings::SetVideoResolution(Host *host, ChiakiVideoResolutionPreset value)
 {
 	if(host == nullptr)
 		this->global_video_resolution = value;
@@ -400,13 +400,13 @@ void Settings::SetVideoResolution(Host * host, ChiakiVideoResolutionPreset value
 		host->video_resolution = value;
 }
 
-void Settings::SetVideoResolution(Host * host, std::string value)
+void Settings::SetVideoResolution(Host *host, std::string value)
 {
 	ChiakiVideoResolutionPreset p = StringToResolutionPreset(value);
 	this->SetVideoResolution(host, p);
 }
 
-ChiakiVideoFPSPreset Settings::GetVideoFPS(Host * host)
+ChiakiVideoFPSPreset Settings::GetVideoFPS(Host *host)
 {
 	if(host == nullptr)
 		return this->global_video_fps;
@@ -414,7 +414,7 @@ ChiakiVideoFPSPreset Settings::GetVideoFPS(Host * host)
 		return host->video_fps;
 }
 
-void Settings::SetVideoFPS(Host * host, ChiakiVideoFPSPreset value)
+void Settings::SetVideoFPS(Host *host, ChiakiVideoFPSPreset value)
 {
 	if(host == nullptr)
 		this->global_video_fps = value;
@@ -422,18 +422,18 @@ void Settings::SetVideoFPS(Host * host, ChiakiVideoFPSPreset value)
 		host->video_fps = value;
 }
 
-void Settings::SetVideoFPS(Host * host, std::string value)
+void Settings::SetVideoFPS(Host *host, std::string value)
 {
 	ChiakiVideoFPSPreset p = StringToFPSPreset(value);
 	this->SetVideoFPS(host, p);
 }
 
-ChiakiTarget Settings::GetChiakiTarget(Host * host)
+ChiakiTarget Settings::GetChiakiTarget(Host *host)
 {
 	return host->GetChiakiTarget();
 }
 
-bool Settings::SetChiakiTarget(Host * host, ChiakiTarget target)
+bool Settings::SetChiakiTarget(Host *host, ChiakiTarget target)
 {
 	if(host != nullptr)
 	{
@@ -447,20 +447,20 @@ bool Settings::SetChiakiTarget(Host * host, ChiakiTarget target)
 	}
 }
 
-bool Settings::SetChiakiTarget(Host * host, std::string value)
+bool Settings::SetChiakiTarget(Host *host, std::string value)
 {
 	// TODO Check possible target values
 	return this->SetChiakiTarget(host, static_cast<ChiakiTarget>(std::atoi(value.c_str())));
 }
 
-std::string Settings::GetHostRPKey(Host * host)
+std::string Settings::GetHostRPKey(Host *host)
 {
 	if(host != nullptr)
 	{
 		if(host->rp_key_data || host->registered)
 		{
 			size_t rp_key_b64_sz = this->GetB64encodeSize(0x10);
-			char rp_key_b64[rp_key_b64_sz + 1] = {0};
+			char rp_key_b64[rp_key_b64_sz + 1] = { 0 };
 			ChiakiErrorCode err;
 			err = chiaki_base64_encode(
 				host->rp_key, 0x10,
@@ -478,7 +478,7 @@ std::string Settings::GetHostRPKey(Host * host)
 	return "";
 }
 
-bool Settings::SetHostRPKey(Host * host, std::string rp_key_b64)
+bool Settings::SetHostRPKey(Host *host, std::string rp_key_b64)
 {
 	if(host != nullptr)
 	{
@@ -497,14 +497,14 @@ bool Settings::SetHostRPKey(Host * host, std::string rp_key_b64)
 	return false;
 }
 
-std::string Settings::GetHostRPRegistKey(Host * host)
+std::string Settings::GetHostRPRegistKey(Host *host)
 {
 	if(host != nullptr)
 	{
 		if(host->rp_key_data || host->registered)
 		{
 			size_t rp_regist_key_b64_sz = this->GetB64encodeSize(CHIAKI_SESSION_AUTH_SIZE);
-			char rp_regist_key_b64[rp_regist_key_b64_sz + 1] = {0};
+			char rp_regist_key_b64[rp_regist_key_b64_sz + 1] = { 0 };
 			ChiakiErrorCode err;
 			err = chiaki_base64_encode(
 				(uint8_t *)host->rp_regist_key, CHIAKI_SESSION_AUTH_SIZE,
@@ -522,7 +522,7 @@ std::string Settings::GetHostRPRegistKey(Host * host)
 	return "";
 }
 
-bool Settings::SetHostRPRegistKey(Host * host, std::string rp_regist_key_b64)
+bool Settings::SetHostRPRegistKey(Host *host, std::string rp_regist_key_b64)
 {
 	if(host != nullptr)
 	{
@@ -541,7 +541,7 @@ bool Settings::SetHostRPRegistKey(Host * host, std::string rp_regist_key_b64)
 	return false;
 }
 
-int Settings::GetHostRPKeyType(Host * host)
+int Settings::GetHostRPKeyType(Host *host)
 {
 	if(host != nullptr)
 		return host->rp_key_type;
@@ -550,7 +550,7 @@ int Settings::GetHostRPKeyType(Host * host)
 	return 0;
 }
 
-bool Settings::SetHostRPKeyType(Host * host, std::string value)
+bool Settings::SetHostRPKeyType(Host *host, std::string value)
 {
 	if(host != nullptr)
 	{
@@ -562,7 +562,7 @@ bool Settings::SetHostRPKeyType(Host * host, std::string value)
 }
 
 #ifdef CHIAKI_ENABLE_SWITCH_OVERCLOCK
-int Settings::GetCPUOverclock(Host * host)
+int Settings::GetCPUOverclock(Host *host)
 {
 	if(host == nullptr)
 		return this->global_cpu_overclock;
@@ -570,7 +570,7 @@ int Settings::GetCPUOverclock(Host * host)
 		return host->cpu_overclock;
 }
 
-void Settings::SetCPUOverclock(Host * host, int value)
+void Settings::SetCPUOverclock(Host *host, int value)
 {
 	int oc = OC_1326;
 	if(value > OC_1580)
@@ -592,11 +592,9 @@ void Settings::SetCPUOverclock(Host * host, int value)
 		host->cpu_overclock = oc;
 }
 
-void Settings::SetCPUOverclock(Host * host, std::string value)
+void Settings::SetCPUOverclock(Host *host, std::string value)
 {
 	int v = atoi(value.c_str());
 	this->SetCPUOverclock(host, v);
 }
 #endif
-
-

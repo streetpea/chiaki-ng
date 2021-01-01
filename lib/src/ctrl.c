@@ -501,7 +501,6 @@ static void ctrl_enable_optional_features(ChiakiCtrl *ctrl)
 	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
 }
 
-
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
 	if(ctrl->session->ctrl_session_id_received)
@@ -652,7 +651,7 @@ static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payl
 	chiaki_session_send_event(ctrl->session, &keyboard_event);
 }
 
-static void ctrl_message_received_keyboard_text_change(ChiakiCtrl* ctrl, uint8_t* payload, size_t payload_size)
+static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
 	assert(payload_size >= sizeof(CtrlKeyboardTextResponseMessage));
 
@@ -676,7 +675,8 @@ static void ctrl_message_received_keyboard_text_change(ChiakiCtrl* ctrl, uint8_t
 		free(buffer);
 }
 
-typedef struct ctrl_response_t {
+typedef struct ctrl_response_t
+{
 	bool server_type_valid;
 	uint8_t rp_server_type[0x10];
 	bool success;
@@ -741,7 +741,6 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	ChiakiErrorCode err = chiaki_socket_set_nonblock(sock, true);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
-
 
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	err = chiaki_stop_pipe_connect(&ctrl->notif_pipe, sock, sa, addr->ai_addrlen);

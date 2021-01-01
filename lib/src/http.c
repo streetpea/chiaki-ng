@@ -11,7 +11,6 @@
 #include <sys/socket.h>
 #endif
 
-
 CHIAKI_EXPORT void chiaki_http_header_free(ChiakiHttpHeader *header)
 {
 	while(header)
