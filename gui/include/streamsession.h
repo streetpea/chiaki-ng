@@ -92,13 +92,13 @@ class StreamSession : public QObject
 		QMap<Qt::Key, int> key_map;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
-		void Event(ChiakiEvent *event);
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
 #endif
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
+		void Event(ChiakiEvent *event);
 
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);

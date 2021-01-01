@@ -291,3 +291,12 @@ ChiakiControllerState Controller::GetState()
 #endif
 	return state;
 }
+
+void Controller::SetRumble(uint8_t left, uint8_t right)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	SDL_GameControllerRumble(controller, (uint16_t)left << 8, (uint16_t)right << 8, 5000);
+#endif
+}

@@ -117,8 +117,8 @@ typedef struct chiaki_audio_stream_info_event_t
 typedef struct chiaki_rumble_event_t
 {
 	uint8_t unknown;
-	uint8_t left;
-	uint8_t right;
+	uint8_t left; // low-frequency
+	uint8_t right; // high-frequency
 } ChiakiRumbleEvent;
 
 typedef enum {

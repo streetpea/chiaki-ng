@@ -73,6 +73,7 @@ class Controller : public QObject
 		int GetDeviceID();
 		QString GetName();
 		ChiakiControllerState GetState();
+		void SetRumble(uint8_t left, uint8_t right);
 
 	signals:
 		void StateChanged();

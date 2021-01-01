@@ -313,13 +313,11 @@ void StreamSession::SendFeedbackState()
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
 
-#if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	for(auto controller : controllers)
 	{
 		auto controller_state = controller->GetState();
 		chiaki_controller_state_or(&state, &state, &controller_state);
 	}
-#endif
 
 #if CHIAKI_GUI_ENABLE_SETSU
 	chiaki_controller_state_or(&state, &state, &setsu_state);
@@ -381,11 +379,15 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			emit LoginPINRequested(event->login_pin_request.pin_incorrect);
 			break;
-		case CHIAKI_EVENT_RUMBLE:
-			// TODO
-			//CHIAKI_LOGD(GetChiakiLog(), "Rumble %#02x, %#02x, %#02x",
-			//		event->rumble.unknown, event->rumble.left, event->rumble.right);
+		case CHIAKI_EVENT_RUMBLE: {
+			uint8_t left = event->rumble.left;
+			uint8_t right = event->rumble.right;
+			QMetaObject::invokeMethod(this, [this, left, right]() {
+				for(auto controller : controllers)
+					controller->SetRumble(left, right);
+			});
 			break;
+		}
 		default:
 			break;
 	}
