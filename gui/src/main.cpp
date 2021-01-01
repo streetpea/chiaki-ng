@@ -123,6 +123,7 @@ int real_main(int argc, char *argv[])
 		QString host = args[args.size()-1];
 		QByteArray morning;
 		QByteArray regist_key;
+		ChiakiTarget target = CHIAKI_TARGET_PS4_10;
 
 		if(parser.value(regist_key_option).isEmpty() && parser.value(morning_option).isEmpty())
 		{
@@ -134,6 +135,7 @@ int real_main(int argc, char *argv[])
 				{
 					morning = temphost.GetRPKey();
 					regist_key = temphost.GetRPRegistKey();
+					target = temphost.GetTarget();
 					break;
 				}
 				printf("No configuration found for '%s'\n", args[1].toLocal8Bit().constData());
@@ -142,6 +144,7 @@ int real_main(int argc, char *argv[])
 		}
 		else
 		{
+			// TODO: explicit option for target
 			regist_key = parser.value(regist_key_option).toUtf8();
 			if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
 			{
@@ -161,8 +164,7 @@ int real_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-		// TODO: target here
-		StreamSessionConnectInfo connect_info(&settings, CHIAKI_TARGET_PS4_10, host, regist_key, morning, parser.isSet(fullscreen_option));
+		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, parser.isSet(fullscreen_option));
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI
