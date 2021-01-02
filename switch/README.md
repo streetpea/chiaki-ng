@@ -4,22 +4,6 @@ this project requires the devkitpro toolchain.
 you can use your personal computer to install devkitpro
 but the easiest way is to use the following container.
 
-Build container image
----------------------
-```
-bash scripts/switch/build-docker-image.sh
-```
-
-Run container
--------------
-from the project's [root folder](../)
-```
-docker run -it --rm \
-	-v "$(pwd):/build" \
-	-p 28771:28771 \
-	chiaki-switch
-```
-
 Build Project
 -------------
 ```
@@ -31,7 +15,7 @@ tools
 Push to homebrew Netloader
 ```
 # where X.X.X.X is the IP of your switch
-scripts/switch/push-docker-build-chiaki.sh 192.168.0.200
+bash scripts/switch/push-docker-build-chiaki.sh -a 192.168.0.200
 ```
 
 Troubleshoot
@@ -52,7 +36,7 @@ this file contains sensitive data. (do not share this file)
 [PS*-***]
 # required: lan PlayStation IP address
 # IP from Settings > System > system information
-host_ip = *.*.*.*
+host_addr = *.*.*.*
 # required: sony oline id (login)
 psn_online_id = ps_online_id
 # required (PS4>7.0 Only): https://git.sr.ht/~thestr4ng3r/chiaki/tree/master/item/README.md#obtaining-your-psn-accountid
