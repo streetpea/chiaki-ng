@@ -8,7 +8,6 @@
 #include <string.h>
 #include <errno.h>
 
-#define MAX_DECODE_UNIT_SIZE 262144
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, ChiakiLog *log)
 {
@@ -108,29 +107,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_pi_decoder_init(ChiakiPiDecoder *decoder, C
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	OMX_PARAM_PORTDEFINITIONTYPE port;
-
-	memset(&port, 0, sizeof(OMX_PARAM_PORTDEFINITIONTYPE));
-	port.nSize = sizeof(OMX_PARAM_PORTDEFINITIONTYPE);
-	port.nVersion.nVersion = OMX_VERSION;
-	port.nPortIndex = 130;
-	if(OMX_GetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone)
-	{
-		CHIAKI_LOGE(decoder->log, "Failed to get decoder port definition\n");
-		chiaki_pi_decoder_fini(decoder);
-		return CHIAKI_ERR_UNKNOWN;
-	}
-
-	// Increase the buffer size to fit the largest possible frame
-	port.nBufferSize = MAX_DECODE_UNIT_SIZE;
-
-	if(OMX_SetParameter(ILC_GET_HANDLE(decoder->video_decode), OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone)
-	{
-		CHIAKI_LOGE(decoder->log, "OMX_SetParameter failed for port");
-		chiaki_pi_decoder_fini(decoder);
-		return CHIAKI_ERR_UNKNOWN;
-	}
-
 	if(ilclient_enable_port_buffers(decoder->video_decode, 130, NULL, NULL, NULL) != 0)
 	{
 		CHIAKI_LOGE(decoder->log, "ilclient_enable_port_buffers failed");
@@ -180,50 +156,55 @@ CHIAKI_EXPORT void chiaki_pi_decoder_fini(ChiakiPiDecoder *decoder)
 
 static bool push_buffer(ChiakiPiDecoder *decoder, uint8_t *buf, size_t buf_size)
 {
-	OMX_BUFFERHEADERTYPE *omx_buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1);
-	if(!omx_buf)
+	while(buf_size)
 	{
-		CHIAKI_LOGE(decoder->log, "ilclient_get_input_buffer failed");
-		return false;
-	}
-
-	if(omx_buf->nAllocLen < buf_size)
-	{
-		CHIAKI_LOGE(decoder->log, "Buffer from omx is too small for frame");
-		return false;
-	}
-
-	omx_buf->nFilledLen = 0;
-	omx_buf->nOffset = 0;
-	omx_buf->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
-	if(decoder->first_packet)
-	{
-		omx_buf->nFlags |= OMX_BUFFERFLAG_STARTTIME;
-		decoder->first_packet = false;
-	}
-
-	memcpy(omx_buf->pBuffer + omx_buf->nFilledLen, buf, buf_size);
-	omx_buf->nFilledLen += buf_size;
-
-	if(!decoder->port_settings_changed
-		&& ((omx_buf->nFilledLen > 0 && ilclient_remove_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)
-			|| (omx_buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
-	{
-		decoder->port_settings_changed = true;
-
-		if(ilclient_setup_tunnel(decoder->tunnel, 0, 0) != 0)
+		OMX_BUFFERHEADERTYPE *omx_buf = ilclient_get_input_buffer(decoder->video_decode, 130, 1);
+		if(!omx_buf)
 		{
-			CHIAKI_LOGE(decoder->log, "ilclient_setup_tunnel failed");
+			CHIAKI_LOGE(decoder->log, "ilclient_get_input_buffer failed");
 			return false;
 		}
 
-		ilclient_change_component_state(decoder->video_render, OMX_StateExecuting);
-	}
+		size_t push_size = buf_size;
+		if(push_size > omx_buf->nAllocLen)
+		{
+			CHIAKI_LOGW(decoder->log, "OMX Buffer too small, fragmenting to multiple buffers.");
+			push_size = omx_buf->nAllocLen;
+		}
+		memcpy(omx_buf->pBuffer, buf, push_size);
+		buf_size -= push_size;
+		buf += push_size;
+		omx_buf->nFilledLen = push_size;
+		omx_buf->nOffset = 0;
+		omx_buf->nFlags = 0;
+		if(!buf_size)
+			omx_buf->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+		if(decoder->first_packet)
+		{
+			omx_buf->nFlags |= OMX_BUFFERFLAG_STARTTIME;
+			decoder->first_packet = false;
+		}
 
-	if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->video_decode), omx_buf) != OMX_ErrorNone)
-	{
-		CHIAKI_LOGE(decoder->log, "OMX_EmptyThisBuffer failed");
-		return false;
+		if(!decoder->port_settings_changed
+			&& ((omx_buf->nFilledLen > 0 && ilclient_remove_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)
+				|| (omx_buf->nFilledLen == 0 && ilclient_wait_for_event(decoder->video_decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1, ILCLIENT_EVENT_ERROR | ILCLIENT_PARAMETER_CHANGED, 10000) == 0)))
+		{
+			decoder->port_settings_changed = true;
+
+			if(ilclient_setup_tunnel(decoder->tunnel, 0, 0) != 0)
+			{
+				CHIAKI_LOGE(decoder->log, "ilclient_setup_tunnel failed");
+				return false;
+			}
+
+			ilclient_change_component_state(decoder->video_render, OMX_StateExecuting);
+		}
+
+		if(OMX_EmptyThisBuffer(ILC_GET_HANDLE(decoder->video_decode), omx_buf) != OMX_ErrorNone)
+		{
+			CHIAKI_LOGE(decoder->log, "OMX_EmptyThisBuffer failed");
+			return false;
+		}
 	}
 	return true;
 }
