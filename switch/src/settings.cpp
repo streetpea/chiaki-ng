@@ -210,9 +210,8 @@ int Settings::WriteFile()
 
 			config_file << "[" << it->first << "]\n"
 						<< "host_addr = \"" << it->second.GetHostAddr() << "\"\n"
-						<< "target = " << it->second.GetChiakiTarget() << "\"\n";
+						<< "target = \"" << it->second.GetChiakiTarget() << "\"\n";
 
-			config_file << "target = \"" << it->second.psn_account_id << "\"\n";
 			if(it->second.video_resolution)
 				config_file << "video_resolution = \""
 							<< this->ResolutionPresetToString(this->GetVideoResolution(&it->second))
