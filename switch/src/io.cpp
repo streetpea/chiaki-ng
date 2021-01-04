@@ -291,6 +291,16 @@ void IO::AudioCB(int16_t *buf, size_t samples_count)
 		else
 			buf[x] = (int16_t)sample;
 	}
+
+	int audio_queued_size = SDL_GetQueuedAudioSize(this->sdl_audio_device_id);
+	if(audio_queued_size > 16000)
+	{
+		// clear audio queue to avoid big audio delay
+		// average values are close to 13000 bytes
+		CHIAKI_LOGW(this->log, "Triggering SDL_ClearQueuedAudio with queue size = %d", audio_queued_size);
+		SDL_ClearQueuedAudio(this->sdl_audio_device_id);
+	}
+
 	int success = SDL_QueueAudio(this->sdl_audio_device_id, buf, sizeof(int16_t) * samples_count * 2);
 	if(success != 0)
 		CHIAKI_LOGE(this->log, "SDL_QueueAudio failed: %s\n", SDL_GetError());
