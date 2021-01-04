@@ -251,7 +251,11 @@ QString Controller::GetName()
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return QString();
-	return SDL_GameControllerName(controller);
+	SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
+	SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
+	char guid_str[256];
+	SDL_JoystickGetGUIDString(guid, guid_str, sizeof(guid_str));
+	return QString("%1 (%2)").arg(SDL_JoystickName(js), guid_str);
 #else
 	return QString();
 #endif
