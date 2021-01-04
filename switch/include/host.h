@@ -90,7 +90,7 @@ class Host
 	public:
 		Host(std::string host_name);
 		~Host();
-		int Register(std::string pin);
+		int Register(int pin);
 		int Wakeup();
 		int InitSession(IO *);
 		int FiniSession();

@@ -345,42 +345,6 @@ bool IO::FreeVideo()
 	return ret;
 }
 
-bool IO::ReadUserKeyboard(char *buffer, size_t buffer_size)
-{
-#ifndef __SWITCH__
-	// use cin to get user input from linux
-	std::cin.getline(buffer, buffer_size);
-	CHIAKI_LOGI(this->log, "Got user input: %s\n", buffer);
-#else
-	// https://kvadevack.se/post/nintendo-switch-virtual-keyboard/
-	SwkbdConfig kbd;
-	Result rc = swkbdCreate(&kbd, 0);
-
-	if(R_SUCCEEDED(rc))
-	{
-		swkbdConfigMakePresetDefault(&kbd);
-		rc = swkbdShow(&kbd, buffer, buffer_size);
-
-		if(R_SUCCEEDED(rc))
-		{
-			CHIAKI_LOGI(this->log, "Got user input: %s\n", buffer);
-		}
-		else
-		{
-			CHIAKI_LOGE(this->log, "swkbdShow() error: %u\n", rc);
-			return false;
-		}
-		swkbdClose(&kbd);
-	}
-	else
-	{
-		CHIAKI_LOGE(this->log, "swkbdCreate() error: %u\n", rc);
-		return false;
-	}
-#endif
-	return true;
-}
-
 bool IO::ReadGameTouchScreen(ChiakiControllerState *state)
 {
 #ifdef __SWITCH__

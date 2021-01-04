@@ -97,42 +97,31 @@ void HostInterface::Register(Host *host, std::function<void()> success_cb)
 	host->SetRegistEventTypeFinishedFailed(event_type_finished_failed_cb);
 
 	// the host is not registered yet
-	brls::Dialog *peprpc = new brls::Dialog("Please enter your PlayStation registration PIN code");
-	brls::GenericEvent::Callback cb_peprpc = [host, io, peprpc](brls::View *view) {
-		bool pin_provided = false;
-		char pin_input[9] = { 0 };
-		std::string error_message;
-
-		// use callback to ensure that the message is showed on screen
-		// before the the ReadUserKeyboard
-		peprpc->close();
-
-		pin_provided = io->ReadUserKeyboard(pin_input, sizeof(pin_input));
-		if(pin_provided)
+	// use callback to ensure that the message is showed on screen
+	// before the Swkbd
+	auto pin_input_cb = [host](int pin) {
+		// prevent users form messing with the gui
+		brls::Application::blockInputs();
+		int ret = host->Register(pin);
+		if(ret != HOST_REGISTER_OK)
 		{
-			// prevent users form messing with the gui
-			brls::Application::blockInputs();
-			int ret = host->Register(pin_input);
-			if(ret != HOST_REGISTER_OK)
+			switch(ret)
 			{
-				switch(ret)
-				{
-					// account not configured
-					case HOST_REGISTER_ERROR_SETTING_PSNACCOUNTID:
-						brls::Application::notify("No PSN Account ID provided");
-						brls::Application::unblockInputs();
-						break;
-					case HOST_REGISTER_ERROR_SETTING_PSNONLINEID:
-						brls::Application::notify("No PSN Online ID provided");
-						brls::Application::unblockInputs();
-						break;
-				}
+				// account not configured
+				case HOST_REGISTER_ERROR_SETTING_PSNACCOUNTID:
+					brls::Application::notify("No PSN Account ID provided");
+					brls::Application::unblockInputs();
+					break;
+				case HOST_REGISTER_ERROR_SETTING_PSNONLINEID:
+					brls::Application::notify("No PSN Online ID provided");
+					brls::Application::unblockInputs();
+					break;
 			}
 		}
 	};
-	peprpc->addButton("Ok", cb_peprpc);
-	peprpc->setCancelable(false);
-	peprpc->open();
+	// the pin is 8 digit
+	bool success = brls::Swkbd::openForNumber(pin_input_cb,
+		"Please enter your PlayStation registration PIN code", "8 digits without spaces", 8, "", "", "");
 }
 
 void HostInterface::Register()
@@ -327,39 +316,36 @@ bool MainApplication::Load()
 bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 {
 	std::string psn_account_id_string = this->settings->GetPSNAccountID(host);
-	brls::ListItem *psn_account_id = new brls::ListItem("PSN Account ID", "PS5 or PS4 v7.0 and greater (base64 account_id)");
-	psn_account_id->setValue(psn_account_id_string.c_str());
+	brls::InputListItem *psn_account_id = new brls::InputListItem("PSN Account ID", psn_account_id_string,
+		"Account ID in base64 format", "PS5 or PS4 v7.0 and greater", CHIAKI_PSN_ACCOUNT_ID_SIZE * 2,
+		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_BACKSLASH);
+
 	auto psn_account_id_cb = [this, host, psn_account_id](brls::View *view) {
-		char account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE * 2] = { 0 };
-		bool input = this->io->ReadUserKeyboard(account_id, sizeof(account_id));
-		if(input)
-		{
-			// update gui
-			psn_account_id->setValue(account_id);
-			// push in setting
-			this->settings->SetPSNAccountID(host, account_id);
-			// write on disk
-			this->settings->WriteFile();
-		}
+		// retrieve, push and save setting
+		this->settings->SetPSNAccountID(host, psn_account_id->getValue());
+		// write on disk
+		this->settings->WriteFile();
 	};
 	psn_account_id->getClickEvent()->subscribe(psn_account_id_cb);
 	ls->addView(psn_account_id);
 
 	std::string psn_online_id_string = this->settings->GetPSNOnlineID(host);
-	brls::ListItem *psn_online_id = new brls::ListItem("PSN Online ID");
-	psn_online_id->setValue(psn_online_id_string.c_str());
+	brls::InputListItem *psn_online_id = new brls::InputListItem("PSN Online ID",
+		psn_online_id_string, "", "", 16,
+		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_FORWSLASH |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_BACKSLASH);
+
 	auto psn_online_id_cb = [this, host, psn_online_id](brls::View *view) {
-		char online_id[256] = { 0 };
-		bool input = this->io->ReadUserKeyboard(online_id, sizeof(online_id));
-		if(input)
-		{
-			// update gui
-			psn_online_id->setValue(online_id);
-			// push in setting
-			this->settings->SetPSNOnlineID(host, online_id);
-			// write on disk
-			this->settings->WriteFile();
-		}
+		// retrieve, push and save setting
+		this->settings->SetPSNOnlineID(host, psn_online_id->getValue());
+		// write on disk
+		this->settings->WriteFile();
 	};
 	psn_online_id->getClickEvent()->subscribe(psn_online_id_cb);
 	ls->addView(psn_online_id);
@@ -465,34 +451,24 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 	// brls::Label* add_host_label = new brls::Label(brls::LabelStyle::REGULAR,
 	// 	"Add Host configuration", true);
 
-	brls::ListItem *display_name = new brls::ListItem("Display name");
-	auto display_name_cb = [this, display_name](brls::View *view) {
-		char name[16] = { 0 };
-		bool input = this->io->ReadUserKeyboard(name, sizeof(name));
-		if(input)
-		{
-			// update gui
-			display_name->setValue(name);
-			// set internal value
-			this->remote_display_name = name;
-		}
-	};
-	display_name->getClickEvent()->subscribe(display_name_cb);
+	brls::InputListItem *display_name = new brls::InputListItem("Display name",
+		"default", "configuration name", "", 16,
+		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_FORWSLASH |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_BACKSLASH);
+
 	add_host->addView(display_name);
 
-	brls::ListItem *address = new brls::ListItem("Remote IP/name");
-	auto address_cb = [this, address](brls::View *view) {
-		char addr[256] = { 0 };
-		bool input = this->io->ReadUserKeyboard(addr, sizeof(addr));
-		if(input)
-		{
-			// update gui
-			address->setValue(addr);
-			// set internal value
-			this->remote_addr = addr;
-		}
-	};
-	address->getClickEvent()->subscribe(address_cb);
+	brls::InputListItem *address = new brls::InputListItem("Remote IP/name",
+		"", "IP address or fqdn", "", 255,
+		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_FORWSLASH |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_BACKSLASH);
+
 	add_host->addView(address);
 
 	// TODO
@@ -501,46 +477,48 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 	// brls::ListItem* port = new brls::ListItem("Remote Senkusha port",  "udp 9297");
 	brls::SelectListItem *ps_version = new brls::SelectListItem("PlayStation Version",
 		{ "PS5", "PS4 > 8", "7 < PS4 < 8", "PS4 < 7" });
-	auto ps_version_cb = [this, ps_version](int result) {
-		switch(result)
-		{
-			case 0:
-				// ps5 v1
-				this->remote_ps_version = CHIAKI_TARGET_PS5_1;
-				break;
-			case 1:
-				// ps4 v8
-				this->remote_ps_version = CHIAKI_TARGET_PS4_10;
-				break;
-			case 2:
-				// ps4 v7
-				this->remote_ps_version = CHIAKI_TARGET_PS4_9;
-				break;
-			case 3:
-				// ps4 v6
-				this->remote_ps_version = CHIAKI_TARGET_PS4_8;
-				break;
-		}
-	};
-	ps_version->getValueSelectedEvent()->subscribe(ps_version_cb);
 	add_host->addView(ps_version);
 
 	brls::ListItem *register_host = new brls::ListItem("Register");
-	auto register_host_cb = [this](brls::View *view) {
+	auto register_host_cb = [this, display_name, address, ps_version](brls::View *view) {
 		bool err = false;
-		if(this->remote_display_name.length() <= 0)
+		std::string dn = display_name->getValue();
+		std::string addr = address->getValue();
+		ChiakiTarget version = CHIAKI_TARGET_PS4_UNKNOWN;
+
+		switch(ps_version->getSelectedValue())
+		{
+			case 0:
+				// ps5 v1
+				version = CHIAKI_TARGET_PS5_1;
+				break;
+			case 1:
+				// ps4 v8
+				version = CHIAKI_TARGET_PS4_10;
+				break;
+			case 2:
+				// ps4 v7
+				version = CHIAKI_TARGET_PS4_9;
+				break;
+			case 3:
+				// ps4 v6
+				version = CHIAKI_TARGET_PS4_8;
+				break;
+		}
+
+		if(dn.length() <= 0)
 		{
 			brls::Application::notify("No Display name defined");
 			err = true;
 		}
 
-		if(this->remote_addr.length() <= 0)
+		if(addr.length() <= 0)
 		{
 			brls::Application::notify("No Remote address provided");
 			err = true;
 		}
 
-		if(this->remote_ps_version < 0)
+		if(version <= CHIAKI_TARGET_PS4_UNKNOWN)
 		{
 			brls::Application::notify("No PlayStation Version provided");
 			err = true;
@@ -549,10 +527,9 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 		if(err)
 			return;
 
-		Host *host = this->settings->GetOrCreateHost(&this->remote_display_name);
-		host->SetHostAddr(this->remote_addr);
-		host->SetChiakiTarget(this->remote_ps_version);
-
+		Host *host = this->settings->GetOrCreateHost(&dn);
+		host->SetHostAddr(addr);
+		host->SetChiakiTarget(version);
 		HostInterface::Register(host);
 	};
 	register_host->getClickEvent()->subscribe(register_host_cb);

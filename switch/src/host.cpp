@@ -72,7 +72,7 @@ int Host::Wakeup()
 	return ret;
 }
 
-int Host::Register(std::string pin)
+int Host::Register(int pin)
 {
 	// use pin and accont_id to negociate secrets for session
 	//
@@ -103,7 +103,7 @@ int Host::Register(std::string pin)
 		if(online_id.length() > 0)
 		{
 			regist_info.psn_online_id = this->psn_online_id.c_str();
-			// regist_info.psn_account_id = {0};
+			// regist_info.psn_account_id = '\0';
 		}
 		else
 		{
@@ -117,16 +117,15 @@ int Host::Register(std::string pin)
 		throw Exception("Undefined PS4 system version (please run discover first)");
 	}
 
-	this->regist_info.pin = atoi(pin.c_str());
 	this->regist_info.host = this->host_addr.c_str();
 	this->regist_info.broadcast = false;
 
 	if(this->target >= CHIAKI_TARGET_PS4_9)
-		CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN AccountID `%s` pin `%s`",
-			this->host_name.c_str(), this->host_addr.c_str(), account_id.c_str(), pin.c_str());
+		CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN AccountID `%s` pin `%d`",
+			this->host_name.c_str(), this->host_addr.c_str(), account_id.c_str(), pin);
 	else
-		CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN OnlineID `%s` pin `%s`",
-			this->host_name.c_str(), this->host_addr.c_str(), online_id.c_str(), pin.c_str());
+		CHIAKI_LOGI(this->log, "Registering to host `%s` `%s` with PSN OnlineID `%s` pin `%d`",
+			this->host_name.c_str(), this->host_addr.c_str(), online_id.c_str(), pin);
 
 	chiaki_regist_start(&this->regist, this->log, &this->regist_info, RegistEventCB, this);
 	return HOST_REGISTER_OK;

@@ -102,7 +102,6 @@ class IO
 		bool FreeVideo();
 		bool InitJoystick();
 		bool FreeJoystick();
-		bool ReadUserKeyboard(char *buffer, size_t buffer_size);
 		bool MainLoop(ChiakiControllerState *state);
 };
 
