@@ -38,7 +38,7 @@ CHIAKI_EXPORT void chiaki_feedback_state_format_v9(uint8_t *buf, ChiakiFeedbackS
 CHIAKI_EXPORT void chiaki_feedback_state_format_v12(uint8_t *buf, ChiakiFeedbackState *state)
 {
 	chiaki_feedback_state_format_v9(buf, state);
-	buf[0x10] = 0x0;
+	buf[0x19] = 0x0;
 	buf[0x1a] = 0x0;
 	buf[0x1b] = 0x1; // 1 for Shock, 0 for Sense
 }
