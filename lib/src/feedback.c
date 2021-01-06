@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
+#define _USE_MATH_DEFINES
+
 #include <chiaki/feedback.h>
 #include <chiaki/controller.h>
 
