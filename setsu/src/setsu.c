@@ -309,7 +309,11 @@ SetsuDevice *setsu_connect(Setsu *setsu, const char *path, SetsuDeviceType type)
 
 	dev->fd = open(dev->path, O_RDONLY | O_NONBLOCK);
 	if(dev->fd == -1)
+	{
+		SETSU_LOG("Failed to open %s\n", dev->path);
+		perror("setsu_connect");
 		goto error;
+	}
 
 	if(libevdev_new_from_fd(dev->fd, &dev->evdev) < 0)
 	{
