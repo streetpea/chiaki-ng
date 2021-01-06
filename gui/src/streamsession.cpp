@@ -409,7 +409,7 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 	switch(event->type)
 	{
 		case SETSU_EVENT_DEVICE_ADDED:
-			setsu_connect(setsu, event->path);
+			setsu_connect(setsu, event->path, event->dev_type);
 			break;
 		case SETSU_EVENT_DEVICE_REMOVED:
 			for(auto it=setsu_ids.begin(); it!=setsu_ids.end();)

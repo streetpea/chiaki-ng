@@ -68,11 +68,15 @@ void event(SetsuEvent *event, void *user)
 	switch(event->type)
 	{
 		case SETSU_EVENT_DEVICE_ADDED: {
-			SetsuDevice *dev = setsu_connect(setsu, event->path);
+			if(event->dev_type != SETSU_DEVICE_TYPE_TOUCHPAD)
+				break;
+			SetsuDevice *dev = setsu_connect(setsu, event->path, SETSU_DEVICE_TYPE_TOUCHPAD);
 			LOG("Device added: %s, connect %s\n", event->path, dev ? "succeeded" : "FAILED!");
 			break;
 		}
 		case SETSU_EVENT_DEVICE_REMOVED:
+			if(event->dev_type != SETSU_DEVICE_TYPE_TOUCHPAD)
+				break;
 			LOG("Device removed: %s\n", event->path);
 			break;
 		case SETSU_EVENT_TOUCH_DOWN:

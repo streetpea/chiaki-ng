@@ -14,12 +14,17 @@ typedef struct setsu_device_t SetsuDevice;
 typedef int SetsuTrackingId;
 
 typedef enum {
+	SETSU_DEVICE_TYPE_TOUCHPAD,
+	SETSU_DEVICE_TYPE_MOTION
+} SetsuDeviceType;
+
+typedef enum {
 	/* New device available to connect.
-	 * Event will have path set to the new device. */
+	 * Event will have path and type set to the new device. */
 	SETSU_EVENT_DEVICE_ADDED,
 
 	/* Previously available device removed.
-	 * Event will have path set to the new device.
+	 * Event will have path and type set to the removed device.
 	 * Any SetsuDevice connected to this path will automatically
 	 * be disconnected and their pointers will be invalid immediately
 	 * after the callback for this event returns. */
@@ -53,7 +58,11 @@ typedef struct setsu_event_t
 	SetsuEventType type;
 	union
 	{
-		const char *path;
+		struct
+		{
+			const char *path;
+			SetsuDeviceType dev_type;
+		};
 		struct
 		{
 			SetsuDevice *dev;
@@ -75,11 +84,11 @@ typedef void (*SetsuEventCb)(SetsuEvent *event, void *user);
 Setsu *setsu_new();
 void setsu_free(Setsu *setsu);
 void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user);
-SetsuDevice *setsu_connect(Setsu *setsu, const char *path);
+SetsuDevice *setsu_connect(Setsu *setsu, const char *path, SetsuDeviceType type);
 void setsu_disconnect(Setsu *setsu, SetsuDevice *dev);
 const char *setsu_device_get_path(SetsuDevice *dev);
-uint32_t setsu_device_get_width(SetsuDevice *dev);
-uint32_t setsu_device_get_height(SetsuDevice *dev);
+uint32_t setsu_device_touchpad_get_width(SetsuDevice *dev);
+uint32_t setsu_device_touchpad_get_height(SetsuDevice *dev);
 
 #ifdef __cplusplus
 }
