@@ -122,6 +122,8 @@ void event(SetsuEvent *event, void *user)
 			LOG("Button for %s: %llu %s\n", setsu_device_get_path(event->dev),
 					(unsigned long long)event->button, event->type == SETSU_EVENT_BUTTON_DOWN ? "down" : "up");
 			break;
+		default:
+			break;
 	}
 }
 

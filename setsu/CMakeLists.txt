@@ -20,5 +20,7 @@ target_link_libraries(setsu Udev::libudev Evdev::libevdev)
 if(SETSU_BUILD_DEMOS)
 	add_executable(setsu-demo-touchpad demo/touchpad.c)
 	target_link_libraries(setsu-demo-touchpad setsu)
+	add_executable(setsu-demo-motion demo/motion.c)
+	target_link_libraries(setsu-demo-motion setsu)
 endif()
 

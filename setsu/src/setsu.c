@@ -178,13 +178,18 @@ static bool is_device_interesting(struct udev_device *dev, SetsuDeviceType *type
 	const char *accel_str = udev_device_get_property_value(dev, "ID_INPUT_ACCELEROMETER");
 	if(touchpad_str && !strcmp(touchpad_str, "1"))
 	{
-		// Filter mouse-device (/dev/input/mouse*) away and only keep the evdev (/dev/input/event*) one: 
+		// Filter mouse-device (/dev/input/mouse*) away and only keep the evdev (/dev/input/event*) one:
 		if(!udev_device_get_property_value(dev, "ID_INPUT_TOUCHPAD_INTEGRATION"))
 			return false;
 		*type = SETSU_DEVICE_TYPE_TOUCHPAD;
 	}
-	else if(touchpad_str && !strcmp(touchpad_str, "1"))
+	else if(accel_str && !strcmp(accel_str, "1"))
+	{
+		// Filter /dev/input/js* away and keep /dev/input/event*
+		if(!udev_device_get_property_value(dev, "ID_INPUT_WIDTH_MM"))
+			return false;
 		*type = SETSU_DEVICE_TYPE_MOTION;
+	}
 	else
 		return false;
 
@@ -435,6 +440,7 @@ void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user)
 			SetsuEvent event = { 0 };
 			event.type = SETSU_EVENT_DEVICE_ADDED;
 			event.path = adev->path;
+			event.dev_type = adev->type;
 			cb(&event, user);
 			adev->connect_dirty = false;
 		}
@@ -443,6 +449,7 @@ void setsu_poll(Setsu *setsu, SetsuEventCb cb, void *user)
 			SetsuEvent event = { 0 };
 			event.type = SETSU_EVENT_DEVICE_REMOVED;
 			event.path = adev->path;
+			event.dev_type = adev->type;
 			cb(&event, user);
 			// kill the device only after sending the event
 			SetsuAvailDevice *next = adev->next;
