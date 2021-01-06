@@ -44,7 +44,7 @@ void sigint(int s)
 
 #define BAR_LENGTH 100
 #define BAR_MAX 2.0f
-#define BAR_MAX_GYRO 180.0f
+#define BAR_MAX_GYRO M_PI
 
 void print_state()
 {
@@ -69,7 +69,7 @@ void print_state()
 			}
 			bool cov = ((vals.v[b] < 0.0f) == (cur < 0.0f)) && fabsf(vals.v[b]) > fabsf(cur);
 			float next = BAR_VAL(bi + 1);
-#define MARK_VAL (b > 2 ? 90.0f : 1.0f)
+#define MARK_VAL (b > 2 ? 0.5f * M_PI : 1.0f)
 			bool mark = cur < -MARK_VAL && next >= -MARK_VAL || prev < MARK_VAL && cur >= MARK_VAL;
 			buf[i++] = cov ? (mark ? '#' : '=') : (mark ? '.' : ' ');
 #undef BAR_VAL

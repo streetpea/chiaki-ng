@@ -80,7 +80,7 @@ typedef struct setsu_event_t
 				struct
 				{
 					float accel_x, accel_y, accel_z; // unit is 1G
-					float gyro_x, gyro_y, gyro_z; // unit is deg/sec
+					float gyro_x, gyro_y, gyro_z; // unit is rad/sec
 					uint32_t timestamp; // microseconds
 				} motion;
 			};

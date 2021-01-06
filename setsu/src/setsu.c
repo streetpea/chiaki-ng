@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <math.h>
 
 #include <stdio.h>
 
@@ -21,6 +22,8 @@
 #else
 #define SETSU_LOG(...) do {} while(0)
 #endif
+
+#define DEG2RAD (2.0f * M_PI / 360.0f)
 
 typedef struct setsu_avail_device_t
 {
@@ -686,9 +689,9 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 				event.motion.accel_x = (float)dev->motion.accel_x / (float)dev->motion.accel_res_x;
 				event.motion.accel_y = (float)dev->motion.accel_y / (float)dev->motion.accel_res_y;
 				event.motion.accel_z = (float)dev->motion.accel_z / (float)dev->motion.accel_res_z;
-				event.motion.gyro_x = (float)dev->motion.gyro_x / (float)dev->motion.gyro_res_x;
-				event.motion.gyro_y = (float)dev->motion.gyro_y / (float)dev->motion.gyro_res_y;
-				event.motion.gyro_z = (float)dev->motion.gyro_z / (float)dev->motion.gyro_res_z;
+				event.motion.gyro_x = DEG2RAD * (float)dev->motion.gyro_x / (float)dev->motion.gyro_res_x;
+				event.motion.gyro_y = DEG2RAD * (float)dev->motion.gyro_y / (float)dev->motion.gyro_res_y;
+				event.motion.gyro_z = DEG2RAD * (float)dev->motion.gyro_z / (float)dev->motion.gyro_res_z;
 				event.motion.timestamp = dev->motion.timestamp;
 				SEND_EVENT();
 				dev->motion.dirty = false;
