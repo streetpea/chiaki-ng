@@ -153,11 +153,20 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 
 #if CHIAKI_GUI_ENABLE_SETSU
+	setsu_motion_device = nullptr;
 	chiaki_controller_state_set_idle(&setsu_state);
+	orient_dirty = false;
+	chiaki_orientation_tracker_init(&orient_tracker);
 	setsu = setsu_new();
 	auto timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, [this]{
 		setsu_poll(setsu, SessionSetsuCb, this);
+		if(orient_dirty)
+		{
+			// TODO: put orient/gyro/acc into setsu_state
+			// and SendFeedbackState();
+			orient_dirty = false;
+		}
 	});
 	timer->start(SETSU_UPDATE_INTERVAL_MS);
 #endif
@@ -409,20 +418,56 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 	switch(event->type)
 	{
 		case SETSU_EVENT_DEVICE_ADDED:
-			setsu_connect(setsu, event->path, event->dev_type);
+			switch(event->dev_type)
+			{
+				case SETSU_DEVICE_TYPE_TOUCHPAD:
+					// connect all the touchpads!
+					if(setsu_connect(setsu, event->path, event->dev_type))
+						CHIAKI_LOGI(GetChiakiLog(), "Connected Setsu Touchpad Device %s", event->path);
+					else
+						CHIAKI_LOGE(GetChiakiLog(), "Failed to connect to Setsu Touchpad Device %s", event->path);
+					break;
+				case SETSU_DEVICE_TYPE_MOTION:
+					// connect only one motion since multiple make no sense
+					if(setsu_motion_device)
+					{
+						CHIAKI_LOGI(GetChiakiLog(), "Setsu Motion Device %s detected there is already one connected",
+								event->path);
+						break;
+					}
+					setsu_motion_device = setsu_connect(setsu, event->path, event->dev_type);
+					if(setsu_motion_device)
+						CHIAKI_LOGI(GetChiakiLog(), "Connected Setsu Motion Device %s", event->path);
+					else
+						CHIAKI_LOGE(GetChiakiLog(), "Failed to connect to Setsu Motion Device %s", event->path);
+					break;
+			}
 			break;
 		case SETSU_EVENT_DEVICE_REMOVED:
-			for(auto it=setsu_ids.begin(); it!=setsu_ids.end();)
+			switch(event->dev_type)
 			{
-				if(it.key().first == event->path)
-				{
-					chiaki_controller_state_stop_touch(&setsu_state, it.value());
-					setsu_ids.erase(it++);
-				}
-				else
-					it++;
+				case SETSU_DEVICE_TYPE_TOUCHPAD:
+					CHIAKI_LOGI(GetChiakiLog(), "Setsu Touchpad Device %s disconnected", event->path);
+					for(auto it=setsu_ids.begin(); it!=setsu_ids.end();)
+					{
+						if(it.key().first == event->path)
+						{
+							chiaki_controller_state_stop_touch(&setsu_state, it.value());
+							setsu_ids.erase(it++);
+						}
+						else
+							it++;
+					}
+					SendFeedbackState();
+					break;
+				case SETSU_DEVICE_TYPE_MOTION:
+					if(!setsu_motion_device || strcmp(setsu_device_get_path(setsu_motion_device), event->path))
+						break;
+					CHIAKI_LOGI(GetChiakiLog(), "Setsu Motion Device %s disconnected", event->path);
+					setsu_motion_device = nullptr;
+					SendFeedbackState();
+					break;
 			}
-			SendFeedbackState();
 			break;
 		case SETSU_EVENT_TOUCH_DOWN:
 			break;
@@ -459,6 +504,13 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 			break;
 		case SETSU_EVENT_BUTTON_UP:
 			setsu_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+			break;
+		case SETSU_EVENT_MOTION:
+			chiaki_orientation_tracker_update(&orient_tracker,
+					event->motion.gyro_x, event->motion.gyro_y, event->motion.gyro_z,
+					event->motion.accel_x, event->motion.accel_y, event->motion.accel_z,
+					event->motion.timestamp);
+			orient_dirty = true;
 			break;
 	}
 }

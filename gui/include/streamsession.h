@@ -13,6 +13,7 @@
 
 #if CHIAKI_GUI_ENABLE_SETSU
 #include <setsu.h>
+#include <chiaki/orientation.h>
 #endif
 
 #include "exception.h"
@@ -74,6 +75,9 @@ class StreamSession : public QObject
 		Setsu *setsu;
 		QMap<QPair<QString, SetsuTrackingId>, uint8_t> setsu_ids;
 		ChiakiControllerState setsu_state;
+		SetsuDevice *setsu_motion_device;
+		ChiakiOrientationTracker orient_tracker;
+		bool orient_dirty;
 #endif
 
 		ChiakiControllerState keyboard_state;
