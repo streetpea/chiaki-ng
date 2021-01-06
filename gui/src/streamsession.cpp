@@ -155,7 +155,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_motion_device = nullptr;
 	chiaki_controller_state_set_idle(&setsu_state);
-	orient_dirty = false;
+	orient_dirty = true;
 	chiaki_orientation_tracker_init(&orient_tracker);
 	setsu = setsu_new();
 	auto timer = new QTimer(this);
@@ -163,8 +163,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		setsu_poll(setsu, SessionSetsuCb, this);
 		if(orient_dirty)
 		{
-			// TODO: put orient/gyro/acc into setsu_state
-			// and SendFeedbackState();
+			chiaki_orientation_tracker_apply_to_controller_state(&orient_tracker, &setsu_state);
+			SendFeedbackState();
 			orient_dirty = false;
 		}
 	});
@@ -330,15 +330,16 @@ void StreamSession::SendFeedbackState()
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
 
+#if CHIAKI_GUI_ENABLE_SETSU
+	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
+	state = setsu_state;
+#endif
+
 	for(auto controller : controllers)
 	{
 		auto controller_state = controller->GetState();
 		chiaki_controller_state_or(&state, &state, &controller_state);
 	}
-
-#if CHIAKI_GUI_ENABLE_SETSU
-	chiaki_controller_state_or(&state, &state, &setsu_state);
-#endif
 
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_session_set_controller_state(&session, &state);
@@ -465,7 +466,8 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 						break;
 					CHIAKI_LOGI(GetChiakiLog(), "Setsu Motion Device %s disconnected", event->path);
 					setsu_motion_device = nullptr;
-					SendFeedbackState();
+					chiaki_orientation_tracker_init(&orient_tracker);
+					orient_dirty = true;
 					break;
 			}
 			break;

@@ -11,7 +11,8 @@ CHIAKI_EXPORT void chiaki_orientation_init(ChiakiOrientation *orient)
 #define BETA 0.1f		// 2 * proportional gain
 static float inv_sqrt(float x);
 
-CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient, float gx, float gy, float gz, float ax, float ay, float az, float time_step_sec)
+CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
+		float gx, float gy, float gz, float ax, float ay, float az, float time_step_sec)
 {
 	float q0 = orient->w, q1 = orient->x, q2 = orient->y, q3 = orient->z;
 	// Madgwick's IMU algorithm.
@@ -103,6 +104,10 @@ static float inv_sqrt(float x)
 
 CHIAKI_EXPORT void chiaki_orientation_tracker_init(ChiakiOrientationTracker *tracker)
 {
+	tracker->accel_x = 0.0f;
+	tracker->accel_y = 1.0f;
+	tracker->accel_z = 0.0f;
+	tracker->gyro_x = tracker->gyro_y = tracker->gyro_z = 0.0f;
 	chiaki_orientation_init(&tracker->orient);
 	tracker->timestamp = 0;
 	tracker->first_sample = true;
@@ -111,6 +116,12 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_init(ChiakiOrientationTracker *tra
 CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *tracker,
 		float gx, float gy, float gz, float ax, float ay, float az, uint32_t timestamp_us)
 {
+	tracker->gyro_x = gx;
+	tracker->gyro_y = gy;
+	tracker->gyro_z = gz;
+	tracker->accel_x = ax;
+	tracker->accel_y = ay;
+	tracker->accel_z = az;
 	if(tracker->first_sample)
 	{
 		tracker->first_sample = false;
@@ -123,4 +134,19 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *t
 	delta_us -= tracker->timestamp;
 	tracker->timestamp = timestamp_us;
 	chiaki_orientation_update(&tracker->orient, gx, gy, gz, ax, ay, az, (float)delta_us / 1000000.0f);
+}
+
+CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOrientationTracker *tracker,
+		ChiakiControllerState *state)
+{
+	state->gyro_x = tracker->gyro_x;
+	state->gyro_y = tracker->gyro_y;
+	state->gyro_z = tracker->gyro_z;
+	state->accel_x = tracker->accel_x;
+	state->accel_y = tracker->accel_y;
+	state->accel_z = tracker->accel_z;
+	state->orient_x = tracker->orient.x;
+	state->orient_y = tracker->orient.y;
+	state->orient_z = tracker->orient.z;
+	state->orient_w = tracker->orient.w;
 }

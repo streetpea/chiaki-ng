@@ -83,10 +83,24 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_sender_set_controller_state(Chiaki
 
 static bool controller_state_equals_for_feedback_state(ChiakiControllerState *a, ChiakiControllerState *b)
 {
-	return a->left_x == b->left_x
+	if(!(a->left_x == b->left_x
 		&& a->left_y == b->left_y
 		&& a->right_x == b->right_x
-		&& a->right_y == b->right_y;
+		&& a->right_y == b->right_y))
+		return false;
+#define CHECKF(n) if(a->n < b->n - 0.0000001f || a->n > b->n + 0.0000001f) return false
+	CHECKF(gyro_x);
+	CHECKF(gyro_y);
+	CHECKF(gyro_z);
+	CHECKF(accel_x);
+	CHECKF(accel_y);
+	CHECKF(accel_z);
+	CHECKF(orient_x);
+	CHECKF(orient_y);
+	CHECKF(orient_z);
+	CHECKF(orient_w);
+#undef CHECKF
+	return true;
 }
 
 static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
@@ -96,6 +110,16 @@ static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 	state.left_y = feedback_sender->controller_state.left_y;
 	state.right_x = feedback_sender->controller_state.right_x;
 	state.right_y = feedback_sender->controller_state.right_y;
+	state.gyro_x = feedback_sender->controller_state.gyro_x;
+	state.gyro_y = feedback_sender->controller_state.gyro_y;
+	state.gyro_z = feedback_sender->controller_state.gyro_z;
+	state.accel_x = feedback_sender->controller_state.accel_x;
+	state.accel_y = feedback_sender->controller_state.accel_y;
+	state.accel_z = feedback_sender->controller_state.accel_z;
+	state.orient_x = feedback_sender->controller_state.orient_x;
+	state.orient_y = feedback_sender->controller_state.orient_y;
+	state.orient_z = feedback_sender->controller_state.orient_z;
+	state.orient_w = feedback_sender->controller_state.orient_w;
 	ChiakiErrorCode err = chiaki_takion_send_feedback_state(feedback_sender->takion, feedback_sender->state_seq_num++, &state);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(feedback_sender->log, "FeedbackSender failed to send Feedback State");

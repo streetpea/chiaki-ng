@@ -9,26 +9,65 @@
 #include <arpa/inet.h>
 #endif
 #include <string.h>
+#include <math.h>
+
+#define GYRO_MIN -30.0f
+#define GYRO_MAX 30.0f
+#define ACCEL_MIN -5.0f
+#define ACCEL_MAX 5.0f
+
+static uint32_t compress_quat(float *q)
+{
+	// very similar idea as https://github.com/jpreiss/quatcompress
+	size_t largest_i = 0;
+	for(size_t i = 1; i < 4; i++)
+	{
+		if(fabs(q[i]) > fabs(q[largest_i]))
+			largest_i = i;
+	}
+	uint32_t r = (q[largest_i] < 0.0 ? 1 : 0) | (largest_i << 1);
+	for(size_t i = 0; i < 3; i++)
+	{
+		size_t qi = i < largest_i ? i : i + 1;
+		float v = q[qi];
+		if(v < -M_SQRT1_2)
+			v = -M_SQRT1_2;
+		if(v > M_SQRT1_2)
+			v = M_SQRT1_2;
+		v += M_SQRT1_2;
+		v *= (float)0x1ff / (2.0f * M_SQRT1_2);
+		r |= (uint32_t)v << (3 + i * 9);
+	}
+	return r;
+}
 
 CHIAKI_EXPORT void chiaki_feedback_state_format_v9(uint8_t *buf, ChiakiFeedbackState *state)
 {
-	buf[0x0] = 0xa0; // TODO
-	buf[0x1] = 0xff; // TODO
-	buf[0x2] = 0x7f; // TODO
-	buf[0x3] = 0xff; // TODO
-	buf[0x4] = 0x7f; // TODO
-	buf[0x5] = 0xff; // TODO
-	buf[0x6] = 0x7f; // TODO
-	buf[0x7] = 0xff; // TODO
-	buf[0x8] = 0x7f; // TODO
-	buf[0x9] = 0x99; // TODO
-	buf[0xa] = 0x99; // TODO
-	buf[0xb] = 0xff; // TODO
-	buf[0xc] = 0x7f; // TODO
-	buf[0xd] = 0xfe; // TODO
-	buf[0xe] = 0xf7; // TODO
-	buf[0xf] = 0xef; // TODO
-	buf[0x10] = 0x1f; // TODO
+	buf[0x0] = 0xa0;
+	uint16_t v = (uint16_t)(0xffff * ((float)state->gyro_x - GYRO_MIN) / (GYRO_MAX - GYRO_MIN));
+	buf[0x1] = v;
+	buf[0x2] = v >> 8;
+	v = (uint16_t)(0xffff * ((float)state->gyro_y - GYRO_MIN) / (GYRO_MAX - GYRO_MIN));
+	buf[0x3] = v;
+	buf[0x4] = v >> 8;
+	v = (uint16_t)(0xffff * ((float)state->gyro_z - GYRO_MIN) / (GYRO_MAX - GYRO_MIN));
+	buf[0x5] = v;
+	buf[0x6] = v >> 8;
+	v = (uint16_t)(0xffff * ((float)state->accel_x - ACCEL_MIN) / (ACCEL_MAX - ACCEL_MIN));
+	buf[0x7] = v;
+	buf[0x8] = v >> 8;
+	v = (uint16_t)(0xffff * ((float)state->accel_y - ACCEL_MIN) / (ACCEL_MAX - ACCEL_MIN));
+	buf[0x9] = v;
+	buf[0xa] = v >> 8;
+	v = (uint16_t)(0xffff * ((float)state->accel_z - ACCEL_MIN) / (ACCEL_MAX - ACCEL_MIN));
+	buf[0xb] = v;
+	buf[0xc] = v >> 8;
+	float q[4] = { state->orient_x, state->orient_y, state->orient_z, state->orient_w };
+	uint32_t qc = compress_quat(q);
+	buf[0xd] = qc;
+	buf[0xe] = qc >> 0x8;
+	buf[0xf] = qc >> 0x10;
+	buf[0x10] = qc >> 0x18;
 	*((chiaki_unaligned_uint16_t *)(buf + 0x11)) = htons((uint16_t)state->left_x);
 	*((chiaki_unaligned_uint16_t *)(buf + 0x13)) = htons((uint16_t)state->left_y);
 	*((chiaki_unaligned_uint16_t *)(buf + 0x15)) = htons((uint16_t)state->right_x);

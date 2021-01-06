@@ -66,6 +66,10 @@ typedef struct chiaki_controller_state_t
 
 	uint8_t touch_id_next;
 	ChiakiControllerTouch touches[CHIAKI_CONTROLLER_TOUCHES_MAX];
+
+	float gyro_x, gyro_y, gyro_z;
+	float accel_x, accel_y, accel_z;
+	float orient_x, orient_y, orient_z, orient_w;
 } ChiakiControllerState;
 
 CHIAKI_EXPORT void chiaki_controller_state_set_idle(ChiakiControllerState *state);
@@ -79,27 +83,12 @@ CHIAKI_EXPORT void chiaki_controller_state_stop_touch(ChiakiControllerState *sta
 
 CHIAKI_EXPORT void chiaki_controller_state_set_touch_pos(ChiakiControllerState *state, uint8_t id, uint16_t x, uint16_t y);
 
-static inline bool chiaki_controller_state_equals(ChiakiControllerState *a, ChiakiControllerState *b)
-{
-	if(!(a->buttons == b->buttons
-		&& a->l2_state == b->l2_state
-		&& a->r2_state == b->r2_state
-		&& a->left_x == b->left_x
-		&& a->left_y == b->left_y
-		&& a->right_x == b->right_x
-		&& a->right_y == b->right_y))
-		return false;
+CHIAKI_EXPORT bool chiaki_controller_state_equals(ChiakiControllerState *a, ChiakiControllerState *b);
 
-	for(size_t i=0; i<CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
-	{
-		if(a->touches[i].id != b->touches[i].id)
-			return false;
-		if(a->touches[i].id >= 0 && (a->touches[i].x != b->touches[i].x || a->touches[i].y != b->touches[i].y))
-			return false;
-	}
-	return true;
-}
-
+/**
+ * Union of two controller states.
+ * Ignores gyro, accel and orient because it makes no sense there.
+ */
 CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, ChiakiControllerState *a, ChiakiControllerState *b);
 
 #ifdef __cplusplus

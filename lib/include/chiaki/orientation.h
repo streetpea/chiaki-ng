@@ -4,6 +4,7 @@
 #define CHIAKI_ORIENTATION_H
 
 #include "common.h"
+#include "controller.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,13 +21,16 @@ typedef struct chiaki_orientation_t
 } ChiakiOrientation;
 
 CHIAKI_EXPORT void chiaki_orientation_init(ChiakiOrientation *orient);
-CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient, float gx, float gy, float gz, float ax, float ay, float az, float time_step_sec);
+CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
+		float gx, float gy, float gz, float ax, float ay, float az, float time_step_sec);
 
 /**
- * Extension of ChiakiOrientation, also tracking an absolute timestamp
+ * Extension of ChiakiOrientation, also tracking an absolute timestamp and the current gyro/accel state
  */
 typedef struct chiaki_orientation_tracker_t
 {
+	float gyro_x, gyro_y, gyro_z;
+	float accel_x, accel_y, accel_z;
 	ChiakiOrientation orient;
 	uint32_t timestamp;
 	bool first_sample;
@@ -35,6 +39,8 @@ typedef struct chiaki_orientation_tracker_t
 CHIAKI_EXPORT void chiaki_orientation_tracker_init(ChiakiOrientationTracker *tracker);
 CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *tracker,
 		float gx, float gy, float gz, float ax, float ay, float az, uint32_t timestamp_us);
+CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOrientationTracker *tracker,
+		ChiakiControllerState *state);
 
 #ifdef __cplusplus
 }

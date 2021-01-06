@@ -15,6 +15,9 @@ extern "C" {
 
 typedef struct chiaki_feedback_state_t
 {
+	float gyro_x, gyro_y, gyro_z;
+	float accel_x, accel_y, accel_z;
+	float orient_x, orient_y, orient_z, orient_w;
 	int16_t left_x;
 	int16_t left_y;
 	int16_t right_x;
