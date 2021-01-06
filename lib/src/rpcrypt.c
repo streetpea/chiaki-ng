@@ -1698,7 +1698,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_aeropause(ChiakiTarget target, size
 CHIAKI_EXPORT void chiaki_rpcrypt_init_auth(ChiakiRPCrypt *rpcrypt, ChiakiTarget target, const uint8_t *nonce, const uint8_t *morning)
 {
 	rpcrypt->target = target;
-    chiaki_rpcrypt_bright_ambassador(target, rpcrypt->bright, rpcrypt->ambassador, nonce, morning);
+	chiaki_rpcrypt_bright_ambassador(target, rpcrypt->bright, rpcrypt->ambassador, nonce, morning);
 }
 
 CHIAKI_EXPORT void chiaki_rpcrypt_init_regist_ps4_pre10(ChiakiRPCrypt *rpcrypt, const uint8_t *ambassador, uint32_t pin)

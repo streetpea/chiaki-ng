@@ -609,7 +609,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 #ifdef _WIN32
 			CHIAKI_LOGE(session->log, "Failed to create socket to request session");
 #else
-            CHIAKI_LOGE(session->log, "Failed to create socket to request session: %s", strerror(errno));
+			CHIAKI_LOGE(session->log, "Failed to create socket to request session: %s", strerror(errno));
 #endif
 			free(sa);
 			continue;
