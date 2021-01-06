@@ -67,6 +67,12 @@ typedef struct setsu_device_t
 		} touchpad;
 		struct
 		{
+			int accel_res_x, accel_res_y, accel_res_z;
+			int gyro_res_x, gyro_res_y, gyro_res_z;
+			int accel_x, accel_y, accel_z;
+			int gyro_x, gyro_y, gyro_z;
+			uint32_t timestamp;
+			bool dirty;
 		} motion;
 	};
 } SetsuDevice;
@@ -341,7 +347,13 @@ SetsuDevice *setsu_connect(Setsu *setsu, const char *path, SetsuDeviceType type)
 			}
 			break;
 		case SETSU_DEVICE_TYPE_MOTION:
-			// TODO: init to defaults
+			dev->motion.accel_res_x = libevdev_get_abs_resolution(dev->evdev, ABS_X);
+			dev->motion.accel_res_y = libevdev_get_abs_resolution(dev->evdev, ABS_Y);
+			dev->motion.accel_res_z = libevdev_get_abs_resolution(dev->evdev, ABS_Z);
+			dev->motion.gyro_res_x = libevdev_get_abs_resolution(dev->evdev, ABS_RX);
+			dev->motion.gyro_res_y = libevdev_get_abs_resolution(dev->evdev, ABS_RY);
+			dev->motion.gyro_res_z = libevdev_get_abs_resolution(dev->evdev, ABS_RZ);
+			dev->motion.accel_y = dev->motion.accel_res_y; // 1G down
 			break;
 	}
 
@@ -573,7 +585,45 @@ static void device_event(Setsu *setsu, SetsuDevice *dev, struct input_event *ev,
 			}
 			break;
 		case SETSU_DEVICE_TYPE_MOTION:
-			// TODO: handle the events
+			switch(ev->type)
+			{
+				case EV_ABS:
+					switch(ev->code)
+					{
+						case ABS_X:
+							dev->motion.accel_x = ev->value;
+							dev->motion.dirty = true;
+							break;
+						case ABS_Y:
+							dev->motion.accel_y = ev->value;
+							dev->motion.dirty = true;
+							break;
+						case ABS_Z:
+							dev->motion.accel_z = ev->value;
+							dev->motion.dirty = true;
+							break;
+						case ABS_RX:
+							dev->motion.gyro_x = ev->value;
+							dev->motion.dirty = true;
+							break;
+						case ABS_RY:
+							dev->motion.gyro_y = ev->value;
+							dev->motion.dirty = true;
+							break;
+						case ABS_RZ:
+							dev->motion.gyro_z = ev->value;
+							dev->motion.dirty = true;
+							break;
+					}
+					break;
+				case EV_MSC:
+					if(ev->code == MSC_TIMESTAMP)
+					{
+						dev->motion.timestamp = ev->value;
+						dev->motion.dirty = true;
+					}
+					break;
+			}
 			break;
 	}
 }
@@ -591,23 +641,23 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 				if(dev->touchpad.slots[i].tracking_id_prev != -1)
 				{
 					BEGIN_EVENT(SETSU_EVENT_TOUCH_UP);
-					event.tracking_id = dev->touchpad.slots[i].tracking_id_prev;
+					event.touch.tracking_id = dev->touchpad.slots[i].tracking_id_prev;
 					SEND_EVENT();
 					dev->touchpad.slots[i].tracking_id_prev = -1;
 				}
 				if(dev->touchpad.slots[i].downed)
 				{
 					BEGIN_EVENT(SETSU_EVENT_TOUCH_DOWN);
-					event.tracking_id = dev->touchpad.slots[i].tracking_id;
+					event.touch.tracking_id = dev->touchpad.slots[i].tracking_id;
 					SEND_EVENT();
 					dev->touchpad.slots[i].downed = false;
 				}
 				if(dev->touchpad.slots[i].pos_dirty)
 				{
 					BEGIN_EVENT(SETSU_EVENT_TOUCH_POSITION);
-					event.tracking_id = dev->touchpad.slots[i].tracking_id;
-					event.x = (uint32_t)(dev->touchpad.slots[i].x - dev->touchpad.min_x);
-					event.y = (uint32_t)(dev->touchpad.slots[i].y - dev->touchpad.min_y);
+					event.touch.tracking_id = dev->touchpad.slots[i].tracking_id;
+					event.touch.x = (uint32_t)(dev->touchpad.slots[i].x - dev->touchpad.min_x);
+					event.touch.y = (uint32_t)(dev->touchpad.slots[i].y - dev->touchpad.min_y);
 					SEND_EVENT();
 					dev->touchpad.slots[i].pos_dirty = false;
 				}
@@ -630,7 +680,19 @@ static void device_drain(Setsu *setsu, SetsuDevice *dev, SetsuEventCb cb, void *
 			dev->touchpad.buttons_prev = dev->touchpad.buttons_cur;
 			break;
 		case SETSU_DEVICE_TYPE_MOTION:
-			// TODO
+			if(dev->motion.dirty)
+			{
+				BEGIN_EVENT(SETSU_EVENT_MOTION);
+				event.motion.accel_x = (float)dev->motion.accel_x / (float)dev->motion.accel_res_x;
+				event.motion.accel_y = (float)dev->motion.accel_y / (float)dev->motion.accel_res_y;
+				event.motion.accel_z = (float)dev->motion.accel_z / (float)dev->motion.accel_res_z;
+				event.motion.gyro_x = (float)dev->motion.gyro_x / (float)dev->motion.gyro_res_x;
+				event.motion.gyro_y = (float)dev->motion.gyro_y / (float)dev->motion.gyro_res_y;
+				event.motion.gyro_z = (float)dev->motion.gyro_z / (float)dev->motion.gyro_res_z;
+				event.motion.timestamp = dev->motion.timestamp;
+				SEND_EVENT();
+				dev->motion.dirty = false;
+			}
 			break;
 	}
 #undef BEGIN_EVENT

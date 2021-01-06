@@ -46,7 +46,10 @@ typedef enum {
 	SETSU_EVENT_BUTTON_DOWN,
 
 	/* Event will have dev and button set. */
-	SETSU_EVENT_BUTTON_UP
+	SETSU_EVENT_BUTTON_UP,
+
+	/* Event will have motion set. */
+	SETSU_EVENT_MOTION
 } SetsuEventType;
 
 #define SETSU_BUTTON_0 (1u << 0)
@@ -72,8 +75,14 @@ typedef struct setsu_event_t
 				{
 					SetsuTrackingId tracking_id;
 					uint32_t x, y;
-				};
+				} touch;
 				SetsuButton button;
+				struct
+				{
+					float accel_x, accel_y, accel_z; // unit is 1G
+					float gyro_x, gyro_y, gyro_z; // unit is deg/sec
+					uint32_t timestamp; // microseconds
+				} motion;
 			};
 		};
 	};
@@ -89,6 +98,7 @@ void setsu_disconnect(Setsu *setsu, SetsuDevice *dev);
 const char *setsu_device_get_path(SetsuDevice *dev);
 uint32_t setsu_device_touchpad_get_width(SetsuDevice *dev);
 uint32_t setsu_device_touchpad_get_height(SetsuDevice *dev);
+
 
 #ifdef __cplusplus
 }

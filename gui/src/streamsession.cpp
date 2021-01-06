@@ -429,7 +429,7 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 		case SETSU_EVENT_TOUCH_UP:
 			for(auto it=setsu_ids.begin(); it!=setsu_ids.end(); it++)
 			{
-				if(it.key().first == setsu_device_get_path(event->dev) && it.key().second == event->tracking_id)
+				if(it.key().first == setsu_device_get_path(event->dev) && it.key().second == event->touch.tracking_id)
 				{
 					chiaki_controller_state_stop_touch(&setsu_state, it.value());
 					setsu_ids.erase(it);
@@ -439,18 +439,18 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 			SendFeedbackState();
 			break;
 		case SETSU_EVENT_TOUCH_POSITION: {
-			QPair<QString, SetsuTrackingId> k =  { setsu_device_get_path(event->dev), event->tracking_id };
+			QPair<QString, SetsuTrackingId> k =  { setsu_device_get_path(event->dev), event->touch.tracking_id };
 			auto it = setsu_ids.find(k);
 			if(it == setsu_ids.end())
 			{
-				int8_t cid = chiaki_controller_state_start_touch(&setsu_state, event->x, event->y);
+				int8_t cid = chiaki_controller_state_start_touch(&setsu_state, event->touch.x, event->touch.y);
 				if(cid >= 0)
 					setsu_ids[k] = (uint8_t)cid;
 				else
 					break;
 			}
 			else
-				chiaki_controller_state_set_touch_pos(&setsu_state, it.value(), event->x, event->y);
+				chiaki_controller_state_set_touch_pos(&setsu_state, it.value(), event->touch.x, event->touch.y);
 			SendFeedbackState();
 			break;
 		}
