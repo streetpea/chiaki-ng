@@ -1,18 +1,30 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <chiaki/orientation.h>
+#include <math.h>
+
+#define SIN_1_4_PI      0.7071067811865475
+#define SIN_NEG_1_4_PI -0.7071067811865475
+#define COS_1_4_PI      0.7071067811865476
+#define COS_NEG_1_4_PI  0.7071067811865476
+
+#define WARMUP_SAMPLES_COUNT 30
+#define BETA_WARMUP 20.0f
+#define BETA_DEFAULT 0.05f
 
 CHIAKI_EXPORT void chiaki_orientation_init(ChiakiOrientation *orient)
 {
-	orient->x = orient->y = orient->z = 0.0f;
-	orient->w = 1.0f;
+	// 90 deg rotation around x for Madgwick
+	orient->x = SIN_1_4_PI;
+	orient->y = 0.0f;
+	orient->z = 0.0f;
+	orient->w = COS_1_4_PI;
 }
 
-#define BETA 0.1f		// 2 * proportional gain
 static float inv_sqrt(float x);
 
 CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
-		float gx, float gy, float gz, float ax, float ay, float az, float time_step_sec)
+		float gx, float gy, float gz, float ax, float ay, float az, float beta, float time_step_sec)
 {
 	float q0 = orient->w, q1 = orient->x, q2 = orient->y, q3 = orient->z;
 	// Madgwick's IMU algorithm.
@@ -57,17 +69,22 @@ CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
 		s1 = _4q1 * q3q3 - _2q3 * ax + 4.0f * q0q0 * q1 - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az;
 		s2 = 4.0f * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
 		s3 = 4.0f * q1q1 * q3 - _2q1 * ax + 4.0f * q2q2 * q3 - _2q2 * ay;
-		recip_norm = inv_sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
-		s0 *= recip_norm;
-		s1 *= recip_norm;
-		s2 *= recip_norm;
-		s3 *= recip_norm;
+		recip_norm = s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3; // normalise step magnitude
+		// avoid NaN when the orientation is already perfect or inverse to perfect
+		if(recip_norm > 0.000001f)
+		{
+			recip_norm = inv_sqrt(recip_norm);
+			s0 *= recip_norm;
+			s1 *= recip_norm;
+			s2 *= recip_norm;
+			s3 *= recip_norm;
 
-		// Apply feedback step
-		q_dot1 -= BETA * s0;
-		q_dot2 -= BETA * s1;
-		q_dot3 -= BETA * s2;
-		q_dot4 -= BETA * s3;
+			// Apply feedback step
+			q_dot1 -= beta * s0;
+			q_dot2 -= beta * s1;
+			q_dot3 -= beta * s2;
+			q_dot4 -= beta * s3;
+		}
 	}
 
 	// Integrate rate of change of quaternion to yield quaternion
@@ -91,6 +108,9 @@ CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
 
 static float inv_sqrt(float x)
 {
+#if 1
+	return 1.0f / sqrt(x);
+#else
 	// Fast inverse square-root
 	// See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
 	float halfx = 0.5f * x;
@@ -100,6 +120,7 @@ static float inv_sqrt(float x)
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
 	return y;
+#endif
 }
 
 CHIAKI_EXPORT void chiaki_orientation_tracker_init(ChiakiOrientationTracker *tracker)
@@ -110,7 +131,7 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_init(ChiakiOrientationTracker *tra
 	tracker->gyro_x = tracker->gyro_y = tracker->gyro_z = 0.0f;
 	chiaki_orientation_init(&tracker->orient);
 	tracker->timestamp = 0;
-	tracker->first_sample = true;
+	tracker->sample_index = 0;
 }
 
 CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *tracker,
@@ -122,9 +143,9 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *t
 	tracker->accel_x = ax;
 	tracker->accel_y = ay;
 	tracker->accel_z = az;
-	if(tracker->first_sample)
+	tracker->sample_index++;
+	if(tracker->sample_index <= 1)
 	{
-		tracker->first_sample = false;
 		tracker->timestamp = timestamp_us;
 		return;
 	}
@@ -133,7 +154,9 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *t
 		delta_us += (1ULL << 32);
 	delta_us -= tracker->timestamp;
 	tracker->timestamp = timestamp_us;
-	chiaki_orientation_update(&tracker->orient, gx, gy, gz, ax, ay, az, (float)delta_us / 1000000.0f);
+	chiaki_orientation_update(&tracker->orient, gx, gy, gz, ax, ay, az,
+			tracker->sample_index < WARMUP_SAMPLES_COUNT ? BETA_WARMUP : BETA_DEFAULT,
+			(float)delta_us / 1000000.0f);
 }
 
 CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOrientationTracker *tracker,
@@ -145,8 +168,9 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOr
 	state->accel_x = tracker->accel_x;
 	state->accel_y = tracker->accel_y;
 	state->accel_z = tracker->accel_z;
-	state->orient_x = tracker->orient.x;
-	state->orient_y = tracker->orient.y;
-	state->orient_z = tracker->orient.z;
-	state->orient_w = tracker->orient.w;
+	// -90 deg rotation around x from Madgwick
+	state->orient_w = COS_NEG_1_4_PI * tracker->orient.w - SIN_NEG_1_4_PI * tracker->orient.x;
+	state->orient_x = COS_NEG_1_4_PI * tracker->orient.x + SIN_NEG_1_4_PI * tracker->orient.w;
+	state->orient_y = COS_NEG_1_4_PI * tracker->orient.y - SIN_NEG_1_4_PI * tracker->orient.z;
+	state->orient_z = COS_NEG_1_4_PI * tracker->orient.z + SIN_NEG_1_4_PI * tracker->orient.y;
 }

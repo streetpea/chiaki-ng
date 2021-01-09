@@ -116,10 +116,12 @@ static void feedback_sender_send_state(ChiakiFeedbackSender *feedback_sender)
 	state.accel_x = feedback_sender->controller_state.accel_x;
 	state.accel_y = feedback_sender->controller_state.accel_y;
 	state.accel_z = feedback_sender->controller_state.accel_z;
+
 	state.orient_x = feedback_sender->controller_state.orient_x;
 	state.orient_y = feedback_sender->controller_state.orient_y;
 	state.orient_z = feedback_sender->controller_state.orient_z;
 	state.orient_w = feedback_sender->controller_state.orient_w;
+
 	ChiakiErrorCode err = chiaki_takion_send_feedback_state(feedback_sender->takion, feedback_sender->state_seq_num++, &state);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(feedback_sender->log, "FeedbackSender failed to send Feedback State");
