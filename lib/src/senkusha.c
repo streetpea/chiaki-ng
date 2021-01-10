@@ -361,7 +361,7 @@ static ChiakiErrorCode senkusha_run_mtu_in_test(ChiakiSenkusha *senkusha, uint32
 			senkusha->state_failed = false;
 			senkusha->mtu_id = ++request_id;
 
-			tkproto_SenkushaMtuCommand mtu_cmd;
+			tkproto_SenkushaMtuCommand mtu_cmd = { 0 };
 			mtu_cmd.id = request_id;
 			mtu_cmd.mtu_req = cur;
 			mtu_cmd.num = 1;

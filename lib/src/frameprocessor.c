@@ -48,6 +48,8 @@ CHIAKI_EXPORT void chiaki_frame_processor_init(ChiakiFrameProcessor *frame_proce
 	frame_processor->buf_stride_per_unit = 0;
 	frame_processor->units_source_expected = 0;
 	frame_processor->units_fec_expected = 0;
+	frame_processor->units_source_received = 0;
+	frame_processor->units_fec_received = 0;
 	frame_processor->unit_slots = NULL;
 	frame_processor->unit_slots_size = 0;
 	frame_processor->flushed = true;

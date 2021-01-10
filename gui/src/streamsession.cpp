@@ -102,11 +102,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 	QByteArray host_str = connect_info.host.toUtf8();
 
-	ChiakiConnectInfo chiaki_connect_info;
+	ChiakiConnectInfo chiaki_connect_info = {};
 	chiaki_connect_info.ps5 = chiaki_target_is_ps5(connect_info.target);
 	chiaki_connect_info.host = host_str.constData();
 	chiaki_connect_info.video_profile = connect_info.video_profile;
 	chiaki_connect_info.video_profile_auto_downgrade = true;
+	chiaki_connect_info.enable_keyboard = false;
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)

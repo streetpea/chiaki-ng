@@ -17,6 +17,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 
 	video_receiver->frame_index_cur = -1;
 	video_receiver->frame_index_prev = -1;
+	video_receiver->frame_index_prev_complete = 0;
 
 	chiaki_frame_processor_init(&video_receiver->frame_processor, video_receiver->log);
 	video_receiver->packet_stats = packet_stats;
