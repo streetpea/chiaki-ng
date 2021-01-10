@@ -238,7 +238,7 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 		if(service->hosts_count == service->options.hosts_max)
 		{
 			CHIAKI_LOGE(service->log, "Discovery Service received new host, but no space available");
-			goto r2con;
+			goto rzcon;
 		}
 
 		CHIAKI_LOGI(service->log, "Discovery Service detected new host with id %s", host->host_id);
@@ -279,7 +279,7 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 	if(change)
 		discovery_service_report_state(service);
 
-r2con:
+rzcon:
 	chiaki_mutex_unlock(&service->state_mutex);
 }
 

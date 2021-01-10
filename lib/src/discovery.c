@@ -152,27 +152,48 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 		return CHIAKI_ERR_NETWORK;
 	}
 
-	memset(&discovery->local_addr, 0, sizeof(discovery->local_addr));
-	discovery->local_addr.sa_family = family;
-	if(family == AF_INET6)
+	// First try CHIAKI_DISCOVERY_PORT_LOCAL_MIN..<MAX, then 0 (random)
+	uint16_t port = CHIAKI_DISCOVERY_PORT_LOCAL_MIN;
+	int r;
+	while(true)
 	{
+		memset(&discovery->local_addr, 0, sizeof(discovery->local_addr));
+		discovery->local_addr.sa_family = family;
+		if(family == AF_INET6)
+		{
 #ifndef __SWITCH__
-		struct in6_addr anyaddr = IN6ADDR_ANY_INIT;
+			struct in6_addr anyaddr = IN6ADDR_ANY_INIT;
 #endif
-		struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&discovery->local_addr;
+			struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&discovery->local_addr;
 #ifndef __SWITCH__
-		addr->sin6_addr = anyaddr;
+			addr->sin6_addr = anyaddr;
 #endif
-		addr->sin6_port = htons(0);
-	}
-	else // AF_INET
-	{
-		struct sockaddr_in *addr = (struct sockaddr_in *)&discovery->local_addr;
-		addr->sin_addr.s_addr = htonl(INADDR_ANY);
-		addr->sin_port = htons(0);
+			addr->sin6_port = htons(port);
+		}
+		else // AF_INET
+		{
+			struct sockaddr_in *addr = (struct sockaddr_in *)&discovery->local_addr;
+			addr->sin_addr.s_addr = htonl(INADDR_ANY);
+			addr->sin_port = htons(port);
+		}
+
+		r = bind(discovery->socket, &discovery->local_addr, sizeof(discovery->local_addr));
+		if(r >= 0 || !port)
+			break;
+		if(port == CHIAKI_DISCOVERY_PORT_LOCAL_MAX)
+		{
+			port = 0;
+			CHIAKI_LOGI(discovery->log, "Discovery failed to bind port %u, trying random",
+					(unsigned int)port);
+		}
+		else
+		{
+			port++;
+			CHIAKI_LOGI(discovery->log, "Discovery failed to bind port %u, trying one higher",
+					(unsigned int)port);
+		}
 	}
 
-	int r = bind(discovery->socket, &discovery->local_addr, sizeof(discovery->local_addr));
 	if(r < 0)
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to bind");
