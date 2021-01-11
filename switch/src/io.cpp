@@ -345,43 +345,34 @@ bool IO::ReadGameTouchScreen(ChiakiControllerState *chiaki_state)
 	HidTouchScreenState sw_state = {0};
 
 	bool ret = false;
-	if(!hidGetTouchScreenStates(&sw_state, 1) || sw_state.count == 0)
-	{
-		// flush state
-		chiaki_state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
-		for(int i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
-		{
-			if(chiaki_state->touches[i].id != -1)
-			{
-				chiaki_state->touches[i].x = 0;
-				chiaki_state->touches[i].y = 0;
-				chiaki_state->touches[i].id = -1;
-				// the state changed
-				ret = true;
-			}
-		}
-		return ret;
-	}
-
+	hidGetTouchScreenStates(&sw_state, 1);
 	// scale switch screen to the PS trackpad
-	for(int i = 0; i < sw_state.count && i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	chiaki_state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
+	for(int i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
+		if((i + 1) <= sw_state.count)
+		{
+			uint16_t x = sw_state.touches[i].x * ((float)DS4_TRACKPAD_MAX_X / (float)SWITCH_TOUCHSCREEN_MAX_X);
+			uint16_t y = sw_state.touches[i].y * ((float)DS4_TRACKPAD_MAX_Y / (float)SWITCH_TOUCHSCREEN_MAX_Y);
 
-		// 1280×720 px (16:9)
-		// ps4 controller aspect ratio looks closer to 29:10
-		uint16_t x = sw_state.touches[i].x * (DS4_TRACKPAD_MAX_X / SWITCH_TOUCHSCREEN_MAX_X);
-		uint16_t y = sw_state.touches[i].y * (DS4_TRACKPAD_MAX_Y / SWITCH_TOUCHSCREEN_MAX_Y);
+			// use nintendo switch border's 5% to trigger the touchpad button
+			if(x <= (DS4_TRACKPAD_MAX_X * 0.05) || x >= (DS4_TRACKPAD_MAX_X * 0.95) || y <= (DS4_TRACKPAD_MAX_Y * 0.05) || y >= (DS4_TRACKPAD_MAX_Y * 0.95))
+				chiaki_state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
 
-		// use nintendo switch border's 5% to
-		if(x <= (SWITCH_TOUCHSCREEN_MAX_X * 0.05) || x >= (SWITCH_TOUCHSCREEN_MAX_X * 0.95) || y <= (SWITCH_TOUCHSCREEN_MAX_Y * 0.05) || y >= (SWITCH_TOUCHSCREEN_MAX_Y * 0.95))
-			chiaki_state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
+			chiaki_state->touches[i].x = x;
+			chiaki_state->touches[i].y = y;
+			chiaki_state->touches[i].id = i;
+		}
 		else
-			chiaki_state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
-
-		chiaki_state->touches[i].x = x;
-		chiaki_state->touches[i].y = y;
-		chiaki_state->touches[i].id = i;
-		// printf("[point_id=%d] x=%03d, y=%03d\n", i, x, y);
+		{
+			// flush touch state
+			chiaki_state->touches[i].x = 0;
+			chiaki_state->touches[i].y = 0;
+			chiaki_state->touches[i].id = -1;
+		}
+		// printf("switch id=%d x=%03d, y=%03d\nchiaki id=%d x=%03d, y=%03d\n",
+		// 	i, sw_state.touches[i].x, sw_state.touches[i].y,
+		// 	chiaki_state->touches[i].id, chiaki_state->touches[i].x, chiaki_state->touches[i].y);
 		ret = true;
 	}
 	return ret;
