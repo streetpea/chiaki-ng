@@ -150,6 +150,14 @@ class ChiakiLog(val levelMask: Int, val callback: (level: Int, text: String) -> 
 
 private fun maxAbs(a: Short, b: Short) = if(abs(a.toInt()) > abs(b.toInt())) a else b
 
+private val CONTROLLER_TOUCHES_MAX = 2 // must be the same as CHIAKI_CONTROLLER_TOUCHES_MAX
+
+data class ControllerTouch(
+	val x: UShort = 0U,
+	val y: UShort = 0U,
+	val id: Byte = -1 // -1 = up
+)
+
 data class ControllerState constructor(
 	var buttons: UInt = 0U,
 	var l2State: UByte = 0U,
@@ -157,25 +165,37 @@ data class ControllerState constructor(
 	var leftX: Short = 0,
 	var leftY: Short = 0,
 	var rightX: Short = 0,
-	var rightY: Short = 0
+	var rightY: Short = 0,
+	private var touchIdNext: UByte = 0U,
+	var touches: Array<ControllerTouch> = arrayOf(ControllerTouch(), ControllerTouch()),
+	var gyroX: Float = 0.0f,
+	var gyroY: Float = 0.0f,
+	var gyroZ: Float = 0.0f,
+	var accelX: Float = 0.0f,
+	var accelY: Float = 1.0f,
+	var accelZ: Float = 0.0f,
+	var orientX: Float = 0.0f,
+	var orientY: Float = 0.0f,
+	var orientZ: Float = 0.0f,
+	var orientW: Float = 1.0f
 ){
 	companion object
 	{
 		val BUTTON_CROSS 		= (1 shl 0).toUInt()
 		val BUTTON_MOON 		= (1 shl 1).toUInt()
-		val BUTTON_BOX 		= (1 shl 2).toUInt()
-		val BUTTON_PYRAMID 	= (1 shl 3).toUInt()
+		val BUTTON_BOX 			= (1 shl 2).toUInt()
+		val BUTTON_PYRAMID 		= (1 shl 3).toUInt()
 		val BUTTON_DPAD_LEFT 	= (1 shl 4).toUInt()
 		val BUTTON_DPAD_RIGHT	= (1 shl 5).toUInt()
-		val BUTTON_DPAD_UP 	= (1 shl 6).toUInt()
+		val BUTTON_DPAD_UP 		= (1 shl 6).toUInt()
 		val BUTTON_DPAD_DOWN 	= (1 shl 7).toUInt()
-		val BUTTON_L1 		= (1 shl 8).toUInt()
-		val BUTTON_R1 		= (1 shl 9).toUInt()
+		val BUTTON_L1 			= (1 shl 8).toUInt()
+		val BUTTON_R1 			= (1 shl 9).toUInt()
 		val BUTTON_L3			= (1 shl 10).toUInt()
 		val BUTTON_R3			= (1 shl 11).toUInt()
-		val BUTTON_OPTIONS 	= (1 shl 12).toUInt()
+		val BUTTON_OPTIONS		= (1 shl 12).toUInt()
 		val BUTTON_SHARE 		= (1 shl 13).toUInt()
-		val BUTTON_TOUCHPAD	= (1 shl 14).toUInt()
+		val BUTTON_TOUCHPAD		= (1 shl 14).toUInt()
 		val BUTTON_PS			= (1 shl 15).toUInt()
 	}
 
@@ -186,8 +206,73 @@ data class ControllerState constructor(
 		leftX = maxAbs(leftX, o.leftX),
 		leftY = maxAbs(leftY, o.leftY),
 		rightX = maxAbs(rightX, o.rightX),
-		rightY = maxAbs(rightY, o.rightY)
+		rightY = maxAbs(rightY, o.rightY),
+		touches = touches.zip(o.touches) { a, b -> if(a.id >= 0) a else b }.toTypedArray(),
+		gyroX = gyroX,
+		gyroY = gyroY,
+		gyroZ = gyroZ,
+		accelX = accelX,
+		accelY = accelY,
+		accelZ = accelZ,
+		orientX = orientX,
+		orientY = orientY,
+		orientZ = orientZ,
+		orientW = orientW
 	)
+
+	override fun equals(other: Any?): Boolean
+	{
+		if(this === other) return true
+		if(javaClass != other?.javaClass) return false
+
+		other as ControllerState
+
+		if(buttons != other.buttons) return false
+		if(l2State != other.l2State) return false
+		if(r2State != other.r2State) return false
+		if(leftX != other.leftX) return false
+		if(leftY != other.leftY) return false
+		if(rightX != other.rightX) return false
+		if(rightY != other.rightY) return false
+		if(touchIdNext != other.touchIdNext) return false
+		if(!touches.contentEquals(other.touches)) return false
+		if(gyroX != other.gyroX) return false
+		if(gyroY != other.gyroY) return false
+		if(gyroZ != other.gyroZ) return false
+		if(accelX != other.accelX) return false
+		if(accelY != other.accelY) return false
+		if(accelZ != other.accelZ) return false
+		if(orientX != other.orientX) return false
+		if(orientY != other.orientY) return false
+		if(orientZ != other.orientZ) return false
+		if(orientW != other.orientW) return false
+
+		return true
+	}
+
+	override fun hashCode(): Int
+	{
+		var result = buttons.hashCode()
+		result = 31 * result + l2State.hashCode()
+		result = 31 * result + r2State.hashCode()
+		result = 31 * result + leftX
+		result = 31 * result + leftY
+		result = 31 * result + rightX
+		result = 31 * result + rightY
+		result = 31 * result + touchIdNext.hashCode()
+		result = 31 * result + touches.contentHashCode()
+		result = 31 * result + gyroX.hashCode()
+		result = 31 * result + gyroY.hashCode()
+		result = 31 * result + gyroZ.hashCode()
+		result = 31 * result + accelX.hashCode()
+		result = 31 * result + accelY.hashCode()
+		result = 31 * result + accelZ.hashCode()
+		result = 31 * result + orientX.hashCode()
+		result = 31 * result + orientY.hashCode()
+		result = 31 * result + orientZ.hashCode()
+		result = 31 * result + orientW.hashCode()
+		return result
+	}
 }
 
 class QuitReason(val value: Int)

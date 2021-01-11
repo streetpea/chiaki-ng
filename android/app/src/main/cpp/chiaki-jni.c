@@ -140,6 +140,20 @@ typedef struct android_chiaki_session_t
 	jfieldID java_controller_state_left_y;
 	jfieldID java_controller_state_right_x;
 	jfieldID java_controller_state_right_y;
+	jfieldID java_controller_state_touches;
+	jfieldID java_controller_state_gyro_x;
+	jfieldID java_controller_state_gyro_y;
+	jfieldID java_controller_state_gyro_z;
+	jfieldID java_controller_state_accel_x;
+	jfieldID java_controller_state_accel_y;
+	jfieldID java_controller_state_accel_z;
+	jfieldID java_controller_state_orient_x;
+	jfieldID java_controller_state_orient_y;
+	jfieldID java_controller_state_orient_z;
+	jfieldID java_controller_state_orient_w;
+	jfieldID java_controller_touch_x;
+	jfieldID java_controller_touch_y;
+	jfieldID java_controller_touch_id;
 
 	AndroidChiakiVideoDecoder video_decoder;
 	AndroidChiakiAudioDecoder audio_decoder;
@@ -305,6 +319,22 @@ JNIEXPORT void JNICALL JNI_FCN(sessionCreate)(JNIEnv *env, jobject obj, jobject 
 	session->java_controller_state_left_y = E->GetFieldID(env, controller_state_class, "leftY", "S");
 	session->java_controller_state_right_x = E->GetFieldID(env, controller_state_class, "rightX", "S");
 	session->java_controller_state_right_y = E->GetFieldID(env, controller_state_class, "rightY", "S");
+	session->java_controller_state_touches = E->GetFieldID(env, controller_state_class, "touches", "[L"BASE_PACKAGE"/ControllerTouch;");
+	session->java_controller_state_gyro_x = E->GetFieldID(env, controller_state_class, "gyroX", "F");
+	session->java_controller_state_gyro_y = E->GetFieldID(env, controller_state_class, "gyroY", "F");
+	session->java_controller_state_gyro_z = E->GetFieldID(env, controller_state_class, "gyroZ", "F");
+	session->java_controller_state_accel_x = E->GetFieldID(env, controller_state_class, "accelX", "F");
+	session->java_controller_state_accel_y = E->GetFieldID(env, controller_state_class, "accelY", "F");
+	session->java_controller_state_accel_z = E->GetFieldID(env, controller_state_class, "accelZ", "F");
+	session->java_controller_state_orient_x = E->GetFieldID(env, controller_state_class, "orientX", "F");
+	session->java_controller_state_orient_y = E->GetFieldID(env, controller_state_class, "orientY", "F");
+	session->java_controller_state_orient_z = E->GetFieldID(env, controller_state_class, "orientZ", "F");
+	session->java_controller_state_orient_w = E->GetFieldID(env, controller_state_class, "orientW", "F");
+
+	jclass controller_touch_class = E->FindClass(env, BASE_PACKAGE"/ControllerTouch");
+	session->java_controller_touch_x = E->GetFieldID(env, controller_touch_class, "x", "S");
+	session->java_controller_touch_y = E->GetFieldID(env, controller_touch_class, "y", "S");
+	session->java_controller_touch_id = E->GetFieldID(env, controller_touch_class, "id", "B");
 
 	chiaki_session_set_event_cb(&session->session, android_chiaki_event_cb, session);
 	chiaki_session_set_video_sample_cb(&session->session, android_chiaki_video_decoder_video_sample, &session->video_decoder);
@@ -382,6 +412,34 @@ JNIEXPORT void JNICALL JNI_FCN(sessionSetControllerState)(JNIEnv *env, jobject o
 	controller_state.left_y = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_left_y);
 	controller_state.right_x = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_right_x);
 	controller_state.right_y = (int16_t)E->GetShortField(env, controller_state_java, session->java_controller_state_right_y);
+	jobjectArray touch_array = E->GetObjectField(env, controller_state_java, session->java_controller_state_touches);
+	size_t touch_array_len = (size_t)E->GetArrayLength(env, touch_array);
+	for(size_t i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	{
+		if(i < touch_array_len)
+		{
+			jobject touch = E->GetObjectArrayElement(env, touch_array, i);
+			controller_state.touches[i].x = (uint16_t)E->GetShortField(env, touch, session->java_controller_touch_x);
+			controller_state.touches[i].y = (uint16_t)E->GetShortField(env, touch, session->java_controller_touch_y);
+			controller_state.touches[i].id = (int8_t)E->GetByteField(env, touch, session->java_controller_touch_id);
+		}
+		else
+		{
+			controller_state.touches[i].x = 0;
+			controller_state.touches[i].y = 0;
+			controller_state.touches[i].id = -1;
+		}
+	}
+	controller_state.gyro_x = E->GetFloatField(env, controller_state_java, session->java_controller_state_gyro_x);
+	controller_state.gyro_y = E->GetFloatField(env, controller_state_java, session->java_controller_state_gyro_y);
+	controller_state.gyro_z = E->GetFloatField(env, controller_state_java, session->java_controller_state_gyro_z);
+	controller_state.accel_x = E->GetFloatField(env, controller_state_java, session->java_controller_state_accel_x);
+	controller_state.accel_y = E->GetFloatField(env, controller_state_java, session->java_controller_state_accel_y);
+	controller_state.accel_z = E->GetFloatField(env, controller_state_java, session->java_controller_state_accel_z);
+	controller_state.orient_x = E->GetFloatField(env, controller_state_java, session->java_controller_state_orient_x);
+	controller_state.orient_y = E->GetFloatField(env, controller_state_java, session->java_controller_state_orient_y);
+	controller_state.orient_z = E->GetFloatField(env, controller_state_java, session->java_controller_state_orient_z);
+	controller_state.orient_w = E->GetFloatField(env, controller_state_java, session->java_controller_state_orient_w);
 	chiaki_session_set_controller_state(&session->session, &controller_state);
 }
 
