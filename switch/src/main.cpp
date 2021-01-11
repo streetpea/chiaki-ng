@@ -83,12 +83,6 @@ extern "C" void userAppInit()
 	// load socket custom config
 	socketInitialize(&g_chiakiSocketInitConfig);
 	setsysInitialize();
-
-    // padConfigureInput(1, HidNpadStyleSet_NpadStandard);
-    // PadState pad;
-    // padInitializeDefault(&pad);
-
-    //hidInitializeTouchScreen();
 }
 
 extern "C" void userAppExit()
@@ -126,7 +120,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	CHIAKI_LOGI(log, "Loading SDL audio / joystick");
+	CHIAKI_LOGI(log, "Loading SDL audio / joystick / haptic");
 	if(SDL_Init(SDL_INIT_AUDIO | SDL_INIT_JOYSTICK))
 	{
 		CHIAKI_LOGE(log, "SDL initialization failed: %s", SDL_GetError());

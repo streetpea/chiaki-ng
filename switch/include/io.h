@@ -28,6 +28,12 @@ Omit khrplatform: False
 Reproducible: False
 */
 
+#ifdef __SWITCH__
+#include <switch.h>
+#else
+#include <iostream>
+#endif
+
 #include <mutex>
 extern "C"
 {
@@ -65,6 +71,11 @@ class IO
 		SDL_AudioDeviceID sdl_audio_device_id = 0;
 		SDL_Event sdl_event;
 		SDL_Joystick *sdl_joystick_ptr[SDL_JOYSTICK_COUNT] = {0};
+#ifdef __SWITCH__
+		PadState pad;
+		HidSixAxisSensorHandle sixaxis_handles[4];
+		HidVibrationDeviceHandle vibration_handles[2][2];
+#endif
 		GLuint vao;
 		GLuint vbo;
 		GLuint tex[PLANES_COUNT];
@@ -86,7 +97,7 @@ class IO
 		void SetOpenGlYUVPixels(AVFrame *frame);
 		bool ReadGameKeys(SDL_Event *event, ChiakiControllerState *state);
 		bool ReadGameTouchScreen(ChiakiControllerState *state);
-
+		bool ReadGameSixAxis(ChiakiControllerState *state);
 	public:
 		// singleton configuration
 		IO(const IO&) = delete;
@@ -100,9 +111,11 @@ class IO
 		void AudioCB(int16_t *buf, size_t samples_count);
 		bool InitVideo(int video_width, int video_height, int screen_width, int screen_height);
 		bool FreeVideo();
-		bool InitJoystick();
-		bool FreeJoystick();
-		bool MainLoop(ChiakiControllerState *state);
+		bool InitController();
+		bool FreeController();
+		bool MainLoop();
+		void UpdateControllerState(ChiakiControllerState *state);
+		void SetRumble(uint8_t left, uint8_t right);
 };
 
 #endif //CHIAKI_IO_H

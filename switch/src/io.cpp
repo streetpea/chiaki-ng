@@ -1,11 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
-#ifdef __SWITCH__
-#include <switch.h>
-#else
-#include <iostream>
-#endif
-
 #include "io.h"
 #include "settings.h"
 
@@ -345,22 +339,23 @@ bool IO::FreeVideo()
 	return ret;
 }
 
-bool IO::ReadGameTouchScreen(ChiakiControllerState *state)
+bool IO::ReadGameTouchScreen(ChiakiControllerState *chiaki_state)
 {
 #ifdef __SWITCH__
-	hidScanInput();
-	int touch_count = hidTouchCount();
+	HidTouchScreenState sw_state = {0};
+
 	bool ret = false;
-	if(!touch_count)
+	if(!hidGetTouchScreenStates(&sw_state, 1) || sw_state.count == 0)
 	{
+		// flush state
+		chiaki_state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
 		for(int i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 		{
-			if(state->touches[i].id != -1)
+			if(chiaki_state->touches[i].id != -1)
 			{
-				state->touches[i].x = 0;
-				state->touches[i].y = 0;
-				state->touches[i].id = -1;
-				state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
+				chiaki_state->touches[i].x = 0;
+				chiaki_state->touches[i].y = 0;
+				chiaki_state->touches[i].id = -1;
 				// the state changed
 				ret = true;
 			}
@@ -368,35 +363,143 @@ bool IO::ReadGameTouchScreen(ChiakiControllerState *state)
 		return ret;
 	}
 
-	touchPosition touch;
-	for(int i = 0; i < touch_count && i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+	// scale switch screen to the PS trackpad
+	for(int i = 0; i < sw_state.count && i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
 	{
-		hidTouchRead(&touch, i);
 
 		// 1280×720 px (16:9)
 		// ps4 controller aspect ratio looks closer to 29:10
-		uint16_t x = touch.px * (DS4_TRACKPAD_MAX_X / SWITCH_TOUCHSCREEN_MAX_X);
-		uint16_t y = touch.py * (DS4_TRACKPAD_MAX_Y / SWITCH_TOUCHSCREEN_MAX_Y);
+		uint16_t x = sw_state.touches[i].x * (DS4_TRACKPAD_MAX_X / SWITCH_TOUCHSCREEN_MAX_X);
+		uint16_t y = sw_state.touches[i].y * (DS4_TRACKPAD_MAX_Y / SWITCH_TOUCHSCREEN_MAX_Y);
 
 		// use nintendo switch border's 5% to
 		if(x <= (SWITCH_TOUCHSCREEN_MAX_X * 0.05) || x >= (SWITCH_TOUCHSCREEN_MAX_X * 0.95) || y <= (SWITCH_TOUCHSCREEN_MAX_Y * 0.05) || y >= (SWITCH_TOUCHSCREEN_MAX_Y * 0.95))
-		{
-			state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
-																 // printf("CHIAKI_CONTROLLER_BUTTON_TOUCHPAD\n");
-		}
+			chiaki_state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
 		else
-		{
-			state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
-		}
+			chiaki_state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
 
-		state->touches[i].x = x;
-		state->touches[i].y = y;
-		state->touches[i].id = i;
-		// printf("[point_id=%d] px=%03d, py=%03d, dx=%03d, dy=%03d, angle=%03d\n",
-		// i, touch.px, touch.py, touch.dx, touch.dy, touch.angle);
+		chiaki_state->touches[i].x = x;
+		chiaki_state->touches[i].y = y;
+		chiaki_state->touches[i].id = i;
+		// printf("[point_id=%d] x=%03d, y=%03d\n", i, x, y);
 		ret = true;
 	}
 	return ret;
+#else
+	return false;
+#endif
+}
+
+void IO::SetRumble(uint8_t left, uint8_t right)
+{
+#ifdef __SWITCH__
+	Result rc = 0;
+	HidVibrationValue vibration_values[] = {
+		{
+			.amp_low = 0.0f,
+			.freq_low = 160.0f,
+			.amp_high = 0.0f,
+			.freq_high = 320.0f,
+		},
+		{
+			.amp_low = 0.0f,
+			.freq_low = 160.0f,
+			.amp_high = 0.0f,
+			.freq_high = 320.0f,
+		}};
+
+	int target_device = padIsHandheld(&pad) ? 0 : 1;
+	if(left > 0)
+	{
+		// SDL_HapticRumblePlay(this->sdl_haptic_ptr[0], left / 100, 5000);
+		vibration_values[0].amp_low = (float)left / (float)100;
+		vibration_values[0].amp_high = (float)left / (float)100;
+		vibration_values[0].freq_low *= (float)left / (float)100;
+		vibration_values[0].freq_high *= (float)left / (float)100;
+	}
+
+	if(right > 0)
+	{
+		// SDL_HapticRumblePlay(this->sdl_haptic_ptr[1], right / 100, 5000);
+		vibration_values[1].amp_low = (float)right / (float)100;
+		vibration_values[1].amp_high = (float)right / (float)100;
+		vibration_values[1].freq_low *= (float)left / (float)100;
+		vibration_values[1].freq_high *= (float)left / (float)100;
+	}
+
+	// printf("left ptr %p amp_low %f amp_high %f freq_low %f freq_high %f\n",
+	// 	&vibration_values[0],
+	// 	vibration_values[0].amp_low,
+	// 	vibration_values[0].amp_high,
+	// 	vibration_values[0].freq_low,
+	// 	vibration_values[0].freq_high);
+
+	// printf("right ptr %p amp_low %f amp_high %f freq_low %f freq_high %f\n",
+	// 	&vibration_values[1],
+	// 	vibration_values[1].amp_low,
+	// 	vibration_values[1].amp_high,
+	// 	vibration_values[1].freq_low,
+	// 	vibration_values[1].freq_high);
+
+	rc = hidSendVibrationValues(this->vibration_handles[target_device], vibration_values, 2);
+	if(R_FAILED(rc))
+		CHIAKI_LOGE(this->log, "hidSendVibrationValues() returned: 0x%x", rc);
+
+#endif
+}
+
+bool IO::ReadGameSixAxis(ChiakiControllerState *state)
+{
+#ifdef __SWITCH__
+	// Read from the correct sixaxis handle depending on the current input style
+	HidSixAxisSensorState sixaxis = {0};
+	uint64_t style_set = padGetStyleSet(&pad);
+	if(style_set & HidNpadStyleTag_NpadHandheld)
+		hidGetSixAxisSensorStates(this->sixaxis_handles[0], &sixaxis, 1);
+	else if(style_set & HidNpadStyleTag_NpadFullKey)
+		hidGetSixAxisSensorStates(this->sixaxis_handles[1], &sixaxis, 1);
+	else if(style_set & HidNpadStyleTag_NpadJoyDual)
+	{
+		// For JoyDual, read from either the Left or Right Joy-Con depending on which is/are connected
+		u64 attrib = padGetAttributes(&pad);
+		if(attrib & HidNpadAttribute_IsLeftConnected)
+			hidGetSixAxisSensorStates(this->sixaxis_handles[2], &sixaxis, 1);
+		else if(attrib & HidNpadAttribute_IsRightConnected)
+			hidGetSixAxisSensorStates(this->sixaxis_handles[3], &sixaxis, 1);
+	}
+
+	// printf("Acceleration:     x=% .4f, y=% .4f, z=% .4f\n", sixaxis.acceleration.x, sixaxis.acceleration.y, sixaxis.acceleration.z);
+	// printf("Angular velocity: x=% .4f, y=% .4f, z=% .4f\n", sixaxis.angular_velocity.x, sixaxis.angular_velocity.y, sixaxis.angular_velocity.z);
+	// printf("Angle:            x=% .4f, y=% .4f, z=% .4f\n", sixaxis.angle.x, sixaxis.angle.y, sixaxis.angle.z);
+	// printf("Direction matrix:\n"
+	// 	   "                  [ % .4f,   % .4f,   % .4f ]\n"
+	// 	   "                  [ % .4f,   % .4f,   % .4f ]\n"
+	// 	   "                  [ % .4f,   % .4f,   % .4f ]\n",
+	// 	sixaxis.direction.direction[0][0], sixaxis.direction.direction[1][0], sixaxis.direction.direction[2][0],
+	// 	sixaxis.direction.direction[0][1], sixaxis.direction.direction[1][1], sixaxis.direction.direction[2][1],
+	// 	sixaxis.direction.direction[0][2], sixaxis.direction.direction[1][2], sixaxis.direction.direction[2][2]);
+
+	state->gyro_x = sixaxis.angular_velocity.x;
+	state->gyro_y = sixaxis.angular_velocity.y;
+	state->gyro_z = sixaxis.angular_velocity.z;
+	state->accel_x = sixaxis.acceleration.x;
+	state->accel_y = sixaxis.acceleration.y;
+	state->accel_z = sixaxis.acceleration.z;
+
+	// thank you @thestr4ng3r for the hint
+	// https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion
+	double cy = cos(sixaxis.angle.z * 0.5);
+	double sy = sin(sixaxis.angle.z * 0.5);
+	double cp = cos(sixaxis.angle.y * 0.5);
+	double sp = sin(sixaxis.angle.y * 0.5);
+	double cr = cos(sixaxis.angle.x * 0.5);
+	double sr = sin(sixaxis.angle.x * 0.5);
+
+	state->orient_x = sr * cp * cy - cr * sp * sy;
+	state->orient_y = cr * sp * cy + sr * cp * sy;
+	state->orient_z = cr * cp * sy - sr * sp * cy;
+	state->orient_w = cr * cp * cy + sr * sp * sy;
+	return true;
 #else
 	return false;
 #endif
@@ -408,8 +511,6 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 
 	// TODO
 	// share vs PS button
-	// Gyro ?
-	// rumble ?
 	bool ret = true;
 	switch(event->type)
 	{
@@ -620,7 +721,7 @@ bool IO::InitOpenGlTextures()
 
 	D(glGenTextures(PLANES_COUNT, this->tex));
 	D(glGenBuffers(PLANES_COUNT, this->pbo));
-	uint8_t uv_default[] = { 0x7f, 0x7f };
+	uint8_t uv_default[] = {0x7f, 0x7f};
 	for(int i = 0; i < PLANES_COUNT; i++)
 	{
 		D(glBindTexture(GL_TEXTURE_2D, this->tex[i]));
@@ -633,7 +734,7 @@ bool IO::InitOpenGlTextures()
 
 	D(glUseProgram(this->prog));
 	// bind only as many planes as we need
-	const char *plane_names[] = { "plane1", "plane2", "plane3" };
+	const char *plane_names[] = {"plane1", "plane2", "plane3"};
 	for(int i = 0; i < PLANES_COUNT; i++)
 		D(glUniform1i(glGetUniformLocation(this->prog, plane_names[i]), i));
 
@@ -786,7 +887,7 @@ inline void IO::OpenGlDraw()
 	D(glFinish());
 }
 
-bool IO::InitJoystick()
+bool IO::InitController()
 {
 	// https://github.com/switchbrew/switch-examples/blob/master/graphics/sdl2/sdl2-simple/source/main.cpp#L57
 	// open CONTROLLER_PLAYER_1 and CONTROLLER_PLAYER_2
@@ -800,24 +901,64 @@ bool IO::InitJoystick()
 			CHIAKI_LOGE(this->log, "SDL_JoystickOpen: %s\n", SDL_GetError());
 			return false;
 		}
+		// this->sdl_haptic_ptr[i] = SDL_HapticOpenFromJoystick(sdl_joystick_ptr[i]);
+		// SDL_HapticRumbleInit(this->sdl_haptic_ptr[i]);
+		// if(sdl_haptic_ptr[i] == nullptr)
+		// {
+		// 	CHIAKI_LOGE(this->log, "SDL_HapticRumbleInit: %s\n", SDL_GetError());
+		// }
 	}
+#ifdef __SWITCH__
+Result rc = 0;
+	// Configure our supported input layout: a single player with standard controller styles
+	padConfigureInput(1, HidNpadStyleSet_NpadStandard);
+
+	// Initialize the default gamepad (which reads handheld mode inputs as well as the first connected controller)
+	padInitializeDefault(&this->pad);
+	// touchpad
+	hidInitializeTouchScreen();
+	// It's necessary to initialize these separately as they all have different handle values
+	hidGetSixAxisSensorHandles(&this->sixaxis_handles[0], 1, HidNpadIdType_Handheld, HidNpadStyleTag_NpadHandheld);
+	hidGetSixAxisSensorHandles(&this->sixaxis_handles[1], 1, HidNpadIdType_No1, HidNpadStyleTag_NpadFullKey);
+	hidGetSixAxisSensorHandles(&this->sixaxis_handles[2], 2, HidNpadIdType_No1, HidNpadStyleTag_NpadJoyDual);
+	hidStartSixAxisSensor(this->sixaxis_handles[0]);
+	hidStartSixAxisSensor(this->sixaxis_handles[1]);
+	hidStartSixAxisSensor(this->sixaxis_handles[2]);
+	hidStartSixAxisSensor(this->sixaxis_handles[3]);
+
+    rc = hidInitializeVibrationDevices(this->vibration_handles[0], 2, HidNpadIdType_Handheld, HidNpadStyleTag_NpadHandheld);
+	if(R_FAILED(rc))
+		CHIAKI_LOGE(this->log, "hidInitializeVibrationDevices() HidNpadIdType_Handheld returned: 0x%x", rc);
+
+    rc = hidInitializeVibrationDevices(this->vibration_handles[1], 2, HidNpadIdType_No1, HidNpadStyleTag_NpadJoyDual);
+	if(R_FAILED(rc))
+		CHIAKI_LOGE(this->log, "hidInitializeVibrationDevices() HidNpadIdType_No1 returned: 0x%x", rc);
+
+#endif
 	return true;
 }
 
-bool IO::FreeJoystick()
+bool IO::FreeController()
 {
 	for(int i = 0; i < SDL_JOYSTICK_COUNT; i++)
 	{
-		if(SDL_JoystickGetAttached(sdl_joystick_ptr[i]))
-			SDL_JoystickClose(sdl_joystick_ptr[i]);
+		SDL_JoystickClose(this->sdl_joystick_ptr[i]);
+		// SDL_HapticClose(this->sdl_haptic_ptr[i]);
 	}
+#ifdef __SWITCH__
+	hidStopSixAxisSensor(this->sixaxis_handles[0]);
+	hidStopSixAxisSensor(this->sixaxis_handles[1]);
+	hidStopSixAxisSensor(this->sixaxis_handles[2]);
+	hidStopSixAxisSensor(this->sixaxis_handles[3]);
+#endif
 	return true;
 }
 
-bool IO::MainLoop(ChiakiControllerState *state)
+void IO::UpdateControllerState(ChiakiControllerState *state)
 {
-	D(glUseProgram(this->prog));
-
+#ifdef __SWITCH__
+	padUpdate(&this->pad);
+#endif
 	// handle SDL events
 	while(SDL_PollEvent(&this->sdl_event))
 	{
@@ -825,11 +966,17 @@ bool IO::MainLoop(ChiakiControllerState *state)
 		switch(this->sdl_event.type)
 		{
 			case SDL_QUIT:
-				return false;
+				this->quit = true;
 		}
 	}
 
 	ReadGameTouchScreen(state);
+	ReadGameSixAxis(state);
+}
+
+bool IO::MainLoop()
+{
+	D(glUseProgram(this->prog));
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -156,9 +156,17 @@ int Host::InitSession(IO *user)
 	// audio setting_cb and frame_cb
 	chiaki_opus_decoder_set_cb(&this->opus_decoder, InitAudioCB, AudioCB, user);
 	chiaki_opus_decoder_get_sink(&this->opus_decoder, &audio_sink);
-	chiaki_session_set_audio_sink(&(this->session), &audio_sink);
-	chiaki_session_set_video_sample_cb(&(this->session), VideoCB, user);
-	chiaki_session_set_event_cb(&(this->session), EventCB, this);
+	chiaki_session_set_audio_sink(&this->session, &audio_sink);
+	chiaki_session_set_video_sample_cb(&this->session, VideoCB, user);
+	chiaki_session_set_event_cb(&this->session, EventCB, this);
+
+	// init controller states
+	chiaki_controller_state_set_idle(&this->controller_state);
+
+	for(int x = 0; x < CHIAKI_CONTROLLER_TOUCHES_MAX; x++)
+		// start touchpad as "untouched"
+		this->controller_state.touches[x].id = -1;
+
 	return 0;
 }
 
@@ -189,10 +197,13 @@ void Host::StartSession()
 	}
 }
 
-void Host::SendFeedbackState(ChiakiControllerState *state)
+void Host::SendFeedbackState()
 {
 	// send controller/joystick key
-	chiaki_session_set_controller_state(&this->session, state);
+	if(this->io_read_controller_cb != nullptr)
+		this->io_read_controller_cb(&this->controller_state);
+
+	chiaki_session_set_controller_state(&this->session, &this->controller_state);
 }
 
 void Host::ConnectionEventCB(ChiakiEvent *event)
@@ -208,6 +219,11 @@ void Host::ConnectionEventCB(ChiakiEvent *event)
 			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_LOGIN_PIN_REQUEST");
 			if(this->chiaki_even_login_pin_request_cb != nullptr)
 				this->chiaki_even_login_pin_request_cb(event->login_pin_request.pin_incorrect);
+			break;
+		case CHIAKI_EVENT_RUMBLE:
+			CHIAKI_LOGD(this->log, "EventCB CHIAKI_EVENT_RUMBLE");
+			if(this->chiaki_event_rumble_cb != nullptr)
+				this->chiaki_event_rumble_cb(event->rumble.left, event->rumble.right);
 			break;
 		case CHIAKI_EVENT_QUIT:
 			CHIAKI_LOGI(this->log, "EventCB CHIAKI_EVENT_QUIT");
@@ -350,6 +366,16 @@ void Host::SetEventLoginPinRequestCallback(std::function<void(bool)> chiaki_even
 void Host::SetEventQuitCallback(std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb)
 {
 	this->chiaki_event_quit_cb = chiaki_event_quit_cb;
+}
+
+void Host::SetEventRumbleCallback(std::function<void(uint8_t, uint8_t)> chiaki_event_rumble_cb)
+{
+	this->chiaki_event_rumble_cb = chiaki_event_rumble_cb;
+}
+
+void Host::SetReadControllerCallback(std::function<void(ChiakiControllerState *)> io_read_controller_cb)
+{
+	this->io_read_controller_cb = io_read_controller_cb;
 }
 
 bool Host::IsRegistered()

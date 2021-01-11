@@ -54,7 +54,9 @@ class Host
 		std::function<void()> chiaki_regist_event_type_finished_success = nullptr;
 		std::function<void()> chiaki_event_connected_cb = nullptr;
 		std::function<void(bool)> chiaki_even_login_pin_request_cb = nullptr;
+		std::function<void(uint8_t, uint8_t)> chiaki_event_rumble_cb = nullptr;
 		std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb = nullptr;
+		std::function<void(ChiakiControllerState *)> io_read_controller_cb = nullptr;
 
 		// internal state
 		bool discovered = false;
@@ -73,6 +75,7 @@ class Host
 		std::string server_nickname;
 		ChiakiTarget target = CHIAKI_TARGET_PS4_UNKNOWN;
 		ChiakiDiscoveryHostState state = CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
+		ChiakiControllerState controller_state = {0};
 
 		// mac address = 48 bits
 		uint8_t server_mac[6] = {0};
@@ -96,7 +99,7 @@ class Host
 		int FiniSession();
 		void StopSession();
 		void StartSession();
-		void SendFeedbackState(ChiakiControllerState *);
+		void SendFeedbackState();
 		void RegistCB(ChiakiRegistEvent *);
 		void ConnectionEventCB(ChiakiEvent *);
 		bool GetVideoResolution(int *ret_width, int *ret_height);
@@ -110,7 +113,9 @@ class Host
 		void SetRegistEventTypeFinishedSuccess(std::function<void()> chiaki_regist_event_type_finished_success);
 		void SetEventConnectedCallback(std::function<void()> chiaki_event_connected_cb);
 		void SetEventLoginPinRequestCallback(std::function<void(bool)> chiaki_even_login_pin_request_cb);
+		void SetEventRumbleCallback(std::function<void(uint8_t, uint8_t)> chiaki_event_rumble_cb);
 		void SetEventQuitCallback(std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb);
+		void SetReadControllerCallback(std::function<void(ChiakiControllerState *)> io_read_controller_cb);
 		bool IsRegistered();
 		bool IsDiscovered();
 		bool IsReady();

@@ -69,12 +69,6 @@ class PSRemotePlay : public brls::View
 		// to send gamepad inputs
 		Host *host;
 		brls::Label *label;
-		ChiakiControllerState state = {0};
-		// FPS calculation
-		// double base_time;
-		// int frame_counter = 0;
-		// int fps = 0;
-
 	public:
 		PSRemotePlay(Host *host);
 		~PSRemotePlay();

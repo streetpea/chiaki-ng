@@ -42,6 +42,9 @@ HostInterface::HostInterface(Host *host)
 	// when the host is connected
 	this->host->SetEventConnectedCallback(std::bind(&HostInterface::Stream, this));
 	this->host->SetEventQuitCallback(std::bind(&HostInterface::CloseStream, this, std::placeholders::_1));
+	// allow host to update controller state
+	this->host->SetEventRumbleCallback(std::bind(&IO::SetRumble, this->io, std::placeholders::_1, std::placeholders::_2));
+	this->host->SetReadControllerCallback(std::bind(&IO::UpdateControllerState, this->io, std::placeholders::_1));
 }
 
 HostInterface::~HostInterface()
@@ -245,7 +248,7 @@ MainApplication::MainApplication(DiscoveryManager *discoverymanager)
 MainApplication::~MainApplication()
 {
 	this->discoverymanager->SetService(false);
-	//this->io->FreeJoystick();
+	this->io->FreeController();
 	this->io->FreeVideo();
 }
 
@@ -264,16 +267,15 @@ bool MainApplication::Load()
 
 	// init chiaki gl after borealis
 	// let borealis manage the main screen/window
-
 	if(!io->InitVideo(0, 0, SCREEN_W, SCREEN_H))
 	{
 		brls::Logger::error("Failed to initiate Video");
 	}
 
-	brls::Logger::info("Load sdl joysticks");
-	if(!io->InitJoystick())
+	brls::Logger::info("Load sdl/hid controller");
+	if(!io->InitController())
 	{
-		brls::Logger::error("Faled to initiate Joysticks");
+		brls::Logger::error("Faled to initiate Controller");
 	}
 
 	// Create a view
@@ -541,38 +543,12 @@ PSRemotePlay::PSRemotePlay(Host *host)
 	: host(host)
 {
 	this->io = IO::GetInstance();
-
-	// store joycon/touchpad keys
-	for(int x = 0; x < CHIAKI_CONTROLLER_TOUCHES_MAX; x++)
-		// start touchpad as "untouched"
-		this->state.touches[x].id = -1;
-
-	// this->base_time=glfwGetTime();
 }
 
 void PSRemotePlay::draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx)
 {
-	this->io->MainLoop(&this->state);
-	this->host->SendFeedbackState(&this->state);
-
-	// FPS calculation
-	// this->frame_counter += 1;
-	// double frame_time = glfwGetTime();
-	// if((frame_time - base_time) >= 1.0)
-	// {
-	// 	base_time += 1;
-	// 	//printf("FPS: %d\n", this->frame_counter);
-	// 	this->fps = this->frame_counter;
-	// 	this->frame_counter = 0;
-	// }
-	// nvgBeginPath(vg);
-	// nvgFillColor(vg, nvgRGBA(255,192,0,255));
-	// nvgFontFaceId(vg, ctx->fontStash->regular);
-	// nvgFontSize(vg, style->Label.smallFontSize);
-	// nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-	// char fps_str[9] = {0};
-	// sprintf(fps_str, "FPS: %000d", this->fps);
-	// nvgText(vg, 5,10, fps_str, NULL);
+	this->io->MainLoop();
+	this->host->SendFeedbackState();
 }
 
 PSRemotePlay::~PSRemotePlay()
