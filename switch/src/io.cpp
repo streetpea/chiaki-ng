@@ -468,37 +468,53 @@ bool IO::ReadGameSixAxis(ChiakiControllerState *state)
 			hidGetSixAxisSensorStates(this->sixaxis_handles[3], &sixaxis, 1);
 	}
 
-	// printf("Acceleration:     x=% .4f, y=% .4f, z=% .4f\n", sixaxis.acceleration.x, sixaxis.acceleration.y, sixaxis.acceleration.z);
-	// printf("Angular velocity: x=% .4f, y=% .4f, z=% .4f\n", sixaxis.angular_velocity.x, sixaxis.angular_velocity.y, sixaxis.angular_velocity.z);
-	// printf("Angle:            x=% .4f, y=% .4f, z=% .4f\n", sixaxis.angle.x, sixaxis.angle.y, sixaxis.angle.z);
-	// printf("Direction matrix:\n"
-	// 	   "                  [ % .4f,   % .4f,   % .4f ]\n"
-	// 	   "                  [ % .4f,   % .4f,   % .4f ]\n"
-	// 	   "                  [ % .4f,   % .4f,   % .4f ]\n",
-	// 	sixaxis.direction.direction[0][0], sixaxis.direction.direction[1][0], sixaxis.direction.direction[2][0],
-	// 	sixaxis.direction.direction[0][1], sixaxis.direction.direction[1][1], sixaxis.direction.direction[2][1],
-	// 	sixaxis.direction.direction[0][2], sixaxis.direction.direction[1][2], sixaxis.direction.direction[2][2]);
+	state->gyro_x = sixaxis.angular_velocity.x * 2.0f * M_PI;
+	state->gyro_y = sixaxis.angular_velocity.z * 2.0f * M_PI;
+	state->gyro_z = -sixaxis.angular_velocity.y * 2.0f * M_PI;
+	state->accel_x = -sixaxis.acceleration.x;
+	state->accel_y = -sixaxis.acceleration.z;
+	state->accel_z = sixaxis.acceleration.y;
 
-	state->gyro_x = sixaxis.angular_velocity.x;
-	state->gyro_y = sixaxis.angular_velocity.y;
-	state->gyro_z = sixaxis.angular_velocity.z;
-	state->accel_x = sixaxis.acceleration.x;
-	state->accel_y = sixaxis.acceleration.y;
-	state->accel_z = sixaxis.acceleration.z;
-
-	// thank you @thestr4ng3r for the hint
-	// https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion
-	double cy = cos(sixaxis.angle.z * 0.5);
-	double sy = sin(sixaxis.angle.z * 0.5);
-	double cp = cos(sixaxis.angle.y * 0.5);
-	double sp = sin(sixaxis.angle.y * 0.5);
-	double cr = cos(sixaxis.angle.x * 0.5);
-	double sr = sin(sixaxis.angle.x * 0.5);
-
-	state->orient_x = sr * cp * cy - cr * sp * sy;
-	state->orient_y = cr * sp * cy + sr * cp * sy;
-	state->orient_z = cr * cp * sy - sr * sp * cy;
-	state->orient_w = cr * cp * cy + sr * sp * sy;
+	// https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+	float (*dm)[3] = sixaxis.direction.direction;
+	float m[3][3] = {
+		{ dm[0][0], dm[2][0], dm[1][0] },
+		{ dm[0][2], dm[2][2], dm[1][2] },
+		{ dm[0][1], dm[2][1], dm[1][1] }
+	};
+	std::array<float, 4> q;
+	float t;
+	if(m[2][2] < 0)
+	{
+		if (m[0][0] > m[1][1])
+		{
+			t = 1 + m[0][0] - m[1][1] - m[2][2];
+			q = { t, m[0][1] + m[1][0], m[2][0] + m[0][2], m[1][2] - m[2][1] };
+		}
+		else
+		{
+			t = 1 - m[0][0] + m[1][1] -m[2][2];
+			q = { m[0][1] + m[1][0], t, m[1][2] + m[2][1], m[2][0] - m[0][2] };
+		}
+	}
+	else
+	{
+		if(m[0][0] < -m[1][1])
+		{
+			t = 1 - m[0][0] - m[1][1] + m[2][2];
+			q = { m[2][0] + m[0][2], m[1][2] + m[2][1], t, m[0][1] - m[1][0] };
+		}
+		else
+		{
+			t = 1 + m[0][0] + m[1][1] + m[2][2];
+			q = { m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0], t };
+		}
+	}
+	float fac = 0.5f / sqrt(t);
+	state->orient_x = q[0] * fac;
+	state->orient_y = q[1] * fac;
+	state->orient_z = -q[2] * fac;
+	state->orient_w = q[3] * fac;
 	return true;
 #else
 	return false;
