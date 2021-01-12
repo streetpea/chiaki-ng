@@ -35,6 +35,8 @@ Reproducible: False
 #endif
 
 #include <mutex>
+#include <map>
+
 extern "C"
 {
 #include <libavcodec/avcodec.h>
@@ -96,7 +98,7 @@ class IO
 		GLuint CreateAndCompileShader(GLenum type, const char *source);
 		void SetOpenGlYUVPixels(AVFrame *frame);
 		bool ReadGameKeys(SDL_Event *event, ChiakiControllerState *state);
-		bool ReadGameTouchScreen(ChiakiControllerState *state);
+		bool ReadGameTouchScreen(ChiakiControllerState *state, std::map<uint32_t, int8_t> *finger_id_touch_id);
 		bool ReadGameSixAxis(ChiakiControllerState *state);
 	public:
 		// singleton configuration
@@ -114,7 +116,7 @@ class IO
 		bool InitController();
 		bool FreeController();
 		bool MainLoop();
-		void UpdateControllerState(ChiakiControllerState *state);
+		void UpdateControllerState(ChiakiControllerState *state, std::map<uint32_t, int8_t> *finger_id_touch_id);
 		void SetRumble(uint8_t left, uint8_t right);
 };
 

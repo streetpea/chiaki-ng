@@ -163,10 +163,6 @@ int Host::InitSession(IO *user)
 	// init controller states
 	chiaki_controller_state_set_idle(&this->controller_state);
 
-	for(int x = 0; x < CHIAKI_CONTROLLER_TOUCHES_MAX; x++)
-		// start touchpad as "untouched"
-		this->controller_state.touches[x].id = -1;
-
 	return 0;
 }
 
@@ -201,7 +197,7 @@ void Host::SendFeedbackState()
 {
 	// send controller/joystick key
 	if(this->io_read_controller_cb != nullptr)
-		this->io_read_controller_cb(&this->controller_state);
+		this->io_read_controller_cb(&this->controller_state, &finger_id_touch_id);
 
 	chiaki_session_set_controller_state(&this->session, &this->controller_state);
 }
@@ -373,7 +369,7 @@ void Host::SetEventRumbleCallback(std::function<void(uint8_t, uint8_t)> chiaki_e
 	this->chiaki_event_rumble_cb = chiaki_event_rumble_cb;
 }
 
-void Host::SetReadControllerCallback(std::function<void(ChiakiControllerState *)> io_read_controller_cb)
+void Host::SetReadControllerCallback(std::function<void(ChiakiControllerState *, std::map<uint32_t, int8_t> *)> io_read_controller_cb)
 {
 	this->io_read_controller_cb = io_read_controller_cb;
 }

@@ -56,7 +56,7 @@ class Host
 		std::function<void(bool)> chiaki_even_login_pin_request_cb = nullptr;
 		std::function<void(uint8_t, uint8_t)> chiaki_event_rumble_cb = nullptr;
 		std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb = nullptr;
-		std::function<void(ChiakiControllerState *)> io_read_controller_cb = nullptr;
+		std::function<void(ChiakiControllerState *, std::map<uint32_t, int8_t> *)> io_read_controller_cb = nullptr;
 
 		// internal state
 		bool discovered = false;
@@ -76,6 +76,7 @@ class Host
 		ChiakiTarget target = CHIAKI_TARGET_PS4_UNKNOWN;
 		ChiakiDiscoveryHostState state = CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
 		ChiakiControllerState controller_state = {0};
+		std::map<uint32_t, int8_t> finger_id_touch_id;
 
 		// mac address = 48 bits
 		uint8_t server_mac[6] = {0};
@@ -115,7 +116,7 @@ class Host
 		void SetEventLoginPinRequestCallback(std::function<void(bool)> chiaki_even_login_pin_request_cb);
 		void SetEventRumbleCallback(std::function<void(uint8_t, uint8_t)> chiaki_event_rumble_cb);
 		void SetEventQuitCallback(std::function<void(ChiakiQuitEvent *)> chiaki_event_quit_cb);
-		void SetReadControllerCallback(std::function<void(ChiakiControllerState *)> io_read_controller_cb);
+		void SetReadControllerCallback(std::function<void(ChiakiControllerState *, std::map<uint32_t, int8_t> *)> io_read_controller_cb);
 		bool IsRegistered();
 		bool IsDiscovered();
 		bool IsReady();

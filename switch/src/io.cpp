@@ -339,7 +339,7 @@ bool IO::FreeVideo()
 	return ret;
 }
 
-bool IO::ReadGameTouchScreen(ChiakiControllerState *chiaki_state)
+bool IO::ReadGameTouchScreen(ChiakiControllerState *chiaki_state, std::map<uint32_t, int8_t> *finger_id_touch_id)
 {
 #ifdef __SWITCH__
 	HidTouchScreenState sw_state = {0};
@@ -348,31 +348,44 @@ bool IO::ReadGameTouchScreen(ChiakiControllerState *chiaki_state)
 	hidGetTouchScreenStates(&sw_state, 1);
 	// scale switch screen to the PS trackpad
 	chiaki_state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen release
-	for(int i = 0; i < CHIAKI_CONTROLLER_TOUCHES_MAX; i++)
+
+	// un-touch all old touches
+	for(auto it = finger_id_touch_id->begin(); it != finger_id_touch_id->end();)
 	{
-		if((i + 1) <= sw_state.count)
+		auto cur = it;
+		it++;
+		for(int i = 0; i < sw_state.count; i++)
 		{
-			uint16_t x = sw_state.touches[i].x * ((float)DS4_TRACKPAD_MAX_X / (float)SWITCH_TOUCHSCREEN_MAX_X);
-			uint16_t y = sw_state.touches[i].y * ((float)DS4_TRACKPAD_MAX_Y / (float)SWITCH_TOUCHSCREEN_MAX_Y);
-
-			// use nintendo switch border's 5% to trigger the touchpad button
-			if(x <= (DS4_TRACKPAD_MAX_X * 0.05) || x >= (DS4_TRACKPAD_MAX_X * 0.95) || y <= (DS4_TRACKPAD_MAX_Y * 0.05) || y >= (DS4_TRACKPAD_MAX_Y * 0.95))
-				chiaki_state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
-
-			chiaki_state->touches[i].x = x;
-			chiaki_state->touches[i].y = y;
-			chiaki_state->touches[i].id = i;
+			if(sw_state.touches[i].finger_id == cur->first)
+				goto cont;
 		}
-		else
+		if(cur->second >= 0)
+			chiaki_controller_state_stop_touch(chiaki_state, (uint8_t)cur->second);
+		finger_id_touch_id->erase(cur);
+cont:
+		continue;
+	}
+
+
+	// touch or update all current touches
+	for(int i = 0; i < sw_state.count; i++)
+	{
+		uint16_t x = sw_state.touches[i].x * ((float)DS4_TRACKPAD_MAX_X / (float)SWITCH_TOUCHSCREEN_MAX_X);
+		uint16_t y = sw_state.touches[i].y * ((float)DS4_TRACKPAD_MAX_Y / (float)SWITCH_TOUCHSCREEN_MAX_Y);
+		// use nintendo switch border's 5% to trigger the touchpad button
+		if(x <= (DS4_TRACKPAD_MAX_X * 0.05) || x >= (DS4_TRACKPAD_MAX_X * 0.95) || y <= (DS4_TRACKPAD_MAX_Y * 0.05) || y >= (DS4_TRACKPAD_MAX_Y * 0.95))
+			chiaki_state->buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD; // touchscreen
+
+		auto it = finger_id_touch_id->find(sw_state.touches[i].finger_id);
+		if(it == finger_id_touch_id->end())
 		{
-			// flush touch state
-			chiaki_state->touches[i].x = 0;
-			chiaki_state->touches[i].y = 0;
-			chiaki_state->touches[i].id = -1;
+			// new touch
+			(*finger_id_touch_id)[sw_state.touches[i].finger_id] =
+				chiaki_controller_state_start_touch(chiaki_state, x, y);
 		}
-		// printf("switch id=%d x=%03d, y=%03d\nchiaki id=%d x=%03d, y=%03d\n",
-		// 	i, sw_state.touches[i].x, sw_state.touches[i].y,
-		// 	chiaki_state->touches[i].id, chiaki_state->touches[i].x, chiaki_state->touches[i].y);
+		else if(it->second >= 0)
+			chiaki_controller_state_set_touch_pos(chiaki_state, (uint8_t)it->second, x, y);
+		// it->second < 0 ==> touch ignored because there were already too many multi-touches
 		ret = true;
 	}
 	return ret;
@@ -961,7 +974,7 @@ bool IO::FreeController()
 	return true;
 }
 
-void IO::UpdateControllerState(ChiakiControllerState *state)
+void IO::UpdateControllerState(ChiakiControllerState *state, std::map<uint32_t, int8_t> *finger_id_touch_id)
 {
 #ifdef __SWITCH__
 	padUpdate(&this->pad);
@@ -977,7 +990,7 @@ void IO::UpdateControllerState(ChiakiControllerState *state)
 		}
 	}
 
-	ReadGameTouchScreen(state);
+	ReadGameTouchScreen(state, finger_id_touch_id);
 	ReadGameSixAxis(state);
 }
 
