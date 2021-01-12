@@ -35,19 +35,13 @@ DiscoveryManager::~DiscoveryManager()
 {
 	// join discovery thread
 	if(this->service_enable)
-	{
 		SetService(false);
-	}
-
-	chiaki_discovery_fini(&this->discovery);
 }
 
 void DiscoveryManager::SetService(bool enable)
 {
 	if(this->service_enable == enable)
-	{
 		return;
-	}
 
 	this->service_enable = enable;
 

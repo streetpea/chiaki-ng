@@ -24,7 +24,7 @@ class DiscoveryManager
 		struct sockaddr * host_addr = nullptr;
 		size_t host_addr_len = 0;
 		uint32_t GetIPv4BroadcastAddr();
-		bool service_enable;
+		bool service_enable = false;
 
 	public:
 		typedef enum hoststate
