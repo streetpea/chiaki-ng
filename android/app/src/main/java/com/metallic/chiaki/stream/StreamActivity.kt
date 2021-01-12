@@ -5,6 +5,7 @@ package com.metallic.chiaki.stream
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
+import android.content.res.Configuration
 import android.graphics.Matrix
 import android.os.Bundle
 import android.os.Handler
@@ -58,8 +59,10 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 
 		viewModel = ViewModelProvider(this, viewModelFactory {
-			StreamViewModel(Preferences(this), LogManager(this), connectInfo)
+			StreamViewModel(application, connectInfo)
 		})[StreamViewModel::class.java]
+
+		viewModel.input.observe(this)
 
 		setContentView(R.layout.activity_stream)
 		window.decorView.setOnSystemUiVisibilityChangeListener(this)
@@ -305,7 +308,6 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
-
 }
 
 

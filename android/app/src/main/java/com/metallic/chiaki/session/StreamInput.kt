@@ -1,19 +1,36 @@
 package com.metallic.chiaki.session
 
-import android.util.Log
-import android.view.InputDevice
-import android.view.KeyEvent
-import android.view.MotionEvent
+import android.content.Context
+import android.hardware.*
+import android.view.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.lib.ControllerState
 
-class StreamInput(val preferences: Preferences)
+class StreamInput(val context: Context, val preferences: Preferences)
 {
 	var controllerStateChangedCallback: ((ControllerState) -> Unit)? = null
 
 	val controllerState: ControllerState get()
 	{
-		val controllerState = keyControllerState or motionControllerState
+		val controllerState = sensorControllerState or keyControllerState or motionControllerState
+
+		val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+		when(windowManager.defaultDisplay.rotation)
+		{
+			Surface.ROTATION_90 -> {
+				controllerState.accelX *= -1.0f
+				controllerState.accelZ *= -1.0f
+				controllerState.gyroX *= -1.0f
+				controllerState.gyroZ *= -1.0f
+				controllerState.orientX *= -1.0f
+				controllerState.orientZ *= -1.0f
+			}
+			else -> {}
+		}
 
 		// prioritize motion controller's l2 and r2 over key
 		// (some controllers send only key, others both but key earlier than full press)
@@ -25,6 +42,7 @@ class StreamInput(val preferences: Preferences)
 		return controllerState or touchControllerState
 	}
 
+	private val sensorControllerState = ControllerState() // from Motion Sensors
 	private val keyControllerState = ControllerState() // from KeyEvents
 	private val motionControllerState = ControllerState() // from MotionEvents
 	var touchControllerState = ControllerState()
@@ -35,6 +53,65 @@ class StreamInput(val preferences: Preferences)
 		}
 
 	private val swapCrossMoon = preferences.swapCrossMoon
+
+	private val sensorEventListener = object: SensorEventListener {
+		override fun onSensorChanged(event: SensorEvent)
+		{
+			when(event.sensor.type)
+			{
+				Sensor.TYPE_ACCELEROMETER -> {
+					sensorControllerState.accelX = event.values[1] / SensorManager.GRAVITY_EARTH
+					sensorControllerState.accelY = event.values[2] / SensorManager.GRAVITY_EARTH
+					sensorControllerState.accelZ = event.values[0] / SensorManager.GRAVITY_EARTH
+				}
+				Sensor.TYPE_GYROSCOPE -> {
+					sensorControllerState.gyroX = event.values[1]
+					sensorControllerState.gyroY = event.values[2]
+					sensorControllerState.gyroZ = event.values[0]
+				}
+				Sensor.TYPE_ROTATION_VECTOR -> {
+					val q = floatArrayOf(0f, 0f, 0f, 0f)
+					SensorManager.getQuaternionFromVector(q, event.values)
+					sensorControllerState.orientX = q[2]
+					sensorControllerState.orientY = q[3]
+					sensorControllerState.orientZ = q[1]
+					sensorControllerState.orientW = q[0]
+				}
+				else -> return
+			}
+			controllerStateUpdated()
+		}
+
+		override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
+	}
+
+	private val lifecycleObserver = object: LifecycleObserver {
+		@OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+		fun onResume()
+		{
+			val samplingPeriodUs = 4000
+			val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+			listOfNotNull(
+				sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+				sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+				sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+			).forEach {
+				sensorManager.registerListener(sensorEventListener, it, samplingPeriodUs)
+			}
+		}
+
+		@OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+		fun onPause()
+		{
+			val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+			sensorManager.unregisterListener(sensorEventListener)
+		}
+	}
+
+	fun observe(lifecycleOwner: LifecycleOwner)
+	{
+		lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+	}
 
 	private fun controllerStateUpdated()
 	{
