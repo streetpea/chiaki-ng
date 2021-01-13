@@ -71,7 +71,7 @@ class DPadView @JvmOverloads constructor(
 		else
 			drawable = dpadIdleDrawable
 
-		drawable?.setBounds(0, 0, width, height)
+		drawable?.setBounds(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom)
 		//drawable?.alpha = 127
 		drawable?.draw(canvas)
 	}

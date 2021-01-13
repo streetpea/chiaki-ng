@@ -49,10 +49,11 @@
 
     <com.metallic.chiaki.touchcontrols.DPadView
         android:id="@+id/dpadView"
-        android:layout_width="128dp"
-        android:layout_height="128dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginBottom="32dp"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:padding="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginBottom="16dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
