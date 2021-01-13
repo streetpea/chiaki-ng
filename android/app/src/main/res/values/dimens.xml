@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="control_face_button_size">48dp</dimen>
+    <dimen name="control_face_button_size_half">88dp</dimen>
+    <dimen name="control_face_button_size_full">176dp</dimen>
+    <dimen name="control_face_button_padding_to_center">24dp</dimen>
+    <dimen name="control_face_button_padding_to_outside">16dp</dimen>
+    <dimen name="control_face_button_padding_to_full">64dp</dimen>
     <dimen name="control_analog_stick_radius">48dp</dimen>
     <dimen name="control_analog_stick_handle_radius">32dp</dimen>
     <dimen name="floating_action_button_speed_dial_anim_offset">48dp</dimen>

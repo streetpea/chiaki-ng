@@ -2,6 +2,7 @@
 
 package com.metallic.chiaki.touchcontrols
 
+import android.view.View
 import kotlin.math.sqrt
 
 data class Vector(val x: Float, val y: Float)
@@ -18,4 +19,10 @@ data class Vector(val x: Float, val y: Float)
 	val lengthSq get() = x*x + y*y
 	val length get() = sqrt(lengthSq)
 	val normalized get() = this / length
+}
+
+val View.locationOnScreen: Vector get() {
+	val v = intArrayOf(0, 0)
+	this.getLocationOnScreen(v)
+	return Vector(v[0].toFloat(), v[1].toFloat())
 }

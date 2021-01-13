@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:clipChildren="false">
+    android:clipChildren="false"
+    tools:ignore="RtlHardcoded,RtlSymmetry">
 
     <com.metallic.chiaki.touchcontrols.ControlsBackgroundView
         android:layout_width="match_parent"
@@ -57,8 +59,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/faceButtonsLayout"
-        android:layout_width="144dp"
-        android:layout_height="144dp"
+        android:layout_width="@dimen/control_face_button_size_full"
+        android:layout_height="@dimen/control_face_button_size_full"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -67,9 +69,12 @@
 
         <com.metallic.chiaki.touchcontrols.ButtonView
             android:id="@+id/crossButtonView"
-            android:layout_width="@dimen/control_face_button_size"
-            android:layout_height="@dimen/control_face_button_size"
-            android:padding="8dp"
+            android:layout_width="@dimen/control_face_button_size_full"
+            android:layout_height="@dimen/control_face_button_size_half"
+            android:paddingLeft="@dimen/control_face_button_padding_to_full"
+            android:paddingRight="@dimen/control_face_button_padding_to_full"
+            android:paddingTop="@dimen/control_face_button_padding_to_center"
+            android:paddingBottom="@dimen/control_face_button_padding_to_outside"
             app:drawableIdle="@drawable/control_button_cross"
             app:drawablePressed="@drawable/control_button_cross_pressed"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -78,9 +83,12 @@
 
         <com.metallic.chiaki.touchcontrols.ButtonView
             android:id="@+id/moonButtonView"
-            android:layout_width="@dimen/control_face_button_size"
-            android:layout_height="@dimen/control_face_button_size"
-            android:padding="8dp"
+            android:layout_width="@dimen/control_face_button_size_half"
+            android:layout_height="@dimen/control_face_button_size_full"
+            android:paddingTop="@dimen/control_face_button_padding_to_full"
+            android:paddingBottom="@dimen/control_face_button_padding_to_full"
+            android:paddingLeft="@dimen/control_face_button_padding_to_center"
+            android:paddingRight="@dimen/control_face_button_padding_to_outside"
             app:drawableIdle="@drawable/control_button_moon"
             app:drawablePressed="@drawable/control_button_moon_pressed"
             app:layout_constraintRight_toRightOf="parent"
@@ -89,9 +97,12 @@
 
         <com.metallic.chiaki.touchcontrols.ButtonView
             android:id="@+id/pyramidButtonView"
-            android:layout_width="@dimen/control_face_button_size"
-            android:layout_height="@dimen/control_face_button_size"
-            android:padding="8dp"
+            android:layout_width="@dimen/control_face_button_size_full"
+            android:layout_height="@dimen/control_face_button_size_half"
+            android:paddingLeft="@dimen/control_face_button_padding_to_full"
+            android:paddingRight="@dimen/control_face_button_padding_to_full"
+            android:paddingBottom="@dimen/control_face_button_padding_to_center"
+            android:paddingTop="@dimen/control_face_button_padding_to_outside"
             app:drawableIdle="@drawable/control_button_pyramid"
             app:drawablePressed="@drawable/control_button_pyramid_pressed"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -100,14 +111,17 @@
 
         <com.metallic.chiaki.touchcontrols.ButtonView
             android:id="@+id/boxButtonView"
-            android:layout_width="@dimen/control_face_button_size"
-            android:layout_height="@dimen/control_face_button_size"
-            android:padding="8dp"
+            android:layout_width="@dimen/control_face_button_size_half"
+            android:layout_height="@dimen/control_face_button_size_full"
+            android:paddingTop="@dimen/control_face_button_padding_to_full"
+            android:paddingBottom="@dimen/control_face_button_padding_to_full"
+            android:paddingRight="@dimen/control_face_button_padding_to_center"
+            android:paddingLeft="@dimen/control_face_button_padding_to_outside"
             app:drawableIdle="@drawable/control_button_box"
             app:drawablePressed="@drawable/control_button_box_pressed"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -116,7 +130,6 @@
         android:id="@+id/l3ButtonView"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:padding="8dp"
         app:drawableIdle="@drawable/control_button_l3"
         app:drawablePressed="@drawable/control_button_l3_pressed"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -126,7 +139,6 @@
         android:id="@+id/r3ButtonView"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:padding="8dp"
         app:drawableIdle="@drawable/control_button_r3"
         app:drawablePressed="@drawable/control_button_r3_pressed"
         app:layout_constraintRight_toRightOf="parent"
@@ -137,7 +149,6 @@
         android:id="@+id/psButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginBottom="8dp"
         app:drawableIdle="@drawable/control_button_home"
         app:drawablePressed="@drawable/control_button_home_pressed"
@@ -150,7 +161,6 @@
         android:id="@+id/touchpadButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         app:drawableIdle="@drawable/control_button_touchpad"
         app:drawablePressed="@drawable/control_button_touchpad_pressed"
@@ -162,7 +172,6 @@
         android:id="@+id/l2ButtonView"
         android:layout_width="64dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginLeft="8dp"
         app:drawableIdle="@drawable/control_button_l2"
@@ -174,7 +183,6 @@
         android:id="@+id/l1ButtonView"
         android:layout_width="64dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginLeft="8dp"
         app:drawableIdle="@drawable/control_button_l1"
@@ -186,7 +194,6 @@
         android:id="@+id/shareButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginLeft="8dp"
         app:drawableIdle="@drawable/control_button_share"
@@ -198,7 +205,6 @@
         android:id="@+id/r2ButtonView"
         android:layout_width="64dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginRight="8dp"
         app:drawableIdle="@drawable/control_button_r2"
@@ -210,7 +216,6 @@
         android:id="@+id/r1ButtonView"
         android:layout_width="64dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginRight="8dp"
         app:drawableIdle="@drawable/control_button_r1"
@@ -222,7 +227,6 @@
         android:id="@+id/optionsButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:padding="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginRight="8dp"
         app:drawableIdle="@drawable/control_button_options"

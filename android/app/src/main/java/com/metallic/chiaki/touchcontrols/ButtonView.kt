@@ -8,6 +8,8 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.children
 import com.metallic.chiaki.R
 
 class ButtonView @JvmOverloads constructor(
@@ -46,15 +48,36 @@ class ButtonView @JvmOverloads constructor(
 	{
 		super.onDraw(canvas)
 		val drawable = if(buttonPressed) drawablePressed else drawableIdle
-		drawable?.setBounds(0, 0, width, height)
+		drawable?.setBounds(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom)
 		drawable?.draw(canvas)
+	}
+
+	/**
+	 * If this button overlaps with others in the same layout,
+	 * let the one whose center is closest to the touch handle it.
+	 */
+	private fun bestFittingTouchView(x: Float, y: Float): View
+	{
+		val loc = locationOnScreen + Vector(x, y)
+		return (parent as? ViewGroup)?.children?.filter {
+			it is ButtonView
+		}?.filter {
+			val pos = it.locationOnScreen
+			loc.x >= pos.x && loc.x < pos.x + it.width && loc.y >= pos.y && loc.y < pos.y + it.height
+		}?.sortedBy {
+			(loc - (it.locationOnScreen + Vector(it.width.toFloat(), it.height.toFloat()) * 0.5f)).lengthSq
+		}?.firstOrNull() ?: this
 	}
 
 	override fun onTouchEvent(event: MotionEvent): Boolean
 	{
 		when(event.action)
 		{
-			MotionEvent.ACTION_DOWN -> buttonPressed = true
+			MotionEvent.ACTION_DOWN -> {
+				if(bestFittingTouchView(event.x, event.y) != this)
+					return false
+				buttonPressed = true
+			}
 			MotionEvent.ACTION_UP -> buttonPressed = false
 		}
 		return true
