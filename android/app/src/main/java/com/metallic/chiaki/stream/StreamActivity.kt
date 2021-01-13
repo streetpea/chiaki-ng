@@ -9,6 +9,8 @@ import android.content.res.Configuration
 import android.graphics.Matrix
 import android.os.Bundle
 import android.os.Handler
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.TextureView
@@ -30,6 +32,7 @@ import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import kotlinx.android.synthetic.main.activity_stream.*
+import kotlin.math.min
 
 private sealed class DialogContents
 private object StreamQuitDialog: DialogContents()
@@ -104,6 +107,19 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
 		textureView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
 			adjustTextureViewAspect()
+		}
+
+		if(Preferences(this).rumbleEnabled)
+		{
+			val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+			viewModel.session.rumbleState.observe(this, Observer {
+				val amplitude = min(255, (it.left.toInt() + it.right.toInt()) / 2)
+				vibrator.cancel()
+				if(amplitude == 0)
+					return@Observer
+				if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
+					vibrator.vibrate(VibrationEffect.createOneShot(1000, amplitude))
+			})
 		}
 	}
 

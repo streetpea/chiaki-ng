@@ -26,6 +26,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 	{
 		preferences.logVerboseKey -> preferences.logVerbose
 		preferences.swapCrossMoonKey -> preferences.swapCrossMoon
+		preferences.rumbleEnabledKey -> preferences.rumbleEnabled
 		else -> defValue
 	}
 
@@ -35,6 +36,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		{
 			preferences.logVerboseKey -> preferences.logVerbose = value
 			preferences.swapCrossMoonKey -> preferences.swapCrossMoon = value
+			preferences.rumbleEnabledKey -> preferences.rumbleEnabled = value
 		}
 	}
 

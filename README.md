@@ -12,17 +12,9 @@ for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potent
 
 ![Screenshot](assets/screenshot.png)
 
-## Features
-
-Everything necessary for a full streaming session, including the initial
-registration and wakeup of the console, is supported.
-The following features however are yet to be implemented:
-* Rumble
-* Accelerometer/Gyroscope
-
 ## Installing
 
-You can either download a pre-built release (easier) or build Chiaki from source.
+You can either download a pre-built release or build Chiaki from source.
 
 ### Downloading a Release
 
@@ -48,7 +40,7 @@ make
 ```
 
 For more detailed platform-specific instructions, see [doc/platform-build.md](doc/platform-build.md).
-in
+
 ## Usage
 
 If your Console is on your local network, is turned on or in standby mode and does not have Discovery explicitly disabled, Chiaki should find it.

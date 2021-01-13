@@ -68,10 +68,15 @@ class Preferences(context: Context)
 		get() = sharedPreferences.getBoolean(onScreenControlsEnabledKey, true)
 		set(value) { sharedPreferences.edit().putBoolean(onScreenControlsEnabledKey, value).apply() }
 
-	val touchpadOnlyEnabledKey get() = resources.getString(R.string.preferences_touchpad_only_key)
+	val touchpadOnlyEnabledKey get() = resources.getString(R.string.preferences_touchpad_only_enabled_key)
 	var touchpadOnlyEnabled
 		get() = sharedPreferences.getBoolean(touchpadOnlyEnabledKey, false)
 		set(value) { sharedPreferences.edit().putBoolean(touchpadOnlyEnabledKey, value).apply() }
+
+	val rumbleEnabledKey get() = resources.getString(R.string.preferences_rumble_enabled_key)
+	var rumbleEnabled
+		get() = sharedPreferences.getBoolean(rumbleEnabledKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(rumbleEnabledKey, value).apply() }
 
 	val logVerboseKey get() = resources.getString(R.string.preferences_log_verbose_key)
 	var logVerbose
