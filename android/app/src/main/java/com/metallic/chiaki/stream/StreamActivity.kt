@@ -5,12 +5,8 @@ package com.metallic.chiaki.stream
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
-import android.content.res.Configuration
 import android.graphics.Matrix
-import android.os.Bundle
-import android.os.Handler
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.os.*
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.TextureView
@@ -23,7 +19,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
-import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.lib.ConnectInfo
@@ -117,8 +112,10 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 				vibrator.cancel()
 				if(amplitude == 0)
 					return@Observer
-				if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
+				if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
 					vibrator.vibrate(VibrationEffect.createOneShot(1000, amplitude))
+				else
+					vibrator.vibrate(1000)
 			})
 		}
 	}
