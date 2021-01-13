@@ -113,6 +113,27 @@
 
 
     <com.metallic.chiaki.touchcontrols.ButtonView
+        android:id="@+id/l3ButtonView"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:padding="8dp"
+        app:drawableIdle="@drawable/control_button_l3"
+        app:drawablePressed="@drawable/control_button_l3_pressed"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <com.metallic.chiaki.touchcontrols.ButtonView
+        android:id="@+id/r3ButtonView"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:padding="8dp"
+        app:drawableIdle="@drawable/control_button_r3"
+        app:drawablePressed="@drawable/control_button_r3_pressed"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+
+    <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/psButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
