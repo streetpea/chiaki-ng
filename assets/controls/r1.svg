@@ -5,37 +5,13 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   sodipodi:docname="r1.svg"
-   inkscape:version="1.0beta1 (5c3063637d, 2019-10-15)"
    id="svg8"
    version="1.1"
-   viewBox="0 0 67.733332 33.866668"
-   height="128"
+   viewBox="0 0 67.733332 67.733336"
+   height="256"
    width="256">
   <defs
      id="defs2" />
-  <sodipodi:namedview
-     inkscape:window-maximized="1"
-     inkscape:window-y="15"
-     inkscape:window-x="1920"
-     inkscape:window-height="1048"
-     inkscape:window-width="1918"
-     units="px"
-     showgrid="false"
-     inkscape:document-rotation="0"
-     inkscape:current-layer="layer1"
-     inkscape:document-units="mm"
-     inkscape:cy="56.825844"
-     inkscape:cx="96.071037"
-     inkscape:zoom="2.8"
-     inkscape:pageshadow="2"
-     inkscape:pageopacity="0"
-     borderopacity="1.0"
-     bordercolor="#666666"
-     pagecolor="#000000"
-     id="base" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -49,28 +25,12 @@
     </rdf:RDF>
   </metadata>
   <g
-     style="display:inline"
-     id="layer1"
-     inkscape:groupmode="layer"
-     inkscape:label="Ebene 1">
-    <rect
-       y="0"
-       x="0"
-       height="33.866665"
-       width="67.73333"
-       id="rect1406"
-       style="display:none;fill:#ffffff;stroke:none;stroke-width:6.28119;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:stroke markers fill" />
-    <text
-       id="text1404"
-       y="25.830172"
-       x="-3.9868231"
-       style="font-style:normal;font-weight:normal;font-size:28.1184px;line-height:1.25;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;text-anchor:start;inline-size:75.2671;display:none;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.70296"
-       xml:space="preserve" />
+     id="g2125"
+     style="display:inline">
     <path
-       inkscape:connector-curvature="0"
-       transform="scale(0.26458333)"
-       d="M 0,0 V 128 H 256 V 0 Z M 80.675781,31.205078 H 103.7168 c 5.77728,0 10.15378,1.330365 13.1289,3.994141 3.00972,2.663775 4.51367,7.110882 4.51368,13.33789 -1e-5,8.510244 -3.90821,13.871891 -11.72657,16.085938 L 123.84961,97.625 H 114.25 L 100.60352,65.919922 H 89.498047 V 97.625 h -8.822266 z m 73.064449,0 h 8.82227 V 97.625 h -8.82227 V 43.658203 l -12.03906,12.039063 -6.22656,-6.226563 z m -64.242183,8.146484 v 18.421876 h 8.822265 c 4.635658,0 8.164328,-0.710533 10.585938,-2.128907 2.42161,-1.418373 3.63086,-3.786351 3.63086,-7.107422 0,-3.286475 -0.76105,-5.640217 -2.2832,-7.058593 -1.48757,-1.418374 -3.66577,-2.126954 -6.53711,-2.126954 z"
-       style="display:inline;fill:#ffffff;stroke:none;stroke-width:23.7399;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:stroke markers fill"
-       id="rect1556" />
+       id="path2117"
+       style="fill:#ffffff;stroke-width:5.54109;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke markers fill"
+       d="M 107.74609,0 30.705078,77.041016 a 104.83116,104.83117 0 0 0 0,148.253904 104.83116,104.83117 0 0 0 148.253902,0 L 256,148.25391 Z M 46.933594,111.22656 h 23.662109 c 8.856189,0 15.463362,1.85113 19.822266,5.55274 4.358906,3.70161 6.539062,9.28735 6.539062,16.75976 0,4.87783 -1.140593,8.92529 -3.423828,12.14258 -2.248642,3.21729 -5.535064,5.44991 -9.859375,6.69531 2.248643,0.76108 4.426845,2.38615 6.53711,4.87696 2.144856,2.4908 4.290687,5.91648 6.435546,10.27539 L 107.2832,188.70117 H 96.023438 l -9.91211,-19.875 C 83.551336,163.637 81.060286,160.19513 78.638672,158.5 c -2.387019,-1.69513 -5.655301,-2.54297 -9.806641,-2.54297 H 57.416016 v 32.74414 H 46.933594 Z m 93.613286,0 h 10.48242 v 68.65235 h 17.12304 v 8.82226 h -44.62695 v -8.82226 h 17.125 v -59.10547 l -18.62891,3.73633 v -9.54688 z m -83.130864,8.61328 v 27.50196 h 13.179687 c 5.050794,0 8.856023,-1.15874 11.416016,-3.47657 2.594587,-2.35242 3.892578,-5.79429 3.892578,-10.32617 0,-4.53188 -1.297991,-7.93942 -3.892578,-10.22265 -2.559993,-2.31783 -6.365222,-3.47657 -11.416016,-3.47657 z"
+       transform="scale(0.26458334)" />
   </g>
 </svg>

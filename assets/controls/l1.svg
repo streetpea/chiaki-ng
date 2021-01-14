@@ -5,37 +5,13 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   sodipodi:docname="l1.svg"
-   inkscape:version="1.0beta1 (5c3063637d, 2019-10-15)"
    id="svg8"
    version="1.1"
-   viewBox="0 0 67.733332 33.866668"
-   height="128"
+   viewBox="0 0 67.733332 67.733336"
+   height="256"
    width="256">
   <defs
      id="defs2" />
-  <sodipodi:namedview
-     inkscape:window-maximized="1"
-     inkscape:window-y="15"
-     inkscape:window-x="1920"
-     inkscape:window-height="1048"
-     inkscape:window-width="1918"
-     units="px"
-     showgrid="false"
-     inkscape:document-rotation="0"
-     inkscape:current-layer="layer1"
-     inkscape:document-units="mm"
-     inkscape:cy="61.042937"
-     inkscape:cx="87.179174"
-     inkscape:zoom="2.8"
-     inkscape:pageshadow="2"
-     inkscape:pageopacity="0"
-     borderopacity="1.0"
-     bordercolor="#666666"
-     pagecolor="#000000"
-     id="base" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -49,28 +25,12 @@
     </rdf:RDF>
   </metadata>
   <g
-     style="display:inline"
-     id="layer1"
-     inkscape:groupmode="layer"
-     inkscape:label="Ebene 1">
-    <rect
-       y="0"
-       x="0"
-       height="33.866665"
-       width="67.73333"
-       id="rect1406"
-       style="display:none;fill:#ffffff;stroke:none;stroke-width:6.28119;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:stroke markers fill" />
-    <text
-       id="text1404"
-       y="25.830172"
-       x="-3.9868231"
-       style="font-style:normal;font-weight:normal;font-size:28.1184px;line-height:1.25;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;text-anchor:start;inline-size:75.2671;display:none;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.70296"
-       xml:space="preserve" />
+     id="g2115"
+     style="display:inline">
     <path
-       inkscape:connector-curvature="0"
-       transform="scale(0.26458333)"
-       d="M 0,0 V 128 H 256 V 0 Z m 82.337891,31.205078 h 8.820312 V 89.478516 H 120.5293 V 97.625 H 82.337891 Z m 71.402339,0 h 8.82227 V 97.625 h -8.82227 V 43.658203 l -12.03906,12.039063 -6.22656,-6.226563 z"
-       style="display:inline;fill:#ffffff;stroke:none;stroke-width:23.7399;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:stroke markers fill"
-       id="rect1518" />
+       id="path2031"
+       style="fill:#ffffff;stroke-width:5.54109;stroke-linecap:round;stroke-linejoin:round;paint-order:stroke markers fill"
+       d="M 148.25391,0 0,148.25391 77.041016,225.29492 a 104.83116,104.83117 0 0 0 148.253904,0 104.83116,104.83117 0 0 0 0,-148.253904 z M 96.048828,111.22656 h 10.482422 v 68.65235 h 37.72656 v 8.82226 H 96.048828 Z m 78.980472,0 h 10.48242 v 68.65235 h 17.12305 v 8.82226 h -44.62696 v -8.82226 h 17.125 v -59.10547 l -18.6289,3.73633 v -9.54688 z"
+       transform="scale(0.26458334)" />
   </g>
 </svg>

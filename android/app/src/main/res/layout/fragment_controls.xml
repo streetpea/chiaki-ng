@@ -171,10 +171,9 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/l2ButtonView"
-        android:layout_width="64dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginLeft="8dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:padding="8dp"
         app:drawableIdle="@drawable/control_button_l2"
         app:drawablePressed="@drawable/control_button_l2_pressed"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -182,21 +181,22 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/l1ButtonView"
-        android:layout_width="64dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginLeft="8dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:padding="8dp"
+        android:layout_marginTop="34dp"
+        android:layout_marginLeft="34dp"
         app:drawableIdle="@drawable/control_button_l1"
         app:drawablePressed="@drawable/control_button_l1_pressed"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/l2ButtonView"/>
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/shareButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_marginTop="8dp"
-        android:layout_marginLeft="8dp"
+        android:layout_marginLeft="32dp"
         app:drawableIdle="@drawable/control_button_share"
         app:drawablePressed="@drawable/control_button_share_pressed"
         app:layout_constraintLeft_toRightOf="@id/l2ButtonView"
@@ -204,10 +204,9 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/r2ButtonView"
-        android:layout_width="64dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginRight="8dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:padding="8dp"
         app:drawableIdle="@drawable/control_button_r2"
         app:drawablePressed="@drawable/control_button_r2_pressed"
         app:layout_constraintRight_toRightOf="parent"
@@ -215,21 +214,22 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/r1ButtonView"
-        android:layout_width="64dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginRight="8dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:padding="8dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginRight="32dp"
         app:drawableIdle="@drawable/control_button_r1"
         app:drawablePressed="@drawable/control_button_r1_pressed"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/r2ButtonView"/>
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/optionsButtonView"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_marginTop="8dp"
-        android:layout_marginRight="8dp"
+        android:layout_marginRight="32dp"
         app:drawableIdle="@drawable/control_button_options"
         app:drawablePressed="@drawable/control_button_options_pressed"
         app:layout_constraintRight_toLeftOf="@id/r2ButtonView"
