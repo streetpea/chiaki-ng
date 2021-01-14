@@ -26,35 +26,50 @@ ChiakiErrorCode android_chiaki_video_decoder_init(AndroidChiakiVideoDecoder *dec
 	return chiaki_mutex_init(&decoder->codec_mutex, false);
 }
 
+static void kill_decoder(AndroidChiakiVideoDecoder *decoder)
+{
+	chiaki_mutex_lock(&decoder->codec_mutex);
+	decoder->shutdown_output = true;
+	ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, 1000);
+	if(codec_buf_index >= 0)
+	{
+		CHIAKI_LOGI(decoder->log, "Video Decoder sending EOS buffer");
+		AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, 0, decoder->timestamp_cur++, AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM);
+		AMediaCodec_stop(decoder->codec);
+		chiaki_mutex_unlock(&decoder->codec_mutex);
+		chiaki_thread_join(&decoder->output_thread, NULL);
+	}
+	else
+	{
+		CHIAKI_LOGE(decoder->log, "Failed to get input buffer for shutting down Video Decoder!");
+		AMediaCodec_stop(decoder->codec);
+		chiaki_mutex_unlock(&decoder->codec_mutex);
+	}
+	AMediaCodec_delete(decoder->codec);
+	decoder->codec = NULL;
+	decoder->shutdown_output = false;
+}
+
 void android_chiaki_video_decoder_fini(AndroidChiakiVideoDecoder *decoder)
 {
 	if(decoder->codec)
-	{
-		chiaki_mutex_lock(&decoder->codec_mutex);
-		decoder->shutdown_output = true;
-		ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, -1);
-		if(codec_buf_index >= 0)
-		{
-			CHIAKI_LOGI(decoder->log, "Video Decoder sending EOS buffer");
-			AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, 0, decoder->timestamp_cur++, AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM);
-			AMediaCodec_stop(decoder->codec);
-			chiaki_mutex_unlock(&decoder->codec_mutex);
-			chiaki_thread_join(&decoder->output_thread, NULL);
-		}
-		else
-		{
-			CHIAKI_LOGE(decoder->log, "Failed to get input buffer for shutting down Video Decoder!");
-			AMediaCodec_stop(decoder->codec);
-			chiaki_mutex_unlock(&decoder->codec_mutex);
-		}
-		AMediaCodec_delete(decoder->codec);
-	}
+		kill_decoder(decoder);
 	chiaki_mutex_fini(&decoder->codec_mutex);
 }
 
 void android_chiaki_video_decoder_set_surface(AndroidChiakiVideoDecoder *decoder, JNIEnv *env, jobject surface)
 {
 	chiaki_mutex_lock(&decoder->codec_mutex);
+
+	if(!surface)
+	{
+		if(decoder->codec)
+		{
+			kill_decoder(decoder);
+			CHIAKI_LOGI(decoder->log, "Decoder shut down after surface was removed");
+		}
+		return;
+	}
 
 	if(decoder->codec)
 	{

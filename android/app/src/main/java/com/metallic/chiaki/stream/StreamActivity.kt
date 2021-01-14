@@ -7,12 +7,12 @@ import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
 import android.graphics.Matrix
 import android.os.*
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.TextureView
-import android.view.View
+import android.transition.TransitionManager
+import android.view.*
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -44,6 +44,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	private lateinit var viewModel: StreamViewModel
 	private val uiVisibilityHandler = Handler()
+	private val streamView: View get() = surfaceView
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
@@ -94,15 +95,17 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 			if (displayModeToggle.checkedButtonId == -1)
 				displayModeToggle.check(checkedId)
 
-			adjustTextureViewAspect()
+			adjustStreamViewAspect()
 			showOverlay()
 		}
 
-		viewModel.session.attachToTextureView(textureView)
+		//viewModel.session.attachToTextureView(textureView)
+		viewModel.session.attachToSurfaceView(surfaceView)
 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
-		textureView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-			adjustTextureViewAspect()
-		}
+		/*streamView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+			adjustStreamViewAspect()
+		}*/
+		adjustStreamViewAspect()
 
 		if(Preferences(this).rumbleEnabled)
 		{
@@ -306,73 +309,84 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 	}
 
-	private fun adjustTextureViewAspect()
+	private fun adjustTextureViewAspect(textureView: TextureView)
 	{
-		val displayInfo = DisplayInfo(viewModel.session.connectInfo.videoProfile, textureView)
-		val resolution = displayInfo.computeResolutionFor(displayModeToggle.checkedButtonId)
-
+		val trans = TextureViewTransform(viewModel.session.connectInfo.videoProfile, textureView)
+		val resolution = trans.resolutionFor(TransformMode.fromButton(displayModeToggle.checkedButtonId))
 		Matrix().also {
 			textureView.getTransform(it)
-			it.setScale(resolution.width / displayInfo.viewWidth, resolution.height / displayInfo.viewHeight)
-			it.postTranslate((displayInfo.viewWidth - resolution.width) * 0.5f, (displayInfo.viewHeight - resolution.height) * 0.5f)
+			it.setScale(resolution.width / trans.viewWidth, resolution.height / trans.viewHeight)
+			it.postTranslate((trans.viewWidth - resolution.width) * 0.5f, (trans.viewHeight - resolution.height) * 0.5f)
 			textureView.setTransform(it)
 		}
 	}
+
+	private fun adjustSurfaceViewAspect()
+	{
+		val videoProfile = viewModel.session.connectInfo.videoProfile
+		aspectRatioLayout.aspectRatio = videoProfile.width.toFloat() / videoProfile.height.toFloat()
+		aspectRatioLayout.mode = TransformMode.fromButton(displayModeToggle.checkedButtonId)
+	}
+
+	private fun adjustStreamViewAspect() = adjustSurfaceViewAspect()
 
 	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 }
 
-
-class DisplayInfo constructor(val videoProfile: ConnectVideoProfile, val textureView: TextureView)
+enum class TransformMode
 {
-	val contentWidth : Float get() = videoProfile.width.toFloat()
-	val contentHeight : Float get() = videoProfile.height.toFloat()
+	FIT,
+	STRETCH,
+	ZOOM;
+
+	companion object
+	{
+		fun fromButton(displayModeButtonId: Int)
+			= when (displayModeButtonId)
+			{
+				R.id.display_mode_stretch_button -> STRETCH
+				R.id.display_mode_zoom_button -> ZOOM
+				else -> FIT
+			}
+	}
+}
+
+class TextureViewTransform(private val videoProfile: ConnectVideoProfile, private val textureView: TextureView)
+{
+	private val contentWidth : Float get() = videoProfile.width.toFloat()
+	private val contentHeight : Float get() = videoProfile.height.toFloat()
 	val viewWidth : Float get() = textureView.width.toFloat()
 	val viewHeight : Float get() = textureView.height.toFloat()
-	val contentAspect : Float get() =  contentHeight / contentWidth
+	private val contentAspect : Float get() =  contentHeight / contentWidth
 
-	fun computeResolutionFor(displayModeButtonId: Int) : Resolution
-	{
-		when (displayModeButtonId)
+	fun resolutionFor(mode: TransformMode): Resolution
+		= when(mode)
 		{
-			R.id.display_mode_stretch_button -> return computeStrechedResolution()
-			R.id.display_mode_zoom_button -> return computeZoomedResolution()
-			else -> return computeNormalResolution()
+			TransformMode.STRETCH -> strechedResolution
+			TransformMode.ZOOM -> zoomedResolution
+			TransformMode.FIT -> normalResolution
 		}
-	}
 
-	private fun computeStrechedResolution(): Resolution
-	{
-		return Resolution(viewWidth, viewHeight)
-	}
+	private val strechedResolution get() = Resolution(viewWidth, viewHeight)
 
-	private fun computeZoomedResolution(): Resolution
-	{
-		if (viewHeight > viewWidth * contentAspect)
+	private val zoomedResolution get() =
+		if(viewHeight > viewWidth * contentAspect)
 		{
 			val zoomFactor = viewHeight / contentHeight
-			return Resolution(contentWidth * zoomFactor, viewHeight)
+			Resolution(contentWidth * zoomFactor, viewHeight)
 		}
 		else
 		{
 			val zoomFactor = viewWidth / contentWidth
-			return Resolution(viewWidth, contentHeight * zoomFactor)
+			Resolution(viewWidth, contentHeight * zoomFactor)
 		}
-	}
 
-	private fun computeNormalResolution(): Resolution
-	{
-		if (viewHeight > viewWidth * contentAspect)
-		{
-			return Resolution(viewWidth, viewWidth * contentAspect)
-		}
+	private val normalResolution get() =
+		if(viewHeight > viewWidth * contentAspect)
+			Resolution(viewWidth, viewWidth * contentAspect)
 		else
-		{
-			return Resolution(viewHeight / contentAspect, viewHeight)
-		}
-	}
-
+			Resolution(viewHeight / contentAspect, viewHeight)
 }
 
 

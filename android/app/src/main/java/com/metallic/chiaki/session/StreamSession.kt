@@ -28,7 +28,8 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 	private val _rumbleState = MutableLiveData<RumbleEvent>(RumbleEvent(0U, 0U))
 	val rumbleState: LiveData<RumbleEvent> get() = _rumbleState
 
-	var surfaceTexture: SurfaceTexture? = null
+	private var surfaceTexture: SurfaceTexture? = null
+	private var surface: Surface? = null
 
 	init
 	{
@@ -61,9 +62,9 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 			_state.value = StreamStateConnecting
 			session.eventCallback = this::eventCallback
 			session.start()
-			val surfaceTexture = surfaceTexture
-			if(surfaceTexture != null)
-				session.setSurface(Surface(surfaceTexture))
+			val surface = surface
+			if(surface != null)
+				session.setSurface(surface)
 			this.session = session
 		}
 		catch(e: CreateError)
@@ -92,6 +93,26 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 		}
 	}
 
+	fun attachToSurfaceView(surfaceView: SurfaceView)
+	{
+		surfaceView.holder.addCallback(object: SurfaceHolder.Callback {
+			override fun surfaceCreated(holder: SurfaceHolder) { }
+
+			override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int)
+			{
+				val surface = holder.surface
+				this@StreamSession.surface = surface
+				session?.setSurface(surface)
+			}
+
+			override fun surfaceDestroyed(holder: SurfaceHolder)
+			{
+				this@StreamSession.surface = null
+				session?.setSurface(null)
+			}
+		})
+	}
+
 	fun attachToTextureView(textureView: TextureView)
 	{
 		textureView.surfaceTextureListener = object: TextureView.SurfaceTextureListener {
@@ -100,6 +121,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 				if(surfaceTexture != null)
 					return
 				surfaceTexture = surface
+				this@StreamSession.surface = Surface(surfaceTexture)
 				session?.setSurface(Surface(surface))
 			}
 
