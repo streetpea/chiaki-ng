@@ -148,9 +148,9 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/psButtonView"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginBottom="8dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
         app:drawableIdle="@drawable/control_button_home"
         app:drawablePressed="@drawable/control_button_home_pressed"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -160,9 +160,9 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/touchpadButtonView"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
         app:drawableIdle="@drawable/control_button_touchpad"
         app:drawablePressed="@drawable/control_button_touchpad_pressed"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -193,9 +193,9 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/shareButtonView"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
         android:layout_marginLeft="32dp"
         app:drawableIdle="@drawable/control_button_share"
         app:drawablePressed="@drawable/control_button_share_pressed"
@@ -226,9 +226,9 @@
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/optionsButtonView"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
         android:layout_marginRight="32dp"
         app:drawableIdle="@drawable/control_button_options"
         app:drawablePressed="@drawable/control_button_options_pressed"
