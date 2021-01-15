@@ -165,7 +165,7 @@ data class ControllerState constructor(
 	var leftY: Short = 0,
 	var rightX: Short = 0,
 	var rightY: Short = 0,
-	private var touchIdNext: UByte = 100U,
+	private var touchIdNext: UByte = 0U,
 	var touches: Array<ControllerTouch> = arrayOf(ControllerTouch(), ControllerTouch()),
 	var gyroX: Float = 0.0f,
 	var gyroY: Float = 0.0f,
@@ -280,7 +280,8 @@ data class ControllerState constructor(
 			.find { it.id < 0 }
 			?.also {
 				it.id = touchIdNext.toByte()
-				Log.d("TouchId", "touch id next: $touchIdNext")
+				it.x = x
+				it.y = y
 				touchIdNext = ((touchIdNext + 1U) and 0x7fU).toUByte()
 			}?.id?.toUByte()
 

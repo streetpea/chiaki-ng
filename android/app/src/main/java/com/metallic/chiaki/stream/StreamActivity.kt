@@ -22,6 +22,7 @@ import com.metallic.chiaki.databinding.ActivityStreamBinding
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.session.*
+import com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import io.reactivex.disposables.CompositeDisposable
@@ -120,20 +121,14 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	override fun onAttachFragment(fragment: Fragment)
 	{
 		super.onAttachFragment(fragment)
-		when(fragment)
+		if(fragment is TouchControlsFragment)
 		{
-			is TouchControlsFragment ->
-			{
-				fragment.controllerState
-					.subscribe { viewModel.input.touchControllerState = it }
-					.addTo(controlsDisposable)
-				fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
-			}
-			is TouchpadOnlyFragment ->
-			{
-				fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
+			fragment.controllerState
+				.subscribe { viewModel.input.touchControllerState = it }
+				.addTo(controlsDisposable)
+			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
+			if(fragment is TouchpadOnlyFragment)
 				fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
-			}
 		}
 	}
 

@@ -86,6 +86,7 @@ class TouchpadView @JvmOverloads constructor(
 
 	private fun triggerStateChanged()
 	{
+		invalidate()
 		stateSubject.onNext(state)
 	}
 }

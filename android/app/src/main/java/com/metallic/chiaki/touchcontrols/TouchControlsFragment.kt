@@ -12,14 +12,14 @@ import androidx.lifecycle.Observer
 import com.metallic.chiaki.databinding.FragmentControlsBinding
 import com.metallic.chiaki.lib.ControllerState
 import io.reactivex.Observable
-import io.reactivex.Observable.combineLatest
+import io.reactivex.rxkotlin.Observables.combineLatest
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
 
-class TouchControlsFragment : Fragment()
+abstract class TouchControlsFragment : Fragment()
 {
-	private var ownControllerState = ControllerState()
-		private set(value)
+	protected var ownControllerState = ControllerState()
+		set(value)
 		{
 			val diff = field != value
 			field = value
@@ -27,17 +27,20 @@ class TouchControlsFragment : Fragment()
 				ownControllerStateSubject.onNext(ownControllerState)
 		}
 
-	private val ownControllerStateSubject: Subject<ControllerState>
+	protected val ownControllerStateSubject: Subject<ControllerState>
 			= BehaviorSubject.create<ControllerState>().also { it.onNext(ownControllerState) }
 
 	// to delay attaching to the touchpadView until it's available
-	private val controllerStateProxy: Subject<Observable<ControllerState>>
-		= BehaviorSubject.create<Observable<ControllerState>>().also { it.onNext(ownControllerStateSubject) }
+	protected val controllerStateProxy: Subject<Observable<ControllerState>>
+			= BehaviorSubject.create<Observable<ControllerState>>().also { it.onNext(ownControllerStateSubject) }
 	val controllerState: Observable<ControllerState> get() =
 		controllerStateProxy.flatMap { it }
 
 	var onScreenControlsEnabled: LiveData<Boolean>? = null
+}
 
+class DefaultTouchControlsFragment : TouchControlsFragment()
+{
 	private var _binding: FragmentControlsBinding? = null
 	private val binding get() = _binding!!
 

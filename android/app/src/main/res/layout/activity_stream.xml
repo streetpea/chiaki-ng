@@ -28,7 +28,7 @@
 
     <fragment
         android:id="@+id/controlsFragment"
-        android:name="com.metallic.chiaki.touchcontrols.TouchControlsFragment"
+        android:name="com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 

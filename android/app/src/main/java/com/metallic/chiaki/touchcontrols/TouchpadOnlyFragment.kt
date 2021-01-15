@@ -6,26 +6,14 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
-import com.metallic.chiaki.R
-import com.metallic.chiaki.databinding.FragmentControlsBinding
 import com.metallic.chiaki.databinding.FragmentTouchpadOnlyBinding
 import com.metallic.chiaki.lib.ControllerState
+import io.reactivex.rxkotlin.Observables.combineLatest
 
-class TouchpadOnlyFragment : Fragment()
+class TouchpadOnlyFragment : TouchControlsFragment()
 {
-	private var controllerState = ControllerState()
-		private set(value)
-		{
-			val diff = field != value
-			field = value
-			if(diff)
-				controllerStateCallback?.let { it(value) }
-		}
-
-	var controllerStateCallback: ((ControllerState) -> Unit)? = null
 	var touchpadOnlyEnabled: LiveData<Boolean>? = null
 
 	private var _binding: FragmentTouchpadOnlyBinding? = null
@@ -34,6 +22,9 @@ class TouchpadOnlyFragment : Fragment()
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
 		FragmentTouchpadOnlyBinding.inflate(inflater, container, false).let {
 			_binding = it
+			controllerStateProxy.onNext(
+				combineLatest(ownControllerStateSubject, binding.touchpadView.controllerState) { a, b -> a or b }
+			)
 			it.root
 		}
 
@@ -49,13 +40,12 @@ class TouchpadOnlyFragment : Fragment()
 	}
 
 	private fun buttonStateChanged(buttonMask: UInt) = { pressed: Boolean ->
-		controllerState = controllerState.copy().apply {
+		ownControllerState = ownControllerState.copy().apply {
 			buttons =
 				if(pressed)
 					buttons or buttonMask
 				else
 					buttons and buttonMask.inv()
-
 		}
 	}
 }
