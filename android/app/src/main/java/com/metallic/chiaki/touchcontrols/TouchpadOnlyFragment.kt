@@ -10,8 +10,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import com.metallic.chiaki.R
+import com.metallic.chiaki.databinding.FragmentControlsBinding
+import com.metallic.chiaki.databinding.FragmentTouchpadOnlyBinding
 import com.metallic.chiaki.lib.ControllerState
-import kotlinx.android.synthetic.main.fragment_controls.*
 
 class TouchpadOnlyFragment : Fragment()
 {
@@ -27,16 +28,22 @@ class TouchpadOnlyFragment : Fragment()
 	var controllerStateCallback: ((ControllerState) -> Unit)? = null
 	var touchpadOnlyEnabled: LiveData<Boolean>? = null
 
-	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View
-			= inflater.inflate(R.layout.fragment_touchpad_only, container, false)
+	private var _binding: FragmentTouchpadOnlyBinding? = null
+	private val binding get() = _binding!!
+
+	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+		FragmentTouchpadOnlyBinding.inflate(inflater, container, false).let {
+			_binding = it
+			it.root
+		}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?)
 	{
 		super.onViewCreated(view, savedInstanceState)
 
-		touchpadButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_TOUCHPAD)
+		binding.touchpadButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_TOUCHPAD)
 
-		touchpadOnlyEnabled?.observe(this, Observer {
+		touchpadOnlyEnabled?.observe(viewLifecycleOwner, Observer {
 			view.visibility = if(it) View.VISIBLE else View.GONE
 		})
 	}

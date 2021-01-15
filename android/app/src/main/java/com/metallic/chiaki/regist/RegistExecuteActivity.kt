@@ -16,8 +16,8 @@ import com.metallic.chiaki.R
 import com.metallic.chiaki.common.MacAddress
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.databinding.ActivityRegistExecuteBinding
 import com.metallic.chiaki.lib.RegistInfo
-import kotlinx.android.synthetic.main.activity_regist_execute.*
 import kotlin.math.max
 
 class RegistExecuteActivity: AppCompatActivity()
@@ -31,55 +31,57 @@ class RegistExecuteActivity: AppCompatActivity()
 	}
 
 	private lateinit var viewModel: RegistExecuteViewModel
+	private lateinit var binding: ActivityRegistExecuteBinding
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_regist_execute)
+		binding = ActivityRegistExecuteBinding.inflate(layoutInflater)
+		setContentView(binding.root)
 
 		viewModel = ViewModelProvider(this, viewModelFactory { RegistExecuteViewModel(getDatabase(this)) })
 			.get(RegistExecuteViewModel::class.java)
 
-		logTextView.setHorizontallyScrolling(true)
-		logTextView.movementMethod = ScrollingMovementMethod()
+		binding.logTextView.setHorizontallyScrolling(true)
+		binding.logTextView.movementMethod = ScrollingMovementMethod()
 		viewModel.logText.observe(this, Observer {
-			val textLayout = logTextView.layout ?: return@Observer
+			val textLayout = binding.logTextView.layout ?: return@Observer
 			val lineCount = textLayout.lineCount
 			if(lineCount < 1)
 				return@Observer
-			logTextView.text = it
-			val scrollY = textLayout.getLineBottom(lineCount - 1) - logTextView.height + logTextView.paddingTop + logTextView.paddingBottom
-			logTextView.scrollTo(0, max(scrollY, 0))
+			binding.logTextView.text = it
+			val scrollY = textLayout.getLineBottom(lineCount - 1) - binding.logTextView.height + binding.logTextView.paddingTop + binding.logTextView.paddingBottom
+			binding.logTextView.scrollTo(0, max(scrollY, 0))
 		})
 
 		viewModel.state.observe(this, Observer {
-			progressBar.visibility = if(it == RegistExecuteViewModel.State.RUNNING) View.VISIBLE else View.GONE
+			binding.progressBar.visibility = if(it == RegistExecuteViewModel.State.RUNNING) View.VISIBLE else View.GONE
 			when(it)
 			{
 				RegistExecuteViewModel.State.FAILED ->
 				{
-					infoTextView.visibility = View.VISIBLE
-					infoTextView.setText(R.string.regist_info_failed)
+					binding.infoTextView.visibility = View.VISIBLE
+					binding.infoTextView.setText(R.string.regist_info_failed)
 					setResult(RESULT_FAILED)
 				}
 				RegistExecuteViewModel.State.SUCCESSFUL, RegistExecuteViewModel.State.SUCCESSFUL_DUPLICATE ->
 				{
-					infoTextView.visibility = View.VISIBLE
-					infoTextView.setText(R.string.regist_info_success)
+					binding.infoTextView.visibility = View.VISIBLE
+					binding.infoTextView.setText(R.string.regist_info_success)
 					setResult(RESULT_OK)
 					if(it == RegistExecuteViewModel.State.SUCCESSFUL_DUPLICATE)
 						showDuplicateDialog()
 				}
 				RegistExecuteViewModel.State.STOPPED ->
 				{
-					infoTextView.visibility = View.GONE
+					binding.infoTextView.visibility = View.GONE
 					setResult(Activity.RESULT_CANCELED)
 				}
-				else -> infoTextView.visibility = View.GONE
+				else -> binding.infoTextView.visibility = View.GONE
 			}
 		})
 
-		shareLogButton.setOnClickListener {
+		binding.shareLogButton.setOnClickListener {
 			val log = viewModel.logText.value ?: ""
 			Intent(Intent.ACTION_SEND).also {
 				it.type = "text/plain"

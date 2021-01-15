@@ -3,6 +3,7 @@
 package com.metallic.chiaki.main
 
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
@@ -16,8 +17,8 @@ import com.metallic.chiaki.common.DiscoveredDisplayHost
 import com.metallic.chiaki.common.DisplayHost
 import com.metallic.chiaki.common.ManualDisplayHost
 import com.metallic.chiaki.common.ext.inflate
+import com.metallic.chiaki.databinding.ItemDisplayHostBinding
 import com.metallic.chiaki.lib.DiscoveryHost
-import kotlinx.android.synthetic.main.item_display_host.view.*
 
 class DisplayHostDiffCallback(val old: List<DisplayHost>, val new: List<DisplayHost>): DiffUtil.Callback()
 {
@@ -42,10 +43,10 @@ class DisplayHostRecyclerViewAdapter(
 			diff.dispatchUpdatesTo(this)
 		}
 
-	class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
+	class ViewHolder(val binding: ItemDisplayHostBinding): RecyclerView.ViewHolder(binding.root)
 
 	override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
-			= ViewHolder(parent.inflate(R.layout.item_display_host))
+		= ViewHolder(ItemDisplayHostBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
 	override fun getItemCount() = hosts.count()
 
@@ -53,7 +54,7 @@ class DisplayHostRecyclerViewAdapter(
 	{
 		val context = holder.itemView.context
 		val host = hosts[position]
-		holder.itemView.also {
+		holder.binding.also {
 			it.nameTextView.text = host.name
 			it.hostTextView.text = context.getString(R.string.display_host_host, host.host)
 			val id = host.id
@@ -87,7 +88,7 @@ class DisplayHostRecyclerViewAdapter(
 					else -> R.drawable.ic_console
 				}
 			)
-			it.setOnClickListener { clickCallback(host) }
+			it.root.setOnClickListener { clickCallback(host) }
 
 			val canWakeup = host.registeredHost != null
 			val canEditDelete = host is ManualDisplayHost

@@ -2,13 +2,13 @@
 
 package com.metallic.chiaki.settings
 
-import android.view.View
+import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.LogFile
 import com.metallic.chiaki.common.ext.inflate
-import kotlinx.android.synthetic.main.item_log_file.view.*
+import com.metallic.chiaki.databinding.ItemLogFileBinding
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,7 +20,7 @@ class SettingsLogsAdapter: RecyclerView.Adapter<SettingsLogsAdapter.ViewHolder>(
 	private val dateFormat: DateFormat = DateFormat.getDateInstance(DateFormat.SHORT)
 	private val timeFormat = SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault())
 
-	class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
+	class ViewHolder(val binding: ItemLogFileBinding): RecyclerView.ViewHolder(binding.root)
 
 	var logFiles: List<LogFile> = listOf()
 		set(value)
@@ -29,16 +29,16 @@ class SettingsLogsAdapter: RecyclerView.Adapter<SettingsLogsAdapter.ViewHolder>(
 			notifyDataSetChanged()
 		}
 
-	override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(parent.inflate(R.layout.item_log_file))
+	override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+		ViewHolder(ItemLogFileBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
 	override fun getItemCount() = logFiles.size
 
 	override fun onBindViewHolder(holder: ViewHolder, position: Int)
 	{
-		val view = holder.itemView
 		val logFile = logFiles[position]
-		view.nameTextView.text = "${dateFormat.format(logFile.date)} ${timeFormat.format(logFile.date)}"
-		view.summaryTextView.text = logFile.filename
-		view.shareButton.setOnClickListener { shareCallback?.let { it(logFile) } }
+		holder.binding.nameTextView.text = "${dateFormat.format(logFile.date)} ${timeFormat.format(logFile.date)}"
+		holder.binding.summaryTextView.text = logFile.filename
+		holder.binding.shareButton.setOnClickListener { shareCallback?.let { it(logFile) } }
 	}
 }

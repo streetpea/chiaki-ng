@@ -16,10 +16,10 @@ import com.metallic.chiaki.common.RegisteredHost
 import com.metallic.chiaki.common.ext.RevealActivity
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.databinding.ActivityEditManualBinding
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
-import kotlinx.android.synthetic.main.activity_edit_manual.*
 
 class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 {
@@ -28,18 +28,20 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 		const val EXTRA_MANUAL_HOST_ID = "manual_host_id"
 	}
 
-	override val revealIntent: Intent get() = intent
-	override val revealRootLayout: View get() = rootLayout
-	override val revealWindow: Window get() = window
-
 	private lateinit var viewModel: EditManualConsoleViewModel
+	private lateinit var binding: ActivityEditManualBinding
+
+	override val revealIntent: Intent get() = intent
+	override val revealRootLayout: View get() = binding.rootLayout
+	override val revealWindow: Window get() = window
 
 	private val disposable = CompositeDisposable()
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_edit_manual)
+		binding = ActivityEditManualBinding.inflate(layoutInflater)
+		setContentView(binding.root)
 		handleReveal()
 
 		viewModel = ViewModelProvider(this, viewModelFactory {
@@ -52,17 +54,17 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 			.get(EditManualConsoleViewModel::class.java)
 
 		viewModel.existingHost?.observe(this, Observer {
-			hostEditText.setText(it.host)
+			binding.hostEditText.setText(it.host)
 		})
 
 		viewModel.selectedRegisteredHost.observe(this, Observer {
-			registeredHostTextView.setText(titleForRegisteredHost(it))
+			binding.registeredHostTextView.setText(titleForRegisteredHost(it))
 		})
 
 		viewModel.registeredHosts.observe(this, Observer { hosts ->
-			registeredHostTextView.setAdapter(ArrayAdapter<String>(this, R.layout.dropdown_menu_popup_item,
+			binding.registeredHostTextView.setAdapter(ArrayAdapter<String>(this, R.layout.dropdown_menu_popup_item,
 				hosts.map { titleForRegisteredHost(it) }))
-			registeredHostTextView.onItemClickListener = object: AdapterView.OnItemClickListener {
+			binding.registeredHostTextView.onItemClickListener = object: AdapterView.OnItemClickListener {
 				override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long)
 				{
 					if(position >= hosts.size)
@@ -73,8 +75,7 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 			}
 		})
 
-
-		saveButton.setOnClickListener { saveHost() }
+		binding.saveButton.setOnClickListener { saveHost() }
 	}
 
 	private fun titleForRegisteredHost(registeredHost: RegisteredHost?) =
@@ -85,14 +86,14 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 
 	private fun saveHost()
 	{
-		val host = hostEditText.text.toString().trim()
+		val host = binding.hostEditText.text.toString().trim()
 		if(host.isEmpty())
 		{
-			hostEditText.error = getString(R.string.entered_host_invalid)
+			binding.hostEditText.error = getString(R.string.entered_host_invalid)
 			return
 		}
 
-		saveButton.isEnabled = false
+		binding.saveButton.isEnabled = false
 		viewModel.saveHost(host)
 			.observeOn(AndroidSchedulers.mainThread())
 			.subscribe {

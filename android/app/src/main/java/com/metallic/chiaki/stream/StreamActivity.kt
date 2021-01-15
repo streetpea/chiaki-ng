@@ -7,12 +7,9 @@ import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
 import android.graphics.Matrix
 import android.os.*
-import android.transition.TransitionManager
 import android.view.*
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -21,12 +18,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.databinding.ActivityStreamBinding
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.session.*
-import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
-import kotlinx.android.synthetic.main.activity_stream.*
+import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import kotlin.math.min
 
 private sealed class DialogContents
@@ -43,6 +40,8 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	}
 
 	private lateinit var viewModel: StreamViewModel
+	private lateinit var binding: ActivityStreamBinding
+
 	private val uiVisibilityHandler = Handler()
 
 	override fun onCreate(savedInstanceState: Bundle?)
@@ -62,38 +61,39 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 		viewModel.input.observe(this)
 
-		setContentView(R.layout.activity_stream)
+		binding = ActivityStreamBinding.inflate(layoutInflater)
+		setContentView(binding.root)
 		window.decorView.setOnSystemUiVisibilityChangeListener(this)
 
 		viewModel.onScreenControlsEnabled.observe(this, Observer {
-			if(onScreenControlsSwitch.isChecked != it)
-				onScreenControlsSwitch.isChecked = it
-			if(onScreenControlsSwitch.isChecked)
-				touchpadOnlySwitch.isChecked = false
+			if(binding.onScreenControlsSwitch.isChecked != it)
+				binding.onScreenControlsSwitch.isChecked = it
+			if(binding.onScreenControlsSwitch.isChecked)
+				binding.touchpadOnlySwitch.isChecked = false
 		})
-		onScreenControlsSwitch.setOnCheckedChangeListener { _, isChecked ->
+		binding.onScreenControlsSwitch.setOnCheckedChangeListener { _, isChecked ->
 			viewModel.setOnScreenControlsEnabled(isChecked)
 			showOverlay()
 		}
 
 		viewModel.touchpadOnlyEnabled.observe(this, Observer {
-			if(touchpadOnlySwitch.isChecked != it)
-				touchpadOnlySwitch.isChecked = it
-			if(touchpadOnlySwitch.isChecked)
-				onScreenControlsSwitch.isChecked = false
+			if(binding.touchpadOnlySwitch.isChecked != it)
+				binding.touchpadOnlySwitch.isChecked = it
+			if(binding.touchpadOnlySwitch.isChecked)
+				binding.onScreenControlsSwitch.isChecked = false
 		})
-		touchpadOnlySwitch.setOnCheckedChangeListener { _, isChecked ->
+		binding.touchpadOnlySwitch.setOnCheckedChangeListener { _, isChecked ->
 			viewModel.setTouchpadOnlyEnabled(isChecked)
 			showOverlay()
 		}
 
-		displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
+		binding.displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
 			adjustStreamViewAspect()
 			showOverlay()
 		}
 
 		//viewModel.session.attachToTextureView(textureView)
-		viewModel.session.attachToSurfaceView(surfaceView)
+		viewModel.session.attachToSurfaceView(binding.surfaceView)
 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
 		adjustStreamViewAspect()
 
@@ -159,14 +159,14 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	private fun showOverlay()
 	{
-		overlay.isVisible = true
-		overlay.animate()
+		binding.overlay.isVisible = true
+		binding.overlay.animate()
 			.alpha(1.0f)
 			.setListener(object: AnimatorListenerAdapter()
 			{
 				override fun onAnimationEnd(animation: Animator?)
 				{
-					overlay.alpha = 1.0f
+					binding.overlay.alpha = 1.0f
 				}
 			})
 		uiVisibilityHandler.removeCallbacks(hideSystemUIRunnable)
@@ -175,13 +175,13 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	private fun hideOverlay()
 	{
-		overlay.animate()
+		binding.overlay.animate()
 			.alpha(0.0f)
 			.setListener(object: AnimatorListenerAdapter()
 			{
 				override fun onAnimationEnd(animation: Animator?)
 				{
-					overlay.isGone = true
+					binding.overlay.isGone = true
 				}
 			})
 	}
@@ -214,7 +214,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	private fun stateChanged(state: StreamState)
 	{
-		progressBar.visibility = if(state == StreamStateConnecting) View.VISIBLE else View.GONE
+		binding.progressBar.visibility = if(state == StreamStateConnecting) View.VISIBLE else View.GONE
 
 		when(state)
 		{
@@ -302,7 +302,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	private fun adjustTextureViewAspect(textureView: TextureView)
 	{
 		val trans = TextureViewTransform(viewModel.session.connectInfo.videoProfile, textureView)
-		val resolution = trans.resolutionFor(TransformMode.fromButton(displayModeToggle.checkedButtonId))
+		val resolution = trans.resolutionFor(TransformMode.fromButton(binding.displayModeToggle.checkedButtonId))
 		Matrix().also {
 			textureView.getTransform(it)
 			it.setScale(resolution.width / trans.viewWidth, resolution.height / trans.viewHeight)
@@ -314,8 +314,8 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	private fun adjustSurfaceViewAspect()
 	{
 		val videoProfile = viewModel.session.connectInfo.videoProfile
-		aspectRatioLayout.aspectRatio = videoProfile.width.toFloat() / videoProfile.height.toFloat()
-		aspectRatioLayout.mode = TransformMode.fromButton(displayModeToggle.checkedButtonId)
+		binding.aspectRatioLayout.aspectRatio = videoProfile.width.toFloat() / videoProfile.height.toFloat()
+		binding.aspectRatioLayout.mode = TransformMode.fromButton(binding.displayModeToggle.checkedButtonId)
 	}
 
 	private fun adjustStreamViewAspect() = adjustSurfaceViewAspect()

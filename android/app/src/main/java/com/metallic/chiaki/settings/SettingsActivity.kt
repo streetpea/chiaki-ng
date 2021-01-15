@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.metallic.chiaki.R
-import kotlinx.android.synthetic.main.activity_settings.*
+import com.metallic.chiaki.databinding.ActivitySettingsBinding
 
 interface TitleFragment
 {
@@ -18,20 +18,23 @@ interface TitleFragment
 
 class SettingsActivity: AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback
 {
+	private lateinit var binding: ActivitySettingsBinding
+
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_settings)
+		binding = ActivitySettingsBinding.inflate(layoutInflater)
+		setContentView(binding.root)
 		title = ""
-		setSupportActionBar(toolbar)
+		setSupportActionBar(binding.toolbar)
 
 		val rootFragment = SettingsFragment()
 		replaceFragment(rootFragment, false)
 		supportFragmentManager.addOnBackStackChangedListener {
 			val titleFragment = supportFragmentManager.findFragmentById(R.id.settingsFragment) as? TitleFragment ?: return@addOnBackStackChangedListener
-			titleTextView.text = titleFragment.getTitle(resources)
+			binding.titleTextView.text = titleFragment.getTitle(resources)
 		}
-		titleTextView.text = rootFragment.getTitle(resources)
+		binding.titleTextView.text = rootFragment.getTitle(resources)
 	}
 
 	override fun onPreferenceStartFragment(caller: PreferenceFragmentCompat, pref: Preference) = when(pref.fragment)

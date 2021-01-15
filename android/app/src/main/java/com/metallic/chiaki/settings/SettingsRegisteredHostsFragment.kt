@@ -20,25 +20,32 @@ import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.databinding.FragmentSettingsRegisteredHostsBinding
 import com.metallic.chiaki.regist.RegistActivity
-import kotlinx.android.synthetic.main.fragment_settings_registered_hosts.*
 
 class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 {
 	private lateinit var viewModel: SettingsRegisteredHostsViewModel
 
+	private var _binding: FragmentSettingsRegisteredHostsBinding? = null
+	private val binding get() = _binding!!
+
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-		inflater.inflate(R.layout.fragment_settings_registered_hosts, container, false)
+		FragmentSettingsRegisteredHostsBinding.inflate(inflater, container, false).let {
+			_binding = it
+			it.root
+		}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?)
 	{
-		viewModel = ViewModelProvider(this, viewModelFactory { SettingsRegisteredHostsViewModel(getDatabase(context!!)) })
+		val context = requireContext()
+		viewModel = ViewModelProvider(this, viewModelFactory { SettingsRegisteredHostsViewModel(getDatabase(context)) })
 			.get(SettingsRegisteredHostsViewModel::class.java)
 
 		val adapter = SettingsRegisteredHostsAdapter()
-		hostsRecyclerView.layoutManager = LinearLayoutManager(context)
-		hostsRecyclerView.adapter = adapter
-		val itemTouchSwipeCallback = object : ItemTouchSwipeCallback(context!!)
+		binding.hostsRecyclerView.layoutManager = LinearLayoutManager(context)
+		binding.hostsRecyclerView.adapter = adapter
+		val itemTouchSwipeCallback = object : ItemTouchSwipeCallback(context)
 		{
 			override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int)
 			{
@@ -56,15 +63,15 @@ class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 					.show()
 			}
 		}
-		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(hostsRecyclerView)
+		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(binding.hostsRecyclerView)
 		viewModel.registeredHosts.observe(this, Observer {
 			adapter.hosts = it
-			emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
+			binding.emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
 		})
 
-		floatingActionButton.setOnClickListener {
+		binding.floatingActionButton.setOnClickListener {
 			Intent(context, RegistActivity::class.java).also {
-				it.putRevealExtra(floatingActionButton, rootLayout)
+				it.putRevealExtra(binding.floatingActionButton, binding.rootLayout)
 				startActivity(it, ActivityOptions.makeSceneTransitionAnimation(activity).toBundle())
 			}
 		}

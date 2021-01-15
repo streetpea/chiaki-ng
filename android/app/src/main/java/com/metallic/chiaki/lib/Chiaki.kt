@@ -3,8 +3,7 @@ package com.metallic.chiaki.lib
 import android.os.Parcelable
 import android.util.Log
 import android.view.Surface
-import kotlinx.android.parcel.IgnoredOnParcel
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 import java.lang.Exception
 import java.net.InetSocketAddress
 import kotlin.math.abs

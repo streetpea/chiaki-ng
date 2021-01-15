@@ -19,6 +19,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		val controllerState = sensorControllerState or keyControllerState or motionControllerState
 
 		val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+		@Suppress("DEPRECATION")
 		when(windowManager.defaultDisplay.rotation)
 		{
 			Surface.ROTATION_90 -> {
@@ -175,7 +176,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
 	{
 		if(event.source and InputDevice.SOURCE_CLASS_JOYSTICK != InputDevice.SOURCE_CLASS_JOYSTICK)
 			return false
-		fun Float.signedAxis() = (this * Short.MAX_VALUE).toShort()
+		fun Float.signedAxis() = (this * Short.MAX_VALUE).toInt().toShort()
 		fun Float.unsignedAxis() = (this * UByte.MAX_VALUE.toFloat()).toUInt().toUByte()
 		motionControllerState.leftX = event.getAxisValue(MotionEvent.AXIS_X).signedAxis()
 		motionControllerState.leftY = event.getAxisValue(MotionEvent.AXIS_Y).signedAxis()

@@ -21,29 +21,35 @@ import com.metallic.chiaki.common.LogFile
 import com.metallic.chiaki.common.LogManager
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.fileProviderAuthority
-import kotlinx.android.synthetic.main.fragment_settings_logs.*
+import com.metallic.chiaki.databinding.FragmentSettingsLogsBinding
 
 class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
 {
 	private lateinit var viewModel: SettingsLogsViewModel
 
+	private var _binding: FragmentSettingsLogsBinding? = null
+	private val binding get() = _binding!!
+
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-		inflater.inflate(R.layout.fragment_settings_logs, container, false)
+		FragmentSettingsLogsBinding.inflate(inflater, container, false).let {
+			_binding = it
+			it.root
+		}
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?)
 	{
-		val context = context!!
+		val context = requireContext()
 
 		viewModel = ViewModelProvider(this, viewModelFactory { SettingsLogsViewModel(LogManager(context)) })
 			.get(SettingsLogsViewModel::class.java)
 
 		val adapter = SettingsLogsAdapter()
-		logsRecyclerView.layoutManager = LinearLayoutManager(context)
-		logsRecyclerView.adapter = adapter
+		binding.logsRecyclerView.layoutManager = LinearLayoutManager(context)
+		binding.logsRecyclerView.adapter = adapter
 		adapter.shareCallback = this::shareLogFile
 		viewModel.sessionLogs.observe(viewLifecycleOwner, Observer {
 			adapter.logFiles = it
-			emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
+			binding.emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE
 		})
 
 		val itemTouchSwipeCallback = object : ItemTouchSwipeCallback(context)
@@ -55,7 +61,7 @@ class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
 				viewModel.deleteLog(file)
 			}
 		}
-		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(logsRecyclerView)
+		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(binding.logsRecyclerView)
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.preferences_logs_title)
