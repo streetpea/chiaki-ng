@@ -49,7 +49,11 @@ function (_ffmpeg_find component headername)
 
   # Try pkg-config first
   if(PKG_CONFIG_FOUND)
-    pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)
+    if(CMAKE_VERSION VERSION_LESS "3.6")
+      pkg_check_modules(FFMPEG_${component} lib${component})
+    else()
+      pkg_check_modules(FFMPEG_${component} lib${component} IMPORTED_TARGET)
+    endif()
     if(FFMPEG_${component}_FOUND)
       if((TARGET PkgConfig::FFMPEG_${component}) AND (NOT CMAKE_VERSION VERSION_LESS "3.11.0"))
         if(APPLE)
@@ -69,6 +73,9 @@ function (_ffmpeg_find component headername)
         add_library(FFMPEG::${component} ALIAS PkgConfig::FFMPEG_${component})
       else()
         add_library("FFMPEG::${component}" INTERFACE IMPORTED)
+        if(CMAKE_VERSION VERSION_LESS "3.6")
+          link_directories("${FFMPEG_${component}_LIBRARY_DIRS}")
+        endif()
         set_target_properties("FFMPEG::${component}" PROPERTIES
           INTERFACE_LINK_DIRECTORIES "${FFMPEG_${component}_LIBRARY_DIRS}"
           INTERFACE_INCLUDE_DIRECTORIES "${FFMPEG_${component}_INCLUDE_DIRS}"
@@ -224,10 +231,14 @@ foreach (_ffmpeg_component IN LISTS FFMPEG_FIND_COMPONENTS)
       list(APPEND _ffmpeg_required_vars
               "FFMPEG_${_ffmpeg_component}_LIBRARIES")
     else()
-      set(FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS
-        "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIR}")
-      set(FFMPEG_${_ffmpeg_component}_LIBRARIES
-        "${FFMPEG_${_ffmpeg_component}_LIBRARY}")
+      if(NOT FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS)
+        set(FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS
+          "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIR}")
+      endif()
+      if(NOT FFMPEG_${_ffmpeg_component}_LIBRARIES)
+        set(FFMPEG_${_ffmpeg_component}_LIBRARIES
+          "${FFMPEG_${_ffmpeg_component}_LIBRARY}")
+      endif()
       list(APPEND FFMPEG_INCLUDE_DIRS
         "${FFMPEG_${_ffmpeg_component}_INCLUDE_DIRS}")
       list(APPEND FFMPEG_LIBRARIES
