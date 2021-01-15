@@ -78,6 +78,11 @@ class Preferences(context: Context)
 		get() = sharedPreferences.getBoolean(rumbleEnabledKey, true)
 		set(value) { sharedPreferences.edit().putBoolean(rumbleEnabledKey, value).apply() }
 
+	val motionEnabledKey get() = resources.getString(R.string.preferences_motion_enabled_key)
+	var motionEnabled
+		get() = sharedPreferences.getBoolean(motionEnabledKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(motionEnabledKey, value).apply() }
+
 	val logVerboseKey get() = resources.getString(R.string.preferences_log_verbose_key)
 	var logVerbose
 		get() = sharedPreferences.getBoolean(logVerboseKey, false)

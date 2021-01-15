@@ -86,7 +86,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
 	}
 
-	private val lifecycleObserver = object: LifecycleObserver {
+	private val motionLifecycleObserver = object: LifecycleObserver {
 		@OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
 		fun onResume()
 		{
@@ -111,7 +111,8 @@ class StreamInput(val context: Context, val preferences: Preferences)
 
 	fun observe(lifecycleOwner: LifecycleOwner)
 	{
-		lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+		if(preferences.motionEnabled)
+			lifecycleOwner.lifecycle.addObserver(motionLifecycleObserver)
 	}
 
 	private fun controllerStateUpdated()
