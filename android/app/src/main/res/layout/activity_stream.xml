@@ -83,6 +83,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:singleSelection="true"
+                app:selectionRequired="true"
                 app:checkedButton="@id/display_mode_normal_button">
 
                 <com.google.android.material.button.MaterialButton

@@ -44,7 +44,6 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
 	private lateinit var viewModel: StreamViewModel
 	private val uiVisibilityHandler = Handler()
-	private val streamView: View get() = surfaceView
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
@@ -88,13 +87,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 			showOverlay()
 		}
 
-		displayModeToggle.addOnButtonCheckedListener { _, checkedId, _ ->
-			// following 'if' is a workaround until selectionRequired for MaterialButtonToggleGroup
-			// comes out of alpha.
-			// See https://stackoverflow.com/questions/56164004/required-single-selection-on-materialbuttontogglegroup
-			if (displayModeToggle.checkedButtonId == -1)
-				displayModeToggle.check(checkedId)
-
+		displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
 			adjustStreamViewAspect()
 			showOverlay()
 		}
@@ -102,9 +95,6 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		//viewModel.session.attachToTextureView(textureView)
 		viewModel.session.attachToSurfaceView(surfaceView)
 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
-		/*streamView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-			adjustStreamViewAspect()
-		}*/
 		adjustStreamViewAspect()
 
 		if(Preferences(this).rumbleEnabled)
