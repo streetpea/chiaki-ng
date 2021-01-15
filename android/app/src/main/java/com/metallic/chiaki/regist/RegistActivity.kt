@@ -41,7 +41,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
 	{
 		super.onCreate(savedInstanceState)
 		binding = ActivityRegistBinding.inflate(layoutInflater)
-		setContentView(R.layout.activity_regist)
+		setContentView(binding.root)
 		handleReveal()
 
 		viewModel = ViewModelProvider(this).get(RegistViewModel::class.java)
