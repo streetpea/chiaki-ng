@@ -31,8 +31,8 @@ tri_option(CHIAKI_USE_SYSTEM_JERASURE "Use system-provided jerasure instead of s
 tri_option(CHIAKI_USE_SYSTEM_NANOPB "Use system-provided nanopb instead of submodule" AUTO)
 
 set(CHIAKI_VERSION_MAJOR 2)
-set(CHIAKI_VERSION_MINOR 0)
-set(CHIAKI_VERSION_PATCH 1)
+set(CHIAKI_VERSION_MINOR 1)
+set(CHIAKI_VERSION_PATCH 0)
 set(CHIAKI_VERSION ${CHIAKI_VERSION_MAJOR}.${CHIAKI_VERSION_MINOR}.${CHIAKI_VERSION_PATCH})
 
 set(CPACK_PACKAGE_NAME "chiaki")
