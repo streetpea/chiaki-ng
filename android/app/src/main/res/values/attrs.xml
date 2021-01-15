@@ -11,4 +11,8 @@
         <attr name="drawableBase" format="reference" />
         <attr name="drawableHandle" format="reference" />
     </declare-styleable>
+
+    <declare-styleable name="TouchpadView">
+        <attr name="drawable" format="reference" />
+    </declare-styleable>
 </resources>

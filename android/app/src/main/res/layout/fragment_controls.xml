@@ -47,6 +47,16 @@
         app:drawableHandle="@drawable/control_analog_stick_handle"
         />
 
+    <com.metallic.chiaki.touchcontrols.TouchpadView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:drawable="@drawable/control_touchpad"
+        app:layout_constraintTop_toBottomOf="@id/touchpadButtonView"
+        app:layout_constraintWidth_max="300dp"
+        app:layout_constraintDimensionRatio="1920:942"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"/>
+
     <com.metallic.chiaki.touchcontrols.DPadView
         android:id="@+id/dpadView"
         android:layout_width="160dp"

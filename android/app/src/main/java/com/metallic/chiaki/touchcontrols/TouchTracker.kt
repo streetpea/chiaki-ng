@@ -26,7 +26,7 @@ class TouchTracker
 				if(pointerId == null)
 				{
 					pointerId = event.getPointerId(event.actionIndex)
-					currentPosition = Vector(event.x, event.y)
+					currentPosition = Vector(event.getX(event.actionIndex), event.getY(event.actionIndex))
 				}
 			}
 

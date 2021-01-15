@@ -152,9 +152,9 @@ private fun maxAbs(a: Short, b: Short) = if(abs(a.toInt()) > abs(b.toInt())) a e
 private val CONTROLLER_TOUCHES_MAX = 2 // must be the same as CHIAKI_CONTROLLER_TOUCHES_MAX
 
 data class ControllerTouch(
-	val x: UShort = 0U,
-	val y: UShort = 0U,
-	val id: Byte = -1 // -1 = up
+	var x: UShort = 0U,
+	var y: UShort = 0U,
+	var id: Byte = -1 // -1 = up
 )
 
 data class ControllerState constructor(
@@ -165,7 +165,7 @@ data class ControllerState constructor(
 	var leftY: Short = 0,
 	var rightX: Short = 0,
 	var rightY: Short = 0,
-	private var touchIdNext: UByte = 0U,
+	private var touchIdNext: UByte = 100U,
 	var touches: Array<ControllerTouch> = arrayOf(ControllerTouch(), ControllerTouch()),
 	var gyroX: Float = 0.0f,
 	var gyroY: Float = 0.0f,
@@ -196,6 +196,8 @@ data class ControllerState constructor(
 		val BUTTON_SHARE 		= (1 shl 13).toUInt()
 		val BUTTON_TOUCHPAD		= (1 shl 14).toUInt()
 		val BUTTON_PS			= (1 shl 15).toUInt()
+		val TOUCHPAD_WIDTH: UShort = 1920U
+		val TOUCHPAD_HEIGHT: UShort = 942U
 	}
 
 	infix fun or(o: ControllerState) = ControllerState(
@@ -272,6 +274,34 @@ data class ControllerState constructor(
 		result = 31 * result + orientW.hashCode()
 		return result
 	}
+
+	fun startTouch(x: UShort, y: UShort): UByte? =
+		touches
+			.find { it.id < 0 }
+			?.also {
+				it.id = touchIdNext.toByte()
+				Log.d("TouchId", "touch id next: $touchIdNext")
+				touchIdNext = ((touchIdNext + 1U) and 0x7fU).toUByte()
+			}?.id?.toUByte()
+
+	fun stopTouch(id: UByte)
+	{
+		touches.find {
+			it.id >= 0 && it.id == id.toByte()
+		}?.let {
+			it.id = -1
+		}
+	}
+
+	fun setTouchPos(id: UByte, x: UShort, y: UShort): Boolean
+		= touches.find {
+			it.id >= 0 && it.id == id.toByte()
+		}?.let {
+			val r = it.x != x || it.y != y
+			it.x = x
+			it.y = y
+			r
+		} ?: false
 }
 
 class QuitReason(val value: Int)
