@@ -26,6 +26,8 @@ class TouchpadView @JvmOverloads constructor(
 		private const val BUTTON_HOLD_DELAY_MS = 500L
 	}
 
+	private val haptics = ButtonHaptics(context)
+
 	private val drawableIdle: Drawable?
 	private val drawablePressed: Drawable?
 
@@ -49,8 +51,10 @@ class TouchpadView @JvmOverloads constructor(
 		val startButtonHoldRunnable = Runnable {
 			if(!moveInsignificant || buttonHeld)
 				return@Runnable
+			haptics.trigger(true)
 			state.buttons = state.buttons or ControllerState.BUTTON_TOUCHPAD
 			buttonHeld = true
+			triggerStateChanged()
 		}
 	}
 	private val pointerTouches = mutableMapOf<Int, Touch>()
@@ -105,6 +109,7 @@ class TouchpadView @JvmOverloads constructor(
 		{
 			MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
 				state.startTouch(touchX(event, event.actionIndex), touchY(event, event.actionIndex))?.let {
+					haptics.trigger()
 					val touch = Touch(it, event.getX(event.actionIndex), event.getY(event.actionIndex))
 					pointerTouches[event.getPointerId(event.actionIndex)] = touch
 					if(!buttonHeld)

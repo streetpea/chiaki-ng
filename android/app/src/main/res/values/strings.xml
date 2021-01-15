@@ -92,6 +92,8 @@
     <string name="preferences_rumble_enabled_summary">Use phone vibration motor for rumble</string>
     <string name="preferences_motion_enabled_title">Motion</string>
     <string name="preferences_motion_enabled_summary">Use device\'s motion sensors for controller motion</string>
+    <string name="preferences_button_haptic_enabled_title">Touch Haptics</string>
+    <string name="preferences_button_haptic_enabled_summary">Use phone vibration motor for short haptic feedback on button touches</string>
     <string name="alert_message_delete_registered_host">Are you sure you want to delete the registered console %s with ID %s?</string>
     <string name="alert_message_delete_manual_host">Are you sure you want to delete the console entry for %s?</string>
     <string name="action_keep">Keep</string>
@@ -108,6 +110,7 @@
     <string name="preferences_touchpad_only_enabled_key">touchpad_only_enabled</string>
     <string name="preferences_rumble_enabled_key">rumble_enabled</string>
     <string name="preferences_motion_enabled_key">motion_enabled</string>
+    <string name="preferences_button_haptic_enabled_key">button_haptic_enabled</string>
     <string name="preferences_log_verbose_key">log_verbose</string>
     <string name="preferences_import_settings_key">import_settings</string>
     <string name="preferences_export_settings_key">export_settings</string>

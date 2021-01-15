@@ -27,6 +27,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.swapCrossMoonKey -> preferences.swapCrossMoon
 		preferences.rumbleEnabledKey -> preferences.rumbleEnabled
 		preferences.motionEnabledKey -> preferences.motionEnabled
+		preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled
 		else -> defValue
 	}
 
@@ -38,6 +39,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 			preferences.swapCrossMoonKey -> preferences.swapCrossMoon = value
 			preferences.rumbleEnabledKey -> preferences.rumbleEnabled = value
 			preferences.motionEnabledKey -> preferences.motionEnabled = value
+			preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled = value
 		}
 	}
 

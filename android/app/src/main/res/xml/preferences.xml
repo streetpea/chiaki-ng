@@ -32,6 +32,12 @@
             app:icon="@drawable/ic_motion" />
 
         <SwitchPreference
+            app:key="@string/preferences_button_haptic_enabled_key"
+            app:title="@string/preferences_button_haptic_enabled_title"
+            app:summary="@string/preferences_button_haptic_enabled_summary"
+            app:icon="@drawable/ic_button_haptic" />
+
+        <SwitchPreference
             app:key="@string/preferences_log_verbose_key"
             app:title="@string/preferences_log_verbose_title"
             app:summary="@string/preferences_log_verbose_summary"

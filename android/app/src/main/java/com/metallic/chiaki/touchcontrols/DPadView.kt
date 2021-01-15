@@ -16,6 +16,8 @@ class DPadView @JvmOverloads constructor(
 	context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr)
 {
+	private val haptics = ButtonHaptics(context)
+
 	enum class Direction {
 		LEFT,
 		RIGHT,
@@ -113,6 +115,8 @@ class DPadView @JvmOverloads constructor(
 
 		if(state != newState)
 		{
+			if(newState != null)
+				haptics.trigger()
 			state = newState
 			invalidate()
 			stateChangeCallback?.let { it(state) }
