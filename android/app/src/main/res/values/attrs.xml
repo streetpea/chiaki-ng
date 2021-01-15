@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <attr name="drawableIdle" format="reference" />
+    <attr name="drawablePressed" format="reference" />
+
     <declare-styleable name="ButtonView">
-        <attr name="drawableIdle" format="reference" />
-        <attr name="drawablePressed" format="integer" />
+        <attr name="drawableIdle" />
+        <attr name="drawablePressed" />
     </declare-styleable>
 
     <declare-styleable name="AnalogStickView">
@@ -13,6 +16,7 @@
     </declare-styleable>
 
     <declare-styleable name="TouchpadView">
-        <attr name="drawable" format="reference" />
+        <attr name="drawableIdle" />
+        <attr name="drawablePressed" />
     </declare-styleable>
 </resources>

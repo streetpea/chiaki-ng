@@ -51,8 +51,10 @@
         android:id="@+id/touchpadView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:drawable="@drawable/control_touchpad"
-        app:layout_constraintTop_toBottomOf="@id/touchpadButtonView"
+        app:drawableIdle="@drawable/control_touchpad"
+        app:drawablePressed="@drawable/control_touchpad_pressed"
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_max="300dp"
         app:layout_constraintDimensionRatio="1920:942"
         app:layout_constraintRight_toRightOf="parent"
@@ -168,17 +170,6 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
-
-    <com.metallic.chiaki.touchcontrols.ButtonView
-        android:id="@+id/touchpadButtonView"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:padding="8dp"
-        app:drawableIdle="@drawable/control_button_touchpad"
-        app:drawablePressed="@drawable/control_button_touchpad_pressed"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
 
     <com.metallic.chiaki.touchcontrols.ButtonView
         android:id="@+id/l2ButtonView"
