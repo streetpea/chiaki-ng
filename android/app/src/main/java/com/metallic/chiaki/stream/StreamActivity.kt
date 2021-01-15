@@ -24,6 +24,8 @@ import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
 import kotlin.math.min
 
 private sealed class DialogContents
@@ -113,18 +115,25 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 	}
 
+	private val controlsDisposable = CompositeDisposable()
+
 	override fun onAttachFragment(fragment: Fragment)
 	{
 		super.onAttachFragment(fragment)
-		if(fragment is TouchControlsFragment)
+		when(fragment)
 		{
-			fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
-			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
-		}
-		if(fragment is TouchpadOnlyFragment)
-		{
-			fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
-			fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
+			is TouchControlsFragment ->
+			{
+				fragment.controllerState
+					.subscribe { viewModel.input.touchControllerState = it }
+					.addTo(controlsDisposable)
+				fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
+			}
+			is TouchpadOnlyFragment ->
+			{
+				fragment.controllerStateCallback = { viewModel.input.touchControllerState = it }
+				fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
+			}
 		}
 	}
 
@@ -139,6 +148,12 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	{
 		super.onPause()
 		viewModel.session.pause()
+	}
+
+	override fun onDestroy()
+	{
+		super.onDestroy()
+		controlsDisposable.dispose()
 	}
 
 	private fun reconnect()

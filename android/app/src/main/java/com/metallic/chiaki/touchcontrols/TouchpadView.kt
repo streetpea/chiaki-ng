@@ -10,15 +10,20 @@ import android.view.MotionEvent
 import android.view.View
 import com.metallic.chiaki.R
 import com.metallic.chiaki.lib.ControllerState
+import io.reactivex.Observable
+import io.reactivex.subjects.BehaviorSubject
+import io.reactivex.subjects.Subject
 
 class TouchpadView @JvmOverloads constructor(
 	context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr)
 {
-	val state: ControllerState = ControllerState()
+	private val state: ControllerState = ControllerState()
 	private val pointerTouchIds = mutableMapOf<Int, UByte>()
 
-	var stateChangeCallback: ((ControllerState) -> Unit)? = null
+	private val stateSubject: Subject<ControllerState>
+		= BehaviorSubject.create<ControllerState>().also { it.onNext(state) }
+	val controllerState: Observable<ControllerState> get() = stateSubject
 
 	private val drawable: Drawable?
 
@@ -81,6 +86,6 @@ class TouchpadView @JvmOverloads constructor(
 
 	private fun triggerStateChanged()
 	{
-		stateChangeCallback?.let { it(state) }
+		stateSubject.onNext(state)
 	}
 }

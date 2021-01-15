@@ -11,19 +11,31 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import com.metallic.chiaki.databinding.FragmentControlsBinding
 import com.metallic.chiaki.lib.ControllerState
+import io.reactivex.Observable
+import io.reactivex.Observable.combineLatest
+import io.reactivex.subjects.BehaviorSubject
+import io.reactivex.subjects.Subject
 
 class TouchControlsFragment : Fragment()
 {
-	private var controllerState = ControllerState()
+	private var ownControllerState = ControllerState()
 		private set(value)
 		{
 			val diff = field != value
 			field = value
 			if(diff)
-				controllerStateCallback?.let { it(value) }
+				ownControllerStateSubject.onNext(ownControllerState)
 		}
 
-	var controllerStateCallback: ((ControllerState) -> Unit)? = null
+	private val ownControllerStateSubject: Subject<ControllerState>
+			= BehaviorSubject.create<ControllerState>().also { it.onNext(ownControllerState) }
+
+	// to delay attaching to the touchpadView until it's available
+	private val controllerStateProxy: Subject<Observable<ControllerState>>
+		= BehaviorSubject.create<Observable<ControllerState>>().also { it.onNext(ownControllerStateSubject) }
+	val controllerState: Observable<ControllerState> get() =
+		controllerStateProxy.flatMap { it }
+
 	var onScreenControlsEnabled: LiveData<Boolean>? = null
 
 	private var _binding: FragmentControlsBinding? = null
@@ -32,6 +44,9 @@ class TouchControlsFragment : Fragment()
 	override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
 		FragmentControlsBinding.inflate(inflater, container, false).let {
 			_binding = it
+			controllerStateProxy.onNext(
+				combineLatest(ownControllerStateSubject, binding.touchpadView.controllerState) { a, b -> a or b }
+			)
 			it.root
 		}
 
@@ -52,19 +67,19 @@ class TouchControlsFragment : Fragment()
 		binding.psButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_PS)
 		binding.touchpadButtonView.buttonPressedCallback = buttonStateChanged(ControllerState.BUTTON_TOUCHPAD)
 
-		binding.l2ButtonView.buttonPressedCallback = { controllerState = controllerState.copy().apply { l2State = if(it) 255U else 0U } }
-		binding.r2ButtonView.buttonPressedCallback = { controllerState = controllerState.copy().apply { r2State = if(it) 255U else 0U } }
+		binding.l2ButtonView.buttonPressedCallback = { ownControllerState = ownControllerState.copy().apply { l2State = if(it) 255U else 0U } }
+		binding.r2ButtonView.buttonPressedCallback = { ownControllerState = ownControllerState.copy().apply { r2State = if(it) 255U else 0U } }
 
 		val quantizeStick = { f: Float ->
 			(Short.MAX_VALUE * f).toInt().toShort()
 		}
 
-		binding.leftAnalogStickView.stateChangedCallback = { controllerState = controllerState.copy().apply {
+		binding.leftAnalogStickView.stateChangedCallback = { ownControllerState = ownControllerState.copy().apply {
 			leftX = quantizeStick(it.x)
 			leftY = quantizeStick(it.y)
 		}}
 
-		binding.rightAnalogStickView.stateChangedCallback = { controllerState = controllerState.copy().apply {
+		binding.rightAnalogStickView.stateChangedCallback = { ownControllerState = ownControllerState.copy().apply {
 			rightX = quantizeStick(it.x)
 			rightY = quantizeStick(it.y)
 		}}
@@ -76,7 +91,7 @@ class TouchControlsFragment : Fragment()
 
 	private fun dpadStateChanged(direction: DPadView.Direction?)
 	{
-		controllerState = controllerState.copy().apply {
+		ownControllerState = ownControllerState.copy().apply {
 			buttons = ((buttons
 						and ControllerState.BUTTON_DPAD_LEFT.inv()
 						and ControllerState.BUTTON_DPAD_RIGHT.inv()
@@ -98,7 +113,7 @@ class TouchControlsFragment : Fragment()
 	}
 
 	private fun buttonStateChanged(buttonMask: UInt) = { pressed: Boolean ->
-		controllerState = controllerState.copy().apply {
+		ownControllerState = ownControllerState.copy().apply {
 			buttons =
 				if(pressed)
 					buttons or buttonMask
