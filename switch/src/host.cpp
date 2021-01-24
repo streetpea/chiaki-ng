@@ -117,6 +117,7 @@ int Host::Register(int pin)
 		throw Exception("Undefined PS4 system version (please run discover first)");
 	}
 
+	this->regist_info.pin = pin;
 	this->regist_info.host = this->host_addr.c_str();
 	this->regist_info.broadcast = false;
 

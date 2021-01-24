@@ -7,9 +7,9 @@
 Settings::Settings()
 {
 #if defined(__SWITCH__)
-	chiaki_log_init(&this->log, CHIAKI_LOG_ALL ^ CHIAKI_LOG_VERBOSE ^ CHIAKI_LOG_DEBUG, chiaki_log_cb_print, NULL);
+	chiaki_log_init(&this->log, CHIAKI_LOG_ALL & ~(CHIAKI_LOG_VERBOSE | CHIAKI_LOG_DEBUG), chiaki_log_cb_print, NULL);
 #else
-	chiaki_log_init(&this->log, CHIAKI_LOG_ALL, chiaki_log_cb_print, NULL);
+	chiaki_log_init(&this->log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
 #endif
 }
 
