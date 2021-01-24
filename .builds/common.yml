@@ -15,7 +15,6 @@ packages:
   - qt5-qtmultimedia-dev
   - ffmpeg-dev
   - sdl2-dev
-  - sdl2-static # this is gone on alpine edge so might be necessary to remove later
   - docker
   - fuse
 
