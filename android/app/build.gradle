@@ -33,6 +33,8 @@ android {
                         "-DCHIAKI_ENABLE_GUI=OFF",
                         "-DCHIAKI_ENABLE_SETSU=OFF",
                         "-DCHIAKI_ENABLE_ANDROID=ON",
+                        "-DCHIAKI_ENABLE_FFMPEG_DECODER=OFF",
+                        "-DCHIAKI_ENABLE_PI_DECODER=OFF",
                         "-DCHIAKI_LIB_ENABLE_OPUS=OFF",
                         "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON"
             }
