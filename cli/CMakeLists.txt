@@ -15,3 +15,4 @@ endif()
 
 add_executable(chiaki-cli src/main.c)
 target_link_libraries(chiaki-cli chiaki-cli-lib)
+install(TARGETS chiaki-cli)
