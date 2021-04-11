@@ -17,6 +17,7 @@ packages:
   - sdl2-dev
   - docker
   - fuse
+  - argp-standalone
 
 artifacts:
   - chiaki.nro
@@ -29,7 +30,7 @@ tasks:
       sudo service fuse start # Fuse for AppImages
   - local_build_and_test: |
       cd chiaki
-      cmake -Bbuild -GNinja
+      cmake -Bbuild -GNinja -DCHIAKI_ENABLE_CLI=ON -DCHIAKI_ENABLE_GUI=ON -DCHIAKI_CLI_ARGP_STANDALONE=ON
       ninja -C build
       build/test/chiaki-unit
   - appimage: |
