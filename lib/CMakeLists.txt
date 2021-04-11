@@ -72,7 +72,7 @@ set(SOURCE_FILES
 		src/controller.c
 		src/takionsendbuffer.c
 		src/time.c
-		src/fec
+		src/fec.c
 		src/regist.c
 		src/opusdecoder.c
 		src/orientation.c)
