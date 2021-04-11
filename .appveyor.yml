@@ -36,14 +36,14 @@ for:
     install:
       - git submodule update --init --recursive
       - sudo pip3 install protobuf
-      - brew install qt opus openssl@1.1 nasm sdl2 protobuf
+      - brew install qt@5 opus openssl@1.1 nasm sdl2 protobuf
       - scripts/build-ffmpeg.sh
 
     build_script:
-      - export CMAKE_PREFIX_PATH="`pwd`/ffmpeg-prefix;/usr/local/opt/openssl@1.1;/usr/local/opt/qt"
+      - export CMAKE_PREFIX_PATH="`pwd`/ffmpeg-prefix;/usr/local/opt/openssl@1.1;/usr/local/opt/qt@5"
       - scripts/build-common.sh
       - cp -a build/gui/chiaki.app Chiaki.app
-      - /usr/local/opt/qt/bin/macdeployqt Chiaki.app -dmg
+      - /usr/local/opt/qt@5/bin/macdeployqt Chiaki.app -dmg
 
     artifacts:
       - path: Chiaki.dmg

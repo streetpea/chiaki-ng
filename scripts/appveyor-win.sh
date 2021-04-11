@@ -26,7 +26,7 @@ ninja || exit 1
 ninja install || exit 1
 cd ../.. || exit 1
 
-wget https://mirror.firedaemon.com/OpenSSL/openssl-1.1.1d-dev.zip && 7z x openssl-1.1.1d-dev.zip || exit 1
+wget https://mirror.firedaemon.com/OpenSSL/openssl-1.1.1l-dev.zip && 7z x openssl-1.1.1l-dev.zip || exit 1
 
 wget https://www.libsdl.org/release/SDL2-devel-2.0.10-VC.zip && 7z x SDL2-devel-2.0.10-VC.zip || exit 1
 export SDL_ROOT="$APPVEYOR_BUILD_FOLDER/SDL2-2.0.10" || exit 1
