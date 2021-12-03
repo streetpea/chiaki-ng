@@ -9,6 +9,7 @@ packages:
   - ninja
   - protoc
   - py3-protobuf
+  - py3-setuptools
   - opus-dev
   - qt5-qtbase-dev
   - qt5-qtsvg-dev

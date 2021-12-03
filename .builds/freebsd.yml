@@ -1,5 +1,5 @@
 
-image: freebsd/latest
+image: freebsd/13.x
 
 sources:
   - https://git.sr.ht/~thestr4ng3r/chiaki
@@ -7,7 +7,7 @@ sources:
 packages:
   - cmake
   - protobuf
-  - py37-protobuf
+  - py38-protobuf
   - opus
   - qt5-core
   - qt5-qmake
