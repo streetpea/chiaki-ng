@@ -5,10 +5,7 @@ set -xveo pipefail
 arg1=$1
 build="./build"
 if [ "$arg1" != "linux" ]; then
-	# source /opt/devkitpro/switchvars.sh
-	# toolchain="${DEVKITPRO}/switch.cmake"
 	toolchain="cmake/switch.cmake"
-	export PORTLIBS_PREFIX="$(${DEVKITPRO}/portlibs_prefix.sh switch)"
 	build="./build_switch"
 fi
 

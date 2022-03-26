@@ -15,4 +15,4 @@
 	url = https://github.com/google/oboe
 [submodule "switch/borealis"]
 	path = switch/borealis
-	url = https://github.com/natinusala/borealis.git
+	url = https://git.sr.ht/~thestr4ng3r/borealis

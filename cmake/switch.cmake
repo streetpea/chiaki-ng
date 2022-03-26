@@ -1,33 +1,14 @@
 
 # Find DEVKITPRO
 set(DEVKITPRO "$ENV{DEVKITPRO}" CACHE PATH "Path to DevKitPro")
-set(PORTLIBS_PREFIX "$ENV{PORTLIBS_PREFIX}" CACHE PATH "Path to portlibs inside DevKitPro")
-if(NOT DEVKITPRO OR NOT PORTLIBS_PREFIX)
-	message(FATAL_ERROR "Please set DEVKITPRO & PORTLIBS_PREFIX env before calling cmake. https://devkitpro.org/wiki/Getting_Started")
+if(NOT DEVKITPRO)
+	message(FATAL_ERROR "Please set DEVKITPRO env before calling cmake. https://devkitpro.org/wiki/Getting_Started")
 endif()
 
 # include devkitpro toolchain
-include("${DEVKITPRO}/switch.cmake")
+include("${DEVKITPRO}/cmake/Switch.cmake")
 
 set(NSWITCH TRUE)
-
-# Enable gcc -g, to use
-# /opt/devkitpro/devkitA64/bin/aarch64-none-elf-addr2line -e build_switch/switch/chiaki -f -p -C -a 0xCCB5C
-# set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-# set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Shared libs not available" )
-
-# FIXME rework this file to use the toolchain only
-# https://github.com/diasurgical/devilutionX/pull/764
-set(ARCH "-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -ftls-model=local-exec")
-# set(CMAKE_C_FLAGS "-O2 -ffunction-sections ${ARCH}")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
-# workaroud force -fPIE to avoid
-# aarch64-none-elf/bin/ld: read-only segment has dynamic relocations
-set(CMAKE_EXE_LINKER_FLAGS "-specs=${DEVKITPRO}/libnx/switch.specs ${ARCH} -fPIE -Wl,-Map,Output.map")
-
-# add portlibs to the list of include dir
-include_directories("${PORTLIBS_PREFIX}/include")
 
 # troubleshoot
 message(STATUS "CMAKE_FIND_ROOT_PATH = ${CMAKE_FIND_ROOT_PATH}")
@@ -79,4 +60,3 @@ function(add_nro_target output_name target title author version icon romfs)
 endfunction()
 
 set(CMAKE_USE_SYSTEM_ENVIRONMENT_PATH OFF)
-set(CMAKE_PREFIX_PATH "/")

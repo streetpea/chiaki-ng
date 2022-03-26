@@ -22,7 +22,7 @@ tasks:
     sudo docker run \
       -v /home/build:/home/build \
       -u $(id -u):$(id -g) \
-      thestr4ng3r/android:f064ea6 \
+      thestr4ng3r/android:b2853cc \
       /bin/bash -c "cd /home/build/chiaki/android && ./gradlew assembleRelease bundleRelease"
     cp chiaki/android/app/build/outputs/apk/release/app-release*.apk Chiaki.apk
     cp chiaki/android/app/build/outputs/bundle/release/app-release*.aab Chiaki.aab

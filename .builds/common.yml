@@ -1,5 +1,5 @@
 
-image: alpine/latest
+image: alpine/edge # on edge for https://gitlab.alpinelinux.org/alpine/aports/-/issues/13287
 
 sources:
   - https://git.sr.ht/~thestr4ng3r/chiaki
