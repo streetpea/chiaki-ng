@@ -24,6 +24,7 @@ endif()
 tri_option(CHIAKI_ENABLE_FFMPEG_DECODER "Enable FFMPEG video decoder" ${CHIAKI_FFMPEG_DEFAULT})
 tri_option(CHIAKI_ENABLE_PI_DECODER "Enable Raspberry Pi-specific video decoder (requires libraspberrypi0 and libraspberrypi-doc)" AUTO)
 option(CHIAKI_LIB_ENABLE_MBEDTLS "Use mbedtls instead of OpenSSL as part of Chiaki Lib" OFF)
+option(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT "Fetch Mbed TLS instead of using system-provided libs" OFF)
 option(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT "Use OpenSSL as CMake external project" OFF)
 option(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER "Use SDL Gamecontroller for Input" ON)
 option(CHIAKI_CLI_ARGP_STANDALONE "Search for standalone argp lib for CLI" OFF)
@@ -89,6 +90,17 @@ endif()
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	add_definitions(-DCHIAKI_LIB_ENABLE_MBEDTLS)
+	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)
+		include(FetchContent)
+		set(ENABLE_TESTING OFF)
+		set(USE_SHARED_MBEDTLS_LIBRARY OFF)
+		FetchContent_Declare(
+			mbedtls
+			GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+			GIT_TAG 8b3f26a5ac38d4fdccbc5c5366229f3e01dafcc0 # v2.28.0
+		)
+		FetchContent_MakeAvailable(mbedtls)
+	endif()
 endif()
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
