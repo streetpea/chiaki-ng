@@ -23,7 +23,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 
 	try
 	{
-		if(connect_info.fullscreen)
+		if(connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
 			showFullScreen();
 		Init();
 	}
@@ -47,9 +47,17 @@ void StreamWindow::Init()
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
+	AVOpenGLWidget::ResolutionMode resolution_mode;
+	if(connect_info.zoom)
+		resolution_mode = AVOpenGLWidget::Zoom;
+	else if(connect_info.stretch)
+		resolution_mode = AVOpenGLWidget::Stretch;
+	else
+		resolution_mode = AVOpenGLWidget::Normal;
+
 	if(session->GetFfmpegDecoder())
 	{
-		av_widget = new AVOpenGLWidget(session, this);
+		av_widget = new AVOpenGLWidget(session, this, resolution_mode);
 		setCentralWidget(av_widget);
 	}
 	else
@@ -68,6 +76,22 @@ void StreamWindow::Init()
 	addAction(fullscreen_action);
 	connect(fullscreen_action, &QAction::triggered, this, &StreamWindow::ToggleFullscreen);
 
+	auto stretch_action = new QAction(tr("Stretch"), this);
+	stretch_action->setShortcut(Qt::CTRL + Qt::Key_S);
+	addAction(stretch_action);
+	connect(stretch_action, &QAction::triggered, this, &StreamWindow::ToggleStretch);
+
+	auto zoom_action = new QAction(tr("Zoom"), this);
+	zoom_action->setShortcut(Qt::CTRL + Qt::Key_Z);
+	addAction(zoom_action);
+	connect(zoom_action, &QAction::triggered, this, &StreamWindow::ToggleZoom);
+
+
+	auto quit_action = new QAction(tr("Quit"), this);
+	quit_action->setShortcut(Qt::CTRL + Qt::Key_Q);
+	addAction(quit_action);
+	connect(quit_action, &QAction::triggered, this, &StreamWindow::Quit);
+
 	resize(connect_info.video_profile.width, connect_info.video_profile.height);
 	show();
 }
@@ -82,6 +106,11 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 {
 	if(session)
 		session->HandleKeyboardEvent(event);
+}
+
+void StreamWindow::Quit()
+{
+	close();
 }
 
 void StreamWindow::mousePressEvent(QMouseEvent *event)
@@ -181,6 +210,22 @@ void StreamWindow::ToggleFullscreen()
 		showFullScreen();
 		if(av_widget)
 			av_widget->HideMouse();
+	}
+}
+
+void StreamWindow::ToggleStretch()
+{
+	if(av_widget)
+	{
+		av_widget->ToggleStretch();
+	}
+}
+
+void StreamWindow::ToggleZoom()
+{
+	if(av_widget)
+	{
+		av_widget->ToggleZoom();
 	}
 }
 

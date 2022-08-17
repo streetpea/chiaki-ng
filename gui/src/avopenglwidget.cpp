@@ -122,9 +122,9 @@ QSurfaceFormat AVOpenGLWidget::CreateSurfaceFormat()
 	return format;
 }
 
-AVOpenGLWidget::AVOpenGLWidget(StreamSession *session, QWidget *parent)
+AVOpenGLWidget::AVOpenGLWidget(StreamSession *session, QWidget *parent, ResolutionMode resolution_mode)
 	: QOpenGLWidget(parent),
-	session(session)
+	session(session), resolution_mode(resolution_mode)
 {
 	enum AVPixelFormat pixel_format = chiaki_ffmpeg_decoder_get_pixel_format(session->GetFfmpegDecoder());
 	conversion_config = nullptr;
@@ -181,6 +181,22 @@ void AVOpenGLWidget::ResetMouseTimeout()
 void AVOpenGLWidget::HideMouse()
 {
 	setCursor(Qt::BlankCursor);
+}
+
+void AVOpenGLWidget::ToggleZoom()
+{
+	if( resolution_mode == Zoom )
+		resolution_mode = Normal;
+	else
+		resolution_mode = Zoom;
+}
+
+void AVOpenGLWidget::ToggleStretch()
+{
+	if( resolution_mode == Stretch )
+		resolution_mode = Normal;
+	else
+		resolution_mode = Stretch;
 }
 
 void AVOpenGLWidget::SwapFrames()
@@ -381,7 +397,8 @@ void AVOpenGLWidget::paintGL()
 		vp_width = widget_width;
 		vp_height = widget_height;
 	}
-	else
+	// Optimized for normal most often, followed by zoom, followed by stretch
+	else if(resolution_mode == Normal)
 	{
 		float aspect = (float)frame->width / (float)frame->height;
 		if(aspect < (float)widget_width / (float)widget_height)
@@ -393,6 +410,35 @@ void AVOpenGLWidget::paintGL()
 		{
 			vp_width = widget_width;
 			vp_height = (GLsizei)(vp_width / aspect);
+		}
+	}
+	else if(resolution_mode == Zoom)
+	{
+		float aspect = (float)frame->width / (float)frame->height;
+		if(aspect < (float)widget_width / (float)widget_height)
+		{
+			vp_width = widget_width;
+			vp_height = (GLsizei)(vp_width / aspect);
+		}
+		else
+		{
+			vp_height = widget_height;
+			vp_width = (GLsizei)(vp_height * aspect);
+		}
+	}
+	// Stretch if not Normal or Zoom (least likely so least optimized)
+	else
+	{
+		float aspect = (float)frame->width / (float)frame->height;
+		if(aspect < (float)widget_width / (float)widget_height)
+		{
+			vp_height = widget_height;
+			vp_width = widget_width;
+		}
+		else
+		{
+			vp_width = widget_width;
+			vp_height = widget_height;
 		}
 	}
 

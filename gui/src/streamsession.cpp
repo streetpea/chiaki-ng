@@ -14,7 +14,7 @@
 
 #define SETSU_UPDATE_INTERVAL_MS 4
 
-StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen)
+StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen, bool zoom, bool stretch)
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
@@ -30,6 +30,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTar
 	this->morning = morning;
 	audio_buffer_size = settings->GetAudioBufferSize();
 	this->fullscreen = fullscreen;
+	this->zoom = zoom;
+	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
 }
 

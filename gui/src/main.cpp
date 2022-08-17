@@ -99,8 +99,14 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption morning_option("morning", "", "morning");
 	parser.addOption(morning_option);
 
-	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen (only for use with stream command)");
+	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen mode [maintains aspect ratio, adds black bars to fill unsused parts of screen if applicable] (only for use with stream command)");
 	parser.addOption(fullscreen_option);
+
+	QCommandLineOption zoom_option("zoom", "Start window in fullscreen zoomed in to fit screen [maintains aspect ratio, cutting off edges of image to fill screen] (only for use with stream command)");
+	parser.addOption(zoom_option);
+
+	QCommandLineOption stretch_option("stretch", "Start window in fullscreen stretched to fit screen [distorts aspect ratio to fill screen] (only for use with stream command)");
+	parser.addOption(stretch_option);
 
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
@@ -170,7 +176,14 @@ int real_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, parser.isSet(fullscreen_option));
+		if ((parser.isSet(stretch_option) && (parser.isSet(zoom_option) || parser.isSet(fullscreen_option))) || (parser.isSet(zoom_option) && parser.isSet(fullscreen_option)))
+		{
+			printf("Must choose between fullscreen, zoom or stretch option.");
+			return 1;
+		}
+
+		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, parser.isSet(fullscreen_option), parser.isSet(zoom_option), parser.isSet(stretch_option));
+
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI

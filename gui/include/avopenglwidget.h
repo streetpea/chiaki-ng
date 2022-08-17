@@ -74,13 +74,15 @@ class AVOpenGLWidget: public QOpenGLWidget
 	public:
 		static QSurfaceFormat CreateSurfaceFormat();
 
-		explicit AVOpenGLWidget(StreamSession *session, QWidget *parent = nullptr);
+		enum ResolutionMode {Normal = 0, Zoom = 1, Stretch = 2};
+		explicit AVOpenGLWidget(StreamSession *session, QWidget *parent = nullptr, ResolutionMode resolution_mode = Normal);
 		~AVOpenGLWidget() override;
 
 		void SwapFrames();
 		AVOpenGLFrame *GetBackgroundFrame()	{ return &frames[1 - frame_fg]; }
 
 	protected:
+		ResolutionMode resolution_mode;
 		void mouseMoveEvent(QMouseEvent *event) override;
 
 		void initializeGL() override;
@@ -90,6 +92,8 @@ class AVOpenGLWidget: public QOpenGLWidget
 		void ResetMouseTimeout();
 	public slots:
 		void HideMouse();
+		void ToggleStretch();
+		void ToggleZoom();
 };
 
 #endif // CHIAKI_AVOPENGLWIDGET_H
