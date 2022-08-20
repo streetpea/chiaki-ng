@@ -1,0 +1,108 @@
+app-id: re.chiaki.Chiaki4deck
+branch: chiaki4deck
+runtime: org.kde.Platform
+runtime-version: '5.15-21.08'
+sdk: org.kde.Sdk
+command: chiaki
+rename-icon: chiaki
+rename-desktop-file: chiaki.desktop
+separate-locales: false
+build-options:
+  no-debuginfo: true
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --device=all
+  - --allow=bluetooth
+  - --socket=pulseaudio
+  - --own-name=org.kde.*
+  - --env=DBUS_FATAL_WARNINGS=0
+  - --talk-name=org.freedesktop.ScreenSaver
+
+modules:
+  - name: protobuf-compilers
+    sources:
+      - type: archive
+        url: https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz
+        sha256: 58c8a18b4ec22655535c493155c5465a8903e8249094ceead87e00763bdbc44f
+
+  - name: ffmpeg
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+      - /share/ffmpeg/examples
+    config-opts:
+      - --enable-shared
+      - --disable-static
+      - --enable-gnutls
+      - --disable-doc
+      - --disable-programs
+      - --disable-encoders
+      - --disable-muxers
+      - --enable-encoder=png
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-4.3.4.tar.xz
+        sha256: c117d9b778be1be2d3889757567113c5e940bad6913b16f9e86c31509f9d742d
+
+  - name: python3-google
+    buildsystem: simple
+    build-commands:
+      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} google"
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/3e/db/5ba900920642414333bdc3cb397075381d63eafc7e75c2373bbc560a9fa1/soupsieve-2.0.1.tar.gz
+        sha256: a59dc181727e95d25f781f0eb4fd1825ff45590ec8ff49eadfd7f1a537cc0232
+      - type: file
+        url: https://files.pythonhosted.org/packages/e8/b0/cd2b968000577ec5ce6c741a54d846dfa402372369b8b6861720aa9ecea7/beautifulsoup4-4.11.1.tar.gz
+        sha256: ad9aa55b65ef2808eb405f46cf74df7fcb7044d5cbc26487f96eb2ef2e436693
+      - type: file
+        url: https://files.pythonhosted.org/packages/89/97/b49c69893cddea912c7a660a4b6102c6b02cd268f8c7162dd70b7c16f753/google-3.0.0.tar.gz
+        sha256: 143530122ee5130509ad5e989f0512f7cb218b2d4eddbafbad40fd10e8d8ccbe
+
+  - name: python3-protobuf
+    buildsystem: simple
+    build-commands:
+      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} protobuf"
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/51/90/d2bf065b8753951e5fdba822af358edae6dac055b81f018e1ec74d8ba71e/protobuf-4.21.5.tar.gz
+        sha256: eb1106e87e095628e96884a877a51cdb90087106ee693925ec0a300468a9be3a
+
+  - name: Libevdev
+    config-opts:
+      - --prefix=/app
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://www.freedesktop.org/software/libevdev/libevdev-1.13.0.tar.xz
+        sha256: 9edf2006cc86a5055279647c38ec923d11a821ee4dc2c3033e8d20e8ee237cd9
+
+  - name: SDL2
+    config-opts:
+      - --enable-sdl-dlopen
+      - --disable-arts
+      - --disable-esd
+      - --disable-nas
+      - --disable-alsa
+      - --disable-oss
+      - --disable-sndio
+      - --disable-libudev
+      - --enable-video-wayland
+      - --enable-wayland-shared=no
+      - --enable-video-kmsdrm
+      - --disable-rpath
+    sources:
+      - type: git
+        url: https://github.com/libsdl-org/SDL.git
+        tag: release-2.24.0
+
+  - name: chiaki4deck
+    buildsystem: cmake
+    builddir: true
+    sources:
+      - type: git
+        url: https://github.com/streetpea/chiaki4deck.git
+        branch: chiaki4deck

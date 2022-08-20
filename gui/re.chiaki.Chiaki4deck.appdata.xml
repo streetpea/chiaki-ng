@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2020 Florian Märkl <chiaki@metallic.software> -->
+<!-- Copyright 2022 Florian Märkl <chiaki@metallic.software> -->
 <component type="desktop">
-  <id>re.chiaki.Chiaki</id>
-  <launchable type="desktop-id">chiaki.desktop</launchable>
-  <name>Chiaki</name>
-  <summary>Free and Open Source Client for PlayStation Remote Play</summary>
+  <id>re.chiaki.Chiaki4deck</id>
+  <launchable type="desktop-id">chiaki4deck.desktop</launchable>
+  <name>Chiaki4deck</name>
+  <summary>Free and Open Source Client for PlayStation Remote Play modified for Steam Deck</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <developer_name>Florian Märkl</developer_name>
-  <url type="homepage">https://chiaki.re</url>
-  <url type="help">https://git.sr.ht/~thestr4ng3r/chiaki/tree/master/item/README.md#usage</url>
+  <url type="homepage">https://streetpea.github.io/chiaki4deck</url>
+  <url type="help">https://github.com/streetpea/chiaki4deck/issues</url>
   <description>
     <p>
       Chiaki is a Free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
@@ -20,6 +20,8 @@
       <image>https://git.sr.ht/~thestr4ng3r/chiaki/blob/refs/heads/master/assets/screenshot.png</image>
     </screenshot>
   </screenshots>
-  <update_contact>chiaki@metallic.software</update_contact>
+  <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
-</component>
+  <releases>
+    <release date="2022-08-21" version="1.0.0" />
+  </releases>
