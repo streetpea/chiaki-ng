@@ -20,6 +20,7 @@ finish-args:
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
   - --talk-name=org.freedesktop.ScreenSaver
+  - --filesystem=/run/udev:ro
 
 modules:
   - name: protobuf-compilers
@@ -99,6 +100,27 @@ modules:
         url: https://github.com/libsdl-org/SDL.git
         tag: release-2.24.0
 
+  - name: python3-requests
+    buildsystem: simple
+    build-commands:
+      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} requests"
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/ea/b7/e0e3c1c467636186c39925827be42f16fee389dc404ac29e930e9136be70/idna-2.10.tar.gz
+        sha256: b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6
+      - type: file
+        url: https://files.pythonhosted.org/packages/da/67/672b422d9daf07365259958912ba533a0ecab839d4084c487a5fe9a5405f/requests-2.24.0.tar.gz
+        sha256: b3559a131db72c33ee969480840fff4bb6dd111de7dd27c8ee1f820f4f00231b
+      - type: file
+        url: https://files.pythonhosted.org/packages/40/a7/ded59fa294b85ca206082306bba75469a38ea1c7d44ea7e1d64f5443d67a/certifi-2020.6.20.tar.gz
+        sha256: 5930595817496dd21bb8dc35dad090f1c2cd0adfaf21204bf6732ca5d8ee34d3
+      - type: file
+        url: https://files.pythonhosted.org/packages/81/f4/87467aeb3afc4a6056e1fe86626d259ab97e1213b1dfec14c7cb5f538bf0/urllib3-1.25.10.tar.gz
+        sha256: 91056c15fa70756691db97756772bb1eb9678fa585d9184f24534b100dc60f4a
+      - type: file
+        url: https://files.pythonhosted.org/packages/fc/bb/a5768c230f9ddb03acc9ef3f0d4a3cf93462473795d18e9535498c8f929d/chardet-3.0.4.tar.gz
+        sha256: 84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae
+
   - name: chiaki4deck
     buildsystem: cmake
     builddir: true
@@ -106,3 +128,5 @@ modules:
       - type: git
         url: https://github.com/streetpea/chiaki4deck.git
         branch: chiaki4deck
+    post-install:
+      - "install -Dm755 ../scripts/psn-account-id.py /app/bin/psn-account-id"
