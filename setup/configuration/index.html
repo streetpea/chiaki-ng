@@ -1,0 +1,1293 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://streetpea.github.io/chiaki4deck/setup/configuration/">
+      
+      <link rel="icon" href="../../images/chiaki.svg">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
+    
+    
+      
+        <title>Configuration - chiaki4deck</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.69437709.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.cbb835fc.min.css">
+        
+      
+      
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings1.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings2.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings3.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings4.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings5.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-enum-headings6.css">
+    
+      <link rel="stylesheet" href="../../css/print-site.css">
+    
+      <link rel="stylesheet" href="../../css/print-site-material.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+
+  <script id="__analytics">function __md_analytics(){function n(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],n("js",new Date),n("config","G-LCLEDWLWSR"),document.addEventListener("DOMContentLoaded",function(){if(document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&n("event","search",{search_term:this.value})}),document.forms.feedback){var e,a=document.forms.feedback;for(e of a.querySelectorAll("[type=submit]"))e.addEventListener("click",function(e){e.preventDefault();var t=document.location.pathname,e=this.getAttribute("data-md-value");n("event","feedback",{page:t,data:e}),a.firstElementChild.disabled=!0;e=a.querySelector(".md-feedback__note [data-md-value='"+e+"']");e&&(e.hidden=!1)}),a.hidden=!1}"undefined"!=typeof location$&&location$.subscribe(function(e){n("config","G-LCLEDWLWSR",{page_path:e.pathname})})});var e=document.createElement("script");e.async=!0,e.src="https://www.googletagmanager.com/gtag/js?id=G-LCLEDWLWSR",document.getElementById("__analytics").insertAdjacentElement("afterEnd",e)}</script>
+
+  
+    <script>var consent;"undefined"==typeof __md_analytics||(consent=__md_get("__consent"))&&consent.analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="lime">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuring-chiaki4deck" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="chiaki4deck" class="md-header__button md-logo" aria-label="chiaki4deck" data-md-component="logo">
+      
+  <img src="../../images/chiaki.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            chiaki4deck
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <form class="md-header__option" data-md-component="palette">
+        
+          
+          
+          <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+          
+            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_2" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+            </label>
+          
+        
+          
+          
+          <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="lime"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_2">
+          
+            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+            </label>
+          
+        
+      </form>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/streetpea/chiaki4deck" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../.." class="md-tabs__link">
+      Home
+    </a>
+  </li>
+
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link md-tabs__link--active">
+        Setup
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../updates/" class="md-tabs__link">
+        Updates
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../diy/buildit/" class="md-tabs__link">
+        DIY
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../../print_page/" class="md-tabs__link">
+      Print Site
+    </a>
+  </li>
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="chiaki4deck" class="md-nav__button md-logo" aria-label="chiaki4deck" data-md-component="logo">
+      
+  <img src="../../images/chiaki.svg" alt="logo">
+
+    </a>
+    chiaki4deck
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/streetpea/chiaki4deck" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+      
+      
+      
+        
+          
+            
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+      
+      
+        
+        
+        <div class="md-nav__link md-nav__link--index ">
+          <a href="../">Setup</a>
+          
+            <label for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+            </label>
+          
+        </div>
+      
+      <nav class="md-nav" aria-label="Setup" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Setup
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        Installation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Configuration
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Configuration
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#registering-your-playstation" class="md-nav__link">
+    Registering your PlayStation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-your-connection" class="md-nav__link">
+    Testing your Connection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-your-remote-play-settings" class="md-nav__link">
+    Choosing your Remote Play Settings
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-of-chiakichiaki4deck" class="md-nav__link">
+    Performance of Chiaki/chiaki4deck
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance of Chiaki/chiaki4deck">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#my-experience" class="md-nav__link">
+    My Experience
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting-performance-issues" class="md-nav__link">
+    Troubleshooting Performance Issues
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chiaki-via-internet-outside-of-home-connection" class="md-nav__link">
+    Chiaki via Internet (Outside of Home Connection)
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../automation/" class="md-nav__link">
+        Automation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../steaming/" class="md-nav__link">
+        Game (Mode) Time
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../controlling/" class="md-nav__link">
+        Controller Options
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
+      
+      
+      
+        
+          
+            
+          
+        
+          
+        
+          
+        
+      
+      
+        
+        
+        <div class="md-nav__link md-nav__link--index ">
+          <a href="../../updates/">Updates</a>
+          
+            <label for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+            </label>
+          
+        </div>
+      
+      <nav class="md-nav" aria-label="Updates" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Updates
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../updates/done/" class="md-nav__link">
+        Done
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../updates/planned/" class="md-nav__link">
+        Planned
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+      
+      
+      
+        
+          
+        
+      
+      
+        <label class="md-nav__link" for="__nav_4">
+          DIY
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="DIY" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          DIY
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diy/buildit/" class="md-nav__link">
+        Building the Flatpak Yourself
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../print_page/" class="md-nav__link">
+        Print Site
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#registering-your-playstation" class="md-nav__link">
+    Registering your PlayStation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-your-connection" class="md-nav__link">
+    Testing your Connection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-your-remote-play-settings" class="md-nav__link">
+    Choosing your Remote Play Settings
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-of-chiakichiaki4deck" class="md-nav__link">
+    Performance of Chiaki/chiaki4deck
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance of Chiaki/chiaki4deck">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#my-experience" class="md-nav__link">
+    My Experience
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting-performance-issues" class="md-nav__link">
+    Troubleshooting Performance Issues
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chiaki-via-internet-outside-of-home-connection" class="md-nav__link">
+    Chiaki via Internet (Outside of Home Connection)
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+  <a href="https://github.com/streetpea/chiaki4deck/edit/chiaki4deck/docs/setup/configuration.md" title="Edit this page" class="md-content__button md-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
+  </a>
+
+
+
+<h1 id="configuring-chiaki4deck">Configuring <code>chiaki4deck</code><a class="headerlink" href="#configuring-chiaki4deck" title="Permanent link">&para;</a></h1>
+<h2 id="registering-your-playstation">Registering your PlayStation<a class="headerlink" href="#registering-your-playstation" title="Permanent link">&para;</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Upgrading from Using Chiaki Flatpak on Steam Deck</label><label for="__tabbed_1_2">New to Using Chiaki on Steam Deck</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Create initial file templates for <code>chiaki4deck</code></p>
+<ol>
+<li>
+<p>Open <code>chiaki4deck</code> by clicking the Steam icon in the bottom left and searching for it in the <code>Games</code> section via the graphical user interface (GUI) or by entering <code>flatpak run re.chiaki.Chiaki4deck</code> in the <code>konsole</code></p>
+</li>
+<li>
+<p>Close <code>chiaki4deck</code></p>
+</li>
+</ol>
+</li>
+<li>
+<p>Copy your configuration file from the Chiaki flatpak with the following <code>konsole</code> command</p>
+<div class="highlight"><pre><span></span><code>cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf
+</code></pre></div>
+</li>
+<li>
+<p>Open <code>chiaki4deck</code> again and you should see your registered console and settings from Chiaki now copied to <code>chiaki4deck</code>.</p>
+<div class="admonition question">
+<p class="admonition-title">What Did I Just Do?</p>
+<p>You just replaced the config file (flatpak stores config files for each app in <code>~/.var/app/appid/config</code> where <code>appid</code> is your app's appid) for <code>chiaki4deck</code> (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with <code>chiaki4deck</code> and can start using it as quickly as possible.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Get your PlayStation AccountID (This is needed to access your ps account)</p>
+<ol>
+<li>
+<p>Run the flatpak with the <code>psn-account-id</code> command</p>
+<div class="highlight"><pre><span></span><code>flatpak run --command<span class="o">=</span>psn-account-id re.chiaki.Chiaki4deck
+</code></pre></div>
+</li>
+<li>
+<p>Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.</p>
+</li>
+<li>
+<p>Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Open <code>chiaki4deck</code> (click the Steam icon in the bottom left and search for it in the <code>Games</code> section via GUI or <code>flatpak run re.chiaki.Chiaki4deck</code> via <code>konsole</code>) and your PlayStation system should be automatically discovered.</p>
+<p><img alt="Unregistered PS5" src="../images/UnregisteredPS5.png" /></p>
+<div class="admonition question">
+<p class="admonition-title">What if my PlayStation Console isn't Appearing?</p>
+<p>Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again.</p>
+</div>
+</li>
+<li>
+<p>Register your PlayStation console</p>
+<ol>
+<li>
+<p>Double click on the blue box to bring up a registration window</p>
+<p><img alt="Registration Window" src="../images/AddPS5Regular.png" /></p>
+</li>
+<li>
+<p>Choose your console type</p>
+</li>
+<li>
+<p>Enter your PSN Account-ID obtained in step 1 above.</p>
+</li>
+<li>
+<p>Get a registration code for remote play</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">PS5</label><label for="__tabbed_2_2">PS4</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; System -&gt; Remote Play -&gt; Link Device</code></p>
+</div>
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; Remote Play -&gt; Add Device</code></p>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Enter the code from your device in the <code>PIN</code> field</p>
+</li>
+<li>
+<p>Click Register (will become available when all necessary fields are filled)</p>
+</li>
+</ol>
+</li>
+<li>
+<p>You should see this upon successful registration</p>
+<p><img alt="Successful Registration" src="../images/RegisteredConsole.png" /></p>
+</li>
+<li>
+<p>Click out of the dialog boxes and see that your console now shows registered</p>
+<p><img alt="Console Registered" src="../images/PS5Connected.png" /></p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<h2 id="testing-your-connection">Testing your Connection<a class="headerlink" href="#testing-your-connection" title="Permanent link">&para;</a></h2>
+<p>Launch the connection to test it by opening <code>chiaki4deck</code> and double clicking on the box with the console icon. You can even test launching a game if you want. Exit out of the window once you've tested the connection.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">It worked! <img alt="😄" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f604.svg" title=":smile:" /></label><label for="__tabbed_3_2">It didn't work <img alt="😦" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f626.svg" title=":frowning:" /></label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="admonition success">
+<p class="admonition-title">Purrfect <img alt="🐱" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f431.svg" title=":cat:" /></p>
+<p>You were able to launch your stream and connect. Maybe, you even got a game running.</p>
+<p><img alt="Stray Full Screen" src="../images/Stray_Fullscreen.jpg" /></p>
+</div>
+</div>
+<div class="tabbed-block">
+<div class="admonition error">
+<p class="admonition-title">An error occurred</p>
+<ol>
+<li>
+<p>Please try closing and re-launching to make sure it wasn't some sort of temporary snafu (maybe your console was updating something and didn't want to let you connect right away)</p>
+</li>
+<li>
+<p>Make sure your PlayStation shows as registered and is currently either on or in sleep mode. If it's not on or in sleep mode, you can't connect to it.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<h2 id="choosing-your-remote-play-settings">Choosing your Remote Play Settings<a class="headerlink" href="#choosing-your-remote-play-settings" title="Permanent link">&para;</a></h2>
+<p>Here are different settings you can use for Chiaki/<code>chiaki4deck</code> depending on your network connection. The default configuration is for remote play on a home network only, this means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection. </p>
+<div class="admonition question">
+<p class="admonition-title">What does that mean for me?</p>
+<p>If you are in an area with bad Internet, as long as you have a good wireless router, you can get close to native performance.</p>
+</div>
+<ol>
+<li>
+<p>Open <code>chiaki4deck</code> and click the gear icon in the top right to open the settings menu</p>
+<p><img alt="Open Settings" src="../images/OpenSettings.png" /></p>
+</li>
+<li>
+<p>Adjust the settings to your preferences. Below are the settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p</strong> tab if you have a PS5 or the <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">PS5/1080P</label><label for="__tabbed_4_2">PS4/720P</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
+<p><img alt="1080p Settings" src="../images/1080P_Settings.png" /></p>
+<details class="question" open="open">
+<summary>Why 1080p if the Steam Deck is only 800p?</summary>
+<p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener noreferrer" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
+<p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
+</details>
+</div>
+<div class="tabbed-block">
+<p>For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup.</p>
+<p><img alt="720p Settings" src="../images/720P_Settings.png" /></p>
+</div>
+</div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Putting your PlayStation Console to Sleep Automatically</p>
+<p>For <code>Action on Disconnect</code>, choose <code>Enter Sleep Mode</code> to automatically put your PlayStation console to sleep as soon as you close your session with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> (you will add this shortcut as part of you controller configuration in <a href="../controlling/" rel="noopener noreferrer" target="_blank">controller section</a>). </p>
+<p>If you prefer, you can also use <code>Ask</code> (the default) to get prompted about putting your PlayStation to sleep when you close your session (use <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span>).</p>
+</div>
+</li>
+</ol>
+<h2 id="performance-of-chiakichiaki4deck">Performance of Chiaki/<code>chiaki4deck</code><a class="headerlink" href="#performance-of-chiakichiaki4deck" title="Permanent link">&para;</a></h2>
+<h3 id="my-experience">My Experience<a class="headerlink" href="#my-experience" title="Permanent link">&para;</a></h3>
+<p>Ultimately, the performance will depend on the capability of your wireless router and which system (<span class="arithmatex">\(PS5 &gt; PS4 Pro &gt; PS4\)</span>) you are using. Here are some notes from my experience using <code>chiaki4deck</code> on my Steam Deck with a PS5 console and a relatively good (<span class="arithmatex">\(450 Mbps\)</span> for <span class="arithmatex">\(2.4GHz\)</span> / <span class="arithmatex">\(1,300 Mbps\)</span> for <span class="arithmatex">\(5GHz\)</span>) wireless router.</p>
+<div class="admonition example">
+<p class="admonition-title">My Wireless Connection by the Numbers</p>
+<p>I'm using the <span class="arithmatex">\(5GHz\)</span> band for <code>chiaki4deck</code> on my Steam Deck, meaning the total bandwidth for all devices on my local network is <span class="arithmatex">\(1,300 Mbps\)</span> (remember Internet connection itself doesn't matter since we're only using our wireless router for local streaming). Since I am using the settings in <a href="#choosing-your-remote-play-settings">Choosing Your Remote Play Settings</a>, I'm using <span class="arithmatex">\((30,000 + 19,200) Kbps \approx 50 Mbps\)</span> out of the total of <span class="arithmatex">\(1,300 Mbps\)</span>. This means I'm using about <span class="arithmatex">\(4\%\)</span> of my <span class="arithmatex">\(5GHz\)</span> band. In other words, I still have plenty of bandwidth for watching Netflix <img alt="🤪" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f92a.svg" title=":zany_face:" /> while I play on my Steam Deck!</p>
+</div>
+<div class="admonition question">
+<p class="admonition-title">What Performance Can I Expect?</p>
+<p>I am currently getting close to native performance using <code>chiaki4deck</code> on my Steam Deck with my PS5. This gives me better performance than I get playing performance heavy games directly on Steam Deck (like that one game where the kid gets bit by a <img alt="🕷" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f577.svg" title=":spider:" />)</p>
+<p>Benefits:</p>
+<ul>
+<li>5-6 hours of battery life (vs 1-2 hours playing the same games natively on Steam Deck)</li>
+<li>access to PlayStation collection (games I have already purchased or have via PS Plus) including exclusives</li>
+<li>Steam Deck quiet as a mouse (especially important when playing while watching a show with others)</li>
+<li>PlayStation Trophies</li>
+</ul>
+<p>Negatives:</p>
+<ul>
+<li>occasional performance issues with certain games (specifically games with VSync enabled)</li>
+<li>lack of touchpad gesture and gyro controls for games that require these</li>
+<li>lack of native microphone support (I use Discord with my friends so not an issue for me, but could be for others).</li>
+</ul>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Games I've Played Successfully Using <code>chiaki4deck</code> So Far...</p>
+<ul>
+<li>Stray</li>
+<li>God of War (2018)</li>
+<li>Genshin Impact (turned off VSync in settings to get rid of white flashes during gameplay)</li>
+<li>Sekiro (occasional white flashes in areas with high crowds. These went away as I got further in the game and never affected my ability to progress. Unfortunately, this seems to be due to VSync being enabled automatically with no option to turn it off. Luckily, the framerate is very solid on PS5 so it happens infrequently (at its peak there was 1 flash every 15 minutes. It only affected about 3 hours of the game in total.)</li>
+<li>Fall Guys</li>
+<li>MultiVersus</li>
+<li>Red Dead Redemption 2</li>
+<li>Marvel's Spider Man</li>
+</ul>
+</div>
+<h3 id="troubleshooting-performance-issues">Troubleshooting Performance Issues<a class="headerlink" href="#troubleshooting-performance-issues" title="Permanent link">&para;</a></h3>
+<div class="admonition example">
+<p class="admonition-title">Examples of performance issues</p>
+<ul>
+<li>white flashes</li>
+<li>green flashes</li>
+<li>audio choppiness/crackling</li>
+<li>excessive lag </li>
+</ul>
+</div>
+<p>To fix these issues, try the following:</p>
+<ol>
+<li>
+<p>If you are not using the settings listed in <a href="#choosing-your-remote-play-settings">Choosing Your Remote Play Settings</a>, try with those settings and see if that fixes it for you.</p>
+</li>
+<li>
+<p>Switch to <strong>720p</strong> from 1080p</p>
+<p><strong>720p</strong> requires less bandwidth than 1080p. This help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems).</p>
+</li>
+<li>
+<p>Try <strong>short preamble</strong></p>
+<p>If you are still having trouble (I didn’t need this but it can help in general and helped significantly improve performance for other streaming services such as Game Pass on my Steam Deck), try using using <a href="https://www.interline.pl/Information-and-Tips/Preamble-Type-Short-Or-Long" rel="noopener noreferrer" target="_blank">short preamble instead of long preamble</a> in your router settings. You need to change this directly in your router settings for the given network and can do it per network if you set up more than one. This is incompatible with old devices (using wifi b/g instead of n or ac). Devices from 2011 and newer are required by law to support it and so will definitely work. Older devices may or may not support it depending on if they have either n or ac wireless support. Short preamble helps the <span class="arithmatex">\(5GHz\)</span> connection for devices that support it (essentially anything that’s connecting on a <span class="arithmatex">\(5GHz\)</span> network should use it). For streaming, you can set up one network that uses short for your newer devices (<span class="arithmatex">\(5GHz\)</span> network for me) and one with long for older devices (<span class="arithmatex">\(2.4 GHz\)</span> network for me since older devices don’t support <span class="arithmatex">\(5GHz\)</span> anyway). My connection worked fine with long preamble on a <span class="arithmatex">\(2.4 GHz\)</span> network for Chiaki but short (and a <span class="arithmatex">\(5GHz\)</span> network for that matter) works better in general for devices that support it and has helped others using Chiaki as well as me to help reduce Game Pass streaming lag (which is still much worse than Chiaki and not close to native, but works well for games that don’t require fast or moderately fast reaction times).</p>
+</li>
+<li>
+<p><strong>Turn off VSync</strong> or the equivalent in games that use it</p>
+<p>VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/<code>chiaki4deck</code>.</p>
+</li>
+</ol>
+<h2 id="chiaki-via-internet-outside-of-home-connection">Chiaki via Internet (Outside of Home Connection)<a class="headerlink" href="#chiaki-via-internet-outside-of-home-connection" title="Permanent link">&para;</a></h2>
+<div class="admonition info">
+<p class="admonition-title">Chiaki/<code>chiaki4deck</code> Outside of your Home Network</p>
+<p>You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly.</p>
+</div>
+
+  <hr>
+<div class="md-source-file">
+  <small>
+    
+      Last update:
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 1, 2022</span>
+      
+        <br>
+        Created:
+        <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 1, 2022</span>
+      
+    
+  </small>
+</div>
+
+
+  
+
+
+
+  <form class="md-feedback" name="feedback" hidden>
+    <fieldset>
+      <legend class="md-feedback__title">
+        Was this page helpful?
+      </legend>
+      <div class="md-feedback__inner">
+        <div class="md-feedback__list">
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page was helpful" data-md-value="1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.08C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35Z"/></svg>
+            </button>
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page could be improved" data-md-value="0">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c.67 0 1.32.12 1.94.33L13 9.35l-4 5 3 7M16.5 3C19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35l-1-7 4.5-5-2.65-5.08C13.87 3.47 15.17 3 16.5 3Z"/></svg>
+            </button>
+          
+        </div>
+        <div class="md-feedback__note">
+          
+            <div data-md-value="1" hidden>
+              
+              
+                
+              
+              
+                Thanks for your feedback!
+              
+            </div>
+          
+            <div data-md-value="0" hidden>
+              
+              
+                
+              
+              
+                Thanks for your feedback! Help me improve this page by using my <a href="https://github.com/streetpea/chiaki4deck/issues/new/?title=[Feedback]+Configuration+-+/setup/configuration/" target="_blank" rel="noopener">feedback form</a>.
+              
+            </div>
+          
+        </div>
+      </div>
+    </fieldset>
+  </form>
+
+              
+            </article>
+            
+          </div>
+        </div>
+        
+          <a href="#" class="md-top md-icon" data-md-component="top" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+            Back to top
+          </a>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+    <nav class="md-footer__inner md-grid" aria-label="Footer" >
+      
+        
+        <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Installation
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../automation/" class="md-footer__link md-footer__link--next" aria-label="Next: Automation" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Automation
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
+favicon: images/chiaki.svg logo: images/chiaki.svg features:
+  - content.tabs.link
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+      
+      
+    
+    <a href="https://github.com/streetpea/chiaki4deck" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    </a>
+  
+    
+    
+      
+      
+    
+    <a href="https://www.reddit.com/u/Street_Pea_6693/?utm_source=share&utm_medium=ios_app&utm_name=iossmf" target="_blank" rel="noopener" title="www.reddit.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M201.5 305.5c-13.8 0-24.9-11.1-24.9-24.6 0-13.8 11.1-24.9 24.9-24.9 13.6 0 24.6 11.1 24.6 24.9 0 13.6-11.1 24.6-24.6 24.6zM504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-132.3-41.2c-9.4 0-17.7 3.9-23.8 10-22.4-15.5-52.6-25.5-86.1-26.6l17.4-78.3 55.4 12.5c0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.3 24.9-24.9s-11.1-24.9-24.9-24.9c-9.7 0-18 5.8-22.1 13.8l-61.2-13.6c-3-.8-6.1 1.4-6.9 4.4l-19.1 86.4c-33.2 1.4-63.1 11.3-85.5 26.8-6.1-6.4-14.7-10.2-24.1-10.2-34.9 0-46.3 46.9-14.4 62.8-1.1 5-1.7 10.2-1.7 15.5 0 52.6 59.2 95.2 132 95.2 73.1 0 132.3-42.6 132.3-95.2 0-5.3-.6-10.8-1.9-15.8 31.3-16 19.8-62.5-14.9-62.5zM302.8 331c-18.2 18.2-76.1 17.9-93.6 0-2.2-2.2-6.1-2.2-8.3 0-2.5 2.5-2.5 6.4 0 8.6 22.8 22.8 87.3 22.8 110.2 0 2.5-2.2 2.5-6.1 0-8.6-2.2-2.2-6.1-2.2-8.3 0zm7.7-75c-13.6 0-24.6 11.1-24.6 24.9 0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.1 24.9-24.6 0-13.8-11-24.9-24.9-24.9z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-consent" data-md-component="consent" id="__consent" hidden>
+        <div class="md-consent__overlay"></div>
+        <aside class="md-consent__inner">
+          <form class="md-consent__form md-grid md-typeset" name="consent">
+            
+
+
+  
+
+
+
+  
+
+<h4>Cookie consent</h4>
+<p>I use cookies to recognize your repeated visits and preferences, as well as to measure the effectiveness of my documentation and whether users find what they're searching for. With your consent, you're helping me to make my documentation better.</p>
+<input type="checkbox" class="md-toggle" id="__settings">
+<div class="md-consent__settings">
+  <ul class="task-list">
+    
+      
+        
+        
+      
+      <li class="task-list-item">
+        <label class="task-list-control">
+          <input type="checkbox" name="analytics" checked>
+          <span class="task-list-indicator"></span>
+          Google Analytics
+        <label>
+      </li>
+    
+  </ul>
+</div>
+<div class="md-consent__controls">
+  
+    
+      <button class="md-button md-button--primary">Accept</button>
+    
+    
+    
+  
+    
+    
+    
+      <label class="md-button" for="__settings">Manage settings</label>
+    
+  
+</div>
+          </form>
+        </aside>
+      </div>
+      <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>
+      
+        <script src="../../js/print-site.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
