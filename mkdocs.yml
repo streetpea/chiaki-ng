@@ -1,0 +1,134 @@
+site_name: chiaki4deck
+repo_url: https://github.com/streetpea/chiaki4deck
+site_url: https://streetpea.github.io/chiaki4deck/
+edit_uri: edit/chiaki4deck/docs
+nav:
+  - Home: index.md
+  - Setup:
+    - Setup Overview: setup/index.md
+    - Installation: setup/installation.md
+    - Configuration: setup/configuration.md
+    - Automation: setup/automation.md
+    - Game (Mode) Time: setup/steaming.md
+    - Controller Options: setup/controlling.md
+  - Updates:
+    - Updates Overview: updates/index.md
+    - Done: updates/done.md
+    - Planned: updates/planned.md
+  - DIY:
+    - Building the Flatpak Yourself: diy/buildit.md
+
+theme:
+  favicon: images/chiaki.svg
+  logo: images/chiaki.svg
+  features:
+    - header.autohide
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
+    - search.share
+    - navigation.indexes
+    
+  name: material
+  palette:
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: black
+      accent: lime
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: black
+      accent: lime
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+copyright: >
+  Copyright &copy; 2022 Street Pea –
+  <a href="#__consent">Change cookie settings</a>
+
+  favicon: images/chiaki.svg
+  logo: images/chiaki.svg
+  features:
+    - content.tabs.link
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/streetpea/chiaki4deck
+    - icon: fontawesome/brands/reddit
+      link: https://www.reddit.com/u/Street_Pea_6693/?utm_source=share&utm_medium=ios_app&utm_name=iossmf
+  analytics:
+    provider: google
+    property: G-LCLEDWLWSR
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/heart
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/heart-broken
+          name: This page could be improved
+          data: 0
+          note: >- 
+            Thanks for your feedback! Help me improve this page by
+            using my <a href="https://github.com/streetpea/chiaki4deck/issues/new/?title=[Feedback]+{title}+-+{url}" target="_blank" rel="noopener">feedback form</a>.
+
+  consent:
+    title: Cookie consent
+    description: >- 
+      I use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of my documentation and whether users
+      find what they're searching for. With your consent, you're helping me to
+      make my documentation better.
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - codehilite
+  - footnotes
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tilde
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - print-site:
+      add_to_navigation: true
