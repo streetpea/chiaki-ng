@@ -1496,7 +1496,7 @@ ______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <sp
 <summary>Example Output</summary>
 <div class="highlight"><pre><span></span><code>Host: PS5-012
 </code></pre></div>
-<p>In this example, the console nickname is <code>PS5-012</code>, please use your nickname</p>
+<p>In this example, the console nickname is <code>PS5-012</code>, please use your nickname. If you have multiple, choose the one from the list you want and choose the corresponding regist_key in the next step (i.e. if you pick the console on the 2<sup>nd</sup> line here, pick the regist_key on the 2<sup>nd</sup> line in the next step).</p>
 </details>
 </li>
 </ol>
@@ -1559,7 +1559,7 @@ connect_error<span class="o">()</span>
 <span class="nb">trap</span> connect_error ERR
 
 <span class="c1"># Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)</span>
-flatpak run re.chiaki.Chiaki4deck wakeup -&lt;playstation_console&gt; -h &lt;console_ip&gt; -r &lt;remote_play_registration_key&gt;
+flatpak run re.chiaki.Chiaki4deck wakeup -&lt;playstation_console&gt; -h &lt;console_ip&gt; -r <span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span>
 sleep <span class="m">1</span>
 <span class="c1"># wait for PlayStation to return one successful packet, exit script on error if it never happens</span>
 ping -c <span class="m">1</span> -w <span class="m">20</span> &lt;console_ip&gt; <span class="p">&amp;</span>&gt;/dev/null
@@ -1569,7 +1569,7 @@ sleep <span class="m">1</span>
 <span class="nb">trap</span> - ERR
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --&lt;launch_option&gt; stream &lt;console_nickname&gt; &lt;console_ip&gt;
+flatpak run re.chiaki.Chiaki4deck --&lt;launch_option&gt; stream <span class="s1">&#39;&lt;console_nickname&gt;&#39;</span> &lt;console_ip&gt;
 </code></pre></div>
 </li>
 <li>
@@ -1607,7 +1607,7 @@ connect_error<span class="o">()</span>
 <span class="nb">trap</span> connect_error ERR
 
 <span class="c1"># Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)</span>
-flatpak run re.chiaki.Chiaki4deck wakeup -5 -h <span class="m">192</span>.168.1.16 -r 2ebf539d
+flatpak run re.chiaki.Chiaki4deck wakeup -5 -h <span class="m">192</span>.168.1.16 -r <span class="s1">&#39;2ebf539d&#39;</span>
 sleep <span class="m">1</span>
 <span class="c1"># wait for PlayStation to return one successful packet, exit script on error if it never happens</span>
 ping -c <span class="m">1</span> -w <span class="m">20</span> <span class="m">192</span>.168.1.16 <span class="p">&amp;</span>&gt;/dev/null
@@ -1617,7 +1617,7 @@ sleep <span class="m">1</span>
 <span class="nb">trap</span> - ERR
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --zoom stream PS5-012 <span class="m">192</span>.168.1.16
+flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#39;</span> <span class="m">192</span>.168.1.16
 </code></pre></div>
 </details>
 </li>
@@ -2057,7 +2057,7 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream PS5-012 <span class="m">192</spa
 <h2 id="updates-planned-enable-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak">Enable Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak<a class="headerlink" href="#updates-planned-enable-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak" title="Permanent link">&para;</a></h2>
 <p>Currently, the DualSense/DualShock 4 touchpad and gyro controls work with the binary version of <code>chiaki</code> but don't work with the flatpak version. I will update <code>chiaki4deck</code> to make it as easy as possible for Steam Deck users to enable this if they use a DualSense or DualShock 4 with their Steam Deck, including providing instructions for setup and use.</p>
 <h2 id="updates-planned-enable-touchpad-and-gyro-controls-with-steam-deck-controller">Enable Touchpad and Gyro Controls with Steam Deck Controller<a class="headerlink" href="#updates-planned-enable-touchpad-and-gyro-controls-with-steam-deck-controller" title="Permanent link">&para;</a></h2>
-<p>Currently, the Steam Deck controller can map its touchscreen, touchpads and gyro to various different controls but can use neither native touchpad (touchpad click is supported via the <code>T</code> key mapping but touchpad gestures such as those in <code>Ghost of Tsushima</code> are not supported) nor native gyro inputs (gyro can be mapped to work <code>As Joystick</code> to use for camera controls in games with traditional camera controls but can't be used natively in games that directly implement them like <code>Concrete Genie</code>).</p></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
+<p>Currently, the Steam Deck controller can map its touchscreen, touchpads and gyro to various different controls but can use neither native touchpad (touchpad click is supported via the <span class="keys"><kbd class="key-t">T</kbd></span> key mapping but touchpad gestures such as those in <code>Ghost of Tsushima</code> are not supported) nor native gyro inputs (gyro can be mapped to work <code>As Joystick</code> to use for camera controls in games with traditional camera controls but can't be used natively in games that directly implement them like <code>Concrete Genie</code>).</p></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
                         <h1 class='nav-section-title' id='section-diy'>
                             DIY <a class='headerlink' href='#section-diy' title='Permanent link'>↵</a>
                         </h1>
