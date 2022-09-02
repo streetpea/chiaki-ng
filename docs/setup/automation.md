@@ -196,7 +196,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                     Host: PS5-012
                     ```
 
-                    In this example, the console nickname is `PS5-012`, please use your nickname
+                    In this example, the console nickname is `PS5-012`, please use your nickname. If you have multiple, choose the one from the list you want and choose the corresponding regist_key in the next step (i.e. if you pick the console on the 2nd line here, pick the regist_key on the 2nd line in the next step).
 
         2. Get your remote play registration key
 
@@ -252,7 +252,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             trap connect_error ERR
 
             # Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
-            flatpak run re.chiaki.Chiaki4deck wakeup -<playstation_console> -h <console_ip> -r <remote_play_registration_key>
+            flatpak run re.chiaki.Chiaki4deck wakeup -<playstation_console> -h <console_ip> -r '<remote_play_registration_key>'
             sleep 1
             # wait for PlayStation to return one successful packet, exit script on error if it never happens
             ping -c 1 -w 20 <console_ip> &>/dev/null
@@ -262,7 +262,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             trap - ERR
 
             # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-            flatpak run re.chiaki.Chiaki4deck --<launch_option> stream <console_nickname> <console_ip>
+            flatpak run re.chiaki.Chiaki4deck --<launch_option> stream '<console_nickname>' <console_ip>
             ```
         
         6. Edit the `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` file, replacing the following values for your values:
@@ -294,7 +294,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 trap connect_error ERR
 
                 # Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
-                flatpak run re.chiaki.Chiaki4deck wakeup -5 -h 192.168.1.16 -r 2ebf539d
+                flatpak run re.chiaki.Chiaki4deck wakeup -5 -h 192.168.1.16 -r '2ebf539d'
                 sleep 1
                 # wait for PlayStation to return one successful packet, exit script on error if it never happens
                 ping -c 1 -w 20 192.168.1.16 &>/dev/null
@@ -304,7 +304,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 trap - ERR
 
                 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-                flatpak run re.chiaki.Chiaki4deck --zoom stream PS5-012 192.168.1.16
+                flatpak run re.chiaki.Chiaki4deck --zoom stream 'PS5-012' 192.168.1.16
                 ```
 
         7. Make the script executable:

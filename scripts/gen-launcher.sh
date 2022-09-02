@@ -19,9 +19,13 @@ then
     echo "Register your console via the GUI and try again." >&2
     exit 2
 fi
-regist_key=${regist_key:-"$(grep regist_key < "${config_file}" | cut -d '(' -f2 | cut -d '\' -f1)"}
 
-server_nickname=${server_nickname:-"$(grep server_nickname < "${config_file}" | cut -d '=' -f2)"}
+# create registration key and nickname array to handle case of multiple registered consoles
+# consoles get a nickname after registration so regist_array size should equal nickname_array size
+readarray -t regist_array < <(grep regist_key < "${config_file}" | cut -d '(' -f2 | cut -d '\' -f1)
+readarray -t nickname_array < <(grep server_nickname < "${config_file}" | cut -d '=' -f2)
+consoles_registered="${#nickname_array[@]}"
+
 # If it's still not up after 20 seconds, something has gone wrong.
 wait_timeout=${wait_timeout:-20}
 
@@ -44,7 +48,29 @@ ip_validator()
     fi
 }
 
-# main script
+# main
+# If more than 1 registered console, make users choose which one they want
+PS3="Please select the number corresponding to the console you want to use: "
+if [ "${consoles_registered}" -gt 1 ]
+then
+    select nickname in "${nickname_array[@]}"
+    do
+        if [ -z "${nickname}" ]
+        then
+            echo -e "${REPLY} is not a valid choice\n" >&2
+        else
+            echo -e "Option ${REPLY}: ${nickname} was chosen"
+            index=$((${REPLY}-1))
+            regist_key="${regist_array[${index}]}"
+            server_nickname="${nickname_array[${index}]}"
+            break
+        fi
+    done
+else
+    regist_key="${regist_array[0]}"
+    server_nickname="${nickname_array[0]}"
+fi
+
 while true
 do
     read -n1 -p $'Enter Your Playstation Console (4 or 5):\x0a' ps_console
@@ -98,8 +124,8 @@ connect_error()
 # Print connect error message and exit if a failure occurs connecting to the console.
 trap connect_error ERR
 
-# Wakeup console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
-flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h ${ps_ip} -r ${regist_key}
+# Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
+flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h ${ps_ip} -r '${regist_key}'
 sleep 1
 # wait for PlayStation to return one successful packet, exit script on error if it never happens
 ping -c 1 -w ${wait_timeout} ${ps_ip} &>/dev/null
@@ -109,7 +135,7 @@ sleep 1
 trap - ERR
 
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-flatpak run re.chiaki.Chiaki4deck --${mode} stream ${server_nickname} ${ps_ip}
+flatpak run re.chiaki.Chiaki4deck --${mode} stream '${server_nickname}' ${ps_ip}
 EOF
 
 # Make script executable
