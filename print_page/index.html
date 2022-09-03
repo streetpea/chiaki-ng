@@ -1561,8 +1561,8 @@ connect_error<span class="o">()</span>
 <span class="c1"># Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)</span>
 flatpak run re.chiaki.Chiaki4deck wakeup -&lt;playstation_console&gt; -h &lt;console_ip&gt; -r <span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span>
 sleep <span class="m">1</span>
-<span class="c1"># wait for PlayStation to return one successful packet, exit script on error if it never happens</span>
-ping -c <span class="m">1</span> -w <span class="m">20</span> &lt;console_ip&gt; <span class="p">&amp;</span>&gt;/dev/null
+<span class="c1"># wait for PlayStation to return 3 successful packets, exit script on error if it never happens</span>
+ping -c <span class="m">3</span> -w <span class="m">30</span> &lt;console_ip&gt; <span class="p">&amp;</span>&gt;/dev/null
 sleep <span class="m">1</span>
 
 <span class="c1"># Chiaki handles its own errors, so unsetting trap here.</span>
@@ -1609,8 +1609,8 @@ connect_error<span class="o">()</span>
 <span class="c1"># Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)</span>
 flatpak run re.chiaki.Chiaki4deck wakeup -5 -h <span class="m">192</span>.168.1.16 -r <span class="s1">&#39;2ebf539d&#39;</span>
 sleep <span class="m">1</span>
-<span class="c1"># wait for PlayStation to return one successful packet, exit script on error if it never happens</span>
-ping -c <span class="m">1</span> -w <span class="m">20</span> <span class="m">192</span>.168.1.16 <span class="p">&amp;</span>&gt;/dev/null
+<span class="c1"># wait for PlayStation to return 3 successful packets, exit script on error if it never happens</span>
+ping -c <span class="m">3</span> -w <span class="m">30</span> <span class="m">192</span>.168.1.16 <span class="p">&amp;</span>&gt;/dev/null
 sleep <span class="m">1</span>
 
 <span class="c1"># Chiaki handles its own errors, so unsetting trap here.</span>
