@@ -254,8 +254,8 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             # Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
             flatpak run re.chiaki.Chiaki4deck wakeup -<playstation_console> -h <console_ip> -r '<remote_play_registration_key>'
             sleep 1
-            # wait for PlayStation to return one successful packet, exit script on error if it never happens
-            ping -c 1 -w 20 <console_ip> &>/dev/null
+            # wait for PlayStation to return 3 successful packets, exit script on error if it never happens
+            ping -c 3 -w 30 <console_ip> &>/dev/null
             sleep 1
 
             # Chiaki handles its own errors, so unsetting trap here.
@@ -296,8 +296,8 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 # Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
                 flatpak run re.chiaki.Chiaki4deck wakeup -5 -h 192.168.1.16 -r '2ebf539d'
                 sleep 1
-                # wait for PlayStation to return one successful packet, exit script on error if it never happens
-                ping -c 1 -w 20 192.168.1.16 &>/dev/null
+                # wait for PlayStation to return 3 successful packets, exit script on error if it never happens
+                ping -c 3 -w 30 192.168.1.16 &>/dev/null
                 sleep 1
 
                 # Chiaki handles its own errors, so unsetting trap here.

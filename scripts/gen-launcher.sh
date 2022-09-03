@@ -26,8 +26,8 @@ readarray -t regist_array < <(grep regist_key < "${config_file}" | cut -d '(' -f
 readarray -t nickname_array < <(grep server_nickname < "${config_file}" | cut -d '=' -f2)
 consoles_registered="${#nickname_array[@]}"
 
-# If it's still not up after 20 seconds, something has gone wrong.
-wait_timeout=${wait_timeout:-20}
+# If it's still not up after 30 seconds, something has gone wrong.
+wait_timeout=${wait_timeout:-30}
 
 ip_validator()
 {
@@ -127,8 +127,8 @@ trap connect_error ERR
 # Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
 flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h ${ps_ip} -r '${regist_key}'
 sleep 1
-# wait for PlayStation to return one successful packet, exit script on error if it never happens
-ping -c 1 -w ${wait_timeout} ${ps_ip} &>/dev/null
+# wait for PlayStation to return 3 successful packets to make sure it's up, exit script on error if it never happens.
+ping -c 3 -w ${wait_timeout} ${ps_ip} &>/dev/null
 sleep 1
 
 # Chiaki handles its own errors, so unsetting trap here.
