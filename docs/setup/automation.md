@@ -271,6 +271,11 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
             2. `<console_nickname>`
 
+                !!! Caution "Beware of '"
+
+                    If you have any ' in your nickname itself, such as `Street Pea's PS5`, you will need enter the `'` as `'\''`. Thus, for `Street Pea's PS5` instead of using `Street Pea's PS5` you would use `Street Pea'\''s PS5`. All other characters are fine. This is due to the PlayStation console allowing any manner of names (including non-valid hostnames with all manner of special characters) and Chiaki using that name in its configuration file.
+
+
             3. `<remote_play_registration_key>`
 
             4. `<launch_option>`

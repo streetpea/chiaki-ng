@@ -135,7 +135,7 @@ sleep 1
 trap - ERR
 
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-flatpak run re.chiaki.Chiaki4deck --${mode} stream '${server_nickname}' ${ps_ip}
+flatpak run re.chiaki.Chiaki4deck --${mode} stream $(printf %q "${server_nickname}") ${ps_ip}
 EOF
 
 # Make script executable
