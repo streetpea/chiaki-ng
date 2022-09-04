@@ -963,6 +963,10 @@ flatpak run re.chiaki.Chiaki4deck --&lt;launch_option&gt; stream <span class="s1
 </li>
 <li>
 <p><code>&lt;console_nickname&gt;</code></p>
+<div class="admonition caution">
+<p class="admonition-title">Beware of '</p>
+<p>If you have any ' in your nickname itself, such as <code>Street Pea's PS5</code> you will need to escape these with <code>\</code>, so <code>Street Pea's PS5</code> would become <code>Street Pea\'s PS5</code>. All other characters are fine. This is due to the PlayStation console allowing any manner of names (including non-valid hostnames with all manner of special characters) and Chiaki using that name in its configuration file.</p>
+</div>
 </li>
 <li>
 <p><code>&lt;remote_play_registration_key&gt;</code></p>
@@ -1000,7 +1004,7 @@ sleep <span class="m">1</span>
 <span class="nb">trap</span> - ERR
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#39;</span> <span class="m">192</span>.168.1.16
+flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s2">&quot;PS5-</span><span class="nv">$012</span><span class="s2">&quot;</span> <span class="m">192</span>.168.1.16
 </code></pre></div>
 </details>
 </li>
@@ -1065,7 +1069,7 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#3
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 3, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 4, 2022</span>
       
         <br>
         Created:
