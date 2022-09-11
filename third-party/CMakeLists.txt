@@ -4,11 +4,13 @@ if(NOT CHIAKI_USE_SYSTEM_NANOPB)
 	# nanopb
 	##################
 
+	add_definitions(-DPB_C99_STATIC_ASSERT) # Fix PB_STATIC_ASSERT on msvc without using C11 for now
 	add_subdirectory(nanopb EXCLUDE_FROM_ALL)
 	set(NANOPB_GENERATOR_PY "${CMAKE_CURRENT_SOURCE_DIR}/nanopb/generator/nanopb_generator.py" PARENT_SCOPE)
 	add_library(nanopb INTERFACE)
 	target_link_libraries(nanopb INTERFACE protobuf-nanopb-static)
 	target_include_directories(nanopb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/nanopb")
+	target_compile_definitions(nanopb INTERFACE -DPB_C99_STATIC_ASSERT) # see above
 	add_library(Nanopb::nanopb ALIAS nanopb)
 endif()
 

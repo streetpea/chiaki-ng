@@ -7,7 +7,7 @@ but the easiest way is to use the following container.
 Build Project
 -------------
 ```
-bash scripts/switch/run-docker-build-chiaki.sh
+bash scripts/switch/run-podman-build-chiaki.sh
 ```
 
 tools
@@ -15,7 +15,7 @@ tools
 Push to homebrew Netloader
 ```
 # where X.X.X.X is the IP of your switch
-bash scripts/switch/push-docker-build-chiaki.sh -a 192.168.0.200
+bash scripts/switch/push-podman-build-chiaki.sh -a 192.168.0.200
 ```
 
 Troubleshoot

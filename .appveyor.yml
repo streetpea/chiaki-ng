@@ -5,6 +5,7 @@ image:
 branches:
   only:
     - master
+    - develop
     - /^v\d.*$/
     - /^deploy-test(-.*)?$/
 

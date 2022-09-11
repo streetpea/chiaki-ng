@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# purge leftover proto/nanopb_pb2.py which may have been created with another protobuf version
+rm -fv third-party/nanopb/generator/proto/nanopb_pb2.py
+
 mkdir build && cd build || exit 1
 cmake \
 	-DCMAKE_BUILD_TYPE=Release \
