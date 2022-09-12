@@ -174,7 +174,7 @@ void AVOpenGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void AVOpenGLWidget::ResetMouseTimeout()
 {
-	unsetCursor();
+	//unsetCursor();
 	mouse_timer->start(MOUSE_TIMEOUT_MS);
 }
 

@@ -26,8 +26,8 @@ readarray -t regist_array < <(grep regist_key < "${config_file}" | cut -d '(' -f
 readarray -t nickname_array < <(grep server_nickname < "${config_file}" | cut -d '=' -f2)
 consoles_registered="${#nickname_array[@]}"
 
-# If it's still not up after 30 seconds, something has gone wrong.
-wait_timeout=${wait_timeout:-30}
+# If it's still not up after 35 seconds, something has gone wrong.
+wait_timeout=${wait_timeout:-35}
 
 ip_validator()
 {
@@ -59,7 +59,7 @@ then
         then
             echo -e "${REPLY} is not a valid choice\n" >&2
         else
-            echo -e "Option ${REPLY}: ${nickname} was chosen"
+            echo -e "Option ${REPLY}: ${nickname} was chosen\n"
             index=$((${REPLY}-1))
             regist_key="${regist_array[${index}]}"
             server_nickname="${nickname_array[${index}]}"
@@ -71,15 +71,20 @@ else
     server_nickname="${nickname_array[0]}"
 fi
 
-while true
+PS3="Please select the number corresponding to your Playstation Console: "
+select console in "PlayStation 4" "PlayStation 5"
 do
-    read -n1 -p $'Enter Your Playstation Console (4 or 5):\x0a' ps_console
-    echo
-    if [ "${ps_console}" != "4" ] && [ "${ps_console}" != "5" ]
+    if [ -z "${console}" ]
     then
-        echo "PlayStation ${ps_console} is not valid, please use either 4 or 5."
-        echo
-    else 
+        echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-2] listed above.\n" >&2
+    else
+        echo -e "Option ${REPLY}: ${console} was chosen\n"
+        if [ "${console}" == "PlayStation 4" ]
+        then
+            ps_console=4;
+        else
+            ps_console=5;
+        fi
         break
     fi
 done
@@ -96,43 +101,80 @@ do
     fi
 done
 echo
-while true
+
+PS3="Please select the number corresponding to the default mode you want to use: "
+select mode in "fullscreen" "zoom" "stretch"
 do
-    read -e -p $'Choose your default mode\x0afullscreen [black bars, aspect ratio maintained]\x0azoom [no black bars, aspect ratio maintained, edges of image cut off by zoom]\x0astretch [no black bars, aspect ratio slightly distorted]):\x0a' mode
-    echo
-    if [ "${mode}" != "fullscreen" ] && [ "${mode}" != "zoom" ] && [ "${mode}" != "stretch" ]
+    if [ -z "${mode}" ]
     then
-        echo "Mode: ${mode} is not valid, please use fullscreen, zoom, or stretch."
-        echo
-    else 
-        break;
+        echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-3] listed above.\n" >&2
+    else
+        echo -e "Option ${REPLY}: ${mode} was chosen\n"
+        break
     fi
 done
 
 # Create script
 cat <<EOF > "$config_path/Chiaki-launcher.sh"
 #!/usr/bin/env bash
-set -Eeo pipefail
 
 connect_error()
 {
-    echo "Error: Couldn't connect to PlayStation console!" >&2
-    echo "Please check that your Steam Deck and PlayStation are on the same network and you have the right PlayStation IP Address!" >&2
+    echo "Error: Couldn't connect to your PlayStation console!" >&2
+    echo "Error: Please check that your Steam Deck and PlayStation are on the same network" >&2
+    echo "Error: ...and that you have the right PlayStation IP Address!" >&2
     exit 1
 }
 
-# Print connect error message and exit if a failure occurs connecting to the console.
-trap connect_error ERR
+wakeup_error()
+{
+    echo "Error: Couldn't wake up PlayStation console from sleep!" >&2
+    echo "Error: Please make sure you are using a PlayStation ${ps_console}." >&2
+    echo "Error: If not, change the wakeup call to use the number of your PlayStation console" >&2
+    exit 2
+}
 
-# Wake up console from sleep/rest mode (must be either on or in sleep/rest mode for this to work)
-flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h ${ps_ip} -r '${regist_key}'
-sleep 1
-# wait for PlayStation to return 3 successful packets to make sure it's up, exit script on error if it never happens.
-ping -c 3 -w ${wait_timeout} ${ps_ip} &>/dev/null
-sleep 1
+timeout_error()
+{
+    echo "Error: PlayStation console didn't become ready in ${wait_timeout} seconds!" >&2
+    echo "Error: Please change ${wait_timeout} to a higher number in your script if this persists." >&2
+    exit 1
+}
 
-# Chiaki handles its own errors, so unsetting trap here.
-trap - ERR
+SECONDS=0
+# Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
+ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h ${ps_ip} 2>/dev/null)"
+while ! echo "\${ps_status}" | grep -q 'ready\|standby'
+do
+    if [ \${SECONDS} -gt ${wait_timeout} ]
+    then
+        connect_error
+    fi
+    sleep 1
+    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h ${ps_ip} 2>/dev/null)"
+done
+
+# Wake up console from sleep/rest mode if not already awake
+if ! echo "\${ps_status}" | grep -q ready
+then
+    flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h ${ps_ip} -r '${regist_key}' 2>/dev/null
+fi
+
+# Wait for PlayStation to report ready status, exit script on error if it never happens.
+while ! echo "\${ps_status}" | grep -q ready
+do
+    if [ \${SECONDS} -gt ${wait_timeout} ]
+    then
+        if echo "\${ps_status}" | grep -q standby
+        then
+            wakeup_error
+        else
+            timeout_error
+        fi
+    fi
+    sleep 1
+    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h ${ps_ip} 2>/dev/null)"
+done
 
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
 flatpak run re.chiaki.Chiaki4deck --${mode} stream $(printf %q "${server_nickname}") ${ps_ip}
@@ -172,5 +214,3 @@ _/ ___\|  |  \|  \__  \ |  |/ /  |/   |  |_/ __ |/ __ \_/ ___\|  |/ /
 /____  >\___  >__|  |__|   __/|__|  \___  >____ |  __
      \/     \/         |__|             \/     \/  \/
 '
-
-

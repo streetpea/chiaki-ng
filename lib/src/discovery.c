@@ -246,6 +246,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 }
 
 static void *discovery_thread_func(void *user);
+static void *discovery_thread_func_oneshot(void *user);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user)
 {
@@ -261,6 +262,31 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThrea
 	}
 
 	err = chiaki_thread_create(&thread->thread, discovery_thread_func, thread);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		chiaki_stop_pipe_fini(&thread->stop_pipe);
+		return err;
+	}
+
+	chiaki_thread_set_name(&thread->thread, "Chiaki Discovery");
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start_oneshot(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user)
+{
+	thread->discovery = discovery;
+	thread->cb = cb;
+	thread->cb_user = cb_user;
+
+	ChiakiErrorCode err = chiaki_stop_pipe_init(&thread->stop_pipe);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(discovery->log, "Discovery (thread) failed to create pipe");
+		return err;
+	}
+
+	err = chiaki_thread_create(&thread->thread, discovery_thread_func_oneshot, thread);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_stop_pipe_fini(&thread->stop_pipe);
@@ -331,6 +357,62 @@ static void *discovery_thread_func(void *user)
 
 		if(thread->cb)
 			thread->cb(&response, thread->cb_user);
+	}
+
+	return NULL;
+}
+
+static void *discovery_thread_func_oneshot(void *user)
+{
+	ChiakiDiscoveryThread *thread = user;
+	ChiakiDiscovery *discovery = thread->discovery;
+
+	while(1)
+	{
+		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&thread->stop_pipe, discovery->socket, false, UINT64_MAX);
+		if(err == CHIAKI_ERR_CANCELED)
+			break;
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to select");
+			break;
+		}
+
+		char buf[512];
+		struct sockaddr client_addr;
+		socklen_t client_addr_size = sizeof(client_addr);
+		int n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
+		if(n < 0)
+		{
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket");
+			break;
+		}
+
+		if(n == 0)
+			continue;
+
+		if(n > sizeof(buf) - 1)
+			n = sizeof(buf) - 1;
+
+		buf[n] = '\00';
+
+		//CHIAKI_LOGV(discovery->log, "Discovery received:\n%s", buf);
+		//chiaki_log_hexdump_raw(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, n);
+
+		char addr_buf[64];
+		ChiakiDiscoveryHost response;
+		err = chiaki_discovery_srch_response_parse(&response, &client_addr, addr_buf, sizeof(addr_buf), buf, n);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");
+			continue;
+		}
+
+		if(thread->cb)
+		{
+			thread->cb(&response, thread->cb_user);
+			break;
+		}
 	}
 
 	return NULL;

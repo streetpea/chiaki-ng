@@ -9,7 +9,7 @@
 2. Run the following command in the `konsole` window to install `chiaki4deck` as a sandboxed user-level installation (more secure vs default of system-level installation)
 
     ``` bash
-    flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.0.0/re.chiaki.Chiaki4deck.flatpakref
+    flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.1.0/re.chiaki.Chiaki4deck.flatpakref
     ```
 
     ???+ example "Example Output"

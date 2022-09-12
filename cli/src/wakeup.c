@@ -7,7 +7,7 @@
 #include <argp.h>
 #include <string.h>
 
-static char doc[] = "Send a PS4 wakeup packet.";
+static char doc[] = "Send a PS4 or PS5 wakeup packet.";
 
 #define ARG_KEY_HOST 'h'
 #define ARG_KEY_REGISTKEY 'r'

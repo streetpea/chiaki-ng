@@ -1,6 +1,6 @@
 # `chiaki4deck` Updates
 
-This section covers the updates to Chiaki in `chiaki4deck`. Updates that are currently done (implemented) are listed in the [Done section](done.md){target="_blank" rel="noopener noreferrer"} along with details, while updates that are planned for the future are listed in the [Planned section](planned.md){target="_blank" rel="noopener noreferrer"}.
+This section covers the updates to Chiaki in `chiaki4deck`. Information about each release and how to update is in the [Releases Section](releases.md){target="_blank" rel="noopener noreferrer"}. Updates that are currently done (implemented) are listed in the [Done section](done.md){target="_blank" rel="noopener noreferrer"} along with details, while updates that are planned for the future are listed in the [Planned section](planned.md){target="_blank" rel="noopener noreferrer"}.
 
 !!! Question "Why These Updates?"
 

@@ -8,6 +8,10 @@
 
 Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noopener noreferrer"} and following each of the subsections to learn how to setup Chiaki for the best experience on your Steam Deck using `chiaki4deck`.
 
+## Getting Updates
+
+Visit [chiaki4deck Releases](updates/releases.md){target="_blank" rel="noopener noreferrer"} for instructions on updating to the newest release, with notes for each release.
+
 ## Additional Information
 
 ### About Chiaki

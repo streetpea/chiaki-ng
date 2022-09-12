@@ -251,6 +251,30 @@ static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
 }
 #endif
 
+#if !__APPLE__
+CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void **retval, uint64_t timeout_ms)
+{
+#if _WIN32
+	int r = WaitForSingleObject(thread->thread, timeout_ms);
+	if(r != WAIT_OBJECT_0)
+		return CHIAKI_ERR_THREAD;
+	if(retval)
+		*retval = thread->ret;
+#else
+	struct timespec timeout;
+	set_timeout(&timeout, timeout_ms);
+	int r = pthread_clockjoin_np(thread->thread, retval, CLOCK_MONOTONIC, &timeout);
+	if(r != 0)
+	{
+		if(r == ETIMEDOUT)
+			return CHIAKI_ERR_TIMEOUT;
+		return CHIAKI_ERR_THREAD;
+	}
+#endif
+	return CHIAKI_ERR_SUCCESS;
+}
+#endif
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms)
 {
 #if _WIN32

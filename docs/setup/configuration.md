@@ -4,6 +4,10 @@
 
 === "Upgrading from Using Chiaki Flatpak on Steam Deck"
 
+    !!! Tip "Make sure you're on the right tab!"
+    
+        If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the **New to Using Chiaki on Steam Deck Tab.** If you have set up the official Chiaki flatpak and want to try `chiaki4deck`, you're in the right place! :tada:
+
     1. Create initial file templates for `chiaki4deck`
 
         1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run re.chiaki.Chiaki4deck` in the `konsole`
@@ -197,9 +201,8 @@ To fix these issues, try the following:
     
     VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/`chiaki4deck`.
 
-## Chiaki via Internet (Outside of Home Connection)
+## Chiaki/`chiaki4deck` via Internet (Outside of Home Connection)
 
 !!! Info "Chiaki/`chiaki4deck` Outside of your Home Network"
     
     You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly.
-

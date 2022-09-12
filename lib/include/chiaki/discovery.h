@@ -102,6 +102,7 @@ typedef struct chiaki_discovery_thread_t
 } ChiakiDiscoveryThread;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_start_oneshot(ChiakiDiscoveryThread *thread, ChiakiDiscovery *discovery, ChiakiDiscoveryCb cb, void *cb_user);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread *thread);
 
 /**

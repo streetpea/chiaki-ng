@@ -13,6 +13,7 @@ nav:
     - Controller Options: setup/controlling.md
   - Updates:
     - Updates Overview: updates/index.md
+    - Releases: updates/releases.md
     - Done: updates/done.md
     - Planned: updates/planned.md
   - DIY:
@@ -21,6 +22,7 @@ nav:
 theme:
   favicon: images/chiaki.svg
   logo: images/chiaki.svg
+  custom_dir: overrides
   features:
     - header.autohide
     - navigation.sections
@@ -31,6 +33,7 @@ theme:
     - navigation.tracking
     - search.share
     - navigation.indexes
+    - announce.dismiss
     
   name: material
   palette:

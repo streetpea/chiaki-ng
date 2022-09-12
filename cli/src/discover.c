@@ -11,18 +11,21 @@
 #include <string.h>
 #include <netinet/in.h>
 
-static char doc[] = "Send a PS4 discovery request.";
+static char doc[] = "Send a PS4 or PS5 discovery request.";
 
 #define ARG_KEY_HOST 'h'
+#define ARG_KEY_TIMEOUT 't'
 
 static struct argp_option options[] = {
 	{ "host", ARG_KEY_HOST, "Host", 0, "Host to send discovery request to", 0 },
+	{ "timeout", ARG_KEY_TIMEOUT, "Timeout", 0, "Number of seconds to wait for request to return (default=2)", 0},
 	{ 0 }
 };
 
 typedef struct arguments
 {
 	const char *host;
+	const char *timeout;
 } Arguments;
 
 static int parse_opt(int key, char *arg, struct argp_state *state)
@@ -33,6 +36,9 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	{
 		case ARG_KEY_HOST:
 			arguments->host = arg;
+			break;
+		case ARG_KEY_TIMEOUT:
+			arguments->timeout = arg;
 			break;
 		case ARGP_KEY_ARG:
 			argp_usage(state);
@@ -84,6 +90,7 @@ static void discovery_cb(ChiakiDiscoveryHost *host, void *user)
 CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[])
 {
 	Arguments arguments = { 0 };
+	float timeout_sec = 2;
 	error_t argp_r = argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &arguments);
 	if(argp_r != 0)
 		return 1;
@@ -92,6 +99,11 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	{
 		fprintf(stderr, "No host specified, see --help.\n");
 		return 1;
+	}
+
+	if(arguments.timeout)
+	{
+		timeout_sec = atof(arguments.timeout);
 	}
 
 	ChiakiDiscovery discovery;
@@ -103,7 +115,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	}
 
 	ChiakiDiscoveryThread thread;
-	err = chiaki_discovery_thread_start(&thread, &discovery, discovery_cb, NULL);
+	err = chiaki_discovery_thread_start_oneshot(&thread, &discovery, discovery_cb, NULL);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "Discovery thread init failed");
@@ -155,9 +167,19 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	err = chiaki_discovery_send(&discovery, &packet, host_addr, host_addr_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(log, "Failed to send discovery packet for PS5: %s", chiaki_error_string(err));
-
-	while(1)
-		sleep(1); // TODO: wtf
+	uint64_t timeout_ms=(timeout_sec * 1000);
+	err = chiaki_thread_timedjoin(&thread.thread, NULL, timeout_ms);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		if(err == CHIAKI_ERR_TIMEOUT)
+		{
+			CHIAKI_LOGE(log, "Discovery request timed out after timeout: %.*f seconds", 1, timeout_sec);
+			chiaki_discovery_thread_stop(&thread);
+		}
+		chiaki_discovery_fini(&discovery);
+		return err;
+	}
+	chiaki_discovery_fini(&discovery);
 
 	return 0;
 }
