@@ -101,6 +101,23 @@
     </div>
     <div data-md-component="announce">
       
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+              <button class="md-banner__button md-icon" aria-label="Don't show this again">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+              </button>
+            
+            
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+  for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
+
+          </div>
+          
+            <script>var content,el=document.querySelector("[data-md-component=announce]");el&&(content=el.querySelector(".md-typeset"),__md_hash(content.innerHTML)===__md_get("__announce")&&(el.hidden=!0))</script>
+          
+        </aside>
+      
     </div>
     
     
@@ -511,8 +528,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#chiaki-via-internet-outside-of-home-connection" class="md-nav__link">
-    Chiaki via Internet (Outside of Home Connection)
+  <a href="#chiakichiaki4deck-via-internet-outside-of-home-connection" class="md-nav__link">
+    Chiaki/chiaki4deck via Internet (Outside of Home Connection)
   </a>
   
 </li>
@@ -598,6 +615,8 @@
         
           
         
+          
+        
       
       
         
@@ -618,6 +637,20 @@
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../updates/releases/" class="md-nav__link">
+        Releases
+      </a>
+    </li>
+  
+
             
           
             
@@ -796,8 +829,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#chiaki-via-internet-outside-of-home-connection" class="md-nav__link">
-    Chiaki via Internet (Outside of Home Connection)
+  <a href="#chiakichiaki4deck-via-internet-outside-of-home-connection" class="md-nav__link">
+    Chiaki/chiaki4deck via Internet (Outside of Home Connection)
   </a>
   
 </li>
@@ -825,6 +858,10 @@
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Upgrading from Using Chiaki Flatpak on Steam Deck</label><label for="__tabbed_1_2">New to Using Chiaki on Steam Deck</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
+<div class="admonition tip">
+<p class="admonition-title">Make sure you're on the right tab!</p>
+<p>If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the <strong>New to Using Chiaki on Steam Deck Tab.</strong> If you have set up the official Chiaki flatpak and want to try <code>chiaki4deck</code>, you're in the right place! <img alt="🎉" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f389.svg" title=":tada:" /></p>
+</div>
 <ol>
 <li>
 <p>Create initial file templates for <code>chiaki4deck</code></p>
@@ -1051,7 +1088,7 @@
 <p>VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/<code>chiaki4deck</code>.</p>
 </li>
 </ol>
-<h2 id="chiaki-via-internet-outside-of-home-connection">Chiaki via Internet (Outside of Home Connection)<a class="headerlink" href="#chiaki-via-internet-outside-of-home-connection" title="Permanent link">&para;</a></h2>
+<h2 id="chiakichiaki4deck-via-internet-outside-of-home-connection">Chiaki/<code>chiaki4deck</code> via Internet (Outside of Home Connection)<a class="headerlink" href="#chiakichiaki4deck-via-internet-outside-of-home-connection" title="Permanent link">&para;</a></h2>
 <div class="admonition info">
 <p class="admonition-title">Chiaki/<code>chiaki4deck</code> Outside of your Home Network</p>
 <p>You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly.</p>
@@ -1062,7 +1099,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 1, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 12, 2022</span>
       
         <br>
         Created:
@@ -1275,7 +1312,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>
