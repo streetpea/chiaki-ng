@@ -20,6 +20,40 @@ The easiest way to configure all of the necessary shortcuts for `chiaki4deck` is
 
     ![Default controller](images/StreetpeaChiaki4deckLayout.png)
 
+    !!! Warning "PlayStation Login Passcode Entry"
+        
+        If you have to enter a passcode (4 digit pin) every time you boot up your PlayStation to play, you have a login passcode. Please follow the steps below. **Otherwise, you (most users) can skip this warning as it doesn't apply to you.**
+        
+        **Choose 1 of the following 2 options**:
+    
+        - Keep your passcode because you have it for a good reason (i.e., you're sharing a console and don't want the other person(s) accessing your account):
+        
+            1. *One time only*: Choose `chiaki4deck w/ keyboard` from the `COMMUNITY LAYOUTS` tab instead of the `chiaki4deck` layout. This maps the top left back button (L4) to the show keyboard system command. 
+
+            2. *Each time you launch `chiaki4deck` and login*:
+                
+                1. Wait for the login passcode dialog box to appear.
+            
+                2. Hit the top left back button (L4) to bring up the on-screen Steam Deck virtual keyboard.
+
+                3. Enter you passcode using the keyboard (either via touch or controller navigation) to login to your PlayStation console (use ++enter++ / R2 to submit the passcode). 
+
+            **OR**
+
+        - Delete the PlayStation Login passcode to bypass needing to enter your passcode each time you login.
+
+            === "PS5"
+
+                Go to `Settings -> Users and Accounts -> Login Settings -> Delete Your PS5 Login Passcode`
+
+            === "PS4"
+
+                Go to `Settings -> Users -> Login Settings -> Passcode Management -> Delete`
+
+        !!! info "Automated pin entry coming"
+
+            I'm working on adding pin entry to the automation so that you can set your passcode on the Steam Deck without having to re-enter it each time [here](https://github.com/streetpea/chiaki4deck/issues/5){target="_blank" rel="noopener noreferrer"}. This will be good for you if you share your PlayStation but have your own Steam Deck.
+
 ### Default `chiaki4deck` Layout Mapping Full View
 
 ![Steam Deck Full Control View](images/ControlsFullView.png)
@@ -175,7 +209,7 @@ While most users will want to just use `chiaki4deck` with the Steam Deck control
     3. Copy the file to `etc/udev/rules.d/` (the location for user added rules)
 
         ``` bash
-        sudo cp 71-chiaki4deck.rules /etc/udev/rules.d/71-chiaki4deck.rules
+        sudo mv 71-chiaki4deck.rules /etc/udev/rules.d/71-chiaki4deck.rules
         ```
 
 4. Restart your Steam Deck
