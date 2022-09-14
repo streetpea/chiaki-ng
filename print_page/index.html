@@ -1027,6 +1027,19 @@
                         </h1>
                         <section class="print-page" id="setup"><h1 id="setup-set-up-remote-play-on-steam-deck">Set Up Remote Play on Steam Deck<a class="headerlink" href="#setup-set-up-remote-play-on-steam-deck" title="Permanent link">&para;</a></h1>
 <p>This section covers how to set up PlayStation Remote Play (using Chiaki) on Steam Deck. It covers installing the <code>chiaki4deck</code> package, configuring an automatic (scripted) launch, and adding <code>chiaki4deck</code> to <em>Game Mode</em> with icons and a custom controller configuration to boot. Please switch into <em>Desktop Mode</em> for this process.</p>
+<div class="admonition bug">
+<p class="admonition-title">Steam Deck Speaker Fails to Load, Crashing Official Chiaki and <code>chiaki4deck</code> in Desktop Mode</p>
+<p>In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance <code>chiaki4deck</code>, causing it to hang indefinitely. The only ways to exit Chiaki are to close the <code>konsole</code> window that launched it (if launched via automation), forcibly kill the process (<code>kill -9</code>) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully <img alt="🤞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f91e.svg" title=":fingers_crossed:" /> someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, <strong>there are 2 good workarounds that prevent this from occurring</strong> (either one works). Please use one of the following when using Chiaki or <code>chiaki4deck</code>:</p>
+<ul>
+<li>
+<p>when booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or <code>chiaki4deck</code> at any time until you turn off your Steam Deck.</p>
+<p>OR</p>
+</li>
+<li>
+<p>use <code>chiaki4deck</code> and/or <code>Chiaki</code> in Game Mode when possible, the speaker not loading hardware error doesn't occur there.</p>
+</li>
+</ul>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Open This Documentation on Your Steam Deck for Easy Copy/Pasting</p>
 <p>If you open this documentation in a web browser on your Steam Deck (such as using the Firefox flatpak), you can easily copy and paste commands by clicking the copy icon to the right of each command (appears when hovering over the right end of a code box):</p>
@@ -1217,6 +1230,19 @@
 </div>
 </div>
 <h2 id="setup-configuration-testing-your-connection">Testing your Connection<a class="headerlink" href="#setup-configuration-testing-your-connection" title="Permanent link">&para;</a></h2>
+<div class="admonition bug">
+<p class="admonition-title">Steam Deck Speaker Fails to Load, Crashing Official Chiaki and <code>chiaki4deck</code> in Desktop Mode</p>
+<p>In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance <code>chiaki4deck</code>, causing it to hang indefinitely. The only ways to exit Chiaki are to close the <code>konsole</code> window that launched it (if launched via automation), forcibly kill the process (<code>kill -9</code>) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully <img alt="🤞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f91e.svg" title=":fingers_crossed:" /> someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, <strong>there are 2 good workarounds that prevent this from occurring</strong> (either one works). Please use one of the following when using Chiaki or <code>chiaki4deck</code>:</p>
+<ul>
+<li>
+<p>when booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or <code>chiaki4deck</code> at any time until you turn off your Steam Deck.</p>
+<p>OR</p>
+</li>
+<li>
+<p>use <code>chiaki4deck</code> and/or <code>Chiaki</code> in Game Mode when possible, the speaker not loading hardware error doesn't occur there.</p>
+</li>
+</ul>
+</div>
 <p>Launch the connection to test it by opening <code>chiaki4deck</code> and double clicking on the box with the console icon. You can even test launching a game if you want. Exit out of the window once you've tested the connection.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="setup-configuration-__tabbed_3_1" name="setup-configuration-__tabbed_3" type="radio" /><input id="setup-configuration-__tabbed_3_2" name="setup-configuration-__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_3_1">It worked! <img alt="😄" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f604.svg" title=":smile:" /></label><label for="setup-configuration-__tabbed_3_2">It didn't work <img alt="😦" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f626.svg" title=":frowning:" /></label></div>
 <div class="tabbed-content">
@@ -1357,6 +1383,19 @@
 <div class="admonition caution">
 <p class="admonition-title">Sleep Mode Required</p>
 <p>For this to work, your PlayStation needs to either be in rest/sleep mode or on (so that it is listening for the wake up signal). This means you will want to keep your PlayStation in rest/sleep mode when you are not playing (instead of off).</p>
+<div class="admonition bug">
+<p class="admonition-title">Steam Deck Speaker Fails to Load, Crashing Official Chiaki and <code>chiaki4deck</code> in Desktop Mode</p>
+<p>In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance <code>chiaki4deck</code>, causing it to hang indefinitely. The only ways to exit Chiaki are to close the <code>konsole</code> window that launched it (if launched via automation), forcibly kill the process (<code>kill -9</code>) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully <img alt="🤞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f91e.svg" title=":fingers_crossed:" /> someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, <strong>there are 2 good workarounds that prevent this from occurring</strong> (either one works). Please use one of the following when using Chiaki or <code>chiaki4deck</code>:</p>
+<ul>
+<li>
+<p>when booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or <code>chiaki4deck</code> at any time until you turn off your Steam Deck.</p>
+<p>OR</p>
+</li>
+<li>
+<p>use <code>chiaki4deck</code> and/or <code>Chiaki</code> in Game Mode when possible, the speaker not loading hardware error doesn't occur there.</p>
+</li>
+</ul>
+</div>
 </div>
 <ol>
 <li>
@@ -2323,6 +2362,23 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#3
 <p class="admonition-title">Why These Updates?</p>
 <p>I have simply chosen to update things that would give me a better experience with Chiaki on my Steam Deck. Given the current state of the Chiaki project (maintenance mode), I'm not sure if the maintainers will accept new changes. I have submitted the current updates upstream to Chiaki and hope <img alt="🤞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f91e.svg" title=":fingers_crossed:" /> that they are accepted despite Chiaki being in maintenance mode. In the meantime, I have created <code>chiaki4deck</code> as a means to distribute these changes to others using the Steam Deck as well as others wanting to add additional beneficial features on top of mine. Currently, I am aiming to make <code>chiaki4deck</code> work for all traditional Chiaki users (may not benefit other users as much as Steam Deck users, but wouldn't be bad for those users either).</p>
 </div></section><section class="print-page" id="updates-releases"><h1 id="updates-releases-chiaki4deck-releases"><code>chiaki4deck</code> Releases<a class="headerlink" href="#updates-releases-chiaki4deck-releases" title="Permanent link">&para;</a></h1>
+<h2 id="updates-releases-how-to-prevent-desktop-mode-bug-from-occurring">How to Prevent Desktop Mode Bug From Occurring<a class="headerlink" href="#updates-releases-how-to-prevent-desktop-mode-bug-from-occurring" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Steam Deck Bug Discovered that Affects Official Chiaki and by Inheritance (<code>chiaki4deck</code>)</p>
+<div class="admonition bug">
+<p class="admonition-title">Steam Deck Speaker Fails to Load, Crashing Official Chiaki and <code>chiaki4deck</code> in Desktop Mode</p>
+<p>In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance <code>chiaki4deck</code>, causing it to hang indefinitely. The only ways to exit Chiaki are to close the <code>konsole</code> window that launched it (if launched via automation), forcibly kill the process (<code>kill -9</code>) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully <img alt="🤞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f91e.svg" title=":fingers_crossed:" /> someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, <strong>there are 2 good workarounds that prevent this from occurring</strong> (either one works). Please use one of the following when using Chiaki or <code>chiaki4deck</code>:</p>
+<ul>
+<li>
+<p>when booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or <code>chiaki4deck</code> at any time until you turn off your Steam Deck.</p>
+<p>OR</p>
+</li>
+<li>
+<p>use <code>chiaki4deck</code> and/or <code>Chiaki</code> in Game Mode when possible, the speaker not loading hardware error doesn't occur there.</p>
+</li>
+</ul>
+</div>
+</div>
 <h2 id="updates-releases-updating-chiaki4deck">Updating <code>chiaki4deck</code><a class="headerlink" href="#updates-releases-updating-chiaki4deck" title="Permanent link">&para;</a></h2>
 <p>In order to update your already installed <code>chiaki4deck</code> to the newest version, either:</p>
 <ul>
