@@ -71,7 +71,11 @@ int real_main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 
+#ifdef Q_OS_MACOS
+	QApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+#else
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki.svg"));
+#endif
 
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
