@@ -2,10 +2,10 @@
 
 cd "`dirname $(readlink -f ${0})`/../.."
 
-podman run \
+podman run --rm \
 	-v "`pwd`:/build/chiaki" \
 	-w "/build/chiaki" \
-	-t \
-	thestr4ng3r/chiaki-build-switch:35829cc \
-	-c "scripts/switch/build.sh"
+	-it \
+	thestr4ng3r/chiaki-build-switch:v2 \
+	/bin/bash -c "scripts/switch/build.sh"
 
