@@ -91,7 +91,7 @@ int real_main(int argc, char *argv[])
 	parser.addPositionalArgument("command", cmds.join(", "));
 	parser.addPositionalArgument("nickname", "Needed for stream command to get credentials for connecting. "
 			"Use 'list' to get the nickname.");
-	parser.addPositionalArgument("host", "Address to connect to (when using the stream command)");
+	parser.addPositionalArgument("host", "Address to connect to (when using the stream command).");
 
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
@@ -99,14 +99,17 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption morning_option("morning", "", "morning");
 	parser.addOption(morning_option);
 
-	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen mode [maintains aspect ratio, adds black bars to fill unsused parts of screen if applicable] (only for use with stream command)");
+	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen mode [maintains aspect ratio, adds black bars to fill unsused parts of screen if applicable] (only for use with stream command).");
 	parser.addOption(fullscreen_option);
 
-	QCommandLineOption zoom_option("zoom", "Start window in fullscreen zoomed in to fit screen [maintains aspect ratio, cutting off edges of image to fill screen] (only for use with stream command)");
+	QCommandLineOption zoom_option("zoom", "Start window in fullscreen zoomed in to fit screen [maintains aspect ratio, cutting off edges of image to fill screen] (only for use with stream command).");
 	parser.addOption(zoom_option);
 
-	QCommandLineOption stretch_option("stretch", "Start window in fullscreen stretched to fit screen [distorts aspect ratio to fill screen] (only for use with stream command)");
+	QCommandLineOption stretch_option("stretch", "Start window in fullscreen stretched to fit screen [distorts aspect ratio to fill screen] (only for use with stream command).");
 	parser.addOption(stretch_option);
+
+	QCommandLineOption passcode_option("passcode", "Automatically send your PlayStation login passcode (only affects users with a login passcode set on their PlayStation console).", "passcode");
+	parser.addOption(passcode_option);
 
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
@@ -129,6 +132,7 @@ int real_main(int argc, char *argv[])
 		QString host = args[args.size()-1];
 		QByteArray morning;
 		QByteArray regist_key;
+		QString initial_login_passcode;
 		ChiakiTarget target = CHIAKI_TARGET_PS4_10;
 
 		if(parser.value(regist_key_option).isEmpty() && parser.value(morning_option).isEmpty())
@@ -181,8 +185,22 @@ int real_main(int argc, char *argv[])
 			printf("Must choose between fullscreen, zoom or stretch option.");
 			return 1;
 		}
+		if(parser.value(passcode_option).isEmpty())
+		{
+			//Set to empty if it wasn't given by user.
+			initial_login_passcode = QString("");
+		}
+		else
+		{
+			initial_login_passcode = parser.value(passcode_option);
+			if(initial_login_passcode.length() != 4)
+			{
+				printf("Login passcode must be 4 digits. You entered %d digits)\n", initial_login_passcode.length());
+				return 1;
+			}
+		}
 
-		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, parser.isSet(fullscreen_option), parser.isSet(zoom_option), parser.isSet(stretch_option));
+		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, initial_login_passcode, parser.isSet(fullscreen_option), parser.isSet(zoom_option), parser.isSet(stretch_option));
 
 		return RunStream(app, connect_info);
 	}

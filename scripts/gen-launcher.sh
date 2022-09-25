@@ -92,12 +92,11 @@ done
 while true
 do
     read -e -p $'Enter your PlayStation IP (form should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' ps_ip
-    # ip route fine here because you need to be able to connect to PS IP for remote play, and if you can't you have override option later
     if ip_validator "${ps_ip}" &>/dev/null
     then
         break
     else
-        echo "IP address not valid: ${ps_ip}. Please re-enter you IP" >&2
+        echo "IP address not valid: ${ps_ip}. Please re-enter your IP" >&2
     fi
 done
 echo
@@ -112,6 +111,33 @@ do
         echo -e "Option ${REPLY}: ${mode} was chosen\n"
         break
     fi
+done
+
+while true
+do
+    read -n1 -p $'Do you have a PlayStation Login Passcode? (y/n):\x0a' response
+
+    case "${response}" in 
+        [yY] ) 
+            while true
+            do
+                echo
+                read -e -p $'Enter your 4 digit PlayStation Login Passcode:\x0a' login_passcode
+                if [[ "${login_passcode}" =~ ^[0-9]{4}$ ]]
+                then
+                    break
+                else
+                    echo -e "Login passcode: ${login_passcode} not valid (must be 4 numbers).\nPlease re-enter your login passcode" >&2
+                fi
+            done
+            echo
+            break;;
+        [nN] )
+            echo
+            break;;
+        * ) 
+            echo -e "\nInvalid response, please enter y or n\n";;
+    esac
 done
 
 # Create script
@@ -177,7 +203,7 @@ do
 done
 
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-flatpak run re.chiaki.Chiaki4deck --${mode} stream $(printf %q "${server_nickname}") ${ps_ip}
+flatpak run re.chiaki.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") ${ps_ip}
 EOF
 
 # Make script executable

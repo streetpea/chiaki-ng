@@ -50,6 +50,7 @@ struct StreamSessionConnectInfo
 	QString host;
 	QByteArray regist_key;
 	QByteArray morning;
+	QString initial_login_pin;
 	ChiakiConnectVideoProfile video_profile;
 	unsigned int audio_buffer_size;
 	bool fullscreen;
@@ -57,7 +58,7 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 
-	StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen, bool zoom, bool stretch);
+	StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, QString initial_login_pin, bool fullscreen, bool zoom, bool stretch);
 };
 
 class StreamSession : public QObject
@@ -83,6 +84,9 @@ class StreamSession : public QObject
 #endif
 
 		ChiakiControllerState keyboard_state;
+		ChiakiControllerState touch_state;
+		QMap<int, uint8_t> touch_tracker;
+		int8_t mouse_touch_id;
 
 		ChiakiFfmpegDecoder *ffmpeg_decoder;
 		void TriggerFfmpegFrameAvailable();
@@ -126,7 +130,10 @@ class StreamSession : public QObject
 #endif
 
 		void HandleKeyboardEvent(QKeyEvent *event);
-		void HandleMouseEvent(QMouseEvent *event);
+		void HandleTouchEvent(QTouchEvent *event);
+		void HandleMouseReleaseEvent(QMouseEvent *event);
+		void HandleMousePressEvent(QMouseEvent *event);
+		void HandleMouseMoveEvent(QMouseEvent *event, float width, float height);
 
 	signals:
 		void FfmpegFrameAvailable();

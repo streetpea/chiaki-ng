@@ -83,13 +83,13 @@ class AVOpenGLWidget: public QOpenGLWidget
 
 	protected:
 		ResolutionMode resolution_mode;
-		void mouseMoveEvent(QMouseEvent *event) override;
+		//void mouseMoveEvent(QMouseEvent *event) override;
 
 		void initializeGL() override;
 		void paintGL() override;
 
 	private slots:
-		void ResetMouseTimeout();
+		//void ResetMouseTimeout();
 	public slots:
 		void HideMouse();
 		void ToggleStretch();

@@ -13,8 +13,10 @@
 #include <chiaki/session.h>
 
 #define SETSU_UPDATE_INTERVAL_MS 4
+#define PS_TOUCHPAD_MAX_X 1920
+#define PS_TOUCHPAD_MAX_Y 942
 
-StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen, bool zoom, bool stretch)
+StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, QString initial_login_pin, bool fullscreen, bool zoom, bool stretch)
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
@@ -28,6 +30,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTar
 	this->host = host;
 	this->regist_key = regist_key;
 	this->morning = morning;
+	this->initial_login_pin = initial_login_pin;
 	audio_buffer_size = settings->GetAudioBufferSize();
 	this->fullscreen = fullscreen;
 	this->zoom = zoom;
@@ -128,6 +131,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
 
 	chiaki_controller_state_set_idle(&keyboard_state);
+	chiaki_controller_state_set_idle(&touch_state);
+	touch_tracker=QMap<int, uint8_t>();
+	mouse_touch_id=-1;
 
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -158,6 +164,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_motion_device = nullptr;
 	chiaki_controller_state_set_idle(&setsu_state);
+	setsu_ids=QMap<QPair<QString, SetsuTrackingId>, uint8_t>();
 	orient_dirty = true;
 	chiaki_orientation_tracker_init(&orient_tracker);
 	setsu = setsu_new();
@@ -230,12 +237,50 @@ void StreamSession::SetLoginPIN(const QString &pin)
 	chiaki_session_set_login_pin(&session, (const uint8_t *)data.constData(), data.size());
 }
 
-void StreamSession::HandleMouseEvent(QMouseEvent *event)
+void StreamSession::HandleMousePressEvent(QMouseEvent *event)
 {
-	if(event->type() == QEvent::MouseButtonPress)
-		keyboard_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+	// left button for touchpad gestures, others => touchpad click
+	if (event->button() == Qt::MouseButton::LeftButton)
+	{
+		// if touch id held, clear old touch first
+		if(mouse_touch_id >= 0)
+			chiaki_controller_state_stop_touch(&keyboard_state, (uint8_t)mouse_touch_id);
+	}
 	else
-		keyboard_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+		keyboard_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+	SendFeedbackState();
+}
+
+void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
+{
+	// left button => end of touchpad gesture
+	if (event->button() == Qt::LeftButton)
+	{
+		if(mouse_touch_id >= 0)
+		{
+			chiaki_controller_state_stop_touch(&keyboard_state, (uint8_t)mouse_touch_id);
+			mouse_touch_id = -1;
+		}
+	}
+	keyboard_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+	SendFeedbackState();
+}
+
+void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float height)
+{
+	// left button with move => touchpad gesture, otherwise ignore
+	if (event->buttons() == Qt::LeftButton)
+	{
+		float x = event->x();
+		float y = event->y();
+		float psx = x * ((float)PS_TOUCHPAD_MAX_X / width);
+		float psy = y * ((float)PS_TOUCHPAD_MAX_Y / height);
+		// if touch id is set, move, otherwise start
+		if(mouse_touch_id >= 0)
+			chiaki_controller_state_set_touch_pos(&keyboard_state, (uint8_t)mouse_touch_id, (uint16_t)psx, (uint16_t)psy);
+		else
+			mouse_touch_id=chiaki_controller_state_start_touch(&keyboard_state, (uint16_t)psx, (uint16_t)psy);	
+	}
 	SendFeedbackState();
 }
 
@@ -293,6 +338,84 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 	SendFeedbackState();
 }
 
+void StreamSession::HandleTouchEvent(QTouchEvent *event)
+{
+	//unset touchpad (we will set it if user touches edge of screen)
+	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+
+	const QList<QTouchEvent::TouchPoint> touchPoints = event->touchPoints();
+
+	//QtTouch guarantees touchPoints includes all current touch contact points
+	//=> any touchPoints not in current touchPoints are no longer valid
+	//clear these here to handle any missed end events during execution.
+	for(auto it=touch_tracker.begin(); it!=touch_tracker.end(); it++)
+	{
+		for (const QTouchEvent::TouchPoint &touchPoint : touchPoints)
+		{
+			// touchPoint still exists, so keep its id mapping
+			if(it.key() == touchPoint.id())
+				goto nextOuterFor;
+		}
+		// touchPoint no longer exists but still has value, clear it
+		if(it.value() >= 0)
+			chiaki_controller_state_stop_touch(&touch_state, it.value());
+		touch_tracker.erase(it);
+nextOuterFor:
+		continue;
+	}
+
+	for (const QTouchEvent::TouchPoint &touchPoint : touchPoints)
+	{
+		int id = touchPoint.id();
+		switch (touchPoint.state())
+		{
+			//skip unchanged touchpoints
+			case Qt::TouchPointStationary:
+				continue;
+			case Qt::TouchPointPressed:
+			case Qt::TouchPointMoved:
+			{
+				float norm_x = touchPoint.normalizedPos().x();
+				float norm_y = touchPoint.normalizedPos().y();
+				
+				// Touching edges of screen is a touchpad click
+				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
+					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+				// Scale to PS TouchPad since that's what PS Console expects
+				float psx = norm_x * (float)PS_TOUCHPAD_MAX_X;
+				float psy = norm_y * (float)PS_TOUCHPAD_MAX_Y;
+				auto it = touch_tracker.find(id);
+				if(it == touch_tracker.end())
+				{
+					int8_t cid = chiaki_controller_state_start_touch(&touch_state, (uint16_t)psx, (uint16_t)psy);
+					// if cid < 0 => already too many multi-touches
+					if(cid >= 0)
+						touch_tracker[id] = (uint8_t)cid;
+					else
+						break;
+				}
+				else
+					chiaki_controller_state_set_touch_pos(&touch_state, it.value(), (uint16_t)psx, (uint16_t)psy);
+				break;
+			}
+			case Qt::TouchPointReleased:
+			{
+				for(auto it=touch_tracker.begin(); it!=touch_tracker.end(); it++)
+				{
+					if(it.key() == id)
+					{
+						chiaki_controller_state_stop_touch(&touch_state, it.value());
+						touch_tracker.erase(it);
+						break;
+					}
+				}
+				break;
+			}
+		}
+	}
+	SendFeedbackState();
+}
+
 void StreamSession::UpdateGamepads()
 {
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -323,7 +446,7 @@ void StreamSession::UpdateGamepads()
 			controllers[controller_id] = controller;
 		}
 	}
-
+	
 	SendFeedbackState();
 #endif
 }
@@ -345,6 +468,7 @@ void StreamSession::SendFeedbackState()
 	}
 
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
+	chiaki_controller_state_or(&state, &state, &touch_state);
 	chiaki_session_set_controller_state(&session, &state);
 }
 

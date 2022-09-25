@@ -16,6 +16,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 	connect_info(connect_info)
 {
 	setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_AcceptTouchEvents);
 	setWindowTitle(qApp->applicationName() + " | Stream");
 		
 	session = nullptr;
@@ -59,6 +60,7 @@ void StreamWindow::Init()
 	{
 		av_widget = new AVOpenGLWidget(session, this, resolution_mode);
 		setCentralWidget(av_widget);
+		av_widget->HideMouse();
 	}
 	else
 	{
@@ -108,6 +110,20 @@ void StreamWindow::keyReleaseEvent(QKeyEvent *event)
 		session->HandleKeyboardEvent(event);
 }
 
+bool StreamWindow::event(QEvent *event)
+{
+	if(session)
+	{
+		if ((event->type() == QEvent::TouchBegin) || (event->type() == QEvent::TouchUpdate) || (event->type() == QEvent::TouchEnd))
+		{
+			session->HandleTouchEvent(static_cast<QTouchEvent *>(event));
+			return true;
+		}
+	}
+	// hand non-touch events + cancelled touches back to regular handler
+	return QMainWindow::event(event);
+}
+
 void StreamWindow::Quit()
 {
 	close();
@@ -116,13 +132,18 @@ void StreamWindow::Quit()
 void StreamWindow::mousePressEvent(QMouseEvent *event)
 {
 	if(session)
-		session->HandleMouseEvent(event);
+		session->HandleMousePressEvent(event);
 }
-
 void StreamWindow::mouseReleaseEvent(QMouseEvent *event)
 {
 	if(session)
-		session->HandleMouseEvent(event);
+		session->HandleMouseReleaseEvent(event);
+}
+
+void StreamWindow::mouseMoveEvent(QMouseEvent *event)
+{
+	if(session)
+		session->HandleMouseMoveEvent(event, width(), height());
 }
 
 void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
@@ -184,21 +205,31 @@ void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_st
 
 void StreamWindow::LoginPINRequested(bool incorrect)
 {
-	auto dialog = new LoginPINDialog(incorrect, this);
-	dialog->setAttribute(Qt::WA_DeleteOnClose);
-	connect(dialog, &QDialog::finished, this, [this, dialog](int result) {
-		grabKeyboard();
 
+	if(!connect_info.initial_login_pin.isEmpty() && incorrect == false)
+	{
 		if(!session)
 			return;
+		session->SetLoginPIN(connect_info.initial_login_pin);
+	}
+	else
+	{
+		auto dialog = new LoginPINDialog(incorrect, this);
+		dialog->setAttribute(Qt::WA_DeleteOnClose);
+		connect(dialog, &QDialog::finished, this, [this, dialog](int result) {
+			grabKeyboard();
 
-		if(result == QDialog::Accepted)
-			session->SetLoginPIN(dialog->GetPIN());
-		else
-			session->Stop();
-	});
-	releaseKeyboard();
-	dialog->show();
+			if(!session)
+				return;
+
+			if(result == QDialog::Accepted)
+				session->SetLoginPIN(dialog->GetPIN());
+			else
+				session->Stop();
+		});
+		releaseKeyboard();
+		dialog->show();
+	}
 }
 
 void StreamWindow::ToggleFullscreen()
@@ -208,25 +239,19 @@ void StreamWindow::ToggleFullscreen()
 	else
 	{
 		showFullScreen();
-		if(av_widget)
-			av_widget->HideMouse();
 	}
 }
 
 void StreamWindow::ToggleStretch()
 {
 	if(av_widget)
-	{
 		av_widget->ToggleStretch();
-	}
 }
 
 void StreamWindow::ToggleZoom()
 {
 	if(av_widget)
-	{
 		av_widget->ToggleZoom();
-	}
 }
 
 void StreamWindow::resizeEvent(QResizeEvent *event)
