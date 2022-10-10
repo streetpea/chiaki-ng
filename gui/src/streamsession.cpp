@@ -13,8 +13,9 @@
 #include <chiaki/session.h>
 
 #define SETSU_UPDATE_INTERVAL_MS 4
+// DualSense is 1919 x 1079, DualShock4 is 1920 x 942 (take highest of both here to map completely to both)
 #define PS_TOUCHPAD_MAX_X 1920
-#define PS_TOUCHPAD_MAX_Y 942
+#define PS_TOUCHPAD_MAX_Y 1079
 
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, QString initial_login_pin, bool fullscreen, bool zoom, bool stretch)
 	: settings(settings)
@@ -240,13 +241,7 @@ void StreamSession::SetLoginPIN(const QString &pin)
 void StreamSession::HandleMousePressEvent(QMouseEvent *event)
 {
 	// left button for touchpad gestures, others => touchpad click
-	if (event->button() == Qt::MouseButton::LeftButton)
-	{
-		// if touch id held, clear old touch first
-		if(mouse_touch_id >= 0)
-			chiaki_controller_state_stop_touch(&keyboard_state, (uint8_t)mouse_touch_id);
-	}
-	else
+	if (event->button() != Qt::MouseButton::LeftButton)
 		keyboard_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 	SendFeedbackState();
 }
@@ -271,8 +266,8 @@ void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float 
 	// left button with move => touchpad gesture, otherwise ignore
 	if (event->buttons() == Qt::LeftButton)
 	{
-		float x = event->x();
-		float y = event->y();
+		float x = event->screenPos().x();
+		float y = event->screenPos().y();
 		float psx = x * ((float)PS_TOUCHPAD_MAX_X / width);
 		float psy = y * ((float)PS_TOUCHPAD_MAX_Y / height);
 		// if touch id is set, move, otherwise start
@@ -344,25 +339,6 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 
 	const QList<QTouchEvent::TouchPoint> touchPoints = event->touchPoints();
-
-	//QtTouch guarantees touchPoints includes all current touch contact points
-	//=> any touchPoints not in current touchPoints are no longer valid
-	//clear these here to handle any missed end events during execution.
-	for(auto it=touch_tracker.begin(); it!=touch_tracker.end(); it++)
-	{
-		for (const QTouchEvent::TouchPoint &touchPoint : touchPoints)
-		{
-			// touchPoint still exists, so keep its id mapping
-			if(it.key() == touchPoint.id())
-				goto nextOuterFor;
-		}
-		// touchPoint no longer exists but still has value, clear it
-		if(it.value() >= 0)
-			chiaki_controller_state_stop_touch(&touch_state, it.value());
-		touch_tracker.erase(it);
-nextOuterFor:
-		continue;
-	}
 
 	for (const QTouchEvent::TouchPoint &touchPoint : touchPoints)
 	{

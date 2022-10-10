@@ -143,7 +143,7 @@ void StreamWindow::mouseReleaseEvent(QMouseEvent *event)
 void StreamWindow::mouseMoveEvent(QMouseEvent *event)
 {
 	if(session)
-		session->HandleMouseMoveEvent(event, width(), height());
+		session->HandleMouseMoveEvent(event, frameSize().width(), frameSize().height());
 }
 
 void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
