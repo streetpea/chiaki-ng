@@ -4,12 +4,14 @@
 
     You can copy from and paste into `konsole` windows with ++ctrl+shift+c++ (copy) and ++ctrl+shift+v++ (paste) instead of the normal ++ctrl+c++ (copy) and ++ctrl+v++ (paste) shortcuts. In fact, ++ctrl+c++ is a shortcut to terminate the current process in the `konsole`. Additionally, you can still right-click and select copy or paste as per normal.
 
-1. Open a `konsole` window (Go to applications in the bottom left corner and type in `konsole` in the search bar to find it)
+1. Open a `konsole` window 
+
+    Go to applications in the bottom left corner and type in `konsole` in the search bar to find it and launch it.
 
 2. Run the following command in the `konsole` window to install `chiaki4deck` as a sandboxed user-level installation (more secure vs default of system-level installation)
 
     ``` bash
-    flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.1.0/re.chiaki.Chiaki4deck.flatpakref
+    flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.2.0/re.chiaki.Chiaki4deck.flatpakref
     ```
 
     ???+ example "Example Output"
@@ -34,8 +36,8 @@
 
 !!! Note "About `chiaki4deck`"
 
-    This is a flatpak I created for `chiaki4deck` from [updated](../updates/done.md){target="_blank" rel="noopener noreferrer"} Chiaki source code and signed with the gpg key I have added to the companion GitHub for this site. This is the recommended install as it is the most straightforward.
+    This is a flatpak I created for `chiaki4deck` from [updated](../updates/done.md){target="_blank" rel="noopener"} Chiaki source code and signed with the gpg key I have added to the companion GitHub for this site. This is the recommended install as it is the most straightforward.
     
-    However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in [Building the flatpak yourself](../diy/buildit.md){target="_blank" rel="noopener noreferrer"}.
+    However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in [Building the flatpak yourself](../diy/buildit.md){target="_blank" rel="noopener"}.
 
 

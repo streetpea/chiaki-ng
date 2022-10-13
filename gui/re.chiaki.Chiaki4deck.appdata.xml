@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2022 Florian Märkl <chiaki@metallic.software> -->
 <component type="desktop">
   <id>re.chiaki.Chiaki4deck</id>
   <launchable type="desktop-id">chiaki4deck.desktop</launchable>
@@ -7,7 +6,7 @@
   <summary>Free and Open Source Client for PlayStation Remote Play modified for Steam Deck</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
-  <developer_name>Florian Märkl</developer_name>
+  <developer_name>Street Pea</developer_name>
   <url type="homepage">https://streetpea.github.io/chiaki4deck</url>
   <url type="help">https://github.com/streetpea/chiaki4deck/issues</url>
   <description>
@@ -23,5 +22,5 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
-    <release date="2022-08-21" version="1.1.0" />
+    <release date="2022-08-21" version="1.2.0" />
   </releases>

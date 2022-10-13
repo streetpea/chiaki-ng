@@ -36,9 +36,9 @@ This section covers how to set up PlayStation Remote Play (using Chiaki) on Stea
 
         This install requires entering into _Desktop Mode_. Please connect the following to your Steam Deck:
         
-        === "Required"
+        === "Highly Recommended"
 
-            - external keyboard (highly recommended)
+            - external keyboard (You can use `Steam` + ++x++ to bring up and use the virtual keyboard and make liberal use of copy/paste if you really need to, but it is a much worse experience)
 
         === "Optional but Recommended if you Have Available"
         

@@ -10,69 +10,107 @@ Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `c
 
     ![Chiaki Desktop Mode Controller](images/ChooseControllerLayout.png)
 
+## Retrieving chiaki4deck Controller Layouts when Using An Alternate Game Name [Most Users Can Skip This]
+
+???- Tip "Only If You Didn't Use `chiaki4deck` As the Name of the Game in Steam [Click to Open Me]"
+
+    1. Change the name of your game (i.e., `Playstation Launcher Thingamajig`) temporarily to `chiaki4deck`
+
+        1. Open the properties menu of `Playstation Launcher Thingamajig` (whatever you called it) by hitting the options button when selecting the game or the gear icon on the game page and selecting `Properties...` from the menu that pops up.
+
+            ![Open Properties](images/OpenProperties.png)
+
+        2. Change the game name to `chiaki4deck`
+
+            ![Game Name Change](images/GameNameChange.jpg)
+
+    2. Get the controller layout from the `COMMUNITY LAYOUTS` via the normal process.
+
+        1. Click the current layout box (it says: *Browse Community Layouts for games without official controller support* underneath it).
+
+        2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck+` by `gmoney23`
+
+            ![Default controller](images/StreetpeaChiaki4deckLayout.png)
+
+    3. Export the layout as a `Personal Save`
+
+        1. Click the gear icon and select `Export Layout` as the option
+
+            ![Export Layout](images/ExportLayout.jpg)
+
+        2. Save the layout as a `New Personal Save`
+
+            ![New Personal Save](images/NewPersonalSave.jpg)
+
+    4. Change your game name to whatever you would like
+
+        1. Go back into the properties menu for the game
+
+        2. Change your game name back to what you wanted
+
+            ![Game Name Change](images/PlayStationLauncherThingamajig.png)
+
+    5. Choose the desired layout which is now available for your differently named game
+
+        1. Click on your current layout
+
+        2. Select the saved community layout from the `YOUR LAYOUTS` tab
+
+            ![Personal Layout Select](images/PersonalLayoutSelect.jpg)
+
+    6. Play with the layout
+
+    !!! Info "Getting Steam Controls for Non-Steam Games"
+
+        An interesting aside is that you can exploit this same process to get the official controller layout for a game that has a Steam version but you added as a non-Steam game. In that instance, you would be changing the game name to the Steam App ID for that game which you can find by searching [SteamDB here](https://steamdb.info/apps/){target="_blank" rel="noopener"} among other ways (i.e., looking at the # in the URL of the game on the Steam Store).
+
 ## Default Controller Profile
 
 The easiest way to configure all of the necessary shortcuts for `chiaki4deck` is to copy the profile I have created in the `COMMUNITY LAYOUTS` tab. 
 
 1. Click the current layout box (it says: *Browse Community Layouts for games without official controller support* underneath it).
 
-2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck` by `gmoney23`
+2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck+` by `gmoney23` (the original `chiaki4deck` layout was from before touchpad mapping to the trackpad and touchscreen was added)
 
     ![Default controller](images/StreetpeaChiaki4deckLayout.png)
-
-    !!! Warning "PlayStation Login Passcode Entry"
-        
-        If you have to enter a passcode (4 digit pin) every time you boot up your PlayStation to play, you have a login passcode. Please follow the steps below. **Otherwise, you (most users) can skip this warning as it doesn't apply to you.**
-        
-        **Choose 1 of the following 2 options**:
-    
-        - Keep your passcode because you have it for a good reason (i.e., you're sharing a console and don't want the other person(s) accessing your account):
-        
-            1. *One time only*: Choose `chiaki4deck w/ keyboard` from the `COMMUNITY LAYOUTS` tab instead of the `chiaki4deck` layout. This maps the top left back button (L4) to the show keyboard system command. 
-
-            2. *Each time you launch `chiaki4deck` and login*:
-                
-                1. Wait for the login passcode dialog box to appear.
-            
-                2. Hit the top left back button (L4) to bring up the on-screen Steam Deck virtual keyboard.
-
-                3. Enter you passcode using the keyboard (either via touch or controller navigation) to login to your PlayStation console (use ++enter++ / R2 to submit the passcode). 
-
-            **OR**
-
-        - Delete the PlayStation Login passcode to bypass needing to enter your passcode each time you login.
-
-            === "PS5"
-
-                Go to `Settings -> Users and Accounts -> Login Settings -> Delete Your PS5 Login Passcode`
-
-            === "PS4"
-
-                Go to `Settings -> Users -> Login Settings -> Passcode Management -> Delete`
-
-        !!! info "Automated pin entry coming"
-
-            I'm working on adding pin entry to the automation so that you can set your passcode on the Steam Deck without having to re-enter it each time [here](https://github.com/streetpea/chiaki4deck/issues/5){target="_blank" rel="noopener noreferrer"}. This will be good for you if you share your PlayStation but have your own Steam Deck.
 
 ### Default `chiaki4deck` Layout Mapping Full View
 
 ![Steam Deck Full Control View](images/ControlsFullView.png)
 
+### Default `chiaki4deck` Layout Touchscreen Mapping
+
+![TouchScreen Native Global Option](images/TouchScreenNative.jpg)
+
+Use native gestures and swiping the touchscreen to perform touchpad actions. Please keep in mind that the touchscreen is mapping to the PlayStation touchpad (that is what the PlayStation console / games expect) so it behaves like a touchpad (i.e., cursor position moves based on your gesture relative to the current cursor position instead of snapping to your finger location). This is important to note for games with a cursor such as *Chicory: A Colorful Tale* as it can seem weird when using a touchscreen but is actually correct / desired in this case.
+
+Use the edges of the touchscreen (top, bottom, left, or right 5% of the screen) to activate touch click. 
+
+!!! Note "Games with Region-Based Touchpad Click" 
+    
+    For games that separate the PlayStation touchpad into 3 regions, you can use a left edge touchscreen tap for left touchpad click, right edge touchscreen tap for right touchpad click and top or bottom middle of the touchscreen tap for middle touchpad click.
+
 ### Default `chiaki4deck` Layout Trackpad Mapping
 
-![Steam Deck TrackPad Mapping](images/Trackpads.png)
+![Steam Deck TrackPad Mapping](images/TrackpadControls.jpg)
 
-I have mapped the trackpads as single buttons triggered when you press them down.  The left trackpad is the PlayStation button and the right trackpad is a PlayStation controller touchpad click.
+I have mapped the left trackpad as the PlayStation button and the right trackpad as the PlayStation controller touchpad (press for touchpad click and swipe for touchpad gestures). This essentially works the exact same way as when you're playing with the DualSense of DualShock4 touchpad. You touch/swipe for gestures and click for touchpad click.
+
+The touchpad gestures are mapped using a mouse region with left mouse click on touch (i.e., simulates holding down the ++left-button++ while moving a mouse) and the touchpad click is mapped to ++t++.
+
+!!! Note "Right Click Works too"
+
+    Clicking the mouse ++right-button++ instead of the ++t++ key would have the same effect.
 
 ### Default `chiaki4deck` Layout Back Button Mapping
 
 ![Steam Deck Back Button Mapping](images/BackButtons.png)
 
-I have mapped L4 to the PlayStation button, L5 to end session (++ctrl+q++), R4 to zoom (++ctrl+z++), and R5 to stretch (++ctrl+s++).
+I have mapped `L4` to the PlayStation button, L5 to end session (++ctrl+q++), R4 to zoom (++ctrl+z++), and R5 to stretch (++ctrl+s++).
 
 ### Default `chiaki4deck` Layout Gyro Mapping
 
-I have also mapped gyro controls `As joystick`. Whenever you touch the right joystick or trackpad, you can move the Steam Deck to aim / control the camera with motion (gyro) controls in addition to moving the right joystick. You can always change this by choosing to edit the layout and going into the gyro settings.
+I have also mapped gyro controls `As joystick`. Whenever you touch the right joystick, you can move the Steam Deck to aim / control the camera with motion (gyro) controls. You can use this on its own or for small adjustments to larger camera movements made by directly moving the right joystick. You can always change this by choosing to edit the layout and going into the gyro settings.
 
 ## Creating your Own Controller Profile
 
@@ -87,12 +125,34 @@ You can create your own controller profile by mapping the relevant buttons. The 
 | `Stretch`| ++ctrl+s++  | Toggle between stretch (stretched to eliminate borders, distorting aspect ratio of image), and non-stretch (black borders with default aspect ratio) |
 | `PlayStation Button`| ++esc++ | The PlayStation / home button as it normally functions on a PlayStation controller |
 | `Share Button` | ++f++ | The Share button on the PS5 controller used for taking screenshots, videos, etc. stored on your PS5 and uploaded to the PlayStation app on your phone if you so choose. |
+| `Touchpad Click` | ++t++, mouse ++right-button++, tapping border (top, bottom, left or right 5%) of the touchscreen | These actions will all result in a touchpad click. For games that separate the touchpad into multiple regions, they work in conjunction with either the current mouse location (location of finger on Steam Deck trackpad) or current finger location (which edge of the touchscreen you tapped) to delineate which region you are using (most games just have one region for touchpad click though). |
+| `Touchpad Motion` | `Touchscreen touch`, mouse ++left-button++ ++plus++ Mouse Movement (i.e., `drag action` / mouse region touch). | Maps to the PlayStation touchpad (since that's what PlayStation games / the remote streaming console expect). This means that the "cursor" (if one is defined for the game like in *Chicory: A Colorful Tale*) moves according to your gestures but does not snap/follow your fingers' locations (i.e., it behaves like a touchpad as it should).|
 
 !!! Tip "Two Button Shortcuts"
 
     If you want to create a shortcut that includes 2 buttons like ++ctrl+q++, add the first key (i.e., ++ctrl++) and then click the gear icon to the right of the added command (i.e., ++ctrl++) and select `Add sub command`. Finally, fill in the new blank rectangle that appears with the desired second key (i.e., ++q++)
 
-    ![Sub command](images/SubCommandMenu.jpg)
+    ![Sub command](images/SubCommandMenu.jpg) 
+
+#### Using Steam Deck Controller Touchscreen in Your Custom Controller Profile
+
+In order to use the Steam Deck touchscreen as a touchscreen instead of a mouse in Game Mode, you need to enable `Touchscreen Native Support` for it in controller options (this is done for you in the default `chiaki4deck` layout `chiaki4deck+`). For your custom controller profile, do the following:
+
+1. Edit your controller layout and scroll down to the `Action Sets` tab (on the left menu). 
+    
+2.  Click the gear icon to the right of the given action set (i.e., `Default`). 
+
+    ![TouchScreen Native Global Option](images/TouchScreenNative.jpg)
+        
+3. Select `Add Always-On command`. 
+
+    ![Always On Option](images/AddAlwaysOnOption.jpg)
+
+4. Move to the `SYSTEM` tab (use `R1` to switch tabs) and select `Touchscreen Native Support` from the commands.
+
+5. Your `Action Sets` tab should now look like the following:
+
+    ![TouchScreen Native Global Option](images/TouchScreenNative.jpg)
 
 ### Standard Button Mappings (These directly map and don't need to be specifically set)
 
@@ -116,18 +176,18 @@ You can create your own controller profile by mapping the relevant buttons. The 
 | `L2`             | `L2`                    |
 | `L3`             | `L3` (left-stick click) |
 
-### Gyro and Touch Controls
+### Gyro Controls
 
-!!! Notice "Native Touchpad Gesture and Gyro Support"
+!!! Notice "Native Gyro Support"
 
-    As of now, gyro and touch controls (other than the touchpad click) do not directly map for games that support those (i.e., Ghost of Tsushima for touch gesture and Concrete genie for gyro controls) on the Steam Deck controller. In order to get around this, you can either:
+    As of now, gyro does not directly map for games that support it (i.e., Concrete genie) on the Steam Deck controller. In order to get around this, you can either:
     
     1. Remap controls in accessibility options if the specific game supports that.
     2. Connect a DualSense or DualShock4 controller following [Using a DualSense and/or DualShock4 Controller with `chiaki4deck`](#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck) below.
     
-    In the future, I plan to update `chiaki4deck` to support native gyro and touch for the Steam Deck controller. This affects a small subset of games. However, it is important to note when thinking of which games to play with Chiaki/`chiaki4deck`.
+    In the future, I plan to update `chiaki4deck` to support native gyro for the Steam Deck controller (like I have done for touch controls). This affects a small subset of games. However, it is important to note when thinking of which games to play with Chiaki/`chiaki4deck`.
 
-Additionally, you can use gyro controls for camera options with any game (with gyro in the game itself turned off) by mapping gyro `As joystick` and adding a condition for when it's used (i.e., `On` with a condition of `right touchpad or right joystick touch`) in the gyro settings for `chiaki4deck`. I have done this in the [default `chiaki4deck` control setting](#default-chiaki4deck-layout-mapping-full-view) and you can do it in your custom control scheme.
+Additionally, you can use gyro controls for camera options with any game (with gyro in the game itself turned off) by mapping gyro `As joystick` and adding a condition for when it's used (i.e., `On` with a condition of `right joystick touch`) in the gyro settings for `chiaki4deck`. I have done this in the [default `chiaki4deck` control setting](#default-chiaki4deck-layout-mapping-full-view) and you can do it in your custom control scheme.
 
 ## Using a DualSense and/or DualShock4 Controller with `chiaki4deck`
 
@@ -141,7 +201,7 @@ While most users will want to just use `chiaki4deck` with the Steam Deck control
 
 !!! Caution "Password Required"
 
-    This requires setting a password for your Steam Deck (if you haven't already). This is because you have to give access to the PlayStation controllers' accelerometer/gyroscope and touchpad to your user so that `chiaki4deck` can read them using `libevdev`. This itself is not dangerous, but changing udev rules in general can be which is why this is a restricted action that requires the use of sudo (with a password). Once you set your password, you need to make sure you put it in your password manager or remember it. Otherwise, if you ever need to use a command that requires a password again, you won't be able to use it and will have to use the [recovery instructions for the Steam Deck](https://help.steampowered.com/en/faqs/view/1B71-EDF2-EB6D-2BB3){target="_blank" rel="noopener noreferrer"}. Please don't let this be you! :see_no_evil:
+    This requires setting a password for your Steam Deck (if you haven't already). This is because you have to give access to the PlayStation controllers' accelerometer/gyroscope and touchpad to your user so that `chiaki4deck` can read them using `libevdev`. This itself is not dangerous, but changing udev rules in general can be which is why this is a restricted action that requires the use of sudo (with a password). Once you set your password, you need to make sure you put it in your password manager or remember it. Otherwise, if you ever need to use a command that requires a password again, you won't be able to use it and will have to use the [recovery instructions for the Steam Deck](https://help.steampowered.com/en/faqs/view/1B71-EDF2-EB6D-2BB3){target="_blank" rel="noopener"}. Please don't let this be you! :see_no_evil:
 
 1. Open a `konsole` session
 
@@ -151,9 +211,9 @@ While most users will want to just use `chiaki4deck` with the Steam Deck control
     passwd
     ```
 
-3. Add [udev rules](https://wiki.archlinux.org/title/Udev){target="_blank" rel="noopener noreferrer"} for PlayStation controllers' touchpads and accelerometers (gyroscopes)
+3. Add [udev rules](https://wiki.archlinux.org/title/Udev){target="_blank" rel="noopener"} for PlayStation controllers' touchpads and accelerometers (gyroscopes)
 
-    1. Download the [71-chiaki4deck.rules](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/doc/71-chiaki4deck.rules){target="_blank" rel="noopener noreferrer"} udev rules file from GitHub using the following `konsole` command:
+    1. Download the [71-chiaki4deck.rules](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/doc/71-chiaki4deck.rules){target="_blank" rel="noopener"} udev rules file from GitHub using the following `konsole` command:
 
         ```bash
         curl -LO https://raw.githubusercontent.com/streetpea/chiaki4deck/main/doc/71-chiaki4deck.rules
@@ -224,7 +284,7 @@ While most users will want to just use `chiaki4deck` with the Steam Deck control
 
 !!! Info "Make Sure your Controller is Connected for Configuration"
 
-    Your PlayStation controller needs to be connected via bluetooth or usb cable for its tab to show up when you visit the `chiaki4deck` game page on your Steam Deck and edit the saved controller configuration. This configuration is specifically for your PlayStation controller and separate from the `Steam Deck` controller configuration for `chiaki4deck`. It will be activated automatically when you use the PlayStation controller with `chiaki4deck` (it will show up as a 2nd controller configuration since you will now have at least 2 active controllers [Steam Deck + PlayStation controlller])
+    Your PlayStation controller needs to be connected via bluetooth or usb cable for its tab to show up when you visit the `chiaki4deck` game page on your Steam Deck and edit the saved controller configuration. This configuration is specifically for your PlayStation controller and separate from the `Steam Deck` controller configuration for `chiaki4deck`. It will be activated automatically when you use the PlayStation controller with `chiaki4deck` (it will show up as a 2nd controller configuration since you will now have at least 2 active controllers [Steam Deck + PlayStation controller])
 
 === "Mapping All `chiaki4deck` Controls (Recommended)"
 

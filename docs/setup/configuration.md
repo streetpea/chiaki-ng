@@ -6,11 +6,15 @@
 
     !!! Tip "Make sure you're on the right tab!"
     
-        If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the **New to Using Chiaki on Steam Deck Tab.** If you have set up the official Chiaki flatpak and want to try `chiaki4deck`, you're in the right place! :tada:
+        If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the **New to Using Chiaki on Steam Deck Tab.** If you have set up the official Chiaki flatpak before (no, you don't have to uninstall `Chiaki` :wink:) and want to try `chiaki4deck`, you're in the right place! :tada:
 
     1. Create initial file templates for `chiaki4deck`
 
-        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run re.chiaki.Chiaki4deck` in the `konsole`
+        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run re.chiaki.Chiaki4deck` in the `konsole`.
+
+            !!! Question "What if chiaki4deck doesn't appear in the `Games` section?"
+
+                If `chiaki4deck` doesn't appear in the `Games` section, go to `All Applications` and search for `chiaki4deck` there. It should show up in the `Games` section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to `All Applications` works in all cases.
 
         2. Close `chiaki4deck`
 
@@ -28,7 +32,44 @@
 
 === "New to Using Chiaki on Steam Deck"
 
-    1. Get your PlayStation AccountID (This is needed to access your ps account)
+    1. Set up your PlayStation console for remote play
+
+        1. Enable remote play
+
+            === "PS5"
+
+                Go to `Settings -> System -> Remote Play` and turn on:
+
+                1. `Enable Remote Play`
+
+            === "PS4"
+
+                1. Go to `Settings -> Remote Play Connection Settings` and turn on:
+                
+                    1. `Enable Remote Play`
+
+                2. Go to `Settings -> Account Management -> Activate as Your Primary PS4` and select:
+
+                    1. `Activate`
+
+        2. Enable waking your console from rest mode
+
+            === "PS5"
+
+                Go to `Settings -> System -> Power Saving -> Features Available in Rest Mode` and turn on:
+
+                1. `Stay Connected to the Internet`
+                2. `Enable Turning on PS5 from Network`
+
+            === "PS4"
+
+                Go to `Settings -> Power Save Settings -> Set Function Available in Rest Mode` and turn on:
+                
+                1. `Stay Connected to the Internet`
+
+                2. `Enable turning on PS4 from Network`
+
+    3. Get your PlayStation AccountID (This is needed to access your ps account)
 
         1. Run the flatpak with the `psn-account-id` command
 
@@ -40,7 +81,7 @@
 
         3. Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.
 
-    2. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run re.chiaki.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
+    4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run re.chiaki.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
 
         ![Unregistered PS5](images/UnregisteredPS5.png)
 
@@ -48,7 +89,7 @@
         
             Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again.
 
-    3. Register your PlayStation console
+    5. Register your PlayStation console
 
         1. Double click on the blue box to bring up a registration window
 
@@ -72,11 +113,11 @@
 
         6. Click Register (will become available when all necessary fields are filled)
 
-    4. You should see this upon successful registration
+    6. You should see this upon successful registration
 
         ![Successful Registration](images/RegisteredConsole.png)
 
-    5. Click out of the dialog boxes and see that your console now shows registered
+    7. Click out of the dialog boxes and see that your console now shows registered
 
         ![Console Registered](images/PS5Connected.png)
 
@@ -92,27 +133,76 @@
 
     - Use `chiaki4deck` and/or `Chiaki` in Game Mode when possible; the speaker not loading hardware error doesn't occur there.
 
-Launch the connection to test it by opening `chiaki4deck` and double clicking on the box with the console icon. You can even test launching a game if you want. Exit out of the window once you've tested the connection.
+1. Test waking your console from rest mode
 
-=== "It worked! :smile:"
+    1. Put your console in rest mode
 
-    !!! success "Purrfect :cat:"
+    2. Open `chiaki4deck`
 
-        You were able to launch your stream and connect. Maybe, you even got a game running.
+    3. Double click on the box with the console icon colored orange (**State: standby**). 
+    
+    4. When prompted with, "The Console is currently in standby mode.Should we send a Wakeup packet instead of trying to connect immediately?": 
+        
+        - choose **Yes**
 
-        ![Stray Full Screen](images/Stray_Fullscreen.jpg)
+    5. Your PlayStation console should wake up and the box with the console icon should turn from orange to blue (**State: ready**).
 
-=== "It didn't work :frowning:"
+        === "Your PlayStation has awoken from slumber! :sun_with_face:"
 
-    !!! Error "An error occurred"
+            !!! success
+            
+                Now it's time to test connecting via PlayStation Remote Play in the next step!
 
-        1. Please try closing and re-launching to make sure it wasn't some sort of temporary snafu (maybe your console was updating something and didn't want to let you connect right away)
+        === "Your PlayStation hit the snooze button :zzz:"
 
-        2. Make sure your PlayStation shows as registered and is currently either on or in sleep mode. If it's not on or in sleep mode, you can't connect to it.
+            !!! Error "Here's how to get back on the happy path"
+
+                1. Make sure your PlayStation shows as registered and is currently in sleep mode. If it's not in sleep mode, you can't wake it up.
+
+                2. Make sure that you have enabled turning on your PlayStation console from rest mode:
+
+                    === "PS5"
+
+                        Go to `Settings -> System -> Power Saving -> Features Available in Rest Mode` and turn on:
+
+                        1. `Stay Connected to the Internet`
+                        2. `Enable Turning on PS5 from Network`
+
+                    === "PS4"
+
+                        Go to `Settings -> Power Save Settings -> Set Function Available in Rest Mode` and turn on:
+                        
+                        1. `Stay Connected to the Internet`
+
+                        2. `Enable turning on PS4 from Network`
+
+2. Test PlayStation Remote Play
+
+    1. Double click on the box with the now blue console icon (**State: ready**)
+    
+    2. Test launching a game if you want
+    
+    3. Exit out of the window once you've tested the connection.
+
+    === "It worked! :smile:"
+
+        !!! success "Purrfect :cat:"
+
+            You were able to launch your stream and connect. Maybe, you even got a game running.
+
+            ![Stray Full Screen](images/Stray_Fullscreen.jpg)
+
+    === "It didn't work :frowning:"
+
+        !!! Error "An error occurred"
+
+            1. Please try closing and re-launching to make sure it wasn't some sort of temporary snafu (maybe your console was updating something and didn't want to let you connect right away).
+
+            2. Make sure your PlayStation appears in the Chiaki menu, is labelled **(registered)** and is animated with either an orange (**State: standby**) or blue (**State: ready**) light.
 
 ## Choosing your Remote Play Settings
 
-Here are different settings you can use for Chiaki/`chiaki4deck` depending on your network connection. The default configuration is for remote play on a home network only, this means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection. 
+Here are different settings you can use for Chiaki/`chiaki4deck` depending on your network connection. The default configuration is for remote play on a home network only. This means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection. 
 
 !!! Question "What does that mean for me?"
 
@@ -132,7 +222,7 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
         ???+ Question "Why 1080p if the Steam Deck is only 800p?"
 
-            Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener noreferrer"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
+            Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
             
             However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
 
@@ -144,9 +234,9 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
     !!! Tip "Putting your PlayStation Console to Sleep Automatically"
 
-        For `Action on Disconnect`, choose `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener noreferrer"}). 
+        For `Action on Disconnect`, choose `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
         
-        If you prefer, you can also use `Ask` (the default) to get prompted about putting your PlayStation to sleep when you close your session (use ++ctrl+q++).
+        If you prefer, you can also use `Ask` (the default) to get prompted about putting your PlayStation to sleep when you close your session with ++ctrl+q++.
 
 ## Performance of Chiaki/`chiaki4deck`
 
@@ -172,7 +262,7 @@ Ultimately, the performance will depend on the capability of your wireless route
     Negatives:
 
     - occasional performance issues with certain games (specifically games with VSync enabled)
-    - lack of touchpad gesture and gyro controls for games that require these
+    - lack of native gyro (unless you attach DualSense controller via bluetooth or usb) for games that require it (i.e., Concrete Genie.)
     - lack of native microphone support (I use Discord with my friends so not an issue for me, but could be for others).
 
 !!! example "Games I've Played Successfully Using `chiaki4deck` So Far..."
@@ -180,11 +270,14 @@ Ultimately, the performance will depend on the capability of your wireless route
     - Stray
     - God of War (2018)
     - Genshin Impact (turned off VSync in settings to get rid of white flashes during gameplay)
-    - Sekiro (occasional white flashes in areas with high crowds. These went away as I got further in the game and never affected my ability to progress. Unfortunately, this seems to be due to VSync being enabled automatically with no option to turn it off. Luckily, the framerate is very solid on PS5 so it happens infrequently (at its peak there was 1 flash every 15 minutes. It only affected about 3 hours of the game in total.)
+    - Sekiro (occasional white flashes in areas with high crowds. Luckily, **these went away as I got further in the game** and never affected my ability to progress. Unfortunately, this seems to be due to VSync being enabled automatically with no option to turn it off. It only affected about 3 hours of the game in total [12 flashes with 1 or 2 every 15-30 minutes or so] before it went away completely).
     - Fall Guys
     - MultiVersus
     - Red Dead Redemption 2
     - Marvel's Spider Man
+    - Ghost of Tsushima (changed from Resolution Mode to Performance Mode in game settings for native-like performance)
+    - Chicory: A Colorful Tale
+    - Concrete Genie (Using DualSense Controller)
 
 ### Troubleshooting Performance Issues
 
@@ -201,18 +294,26 @@ To fix these issues, try the following:
 
 2. Switch to **720p** from 1080p
 
-    **720p** requires less bandwidth than 1080p. This help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems).
+    **720p** requires less bandwidth than 1080p. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems).
 
 3. Try **short preamble**
 
-    If you are still having trouble (I didn’t need this but it can help in general and helped significantly improve performance for other streaming services such as Game Pass on my Steam Deck), try using using [short preamble instead of long preamble](https://www.interline.pl/Information-and-Tips/Preamble-Type-Short-Or-Long){target="_blank" rel="noopener noreferrer"} in your router settings. You need to change this directly in your router settings for the given network and can do it per network if you set up more than one. This is incompatible with old devices (using wifi b/g instead of n or ac). Devices from 2011 and newer are required by law to support it and so will definitely work. Older devices may or may not support it depending on if they have either n or ac wireless support. Short preamble helps the $5GHz$ connection for devices that support it (essentially anything that’s connecting on a $5GHz$ network should use it). For streaming, you can set up one network that uses short for your newer devices ($5GHz$ network for me) and one with long for older devices ($2.4 GHz$ network for me since older devices don’t support $5GHz$ anyway). My connection worked fine with long preamble on a $2.4 GHz$ network for Chiaki but short (and a $5GHz$ network for that matter) works better in general for devices that support it and has helped others using Chiaki as well as me to help reduce Game Pass streaming lag (which is still much worse than Chiaki and not close to native, but works well for games that don’t require fast or moderately fast reaction times).
+    If you are still having trouble (I didn’t need this but it can help in general and helped significantly improve performance for other streaming services such as Game Pass on my Steam Deck), try using using [short preamble instead of long preamble](https://www.interline.pl/Information-and-Tips/Preamble-Type-Short-Or-Long){target="_blank" rel="noopener"} in your router settings. You need to change this directly in your router settings for the given network and can do it per network if you set up more than one. This is incompatible with old devices (using wifi b/g instead of n or ac). Devices from 2011 and newer are required by law to support it and so will definitely work. Older devices may or may not support it depending on if they have either n or ac wireless support. Short preamble helps the $5GHz$ connection for devices that support it (essentially anything that’s connecting on a $5GHz$ network should use it). For streaming, you can set up one network that uses short for your newer devices ($5GHz$ network for me) and one with long for older devices ($2.4 GHz$ network for me since older devices don’t support $5GHz$ anyway). My connection worked fine with long preamble on a $2.4 GHz$ network for Chiaki but short (and a $5GHz$ network for that matter) works better in general for devices that support it and has helped others using Chiaki as well as me to help reduce Game Pass streaming lag (which is still much worse than Chiaki and not close to native, but works well for games that don’t require fast or moderately fast reaction times).
 
-4. **Turn off VSync** or the equivalent in games that use it
+4. For specific game issues, change game resolution settings
+
+    For example, the game may be set to 4k / resolution mode even though it's only streaming at 1080p or even 720p. Additionally, it may be using HDR (which the Steam Deck screen doesn't support). Switching these settings off on a game level results in less processing power used on the game and thus more left over for streaming as well as hitting a higher framerate. For example, I switched `Ghost of Tsushima` from resolution mode to performance mode and noticed that the occasional performance problems I was experiencing evaporated and the visual quality became much more stable due to the lack of occasional stutters. It went from being playable but a noticeable downgrade to indistinguishable from native.
+
+5. **Turn off VSync** or the equivalent in games that use it
     
     VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/`chiaki4deck`.
+
+6. Switch framerate to **30fps**
+
+    **30fps** requires less bandwidth than **60fps**. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems). I put this last because it is the biggest performance downgrade and most of the time you don't need to do this. However, switching to 30fps / 720p at the default settings is the most surefire way to fix connection issues and a last resort if the methods with virtually no downsides don't do the trick.
 
 ## Chiaki/`chiaki4deck` via Internet (Outside of Home Connection)
 
 !!! Info "Chiaki/`chiaki4deck` Outside of your Home Network"
     
-    You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly.
+    You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly. Nevertheless, it can be very convenient to use while traveling, especially when playing less timing intensive games (i.e., games that would play well via cloud streaming).

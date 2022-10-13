@@ -30,6 +30,10 @@
 
 3. Choose `Chiaki-launcher.sh` as your game
 
+    !!! Tip "If You're missing `Chiaki-launcher.sh`, You Skipped the Automation Section"
+
+        `Chiaki-launcher.sh` is a script to launch Chiaki without the main gui, resulting in a much better experience on the Steam Deck ([click for details](../updates/done.md#enabled-automated-launch){target="_blank" rel="noopener"}) and makes it [easier to use the 3 games modes](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"}. If `Chiaki-launcher.sh` is missing, you almost certainly skipped the automation section. Don't worry, the fix is easy! :relaxed: Please complete the [Automation section](automation.md){target="_blank" rel="noopener"} now and come back here afterward. It should take you ~ 5 minutes. Luckily, :four_leaf_clover: there is a helper script that does most of the work for you! You simply answer a few questions I walk you through.
+
     1. Choose `File type: All Files` at the bottom of the screen
 
     2. Choose `/home/deck` from the dropdown at the top of the screen and then navigate by clicking on each folder to the folder `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki`
@@ -47,9 +51,17 @@
 
 ## Configuring Name and Game Icons
 
+!!! Warning "Steam Application Name Matters!"
+
+    For Non-Steam games (i.e., `chiaki4deck`), the `Community Layouts` controller layouts are based on the name the user set for the game in Steam when they exported it. Thus, in order to find the controller profiles I created for the game in your `Community Layouts` section later in this guide, your game name will need to the same as mine, (i.e., `chiaki4deck`). This naming is done in step 4 (below) and it's recommended that you just keep your game name as `chiaki4deck` to make your life easier.
+
+    !!! Question "What if naming `chiaki4deck` something else fills me with determination...?"
+
+        If you want to use a different game name (i.e., `Playstation Launcher Thingamajig`) and want to use some or all of the controller layouts I have created (either directly or to download them and use them as a starting point to tinker from), name your game what you want in step 4. Then, when you get to the controller section, follow [Retrieving chiaki4deck Controller Layouts when Using An Alternate Game Name](controlling.md#retrieving-chiaki4deck-controller-layouts-when-using-an-alternate-game-name-most-users-can-skip-this){target="_blank" rel="noopener"}. This walks you through temporarily renaming the app to `chiaki4deck` to access the controller layouts and save them as `Personal Save`s to access in the `Your Layouts` tab. Finally, you can rename you game to what you want and apply your layout to this differently named Steam game.
+
 1. Acquire pictures to use for the game library in Steam
 
-    1. Get the images I used [here](https://github.com/streetpea/chiaki4deck/releases/download/v1.0.0/chiaki4deckImages.tar.xz){target="_blank" rel="noopener noreferrer"} for `chiaki4deck` on my Steam Deck.
+    1. Get the images I used [here](https://github.com/streetpea/chiaki4deck/releases/download/v1.0.0/chiaki4deckImages.tar.xz){target="_blank" rel="noopener"} for `chiaki4deck` on my Steam Deck.
 
     2. Extract the package to a folder of your choice (such as your `Documents` folder).
     
@@ -65,7 +77,7 @@
 
     !!! Note "SteamGridDB"
     
-        The images I provided are from Steam Grid DB and I do not own these images, I'm simply directing you to them for your convenience. You can find these and other images yourself on [SteamGridDB](https://www.steamgriddb.com/search/grids?term=chiaki+remote+play){target="_blank" rel="noopener noreferrer"} as well as via other sources of your choosing.
+        The images I provided are from Steam Grid DB and I do not own these images, I'm simply directing you to them for your convenience. You can find these and other images yourself on [SteamGridDB](https://www.steamgriddb.com/search/grids?term=chiaki+remote+play){target="_blank" rel="noopener"} as well as via other sources of your choosing.
 
 2. If it is not already open, launch Steam and go to your game `Library`.
 
@@ -75,7 +87,7 @@
 
 4. In the properties window that comes up rename `Chiaki-launcher.sh` and add the icon image
 
-    1. Rename it `chiaki4deck` or a different name of your choosing like `PS Remote Play`
+    1. Rename it `chiaki4deck`
 
     2. Click on the blank square to add an image and navigate to the `chiaki4deckImages` folder you created in step 1 above and select the icon image (`icon-chiaki4deck.png`).
 

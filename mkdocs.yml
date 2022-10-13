@@ -34,6 +34,7 @@ theme:
     - search.share
     - navigation.indexes
     - announce.dismiss
+    - content.tabs.link
     
   name: material
   palette:
@@ -59,10 +60,6 @@ copyright: >
   Copyright &copy; 2022 Street Pea –
   <a href="#__consent">Change cookie settings</a>
 
-  favicon: images/chiaki.svg
-  logo: images/chiaki.svg
-  features:
-    - content.tabs.link
 extra:
   social:
     - icon: fontawesome/brands/github
