@@ -109,7 +109,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -842,7 +842,7 @@
 <h1 id="building-the-flatpak-yourself">Building the Flatpak Yourself<a class="headerlink" href="#building-the-flatpak-yourself" title="Permanent link">&para;</a></h1>
 <div class="admonition caution">
 <p class="admonition-title">For Advanced Users Only</p>
-<p>This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the <a href="../../setup/installation/" rel="noopener noreferrer" target="_blank">Installation Section</a>.</p>
+<p>This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the <a href="../../setup/installation/" rel="noopener" target="_blank">Installation Section</a>.</p>
 </div>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
 <ol>
@@ -883,7 +883,7 @@
 </div>
 </li>
 <li>
-<p><a href="https://flathub.org/home" rel="noopener noreferrer" target="_blank">Flathub</a>, the default flatpak repository</p>
+<p><a href="https://flathub.org/home" rel="noopener" target="_blank">Flathub</a>, the default flatpak repository</p>
 <div class="highlight"><pre><span></span><code>flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 </code></pre></div>
 </li>
@@ -892,7 +892,7 @@
 <h3 id="get-flatpak-dependencies">Get Flatpak Dependencies<a class="headerlink" href="#get-flatpak-dependencies" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
-<p>Install the necessary <a href="https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes" rel="noopener noreferrer" target="_blank">flatpak runtime</a> and associated <a href="https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks" rel="noopener noreferrer" target="_blank">sdk</a></p>
+<p>Install the necessary <a href="https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes" rel="noopener" target="_blank">flatpak runtime</a> and associated <a href="https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks" rel="noopener" target="_blank">sdk</a></p>
 <div class="highlight"><pre><span></span><code>flatpak install -y flathub org.kde.Platform//5.15-21.08 flathub org.kde.Sdk//5.15-21.08
 </code></pre></div>
 </li>
@@ -902,7 +902,7 @@
 </code></pre></div>
 </li>
 <li>
-<p>Get the <a href="https://docs.flatpak.org/en/latest/manifests.html" rel="noopener noreferrer" target="_blank">flatpak manifest file</a> for <code>chiaki4deck</code></p>
+<p>Get the <a href="https://docs.flatpak.org/en/latest/manifests.html" rel="noopener" target="_blank">flatpak manifest file</a> for <code>chiaki4deck</code></p>
 <div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/flatpak/chiaki4deck.yaml
 </code></pre></div>
 </li>
@@ -910,7 +910,7 @@
 <h3 id="create-gpg-key-for-signing-your-builds-and-repositories">Create <code>gpg</code> Key for Signing your Builds and Repositories<a class="headerlink" href="#create-gpg-key-for-signing-your-builds-and-repositories" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
-<p>Create the <a href="https://gnupg.org/gph/en/manual/c14.html" rel="noopener noreferrer" target="_blank">gpg</a> key pair</p>
+<p>Create the <a href="https://gnupg.org/gph/en/manual/c14.html" rel="noopener" target="_blank">gpg</a> key pair</p>
 <div class="highlight"><pre><span></span><code>gpg --quick-gen-key chiaki4deck-diy
 </code></pre></div>
 </li>
@@ -956,7 +956,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 1, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
       
         <br>
         Created:
@@ -1018,6 +1018,8 @@
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -1057,8 +1059,6 @@
   
     <div class="md-copyright__highlight">
       Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
-favicon: images/chiaki.svg logo: images/chiaki.svg features:
-  - content.tabs.link
 
     </div>
   
@@ -1154,7 +1154,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>

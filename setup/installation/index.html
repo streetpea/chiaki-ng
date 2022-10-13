@@ -109,7 +109,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -718,11 +718,12 @@
 </div>
 <ol>
 <li>
-<p>Open a <code>konsole</code> window (Go to applications in the bottom left corner and type in <code>konsole</code> in the search bar to find it)</p>
+<p>Open a <code>konsole</code> window </p>
+<p>Go to applications in the bottom left corner and type in <code>konsole</code> in the search bar to find it and launch it.</p>
 </li>
 <li>
 <p>Run the following command in the <code>konsole</code> window to install <code>chiaki4deck</code> as a sandboxed user-level installation (more secure vs default of system-level installation)</p>
-<div class="highlight"><pre><span></span><code>flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.1.0/re.chiaki.Chiaki4deck.flatpakref
+<div class="highlight"><pre><span></span><code>flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.2.0/re.chiaki.Chiaki4deck.flatpakref
 </code></pre></div>
 <details class="example" open="open">
 <summary>Example Output</summary>
@@ -747,8 +748,8 @@
 </ol>
 <div class="admonition note">
 <p class="admonition-title">About <code>chiaki4deck</code></p>
-<p>This is a flatpak I created for <code>chiaki4deck</code> from <a href="../../updates/done/" rel="noopener noreferrer" target="_blank">updated</a> Chiaki source code and signed with the gpg key I have added to the companion GitHub for this site. This is the recommended install as it is the most straightforward.</p>
-<p>However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in <a href="../../diy/buildit/" rel="noopener noreferrer" target="_blank">Building the flatpak yourself</a>.</p>
+<p>This is a flatpak I created for <code>chiaki4deck</code> from <a href="../../updates/done/" rel="noopener" target="_blank">updated</a> Chiaki source code and signed with the gpg key I have added to the companion GitHub for this site. This is the recommended install as it is the most straightforward.</p>
+<p>However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in <a href="../../diy/buildit/" rel="noopener" target="_blank">Building the flatpak yourself</a>.</p>
 </div>
 
   <hr>
@@ -756,7 +757,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 12, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
       
         <br>
         Created:
@@ -818,6 +819,8 @@
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -872,8 +875,6 @@
   
     <div class="md-copyright__highlight">
       Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
-favicon: images/chiaki.svg logo: images/chiaki.svg features:
-  - content.tabs.link
 
     </div>
   
@@ -969,7 +970,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>

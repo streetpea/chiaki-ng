@@ -109,7 +109,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -604,6 +604,20 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#enabled-touchpad-for-steam-deck-touchscreen-andor-trackpads" class="md-nav__link">
+    Enabled Touchpad for Steam Deck Touchscreen and/or Trackpads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updated-rgb-mapping" class="md-nav__link">
+    Updated RGB Mapping
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#3-view-modes-for-non-standard-screen-sizes" class="md-nav__link">
     3 view modes for non-standard screen sizes
   </a>
@@ -754,6 +768,20 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#enabled-touchpad-for-steam-deck-touchscreen-andor-trackpads" class="md-nav__link">
+    Enabled Touchpad for Steam Deck Touchscreen and/or Trackpads
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updated-rgb-mapping" class="md-nav__link">
+    Updated RGB Mapping
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#3-view-modes-for-non-standard-screen-sizes" class="md-nav__link">
     3 view modes for non-standard screen sizes
   </a>
@@ -800,8 +828,43 @@
 
 
 <h1 id="completed-done-updates">Completed (Done) Updates<a class="headerlink" href="#completed-done-updates" title="Permanent link">&para;</a></h1>
+<h2 id="enabled-touchpad-for-steam-deck-touchscreen-andor-trackpads">Enabled Touchpad for Steam Deck Touchscreen and/or Trackpads<a class="headerlink" href="#enabled-touchpad-for-steam-deck-touchscreen-andor-trackpads" title="Permanent link">&para;</a></h2>
+<p>Added Touchpad support for touchscreens (use outer edges of touchscreen for touchpad click) as well as mouse input (enables trackpads to be fully supported with gestures on touch and touchpad click on click). For an example mapping these in a Steam Deck controller profile, see <a href="../../setup/controlling/#default-chiaki4deck-layout-touchscreen-mapping" rel="noopener" target="_blank">Default <code>chiaki4deck</code> Layout Touchscreen Mapping</a> and <a href="../../setup/controlling/#default-chiaki4deck-layout-trackpad-mapping" rel="noopener" target="_blank">Default <code>chiaki4deck</code> Layout Trackpad Mapping</a> respectively. Downloading the updated <code>chiaki4deck+</code> controller layout will have these mappings set for your convenience.</p>
+<h2 id="updated-rgb-mapping">Updated RGB Mapping<a class="headerlink" href="#updated-rgb-mapping" title="Permanent link">&para;</a></h2>
+<p>RGB mapping update thanks to <a href="https://github.com/Egoistically" rel="noopener" target="_blank">Egoistically</a> via a <a href="https://github.com/Egoistically/chiaki" rel="noopener" target="_blank">Chiaki fork</a> which is of course copy-left under the <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener" target="_blank">GNU Affero General Public License version 3</a> as are all of the other <code>chiaki4deck</code> changes. I added the patches to <code>chiaki4deck</code> and it results in a more accurate picture. Below is a <strong>BEFORE</strong> and <strong>AFTER</strong> from Ghost of Tsushima.</p>
+<div class="admonition example">
+<p class="admonition-title">BEFORE</p>
+<p><img alt="Ghost of Tsushima Before RGB Update" src="../images/GOTBeforeRGB.jpg" /></p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">AFTER</p>
+<p><img alt="Ghost of Tsushima After RGB Update" src="../images/GOTAfterRGB.jpg" /></p>
+</div>
 <h2 id="3-view-modes-for-non-standard-screen-sizes">3 view modes for non-standard screen sizes<a class="headerlink" href="#3-view-modes-for-non-standard-screen-sizes" title="Permanent link">&para;</a></h2>
-<p>It's great to have these options for Steam Deck's non-standard 1280x800 resolution</p>
+<p>It's great to have these options for Steam Deck's non-standard 1280x800 resolution.</p>
+<details class="- info">
+<summary>Using These Options Without the Automation [Not Recommended] (click me to open)</summary>
+<p>If for some strange reason you want to launch <code>chiaki4deck</code> via the GUI instead of the automation (not recommended due to the items noted <a href="#enabled-automated-launch">here</a>), it launches by default in a window matching the aspect ratio of the stream (i.e., 16:9). This means that the stream output exactly matches the stream window. In this scenario, there is nothing to stretch or zoom the stream output to because the stream output already perfectly matches with the stream window. If you want to stretch or zoom, you would need to first either:</p>
+<ol>
+<li>
+<p>Adjust the window to a bigger or smaller size with your mouse in <code>Desktop Mode</code> (perhaps you want to use <code>chiaki4deck</code> as half of your screen in Desktop mode)</p>
+<p><strong>OR</strong></p>
+</li>
+<li>
+<p>Use fullscreen mode by:</p>
+<ol>
+<li>
+<p>Pressing <span class="keys"><kbd class="key-f11">F11</kbd></span> (either directly in <code>Desktop Mode</code> or via a controller mapping in <code>Game Mode</code>)</p>
+<p><strong>OR</strong></p>
+</li>
+<li>
+<p>Double clicking on the screen in <code>Desktop Mode</code></p>
+</li>
+</ol>
+</li>
+</ol>
+<p>Then, you could use stretch and/or zoom accordingly (i.e., <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span> / <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-z">Z</kbd></span> or button mapped to them in game mode).</p>
+</details>
 <ol>
 <li>
 <p>Normal (default) [used for fullscreen launch option]</p>
@@ -829,9 +892,39 @@
 <p>Now, if you hit a back button (or other button) mapped to <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> on your Steam Deck, your remote play session will shut down cleanly and put your console to sleep automatically if you so choose. This means you no longer have to manually put your console to sleep via a menu or the power button on the PlayStation console itself.</p>
 </div>
 <h2 id="enabled-automated-launch">Enabled Automated Launch<a class="headerlink" href="#enabled-automated-launch" title="Permanent link">&para;</a></h2>
-<p>This skips the need to visit the configuration screen and use the Steam Deck's touchscreen each time. Additionally, only 1 window is open during game streaming instead of 2, eliminating the flashing issue that would occur during accidental window switching by the Steam Deck's <code>Game Mode</code>. I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="../../setup/automation/" rel="noopener noreferrer" target="_blank">Automation section</a></p>
+<p>This provides the following:</p>
+<ol>
+<li>
+<p>Skips the need to visit the configuration screen and use the Steam Deck's touchscreen each time. </p>
+</li>
+<li>
+<p>Only 1 window is open during game streaming instead of 2, eliminating the flashing issue that would occur during accidental window switching by the Steam Deck's <code>Game Mode</code></p>
+</li>
+<li>
+<p>Gives default game mode option to launch in fullscreen, stretch or zoomed mode.</p>
+</li>
+<li>
+<p>Passes login passcode automatically instead of manually typing it in each time.</p>
+<div class="admonition note">
+<p class="admonition-title">If you have to enter a passcode (4 digit pin) every time you boot up your PlayStation to play, you have a login passcode. If not, this doesn't affect you</p>
+<p>If you choose to not use the automation for whatever reason and have a PlayStation Login Passcode, you will need to do the following <strong>every time</strong> you launch <code>chiaki4deck</code> and login:</p>
+<ol>
+<li>
+<p>Wait for the login passcode dialog box to appear.</p>
+</li>
+<li>
+<p>Use attached keyboard or Hit <code>STEAM</code> + <span class="keys"><kbd class="key-x">X</kbd></span> to bring up the on-screen Steam Deck virtual keyboard.</p>
+</li>
+<li>
+<p>Enter you passcode using the keyboard (either via touch or controller navigation) to login to your PlayStation console (use <span class="keys"><kbd class="key-enter">Enter</kbd></span> / R2 to submit the passcode). </p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+<p>I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="../../setup/automation/" rel="noopener" target="_blank">Automation section</a>.</p>
 <h2 id="enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak">Enabled Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak<a class="headerlink" href="#enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak" title="Permanent link">&para;</a></h2>
-<p>This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See <a href="../../setup/controlling/#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck" rel="noopener noreferrer" target="_blank">Using a DualSense and/or DualShock4 Controller with <code>chiaki4deck</code></a> to set it up for yourself. 
+<p>This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See <a href="../../setup/controlling/#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck" rel="noopener" target="_blank">Using a DualSense and/or DualShock4 Controller with <code>chiaki4deck</code></a> to set it up for yourself. 
 The DualSense/DualShock 4 touchpad and gyro controls work with the binary version of Chiaki but don't work with the official flatpak version. Luckily for you, they now work with the <code>chiaki4deck</code> flatpak! <img alt="😄" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f604.svg" title=":smile:" /></p>
 
   <hr>
@@ -839,7 +932,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 12, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
       
         <br>
         Created:
@@ -901,6 +994,8 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -955,8 +1050,6 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
   
     <div class="md-copyright__highlight">
       Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
-favicon: images/chiaki.svg logo: images/chiaki.svg features:
-  - content.tabs.link
 
     </div>
   
@@ -1052,7 +1145,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>

@@ -109,7 +109,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -715,7 +715,7 @@
 <p>Now that you have <code>chiaki4deck</code> configured, it's time to make it wake up your PlayStation and connect to it automatically. </p>
 <div class="admonition info">
 <p class="admonition-title">So Why Should I Care?</p>
-<p>This is especially convenient for the Steam Deck's <code>Game Mode</code> where an automated launch eliminates both the need to tap furiously at your touchscreen to launch the application and the glitches that would arise (flashes on your screen) when it would switch between the 2 open Chiaki windows (since only 1 window is opened with the automated launch).</p>
+<p>This is especially convenient for the Steam Deck's <code>Game Mode</code> where an automated launch eliminates both the need to tap furiously at your touchscreen to launch the application and the glitches that would arise (flashes on your screen) when it would switch between the 2 open Chiaki windows (since only 1 window is opened with the automated launch). It also gives a default game mode option to launch in fullscreen, stretch or zoomed mode, making it <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">easier to use the 3 games modes</a>. Finally, it allows for passing your login passcode automatically instead of manually typing in each time (for those of you with a login passcode set on your PlayStation console).</p>
 </div>
 <div class="admonition caution">
 <p class="admonition-title">Sleep Mode Required</p>
@@ -764,12 +764,12 @@
 <div class="tabbed-block">
 <ol>
 <li>
-<p>Run the <a href="https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh" rel="noopener noreferrer" target="_blank">gen-launcher script</a> using the following command in your <code>konsole</code> and answer the prompts (you will need your IP address from step 2 above)</p>
+<p>Run the <a href="https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh" rel="noopener" target="_blank">gen-launcher script</a> using the following command in your <code>konsole</code> and answer the prompts (you will need your IP address from step 2 above)</p>
 <div class="highlight"><pre><span></span><code>bash &lt;<span class="o">(</span>curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh<span class="o">)</span>
 </code></pre></div>
 <div class="admonition question">
 <p class="admonition-title">What Do the Different Modes (i.e.,  fullscreen [uses Normal], zoom, stretch) Look Like?</p>
-<p>To see examples of the different launch modes, visit the <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener noreferrer" target="_blank">Updates section</a></p>
+<p>To see examples of the different launch modes, visit the <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">Updates section</a></p>
 </div>
 <details class="- example">
 <summary>Example Output [click to expand me]</summary>
@@ -788,10 +788,15 @@ Enter your PlayStation IP <span class="o">(</span>form should be xxx.xxx.xxx.xxx
 Please <span class="k">select</span> the number corresponding to the default mode you want to use: <span class="m">1</span>
 Option <span class="m">1</span>: fullscreen was chosen
 
+Do you have a PlayStation Login Passcode? <span class="o">(</span>y/n<span class="o">)</span>:
+y
+Enter your <span class="m">4</span> digit PlayStation Login Passcode:
+<span class="m">1111</span>
+
 Would you like to <span class="nb">test</span> the newly created script? <span class="o">(</span>y/n<span class="o">)</span>:
 y
 sounds good, launching script now...
-<span class="o">[</span>I<span class="o">]</span> Logging to file /home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2022-09-12_19-16-53-333333.log
+<span class="o">[</span>I<span class="o">]</span> Logging to file /home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2022-10-12_11-06-25-239239.log
 <span class="o">[</span>I<span class="o">]</span> Chiaki Version <span class="m">2</span>.1.1
 <span class="o">[</span>I<span class="o">]</span> Using hardware decoder <span class="s2">&quot;vaapi&quot;</span>
 <span class="o">[</span>I<span class="o">]</span> Controller <span class="m">0</span> opened: <span class="s2">&quot;Microsoft X-Box 360 pad 0 (03000000de280000ff11000001000000)&quot;</span>
@@ -803,22 +808,26 @@ sounds good, launching script now...
 <span class="o">[</span>I<span class="o">]</span> Starting ctrl
 <span class="o">[</span>I<span class="o">]</span> Ctrl connected to <span class="m">192</span>.168.1.16:9295
 <span class="o">[</span>I<span class="o">]</span> Sending ctrl request
+<span class="o">[</span>I<span class="o">]</span> OpenGL initialized with version <span class="s2">&quot;4.6 (Core Profile) Mesa 21.3.9 (git-78c96ae5b6)&quot;</span>
 <span class="o">[</span>I<span class="o">]</span> Ctrl received http header as response
 <span class="o">[</span>I<span class="o">]</span> Ctrl received ctrl request http response
 <span class="o">[</span>I<span class="o">]</span> Ctrl got Server Type: <span class="m">2</span>
 <span class="o">[</span>I<span class="o">]</span> Ctrl connected
-<span class="o">[</span>I<span class="o">]</span> OpenGL initialized with version <span class="s2">&quot;4.6 (Core Profile) Mesa 21.3.9 (git-78c96ae5b6)&quot;</span>
+<span class="o">[</span>I<span class="o">]</span> Ctrl received Login PIN request
+<span class="o">[</span>I<span class="o">]</span> Ctrl requested Login PIN
+<span class="o">[</span>I<span class="o">]</span> Session received entered Login PIN, forwarding to Ctrl
+<span class="o">[</span>I<span class="o">]</span> Ctrl received entered Login PIN, sending to console
 <span class="o">[</span>I<span class="o">]</span> Ctrl received Login message: success
-<span class="o">[</span>I<span class="o">]</span> Ctrl received valid Session Id: 1663035413TIPEZYQDZS3XNOO4W7EPWPN7BEVQNJOCNVOMSZUXVO3GXZ65GEWM6KHRY7ZOFHWY
+<span class="o">[</span>I<span class="o">]</span> Ctrl received valid Session Id: 1665597987NCXBPSH5W3WPYVWTYGBZT3HJJQM3IIKSRX3JB4WWZFZ3TN4MJIBE26ABIDMK6SVM
 <span class="o">[</span>I<span class="o">]</span> Starting Senkusha
 <span class="o">[</span>I<span class="o">]</span> Takion connecting <span class="o">(</span>version <span class="m">7</span><span class="o">)</span>
 <span class="o">[</span>I<span class="o">]</span> Takion enabled Don<span class="err">&#39;</span>t Fragment Bit
 <span class="o">[</span>I<span class="o">]</span> Takion sent init
-<span class="o">[</span>I<span class="o">]</span> Takion received init ack with remote tag 0xb18ccf, outbound streams: 0x64, inbound streams: 0x64
 <span class="o">[</span>W<span class="o">]</span> Received Ctrl Message with unknown <span class="nb">type</span> 0x16
+<span class="o">[</span>I<span class="o">]</span> Takion received init ack with remote tag 0xb18ccf, outbound streams: 0x64, inbound streams: 0x64
 <span class="o">[</span>W<span class="o">]</span> offset <span class="m">0</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span>  a  b  c  d  e  f  0123456789abcdef
-<span class="o">[</span>I<span class="o">]</span> Takion sent cookie
 <span class="o">[</span>W<span class="o">]</span>      <span class="m">0</span> <span class="m">01</span> ff                                           ..
+<span class="o">[</span>I<span class="o">]</span> Takion sent cookie
 <span class="o">[</span>I<span class="o">]</span> Takion received cookie ack
 <span class="o">[</span>I<span class="o">]</span> Takion connected
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending big
@@ -826,32 +835,32 @@ sounds good, launching script now...
 <span class="o">[</span>I<span class="o">]</span> Senkusha Ping Test with count <span class="m">10</span> starting
 <span class="o">[</span>I<span class="o">]</span> Senkusha enabled <span class="nb">echo</span>
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">0</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.772 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.901 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">1</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.955 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.200 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">2</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.964 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">6</span>.997 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">3</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">4</span>.174 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.827 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">4</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.854 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">6</span>.893 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">5</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.840 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">11</span>.047 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">6</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">4</span>.010 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">6</span>.972 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">7</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.475 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.626 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">8</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.673 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.458 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">9</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">4</span>.164 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.471 ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha disabled <span class="nb">echo</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha determined average <span class="nv">RTT</span> <span class="o">=</span> <span class="m">3</span>.888 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha starting MTU <span class="k">in</span> <span class="nb">test</span> with min <span class="m">576</span>, max <span class="m">1454</span>, retries <span class="m">3</span>, timeout <span class="m">19</span> ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha determined average <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.739 ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha starting MTU <span class="k">in</span> <span class="nb">test</span> with min <span class="m">576</span>, max <span class="m">1454</span>, retries <span class="m">3</span>, timeout <span class="m">38</span> ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha MTU request <span class="m">1454</span> <span class="o">(</span>min <span class="m">576</span>, max <span class="m">1454</span><span class="o">)</span>, id <span class="m">1</span>, attempt <span class="m">0</span>
 <span class="o">[</span>I<span class="o">]</span> Senkusha MTU <span class="m">1454</span> success
 <span class="o">[</span>I<span class="o">]</span> Senkusha determined inbound MTU <span class="m">1454</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha starting MTU out <span class="nb">test</span> with min <span class="m">576</span>, max <span class="m">1454</span>, retries <span class="m">3</span>, timeout <span class="m">19</span> ms
+<span class="o">[</span>I<span class="o">]</span> Senkusha starting MTU out <span class="nb">test</span> with min <span class="m">576</span>, max <span class="m">1454</span>, retries <span class="m">3</span>, timeout <span class="m">38</span> ms
 <span class="o">[</span>I<span class="o">]</span> Senkusha sent initial client MTU <span class="nb">command</span>
 <span class="o">[</span>I<span class="o">]</span> Senkusha received expected Client MTU Command
 <span class="o">[</span>I<span class="o">]</span> Senkusha MTU <span class="m">1454</span> out ping attempt <span class="m">0</span>
@@ -875,9 +884,9 @@ sounds good, launching script now...
 <span class="o">[</span>D<span class="o">]</span> StreamConnection received audio header:
 <span class="o">[</span>W<span class="o">]</span> offset <span class="m">0</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span>  a  b  c  d  e  f  0123456789abcdef
 <span class="o">[</span>D<span class="o">]</span> offset <span class="m">0</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span>  a  b  c  d  e  f  0123456789abcdef
-<span class="o">[</span>W<span class="o">]</span>      <span class="m">0</span> <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">02</span> <span class="m">01</span> <span class="m">00</span> <span class="m">00</span>                         ........
 <span class="o">[</span>D<span class="o">]</span>      <span class="m">0</span> <span class="m">02</span> <span class="m">10</span> <span class="m">00</span> <span class="m">00</span> bb <span class="m">80</span> <span class="m">00</span> <span class="m">00</span> <span class="m">01</span> e0 <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">01</span>       ..............
 <span class="o">[</span>I<span class="o">]</span> Audio Header:
+<span class="o">[</span>W<span class="o">]</span>      <span class="m">0</span> <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">02</span> <span class="m">01</span> <span class="m">00</span> <span class="m">00</span>                         ........
 <span class="o">[</span>I<span class="o">]</span>   <span class="nv">channels</span> <span class="o">=</span> <span class="m">2</span>
 <span class="o">[</span>I<span class="o">]</span>   <span class="nv">bits</span> <span class="o">=</span> <span class="m">16</span>
 <span class="o">[</span>I<span class="o">]</span>   <span class="nv">rate</span> <span class="o">=</span> <span class="m">48000</span>
@@ -953,7 +962,7 @@ ______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <sp
 </ol>
 </li>
 <li>
-<p>Choose your <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener noreferrer" target="_blank">default launch option</a> (fullscreen, zoom, or stretch)</p>
+<p>Choose your <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">default launch option</a> (fullscreen, zoom, or stretch)</p>
 <ul>
 <li>
 <p>fullscreen: A full screen picture with black bars, aspect ratio maintained</p>
@@ -967,8 +976,11 @@ ______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <sp
 </ul>
 <div class="admonition info">
 <p class="admonition-title">Default Launch Option</p>
-<p>This is the option remote play will launch with. You can always toggle to a different option by using the <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span> (toggles between stretch and normal) and <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-z">Z</kbd></span> (toggles between zoom and normal) options which should be set if desired in the Steam controller configuration for the game. See <a href="../controlling/" rel="noopener noreferrer" target="_blank">Controller Configuration Section</a> for more details.</p>
+<p>This is the option remote play will launch with. You can always toggle to a different option by using the <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-s">S</kbd></span> (toggles between stretch and normal) and <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-z">Z</kbd></span> (toggles between zoom and normal) options which should be set if desired in the Steam controller configuration for the game. See <a href="../controlling/" rel="noopener" target="_blank">Controller Configuration Section</a> for more details.</p>
 </div>
+</li>
+<li>
+<p>Get your 4 digit PlayStation login passcode (if applicable). You will know your PlayStation login passcode if you have one because you have to enter it every time you log onto your PlayStation console. If you don't have to do this, you don't have a PlayStation login passcode and will leave that field blank.</p>
 </li>
 <li>
 <p>Create a new blank file located in the folder <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki</code> named  <code>Chiaki-launcher.sh</code></p>
@@ -990,7 +1002,7 @@ connect_error<span class="o">()</span>
 wakeup_error<span class="o">()</span>
 <span class="o">{</span>
     <span class="nb">echo</span> <span class="s2">&quot;Error: Couldn&#39;t wake up PlayStation console from sleep!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please make sure you are using a PlayStation 5.&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
+    <span class="nb">echo</span> <span class="s2">&quot;Error: Please make sure you are using the correct PlayStation # (4 or 5).&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
     <span class="nb">echo</span> <span class="s2">&quot;Error: If not, change the wakeup call to use the number of your PlayStation console&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
     <span class="nb">exit</span> <span class="m">2</span>
 <span class="o">}</span>
@@ -1018,7 +1030,7 @@ timeout_error<span class="o">()</span>
 <span class="c1"># Wake up console from sleep/rest mode if not already awake</span>
 <span class="k">if</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q ready
 <span class="k">then</span>
-    flatpak run re.chiaki.Chiaki4deck wakeup -&lt;playstation_console&gt; -h &lt;console_ip&gt; -r <span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span>
+    flatpak run re.chiaki.Chiaki4deck wakeup -&lt;playstation_console&gt; -h &lt;console_ip&gt; -r <span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span> <span class="m">2</span>&gt;/dev/null
 <span class="k">fi</span>
 
 <span class="c1"># Wait for PlayStation to report ready status, exit script on error if it never happens.</span>
@@ -1038,7 +1050,7 @@ timeout_error<span class="o">()</span>
 <span class="k">done</span>
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --&lt;launch_option&gt; stream <span class="s1">&#39;&lt;console_nickname&gt;&#39;</span> &lt;console_ip&gt;
+flatpak run re.chiaki.Chiaki4deck --passcode &lt;login_passcode&gt; --&lt;launch_option&gt; stream <span class="s1">&#39;&lt;console_nickname&gt;&#39;</span> &lt;console_ip&gt;
 </code></pre></div>
 </li>
 <li>
@@ -1063,6 +1075,9 @@ flatpak run re.chiaki.Chiaki4deck --&lt;launch_option&gt; stream <span class="s1
 <li>
 <p><code>&lt;playstation_console&gt;</code> (either 4 or 5)</p>
 </li>
+<li>
+<p><code>&lt;login_passcode&gt;</code> (just erase this field if you don't have a login passcode)</p>
+</li>
 </ol>
 <details class="example" open="open">
 <summary>Example Script with "fake" values [yours will be different]</summary>
@@ -1079,7 +1094,7 @@ connect_error<span class="o">()</span>
 wakeup_error<span class="o">()</span>
 <span class="o">{</span>
     <span class="nb">echo</span> <span class="s2">&quot;Error: Couldn&#39;t wake up PlayStation console from sleep!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please make sure you are using a PlayStation 5.&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
+    <span class="nb">echo</span> <span class="s2">&quot;Error: Please make sure you are using the correct PlayStation # (4 or 5).&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
     <span class="nb">echo</span> <span class="s2">&quot;Error: If not, change the wakeup call to use the number of your PlayStation console&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
     <span class="nb">exit</span> <span class="m">2</span>
 <span class="o">}</span>
@@ -1107,7 +1122,7 @@ timeout_error<span class="o">()</span>
 <span class="c1"># Wake up console from sleep/rest mode if not already awake</span>
 <span class="k">if</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q ready
 <span class="k">then</span>
-    flatpak run re.chiaki.Chiaki4deck wakeup -5 -h <span class="m">192</span>.168.1.16 -r <span class="s1">&#39;2ebf539d&#39;</span>
+    flatpak run re.chiaki.Chiaki4deck wakeup -5 -h <span class="m">192</span>.168.1.16 -r <span class="s1">&#39;2ebf539d&#39;</span> <span class="m">2</span>&gt;/dev/null
 <span class="k">fi</span>
 
 <span class="c1"># Wait for PlayStation to report ready status, exit script on error if it never happens.</span>
@@ -1127,8 +1142,12 @@ timeout_error<span class="o">()</span>
 <span class="k">done</span>
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#39;</span> <span class="m">192</span>.168.1.16
+flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39;PS5-012&#39;</span> <span class="m">192</span>.168.1.16
 </code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Example is Without Login Passcode #</p>
+<p>If you have a passcode you would set it like <code>--passcode 1111</code>, changing the last line of the example above to <code>flatpak run re.chiaki.Chiaki4deck --passcode 1111 --zoom stream 'PS5-012' 192.168.1.16</code></p>
+</div>
 </details>
 </li>
 <li>
@@ -1171,12 +1190,12 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#3
 <p>Open your script at: <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> and try to run each command individually to see what's causing your problem.</p>
 </li>
 <li>
-<p>If issues persist with this and <code>chiaki4deck</code> launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c.67 0 1.32.12 1.94.33L13 9.35l-4 5 3 7M16.5 3C19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35l-1-7 4.5-5-2.65-5.08C13.87 3.47 15.17 3 16.5 3Z"/></svg></span> underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener noreferrer" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a></p>
+<p>If issues persist with this and <code>chiaki4deck</code> launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c.67 0 1.32.12 1.94.33L13 9.35l-4 5 3 7M16.5 3C19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35l-1-7 4.5-5-2.65-5.08C13.87 3.47 15.17 3 16.5 3Z"/></svg></span> underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a></p>
 </li>
 </ol>
 </div>
 <div class="tabbed-block">
-<p>Close <code>chiaki4deck</code> gracefully by closing any dialog boxes that open and using <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> on the stream window. If <code>chiaki4deck</code> doesn't close gracefully, move your mouse to the top left corner of the stream window and a blue circle should highlight the corner of the screen. Click on it to see all of your windows and select the <code>konsole</code> window. Then, close the <code>konsole</code> window itself (click its <code>x</code> icon in the top right corner). Next, you can relaunch the script again to make sure it wasn't a one-time snafu. Note: Chiaki seems to perform better (audio/visual quality) in <code>Game Mode</code> vs. <code>Desktop Mode</code> for me. If issues persist, feel free to reach out via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener noreferrer" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a>. If you think the documentation itself needs to be updated click the <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c.67 0 1.32.12 1.94.33L13 9.35l-4 5 3 7M16.5 3C19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35l-1-7 4.5-5-2.65-5.08C13.87 3.47 15.17 3 16.5 3Z"/></svg></span> underneath "Was this page helpful?" and open the feedback form for this page.</p>
+<p>Close <code>chiaki4deck</code> gracefully by closing any open dialog boxes and then using <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> on the stream window. If <code>chiaki4deck</code> doesn't close gracefully, move your mouse to the top left corner of the stream window and a blue circle should highlight the corner of the screen. Click on it to see all of your windows and select the <code>konsole</code> window. Then, close the <code>konsole</code> window itself (click its <code>x</code> icon in the top right corner). Next, you can relaunch the script again to make sure it wasn't a one-time snafu. Note: Chiaki seems to perform better (audio/visual quality) in <code>Game Mode</code> vs. <code>Desktop Mode</code> for me. If issues persist, feel free to reach out via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a>. If you think the documentation itself needs to be updated click the <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c.67 0 1.32.12 1.94.33L13 9.35l-4 5 3 7M16.5 3C19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35l-1-7 4.5-5-2.65-5.08C13.87 3.47 15.17 3 16.5 3Z"/></svg></span> underneath "Was this page helpful?" and open the feedback form for this page.</p>
 </div>
 </div>
 </div>
@@ -1192,7 +1211,7 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#3
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 14, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
       
         <br>
         Created:
@@ -1254,6 +1273,8 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#3
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -1308,8 +1329,6 @@ flatpak run re.chiaki.Chiaki4deck --zoom stream <span class="s1">&#39;PS5-012&#3
   
     <div class="md-copyright__highlight">
       Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
-favicon: images/chiaki.svg logo: images/chiaki.svg features:
-  - content.tabs.link
 
     </div>
   
@@ -1405,7 +1424,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>

@@ -109,7 +109,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -795,6 +795,10 @@
 </li>
 <li>
 <p>Choose <code>Chiaki-launcher.sh</code> as your game</p>
+<div class="admonition tip">
+<p class="admonition-title">If You're missing <code>Chiaki-launcher.sh</code>, You Skipped the Automation Section</p>
+<p><code>Chiaki-launcher.sh</code> is a script to launch Chiaki without the main gui, resulting in a much better experience on the Steam Deck (<a href="../../updates/done/#enabled-automated-launch" rel="noopener" target="_blank">click for details</a>) and makes it <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">easier to use the 3 games modes</a>. If <code>Chiaki-launcher.sh</code> is missing, you almost certainly skipped the automation section. Don't worry, the fix is easy! <img alt="☺" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/263a.svg" title=":relaxed:" /> Please complete the <a href="../automation/" rel="noopener" target="_blank">Automation section</a> now and come back here afterward. It should take you ~ 5 minutes. Luckily, <img alt="🍀" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f340.svg" title=":four_leaf_clover:" /> there is a helper script that does most of the work for you! You simply answer a few questions I walk you through.</p>
+</div>
 <ol>
 <li>
 <p>Choose <code>File type: All Files</code> at the bottom of the screen</p>
@@ -817,12 +821,20 @@
 </li>
 </ol>
 <h2 id="configuring-name-and-game-icons">Configuring Name and Game Icons<a class="headerlink" href="#configuring-name-and-game-icons" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Steam Application Name Matters!</p>
+<p>For Non-Steam games (i.e., <code>chiaki4deck</code>), the <code>Community Layouts</code> controller layouts are based on the name the user set for the game in Steam when they exported it. Thus, in order to find the controller profiles I created for the game in your <code>Community Layouts</code> section later in this guide, your game name will need to the same as mine, (i.e., <code>chiaki4deck</code>). This naming is done in step 4 (below) and it's recommended that you just keep your game name as <code>chiaki4deck</code> to make your life easier.</p>
+<div class="admonition question">
+<p class="admonition-title">What if naming <code>chiaki4deck</code> something else fills me with determination...?</p>
+<p>If you want to use a different game name (i.e., <code>Playstation Launcher Thingamajig</code>) and want to use some or all of the controller layouts I have created (either directly or to download them and use them as a starting point to tinker from), name your game what you want in step 4. Then, when you get to the controller section, follow <a href="../controlling/#retrieving-chiaki4deck-controller-layouts-when-using-an-alternate-game-name-most-users-can-skip-this" rel="noopener" target="_blank">Retrieving chiaki4deck Controller Layouts when Using An Alternate Game Name</a>. This walks you through temporarily renaming the app to <code>chiaki4deck</code> to access the controller layouts and save them as <code>Personal Save</code>s to access in the <code>Your Layouts</code> tab. Finally, you can rename you game to what you want and apply your layout to this differently named Steam game.</p>
+</div>
+</div>
 <ol>
 <li>
 <p>Acquire pictures to use for the game library in Steam</p>
 <ol>
 <li>
-<p>Get the images I used <a href="https://github.com/streetpea/chiaki4deck/releases/download/v1.0.0/chiaki4deckImages.tar.xz" rel="noopener noreferrer" target="_blank">here</a> for <code>chiaki4deck</code> on my Steam Deck.</p>
+<p>Get the images I used <a href="https://github.com/streetpea/chiaki4deck/releases/download/v1.0.0/chiaki4deckImages.tar.xz" rel="noopener" target="_blank">here</a> for <code>chiaki4deck</code> on my Steam Deck.</p>
 </li>
 <li>
 <p>Extract the package to a folder of your choice (such as your <code>Documents</code> folder).</p>
@@ -839,7 +851,7 @@
 </ol>
 <div class="admonition note">
 <p class="admonition-title">SteamGridDB</p>
-<p>The images I provided are from Steam Grid DB and I do not own these images, I'm simply directing you to them for your convenience. You can find these and other images yourself on <a href="https://www.steamgriddb.com/search/grids?term=chiaki+remote+play" rel="noopener noreferrer" target="_blank">SteamGridDB</a> as well as via other sources of your choosing.</p>
+<p>The images I provided are from Steam Grid DB and I do not own these images, I'm simply directing you to them for your convenience. You can find these and other images yourself on <a href="https://www.steamgriddb.com/search/grids?term=chiaki+remote+play" rel="noopener" target="_blank">SteamGridDB</a> as well as via other sources of your choosing.</p>
 </div>
 </li>
 <li>
@@ -853,7 +865,7 @@
 <p>In the properties window that comes up rename <code>Chiaki-launcher.sh</code> and add the icon image</p>
 <ol>
 <li>
-<p>Rename it <code>chiaki4deck</code> or a different name of your choosing like <code>PS Remote Play</code></p>
+<p>Rename it <code>chiaki4deck</code></p>
 </li>
 <li>
 <p>Click on the blank square to add an image and navigate to the <code>chiaki4deckImages</code> folder you created in step 1 above and select the icon image (<code>icon-chiaki4deck.png</code>).</p>
@@ -942,7 +954,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 1, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
       
         <br>
         Created:
@@ -1004,6 +1016,8 @@
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -1058,8 +1072,6 @@
   
     <div class="md-copyright__highlight">
       Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
-favicon: images/chiaki.svg logo: images/chiaki.svg features:
-  - content.tabs.link
 
     </div>
   
@@ -1155,7 +1167,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>

@@ -109,7 +109,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#110" target="_blank" rel="noopener noreferrer">chiaki4deck 1.1.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.1.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -860,14 +860,18 @@
 <div class="tabbed-block">
 <div class="admonition tip">
 <p class="admonition-title">Make sure you're on the right tab!</p>
-<p>If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the <strong>New to Using Chiaki on Steam Deck Tab.</strong> If you have set up the official Chiaki flatpak and want to try <code>chiaki4deck</code>, you're in the right place! <img alt="🎉" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f389.svg" title=":tada:" /></p>
+<p>If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the <strong>New to Using Chiaki on Steam Deck Tab.</strong> If you have set up the official Chiaki flatpak before (no, you don't have to uninstall <code>Chiaki</code> <img alt="😉" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f609.svg" title=":wink:" />) and want to try <code>chiaki4deck</code>, you're in the right place! <img alt="🎉" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f389.svg" title=":tada:" /></p>
 </div>
 <ol>
 <li>
 <p>Create initial file templates for <code>chiaki4deck</code></p>
 <ol>
 <li>
-<p>Open <code>chiaki4deck</code> by clicking the Steam icon in the bottom left and searching for it in the <code>Games</code> section via the graphical user interface (GUI) or by entering <code>flatpak run re.chiaki.Chiaki4deck</code> in the <code>konsole</code></p>
+<p>Open <code>chiaki4deck</code> by clicking the Steam icon in the bottom left and searching for it in the <code>Games</code> section via the graphical user interface (GUI) or by entering <code>flatpak run re.chiaki.Chiaki4deck</code> in the <code>konsole</code>.</p>
+<div class="admonition question">
+<p class="admonition-title">What if chiaki4deck doesn't appear in the <code>Games</code> section?</p>
+<p>If <code>chiaki4deck</code> doesn't appear in the <code>Games</code> section, go to <code>All Applications</code> and search for <code>chiaki4deck</code> there. It should show up in the <code>Games</code> section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to <code>All Applications</code> works in all cases.</p>
+</div>
 </li>
 <li>
 <p>Close <code>chiaki4deck</code></p>
@@ -890,6 +894,65 @@
 </div>
 <div class="tabbed-block">
 <ol>
+<li>
+<p>Set up your PlayStation console for remote play</p>
+<ol>
+<li>
+<p>Enable remote play</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">PS5</label><label for="__tabbed_2_2">PS4</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; System -&gt; Remote Play</code> and turn on:</p>
+<ol>
+<li><code>Enable Remote Play</code></li>
+</ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Go to <code>Settings -&gt; Remote Play Connection Settings</code> and turn on:</p>
+<ol>
+<li><code>Enable Remote Play</code></li>
+</ol>
+</li>
+<li>
+<p>Go to <code>Settings -&gt; Account Management -&gt; Activate as Your Primary PS4</code> and select:</p>
+<ol>
+<li><code>Activate</code></li>
+</ol>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Enable waking your console from rest mode</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">PS5</label><label for="__tabbed_3_2">PS4</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; System -&gt; Power Saving -&gt; Features Available in Rest Mode</code> and turn on:</p>
+<ol>
+<li><code>Stay Connected to the Internet</code></li>
+<li><code>Enable Turning on PS5 from Network</code></li>
+</ol>
+</div>
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; Power Save Settings -&gt; Set Function Available in Rest Mode</code> and turn on:</p>
+<ol>
+<li>
+<p><code>Stay Connected to the Internet</code></p>
+</li>
+<li>
+<p><code>Enable turning on PS4 from Network</code></p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</li>
+</ol>
+</li>
 <li>
 <p>Get your PlayStation AccountID (This is needed to access your ps account)</p>
 <ol>
@@ -929,7 +992,7 @@
 </li>
 <li>
 <p>Get a registration code for remote play</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">PS5</label><label for="__tabbed_2_2">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">PS5</label><label for="__tabbed_4_2">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Go to <code>Settings -&gt; System -&gt; Remote Play -&gt; Link Device</code></p>
@@ -974,8 +1037,89 @@
 </li>
 </ul>
 </div>
-<p>Launch the connection to test it by opening <code>chiaki4deck</code> and double clicking on the box with the console icon. You can even test launching a game if you want. Exit out of the window once you've tested the connection.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">It worked! <img alt="😄" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f604.svg" title=":smile:" /></label><label for="__tabbed_3_2">It didn't work <img alt="😦" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f626.svg" title=":frowning:" /></label></div>
+<ol>
+<li>
+<p>Test waking your console from rest mode</p>
+<ol>
+<li>
+<p>Put your console in rest mode</p>
+</li>
+<li>
+<p>Open <code>chiaki4deck</code></p>
+</li>
+<li>
+<p>Double click on the box with the console icon colored orange (<strong>State: standby</strong>). </p>
+</li>
+<li>
+<p>When prompted with, "The Console is currently in standby mode.Should we send a Wakeup packet instead of trying to connect immediately?": </p>
+<ul>
+<li>choose <strong>Yes</strong></li>
+</ul>
+</li>
+<li>
+<p>Your PlayStation console should wake up and the box with the console icon should turn from orange to blue (<strong>State: ready</strong>).</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Your PlayStation has awoken from slumber! <img alt="🌞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f31e.svg" title=":sun_with_face:" /></label><label for="__tabbed_5_2">Your PlayStation hit the snooze button <img alt="💤" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f4a4.svg" title=":zzz:" /></label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="admonition success">
+<p class="admonition-title">Success</p>
+<p>Now it's time to test connecting via PlayStation Remote Play in the next step!</p>
+</div>
+</div>
+<div class="tabbed-block">
+<div class="admonition error">
+<p class="admonition-title">Here's how to get back on the happy path</p>
+<ol>
+<li>
+<p>Make sure your PlayStation shows as registered and is currently in sleep mode. If it's not in sleep mode, you can't wake it up.</p>
+</li>
+<li>
+<p>Make sure that you have enabled turning on your PlayStation console from rest mode:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">PS5</label><label for="__tabbed_6_2">PS4</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; System -&gt; Power Saving -&gt; Features Available in Rest Mode</code> and turn on:</p>
+<ol>
+<li><code>Stay Connected to the Internet</code></li>
+<li><code>Enable Turning on PS5 from Network</code></li>
+</ol>
+</div>
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; Power Save Settings -&gt; Set Function Available in Rest Mode</code> and turn on:</p>
+<ol>
+<li>
+<p><code>Stay Connected to the Internet</code></p>
+</li>
+<li>
+<p><code>Enable turning on PS4 from Network</code></p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+</li>
+</ol>
+</li>
+<li>
+<p>Test PlayStation Remote Play</p>
+<ol>
+<li>
+<p>Double click on the box with the now blue console icon (<strong>State: ready</strong>)</p>
+</li>
+<li>
+<p>Test launching a game if you want</p>
+</li>
+<li>
+<p>Exit out of the window once you've tested the connection.</p>
+</li>
+</ol>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">It worked! <img alt="😄" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f604.svg" title=":smile:" /></label><label for="__tabbed_7_2">It didn't work <img alt="😦" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f626.svg" title=":frowning:" /></label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="admonition success">
@@ -989,18 +1133,20 @@
 <p class="admonition-title">An error occurred</p>
 <ol>
 <li>
-<p>Please try closing and re-launching to make sure it wasn't some sort of temporary snafu (maybe your console was updating something and didn't want to let you connect right away)</p>
+<p>Please try closing and re-launching to make sure it wasn't some sort of temporary snafu (maybe your console was updating something and didn't want to let you connect right away).</p>
 </li>
 <li>
-<p>Make sure your PlayStation shows as registered and is currently either on or in sleep mode. If it's not on or in sleep mode, you can't connect to it.</p>
+<p>Make sure your PlayStation appears in the Chiaki menu, is labelled <strong>(registered)</strong> and is animated with either an orange (<strong>State: standby</strong>) or blue (<strong>State: ready</strong>) light.</p>
 </li>
 </ol>
 </div>
 </div>
 </div>
 </div>
+</li>
+</ol>
 <h2 id="choosing-your-remote-play-settings">Choosing your Remote Play Settings<a class="headerlink" href="#choosing-your-remote-play-settings" title="Permanent link">&para;</a></h2>
-<p>Here are different settings you can use for Chiaki/<code>chiaki4deck</code> depending on your network connection. The default configuration is for remote play on a home network only, this means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection. </p>
+<p>Here are different settings you can use for Chiaki/<code>chiaki4deck</code> depending on your network connection. The default configuration is for remote play on a home network only. This means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection. </p>
 <div class="admonition question">
 <p class="admonition-title">What does that mean for me?</p>
 <p>If you are in an area with bad Internet, as long as you have a good wireless router, you can get close to native performance.</p>
@@ -1012,14 +1158,14 @@
 </li>
 <li>
 <p>Adjust the settings to your preferences. Below are the settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p</strong> tab if you have a PS5 or the <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">PS5/1080P</label><label for="__tabbed_4_2">PS4/720P</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">PS5/1080P</label><label for="__tabbed_8_2">PS4/720P</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
 <p><img alt="1080p Settings" src="../images/1080P_Settings.png" /></p>
 <details class="question" open="open">
 <summary>Why 1080p if the Steam Deck is only 800p?</summary>
-<p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener noreferrer" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
+<p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
 <p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
 </details>
 </div>
@@ -1031,8 +1177,8 @@
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Putting your PlayStation Console to Sleep Automatically</p>
-<p>For <code>Action on Disconnect</code>, choose <code>Enter Sleep Mode</code> to automatically put your PlayStation console to sleep as soon as you close your session with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> (you will add this shortcut as part of you controller configuration in <a href="../controlling/" rel="noopener noreferrer" target="_blank">controller section</a>). </p>
-<p>If you prefer, you can also use <code>Ask</code> (the default) to get prompted about putting your PlayStation to sleep when you close your session (use <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span>).</p>
+<p>For <code>Action on Disconnect</code>, choose <code>Enter Sleep Mode</code> to automatically put your PlayStation console to sleep as soon as you close your session with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> (you will add this shortcut as part of you controller configuration in <a href="../controlling/" rel="noopener" target="_blank">controller section</a>). </p>
+<p>If you prefer, you can also use <code>Ask</code> (the default) to get prompted about putting your PlayStation to sleep when you close your session with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span>.</p>
 </div>
 </li>
 </ol>
@@ -1056,7 +1202,7 @@
 <p>Negatives:</p>
 <ul>
 <li>occasional performance issues with certain games (specifically games with VSync enabled)</li>
-<li>lack of touchpad gesture and gyro controls for games that require these</li>
+<li>lack of native gyro (unless you attach DualSense controller via bluetooth or usb) for games that require it (i.e., Concrete Genie.)</li>
 <li>lack of native microphone support (I use Discord with my friends so not an issue for me, but could be for others).</li>
 </ul>
 </div>
@@ -1066,11 +1212,14 @@
 <li>Stray</li>
 <li>God of War (2018)</li>
 <li>Genshin Impact (turned off VSync in settings to get rid of white flashes during gameplay)</li>
-<li>Sekiro (occasional white flashes in areas with high crowds. These went away as I got further in the game and never affected my ability to progress. Unfortunately, this seems to be due to VSync being enabled automatically with no option to turn it off. Luckily, the framerate is very solid on PS5 so it happens infrequently (at its peak there was 1 flash every 15 minutes. It only affected about 3 hours of the game in total.)</li>
+<li>Sekiro (occasional white flashes in areas with high crowds. Luckily, <strong>these went away as I got further in the game</strong> and never affected my ability to progress. Unfortunately, this seems to be due to VSync being enabled automatically with no option to turn it off. It only affected about 3 hours of the game in total [12 flashes with 1 or 2 every 15-30 minutes or so] before it went away completely).</li>
 <li>Fall Guys</li>
 <li>MultiVersus</li>
 <li>Red Dead Redemption 2</li>
 <li>Marvel's Spider Man</li>
+<li>Ghost of Tsushima (changed from Resolution Mode to Performance Mode in game settings for native-like performance)</li>
+<li>Chicory: A Colorful Tale</li>
+<li>Concrete Genie (Using DualSense Controller)</li>
 </ul>
 </div>
 <h3 id="troubleshooting-performance-issues">Troubleshooting Performance Issues<a class="headerlink" href="#troubleshooting-performance-issues" title="Permanent link">&para;</a></h3>
@@ -1090,21 +1239,29 @@
 </li>
 <li>
 <p>Switch to <strong>720p</strong> from 1080p</p>
-<p><strong>720p</strong> requires less bandwidth than 1080p. This help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems).</p>
+<p><strong>720p</strong> requires less bandwidth than 1080p. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems).</p>
 </li>
 <li>
 <p>Try <strong>short preamble</strong></p>
-<p>If you are still having trouble (I didn’t need this but it can help in general and helped significantly improve performance for other streaming services such as Game Pass on my Steam Deck), try using using <a href="https://www.interline.pl/Information-and-Tips/Preamble-Type-Short-Or-Long" rel="noopener noreferrer" target="_blank">short preamble instead of long preamble</a> in your router settings. You need to change this directly in your router settings for the given network and can do it per network if you set up more than one. This is incompatible with old devices (using wifi b/g instead of n or ac). Devices from 2011 and newer are required by law to support it and so will definitely work. Older devices may or may not support it depending on if they have either n or ac wireless support. Short preamble helps the <span class="arithmatex">\(5GHz\)</span> connection for devices that support it (essentially anything that’s connecting on a <span class="arithmatex">\(5GHz\)</span> network should use it). For streaming, you can set up one network that uses short for your newer devices (<span class="arithmatex">\(5GHz\)</span> network for me) and one with long for older devices (<span class="arithmatex">\(2.4 GHz\)</span> network for me since older devices don’t support <span class="arithmatex">\(5GHz\)</span> anyway). My connection worked fine with long preamble on a <span class="arithmatex">\(2.4 GHz\)</span> network for Chiaki but short (and a <span class="arithmatex">\(5GHz\)</span> network for that matter) works better in general for devices that support it and has helped others using Chiaki as well as me to help reduce Game Pass streaming lag (which is still much worse than Chiaki and not close to native, but works well for games that don’t require fast or moderately fast reaction times).</p>
+<p>If you are still having trouble (I didn’t need this but it can help in general and helped significantly improve performance for other streaming services such as Game Pass on my Steam Deck), try using using <a href="https://www.interline.pl/Information-and-Tips/Preamble-Type-Short-Or-Long" rel="noopener" target="_blank">short preamble instead of long preamble</a> in your router settings. You need to change this directly in your router settings for the given network and can do it per network if you set up more than one. This is incompatible with old devices (using wifi b/g instead of n or ac). Devices from 2011 and newer are required by law to support it and so will definitely work. Older devices may or may not support it depending on if they have either n or ac wireless support. Short preamble helps the <span class="arithmatex">\(5GHz\)</span> connection for devices that support it (essentially anything that’s connecting on a <span class="arithmatex">\(5GHz\)</span> network should use it). For streaming, you can set up one network that uses short for your newer devices (<span class="arithmatex">\(5GHz\)</span> network for me) and one with long for older devices (<span class="arithmatex">\(2.4 GHz\)</span> network for me since older devices don’t support <span class="arithmatex">\(5GHz\)</span> anyway). My connection worked fine with long preamble on a <span class="arithmatex">\(2.4 GHz\)</span> network for Chiaki but short (and a <span class="arithmatex">\(5GHz\)</span> network for that matter) works better in general for devices that support it and has helped others using Chiaki as well as me to help reduce Game Pass streaming lag (which is still much worse than Chiaki and not close to native, but works well for games that don’t require fast or moderately fast reaction times).</p>
+</li>
+<li>
+<p>For specific game issues, change game resolution settings</p>
+<p>For example, the game may be set to 4k / resolution mode even though it's only streaming at 1080p or even 720p. Additionally, it may be using HDR (which the Steam Deck screen doesn't support). Switching these settings off on a game level results in less processing power used on the game and thus more left over for streaming as well as hitting a higher framerate. For example, I switched <code>Ghost of Tsushima</code> from resolution mode to performance mode and noticed that the occasional performance problems I was experiencing evaporated and the visual quality became much more stable due to the lack of occasional stutters. It went from being playable but a noticeable downgrade to indistinguishable from native.</p>
 </li>
 <li>
 <p><strong>Turn off VSync</strong> or the equivalent in games that use it</p>
 <p>VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/<code>chiaki4deck</code>.</p>
 </li>
+<li>
+<p>Switch framerate to <strong>30fps</strong></p>
+<p><strong>30fps</strong> requires less bandwidth than <strong>60fps</strong>. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems). I put this last because it is the biggest performance downgrade and most of the time you don't need to do this. However, switching to 30fps / 720p at the default settings is the most surefire way to fix connection issues and a last resort if the methods with virtually no downsides don't do the trick.</p>
+</li>
 </ol>
 <h2 id="chiakichiaki4deck-via-internet-outside-of-home-connection">Chiaki/<code>chiaki4deck</code> via Internet (Outside of Home Connection)<a class="headerlink" href="#chiakichiaki4deck-via-internet-outside-of-home-connection" title="Permanent link">&para;</a></h2>
 <div class="admonition info">
 <p class="admonition-title">Chiaki/<code>chiaki4deck</code> Outside of your Home Network</p>
-<p>You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly.</p>
+<p>You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly. Nevertheless, it can be very convenient to use while traveling, especially when playing less timing intensive games (i.e., games that would play well via cloud streaming).</p>
 </div>
 
   <hr>
@@ -1112,7 +1269,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 14, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
       
         <br>
         Created:
@@ -1174,6 +1331,8 @@
               
             </article>
             
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
           </div>
         </div>
         
@@ -1228,8 +1387,6 @@
   
     <div class="md-copyright__highlight">
       Copyright &copy; 2022 Street Pea – <a href="#__consent">Change cookie settings</a>
-favicon: images/chiaki.svg logo: images/chiaki.svg features:
-  - content.tabs.link
 
     </div>
   
@@ -1325,7 +1482,7 @@ favicon: images/chiaki.svg logo: images/chiaki.svg features:
       </div>
       <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>
