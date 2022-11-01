@@ -488,17 +488,25 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 
 static void ctrl_enable_optional_features(ChiakiCtrl *ctrl)
 {
-	if(!ctrl->session->connect_info.enable_keyboard)
-		return;
-	// TODO: Last byte of pre_enable request is random (?)
-	// TODO: Signature ?!
-	uint8_t enable = 1;
-	uint8_t pre_enable[4] = { 0x00, 0x01, 0x01, 0x80 };
-	uint8_t signature[0x10] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x05, 0xAE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	ctrl_message_send(ctrl, 0xD, signature, 0x10);
-	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
-	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE, &enable, 1);
-	ctrl_message_send(ctrl, 0x36, pre_enable, 4);
+	if(ctrl->session->connect_info.enable_dualsense)
+	{
+		CHIAKI_LOGI(ctrl->session->log, "Enabling DualSense features");
+		const uint8_t enable[3] = { 0x00, 0x40, 0x00 };
+		ctrl_message_send(ctrl, 0x13, enable, 3);
+	}
+	if(ctrl->session->connect_info.enable_keyboard)
+	{
+		CHIAKI_LOGI(ctrl->session->log, "Enabling Keyboard");
+		// TODO: Last byte of pre_enable request is random (?)
+		// TODO: Signature ?!
+		uint8_t enable = 1;
+		uint8_t pre_enable[4] = { 0x00, 0x01, 0x01, 0x80 };
+		uint8_t signature[0x10] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x05, 0xAE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+		ctrl_message_send(ctrl, 0xD, signature, 0x10);
+		ctrl_message_send(ctrl, 0x36, pre_enable, 4);
+		ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE, &enable, 1);
+		ctrl_message_send(ctrl, 0x36, pre_enable, 4);
+	}
 }
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)

@@ -32,6 +32,7 @@ typedef struct chiaki_stream_connection_t
 	ChiakiPacketStats packet_stats;
 	ChiakiAudioReceiver *audio_receiver;
 	ChiakiVideoReceiver *video_receiver;
+	ChiakiAudioReceiver *haptics_receiver;
 
 	ChiakiFeedbackSender feedback_sender;
 	/**

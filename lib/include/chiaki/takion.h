@@ -27,7 +27,8 @@ extern "C" {
 typedef enum chiaki_takion_message_data_type_t {
 	CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF = 0,
 	CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE = 7,
-	CHIAKI_TAKION_MESSAGE_DATA_TYPE_9 = 9
+	CHIAKI_TAKION_MESSAGE_DATA_TYPE_9 = 9,
+	CHIAKI_TAKION_MESSAGE_DATA_TYPE_TRIGGER_EFFECTS = 11,
 } ChiakiTakionMessageDataType;
 
 typedef struct chiaki_takion_av_packet_t
@@ -36,6 +37,7 @@ typedef struct chiaki_takion_av_packet_t
 	ChiakiSeqNum16 frame_index;
 	bool uses_nalu_info_structs;
 	bool is_video;
+	bool is_haptics;
 	ChiakiSeqNum16 unit_index;
 	uint16_t units_in_frame_total; // source + units_in_frame_fec
 	uint16_t units_in_frame_fec;
@@ -45,8 +47,6 @@ typedef struct chiaki_takion_av_packet_t
 	uint8_t byte_at_0x2c;
 
 	uint64_t key_pos;
-
-	uint8_t byte_before_audio_data;
 
 	uint8_t *data; // not owned
 	size_t data_size;
@@ -106,6 +106,7 @@ typedef struct chiaki_takion_connect_info_t
 	ChiakiTakionCallback cb;
 	void *cb_user;
 	bool enable_crypt;
+	bool enable_dualsense;
 	uint8_t protocol_version;
 } ChiakiTakionConnectInfo;
 
@@ -162,6 +163,8 @@ typedef struct chiaki_takion_t
 	ChiakiTakionAVPacketParse av_packet_parse;
 
 	ChiakiKeyState key_state;
+
+	bool enable_dualsense;
 } ChiakiTakion;
 
 

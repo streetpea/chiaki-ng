@@ -312,7 +312,8 @@ message ControllerConnectionPayload {
         VITA = 3;
         XINPUT = 4;
         MOBILE = 5;
-        BOND = 6;
+        DUALSENSE = 6;
+        VR2SENSE = 7;
     }
 }
 
