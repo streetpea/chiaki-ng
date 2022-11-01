@@ -54,8 +54,9 @@ struct StreamSessionConnectInfo
 	unsigned int audio_buffer_size;
 	bool fullscreen;
 	bool enable_keyboard;
+	bool enable_dualsense;
 
-	StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen);
+	StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, bool fullscreen, bool enable_dualsense);
 };
 
 class StreamSession : public QObject
@@ -92,16 +93,20 @@ class StreamSession : public QObject
 		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
 		QIODevice *audio_io;
+		SDL_AudioDeviceID haptics_output;
+		uint8_t *haptics_resampler_buf;
 
 		QMap<Qt::Key, int> key_map;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
+		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
 #endif
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
+		void InitHaptics();
 		void Event(ChiakiEvent *event);
 
 	public:

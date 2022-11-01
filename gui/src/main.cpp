@@ -106,6 +106,9 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen (only for use with stream command)");
 	parser.addOption(fullscreen_option);
 
+	QCommandLineOption dualsense_option("dualsense", "Enable DualSense haptics and adaptive triggers (PS5 and DualSense connected via USB only).");
+	parser.addOption(dualsense_option);
+
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
 
@@ -174,7 +177,7 @@ int real_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, parser.isSet(fullscreen_option));
+		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, parser.isSet(fullscreen_option), parser.isSet(dualsense_option));
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI
