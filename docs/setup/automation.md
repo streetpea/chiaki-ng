@@ -449,7 +449,9 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 
                 3. Open your script at: `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` and try to run each command individually to see what's causing your problem.
                 
-                4. If issues persist with this and `chiaki4deck` launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me)
+                4. Check your current router settings, ensure UPnP is enabled, alongisde ports UDP 987, TCP/UDP 9295, UDP 9296-9297
+                
+                5. If issues persist with this and `chiaki4deck` launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me)
 
             === "Error in stream window"
  
