@@ -84,6 +84,9 @@ ControllerManager::ControllerManager(QObject *parent)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	SDL_SetMainReady();
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4_RUMBLE, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 	if(SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
 	{
 		const char *err = SDL_GetError();
@@ -217,8 +220,12 @@ Controller::Controller(int device_id, ControllerManager *manager) : QObject(mana
 Controller::~Controller()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(controller)
+	if(controller) {
+		// Clear trigger effects, SDL doesn't do it automatically
+		const uint8_t clear_effect[10] = { 0 };
+		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
 		SDL_GameControllerClose(controller);
+	}
 #endif
 	manager->ControllerClosed(this);
 }
@@ -301,5 +308,22 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 	if(!controller)
 		return;
 	SDL_GameControllerRumble(controller, (uint16_t)left << 8, (uint16_t)right << 8, 5000);
+#endif
+}
+
+void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	// TODO: Check if controller is a DualSense?
+	DS5EffectsState_t state;
+	SDL_zero(state);
+	state.ucEnableBits1 |= (0x04 /* left trigger */ | 0x08 /* right trigger */);
+	state.rgucLeftTriggerEffect[0] = type_left;
+	SDL_memcpy(state.rgucLeftTriggerEffect + 1, data_left, 10);
+	state.rgucRightTriggerEffect[0] = type_right;
+	SDL_memcpy(state.rgucRightTriggerEffect + 1, data_right, 10);
+	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
 #endif
 }

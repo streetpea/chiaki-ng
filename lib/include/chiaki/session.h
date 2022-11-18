@@ -78,6 +78,7 @@ typedef struct chiaki_connect_info_t
 	ChiakiConnectVideoProfile video_profile;
 	bool video_profile_auto_downgrade; // Downgrade video_profile if server does not seem to support it.
 	bool enable_keyboard;
+	bool enable_dualsense;
 } ChiakiConnectInfo;
 
 
@@ -121,6 +122,14 @@ typedef struct chiaki_rumble_event_t
 	uint8_t right; // high-frequency
 } ChiakiRumbleEvent;
 
+typedef struct chiaki_trigger_effects_event_t
+{
+	uint8_t type_left;
+	uint8_t type_right;
+	uint8_t left[10];
+	uint8_t right[10];
+} ChiakiTriggerEffectsEvent;
+
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
@@ -129,6 +138,7 @@ typedef enum {
 	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
 	CHIAKI_EVENT_RUMBLE,
 	CHIAKI_EVENT_QUIT,
+	CHIAKI_EVENT_TRIGGER_EFFECTS,
 } ChiakiEventType;
 
 typedef struct chiaki_event_t
@@ -139,6 +149,7 @@ typedef struct chiaki_event_t
 		ChiakiQuitEvent quit;
 		ChiakiKeyboardEvent keyboard;
 		ChiakiRumbleEvent rumble;
+		ChiakiTriggerEffectsEvent trigger_effects;
 		struct
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
@@ -170,6 +181,7 @@ typedef struct chiaki_session_t
 		ChiakiConnectVideoProfile video_profile;
 		bool video_profile_auto_downgrade;
 		bool enable_keyboard;
+		bool enable_dualsense;
 	} connect_info;
 
 	ChiakiTarget target;
@@ -191,6 +203,7 @@ typedef struct chiaki_session_t
 	ChiakiVideoSampleCallback video_sample_cb;
 	void *video_sample_cb_user;
 	ChiakiAudioSink audio_sink;
+	ChiakiAudioSink haptics_sink;
 
 	ChiakiThread session_thread;
 
@@ -244,6 +257,14 @@ static inline void chiaki_session_set_video_sample_cb(ChiakiSession *session, Ch
 static inline void chiaki_session_set_audio_sink(ChiakiSession *session, ChiakiAudioSink *sink)
 {
 	session->audio_sink = *sink;
+}
+
+/**
+ * @param sink contents are copied
+ */
+static inline void chiaki_session_set_haptics_sink(ChiakiSession *session, ChiakiAudioSink *sink)
+{
+	session->haptics_sink = *sink;
 }
 
 #ifdef __cplusplus

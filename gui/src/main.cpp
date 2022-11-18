@@ -71,7 +71,11 @@ int real_main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 
+#ifdef Q_OS_MACOS
+	QApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+#else
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki.svg"));
+#endif
 
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
@@ -102,7 +106,10 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption fullscreen_option("fullscreen", "Start window in fullscreen mode [maintains aspect ratio, adds black bars to fill unsused parts of screen if applicable] (only for use with stream command).");
 	parser.addOption(fullscreen_option);
 
-	QCommandLineOption zoom_option("zoom", "Start window in fullscreen zoomed in to fit screen [maintains aspect ratio, cutting off edges of image to fill screen] (only for use with stream command).");
+	QCommandLineOption dualsense_option("dualsense", "Enable DualSense haptics and adaptive triggers (PS5 and DualSense connected via USB only).");
+	parser.addOption(dualsense_option);
+
+	QCommandLineOption zoom_option("zoom", "Start window in fullscreen zoomed in to fit screen [maintains aspect ratio, cutting off edges of image to fill screen] (only for use with stream command)");
 	parser.addOption(zoom_option);
 
 	QCommandLineOption stretch_option("stretch", "Start window in fullscreen stretched to fit screen [distorts aspect ratio to fill screen] (only for use with stream command).");
@@ -200,8 +207,8 @@ int real_main(int argc, char *argv[])
 			}
 		}
 
-		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, initial_login_passcode, parser.isSet(fullscreen_option), parser.isSet(zoom_option), parser.isSet(stretch_option));
-
+		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, initial_login_passcode, parser.isSet(fullscreen_option), parser.isSet(zoom_option), parser.isSet(stretch_option), parser.isSet(dualsense_option));
+		
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI

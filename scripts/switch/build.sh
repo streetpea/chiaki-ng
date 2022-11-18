@@ -16,6 +16,9 @@ build_chiaki (){
 	pushd "${BASEDIR}"
 		#rm -rf ./build
 
+		# purge leftover proto/nanopb_pb2.py which may have been created with another protobuf version
+		rm -fv third-party/nanopb/generator/proto/nanopb_pb2.py
+
 		cmake -B "${build}" \
 			-GNinja \
 			-DCMAKE_TOOLCHAIN_FILE=${toolchain} \

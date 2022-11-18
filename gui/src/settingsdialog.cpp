@@ -69,6 +69,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	log_verbose_check_box->setChecked(settings->GetLogVerbose());
 	connect(log_verbose_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::LogVerboseChanged);
 
+	dualsense_check_box = new QCheckBox(this);
+	general_layout->addRow(tr("DualSense Support:\nEnable haptics and adaptive triggers\nfor attached DualSense controllers.\nThis is currently experimental."), dualsense_check_box);
+	dualsense_check_box->setChecked(settings->GetDualSenseEnabled());
+	connect(dualsense_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::DualSenseChanged);
+
 	auto log_directory_label = new QLineEdit(GetLogBaseDir(), this);
 	log_directory_label->setReadOnly(true);
 	general_layout->addRow(tr("Log Directory:"), log_directory_label);
@@ -320,6 +325,11 @@ void SettingsDialog::DisconnectActionSelected()
 void SettingsDialog::LogVerboseChanged()
 {
 	settings->SetLogVerbose(log_verbose_check_box->isChecked());
+}
+
+void SettingsDialog::DualSenseChanged()
+{
+	settings->SetDualSenseEnabled(dualsense_check_box->isChecked());
 }
 
 void SettingsDialog::FPSSelected()

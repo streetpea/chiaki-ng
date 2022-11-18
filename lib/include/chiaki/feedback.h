@@ -38,7 +38,7 @@ CHIAKI_EXPORT void chiaki_feedback_state_format_v9(uint8_t *buf, ChiakiFeedbackS
 /**
  * @param buf buffer of at least CHIAKI_FEEDBACK_STATE_BUF_SIZE_V12
  */
-CHIAKI_EXPORT void chiaki_feedback_state_format_v12(uint8_t *buf, ChiakiFeedbackState *state);
+CHIAKI_EXPORT void chiaki_feedback_state_format_v12(uint8_t *buf, ChiakiFeedbackState *state, bool enable_dualsense);
 
 #define CHIAKI_HISTORY_EVENT_SIZE_MAX 0x5
 

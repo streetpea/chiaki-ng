@@ -147,7 +147,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 		timeout = &timeout_s;
 	}
 
-	int r = select(nfds, &rfds, write ? &wfds : NULL, NULL, timeout);
+	int r;
+	do
+	{
+		r = select(nfds, &rfds, write ? &wfds : NULL, NULL, timeout);
+	} while(r < 0 && errno == EINTR);
 
 	if(r < 0)
 		return CHIAKI_ERR_UNKNOWN;
