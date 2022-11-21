@@ -146,11 +146,6 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	AddToolBarAction(settings_action);
 	connect(settings_action, &QAction::triggered, this, &MainWindow::ShowSettings);
 
-	auto quit_action = new QAction(tr("Quit"), this);
-	quit_action->setShortcut(Qt::CTRL + Qt::Key_Q);
-	addAction(quit_action);
-	connect(quit_action, &QAction::triggered, this, &MainWindow::Quit);
-
 	auto scroll_area = new QScrollArea(this);
 	scroll_area->setWidgetResizable(true);
 	scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -301,11 +296,6 @@ void MainWindow::ShowSettings()
 {
 	SettingsDialog dialog(settings, this);
 	dialog.exec();
-}
-
-void MainWindow::Quit()
-{
-	qApp->exit();
 }
 
 void MainWindow::UpdateDisplayServers()

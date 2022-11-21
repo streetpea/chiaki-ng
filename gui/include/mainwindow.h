@@ -55,7 +55,6 @@ class MainWindow : public QMainWindow
 
 		void UpdateDiscoveryEnabled();
 		void ShowSettings();
-		void Quit();
 
 		void UpdateDisplayServers();
 		void UpdateServerWidgets();

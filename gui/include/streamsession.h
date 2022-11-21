@@ -16,6 +16,10 @@
 #include <chiaki/orientation.h>
 #endif
 
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+#include <sdeck.h>
+#endif
+
 #include "exception.h"
 #include "sessionlog.h"
 #include "controllermanager.h"
@@ -25,6 +29,7 @@
 #include <QImage>
 #include <QMouseEvent>
 #include <QTimer>
+#include <QQueue>
 
 class QAudioOutput;
 class QIODevice;
@@ -84,6 +89,15 @@ class StreamSession : public QObject
 		bool orient_dirty;
 #endif
 
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+		SDeck *sdeck;
+		ChiakiControllerState sdeck_state;
+		bool haptics_sdeck;
+		// QQueue<uint16_t> sdeck_haptic_queue;
+		uint8_t * haptics_filler_buf;
+		int haptics_counter;
+#endif
+		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
 		ChiakiControllerState touch_state;
 		QMap<int, uint8_t> touch_tracker;
@@ -108,6 +122,9 @@ class StreamSession : public QObject
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
+#endif
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+		void HandleSDeckEvent(SDeckEvent *event);
 #endif
 
 	private slots:

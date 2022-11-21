@@ -1,0 +1,44 @@
+HID report information for Steam Deck Controller
+
+Raw Name: Valve Software Steam Deck Controller
+Raw Phys: usb-0000:04:00.4-3/input2
+Raw Info:
+        bustype: 3 (USB)
+        vendor: 0x28de
+        product: 0x1205
+Report Descriptor Size: 29
+Report Descriptor:
+06 FF FF 09 01 A1 01 15 00 26 FF 00 75 08 95 40
+09 01 81 02 09 01 91 02 09 01 B1 02 C0
+
+Helpful HID Report descriptor tutorial: https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/
+
+Report Descriptor Text (converted from above hexadecimal using this tool: https://eleccelerator.com/usbdescreqparser/
+
+0x06, 0xFF, 0xFF,  // Usage Page (Vendor Defined 0xFFFF)
+0x09, 0x01,        // Usage (0x01)
+0xA1, 0x01,        // Collection (Application)
+0x15, 0x00,        //   Logical Minimum (0)
+0x26, 0xFF, 0x00,  //   Logical Maximum (255)
+0x75, 0x08,        //   Report Size (8)
+0x95, 0x40,        //   Report Count (64)
+0x09, 0x01,        //   Usage (0x01)
+0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
+0x09, 0x01,        //   Usage (0x01)
+0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+0x09, 0x01,        //   Usage (0x01)
+0xB1, 0x02,        //   Feature (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+0xC0,              // End Collection
+
+// 29 bytes
+
+Small Explanation
+
+Above you can see that this vendor defined-report uses a 64 character byte (8 bits) array.
+There are 3 types of reports that can be sent: 
+1. input (Steam Deck controller data)
+2. output (used to send haptics data)
+3. feature (used to set features of Steam Deck [i.e., calibration, turning functions on & off, etc. by writing to registers])
+
+Only 1 & 2 are of immediate interest for chiaki4deck since 3 is handled by the Steam Deck functions.
+

@@ -8,14 +8,19 @@
 
 #include <QKeyEvent>
 #include <QAudioOutput>
+#include <QDebug>
 
 #include <cstring>
 #include <chiaki/session.h>
 
 #define SETSU_UPDATE_INTERVAL_MS 4
-// DualSense is 1919 x 1079, DualShock4 is 1920 x 942 (take highest of both here to map completely to both)
-#define PS_TOUCHPAD_MAX_X 1920
-#define PS_TOUCHPAD_MAX_Y 1079
+#define STEAMDECK_UPDATE_INTERVAL_MS 4
+// DualShock4 touchpad is 1920 x 942
+#define PS4_TOUCHPAD_MAX_X 1920.0f
+#define PS4_TOUCHPAD_MAX_Y 942.0f
+// DualSense touchpad is 1919 x 1079
+#define PS5_TOUCHPAD_MAX_X 1919.0f
+#define PS5_TOUCHPAD_MAX_Y 1079.0f
 
 StreamSessionConnectInfo::StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, QString initial_login_pin, bool fullscreen, bool zoom, bool stretch, bool enable_dualsense)
 	: settings(settings)
@@ -47,6 +52,9 @@ static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
 static void SessionSetsuCb(SetsuEvent *event, void *user);
 #endif
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+static void SessionSDeckCb(SDeckEvent *event, void *user);
+#endif
 static void FfmpegFrameCb(ChiakiFfmpegDecoder *decoder, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
@@ -59,8 +67,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_output(nullptr),
 	audio_io(nullptr),
 	haptics_output(0),
-	haptics_resampler_buf(nullptr)
+	haptics_resampler_buf(nullptr),
+	haptics_filler_buf(nullptr)
 {
+	haptics_counter = 0;
 	connected = false;
 	ChiakiErrorCode err;
 
@@ -106,6 +116,25 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 			}
 		}
 	}
+	// echo-cancel sink can't be opened causing stream failure, workaround issue by explicitly checking
+	// first try pulse audio, if not found use first available option in list
+	if(audio_out_device_info.deviceName() == "echo-cancel-sink")
+	{
+		const auto device_list = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
+		for(QAudioDeviceInfo di : device_list)
+		{
+			if (di.deviceName() == "pulse")
+			{
+				audio_out_device_info = di;
+				CHIAKI_LOGI(GetChiakiLog(), "echo-cancel sink cannot be used as audio sink. Reverting to pulse audio...");
+			}
+		}
+		if (audio_out_device_info.deviceName() != "pulse")
+		{
+			audio_out_device_info = device_list[0];
+			CHIAKI_LOGI(GetChiakiLog(), "echo-cancel sink cannot be used as audio sink and pulse audio not found Reverting to %s...", audio_out_device_info.deviceName().toLocal8Bit().constData());
+		}
+	}
 
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
 	audio_buffer_size = connect_info.audio_buffer_size;
@@ -135,6 +164,18 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if(connect_info.morning.size() != sizeof(chiaki_connect_info.morning))
 		throw ChiakiException("Morning invalid");
 	memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
+
+	if(chiaki_connect_info.ps5)
+	{
+		PS_TOUCHPAD_MAX_X = PS5_TOUCHPAD_MAX_X;
+		PS_TOUCHPAD_MAX_Y = PS5_TOUCHPAD_MAX_Y;
+	}
+	else
+	{
+		PS_TOUCHPAD_MAX_X = PS4_TOUCHPAD_MAX_X;
+		PS_TOUCHPAD_MAX_Y = PS4_TOUCHPAD_MAX_Y;
+	}
+
 
 	chiaki_controller_state_set_idle(&keyboard_state);
 	chiaki_controller_state_set_idle(&touch_state);
@@ -194,11 +235,48 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	timer->start(SETSU_UPDATE_INTERVAL_MS);
 #endif
 
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	chiaki_controller_state_set_idle(&sdeck_state);
+	sdeck = sdeck_new();
+	// no concept of hotplug for Steam Deck so turn off if not detected immediately
+	if(!sdeck)
+		CHIAKI_LOGI(GetChiakiLog(), "Steam Deck not found ... Steam Deck native features disabled\n\n");
+	else
+	{
+		CHIAKI_LOGI(GetChiakiLog(), "Connected Steam Deck ... gyro and haptics online\n\n");
+		auto sdeck_timer = new QTimer(this);
+		connect(sdeck_timer, &QTimer::timeout, this, [this]{
+			sdeck_read(sdeck, SessionSDeckCb, this);
+		});
+		sdeck_timer->start(STEAMDECK_UPDATE_INTERVAL_MS);
+	}
+#endif
+
 	key_map = connect_info.key_map;
 	UpdateGamepads();
 	if (connect_info.enable_dualsense) {
 		InitHaptics();
 	}
+// #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+// 	if(!haptics_output && sdeck)
+// 	{
+// 		auto sdeck_haptics_timer = new QTimer(this);
+// 		connect(sdeck_haptics_timer, &QTimer::timeout, this, [this]{
+// 			uint16_t left_haptic = 0, right_haptic = 0;
+// 			if (sdeck_haptic_queue.isEmpty())
+// 				return;
+// 			left_haptic = sdeck_haptic_queue.dequeue();
+// 			if (sdeck_haptic_queue.isEmpty())
+// 					return;
+// 			right_haptic = sdeck_haptic_queue.dequeue();
+// 			if(!left_haptic || !right_haptic)
+// 				return;
+// 			if (sdeck_haptic(sdeck, left_haptic, right_haptic, 100000) < 0)
+// 				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to submit haptics audio to SteamDeck");
+// 		});
+// 		sdeck_haptics_timer->start(100);
+// 	}
+// #endif
 }
 
 StreamSession::~StreamSession()
@@ -212,6 +290,9 @@ StreamSession::~StreamSession()
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
+#endif
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	sdeck_free(sdeck);
 #endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(pi_decoder)
@@ -234,6 +315,11 @@ StreamSession::~StreamSession()
 	{
 		free(haptics_resampler_buf);
 		haptics_resampler_buf = nullptr;
+	}
+	if (haptics_filler_buf)
+	{
+		free(haptics_filler_buf);
+		haptics_filler_buf = nullptr;
 	}
 }
 
@@ -293,8 +379,8 @@ void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float 
 	{
 		float x = event->screenPos().x();
 		float y = event->screenPos().y();
-		float psx = x * ((float)PS_TOUCHPAD_MAX_X / width);
-		float psy = y * ((float)PS_TOUCHPAD_MAX_Y / height);
+		float psx = x * (PS_TOUCHPAD_MAX_X / width);
+		float psy = y * (PS_TOUCHPAD_MAX_Y / height);
 		// if touch id is set, move, otherwise start
 		if(mouse_touch_id >= 0)
 			chiaki_controller_state_set_touch_pos(&keyboard_state, (uint8_t)mouse_touch_id, (uint16_t)psx, (uint16_t)psy);
@@ -383,8 +469,8 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
 					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 				// Scale to PS TouchPad since that's what PS Console expects
-				float psx = norm_x * (float)PS_TOUCHPAD_MAX_X;
-				float psy = norm_y * (float)PS_TOUCHPAD_MAX_Y;
+				float psx = norm_x * PS_TOUCHPAD_MAX_X;
+				float psy = norm_y * PS_TOUCHPAD_MAX_Y;
 				auto it = touch_tracker.find(id);
 				if(it == touch_tracker.end())
 				{
@@ -461,6 +547,9 @@ void StreamSession::SendFeedbackState()
 	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
 	state = setsu_state;
 #endif
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	chiaki_controller_state_or(&state, &state, &sdeck_state);
+#endif
 
 	for(auto controller : controllers)
 	{
@@ -507,7 +596,10 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 void StreamSession::InitHaptics()
 {
 	haptics_output = 0;
+	haptics_sdeck = false;
 	haptics_resampler_buf = nullptr;
+	haptics_filler_buf = nullptr;
+	haptics_counter = 0;
 	// Haptics work most reliably with Pipewire, so try to use that if available
 	SDL_SetHint("SDL_AUDIODRIVER", "pipewire");
 
@@ -546,6 +638,28 @@ void StreamSession::InitHaptics()
 		SDL_PauseAudioDevice(haptics_output, 0);
 		break;
 	}
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	if((!haptics_output) && sdeck)
+	{
+		SDL_AudioCVT cvt;
+		const int num_channels = 2; // Left and right haptics
+		const int sampling_rate = 3000; // 48kHz
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 2, 3000, AUDIO_S16LSB, num_channels, sampling_rate);
+		cvt.len = 120;  // 30 16bit stereo samples (10 ms)
+		haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
+		haptics_filler_buf = (uint8_t*) calloc(5 * cvt.len * cvt.len_ratio, sizeof(uint8_t));
+		uint32_t samples = (double)cvt.len * 5 * cvt.len_ratio / (2.0 * sizeof(int16_t));
+		if (sdeck_haptic_init(sdeck, samples) < 0)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics Audio could not be connected :(");
+			return;
+		}
+		CHIAKI_LOGI(log.GetChiakiLog(), "Steam Deck Haptics Audio opened with %d channels @ %d Hz with %u samples per audio packet.", num_channels, sampling_rate, samples);
+		haptics_sdeck = true;
+		return;
+	}
+#endif
 	if(!haptics_output)
 	{
 		CHIAKI_LOGW(log.GetChiakiLog(), "DualSense features were enabled, but could not find the DualSense audio device!");
@@ -568,6 +682,46 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	if(haptics_output == 0 && haptics_sdeck && sdeck)
+	{
+		const int sampling_rate = 3000;
+		SDL_AudioCVT cvt;
+		// Haptic samples are 3kHz but we want 48kHz to detect higher frequencies (up to 24kHz)
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 2, 3000, AUDIO_S16LSB, 2, sampling_rate);
+		cvt.len = buf_size;
+		cvt.buf = haptics_resampler_buf;
+		//printf("\nBuffer size is: %f\n", cvt.len * cvt.len_ratio);
+		SDL_memcpy(haptics_resampler_buf, buf, buf_size);
+		// Resample to 48kHz little endian
+		if (SDL_ConvertAudio(&cvt) != 0)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample haptics audio: %s", SDL_GetError());
+			return;
+		}
+		const int count = haptics_counter * cvt.len * cvt.len_ratio;
+		SDL_memcpy(haptics_filler_buf + count, cvt.buf, cvt.len * cvt.len_ratio);
+		if(haptics_counter == 4)
+		{
+			play_pcm_haptic(sdeck, haptics_filler_buf, (haptics_counter + 1) * cvt.len * cvt.len_ratio, sampling_rate);
+			haptics_counter = 0;
+			return;
+		}
+		haptics_counter++;
+		return;
+		//sdeck_haptic_queue.enqueue(freq_left);
+		//sdeck_haptic_queue.enqueue(freq_right);
+
+		/*uint16_t amplitude = 0;
+		for (int i = 0; i < cvt.len * cvt.len_ratio; i+=sizeof(amplitude))
+		{
+			memcpy(&amplitude, cvt.buf + i, sizeof(amplitude));
+			sdeck_haptic_queue.enqueue(amplitude);
+		}
+		return;
+		*/
+	}
+#endif
 	if(haptics_output == 0)
 		return;
 	SDL_AudioCVT cvt;
@@ -632,6 +786,35 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 	}
 }
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+void StreamSession::HandleSDeckEvent(SDeckEvent *event)
+{
+	if(!sdeck)
+	{
+		CHIAKI_LOGI(GetChiakiLog(), "Steam Deck was disconnected! Skipping stale events...\n");
+		return;
+	}
+	// right now only one event, use switch here for more in the future
+	switch(event->type)
+	{
+		case SDECK_EVENT_MOTION:
+			sdeck_state.gyro_x = event->motion.gyro_x;
+			sdeck_state.gyro_y = event->motion.gyro_y;
+			sdeck_state.gyro_z = event->motion.gyro_z;
+			sdeck_state.accel_x = event->motion.accel_x;
+			sdeck_state.accel_y = event->motion.accel_y;
+			sdeck_state.accel_z = event->motion.accel_z;
+			sdeck_state.orient_w = event->motion.orient_w;
+			sdeck_state.orient_x = event->motion.orient_x;
+			sdeck_state.orient_y = event->motion.orient_y;
+			sdeck_state.orient_z = event->motion.orient_z;
+			SendFeedbackState();
+			break;
+	}
+}
+
+#endif
 
 #if CHIAKI_GUI_ENABLE_SETSU
 void StreamSession::HandleSetsuEvent(SetsuEvent *event)
@@ -759,6 +942,9 @@ class StreamSessionPrivate
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
 #endif
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+		static void HandleSDeckEvent(StreamSession *session, SDeckEvent *event)					{ session->HandleSDeckEvent(event); }
+#endif
 		static void TriggerFfmpegFrameAvailable(StreamSession *session)							{ session->TriggerFfmpegFrameAvailable(); }
 };
 
@@ -791,6 +977,14 @@ static void SessionSetsuCb(SetsuEvent *event, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::HandleSetsuEvent(session, event);
+}
+#endif
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+static void SessionSDeckCb(SDeckEvent *event, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::HandleSDeckEvent(session, event);
 }
 #endif
 
