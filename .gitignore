@@ -5,6 +5,7 @@ build
 cmake-build-*
 /build_*
 /build-*
+/debug
 .DS_store
 *.AppImage
 appdir

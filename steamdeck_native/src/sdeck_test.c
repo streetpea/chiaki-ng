@@ -20,14 +20,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
-#define STEAMDECK_HAPTIC_INTERVAL 20000 // microseconds
+#define STEAMDECK_HAPTIC_INTERVAL 100000 // microseconds
 #define STEAM_CONTROLLER_MAGIC_PERIOD_RATIO 495483.0f
 #define ENDTIME_MS 10000
 #define PLAYNUM 1000
 
-void max_power_freq(const int N, const double sampling_rate, double * frequency, fftw_complex * power);
 void calc_powers(fftw_complex * data, int N);
-void max_power_freq(const int N, const double sampling_rate, double * frequency, fftw_complex * power);
+void max_power_freq(const int N, const double sampling_rate, double * frequency, double * freq_power, fftw_complex * power);
 void zero_pad(double *data, int N);
 hid_device * is_steam_deck();
 struct sdeck_t
@@ -50,8 +49,8 @@ void print_motion(SDeckEvent * event, void *user)
 	printf("\nOrient y is %f\n", event->motion.orient_y);
 	printf("\nOrient z is %f\n", event->motion.orient_z);
 }
-/*
-void haptic_generator(SDeck * sdeck)
+
+/*void haptic_generator(SDeck * sdeck)
 {
 	float frequency = 10;
 	uint16_t position, amplitude, period, count = 0;
@@ -64,6 +63,7 @@ void haptic_generator(SDeck * sdeck)
 }*/
 // int main()
 // {
+// 	/*
 // 	SDeck * sdeck = NULL;
 // 	sdeck = sdeck_new();
 // 	if(!sdeck)
@@ -71,19 +71,28 @@ void haptic_generator(SDeck * sdeck)
 // 		printf("Failed to init sdeck\n");
 // 		return 1;
 // 	}
-// 	//double freq[9] = { 10, 110, 210, 310, 410, 510, 610, 710, 810 };
+// 	// double freql[9] = { 20, 110, 210, 310, 410, 510, 610, 710, 810 };
+// 	// double freqr[9] = { 20, 40, 210, 50, 70, 90, 110, 610, 20};
+// 	double freql[12] = { 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+// 	double freqr[9] = { 20, 40, 210, 50, 70, 90, 110, 610, 20};
+// 	double repeatl[12] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+// 	double ratiol[12] = {0.9, 0.9, 0.9, 0.3, 0.3, 0.3, 0.3, 0.9, 0.9, 0.9, 0.9, 0.9};
 // 	//float freq[6] = {50, 65, 85, 105, 135, 100};
 // 	float freq[6] = {50, 55, 50, 55, 50, 55};
-// 	while(true)
+// 	//double ratiol = 0.5, 
+// 	double ratior = 1;
+// 	int playtimel = 0, playtimer = 0;
+// 	//double repeatl = 3, repeatr = 3;
+// 	double repeatr = 3;
+// 	for (int i = 0; i < 12; i++)
 // 	{
-// 		for (int i = 0; i < 6; i++)
-// 		{
-
-// 			printf("\ncurrent i %f\n", freq[i]);
-// 			sdeck_haptic(sdeck, freq[i], freq[i], STEAMDECK_HAPTIC_INTERVAL);
-// 			usleep(STEAMDECK_HAPTIC_INTERVAL);
-// 		}
+// 		playtimel = sdeck_haptic(sdeck, TRACKPAD_RIGHT, freql[i], STEAMDECK_HAPTIC_INTERVAL, ratiol[i], repeatl[i]);
+// 		//playtimer = sdeck_haptic(sdeck, TRACKPAD_RIGHT, freqr[i], STEAMDECK_HAPTIC_INTERVAL, ratior, repeatr);
+// 		printf("\ncurrent i %i\n left haptic - freq: %f, playtime: %i\n right haptic - freq: %f, playtime: %i\n", i, freql[i], playtimel, freqr[i], playtimer);
+// 		usleep(STEAMDECK_HAPTIC_INTERVAL);
 // 	}
+// 	/*
+
 
 // /* 	
 // 	clock_t start = clock();
@@ -116,7 +125,7 @@ void haptic_generator(SDeck * sdeck)
 void generate_signal(const int num_samples, const double sampling_rate, double signal_freq, double * data)
 {
     for (int i = 0; i < num_samples; i++)
-        data[i] = cos(signal_freq * 2.0f * M_PI * (double)i/(double)sampling_rate); //+ sin(signal_freq * 2.0f * M_PI * ((double)i/(double)sampling_rate));
+        data[i] = -25 * cos(signal_freq * 2.0f * M_PI * (double)i/(double)sampling_rate); //+ sin(signal_freq * 2.0f * M_PI * ((double)i/(double)sampling_rate));
 }
 
 void print_complex_array(fftw_complex * data, int N)
@@ -126,29 +135,36 @@ void print_complex_array(fftw_complex * data, int N)
 		printf("\nValue %i is: %f + %fi\n", i, data[i][0], data[i][1]);
 }
 
-void print_powers(fftw_complex * power, int N)
+void print_powers(fftw_complex * power, int N, float sampling_rate)
 {
 	printf("\nPrinting power of array...\n");
+	const int originalN = 2 * N - 2;
+	double sum = 0;
 	for (int i = 0; i < N; i++)
-		printf("\nValue %i is: %f\n", i, power[i][0] / (2 * N));
+	{
+		const double power_calc = 2 * sqrt(power[i][0]) / (originalN);
+		printf("\nFrequency %f has power: %f\n", i * sampling_rate / originalN, power_calc);
+		sum += power_calc;
+	}
+	printf("\nTotal power is: %f\n", sum);
 }
 
 void print_autocorr(double * autocorr, int N, float sampling_rate)
 {
 	printf("\nPrinting autocorrelation values...\n");
 	for (int i = 2; i < N/2 + 1; i++)
-		printf("\nFrequency %f is: %f\n", (sampling_rate / i), (autocorr[i] / autocorr[0]));
+		printf("\nFrequency %f fas autocorrelation: %f\n", (sampling_rate / i), (autocorr[i] / autocorr[0]));
 }
 
 int main()
 {
-	double sampling_rate = 12000; // samples per second
-    double sampling_period = 100; // milliseconds
+	double sampling_rate = 3000; // samples per second
+    double sampling_period = 50; // milliseconds
 	const double max_freq = 1000; // maximum allowed haptic frequency for DualSense
 	const int num_samples = sampling_rate * sampling_period / 1000.0;
 	int realN = num_samples * 2; // zero padded array
 	int complexN = num_samples + 1;
-    double *hann, *pcm_data, frequency = 0;
+    double *hann, *pcm_data, frequency = 0, freq_power = 0;
     fftw_complex *freq_data;
     fftw_plan fft, ifft;
 	hann = hann_init(num_samples);
@@ -166,15 +182,15 @@ int main()
 	zero_pad(pcm_data, num_samples);
     fftw_execute(fft);
 	calc_powers(freq_data, complexN);
-	max_power_freq(complexN, sampling_rate, &frequency, freq_data);
+	max_power_freq(complexN, sampling_rate, &frequency, &freq_power, freq_data);
 	clock_t end2 = clock();
 	//printf("Took %f seconds\n", (((float)(end1-start) / CLOCKS_PER_SEC)));
-	printf("\nPower Frequency is %f Hz\n", frequency);
-	//print_powers(freq_data, complexN);
-    fftw_execute(ifft);
-	print_autocorr(pcm_data, complexN, sampling_rate);
-	if (compute_freq(pcm_data, complexN, sampling_rate, &frequency, max_freq) == 0)
-		printf("\nFrequency is %f Hz\n", frequency);
+	print_powers(freq_data, complexN, sampling_rate);
+	printf("\nPower Frequency is: %f Hz with power: %f\n", frequency, freq_power);
+    // fftw_execute(ifft);
+	// print_autocorr(pcm_data, complexN, sampling_rate);
+	// if (compute_freq(pcm_data, complexN, sampling_rate, &frequency, max_freq) == 0)
+	// 	printf("\nFrequency is %f Hz\n", frequency);
 	printf("Took %f seconds\n", (((float)(end2-start) / CLOCKS_PER_SEC)));
 	
     fftw_destroy_plan(fft);

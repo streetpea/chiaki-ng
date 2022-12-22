@@ -30,6 +30,7 @@
 #include <QMouseEvent>
 #include <QTimer>
 #include <QQueue>
+#include <QElapsedTimer>
 
 class QAudioOutput;
 class QIODevice;
@@ -41,6 +42,14 @@ class ChiakiException: public Exception
 	public:
 		explicit ChiakiException(const QString &msg) : Exception(msg) {};
 };
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+typedef struct haptic_packet_t
+{
+   	int16_t haptic_packet[30];
+    uint64_t timestamp;
+} haptic_packet_t;
+#endif
 
 struct StreamSessionConnectInfo
 {
@@ -93,9 +102,13 @@ class StreamSession : public QObject
 		SDeck *sdeck;
 		ChiakiControllerState sdeck_state;
 		bool haptics_sdeck;
-		// QQueue<uint16_t> sdeck_haptic_queue;
-		uint8_t * haptics_filler_buf;
-		int haptics_counter;
+		QQueue<haptic_packet_t> sdeck_hapticl;
+		QQueue<haptic_packet_t> sdeck_hapticr;
+		int16_t * sdeck_haptics_senderl;
+		int16_t * sdeck_haptics_senderr;
+		int sdeck_queue_segment;
+		uint64_t sdeck_last_haptic;
+		bool sdeck_skipl, sdeck_skipr;
 #endif
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
@@ -130,6 +143,7 @@ class StreamSession : public QObject
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
 		void InitHaptics();
+		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void Event(ChiakiEvent *event);
 
 	public:
@@ -150,7 +164,6 @@ class StreamSession : public QObject
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 		ChiakiPiDecoder *GetPiDecoder()	{ return pi_decoder; }
 #endif
-
 		void HandleKeyboardEvent(QKeyEvent *event);
 		void HandleTouchEvent(QTouchEvent *event);
 		void HandleMouseReleaseEvent(QMouseEvent *event);
@@ -159,6 +172,7 @@ class StreamSession : public QObject
 
 	signals:
 		void FfmpegFrameAvailable();
+		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 
@@ -168,5 +182,6 @@ class StreamSession : public QObject
 };
 
 Q_DECLARE_METATYPE(ChiakiQuitReason)
+Q_DECLARE_METATYPE(haptic_packet_t)
 
 #endif // CHIAKI_STREAMSESSION_H

@@ -42,9 +42,9 @@
 typedef struct freq_t
 {
 	int N;
-	fftw_plan fftl, fftr;
-	double *hann, *pcm_datal, *pcm_datar;
-	fftw_complex *freq_datal, *freq_datar;
+	fftw_plan fft;
+	double *hann, *pcm_data;
+	fftw_complex *freq_data;
 } FreqFinder;
 
 struct sdeck_t
@@ -57,9 +57,8 @@ struct sdeck_t
 };
 
 hid_device *is_steam_deck();
-void max_power_freq(const int N, const double sampling_rate, double *frequency, fftw_complex *power);
 void calc_powers(fftw_complex *data, int N);
-void max_power_freq(const int N, const double sampling_rate, double *frequency, fftw_complex *power);
+void max_power_freq(const int N, const double sampling_rate, double *frequency, double *freq_power, fftw_complex *power);
 void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *user);
 FreqFinder *freqfinder_new(int samples);
 
@@ -101,25 +100,19 @@ FreqFinder *freqfinder_new(int samples)
 	FreqFinder *freqfinder = fftw_malloc(sizeof(FreqFinder));
 	freqfinder->N = samples;
 	freqfinder->hann = hann_init(samples);
-	freqfinder->pcm_datal = fftw_malloc(2 * samples * sizeof(double));
-	freqfinder->pcm_datar = fftw_malloc(2 * samples * sizeof(double));
-	freqfinder->freq_datal = fftw_malloc((samples + 1) * sizeof(fftw_complex));
-	freqfinder->freq_datar = fftw_malloc((samples + 1) * sizeof(fftw_complex));
-	freqfinder->fftl = fftw_plan_dft_r2c_1d(2 * samples, freqfinder->pcm_datal, freqfinder->freq_datal, FFTW_MEASURE);
-	freqfinder->fftr = fftw_plan_dft_r2c_1d(2 * samples, freqfinder->pcm_datar, freqfinder->freq_datar, FFTW_MEASURE);
+	freqfinder->pcm_data = fftw_malloc(2 * samples * sizeof(double));
+	freqfinder->freq_data = fftw_malloc((samples + 1) * sizeof(fftw_complex));
+	freqfinder->fft = fftw_plan_dft_r2c_1d(2 * samples, freqfinder->pcm_data, freqfinder->freq_data, FFTW_MEASURE);
 	return freqfinder;
 }
 
 void haptic_free(FreqFinder *freqfinder)
 {
-	fftw_destroy_plan(freqfinder->fftl);
-	fftw_destroy_plan(freqfinder->fftr);
+	fftw_destroy_plan(freqfinder->fft);
 
 	fftw_free(freqfinder->hann);
-	fftw_free(freqfinder->pcm_datal);
-	fftw_free(freqfinder->pcm_datar);
-	fftw_free(freqfinder->freq_datal);
-	fftw_free(freqfinder->freq_datar);
+	fftw_free(freqfinder->pcm_data);
+	fftw_free(freqfinder->freq_data);
 	fftw_free(freqfinder);
 
 	fftw_cleanup();
@@ -270,7 +263,7 @@ int compute_freq(double *data, int N, const double sampling_rate, double *freque
 	return 0;
 }
 
-void max_power_freq(const int N, const double sampling_rate, double *frequency, fftw_complex *power)
+void max_power_freq(const int N, const double sampling_rate, double *frequency, double *freq_power, fftw_complex *power)
 {
 	int max_pos = 0;
 	for (int i = 1; i < N; i++)
@@ -279,59 +272,35 @@ void max_power_freq(const int N, const double sampling_rate, double *frequency, 
 			max_pos = i;
 	}
 	if (max_pos == 0)
-	{
-		printf("Frequency not in range");
 		return;
-	}
-	*frequency = (max_pos * sampling_rate) / (2 * N - 2);
+	const int originalN = 2 * N - 2;
+	*frequency = ((max_pos * sampling_rate) / originalN);
+	*freq_power = ((2 * sqrt(power[max_pos][0])) / originalN);
 }
 
-void calc_freqs(FreqFinder *freqfinder, const int sampling_rate, double *freq_left, double *freq_right)
+void calc_freqs(FreqFinder *freqfinder, const int sampling_rate, double *freq, double *freq_power)
 {
 	int N = freqfinder->N;
 	int complexN = freqfinder->N + 1;
-	hann_apply(freqfinder->pcm_datal, freqfinder->hann, N);
-	zero_pad(freqfinder->pcm_datal, N);
-	hann_apply(freqfinder->pcm_datar, freqfinder->hann, N);
-	zero_pad(freqfinder->pcm_datar, N);
-	fftw_execute(freqfinder->fftl);
-	fftw_execute(freqfinder->fftr);
-	// print_complex_array(freq, complexN);
-	calc_powers(freqfinder->freq_datal, complexN);
-	calc_powers(freqfinder->freq_datar, complexN);
-	max_power_freq(complexN, sampling_rate, freq_left, freqfinder->freq_datal);
-	max_power_freq(complexN, sampling_rate, freq_right, freqfinder->freq_datar);
-	printf("\nPower Frequency left is %f Hz\n", *freq_left);
-	printf("\nPower Frequency right is %f Hz\n", *freq_right);
+	hann_apply(freqfinder->pcm_data, freqfinder->hann, N);
+	zero_pad(freqfinder->pcm_data, N);
+	fftw_execute(freqfinder->fft);
+	calc_powers(freqfinder->freq_data, complexN);
+	max_power_freq(complexN, sampling_rate, freq, freq_power, freqfinder->freq_data);
 }
 
-int fill_buf(FreqFinder *freqfinder, uint8_t *buf, const int buf_size, double * absavg_l, double * absavg_r)
+int get_data(FreqFinder *freqfinder, int16_t *buf, const int num_elements)
 {
-	int16_t l = 0, r = 0;
-	const int sample_size = sizeof(l) + sizeof(r);
-	const int num_samples = buf_size / sample_size;
-	uint32_t totalr = 0, totall = 0;
-
-	if (freqfinder->N != num_samples)
+	if (freqfinder->N != num_elements)
 	{
 		SDECK_LOG("\nBuffer size mismatch...initialized buffer is not right size!\n");
 		return -1;
 	}
-
-	int k = 0;
-	for (int i = 0; i < num_samples; i++)
+	for (int i = 0; i < num_elements; i++)
 	{
-		memcpy(&l, buf + k, sizeof(l));
-		memcpy(&r, buf + k + sizeof(l), sizeof(r));
-		totall += abs(l);
-		totalr += abs(r);
-		freqfinder->pcm_datal[i] = l;
-		freqfinder->pcm_datar[i] = r;
-		k += sample_size;
+		freqfinder->pcm_data[i] = buf[i];
 	}
-	*absavg_l = totall / num_samples;
-	*absavg_r = totalr / num_samples;
-	return num_samples;
+	return 0;
 }
 
 void find_repeat(double * data, const int num_samples, const double frequency, const int sampling_rate, const double avg_min, double * total_avg, int * repeat_count)
@@ -339,8 +308,7 @@ void find_repeat(double * data, const int num_samples, const double frequency, c
 	int counter = 0;
 	int interval_length = sampling_rate / frequency;
 	double avg = 0;
-	const int repeat_max = 4;
-	const double old_total_avg = *total_avg;
+	const int repeat_max = 20;
 	*total_avg = 0;
 	*repeat_count = 0;
 	printf("\ninterval length is %i, num_samples is: %i\n", interval_length, num_samples);
@@ -349,46 +317,55 @@ void find_repeat(double * data, const int num_samples, const double frequency, c
 		avg += abs(data[i]);
 		if ((i + 1) % interval_length == 0)
 		{
-			if (avg / interval_length > avg_min)
+			avg /= interval_length;
+			if (avg > avg_min)
 			{
-				*repeat_count+=1;
-				*total_avg += avg;
+				(*repeat_count)++;
+				(*total_avg) += avg;
 			}
 			avg = 0; 
 		}
 	}
-	if (*repeat_count == 0)
+	if ((*repeat_count) == 0)
 	{
-		*repeat_count = 1;
-		*total_avg = old_total_avg * ((double)num_samples / (double)interval_length);
+		int leftover = num_samples % interval_length;
+		if (leftover)
+			avg /= leftover;
+		if(avg < avg_min)
+			return;
+		(*repeat_count) = 1;
+		(*total_avg) = avg;
 	}
-	*total_avg /= *repeat_count;
-	*repeat_count = ((*repeat_count) > repeat_max) ? repeat_max : (*repeat_count); 
+	(*total_avg) /= (*repeat_count);
+	(*repeat_count) = ((*repeat_count) > repeat_max) ? repeat_max : (*repeat_count); 
 }
-void play_pcm_haptic(SDeck *sdeck, uint8_t *buf, const uint32_t buf_size, const int sampling_rate)
+
+int play_pcm_haptic(SDeck *sdeck, uint8_t position, int16_t *buf, const int num_elements, const int sampling_rate)
 {
-	uint32_t interval = 0, num_samples = 0;
-	const int avg_min = 50;
-	int repeatl = 0, repeatr = 0;
-	double freq_left = 0, freq_right = 0, avg_l = 0, avg_r = 0, ratiol = 0, ratior = 0;
-	num_samples = fill_buf(sdeck->freqfinder, buf, buf_size, &avg_l, &avg_r);
-	if (num_samples < 0)
-		return;
+	uint32_t interval = 0;
+	const int avg_min = 50; // don't play samples that are less than 1% volume
+	int repeat = 0;
+	int32_t playtime = 0;
+	double freq = 0, avg = 0, ratio = 0, freq_power = 0;
+	if (get_data(sdeck->freqfinder, buf, num_elements))
+		return -1;
 	// interval in microseconds
-	printf("\nAverage l is %f, average r is %f\n", avg_l, avg_r);
-	interval = 1000000 * ((double)num_samples / (double)sampling_rate);
-	calc_freqs(sdeck->freqfinder, sampling_rate, &freq_left, &freq_right);
-	freq_left = (avg_l > avg_min) ? freq_left : 0;
-	if (freq_left)
-		find_repeat(sdeck->freqfinder->pcm_datal, num_samples, freq_left, sampling_rate, 50, &avg_l, &repeatl);
-	freq_right = (avg_r > avg_min) ? freq_right : 0;
-	if (freq_right)
-		find_repeat(sdeck->freqfinder->pcm_datar, num_samples, freq_right, sampling_rate, 50, &avg_r, &repeatr);
-	ratiol = avg_l / INT16_MAX;
-	ratiol = (ratiol < 1) ? ratiol : 1;
-	ratior = avg_r / INT16_MAX;
-	ratior = (ratior < 1) ? ratior : 1;
-	sdeck_haptic(sdeck, freq_left, freq_right, interval, ratiol, ratior, repeatl, repeatr);
+	interval = 1000000 * ((double)num_elements / (double)sampling_rate);
+	calc_freqs(sdeck->freqfinder, sampling_rate, &freq, &freq_power);
+	if (!freq)
+		return 0;
+	avg = 5 * freq_power;
+	if (avg < avg_min)
+		return 0;
+	ratio = avg / INT16_MAX;
+	ratio = (ratio < 1) ? ratio : 1;
+	repeat = ceil(ratio * num_elements * freq / (double)sampling_rate);
+	playtime = sdeck_haptic(sdeck, position, freq, interval, repeat);
+	if (playtime < 0)
+		return playtime;
+	if (playtime < interval)
+		return 1;
+	return 2;
 }
 
 int send_haptic(SDeck *sdeck, uint8_t position, uint16_t period_high, uint16_t period_low, uint16_t repeat_count)
@@ -415,35 +392,45 @@ int send_haptic(SDeck *sdeck, uint8_t position, uint16_t period_high, uint16_t p
 	return 0;
 }
 // period in microseconds, frequency in Hz
-int sdeck_haptic(SDeck *sdeck, double frequency_left, double frequency_right, uint32_t interval, double ratiol, double ratior, const int repeat_left, const int repeat_right)
+int sdeck_haptic(SDeck *sdeck, uint8_t position, double frequency, uint32_t interval, const uint16_t repeat)
 {
 	int res = 0;
-	double ratio_highl = 0, ratio_lowl = 0, ratio_highr = 0, ratio_lowr = 0;
-	ratio_highl = 2 * ratiol;
-	ratio_lowl = 2 - ratio_highl;
-	ratio_highr = 2 * ratior;
-	ratio_lowr = 2 - ratio_highr;
-	printf("\ninterval is %u\n", interval);
-	double freq_min = 1000000 / interval;
-	printf("\nfreq min is %f\n", freq_min);
-	uint16_t period_left = 0, period_right = 0;
-	if (frequency_left >= freq_min)
+	double freq_min = 500000 / interval; // can play haptic for at most 2 intervals w/ borrow from future
+	uint16_t period = 0;
+	if (frequency >= freq_min)
 	{
-		period_left = 495000 / frequency_left;						// 1,000,000 microseconds in sec at 50% duty cycle (50 % period high and 50% period low) 
-		res = send_haptic(sdeck, TRACKPAD_LEFT, ratio_highl * period_left, ratio_lowl * period_left, repeat_left);
+		period = 500000 / frequency; // 1,000,000 microseconds in sec at 50% duty cycle (50 % period high and 50% period low) 
+		res = send_haptic(sdeck, position, period, period, repeat);
 		if (res < 0)
 			return res;
 	}
-	if (frequency_right >= freq_min)
-	{
-		period_right = 495000 / frequency_right;
-		res = send_haptic(sdeck, TRACKPAD_RIGHT, ratio_highr * period_right, ratio_lowr * period_right, repeat_right);
-		if (res < 0)
-			return res;
-	}
-	printf("\nperiod left: %u, period right: %u, repeat_left: %u, repeat right: %u\n", period_left, period_right, repeat_left, repeat_right);
+	// return interval played
+	return period * 2 * repeat;
+}
 
-	return 0;
+int sdeck_haptic_ratio(SDeck *sdeck, uint8_t position, double frequency, uint32_t interval, double ratio, const uint16_t repeat)
+{
+	int res = 0;
+	double ratio_high = 0, ratio_low = 0;
+	ratio_high = 2 * ratio;
+	ratio_low = 2 - ratio_high;
+	printf("\ninterval is %u\n", interval);
+	double freq_min = 500000 / interval; // can play haptic for at most 2 intervals w/ borrow from future
+	printf("\nfreq min is %f\n", freq_min);
+	uint16_t period = 0;
+	if (frequency >= freq_min)
+	{
+		period = 500000 / frequency; // 1,000,000 microseconds in sec at 50% duty cycle (50 % period high and 50% period low) 
+		res = send_haptic(sdeck, position, ceil(ratio_high * period), ceil(ratio_low * period), repeat);
+		if (res < 0)
+			return res;
+	}
+	if(position == TRACKPAD_LEFT)
+		printf("\nperiod left: %u, repeat_left: %u\n", period, repeat);
+	else
+		printf("\nperiod right: %u, repeat_right: %u\n", period, repeat);
+	// return interval played
+	return period * 2 * repeat;
 }
 /*int sdeck_haptic(SDeck * sdeck, uint16_t amplitude_left, uint16_t amplitude_right, double period)
 {

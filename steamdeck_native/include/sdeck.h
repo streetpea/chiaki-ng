@@ -102,10 +102,10 @@ typedef void (*SDeckEventCb)(SDeckEvent *event, void *user);
 SDeck *sdeck_new();
 void sdeck_free(SDeck *sdeck);
 void sdeck_read(SDeck *sdeck, SDeckEventCb cb, void *user);
-int sdeck_haptic(SDeck * sdeck, double frequency_left, double frequency_right, uint32_t interval, double ratiol, double ratior, const int repeat_left, const int repeat_right);
+int sdeck_haptic(SDeck *sdeck, uint8_t position, double frequency, uint32_t interval, const uint16_t repeat);
 int send_haptic(SDeck* sdeck, uint8_t position, uint16_t period_high, uint16_t period_low, uint16_t repeat_count);
 int sdeck_haptic_init(SDeck * sdeck, int samples);
-void play_pcm_haptic(SDeck * sdeck, uint8_t * buf, const uint32_t buf_size, const int sampling_rate);
+int play_pcm_haptic(SDeck *sdeck, uint8_t position, int16_t *buf, const int32_t num_elements, const int sampling_rate);
 
 #ifdef __cplusplus
 }
