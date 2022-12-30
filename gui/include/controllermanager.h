@@ -12,7 +12,11 @@
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 #include <SDL.h>
+#include <chiaki/orientation.h>
 #endif
+
+#define PS_TOUCHPAD_MAXX 1920
+#define PS_TOUCHPAD_MAXY 1079
 
 class Controller;
 
@@ -33,7 +37,9 @@ class ControllerManager : public QObject
 	private slots:
 		void UpdateAvailableControllers();
 		void HandleEvents();
-		void ControllerEvent(int device_id);
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+		void ControllerEvent(SDL_Event evt);
+#endif
 
 	public:
 		static ControllerManager *GetInstance();
@@ -57,12 +63,24 @@ class Controller : public QObject
 	private:
 		Controller(int device_id, ControllerManager *manager);
 
-		void UpdateState();
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+		void UpdateState(SDL_Event event);
+		bool HandleButtonEvent(SDL_ControllerButtonEvent event);
+		bool HandleAxisEvent(SDL_ControllerAxisEvent event);
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+		bool HandleSensorEvent(SDL_ControllerSensorEvent event);
+		bool HandleTouchpadEvent(SDL_ControllerTouchpadEvent event);
+#endif
+#endif
 
 		ControllerManager *manager;
 		int id;
+		ChiakiOrientationTracker orientation_tracker;
+		ChiakiControllerState state;
+		bool is_dualsense;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+		QMap<QPair<Sint64, Sint64>, uint8_t> touch_ids;
 		SDL_GameController *controller;
 #endif
 
@@ -75,6 +93,7 @@ class Controller : public QObject
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
+		bool IsDualSense();
 
 	signals:
 		void StateChanged();

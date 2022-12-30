@@ -68,6 +68,12 @@ static QSet<QString> chiaki_motion_controller_guids({
 	"030000008f0e00001431000000000000",
 });
 
+static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
+	// in format (vendor id, product id)
+	QPair<int16_t, int16_t>(0x054c, 0x0ce6), // DualSense controller
+	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
+});
+
 static ControllerManager *instance = nullptr;
 
 #define UPDATE_INTERVAL_MS 4
@@ -159,22 +165,51 @@ void ControllerManager::HandleEvents()
 				break;
 			case SDL_CONTROLLERBUTTONUP:
 			case SDL_CONTROLLERBUTTONDOWN:
-				ControllerEvent(event.cbutton.which);
-				break;
 			case SDL_CONTROLLERAXISMOTION:
-				ControllerEvent(event.caxis.which);
+#if not defined(CHIAKI_ENABLE_SETSU) and SDL_VERSION_ATLEAST(2, 0, 14)
+			case SDL_CONTROLLERSENSORUPDATE:
+			case SDL_CONTROLLERTOUCHPADDOWN:
+			case SDL_CONTROLLERTOUCHPADMOTION:
+			case SDL_CONTROLLERTOUCHPADUP:
+#endif
+				ControllerEvent(event);
 				break;
 		}
 	}
 #endif
 }
 
-void ControllerManager::ControllerEvent(int device_id)
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+void ControllerManager::ControllerEvent(SDL_Event event)
 {
+	int device_id;
+	switch(event.type)
+	{
+		case SDL_CONTROLLERBUTTONDOWN:
+		case SDL_CONTROLLERBUTTONUP:
+			device_id = event.cbutton.which;
+			break;
+		case SDL_CONTROLLERAXISMOTION:
+			device_id = event.caxis.which;
+			break;
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+		case SDL_CONTROLLERSENSORUPDATE:
+			device_id = event.csensor.which;
+			break;
+		case SDL_CONTROLLERTOUCHPADDOWN:
+		case SDL_CONTROLLERTOUCHPADMOTION:
+		case SDL_CONTROLLERTOUCHPADUP:
+			device_id = event.ctouchpad.which;
+			break;
+#endif
+		default:
+			return;
+	}
 	if(!open_controllers.contains(device_id))
 		return;
-	open_controllers[device_id]->UpdateState();
+	open_controllers[device_id]->UpdateState(event);
 }
+#endif
 
 QSet<int> ControllerManager::GetAvailableControllers()
 {
@@ -199,10 +234,13 @@ void ControllerManager::ControllerClosed(Controller *controller)
 	open_controllers.remove(controller->GetDeviceID());
 }
 
-Controller::Controller(int device_id, ControllerManager *manager) : QObject(manager)
+Controller::Controller(int device_id, ControllerManager *manager)
+: QObject(manager), is_dualsense(false)
 {
 	this->id = device_id;
 	this->manager = manager;
+	chiaki_orientation_tracker_init(&this->orientation_tracker);
+	chiaki_controller_state_set_idle(&this->state);
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	controller = nullptr;
@@ -211,6 +249,14 @@ Controller::Controller(int device_id, ControllerManager *manager) : QObject(mana
 		if(SDL_JoystickGetDeviceInstanceID(i) == device_id)
 		{
 			controller = SDL_GameControllerOpen(i);
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+			if(SDL_GameControllerHasSensor(controller, SDL_SENSOR_ACCEL))
+				SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_ACCEL, SDL_TRUE);
+			if(SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO))
+				SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_GYRO, SDL_TRUE);
+#endif
+			auto controller_id = QPair<int16_t, int16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
+			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			break;
 		}
 	}
@@ -220,7 +266,8 @@ Controller::Controller(int device_id, ControllerManager *manager) : QObject(mana
 Controller::~Controller()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(controller) {
+	if(controller)
+	{
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
 		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
@@ -230,10 +277,186 @@ Controller::~Controller()
 	manager->ControllerClosed(this);
 }
 
-void Controller::UpdateState()
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+void Controller::UpdateState(SDL_Event event)
 {
+	switch(event.type)
+	{
+		case SDL_CONTROLLERBUTTONDOWN:
+		case SDL_CONTROLLERBUTTONUP:
+			if(!HandleButtonEvent(event.cbutton))
+				return;
+			break;
+		case SDL_CONTROLLERAXISMOTION:
+			if(!HandleAxisEvent(event.caxis))
+				return;
+			break;
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+		case SDL_CONTROLLERSENSORUPDATE:
+			if(!HandleSensorEvent(event.csensor))
+				return;
+			break;
+		case SDL_CONTROLLERTOUCHPADDOWN:
+		case SDL_CONTROLLERTOUCHPADMOTION:
+		case SDL_CONTROLLERTOUCHPADUP:
+			if(!HandleTouchpadEvent(event.ctouchpad))
+				return;
+			break;
+#endif
+		default:
+			return;
+
+	}
 	emit StateChanged();
 }
+
+inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
+	ChiakiControllerButton ps_btn;
+	switch(event.button)
+	{
+		case SDL_CONTROLLER_BUTTON_A:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_CROSS;
+			break;
+		case SDL_CONTROLLER_BUTTON_B:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_MOON;
+			break;
+		case SDL_CONTROLLER_BUTTON_X:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_BOX;
+			break;
+		case SDL_CONTROLLER_BUTTON_Y:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_PYRAMID;
+			break;
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+			break;
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+			break;
+		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+			break;
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+			break;
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_L1;
+			break;
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_R1;
+			break;
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_L3;
+			break;
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_R3;
+			break;
+		case SDL_CONTROLLER_BUTTON_START:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_OPTIONS;
+			break;
+		case SDL_CONTROLLER_BUTTON_BACK:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_SHARE;
+			break;
+		case SDL_CONTROLLER_BUTTON_GUIDE:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_PS;
+			break;
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+		case SDL_CONTROLLER_BUTTON_TOUCHPAD:
+			ps_btn = CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+			break;
+#endif
+		default:
+			return false;
+		}
+	if(event.type == SDL_CONTROLLERBUTTONDOWN)
+		state.buttons |= ps_btn;
+	else
+		state.buttons &= ~ps_btn;
+	return true;
+}
+
+inline bool Controller::HandleAxisEvent(SDL_ControllerAxisEvent event) {
+	switch(event.axis)
+	{
+		case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+			state.l2_state = (uint8_t)(event.value >> 7);
+			break;
+		case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+			state.r2_state = (uint8_t)(event.value >> 7);
+			break;
+		case SDL_CONTROLLER_AXIS_LEFTX:
+			state.left_x = event.value;
+			break;
+		case SDL_CONTROLLER_AXIS_LEFTY:
+			state.left_y = event.value;
+			break;
+		case SDL_CONTROLLER_AXIS_RIGHTX:
+			state.right_x = event.value;
+			break;
+		case SDL_CONTROLLER_AXIS_RIGHTY:
+			state.right_y = event.value;
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+inline bool Controller::HandleSensorEvent(SDL_ControllerSensorEvent event)
+{
+	switch(event.sensor)
+	{
+		case SDL_SENSOR_ACCEL:
+			state.accel_x = event.data[0] / SDL_STANDARD_GRAVITY;
+			state.accel_y = event.data[1] / SDL_STANDARD_GRAVITY;
+			state.accel_z = event.data[2] / SDL_STANDARD_GRAVITY;
+			break;
+		case SDL_SENSOR_GYRO:
+			state.gyro_x = event.data[0];
+			state.gyro_y = event.data[1];
+			state.gyro_z = event.data[2];
+			break;
+		default:
+			return false;
+	}
+	chiaki_orientation_tracker_update(
+		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
+		state.accel_x, state.accel_y, state.accel_z, event.timestamp * 1000);
+	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
+	return true;
+}
+
+inline bool Controller::HandleTouchpadEvent(SDL_ControllerTouchpadEvent event)
+{
+	auto key = qMakePair(event.touchpad, event.finger);
+	bool exists = touch_ids.contains(key);
+	uint8_t chiaki_id;
+	switch(event.type)
+	{
+		case SDL_CONTROLLERTOUCHPADDOWN:
+			if(touch_ids.size() >= CHIAKI_CONTROLLER_TOUCHES_MAX)
+				return false;
+			chiaki_id = chiaki_controller_state_start_touch(&state, event.x * PS_TOUCHPAD_MAXX, event.y * PS_TOUCHPAD_MAXY);
+			touch_ids.insert(key, chiaki_id);
+			break;
+		case SDL_CONTROLLERTOUCHPADMOTION:
+			if(!exists)
+				return false;
+			chiaki_controller_state_set_touch_pos(&state, touch_ids[key], event.x * PS_TOUCHPAD_MAXX, event.y * PS_TOUCHPAD_MAXY);
+			break;
+		case SDL_CONTROLLERTOUCHPADUP:
+			if(!exists)
+				return false;
+			chiaki_controller_state_stop_touch(&state, touch_ids[key]);
+			touch_ids.remove(key);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+#endif
+#endif
 
 bool Controller::IsConnected()
 {
@@ -270,35 +493,6 @@ QString Controller::GetName()
 
 ChiakiControllerState Controller::GetState()
 {
-	ChiakiControllerState state;
-	chiaki_controller_state_set_idle(&state);
-#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!controller)
-		return state;
-
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A) ? CHIAKI_CONTROLLER_BUTTON_CROSS : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B) ? CHIAKI_CONTROLLER_BUTTON_MOON : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X) ? CHIAKI_CONTROLLER_BUTTON_BOX : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y) ? CHIAKI_CONTROLLER_BUTTON_PYRAMID : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT) ? CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) ? CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP) ? CHIAKI_CONTROLLER_BUTTON_DPAD_UP : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN) ? CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER) ? CHIAKI_CONTROLLER_BUTTON_L1 : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) ? CHIAKI_CONTROLLER_BUTTON_R1 : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK) ? CHIAKI_CONTROLLER_BUTTON_L3 : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSTICK) ? CHIAKI_CONTROLLER_BUTTON_R3 : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START) ? CHIAKI_CONTROLLER_BUTTON_OPTIONS : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_BACK) ? CHIAKI_CONTROLLER_BUTTON_SHARE : 0;
-	state.buttons |= SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_GUIDE) ? CHIAKI_CONTROLLER_BUTTON_PS : 0;
-	state.l2_state = (uint8_t)(SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) >> 7);
-	state.r2_state = (uint8_t)(SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) >> 7);
-	state.left_x = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-	state.left_y = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-	state.right_x = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-	state.right_y = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-
-#endif
 	return state;
 }
 
@@ -314,9 +508,8 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!controller)
+	if(!is_dualsense || !controller)
 		return;
-	// TODO: Check if controller is a DualSense?
 	DS5EffectsState_t state;
 	SDL_zero(state);
 	state.ucEnableBits1 |= (0x04 /* left trigger */ | 0x08 /* right trigger */);
@@ -325,5 +518,14 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 	state.rgucRightTriggerEffect[0] = type_right;
 	SDL_memcpy(state.rgucRightTriggerEffect + 1, data_right, 10);
 	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
+#endif
+}
+
+bool Controller::IsDualSense()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return false;
+	return is_dualsense;
 #endif
 }

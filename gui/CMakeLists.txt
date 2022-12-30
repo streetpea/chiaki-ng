@@ -6,7 +6,6 @@ find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Concurrent Multimedia Open
 if(APPLE)
 	find_package(Qt5 REQUIRED COMPONENTS MacExtras)
 endif()
-find_package(SDL2 2.0.16 MODULE REQUIRED)
 
 if(WIN32)
 	add_definitions(-DWIN32_LEAN_AND_MEAN)

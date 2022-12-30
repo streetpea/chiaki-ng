@@ -208,9 +208,18 @@ int real_main(int argc, char *argv[])
 				return 1;
 			}
 		}
-
-		StreamSessionConnectInfo connect_info(&settings, target, host, regist_key, morning, initial_login_passcode, parser.isSet(fullscreen_option), parser.isSet(zoom_option), parser.isSet(stretch_option), parser.isSet(dualsense_option));
 		
+		StreamSessionConnectInfo connect_info(
+				&settings,
+				target,
+				host,
+				regist_key,
+				morning,
+				initial_login_passcode,
+				parser.isSet(fullscreen_option),
+				parser.isSet(zoom_option),
+				parser.isSet(stretch_option));
+
 		return RunStream(app, connect_info);
 	}
 #ifdef CHIAKI_ENABLE_CLI

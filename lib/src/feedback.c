@@ -81,7 +81,7 @@ CHIAKI_EXPORT void chiaki_feedback_state_format_v12(uint8_t *buf, ChiakiFeedback
 	chiaki_feedback_state_format_v9(buf, state);
 	buf[0x19] = 0x0;
 	buf[0x1a] = 0x0;
-	buf[0x1b] = enable_dualsense ? 0x0 : 0x1;
+	buf[0x1b] = enable_dualsense ? 0x1 : 0x0;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_feedback_history_event_set_button(ChiakiFeedbackHistoryEvent *event, uint64_t button, uint8_t state)

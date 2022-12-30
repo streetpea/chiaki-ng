@@ -87,7 +87,8 @@ CHIAKI_EXPORT bool chiaki_controller_state_equals(ChiakiControllerState *a, Chia
 
 /**
  * Union of two controller states.
- * Ignores gyro, accel and orient because it makes no sense there.
+ * Ignores gyro, accel and orient, instead choosing first controller with motion data
+ * Combining data would lead to unsatisfactory results / orientation values that won't work
  */
 CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, ChiakiControllerState *a, ChiakiControllerState *b);
 

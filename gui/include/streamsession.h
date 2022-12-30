@@ -73,7 +73,16 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 
-	StreamSessionConnectInfo(Settings *settings, ChiakiTarget target, QString host, QByteArray regist_key, QByteArray morning, QString initial_login_pin, bool fullscreen, bool zoom, bool stretch, bool enable_dualsense);
+	StreamSessionConnectInfo(
+			Settings *settings,
+			ChiakiTarget target,
+			QString host,
+			QByteArray regist_key,
+			QByteArray morning,
+			QString initial_login_pin,
+			bool fullscreen,
+			bool zoom,
+			bool stretch);
 };
 
 class StreamSession : public QObject
@@ -145,6 +154,9 @@ class StreamSession : public QObject
 		void InitHaptics();
 		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void Event(ChiakiEvent *event);
+		void DisconnectHaptics();
+		void ConnectHaptics();
+		void ConnectSdeckHaptics();
 
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
