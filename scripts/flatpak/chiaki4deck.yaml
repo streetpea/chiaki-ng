@@ -1,18 +1,16 @@
 app-id: re.chiaki.Chiaki4deck
 branch: chiaki4deck
 runtime: org.kde.Platform
-runtime-version: '5.15-21.08'
+runtime-version: '5.15-22.08'
 sdk: org.kde.Sdk
 command: chiaki
 rename-icon: chiaki
 rename-desktop-file: chiaki.desktop
 separate-locales: false
-build-options:
-  no-debuginfo: true
 finish-args:
   - --share=network
   - --share=ipc
-  - --socket=x11
+  - --socket=fallback-x11
   - --socket=wayland
   - --device=all
   - --allow=bluetooth
@@ -20,14 +18,14 @@ finish-args:
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
   - --talk-name=org.freedesktop.ScreenSaver
-  - --filesystem=/run/udev:ro
-
+  - --filesystem=xdg-run/pipewire-0
+  
 modules:
   - name: protobuf-compilers
     sources:
       - type: archive
-        url: https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz
-        sha256: 58c8a18b4ec22655535c493155c5465a8903e8249094ceead87e00763bdbc44f
+        url: https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
+        sha256: 4eab9b524aa5913c6fffb20b2a8abf5ef7f95a80bc0701f3a6dbb4c607f73460
 
   - name: ffmpeg
     cleanup:
@@ -45,8 +43,8 @@ modules:
       - --enable-encoder=png
     sources:
       - type: archive
-        url: https://ffmpeg.org/releases/ffmpeg-4.3.4.tar.xz
-        sha256: c117d9b778be1be2d3889757567113c5e940bad6913b16f9e86c31509f9d742d
+        url: https://ffmpeg.org/releases/ffmpeg-5.1.2.tar.xz
+        sha256: 619e706d662c8420859832ddc259cd4d4096a48a2ce1eefd052db9e440eef3dc
 
   - name: python3-google
     buildsystem: simple
@@ -69,28 +67,17 @@ modules:
       - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} protobuf"
     sources:
       - type: file
-        url: https://files.pythonhosted.org/packages/51/90/d2bf065b8753951e5fdba822af358edae6dac055b81f018e1ec74d8ba71e/protobuf-4.21.5.tar.gz
-        sha256: eb1106e87e095628e96884a877a51cdb90087106ee693925ec0a300468a9be3a
-
-  - name: Libevdev
-    config-opts:
-      - --prefix=/app
-      - --disable-static
-    sources:
-      - type: archive
-        url: https://www.freedesktop.org/software/libevdev/libevdev-1.13.0.tar.xz
-        sha256: 9edf2006cc86a5055279647c38ec923d11a821ee4dc2c3033e8d20e8ee237cd9
+        url: https://files.pythonhosted.org/packages/ba/dd/f8a01b146bf45ac12a829bbc599e6590aa6a6849ace7d28c42d77041d6ab/protobuf-4.21.12.tar.gz
+        sha256: 7cd532c4566d0e6feafecc1059d04c7915aec8e182d1cf7adee8b24ef1e2e6ab
 
   - name: SDL2
     config-opts:
-      - --enable-sdl-dlopen
       - --disable-arts
       - --disable-esd
       - --disable-nas
       - --disable-alsa
       - --disable-oss
       - --disable-sndio
-      - --disable-libudev
       - --enable-video-wayland
       - --enable-wayland-shared=no
       - --enable-video-kmsdrm
@@ -98,7 +85,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.24.0
+        tag: release-2.26.1
 
   - name: python3-requests
     buildsystem: simple
@@ -121,12 +108,21 @@ modules:
         url: https://files.pythonhosted.org/packages/fc/bb/a5768c230f9ddb03acc9ef3f0d4a3cf93462473795d18e9535498c8f929d/chardet-3.0.4.tar.gz
         sha256: 84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae
 
+  - name: hidapi
+    buildsystem: cmake
+    config-opts:
+      - "-DHIDAPI_WITH_LIBUSB=FALSE"
+    sources:
+      - type: git
+        url: https://github.com/libusb/hidapi.git
+        tag: hidapi-0.12.0
+
   - name: chiaki4deck
     buildsystem: cmake
     builddir: true
     sources:
       - type: git
-        url: https://github.com/streetpea/chiaki4deck.git
+        path: https://github.com/streetpea/chiaki4deck.git
         branch: chiaki4deck
     post-install:
       - "install -Dm755 ../scripts/psn-account-id.py /app/bin/psn-account-id"

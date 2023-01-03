@@ -48,6 +48,25 @@ ip_validator()
     fi
 }
 
+fdqn_validator()
+{
+    # simple fdqn validator, could expand to add more but limited since bash doesn't support look-ahead for regex
+    local hostname=$1
+    [[ "${hostname}" =~ ^([a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]\.)+[a-zA-Z]{2,}$ ]]
+    return $? 
+}
+
+remove_whitespace()
+{
+    # removes trailing and leading whitespace using built-in bash functionality
+    local string=$1
+    # remove leading whitespace
+    string="${string#"${string%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    string="${string%"${string##*[![:space:]]}"}"
+    echo "${string}"
+}
+
 # main
 # If more than 1 registered console, make users choose which one they want
 PS3="Please select the number corresponding to the console you want to use: "
@@ -71,6 +90,8 @@ else
     server_nickname="${nickname_array[0]}"
 fi
 
+server_nickname=$(remove_whitespace "${server_nickname}")
+
 PS3="Please select the number corresponding to your Playstation Console: "
 select console in "PlayStation 4" "PlayStation 5"
 do
@@ -89,16 +110,43 @@ do
     fi
 done
 
-while true
+PS3="NOTICE: Use 1 unless you created a hostname (FQDN) for your PlayStation"$'\n'"Please select the number corresponding to your address type: "
+select address_type in "IP" "hostname"
 do
-    read -e -p $'Enter your PlayStation IP (form should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' ps_ip
-    if ip_validator "${ps_ip}" &>/dev/null
+    if [ -z "${address_type}" ]
     then
-        break
+        echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-2] listed above.\n" >&2
     else
-        echo "IP address not valid: ${ps_ip}. Please re-enter your IP" >&2
+        echo -e "Option ${REPLY}: ${address_type} was chosen\n"
+        break
     fi
 done
+
+if [ "${address_type}" == "IP" ]
+then
+    while true
+    do
+        read -e -p $'Enter your PlayStation IP (should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' ps_ip
+        if ip_validator "${ps_ip}" &>/dev/null
+        then
+            break
+        else
+            echo "IP address not valid: ${ps_ip}. Please re-enter your IP" >&2
+        fi
+    done
+echo
+else
+    while true
+    do
+        read -e -p $'Enter your PlayStation FQDN (hostname) (should be abc.ident like foo.bar.com):\x0a' ps_ip
+        if fdqn_validator "${ps_ip}" &>/dev/null
+        then
+            break
+        else
+            echo "FQDN (hostname) not valid: ${ps_ip}. Please re-enter your hostname" >&2
+        fi
+    done
+fi
 echo
 
 PS3="Please select the number corresponding to the default mode you want to use: "
