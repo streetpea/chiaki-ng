@@ -30,11 +30,47 @@
         sudo yum update && sudo yum install -y gnupg curl flatpak flatpak-builder
         ```
 
-    === "Arch Linux/Steam OS"
+    === "Arch Linux"
 
         ``` bash
         sudo pacman -Syy && sudo pacman -S gnupg curl flatpak flatpak-builder
         ```
+
+    === "Steam OS"
+
+        !!! Note
+
+            Steam OS is a read-only filesystem so you will need to temporarily disable this to install flatpak-builder. Additionally, keep in mind that your installed packages may get wiped during a system update and need to be reinstalled following this process again in the future. 
+
+        1. Disable read-only mode
+
+            ``` bash
+            sudo steamos-readonly disable
+            ```
+
+        2. Init keyring
+
+            ``` bash
+            sudo pacman-key --init
+            ```
+
+        3. Populate keyring with Arch Linux keys
+
+            ``` bash
+            sudo pacman-key --populate archlinux
+            ```
+
+        4. Install dependencies
+
+            ``` bash
+            sudo pacman -Syy && sudo pacman -S gnupg curl flatpak flatpak-builder
+            ```
+
+        5. Re-enable read-only mode
+
+            ``` bash
+            sudo steamos-readonly enable
+            ```
 
 3. [Flathub](https://flathub.org/home){target="_blank" rel="noopener"}, the default flatpak repository
 
@@ -49,7 +85,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"} and associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//5.15-21.08 flathub org.kde.Sdk//5.15-21.08
+    flatpak install -y flathub org.kde.Platform//5.15-22.08 flathub org.kde.Sdk//5.15-22.08
     ```
 
 2. Create a directory for your build files and switch into it
