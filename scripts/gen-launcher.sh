@@ -89,8 +89,35 @@ do
     fi
 done
 
+PS3="Do you have a separate address (DNS or IP) to access this console away from home: "
+select away in "Yes" "No"
+do
+    if [ -z "${away}" ]
+    then
+        echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-2] listed above.\n" >&2
+    else
+        echo -e "Option ${REPLY}: ${away} was chosen\n"
+        if [ "${away}" == "Yes" ]
+        then
+            external_addr=1;
+        else
+            external_addr=0;
+        fi
+        break
+    fi 
+done
+
+if [ ${external_addr} == 1 ]
+then
+    read -e -p $'Enter your home SSID:\x0a' home_ssid
+fi    
+
 while true
 do
+    if [ ! -z "${home_ssid}" ]
+    then
+        echo "For your home SSID"
+    fi    
     read -e -p $'Enter your PlayStation IP (form should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' ps_ip
     if ip_validator "${ps_ip}" &>/dev/null
     then
@@ -100,6 +127,12 @@ do
     fi
 done
 echo
+
+if [ ! -z "${home_ssid}" ]
+then
+    echo "When not at home"
+    read -e -p $'Enter your Static IP or DNS:\x0a' dns_entry
+fi 
 
 PS3="Please select the number corresponding to the default mode you want to use: "
 select mode in "fullscreen" "zoom" "stretch"
@@ -167,9 +200,18 @@ timeout_error()
     exit 1
 }
 
+ADDR=\${ADDR}
+if [ ! -z "${home_ssid}" ]
+then
+    SSID=`iwgetid -r`
+    if [ "\${SSID}" != "${home_ssid}" ]
+    then
+        ADDR=${dns_entry}
+    fi
+fi
 SECONDS=0
 # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h ${ps_ip} 2>/dev/null)"
+ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${ADDR} 2>/dev/null)"
 while ! echo "\${ps_status}" | grep -q 'ready\|standby'
 do
     if [ \${SECONDS} -gt ${wait_timeout} ]
@@ -177,13 +219,13 @@ do
         connect_error
     fi
     sleep 1
-    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h ${ps_ip} 2>/dev/null)"
+    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${ADDR} 2>/dev/null)"
 done
 
 # Wake up console from sleep/rest mode if not already awake
 if ! echo "\${ps_status}" | grep -q ready
 then
-    flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h ${ps_ip} -r '${regist_key}' 2>/dev/null
+    flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h \${ADDR} -r '${regist_key}' 2>/dev/null
 fi
 
 # Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -199,11 +241,11 @@ do
         fi
     fi
     sleep 1
-    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h ${ps_ip} 2>/dev/null)"
+    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${ADDR} 2>/dev/null)"
 done
 
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-flatpak run re.chiaki.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") ${ps_ip}
+flatpak run re.chiaki.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") \${ADDR}
 EOF
 
 # Make script executable
