@@ -30,7 +30,7 @@ For users that want to build from source, I have also provided the updated sourc
 
 ## Submitting Documentation Updates
 
-If you want to update the documentation to add helpful information of your own, you can scroll to the top of your current page and click the pencil icon on the top right (to the right of the current page's title) to make edits and submit them for approval.
+If you want to update the documentation to add helpful information of your own, you can scroll to the top of the page you want to edit and click the paper with pencil icon on the top right (to the right of the current page's title). This will enable you to make edits and submit them for approval. If you have more detailed edits or a new contribution, you can build the documentation locally and see the changes rendered as you make and save them by following the [Building the Documentation Yourself section](diy/builddocs.md){target="_blank" rel="noopener"}.
 
 ## Making Suggestions for Improvements to the Documentation
 
@@ -43,6 +43,16 @@ Please submit general issues to the [chiaki4deck GitHub](https://github.com/stre
     - Reddit users and others who have helped me in my personal Chiaki journey such as u/mintcu7000 with his getting started guide on Reddit
     - Egoistically for the RGB update patch
 
-## Authors
+* Thanks to the following open-source projects for inspiration around Steam Deck gyro and haptics:
+    - [Steam Controller Singer](https://github.com/Roboron3042/SteamControllerSinger){target="_blank" rel="noopener"}
+    - [Steam Deck Gyro DSU](https://github.com/kmicki/SteamDeckGyroDSU){target="_blank" rel="noopener"}
+
+## Maintainer
 
 * [Street Pea](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"}
+
+## Contributors
+
+* [Johannes Baiter](https://github.com/jbaiter){target="_blank" rel="noopener"}
+* [Jamie Bartlett](https://github.com/Nikorag?tab=repositories){target="_blank" rel="noopener"}
+* [Street Pea](https://github.com/streetpea){target="_blank" rel="noopener"}

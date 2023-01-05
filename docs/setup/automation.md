@@ -7,19 +7,9 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
     This is especially convenient for the Steam Deck's `Game Mode` where an automated launch eliminates both the need to tap furiously at your touchscreen to launch the application and the glitches that would arise (flashes on your screen) when it would switch between the 2 open Chiaki windows (since only 1 window is opened with the automated launch). It also gives a default game mode option to launch in fullscreen, stretch or zoomed mode, making it [easier to use the 3 games modes](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"}. Finally, it allows for passing your login passcode automatically instead of manually typing in each time (for those of you with a login passcode set on your PlayStation console).
 
 
-!!! Caution "Sleep Mode Required"
+!!! Warning "Sleep Mode Required"
 
     For this to work, your PlayStation needs to either be in rest/sleep mode or on (so that it is listening for the wake up signal). This means you will want to keep your PlayStation in rest/sleep mode when you are not playing (instead of off).
-
-    !!! Bug "Steam Deck Speaker Fails to Load, Crashing Official Chiaki and `chiaki4deck` in Desktop Mode"
-
-        In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance `chiaki4deck`, causing it to hang indefinitely. The only ways to exit Chiaki are to close the `konsole` window that launched it (if launched via automation), forcibly kill the process (`kill -9`) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully :fingers_crossed: someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, **there are 2 good workarounds that prevent this from occurring** (either one works). Please use one of the following when using Chiaki or `chiaki4deck`:
-        
-        - After booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or `chiaki4deck` at any time until you turn off your Steam Deck.
-
-            **OR**
-
-        - Use `chiaki4deck` and/or `Chiaki` in Game Mode when possible; the speaker not loading hardware error doesn't occur there.
 
 1. Open a `konsole` session (launch it via `Applications` by clicking the Steam icon in the bottom left and searching for it in the `All Applications` section)
 
@@ -36,6 +26,10 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
         2. Get your IP address via the console widget and then close the window and return to the `konsole` session
 
             ![IP Address](images/GetAddress.png)
+
+            !!! Tip "Prevent IP From Changing"
+
+                In order to prevent your IP from changing (which would make the script stop working) if you ever disconnect your PlayStation console from your network and reconnect it (especially if other devices are added to the network in the meantime), you should go into your router settings and reserve an IP address for your PlayStation (DHCP IP reservation / "static" IP) or create a hostname for it. For a TP-Link, Netgear, Asus or Linskys router, follow [these instructions](https://www.coolblue.nl/en/advice/assign-fixed-ip-address-router.html){target="_blank" rel="noopener"}. If you have a different router, you can search (using a search engine such as DuckDuckGo or Google) for instructions for that specific router using the formula "dhcp reservation myroutername router" such as "dhcp reservation netgear router" and follow the instructions to reserve an IP for your PlayStation console so that it won't change. Alternatively, if your router has an option to set hostnames for your devices, you can set a hostname for your PlayStation console and use your hostname in the automation instead of a static IP address. 
 
 3. Create script for waking PlayStation and launching Chiaki
 
@@ -333,7 +327,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
             2. `<console_nickname>`
 
-                !!! Caution "Beware of '"
+                !!! Warning "Beware of '"
 
                     If you have any ' in your nickname itself, such as `Street Pea's PS5`, you will need enter the `'` as `'\''`. Thus, for `Street Pea's PS5` instead of using `Street Pea's PS5` you would use `Street Pea'\''s PS5`. All other characters are fine. This is due to the PlayStation console allowing any manner of names (including non-valid hostnames with all manner of special characters) and Chiaki using that name in its configuration file.
 
@@ -437,7 +431,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
     === "Your script didn't work..."
 
-        !!! Error "You are no longer on the happy path :weary:"
+        !!! Failure "You are no longer on the happy path :weary:"
 
             === "Script fails before launching stream window"
 

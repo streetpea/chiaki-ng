@@ -1,6 +1,6 @@
 # Building the Flatpak Yourself
 
-!!! Caution "For Advanced Users Only"
+!!! Warning "For Advanced Users Only"
 
     This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the [Installation Section](../setup/installation.md){target="_blank" rel="noopener"}.
 

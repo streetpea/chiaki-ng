@@ -29,7 +29,6 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <QCommandLineParser>
 #include <QMap>
 #include <QSurfaceFormat>
-#include <QDebug>
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -85,8 +84,7 @@ int real_main(int argc, char *argv[])
 	QCommandLineParser parser;
 	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
 	parser.addHelpOption();
-
-	qDebug() << QStringLiteral("%1-bit executable").arg(Q_PROCESSOR_WORDSIZE * 8);
+	
 	QStringList cmds;
 	cmds.append("stream");
 	cmds.append("list");

@@ -6,6 +6,9 @@ cmake-build-*
 /build_*
 /build-*
 /debug
+/Debug
+/release
+/Release
 .DS_store
 *.AppImage
 appdir

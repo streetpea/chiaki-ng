@@ -14,7 +14,6 @@
 #include <QVBoxLayout>
 #include <QScrollArea>
 #include <QToolBar>
-#include <QDebug>
 #include <QMessageBox>
 #include <QPainter>
 #include <QIconEngine>

@@ -123,16 +123,6 @@
 
 ## Testing your Connection
 
-!!! Bug "Steam Deck Speaker Fails to Load, Crashing Official Chiaki and `chiaki4deck` in Desktop Mode"
-
-    In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance `chiaki4deck`, causing it to hang indefinitely. The only ways to exit Chiaki are to close the `konsole` window that launched it (if launched via automation), forcibly kill the process (`kill -9`) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully :fingers_crossed: someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, **there are 2 good workarounds that prevent this from occurring** (either one works). Please use one of the following when using Chiaki or `chiaki4deck`:
-    
-    - After booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or `chiaki4deck` at any time until you turn off your Steam Deck.
-
-        **OR**
-
-    - Use `chiaki4deck` and/or `Chiaki` in Game Mode when possible; the speaker not loading hardware error doesn't occur there.
-
 1. Test waking your console from rest mode
 
     1. Put your console in rest mode
@@ -155,7 +145,7 @@
 
         === "Your PlayStation hit the snooze button :zzz:"
 
-            !!! Error "Here's how to get back on the happy path"
+            !!! Failure "Here's how to get back on the happy path"
 
                 1. Make sure your PlayStation shows as registered and is currently in sleep mode. If it's not in sleep mode, you can't wake it up.
 
@@ -194,7 +184,7 @@
 
     === "It didn't work :frowning:"
 
-        !!! Error "An error occurred"
+        !!! Failure "An error occurred"
 
             1. Please try closing and re-launching to make sure it wasn't some sort of temporary snafu (maybe your console was updating something and didn't want to let you connect right away).
 
@@ -219,6 +209,10 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
         Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
 
         ![1080p Settings](images/1080P_Settings.png)
+
+        !!! Tip "Enabling Experimental PlayStation 5 Features"
+
+            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 
         ???+ Question "Why 1080p if the Steam Deck is only 800p?"
 
@@ -256,13 +250,12 @@ Ultimately, the performance will depend on the capability of your wireless route
 
     - 5-6 hours of battery life (vs 1-2 hours playing the same games natively on Steam Deck)
     - access to PlayStation collection (games I have already purchased or have via PS Plus) including exclusives
-    - Steam Deck quiet as a mouse (especially important when playing while watching a show with others)
+    - no fan noise when playing
     - PlayStation Trophies
 
     Negatives:
 
     - occasional performance issues with certain games (specifically games with VSync enabled)
-    - lack of native gyro (unless you attach DualSense controller via bluetooth or usb) for games that require it (i.e., Concrete Genie.)
     - lack of native microphone support (I use Discord with my friends so not an issue for me, but could be for others).
 
 !!! example "Games I've Played Successfully Using `chiaki4deck` So Far..."
@@ -277,7 +270,11 @@ Ultimately, the performance will depend on the capability of your wireless route
     - Marvel's Spider Man
     - Ghost of Tsushima (changed from Resolution Mode to Performance Mode in game settings for native-like performance)
     - Chicory: A Colorful Tale
-    - Concrete Genie (Using DualSense Controller)
+    - Concrete Genie
+    - Astro's Playroom
+    - Death's Door
+    - Resident Evil 0
+    - The Last of Us Remastered
 
 ### Troubleshooting Performance Issues
 
@@ -308,7 +305,11 @@ To fix these issues, try the following:
     
     VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/`chiaki4deck`.
 
-6. Switch framerate to **30fps**
+6. Switch to H264 encoding
+
+    Generally, H265 (a.k.a HEVC) results in better quality than H264. However, H264 can be more stable for some users, eliminating things like white flashes (this may result in drops in visual quality but a more stable connection). If you are having issues with white flashes, this is something to give a shot.
+
+7. Switch framerate to **30fps**
 
     **30fps** requires less bandwidth than **60fps**. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems). I put this last because it is the biggest performance downgrade and most of the time you don't need to do this. However, switching to 30fps / 720p at the default settings is the most surefire way to fix connection issues and a last resort if the methods with virtually no downsides don't do the trick.
 

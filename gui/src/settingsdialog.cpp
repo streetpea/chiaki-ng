@@ -70,7 +70,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(log_verbose_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::LogVerboseChanged);
 
 	dualsense_check_box = new QCheckBox(this);
-	general_layout->addRow(tr("DualSense Support:\nEnable haptics and adaptive triggers\nfor attached DualSense controllers.\nThis is currently experimental."), dualsense_check_box);
+	general_layout->addRow(tr("PS5 Features [Experimental]:\nEnable haptics and adaptive triggers\nfor attached DualSense controllers\nand haptics for Steam Deck\nif no DualSense attached."), dualsense_check_box);
 	dualsense_check_box->setChecked(settings->GetDualSenseEnabled());
 	connect(dualsense_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::DualSenseChanged);
 

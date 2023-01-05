@@ -1,6 +1,13 @@
 # Future Updates Planned
 
-## Enable Gyro Controls with Steam Deck Controller
+## Enable Microphone
 
-Currently, you can map the Steam Deck controller's gyro to work `As Joystick` to use for camera controls in games with traditional camera controls. However, you can't use it natively in games that directly implement gyro controls like `Concrete Genie`. This update will change that.
+Enable using a microphone for in game interactivity and voice chat.
 
+## Guide for Using Remote Play Outside of Home network
+
+Write a documentation page on setting up remote play outside of your home network. Additionally, add updates if necessary to the code to make this process as easy as possible, similar to the experience with the official PS Remote Play application.
+
+## Update Haptics from Experimental
+
+After feedback and potential future improvements (if necessary), graduate haptics to a regular (default enabled) vs. experimental future.

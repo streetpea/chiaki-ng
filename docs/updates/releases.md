@@ -1,19 +1,5 @@
 # `chiaki4deck` Releases
 
-## How to Prevent Desktop Mode Bug From Occurring
-
-!!! Warning "Steam Deck Bug Discovered that Affects Official Chiaki and by Inheritance (`chiaki4deck`)"
-
-    !!! Bug "Steam Deck Speaker Fails to Load, Crashing Official Chiaki and `chiaki4deck` in Desktop Mode"
-
-        In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance `chiaki4deck`, causing it to hang indefinitely. The only ways to exit Chiaki are to close the `konsole` window that launched it (if launched via automation), forcibly kill the process (`kill -9`) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully :fingers_crossed: someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, **there are 2 good workarounds that prevent this from occurring** (either one works). Please use one of the following when using Chiaki or `chiaki4deck`:
-        
-        - After booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or `chiaki4deck` at any time until you turn off your Steam Deck.
-
-            **OR**
-
-        - Use `chiaki4deck` and/or `Chiaki` in Game Mode when possible; the speaker not loading hardware error doesn't occur there.
-
 ## Updating `chiaki4deck`
 
 In order to update your already installed `chiaki4deck` to the newest version, either:
@@ -30,6 +16,27 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.3.0
+
+- Native gyro support for Steam Deck
+- Haptics support for DualSense (via USB) and Steam Deck [experimental]
+- Adaptive triggers with DualSense (via USB or Bluetooth)
+- Automation script tweaks (allow using hostname and specifying external IP / hostname in addition to local one)
+- Documentation Updates (new DIY sections on building docs + development builds on Steam Deck + document various 1.3.0 features and changes for new and existing users)
+- Bug fixes (audio bug causing crash in base Chiaki fixed, mismatch between cli and automation script leading and lagging space handling fixed, etc.)
+
+#### Update Actions for Existing Users
+
+1. [Updating `chiaki4deck`](#updating-chiaki4deck)
+
+2. [Optional] Enable the experimental PlayStation 5 features (enables PlayStation 5 haptics for Steam Deck and DualSense [via USB] and adaptive triggers for DualSense [via USB or bluetooth]).
+
+    1. Check the box shown in the image below in the GUI.
+
+        ![Enable PlayStation 5 Features](images/EnablePlayStation5Features.png)
+
+    2. [If you are using a DualSense] Turn off Steam Input for the DualSense following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+    
 ### 1.2.0
 
 `chiaki4deck`'s 2nd update since initial release.

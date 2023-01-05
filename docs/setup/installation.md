@@ -11,25 +11,21 @@
 2. Run the following command in the `konsole` window to install `chiaki4deck` as a sandboxed user-level installation (more secure vs default of system-level installation)
 
     ``` bash
-    flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.2.0/re.chiaki.Chiaki4deck.flatpakref
+    flatpak install --user -y https://github.com/streetpea/chiaki4deck/releases/download/v1.3.0/re.chiaki.Chiaki4deck.flatpakref
     ```
 
     ???+ example "Example Output"
 
         ``` bash
             re.chiaki.Chiaki4deck permissions:
-                ipc                 network               pulseaudio     wayland
-                x11                 devices               bluetooth      file access [1]
-                dbus access [2]     bus ownership [3]
+            ipc       network       fallback-x11       pulseaudio       wayland      x11      devices      bluetooth      file access [1]      dbus access [2]      bus ownership [3]
 
-                [1] xdg-config/kdeglobals:ro
-                [2] com.canonical.AppMenu.Registrar, org.freedesktop.ScreenSaver,
-                    org.kde.KGlobalSettings, org.kde.kconfig.notify
-                [3] org.kde.*
-
-
+            [1] xdg-config/kdeglobals:ro, xdg-run/pipewire-0
+            [2] com.canonical.AppMenu.Registrar, org.freedesktop.ScreenSaver, org.kde.KGlobalSettings, org.kde.kconfig.notify
+            [3] org.kde.*
+            
                     ID                    Branch      Op Remote              Download
-            1. [✓] re.chiaki.Chiaki4deck chiaki4deck i  chiaki4deck2-origin 101.6 MB / 120.0 MB
+             1. [✓] re.chiaki.Chiaki4deck chiaki4deck i  chiaki4deck-origin 1.0 kB / 79.1 MB
 
             Installation complete.
         ```

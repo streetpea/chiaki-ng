@@ -18,6 +18,8 @@ nav:
     - Planned: updates/planned.md
   - DIY:
     - Building the Flatpak Yourself: diy/buildit.md
+    - Locally Building Documentation: diy/builddocs.md
+    - Developing chiaki4deck on Steam Deck: diy/steamdeckdev.md
 
 theme:
   favicon: images/chiaki.svg
@@ -31,10 +33,14 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.tracking
+    - navigation.footer
     - search.share
     - navigation.indexes
     - announce.dismiss
     - content.tabs.link
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
     
   name: material
   palette:
