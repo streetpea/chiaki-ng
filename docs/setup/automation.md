@@ -41,27 +41,60 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
             ```
 
-            !!! Question "What Do the Different Modes (i.e.,  fullscreen [uses Normal], zoom, stretch) Look Like?"
+            !!! Question "What Do the Different Modes (i.e., fullscreen [uses Normal], zoom, stretch) Look Like?"
 
                 To see examples of the different launch modes, visit the [Updates section](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"}
+
+            !!! Tip "Connecting Outside of Your Local Network"
+
+                You can add an external IP or hostname in addition to your local one to connect from an external network. To do so, you need to set up port forwarding as detailed by a helpful redditor [here](https://www.reddit.com/r/SteamDeck/comments/wnmyxq/how_to_use_ps5_outside_your_network_with_chiaki/?utm_source=share&utm_medium=web2x&context=3){target="_blank" rel="noopener"}. Then, you can choose to setup an external IP/hostname as part of the setup script process. The automation will take your home network name (SSID) to check if you are home or not to use the correct IP/hostname automatically. The script will automatically detect your current SSID. Thus, if you are on your home network while running the setup script (`gen-launcher.sh`), it will detect your home ssid and you will just need to hit ++enter++. If not, you can enter it manually (instead of using the default of your Steam Deck's current network's SSID). You can get your home SSID for manul entry via `iwgetid -r` from the `konsole` when connected to your home network or by looking in your network history on your Steam Deck (it will be the connection name for your home network such as `StreetPea-5G`). Of course, if you want to skip this now and setup the external address later, you can always rerun the automation or choose a placeholder external IP now and manually edit it to your desired IP/hostname later.
 
             ???- example "Example Output [click to expand me]"
 
                 ``` bash
                 bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
+
                 1) PlayStation 4
                 2) PlayStation 5
                 Please select the number corresponding to your Playstation Console: 2
                 Option 2: PlayStation 5 was chosen
 
-                Enter your PlayStation IP (form should be xxx.xxx.xxx.xxx like 192.168.1.16):
+
+
+
+                HOME ADDRESS
+                -------------
+                1) IP
+                2) hostname
+                NOTICE: Use 1 unless you created a hostname (FQDN) for your PlayStation
+                Please select the number corresponding to your address type: 1
+                Option 1: IP was chosen
+
+                Enter your PlayStation IP (should be xxx.xxx.xxx.xxx like 192.168.1.16):
                 192.168.1.16
+
+                Do you have a separate address (DNS or IP) to access this console away from home? (y/n):
+                y
+                Enter your home SSID [hit enter for default: StreetPea-5G]: 
+
+
+
+                AWAY ADDRESS
+                -------------
+                1) IP
+                2) hostname
+                NOTICE: Use 1 unless you created a hostname (FQDN) for your PlayStation
+                Please select the number corresponding to your address type: 2
+                Option 2: hostname was chosen
+
+                Enter your PlayStation FQDN (hostname) (should be abc.ident like foo.bar.com):
+                foo.bar.com
 
                 1) fullscreen
                 2) zoom
                 3) stretch
-                Please select the number corresponding to the default mode you want to use: 1
-                Option 1: fullscreen was chosen
+                Please select the number corresponding to the default mode you want to use: 3
+                Option 3: stretch was chosen
 
                 Do you have a PlayStation Login Passcode? (y/n):
                 y
@@ -71,19 +104,32 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 Would you like to test the newly created script? (y/n):
                 y
                 sounds good, launching script now...
-                [I] Logging to file /home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2022-10-12_11-06-25-239239.log
+                [I] Logging to file /home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
                 [I] Chiaki Version 2.1.1
                 [I] Using hardware decoder "vaapi"
-                [I] Controller 0 opened: "Microsoft X-Box 360 pad 0 (03000000de280000ff11000001000000)"
+                Device Found
+                type: 28de 1205
+                path: /dev/hidraw3
+                serial_number: 
+                Manufacturer: Valve Software
+                Product:      Steam Deck Controller
+                Release:      200
+                Interface:    2
+                Usage (page): 0x1 (0xffff)
+
+                [I] Connected Steam Deck ... gyro online
+
+
+                [I] Controller 0 opened: "Microsoft X-Box 360 pad 0 (030079f6de280000ff11000001000000)"
                 [I] Starting session request for PS5
                 [I] Trying to request session from 192.168.1.16:9295
                 [I] Connected to 192.168.1.16:9295
                 [I] Sending session request
+                [I] OpenGL initialized with version "4.6 (Core Profile) Mesa 22.2.4 (git-80df10f902)"
                 [I] Session request successful
                 [I] Starting ctrl
                 [I] Ctrl connected to 192.168.1.16:9295
                 [I] Sending ctrl request
-                [I] OpenGL initialized with version "4.6 (Core Profile) Mesa 21.3.9 (git-78c96ae5b6)"
                 [I] Ctrl received http header as response
                 [I] Ctrl received ctrl request http response
                 [I] Ctrl got Server Type: 2
@@ -92,16 +138,18 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 [I] Ctrl requested Login PIN
                 [I] Session received entered Login PIN, forwarding to Ctrl
                 [I] Ctrl received entered Login PIN, sending to console
+                [I] Steam Deck Haptics Audio opened with 2 channels @ 3000 Hz with 150 samples per audio analysis.
                 [I] Ctrl received Login message: success
-                [I] Ctrl received valid Session Id: 1665597987NCXBPSH5W3WPYVWTYGBZT3HJJQM3IIKSRX3JB4WWZFZ3TN4MJIBE26ABIDMK6SVM
+                [I] Ctrl received valid Session Id: 1673022831TZLW3NGFZP76ZLUPAOHZBA64PQQ2AF6LXUET2OFDTKAJF4XVGUAXOMOQDXBVVCAS
                 [I] Starting Senkusha
+                [I] Enabling DualSense features
                 [I] Takion connecting (version 7)
                 [I] Takion enabled Don't Fragment Bit
                 [I] Takion sent init
-                [W] Received Ctrl Message with unknown type 0x16
                 [I] Takion received init ack with remote tag 0xb18ccf, outbound streams: 0x64, inbound streams: 0x64
+                [W] Received Ctrl Message with unknown type 0x16
                 [W] offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef
-                [W]      0 01 ff                                           ..
+                [W]      0 01 ff                                           ..              
                 [I] Takion sent cookie
                 [I] Takion received cookie ack
                 [I] Takion connected
@@ -110,32 +158,32 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 [I] Senkusha Ping Test with count 10 starting
                 [I] Senkusha enabled echo
                 [I] Senkusha sending Ping 0 of test index 0
-                [I] Senkusha received Pong, RTT = 7.901 ms
+                [I] Senkusha received Pong, RTT = 3.019 ms
                 [I] Senkusha sending Ping 1 of test index 0
-                [I] Senkusha received Pong, RTT = 7.200 ms
+                [I] Senkusha received Pong, RTT = 2.841 ms
                 [I] Senkusha sending Ping 2 of test index 0
-                [I] Senkusha received Pong, RTT = 6.997 ms
+                [I] Senkusha received Pong, RTT = 3.460 ms
                 [I] Senkusha sending Ping 3 of test index 0
-                [I] Senkusha received Pong, RTT = 7.827 ms
+                [I] Senkusha received Pong, RTT = 2.504 ms
                 [I] Senkusha sending Ping 4 of test index 0
-                [I] Senkusha received Pong, RTT = 6.893 ms
+                [I] Senkusha received Pong, RTT = 3.030 ms
                 [I] Senkusha sending Ping 5 of test index 0
-                [I] Senkusha received Pong, RTT = 11.047 ms
+                [I] Senkusha received Pong, RTT = 2.778 ms
                 [I] Senkusha sending Ping 6 of test index 0
-                [I] Senkusha received Pong, RTT = 6.972 ms
+                [I] Senkusha received Pong, RTT = 3.131 ms
                 [I] Senkusha sending Ping 7 of test index 0
-                [I] Senkusha received Pong, RTT = 7.626 ms
+                [I] Senkusha received Pong, RTT = 2.795 ms
                 [I] Senkusha sending Ping 8 of test index 0
-                [I] Senkusha received Pong, RTT = 7.458 ms
+                [I] Senkusha received Pong, RTT = 2.992 ms
                 [I] Senkusha sending Ping 9 of test index 0
-                [I] Senkusha received Pong, RTT = 7.471 ms
+                [I] Senkusha received Pong, RTT = 3.064 ms
                 [I] Senkusha disabled echo
-                [I] Senkusha determined average RTT = 7.739 ms
-                [I] Senkusha starting MTU in test with min 576, max 1454, retries 3, timeout 38 ms
+                [I] Senkusha determined average RTT = 2.961 ms
+                [I] Senkusha starting MTU in test with min 576, max 1454, retries 3, timeout 14 ms
                 [I] Senkusha MTU request 1454 (min 576, max 1454), id 1, attempt 0
                 [I] Senkusha MTU 1454 success
                 [I] Senkusha determined inbound MTU 1454
-                [I] Senkusha starting MTU out test with min 576, max 1454, retries 3, timeout 38 ms
+                [I] Senkusha starting MTU out test with min 576, max 1454, retries 3, timeout 14 ms
                 [I] Senkusha sent initial client MTU command
                 [I] Senkusha received expected Client MTU Command
                 [I] Senkusha MTU 1454 out ping attempt 0
@@ -156,24 +204,23 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 [I] StreamConnection successfully received bang
                 [I] Crypt has become available. Re-checking MACs of 0 packets
                 [W] Received Ctrl Message with unknown type 0x41
-                [D] StreamConnection received audio header:
                 [W] offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef
+                [W]      0 00 00 00 00 02 01 00 00                         ........        
+                [D] StreamConnection received audio header:
                 [D] offset 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  0123456789abcdef
-                [D]      0 02 10 00 00 bb 80 00 00 01 e0 00 00 00 01       ..............
+                [D]      0 02 10 00 00 bb 80 00 00 01 e0 00 00 00 01       ..............  
                 [I] Audio Header:
-                [W]      0 00 00 00 00 02 01 00 00                         ........
                 [I]   channels = 2
                 [I]   bits = 16
                 [I]   rate = 48000
                 [I]   frame size = 480
                 [I]   unknown = 1
                 [I] ChiakiOpusDecoder initialized
-                [I] Audio Device alsa_output.pci-0000_04_00.5-platform-acp5x_mach.0.HiFi__hw_acp5x_1__sink opened with 2 channels @ 48000 Hz, buffer size 19200
+                [I] Audio Device alsa_output.pci-0000_04_00.1.hdmi-stereo-extra2 opened with 2 channels @ 48000 Hz, buffer size 19200
                 [I] Video Profiles:
                 [I]   0: 1920x1080
                 [I] StreamConnection successfully received streaminfo
                 [I] Switched to profile 0, resolution: 1920x1080
-                [I] Ctrl received Heartbeat, sending reply
                 [I] StreamConnection is disconnecting
                 [I] StreamConnection sending Disconnect
                 [I] StreamConnection was requested to stop
@@ -182,10 +229,10 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 [I] Ctrl requested to stop
                 [I] Ctrl stopped
                 [I] Session has quit
-                    .__    .__        __   .__   _____     .___             __
+                    .__    .__        __   .__   _____     .___             __    
                 ____ |  |__ |__|____  |  | _|__| /  |  |  __| _/____   ____ |  | __
                 _/ ___\|  |  \|  \__  \ |  |/ /  |/   |  |_/ __ |/ __ \_/ ___\|  |/ /
-                \  \___|   Y  \  |/ __ \|    <|  /    ^   / /_/ \  ___/\  \___|    <
+                \  \___|   Y  \  |/ __ \|    <|  /    ^   / /_/ \  ___/\  \___|    < 
                 \___  >___|  /__(____  /__|_ \__\____   |\____ |\___  >\___  >__|_ \
                     \/     \/        \/     \/       |__|     \/    \/     \/     \/
                                     .__        __             .___._.
@@ -259,18 +306,26 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             ``` bash
             #!/usr/bin/env bash
 
-            connect_error()
+            connect_error_loc()
             {
-                echo "Error: Couldn't connect to your PlayStation console!" >&2
+                echo "Error: Couldn't connect to your PlayStation console from your local address!" >&2
                 echo "Error: Please check that your Steam Deck and PlayStation are on the same network" >&2
-                echo "Error: ...and that you have the right PlayStation IP Address!" >&2
+                echo "Error: ...and that you have the right PlayStation IP address or hostname!" >&2
+                exit 1
+            }
+
+            connect_error_ext()
+            {
+                echo "Error: Couldn't connect to your PlayStation console from your external address!" >&2
+                echo "Error: Please check that you have forwarded the necessary ports on your router" >&2
+                echo "Error: ...and that you have the right external PlayStation IP address or hostname!" >&2
                 exit 1
             }
 
             wakeup_error()
             {
                 echo "Error: Couldn't wake up PlayStation console from sleep!" >&2
-                echo "Error: Please make sure you are using the correct PlayStation # (4 or 5)." >&2
+                echo "Error: Please make sure you are using a PlayStation 5." >&2
                 echo "Error: If not, change the wakeup call to use the number of your PlayStation console" >&2
                 exit 2
             }
@@ -281,24 +336,36 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 echo "Error: Please change 35 to a higher number in your script if this persists." >&2
                 exit 1
             }
-
+            if [ "$(iwgetid -r)" == "<local_ssid>" ]
+            then
+                addr="<local_addr>"
+                local=true
+            else
+                addr="<external_addr>"
+                local=false
+            fi
             SECONDS=0
             # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-            ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h <console_ip> 2>/dev/null)"
+            ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
             while ! echo "${ps_status}" | grep -q 'ready\|standby'
             do
                 if [ ${SECONDS} -gt 35 ]
                 then
-                    connect_error
+                    if [ "${local}" = true ]
+                    then
+                        connect_error_loc
+                    else
+                        connect_error_ext
+                    fi
                 fi
                 sleep 1
-                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h <console_ip> 2>/dev/null)"
+                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
             done
 
             # Wake up console from sleep/rest mode if not already awake
             if ! echo "${ps_status}" | grep -q ready
             then
-                flatpak run re.chiaki.Chiaki4deck wakeup -<playstation_console> -h <console_ip> -r '<remote_play_registration_key>' 2>/dev/null
+                flatpak run re.chiaki.Chiaki4deck wakeup -<playstation_console> -h ${addr} -r '<remote_play_registration_key>' 2>/dev/null
             fi
 
             # Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -314,49 +381,79 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                     fi
                 fi
                 sleep 1
-                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h <console_ip> 2>/dev/null)"
+                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
             done
 
             # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-            flatpak run re.chiaki.Chiaki4deck --passcode <login_passcode> --<launch_option> stream '<console_nickname>' <console_ip>
+            flatpak run re.chiaki.Chiaki4deck --passcode <login_passcode> --<launch_option> stream '<console_nickname>' ${addr}
             ```
         
         7. Edit the `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` file, replacing the following values for your values:
 
-            1. `<console_ip>`
+            1. `<local_ssid>` local network name found with:
 
-            2. `<console_nickname>`
+                === "Via konsole"
+
+                    ``` bash
+                    iwgetid -r
+                    ```
+
+                    !!! Warning "Must Be Currently Connected to Local Network"
+
+                        You must be connected to your current local network for this `konsole` method to work. Otherwise, it will give you the network you are currently connected to or nothing (if you're not currently connected to a network). If you're not connected to your home network you can view your SSID via the GUI using the `Via GUI` tab.
+
+                === "Via GUI"
+
+                    The connection name/SSID for your home network in Steam Deck network settings such as `StreetPea-5G`.
+
+            2. `<local_addr>` with local PlayStation IP
+
+            3. `<external_addr>` with external IP or hostname. 
+                
+                !!! Tip "Filling this in Later"
+                    
+                    You can use your local PlayStation IP or something like `foo.bar.com` as a placeholder if haven't set up an external IP/hostname yet. Then, if you decide to set up an external connection, you can manually substitute the "real" external IP/hostname.
+
+            4. `<console_nickname>`
 
                 !!! Warning "Beware of '"
 
                     If you have any ' in your nickname itself, such as `Street Pea's PS5`, you will need enter the `'` as `'\''`. Thus, for `Street Pea's PS5` instead of using `Street Pea's PS5` you would use `Street Pea'\''s PS5`. All other characters are fine. This is due to the PlayStation console allowing any manner of names (including non-valid hostnames with all manner of special characters) and Chiaki using that name in its configuration file.
 
 
-            3. `<remote_play_registration_key>`
+            5. `<remote_play_registration_key>`
 
-            4. `<launch_option>`
+            6. `<launch_option>`
 
-            5. `<playstation_console>` (either 4 or 5)
+            7. `<playstation_console>` (either 4 or 5)
 
-            6. `<login_passcode>` (just erase this field if you don't have a login passcode)
+            8. `<login_passcode>` (just erase this field if you don't have a login passcode)
 
             ???+ example "Example Script with "fake" values [yours will be different]"
 
                 ``` bash
                 #!/usr/bin/env bash
 
-                connect_error()
+                connect_error_loc()
                 {
-                    echo "Error: Couldn't connect to your PlayStation console!" >&2
+                    echo "Error: Couldn't connect to your PlayStation console from your local address!" >&2
                     echo "Error: Please check that your Steam Deck and PlayStation are on the same network" >&2
-                    echo "Error: ...and that you have the right PlayStation IP Address!" >&2
+                    echo "Error: ...and that you have the right PlayStation IP address or hostname!" >&2
+                    exit 1
+                }
+
+                connect_error_ext()
+                {
+                    echo "Error: Couldn't connect to your PlayStation console from your external address!" >&2
+                    echo "Error: Please check that you have forwarded the necessary ports on your router" >&2
+                    echo "Error: ...and that you have the right external PlayStation IP address or hostname!" >&2
                     exit 1
                 }
 
                 wakeup_error()
                 {
                     echo "Error: Couldn't wake up PlayStation console from sleep!" >&2
-                    echo "Error: Please make sure you are using the correct PlayStation # (4 or 5)." >&2
+                    echo "Error: Please make sure you are using a PlayStation 5." >&2
                     echo "Error: If not, change the wakeup call to use the number of your PlayStation console" >&2
                     exit 2
                 }
@@ -367,24 +464,36 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                     echo "Error: Please change 35 to a higher number in your script if this persists." >&2
                     exit 1
                 }
-
+                if [ "$(iwgetid -r)" == "StreetPea-5G" ]
+                then
+                    addr="192.168.1.16"
+                    local=true
+                else
+                    addr="foo.bar.com"
+                    local=false
+                fi
                 SECONDS=0
                 # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h 192.168.1.16 2>/dev/null)"
+                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
                 while ! echo "${ps_status}" | grep -q 'ready\|standby'
                 do
                     if [ ${SECONDS} -gt 35 ]
                     then
-                        connect_error
+                        if [ "${local}" = true ]
+                        then
+                            connect_error_loc
+                        else
+                            connect_error_ext
+                        fi
                     fi
                     sleep 1
-                    ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h 192.168.1.16 2>/dev/null)"
+                    ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
                 done
 
                 # Wake up console from sleep/rest mode if not already awake
                 if ! echo "${ps_status}" | grep -q ready
                 then
-                    flatpak run re.chiaki.Chiaki4deck wakeup -5 -h 192.168.1.16 -r '2ebf539d' 2>/dev/null
+                    flatpak run re.chiaki.Chiaki4deck wakeup -5 -h ${addr} -r '2ebf539d' 2>/dev/null
                 fi
 
                 # Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -400,18 +509,18 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                         fi
                     fi
                     sleep 1
-                    ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h 192.168.1.16 2>/dev/null)"
+                    ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
                 done
 
                 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-                flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream 'PS5-012' 192.168.1.16
+                flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream 'PS5-012' ${addr}
                 ```
 
                 !!! Note "Example is Without Login Passcode #"
 
                     If you have a passcode you would set it like `--passcode 1111`, changing the last line of the example above to `flatpak run re.chiaki.Chiaki4deck --passcode 1111 --zoom stream 'PS5-012' 192.168.1.16`
 
-        7. Make the script executable:
+        8. Make the script executable:
 
             ```bash
             chmod +x "${HOME}/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"

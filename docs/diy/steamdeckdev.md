@@ -131,7 +131,7 @@ This is for contributors that want to make/test updates to the codebase without 
             make
             ```
 
-4. Run build as usual from executables
+4. Run build as usual from executables (using gdb for debugging Debug build)
 
     === "Debug"
 
@@ -165,15 +165,15 @@ This is for contributors that want to make/test updates to the codebase without 
 
 2. Open gdb session for your flatpak with the given pid
     
+    ``` bash
+    flatpak-coredumpctl -m given_pid flatpak_name
+    ```
+
+    ???+ Example "Example given pid 4822 and flatpak name `re.chiaki.Chiaki4deck`"
+
         ``` bash
-        flatpak-coredumpctl -m given_pid flatpak_name
+        flatpak-coredumpctl -m 4822 re.chiaki.Chiaki4deck
         ```
-
-        ???+ Example "Example given pid 4822 and flatpak name `re.chiaki.Chiaki4deck`"
-
-            ``` bash
-            flatpak-coredumpctl -m 4822 re.chiaki.Chiaki4deck
-            ```
 
 3. Use gdb commands as per usual such as `bt full`
 

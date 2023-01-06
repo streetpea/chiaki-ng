@@ -67,6 +67,49 @@ remove_whitespace()
     echo "${string}"
 }
 
+select_addr()
+{
+    local address_type=""
+    local addr=""
+    PS3="NOTICE: Use 1 unless you created a hostname (FQDN) for your PlayStation"$'\n'"Please select the number corresponding to your address type: "
+    select address_type in "IP" "hostname"
+    do
+        if [ -z "${address_type}" ]
+        then
+            echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-2] listed above.\n" >&2
+        else
+            echo -e "Option ${REPLY}: ${address_type} was chosen\n" >/dev/tty
+            break
+        fi
+    done
+    if [ "${address_type}" == "IP" ]
+    then
+        while true
+        do
+            read -e -p $'Enter your PlayStation IP (should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' addr
+            if ip_validator "${addr}" &>/dev/null
+            then
+                break
+            else
+                echo "IP address not valid: ${addr}. Please re-enter your IP" >&2
+            fi
+        done
+    echo >/dev/tty
+    else
+        while true
+        do
+            read -e -p $'Enter your PlayStation FQDN (hostname) (should be abc.ident like foo.bar.com):\x0a' addr
+            if fdqn_validator "${addr}" &>/dev/null
+            then
+                break
+            else
+                echo "FQDN (hostname) not valid: ${addr}. Please re-enter your hostname" >&2
+            fi
+        done
+    fi
+    echo "${addr}"
+}
+
 # main
 # If more than 1 registered console, make users choose which one they want
 PS3="Please select the number corresponding to the console you want to use: "
@@ -110,77 +153,39 @@ do
     fi
 done
 
-PS3="Do you have a separate address (DNS or IP) to access this console away from home: "
-select away in "Yes" "No"
-do
-    if [ -z "${away}" ]
-    then
-        echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-2] listed above.\n" >&2
-    else
-        echo -e "Option ${REPLY}: ${away} was chosen\n"
-        if [ "${away}" == "Yes" ]
-        then
-            external_addr=1;
-        else
-            external_addr=0;
-        fi
-        break
-    fi 
-done
-
-if [ ${external_addr} == 1 ]
-then
-    read -e -p $'Enter your home SSID:\x0a' home_ssid
-fi    
+echo -e "\n\n\nHOME ADDRESS\n-------------"
+home_addr="$(select_addr)"
 
 while true
 do
-    if [ ! -z "${home_ssid}" ]
-    then
-        echo "For your home SSID"
-    fi    
-    read -e -p $'Enter your PlayStation IP (form should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' ps_ip
-    if ip_validator "${ps_ip}" &>/dev/null
-    then
-        echo -e "${REPLY} is not a valid choice.\nPlease choose a number [1-2] listed above.\n" >&2
-    else
-        echo -e "Option ${REPLY}: ${address_type} was chosen\n"
-        break
-    fi
+    read -n1 -p $'Do you have a separate address (DNS or IP) to access this console away from home? (y/n):\x0a' response
+
+    case "${response}" in 
+        [yY] )
+            if iwgetid -r
+            then
+                default_ssid="$(iwgetid -r)"
+            else
+                default_ssid="none"
+                echo -e "\n\nCould not detect a default SSID.\nYou are probably not connected to WIFI.\nDefaulting to none"
+            fi
+            echo
+            read -e -p "Enter your home SSID [hit enter for default: ${default_ssid}]: " home_ssid
+            if [ -z "${home_ssid}" ]
+            then
+                home_ssid="${default_ssid}"
+            fi
+            echo -e "\n\n\nAWAY ADDRESS\n-------------"
+            away_addr="$(select_addr)"
+            break;;
+        [nN] )
+            echo
+            break;;
+        * ) 
+            echo -e "\nInvalid response, please enter y or n\n";;
+    esac
 done
-
-if [ "${address_type}" == "IP" ]
-then
-    while true
-    do
-        read -e -p $'Enter your PlayStation IP (should be xxx.xxx.xxx.xxx like 192.168.1.16):\x0a' ps_ip
-        if ip_validator "${ps_ip}" &>/dev/null
-        then
-            break
-        else
-            echo "IP address not valid: ${ps_ip}. Please re-enter your IP" >&2
-        fi
-    done
 echo
-else
-    while true
-    do
-        read -e -p $'Enter your PlayStation FQDN (hostname) (should be abc.ident like foo.bar.com):\x0a' ps_ip
-        if fdqn_validator "${ps_ip}" &>/dev/null
-        then
-            break
-        else
-            echo "FQDN (hostname) not valid: ${ps_ip}. Please re-enter your hostname" >&2
-        fi
-    done
-fi
-echo
-
-if [ ! -z "${home_ssid}" ]
-then
-    echo "When not at home"
-    read -e -p $'Enter your Static IP or DNS:\x0a' dns_entry
-fi 
 
 PS3="Please select the number corresponding to the default mode you want to use: "
 select mode in "fullscreen" "zoom" "stretch"
@@ -225,11 +230,19 @@ done
 cat <<EOF > "$config_path/Chiaki-launcher.sh"
 #!/usr/bin/env bash
 
-connect_error()
+connect_error_loc()
 {
-    echo "Error: Couldn't connect to your PlayStation console!" >&2
+    echo "Error: Couldn't connect to your PlayStation console from your local address!" >&2
     echo "Error: Please check that your Steam Deck and PlayStation are on the same network" >&2
-    echo "Error: ...and that you have the right PlayStation IP Address!" >&2
+    echo "Error: ...and that you have the right PlayStation IP address or hostname!" >&2
+    exit 1
+}
+
+connect_error_ext()
+{
+    echo "Error: Couldn't connect to your PlayStation console from your external address!" >&2
+    echo "Error: Please check that you have forwarded the necessary ports on your router" >&2
+    echo "Error: ...and that you have the right external PlayStation IP address or hostname!" >&2
     exit 1
 }
 
@@ -247,33 +260,48 @@ timeout_error()
     echo "Error: Please change ${wait_timeout} to a higher number in your script if this persists." >&2
     exit 1
 }
-
-ADDR=\${ADDR}
-if [ ! -z "${home_ssid}" ]
+EOF
+if [ -n "${away_addr}" ]
 then
-    SSID=`iwgetid -r`
-    if [ "\${SSID}" != "${home_ssid}" ]
-    then
-        ADDR=${dns_entry}
-    fi
+	cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
+	if [ "\$(iwgetid -r)" == "${home_ssid}" ]
+	then
+	    addr="${home_addr}"
+	    local=true
+	else
+	    addr="${away_addr}"
+	    local=false
+	fi
+	EOF
+else
+	cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
+	addr="${home_addr}"
+	local=true
+	EOF
 fi
+cat <<EOF >> "$config_path/Chiaki-launcher.sh"
 SECONDS=0
 # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${ADDR} 2>/dev/null)"
+ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${addr} 2>/dev/null)"
 while ! echo "\${ps_status}" | grep -q 'ready\|standby'
 do
     if [ \${SECONDS} -gt ${wait_timeout} ]
     then
-        connect_error
+        if [ "\${local}" = true ]
+        then
+            connect_error_loc
+        else
+            connect_error_ext
+        fi
     fi
     sleep 1
-    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${ADDR} 2>/dev/null)"
+    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${addr} 2>/dev/null)"
 done
 
 # Wake up console from sleep/rest mode if not already awake
 if ! echo "\${ps_status}" | grep -q ready
 then
-    flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h \${ADDR} -r '${regist_key}' 2>/dev/null
+    flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h \${addr} -r '${regist_key}' 2>/dev/null
 fi
 
 # Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -289,11 +317,11 @@ do
         fi
     fi
     sleep 1
-    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${ADDR} 2>/dev/null)"
+    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${addr} 2>/dev/null)"
 done
 
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-flatpak run re.chiaki.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") \${ADDR}
+flatpak run re.chiaki.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") \${addr}
 EOF
 
 # Make script executable
