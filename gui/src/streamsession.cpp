@@ -87,6 +87,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_output(nullptr),
 	audio_io(nullptr),
 	haptics_output(0),
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	sdeck_haptics_senderl(nullptr),
+	sdeck_haptics_senderr(nullptr),
+#endif
 	haptics_resampler_buf(nullptr)
 {
 	connected = false;
@@ -273,12 +277,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if (connect_info.enable_dualsense)
 	{
 		InitHaptics();
-		UpdateGamepads();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-		// Connect haptics with a delay to give other potential haptics time to set up
-		QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
+		// Connect Steam Deck haptics with a delay to give other potential haptics time to set up
+		if(sdeck)
+			QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
 #endif
 	}
+	UpdateGamepads();
 }
 
 StreamSession::~StreamSession()
@@ -318,6 +323,7 @@ StreamSession::~StreamSession()
 		free(haptics_resampler_buf);
 		haptics_resampler_buf = nullptr;
 	}
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if (sdeck_haptics_senderl)
 	{
 		free(sdeck_haptics_senderl);
@@ -328,6 +334,7 @@ StreamSession::~StreamSession()
 		free(sdeck_haptics_senderr);
 		sdeck_haptics_senderr = nullptr;
 	}
+#endif
 }
 
 void StreamSession::Start()
@@ -857,11 +864,13 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	}
 }
 
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 void StreamSession::SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr)
 {
 	sdeck_hapticl.enqueue(packetl);
 	sdeck_hapticr.enqueue(packetr);
 }
+#endif
 
 void StreamSession::Event(ChiakiEvent *event)
 {
@@ -930,7 +939,6 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 			break;
 	}
 }
-
 #endif
 
 #if CHIAKI_GUI_ENABLE_SETSU

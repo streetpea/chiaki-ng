@@ -1,14 +1,3 @@
-// precondition: create a <build dir> somewhere on the filesystem (preferably outside of the HIDAPI source)
-// this is the place where all intermediate/build files are going to be located
-// cd <build dir>
-// configure the build
-// cmake <HIDAPI source dir>
-// build it!
-// cmake --build .
-// install command now would install things into /usr
-// rm -rf build && mkdir build && cd build && cmake .. -DHIDAPI_BUILD_HIDTEST=TRUE -DHIDAPI_WITH_HIDRAW=TRUE && cmake --build .
-// export PKG_CONFIG_PATH=/app/lib/pkgconfig
-// HIDAPI_WITH_HIDRAW TUE
 #include <sdeck.h>
 #include <stdio.h>
 #include <wchar.h>
@@ -36,8 +25,9 @@
 #define FUZZ_FILTER_PREV_WEIGHT 0.75f
 #define FUZZ_FILTER_PREV_WEIGHT2x 0.6f
 #define STEAM_DECK_GYRO_DEADZONE 24.0f
-#define STEAM_DECK_HAPTIC_COMMAND 0x8f;
-#define STEAM_DECK_HAPTIC_LENGTH 0x07;
+#define STEAM_DECK_HAPTIC_COMMAND 0x8f
+#define STEAM_DECK_HAPTIC_LENGTH 0x07
+#define STEAM_DECK_HAPTIC_INTENSITY 0.38f
 
 typedef struct freq_t
 {
@@ -84,6 +74,7 @@ SDeck *sdeck_new()
 	}
 	memset(&sdeck->prev_motion, 0, sizeof(SDeckMotion));
 	sdeck->motion_dirty = false;
+	sdeck->freqfinder = NULL;
 	return sdeck;
 }
 
@@ -357,9 +348,8 @@ int play_pcm_haptic(SDeck *sdeck, uint8_t position, int16_t *buf, const int num_
 	avg = 5 * freq_power;
 	if (avg < avg_min)
 		return 0;
-	ratio = avg / INT16_MAX;
-	ratio = (ratio < 1) ? ratio : 1;
-	repeat = ceil(ratio * num_elements * freq / (double)sampling_rate);
+	repeat = STEAM_DECK_HAPTIC_INTENSITY * num_elements * freq / (double)sampling_rate;
+	repeat = (repeat > 1) ? repeat : 1;
 	playtime = sdeck_haptic(sdeck, position, freq, interval, repeat);
 	if (playtime < 0)
 		return playtime;
@@ -432,30 +422,7 @@ int sdeck_haptic_ratio(SDeck *sdeck, uint8_t position, double frequency, uint32_
 	// return interval played
 	return period * 2 * repeat;
 }
-/*int sdeck_haptic(SDeck * sdeck, uint16_t amplitude_left, uint16_t amplitude_right, double period)
-{
-	int res = 0;
-	double percent_highl = 0, percent_lowl = 0, percent_highr = 0, percent_lowr = 0;
-	uint16_t period_highl = 0, period_lowl = 0, period_highr = 0, period_lowr = 0;
-	percent_highl = (double)amplitude_left / (double)UINT16_MAX;
-	percent_highl = percent_highl;
-	percent_lowl = 1 - percent_highl;
-	period_highl = round(percent_highl * period);
-	period_lowl = round(percent_lowl * period);
-	percent_highr = (double)amplitude_right / (double)UINT16_MAX;
-	percent_highr= percent_highr;
-	percent_lowr = 1 - percent_highr;
-	period_highr = round(percent_highr * period);
-	period_lowr = round(percent_lowr * period);
-	printf("\nperiod high left: %u, period low left: %u microseconds\n", period_highl, period_lowl);
-	printf("\nperiod high right: %u, period low right: %u microseconds\n", period_highr, period_lowr);
-	res = send_haptic(sdeck, TRACKPAD_LEFT, period_highl, period_lowl, 1);
-	if (res < 0)
-		return res;
-	res = send_haptic(sdeck, TRACKPAD_RIGHT, period_highr, period_lowr, 1);
-	if (res < 0)
-		return res;
-}*/
+
 // input fuzz filter like the one used in kernel input system
 void fuzz(const float cur, float *prev, const float fuzz, const float wprev, const float wprev2x, bool *motion_dirty)
 {
@@ -593,259 +560,3 @@ void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *us
 #undef BEGIN_EVENT
 #undef SEND_EVENT
 }
-
-// int main(int argc, char* argv[])
-// {
-// 	(void)argc;
-// 	(void)argv;
-
-// 	int res;
-
-// 	#define MAX_STR 255
-
-// 	uint16_t vid = 0x28DE;
-// 	uint16_t pid = 0x1205;
-
-//     uint16_t usage_page = 0xFFFF; // usagePage for SteamDeck controls/haptics
-//     uint16_t usage = 0x0001;      // usage for SteamDeck controls/haptics (general)
-
-//     wchar_t serial_wstr[MAX_STR/4] = {L'\0'}; // serial number string rto search for, if any
-//     char devpath[MAX_STR];   // path to open, if filter by usage
-
-// 	unsigned char buf[64];
-
-// 	wchar_t wstr[MAX_STR];
-// 	hid_device *handle;
-// 	int i;
-
-// 	struct hid_device_info *devs, *cur_dev;
-
-// 	printf("hidapi test/example tool. Compiled with hidapi version %s, runtime version %s.\n", HID_API_VERSION_STR, hid_version_str());
-// 	if (HID_API_VERSION == HID_API_MAKE_VERSION(hid_version()->major, hid_version()->minor, hid_version()->patch)) {
-// 		printf("Compile-time version matches runtime version of hidapi.\n\n");
-// 	}
-// 	else {
-// 		printf("Compile-time version is different than runtime version of hidapi.\n]n");
-// 	}
-
-// 	if (hid_init())
-// 		return -1;
-
-// #if defined(__APPLE__) && HID_API_VERSION >= HID_API_MAKE_VERSION(0, 12, 0)
-// 	// To work properly needs to be called before hid_open/hid_open_path after hid_init.
-// 	// Best/recommended option - call it right after hid_init.
-// 	hid_darwin_set_open_exclusive(0);
-// #endif
-
-// 	devs = hid_enumerate(vid, pid);
-// 	print_devices(devs);
-// 	hid_free_enumeration(devs);
-
-// 	devs = hid_enumerate(vid, pid);
-// 	cur_dev = devs;
-// 	while (cur_dev)
-// 	{
-// 		if( (!vid || cur_dev->vendor_id == vid) &&
-// 			(!pid || cur_dev->product_id == pid) &&
-// 			(!usage_page || cur_dev->usage_page == usage_page) &&
-// 			(!usage || cur_dev->usage == usage) &&
-// 			(serial_wstr[0]==L'\0' || wcscmp(cur_dev->serial_number, serial_wstr)==0) )
-// 			{
-// 				strncpy(devpath, cur_dev->path, MAX_STR); // save it!
-// 			}
-// 			cur_dev = cur_dev->next;
-// 	}
-// 	hid_free_enumeration(devs);
-
-// 	if( devpath[0] )
-// 	{
-// 		handle = hid_open_path(devpath);
-// 		if(!handle)
-// 		{
-// 			//msg("Error: could not open device\n");
-// 			printf("unable to open device\n");
-// 			hid_exit();
-//  			return 1;
-// 		}
-// 		else
-// 		{
-// 			printf("Device Opened\n");
-// 			// Read the Manufacturer String
-// 			wstr[0] = 0x0000;
-// 			res = hid_get_manufacturer_string(handle, wstr, MAX_STR);
-// 			if (res < 0)
-// 				printf("Unable to read manufacturer string\n");
-// 			printf("Manufacturer String: %ls\n", wstr);
-
-// 			// Read the Product String
-// 			wstr[0] = 0x0000;
-// 			res = hid_get_product_string(handle, wstr, MAX_STR);
-// 			if (res < 0)
-// 				printf("Unable to read product string\n");
-// 			printf("Product String: %ls\n", wstr);
-
-// 			// Read the Serial Number String
-// 			wstr[0] = 0x0000;
-// 			res = hid_get_serial_number_string(handle, wstr, MAX_STR);
-// 			if (res < 0)
-// 				printf("Unable to read serial number string\n");
-// 			printf("Serial Number String: (%d) %ls", wstr[0], wstr);
-// 			printf("\n");
-
-// 			struct hid_device_info* info = hid_get_device_info(handle);
-// 			if (info == NULL) {
-// 				printf("Unable to get device info\n");
-// 			} else {
-// 				print_devices(info);
-// 			}
-
-// 			// Read Indexed String 1
-// 			wstr[0] = 0x0000;
-// 			res = hid_get_indexed_string(handle, 0x09, wstr, MAX_STR);
-// 			if (res < 0)
-// 				printf("Unable to read indexed string 0x09\n");
-// 			printf("Indexed String 0x09: %ls\n", wstr);
-
-// 			// Set the hid_read() function to be non-blocking.
-// 			hid_set_nonblocking(handle, 1);
-
-// 			// Set up the command buffer.
-// 			memset(buf,0x00,sizeof(buf));
-// 			buf[0] = 0x00;
-// 			buf[1] = 0x00;
-
-// 			// Try to read from the device. There should be no
-// 			// data here, but execution should not block.
-// 			res = hid_read(handle, buf, 8);
-
-// 			buf[0] = 0x00;
-//  			res = hid_send_feature_report(handle, buf, 0x09);
-// 			if (res < 0) {
-// 				printf("Unable to send a feature report.\n");
-// 			}
-
-// 			memset(buf,0,sizeof(buf));
-
-// 			// Read a Feature Report from the device
-// 			buf[0] = 0x0;
-// 			res = hid_get_feature_report(handle, buf, sizeof(buf));
-// 			if (res < 0) {
-// 				printf("Unable to get a feature report: %ls\n", hid_error(handle));
-// 			}
-// 			else {
-// 				// Print out the returned buffer.
-// 				printf("Feature Report\n   ");
-// 				for (i = 0; i < res; i++)
-// 					printf("%02x ", (unsigned int) buf[i]);
-// 				printf("\n");
-// 			}
-
-// 			memset(buf,0,sizeof(buf));
-
-// 			/*buf[0] = 0x00;
-// 			buf[1] = 0x8f;
-// 			buf[2] = 0x07; // report length
-// 			buf[3] = 0x00; //Trackpad select: 0x01
-// 			buf[4] = 0xff; // LSB Pulse High Duration
-// 			buf[5] = 0xff; // MSB Pulse High Duration
-// 			buf[6] = 0xff; // LSB Pule Low Duration
-// 			buf[7] = 0xff; // MSB Pulse Low Duration
-// 			buf[8] = 0xff; // LSB Pulse Repeat Count
-// 			buf[9] = 0x04; // MSB Pulse Repeat Count*/
-
-// 			buf[0] = 0x00;
-// 			buf[1] = 0x8f;
-// 			buf[2] = 0x07; // report length
-// 			buf[3] = 0x00; //Trackpad select: 0x01
-// 			buf[4] = 0x00; // LSB Pulse High Duration
-// 			buf[5] = 0x00; // MSB Pulse High Duration
-// 			buf[6] = 0x00; // LSB Pule Low Duration
-// 			buf[7] = 0x00; // MSB Pulse Low Duration
-// 			buf[8] = 0x00; // LSB Pulse Repeat Count
-// 			buf[9] = 0x00; // MSB Pulse Repeat Count
-
-// 			res = hid_write(handle, buf, 64);
-// 			if (res < 0) {
-// 				printf("Unable to write(): %ls\n", hid_error(handle));
-// 			}
-
-// 			// Request state (cmd 0x89). The first byte is the report number (0x0).
-// 			buf[0] = 0x0;
-// 			buf[1] = 0x1;
-// 			hid_write(handle, buf, 64);
-// 			if (res < 0) {
-// 				printf("Unable to write()/2: %ls\n", hid_error(handle));
-// 			}
-
-// 			// Read requested state. hid_read() has been set to be
-// 			// non-blocking by the call to hid_set_nonblocking() above.
-// 			// This loop demonstrates the non-blocking nature of hid_read().
-// 			res = 0;
-// 			i = 0;
-// 			while (res == 0) {
-// 				res = hid_read(handle, SDController.SDControlsArr, (sizeof(buf)));
-// 				if (res == 0) {
-// 					printf("waiting...\n");
-// 				}
-// 				if (res < 0) {
-// 					printf("Unable to read(): %ls\n", hid_error(handle));
-// 					break;
-// 				}
-
-// 				i++;
-// 				if (i >= 10) { /* 10 tries by 500 ms - 5 seconds of waiting*/
-// 					printf("read() timeout\n");
-// 					break;
-// 				}
-
-// 		#ifdef _WIN32
-// 				Sleep(500);
-// 		#else
-// 				usleep(500*1000);
-// 		#endif
-// 			}
-
-// 			if (res > 0) {
-// 				printf("Read res number:   %i\n", res);
-// 				// Print out the returned buffer.
-// 				for (i = 0; i < res; i++)
-// 					printf("%02x ", (unsigned int) buf[i]);
-// 				/*
-// 				int16_t acceli = *(signed char *)(&buf[25]);
-// 				acceli *= 1 << __CHAR_BIT__;
-// 				acceli |= buf[24];
-// 				printf("\nSteam Deck acceleration dsu: %d\n", acceli);
-// 				*/
-
-// 	        	memcpy(&steam_deck_input, buf, sizeof(buf));
-
-// 				printf("\nSteam Deck acceleration x: %d\n", SDController.SDControls.accel_x);       //0x18
-// 				printf("Steam Deck acceleration y: %d\n", SDController.SDControls.accel_y);       //0x1A
-// 				printf("Steam Deck acceleration z: %d\n", SDController.SDControls.accel_z);       //0x1C
-// 				printf("Steam Deck gyro pitch: %d\n", SDController.SDControls.gpitch);        //0x1E
-// 				printf("Steam Deck gyro yaw: %d\n", SDController.SDControls.gyaw);          //0x20
-// 				printf("Steam Deck gyro roll: %d\n", SDController.SDControls.groll);         //0x22
-// 				printf("Steam Deck orientation w: %d\n", SDController.SDControls.q1);
-// 				printf("Steam Deck orientation x: %d\n", SDController.SDControls.q2);
-// 				printf("Steam Deck orientation y: %d\n", SDController.SDControls.q3);
-// 				printf("Steam Deck orientation z: %d\n", SDController.SDControls.q4);
-// 				printf("\n");
-// 			}
-
-// 			hid_close(handle);
-
-// 			/* Free static HIDAPI objects. */
-// 			hid_exit();
-
-// 		#ifdef _WIN32
-// 			system("pause");
-// 		#endif
-// 		}
-// 	}
-// 	else
-// 	{
-// 		printf("Error: no matching devices\n");
-// 		return 1;
-// 	}
-// 	return 0;
-// }

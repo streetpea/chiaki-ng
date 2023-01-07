@@ -63,19 +63,27 @@ This is for contributors that want to make/test updates to the codebase without 
 
 ## Creating and Debugging Builds without New Flatpak Build
 
-1. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
+1. Set your Chiaki code dir as an environment variable (can add to `~/.bashrc` to persist across restarts)
 
     ``` bash
-    flatpak run --filesystem=path_to_chiaki_code_dir --command=bash --devel re.chiaki.Chiaki4deck
+    export chiaki_code_dir="path_to_chiaki_code_dir"
     ```
 
     where `path_to_chiaki_code_dir` is the path to the directory you created with the `git clone` in the last step.
 
-2. Set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder):
+    ???- example "Example Code Directory"
+
+        ``` bash
+        export chiaki_code_dir="~/Documents/chiaki-code"
+        ```
+
+2. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
 
     ``` bash
-    export PKG_CONFIG_PATH=/app/lib/pkgconfig
+    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel re.chiaki.Chiaki4deck
     ```
+
+    and `--env` is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)
 
 3. Create a build using cmake as per usual
 

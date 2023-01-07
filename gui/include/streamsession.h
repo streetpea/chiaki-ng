@@ -152,11 +152,13 @@ class StreamSession : public QObject
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
 		void InitHaptics();
-		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void Event(ChiakiEvent *event);
 		void DisconnectHaptics();
 		void ConnectHaptics();
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void ConnectSdeckHaptics();
+#endif
 
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
@@ -184,7 +186,9 @@ class StreamSession : public QObject
 
 	signals:
 		void FfmpegFrameAvailable();
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
+#endif
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 
@@ -194,6 +198,8 @@ class StreamSession : public QObject
 };
 
 Q_DECLARE_METATYPE(ChiakiQuitReason)
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 Q_DECLARE_METATYPE(haptic_packet_t)
+#endif
 
 #endif // CHIAKI_STREAMSESSION_H
