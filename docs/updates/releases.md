@@ -36,6 +36,12 @@ In order to update your already installed `chiaki4deck` to the newest version, e
         ![Enable PlayStation 5 Features](images/EnablePlayStation5Features.png)
 
     2. [If you are using a DualSense] Turn off Steam Input for the DualSense following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+
+3. [Optional] Add an external IP/hostname to the automation by revisiting (running back through) the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}. Doing this will make the automation use your external address if you aren't connected to your home wireless network.
+
+    !!! Note
+
+        This is for those that have gone through the process to make a connection outside of their local network to get an external IP/hostname to use.
     
 ### 1.2.0
 
