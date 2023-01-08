@@ -10,8 +10,14 @@
       
         <link rel="canonical" href="https://streetpea.github.io/chiaki4deck/setup/automation/">
       
+      
+        <link rel="prev" href="../configuration/">
+      
+      
+        <link rel="next" href="../steaming/">
+      
       <link rel="icon" href="../../images/chiaki.svg">
-      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.4.0">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.0">
     
     
       
@@ -19,13 +25,13 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.69437709.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.f79797b0.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.cbb835fc.min.css">
-        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.2505c338.min.css">
       
       
+
     
     
     
@@ -64,12 +70,13 @@
   
 
 
-  <script id="__analytics">function __md_analytics(){function n(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],n("js",new Date),n("config","G-LCLEDWLWSR"),document.addEventListener("DOMContentLoaded",function(){if(document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&n("event","search",{search_term:this.value})}),document.forms.feedback){var e,a=document.forms.feedback;for(e of a.querySelectorAll("[type=submit]"))e.addEventListener("click",function(e){e.preventDefault();var t=document.location.pathname,e=this.getAttribute("data-md-value");n("event","feedback",{page:t,data:e}),a.firstElementChild.disabled=!0;e=a.querySelector(".md-feedback__note [data-md-value='"+e+"']");e&&(e.hidden=!1)}),a.hidden=!1}"undefined"!=typeof location$&&location$.subscribe(function(e){n("config","G-LCLEDWLWSR",{page_path:e.pathname})})});var e=document.createElement("script");e.async=!0,e.src="https://www.googletagmanager.com/gtag/js?id=G-LCLEDWLWSR",document.getElementById("__analytics").insertAdjacentElement("afterEnd",e)}</script>
+  <script id="__analytics">function __md_analytics(){function n(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],n("js",new Date),n("config","G-LCLEDWLWSR"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&n("event","search",{search_term:this.value})}),document$.subscribe(function(){var a=document.forms.feedback;if(void 0!==a)for(var e of a.querySelectorAll("[type=submit]"))e.addEventListener("click",function(e){e.preventDefault();var t=document.location.pathname,e=this.getAttribute("data-md-value");n("event","feedback",{page:t,data:e}),a.firstElementChild.disabled=!0;e=a.querySelector(".md-feedback__note [data-md-value='"+e+"']");e&&(e.hidden=!1)}),a.hidden=!1}),location$.subscribe(function(e){n("config","G-LCLEDWLWSR",{page_path:e.pathname})})});var e=document.createElement("script");e.async=!0,e.src="https://www.googletagmanager.com/gtag/js?id=G-LCLEDWLWSR",document.getElementById("__analytics").insertAdjacentElement("afterEnd",e)}</script>
 
   
     <script>var consent;"undefined"==typeof __md_analytics||(consent=__md_get("__consent"))&&consent.analytics&&__md_analytics()</script>
   
 
+    
     
     
   </head>
@@ -109,7 +116,7 @@
               </button>
             
             
-<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#120" target="_blank" rel="noopener noreferrer">chiaki4deck 1.2.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#what-you-need-to-do-to-update" target="_blank" rel="noopener noreferrer">release 1.2.0</a>
+<a href="https://streetpea.github.io/chiaki4deck/updates/releases/#130" target="_blank" rel="noopener noreferrer">chiaki4deck 1.3.0</a> is now available! See <a href="https://streetpea.github.io/chiaki4deck/updates/releases/#update-actions-for-existing-users" target="_blank" rel="noopener noreferrer">release 1.3.0</a>
   for information on how to update (if you have a prior version of chiaki4deck installed) and what's available.
 
           </div>
@@ -155,7 +162,6 @@
       <form class="md-header__option" data-md-component="palette">
         
           
-          
           <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
           
             <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_2" hidden>
@@ -163,7 +169,6 @@
             </label>
           
         
-          
           
           <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="lime"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_2">
           
@@ -190,11 +195,11 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
-          <a href="javascript:void(0)" class="md-search__icon md-icon" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
           </a>
         
-        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
         </button>
       </nav>
@@ -218,7 +223,7 @@
         <a href="https://github.com/streetpea/chiaki4deck" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -347,7 +352,7 @@
       <a href="https://github.com/streetpea/chiaki4deck" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -626,6 +631,10 @@
         
           
         
+          
+        
+          
+        
       
       
         <label class="md-nav__link" for="__nav_4">
@@ -648,6 +657,34 @@
     <li class="md-nav__item">
       <a href="../../diy/buildit/" class="md-nav__link">
         Building the Flatpak Yourself
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diy/builddocs/" class="md-nav__link">
+        Locally Building Documentation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../diy/steamdeckdev/" class="md-nav__link">
+        Developing chiaki4deck on Steam Deck
       </a>
     </li>
   
@@ -701,13 +738,24 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
                 
-  <a href="https://github.com/streetpea/chiaki4deck/edit/chiaki4deck/docs/setup/automation.md" title="Edit this page" class="md-content__button md-icon">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
-  </a>
+                  
+
+  
+    <a href="https://github.com/streetpea/chiaki4deck/edit/chiaki4deck/docs/setup/automation.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4v-2m10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1 2.1 2.1Z"/></svg>
+    </a>
+  
+  
+    <a href="https://github.com/streetpea/chiaki4deck/edit/chiaki4deck/docs/setup/automation.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.15 8.15 0 0 1-1.23-2Z"/></svg>
+    </a>
+  
 
 
 
@@ -717,22 +765,9 @@
 <p class="admonition-title">So Why Should I Care?</p>
 <p>This is especially convenient for the Steam Deck's <code>Game Mode</code> where an automated launch eliminates both the need to tap furiously at your touchscreen to launch the application and the glitches that would arise (flashes on your screen) when it would switch between the 2 open Chiaki windows (since only 1 window is opened with the automated launch). It also gives a default game mode option to launch in fullscreen, stretch or zoomed mode, making it <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">easier to use the 3 games modes</a>. Finally, it allows for passing your login passcode automatically instead of manually typing in each time (for those of you with a login passcode set on your PlayStation console).</p>
 </div>
-<div class="admonition caution">
+<div class="admonition warning">
 <p class="admonition-title">Sleep Mode Required</p>
 <p>For this to work, your PlayStation needs to either be in rest/sleep mode or on (so that it is listening for the wake up signal). This means you will want to keep your PlayStation in rest/sleep mode when you are not playing (instead of off).</p>
-<div class="admonition bug">
-<p class="admonition-title">Steam Deck Speaker Fails to Load, Crashing Official Chiaki and <code>chiaki4deck</code> in Desktop Mode</p>
-<p>In Desktop Mode, the Steam Deck speaker (Raven) can fail to load on startup. This is rare but seems to happen every once in a while. Unfortunately, this reliably crashes Chiaki and by inheritance <code>chiaki4deck</code>, causing it to hang indefinitely. The only ways to exit Chiaki are to close the <code>konsole</code> window that launched it (if launched via automation), forcibly kill the process (<code>kill -9</code>) or forcibly shutoff the Steam Deck. I am working on a way to prevent this from crashing Chiaki in a bugfix (and hopefully <img alt="🤞" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f91e.svg" title=":fingers_crossed:" /> someone is working on the underlying Steam Deck speaker driver issue causing this). In the meantime, <strong>there are 2 good workarounds that prevent this from occurring</strong> (either one works). Please use one of the following when using Chiaki or <code>chiaki4deck</code>:</p>
-<ul>
-<li>
-<p>After booting into Desktop Mode, adjust the volume of the Steam Deck (hit the + or -) volume button (only needs to be done once per boot). You will see this cause Raven to load if it hasn't already. Now, you are safe to launch either Chiaki or <code>chiaki4deck</code> at any time until you turn off your Steam Deck.</p>
-<p><strong>OR</strong></p>
-</li>
-<li>
-<p>Use <code>chiaki4deck</code> and/or <code>Chiaki</code> in Game Mode when possible; the speaker not loading hardware error doesn't occur there.</p>
-</li>
-</ul>
-</div>
 </div>
 <ol>
 <li>
@@ -746,12 +781,16 @@
 <ol>
 <li>
 <p>Launch Chiaki via your desktop or via:</p>
-<div class="highlight"><pre><span></span><code>flatpak run re.chiaki.Chiaki4deck
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck
 </code></pre></div>
 </li>
 <li>
 <p>Get your IP address via the console widget and then close the window and return to the <code>konsole</code> session</p>
 <p><img alt="IP Address" src="../images/GetAddress.png" /></p>
+<div class="admonition tip">
+<p class="admonition-title">Prevent IP From Changing</p>
+<p>In order to prevent your IP from changing (which would make the script stop working) if you ever disconnect your PlayStation console from your network and reconnect it (especially if other devices are added to the network in the meantime), you should go into your router settings and reserve an IP address for your PlayStation (DHCP IP reservation / "static" IP) or create a hostname for it. For a TP-Link, Netgear, Asus or Linskys router, follow <a href="https://www.coolblue.nl/en/advice/assign-fixed-ip-address-router.html" rel="noopener" target="_blank">these instructions</a>. If you have a different router, you can search (using a search engine such as DuckDuckGo or Google) for instructions for that specific router using the formula "dhcp reservation myroutername router" such as "dhcp reservation netgear router" and follow the instructions to reserve an IP for your PlayStation console so that it won't change. Alternatively, if your router has an option to set hostnames for your devices, you can set a hostname for your PlayStation console and use your hostname in the automation instead of a static IP address. </p>
+</div>
 </li>
 </ol>
 </li>
@@ -765,160 +804,207 @@
 <ol>
 <li>
 <p>Run the <a href="https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh" rel="noopener" target="_blank">gen-launcher script</a> using the following command in your <code>konsole</code> and answer the prompts (you will need your IP address from step 2 above)</p>
-<div class="highlight"><pre><span></span><code>bash &lt;<span class="o">(</span>curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh<span class="o">)</span>
+<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>&lt;<span class="o">(</span>curl<span class="w"> </span>-sLo-<span class="w"> </span>https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh<span class="o">)</span>
 </code></pre></div>
 <div class="admonition question">
-<p class="admonition-title">What Do the Different Modes (i.e.,  fullscreen [uses Normal], zoom, stretch) Look Like?</p>
+<p class="admonition-title">What Do the Different Modes (i.e., fullscreen [uses Normal], zoom, stretch) Look Like?</p>
 <p>To see examples of the different launch modes, visit the <a href="../../updates/done/#3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">Updates section</a></p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Connecting Outside of Your Local Network</p>
+<p>You can add an external IP or hostname in addition to your local one to connect from an external network. To do so, you need to set up port forwarding as detailed by a helpful redditor <a href="https://www.reddit.com/r/SteamDeck/comments/wnmyxq/how_to_use_ps5_outside_your_network_with_chiaki/?utm_source=share&amp;utm_medium=web2x&amp;context=3" rel="noopener" target="_blank">here</a>. Then, you can choose to setup an external IP/hostname as part of the setup script process. The automation will take your home network name (SSID) to check if you are home or not to use the correct IP/hostname automatically. The script will automatically detect your current SSID. Thus, if you are on your home network while running the setup script (<code>gen-launcher.sh</code>), it will detect your home ssid and you will just need to hit <span class="keys"><kbd class="key-enter">Enter</kbd></span>. If not, you can enter it manually (instead of using the default of your Steam Deck's current network's SSID). You can get your home SSID for manul entry via <code>iwgetid -r</code> from the <code>konsole</code> when connected to your home network or by looking in your network history on your Steam Deck (it will be the connection name for your home network such as <code>StreetPea-5G</code>). Of course, if you want to skip this now and setup the external address later, you can always rerun the automation or choose a placeholder external IP now and manually edit it to your desired IP/hostname later.</p>
 </div>
 <details class="- example">
 <summary>Example Output [click to expand me]</summary>
-<div class="highlight"><pre><span></span><code>bash &lt;<span class="o">(</span>curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh<span class="o">)</span>
-<span class="m">1</span><span class="o">)</span> PlayStation <span class="m">4</span>
-<span class="m">2</span><span class="o">)</span> PlayStation <span class="m">5</span>
-Please <span class="k">select</span> the number corresponding to your Playstation Console: <span class="m">2</span>
-Option <span class="m">2</span>: PlayStation <span class="m">5</span> was chosen
+<div class="highlight"><pre><span></span><code>bash<span class="w"> </span>&lt;<span class="o">(</span>curl<span class="w"> </span>-sLo-<span class="w"> </span>https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh<span class="o">)</span>
 
-Enter your PlayStation IP <span class="o">(</span>form should be xxx.xxx.xxx.xxx like <span class="m">192</span>.168.1.16<span class="o">)</span>:
+<span class="m">1</span><span class="o">)</span><span class="w"> </span>PlayStation<span class="w"> </span><span class="m">4</span>
+<span class="m">2</span><span class="o">)</span><span class="w"> </span>PlayStation<span class="w"> </span><span class="m">5</span>
+Please<span class="w"> </span><span class="k">select</span><span class="w"> </span>the<span class="w"> </span>number<span class="w"> </span>corresponding<span class="w"> </span>to<span class="w"> </span>your<span class="w"> </span>Playstation<span class="w"> </span>Console:<span class="w"> </span><span class="m">2</span>
+Option<span class="w"> </span><span class="m">2</span>:<span class="w"> </span>PlayStation<span class="w"> </span><span class="m">5</span><span class="w"> </span>was<span class="w"> </span>chosen
+
+
+
+
+HOME<span class="w"> </span>ADDRESS
+-------------
+<span class="m">1</span><span class="o">)</span><span class="w"> </span>IP
+<span class="m">2</span><span class="o">)</span><span class="w"> </span>hostname
+NOTICE:<span class="w"> </span>Use<span class="w"> </span><span class="m">1</span><span class="w"> </span>unless<span class="w"> </span>you<span class="w"> </span>created<span class="w"> </span>a<span class="w"> </span>hostname<span class="w"> </span><span class="o">(</span>FQDN<span class="o">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>your<span class="w"> </span>PlayStation
+Please<span class="w"> </span><span class="k">select</span><span class="w"> </span>the<span class="w"> </span>number<span class="w"> </span>corresponding<span class="w"> </span>to<span class="w"> </span>your<span class="w"> </span>address<span class="w"> </span>type:<span class="w"> </span><span class="m">1</span>
+Option<span class="w"> </span><span class="m">1</span>:<span class="w"> </span>IP<span class="w"> </span>was<span class="w"> </span>chosen
+
+Enter<span class="w"> </span>your<span class="w"> </span>PlayStation<span class="w"> </span>IP<span class="w"> </span><span class="o">(</span>should<span class="w"> </span>be<span class="w"> </span>xxx.xxx.xxx.xxx<span class="w"> </span>like<span class="w"> </span><span class="m">192</span>.168.1.16<span class="o">)</span>:
 <span class="m">192</span>.168.1.16
 
-<span class="m">1</span><span class="o">)</span> fullscreen
-<span class="m">2</span><span class="o">)</span> zoom
-<span class="m">3</span><span class="o">)</span> stretch
-Please <span class="k">select</span> the number corresponding to the default mode you want to use: <span class="m">1</span>
-Option <span class="m">1</span>: fullscreen was chosen
-
-Do you have a PlayStation Login Passcode? <span class="o">(</span>y/n<span class="o">)</span>:
+Do<span class="w"> </span>you<span class="w"> </span>have<span class="w"> </span>a<span class="w"> </span>separate<span class="w"> </span>address<span class="w"> </span><span class="o">(</span>DNS<span class="w"> </span>or<span class="w"> </span>IP<span class="o">)</span><span class="w"> </span>to<span class="w"> </span>access<span class="w"> </span>this<span class="w"> </span>console<span class="w"> </span>away<span class="w"> </span>from<span class="w"> </span>home?<span class="w"> </span><span class="o">(</span>y/n<span class="o">)</span>:
 y
-Enter your <span class="m">4</span> digit PlayStation Login Passcode:
+Enter<span class="w"> </span>your<span class="w"> </span>home<span class="w"> </span>SSID<span class="w"> </span><span class="o">[</span>hit<span class="w"> </span>enter<span class="w"> </span><span class="k">for</span><span class="w"> </span>default:<span class="w"> </span>StreetPea-5G<span class="o">]</span>:<span class="w"> </span>
+
+
+
+AWAY<span class="w"> </span>ADDRESS
+-------------
+<span class="m">1</span><span class="o">)</span><span class="w"> </span>IP
+<span class="m">2</span><span class="o">)</span><span class="w"> </span>hostname
+NOTICE:<span class="w"> </span>Use<span class="w"> </span><span class="m">1</span><span class="w"> </span>unless<span class="w"> </span>you<span class="w"> </span>created<span class="w"> </span>a<span class="w"> </span>hostname<span class="w"> </span><span class="o">(</span>FQDN<span class="o">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>your<span class="w"> </span>PlayStation
+Please<span class="w"> </span><span class="k">select</span><span class="w"> </span>the<span class="w"> </span>number<span class="w"> </span>corresponding<span class="w"> </span>to<span class="w"> </span>your<span class="w"> </span>address<span class="w"> </span>type:<span class="w"> </span><span class="m">2</span>
+Option<span class="w"> </span><span class="m">2</span>:<span class="w"> </span>hostname<span class="w"> </span>was<span class="w"> </span>chosen
+
+Enter<span class="w"> </span>your<span class="w"> </span>PlayStation<span class="w"> </span>FQDN<span class="w"> </span><span class="o">(</span>hostname<span class="o">)</span><span class="w"> </span><span class="o">(</span>should<span class="w"> </span>be<span class="w"> </span>abc.ident<span class="w"> </span>like<span class="w"> </span>foo.bar.com<span class="o">)</span>:
+foo.bar.com
+
+<span class="m">1</span><span class="o">)</span><span class="w"> </span>fullscreen
+<span class="m">2</span><span class="o">)</span><span class="w"> </span>zoom
+<span class="m">3</span><span class="o">)</span><span class="w"> </span>stretch
+Please<span class="w"> </span><span class="k">select</span><span class="w"> </span>the<span class="w"> </span>number<span class="w"> </span>corresponding<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>default<span class="w"> </span>mode<span class="w"> </span>you<span class="w"> </span>want<span class="w"> </span>to<span class="w"> </span>use:<span class="w"> </span><span class="m">3</span>
+Option<span class="w"> </span><span class="m">3</span>:<span class="w"> </span>stretch<span class="w"> </span>was<span class="w"> </span>chosen
+
+Do<span class="w"> </span>you<span class="w"> </span>have<span class="w"> </span>a<span class="w"> </span>PlayStation<span class="w"> </span>Login<span class="w"> </span>Passcode?<span class="w"> </span><span class="o">(</span>y/n<span class="o">)</span>:
+y
+Enter<span class="w"> </span>your<span class="w"> </span><span class="m">4</span><span class="w"> </span>digit<span class="w"> </span>PlayStation<span class="w"> </span>Login<span class="w"> </span>Passcode:
 <span class="m">1111</span>
 
-Would you like to <span class="nb">test</span> the newly created script? <span class="o">(</span>y/n<span class="o">)</span>:
+Would<span class="w"> </span>you<span class="w"> </span>like<span class="w"> </span>to<span class="w"> </span><span class="nb">test</span><span class="w"> </span>the<span class="w"> </span>newly<span class="w"> </span>created<span class="w"> </span>script?<span class="w"> </span><span class="o">(</span>y/n<span class="o">)</span>:
 y
-sounds good, launching script now...
-<span class="o">[</span>I<span class="o">]</span> Logging to file /home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2022-10-12_11-06-25-239239.log
-<span class="o">[</span>I<span class="o">]</span> Chiaki Version <span class="m">2</span>.1.1
-<span class="o">[</span>I<span class="o">]</span> Using hardware decoder <span class="s2">&quot;vaapi&quot;</span>
-<span class="o">[</span>I<span class="o">]</span> Controller <span class="m">0</span> opened: <span class="s2">&quot;Microsoft X-Box 360 pad 0 (03000000de280000ff11000001000000)&quot;</span>
-<span class="o">[</span>I<span class="o">]</span> Starting session request <span class="k">for</span> PS5
-<span class="o">[</span>I<span class="o">]</span> Trying to request session from <span class="m">192</span>.168.1.16:9295
-<span class="o">[</span>I<span class="o">]</span> Connected to <span class="m">192</span>.168.1.16:9295
-<span class="o">[</span>I<span class="o">]</span> Sending session request
-<span class="o">[</span>I<span class="o">]</span> Session request successful
-<span class="o">[</span>I<span class="o">]</span> Starting ctrl
-<span class="o">[</span>I<span class="o">]</span> Ctrl connected to <span class="m">192</span>.168.1.16:9295
-<span class="o">[</span>I<span class="o">]</span> Sending ctrl request
-<span class="o">[</span>I<span class="o">]</span> OpenGL initialized with version <span class="s2">&quot;4.6 (Core Profile) Mesa 21.3.9 (git-78c96ae5b6)&quot;</span>
-<span class="o">[</span>I<span class="o">]</span> Ctrl received http header as response
-<span class="o">[</span>I<span class="o">]</span> Ctrl received ctrl request http response
-<span class="o">[</span>I<span class="o">]</span> Ctrl got Server Type: <span class="m">2</span>
-<span class="o">[</span>I<span class="o">]</span> Ctrl connected
-<span class="o">[</span>I<span class="o">]</span> Ctrl received Login PIN request
-<span class="o">[</span>I<span class="o">]</span> Ctrl requested Login PIN
-<span class="o">[</span>I<span class="o">]</span> Session received entered Login PIN, forwarding to Ctrl
-<span class="o">[</span>I<span class="o">]</span> Ctrl received entered Login PIN, sending to console
-<span class="o">[</span>I<span class="o">]</span> Ctrl received Login message: success
-<span class="o">[</span>I<span class="o">]</span> Ctrl received valid Session Id: 1665597987NCXBPSH5W3WPYVWTYGBZT3HJJQM3IIKSRX3JB4WWZFZ3TN4MJIBE26ABIDMK6SVM
-<span class="o">[</span>I<span class="o">]</span> Starting Senkusha
-<span class="o">[</span>I<span class="o">]</span> Takion connecting <span class="o">(</span>version <span class="m">7</span><span class="o">)</span>
-<span class="o">[</span>I<span class="o">]</span> Takion enabled Don<span class="err">&#39;</span>t Fragment Bit
-<span class="o">[</span>I<span class="o">]</span> Takion sent init
-<span class="o">[</span>W<span class="o">]</span> Received Ctrl Message with unknown <span class="nb">type</span> 0x16
-<span class="o">[</span>I<span class="o">]</span> Takion received init ack with remote tag 0xb18ccf, outbound streams: 0x64, inbound streams: 0x64
-<span class="o">[</span>W<span class="o">]</span> offset <span class="m">0</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span>  a  b  c  d  e  f  0123456789abcdef
-<span class="o">[</span>W<span class="o">]</span>      <span class="m">0</span> <span class="m">01</span> ff                                           ..
-<span class="o">[</span>I<span class="o">]</span> Takion sent cookie
-<span class="o">[</span>I<span class="o">]</span> Takion received cookie ack
-<span class="o">[</span>I<span class="o">]</span> Takion connected
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending big
-<span class="o">[</span>I<span class="o">]</span> Senkusha successfully received bang
-<span class="o">[</span>I<span class="o">]</span> Senkusha Ping Test with count <span class="m">10</span> starting
-<span class="o">[</span>I<span class="o">]</span> Senkusha enabled <span class="nb">echo</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">0</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.901 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">1</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.200 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">2</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">6</span>.997 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">3</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.827 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">4</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">6</span>.893 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">5</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">11</span>.047 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">6</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">6</span>.972 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">7</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.626 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">8</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.458 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending Ping <span class="m">9</span> of <span class="nb">test</span> index <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received Pong, <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.471 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha disabled <span class="nb">echo</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha determined average <span class="nv">RTT</span> <span class="o">=</span> <span class="m">7</span>.739 ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha starting MTU <span class="k">in</span> <span class="nb">test</span> with min <span class="m">576</span>, max <span class="m">1454</span>, retries <span class="m">3</span>, timeout <span class="m">38</span> ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha MTU request <span class="m">1454</span> <span class="o">(</span>min <span class="m">576</span>, max <span class="m">1454</span><span class="o">)</span>, id <span class="m">1</span>, attempt <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha MTU <span class="m">1454</span> success
-<span class="o">[</span>I<span class="o">]</span> Senkusha determined inbound MTU <span class="m">1454</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha starting MTU out <span class="nb">test</span> with min <span class="m">576</span>, max <span class="m">1454</span>, retries <span class="m">3</span>, timeout <span class="m">38</span> ms
-<span class="o">[</span>I<span class="o">]</span> Senkusha sent initial client MTU <span class="nb">command</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha received expected Client MTU Command
-<span class="o">[</span>I<span class="o">]</span> Senkusha MTU <span class="m">1454</span> out ping attempt <span class="m">0</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha MTU ping <span class="m">1454</span> success
-<span class="o">[</span>I<span class="o">]</span> Senkusha determined outbound MTU <span class="m">1454</span>
-<span class="o">[</span>I<span class="o">]</span> Senkusha sending final Client MTU Command
-<span class="o">[</span>I<span class="o">]</span> Senkusha is disconnecting
-<span class="o">[</span>I<span class="o">]</span> Senkusha closed takion
-<span class="o">[</span>I<span class="o">]</span> Senkusha completed successfully
-<span class="o">[</span>I<span class="o">]</span> Takion connecting <span class="o">(</span>version <span class="m">12</span><span class="o">)</span>
-<span class="o">[</span>I<span class="o">]</span> Takion sent init
-<span class="o">[</span>I<span class="o">]</span> Takion received init ack with remote tag 0x7033129, outbound streams: 0x64, inbound streams: 0x64
-<span class="o">[</span>I<span class="o">]</span> Takion sent cookie
-<span class="o">[</span>I<span class="o">]</span> Takion received cookie ack
-<span class="o">[</span>I<span class="o">]</span> Takion connected
-<span class="o">[</span>I<span class="o">]</span> StreamConnection sending big
-<span class="o">[</span>I<span class="o">]</span> BANG received
-<span class="o">[</span>I<span class="o">]</span> StreamConnection successfully received bang
-<span class="o">[</span>I<span class="o">]</span> Crypt has become available. Re-checking MACs of <span class="m">0</span> packets
-<span class="o">[</span>W<span class="o">]</span> Received Ctrl Message with unknown <span class="nb">type</span> 0x41
-<span class="o">[</span>D<span class="o">]</span> StreamConnection received audio header:
-<span class="o">[</span>W<span class="o">]</span> offset <span class="m">0</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span>  a  b  c  d  e  f  0123456789abcdef
-<span class="o">[</span>D<span class="o">]</span> offset <span class="m">0</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span>  a  b  c  d  e  f  0123456789abcdef
-<span class="o">[</span>D<span class="o">]</span>      <span class="m">0</span> <span class="m">02</span> <span class="m">10</span> <span class="m">00</span> <span class="m">00</span> bb <span class="m">80</span> <span class="m">00</span> <span class="m">00</span> <span class="m">01</span> e0 <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">01</span>       ..............
-<span class="o">[</span>I<span class="o">]</span> Audio Header:
-<span class="o">[</span>W<span class="o">]</span>      <span class="m">0</span> <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">00</span> <span class="m">02</span> <span class="m">01</span> <span class="m">00</span> <span class="m">00</span>                         ........
-<span class="o">[</span>I<span class="o">]</span>   <span class="nv">channels</span> <span class="o">=</span> <span class="m">2</span>
-<span class="o">[</span>I<span class="o">]</span>   <span class="nv">bits</span> <span class="o">=</span> <span class="m">16</span>
-<span class="o">[</span>I<span class="o">]</span>   <span class="nv">rate</span> <span class="o">=</span> <span class="m">48000</span>
-<span class="o">[</span>I<span class="o">]</span>   frame <span class="nv">size</span> <span class="o">=</span> <span class="m">480</span>
-<span class="o">[</span>I<span class="o">]</span>   <span class="nv">unknown</span> <span class="o">=</span> <span class="m">1</span>
-<span class="o">[</span>I<span class="o">]</span> ChiakiOpusDecoder initialized
-<span class="o">[</span>I<span class="o">]</span> Audio Device alsa_output.pci-0000_04_00.5-platform-acp5x_mach.0.HiFi__hw_acp5x_1__sink opened with <span class="m">2</span> channels @ <span class="m">48000</span> Hz, buffer size <span class="m">19200</span>
-<span class="o">[</span>I<span class="o">]</span> Video Profiles:
-<span class="o">[</span>I<span class="o">]</span>   <span class="m">0</span>: 1920x1080
-<span class="o">[</span>I<span class="o">]</span> StreamConnection successfully received streaminfo
-<span class="o">[</span>I<span class="o">]</span> Switched to profile <span class="m">0</span>, resolution: 1920x1080
-<span class="o">[</span>I<span class="o">]</span> Ctrl received Heartbeat, sending reply
-<span class="o">[</span>I<span class="o">]</span> StreamConnection is disconnecting
-<span class="o">[</span>I<span class="o">]</span> StreamConnection sending Disconnect
-<span class="o">[</span>I<span class="o">]</span> StreamConnection was requested to stop
-<span class="o">[</span>I<span class="o">]</span> StreamConnection closed takion
-<span class="o">[</span>I<span class="o">]</span> StreamConnection completed successfully
-<span class="o">[</span>I<span class="o">]</span> Ctrl requested to stop
-<span class="o">[</span>I<span class="o">]</span> Ctrl stopped
-<span class="o">[</span>I<span class="o">]</span> Session has quit
-    .__    .__        __   .__   _____     .___             __
-____ <span class="p">|</span>  <span class="p">|</span>__ <span class="p">|</span>__<span class="p">|</span>____  <span class="p">|</span>  <span class="p">|</span> _<span class="p">|</span>__<span class="p">|</span> /  <span class="p">|</span>  <span class="p">|</span>  __<span class="p">|</span> _/____   ____ <span class="p">|</span>  <span class="p">|</span> __
-_/ ___<span class="se">\|</span>  <span class="p">|</span>  <span class="se">\|</span>  <span class="se">\_</span>_  <span class="se">\ </span><span class="p">|</span>  <span class="p">|</span>/ /  <span class="p">|</span>/   <span class="p">|</span>  <span class="p">|</span>_/ __ <span class="p">|</span>/ __ <span class="se">\_</span>/ ___<span class="se">\|</span>  <span class="p">|</span>/ /
-<span class="se">\ </span> <span class="se">\_</span>__<span class="p">|</span>   Y  <span class="se">\ </span> <span class="p">|</span>/ __ <span class="se">\|</span>    &lt;<span class="p">|</span>  /    ^   / /_/ <span class="se">\ </span> ___/<span class="se">\ </span> <span class="se">\_</span>__<span class="p">|</span>    &lt;
-<span class="se">\_</span>__  &gt;___<span class="p">|</span>  /__<span class="o">(</span>____  /__<span class="p">|</span>_ <span class="se">\_</span>_<span class="se">\_</span>___   <span class="p">|</span><span class="se">\_</span>___ <span class="p">|</span><span class="se">\_</span>__  &gt;<span class="se">\_</span>__  &gt;__<span class="p">|</span>_ <span class="se">\</span>
-    <span class="se">\/</span>     <span class="se">\/</span>        <span class="se">\/</span>     <span class="se">\/</span>       <span class="p">|</span>__<span class="p">|</span>     <span class="se">\/</span>    <span class="se">\/</span>     <span class="se">\/</span>     <span class="se">\/</span>
-                    .__        __             .___._.
-______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <span class="p">|</span>_  ____   __<span class="p">|</span> _/<span class="p">|</span> <span class="p">|</span>
-/  ___// ___<span class="se">\_</span>  __ <span class="se">\ </span> <span class="se">\_</span>___ <span class="se">\ </span>  __<span class="se">\/</span> __ <span class="se">\ </span>/ __ <span class="p">|</span> <span class="p">|</span> <span class="p">|</span>
-<span class="se">\_</span>__ <span class="se">\ </span> <span class="se">\_</span>__<span class="p">|</span>  <span class="p">|</span> <span class="se">\/</span>  <span class="p">|</span>  <span class="p">|</span>_&gt; &gt;  <span class="p">|</span> <span class="se">\ </span> ___// /_/ <span class="p">|</span>  <span class="se">\|</span>
-/____  &gt;<span class="se">\_</span>__  &gt;__<span class="p">|</span>  <span class="p">|</span>__<span class="p">|</span>   __/<span class="p">|</span>__<span class="p">|</span>  <span class="se">\_</span>__  &gt;____ <span class="p">|</span>  __
-    <span class="se">\/</span>     <span class="se">\/</span>         <span class="p">|</span>__<span class="p">|</span>             <span class="se">\/</span>     <span class="se">\/</span>  <span class="se">\/</span>
+sounds<span class="w"> </span>good,<span class="w"> </span>launching<span class="w"> </span>script<span class="w"> </span>now...
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Logging<span class="w"> </span>to<span class="w"> </span>file<span class="w"> </span>/home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Chiaki<span class="w"> </span>Version<span class="w"> </span><span class="m">2</span>.1.1
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Using<span class="w"> </span>hardware<span class="w"> </span>decoder<span class="w"> </span><span class="s2">&quot;vaapi&quot;</span>
+Device<span class="w"> </span>Found
+type:<span class="w"> </span>28de<span class="w"> </span><span class="m">1205</span>
+path:<span class="w"> </span>/dev/hidraw3
+serial_number:<span class="w"> </span>
+Manufacturer:<span class="w"> </span>Valve<span class="w"> </span>Software
+Product:<span class="w">      </span>Steam<span class="w"> </span>Deck<span class="w"> </span>Controller
+Release:<span class="w">      </span><span class="m">200</span>
+Interface:<span class="w">    </span><span class="m">2</span>
+Usage<span class="w"> </span><span class="o">(</span>page<span class="o">)</span>:<span class="w"> </span>0x1<span class="w"> </span><span class="o">(</span>0xffff<span class="o">)</span>
+
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Connected<span class="w"> </span>Steam<span class="w"> </span>Deck<span class="w"> </span>...<span class="w"> </span>gyro<span class="w"> </span>online
+
+
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Controller<span class="w"> </span><span class="m">0</span><span class="w"> </span>opened:<span class="w"> </span><span class="s2">&quot;Microsoft X-Box 360 pad 0 (030079f6de280000ff11000001000000)&quot;</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>session<span class="w"> </span>request<span class="w"> </span><span class="k">for</span><span class="w"> </span>PS5
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Trying<span class="w"> </span>to<span class="w"> </span>request<span class="w"> </span>session<span class="w"> </span>from<span class="w"> </span><span class="m">192</span>.168.1.16:9295
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Connected<span class="w"> </span>to<span class="w"> </span><span class="m">192</span>.168.1.16:9295
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Sending<span class="w"> </span>session<span class="w"> </span>request
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>OpenGL<span class="w"> </span>initialized<span class="w"> </span>with<span class="w"> </span>version<span class="w"> </span><span class="s2">&quot;4.6 (Core Profile) Mesa 22.2.4 (git-80df10f902)&quot;</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Session<span class="w"> </span>request<span class="w"> </span>successful
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>ctrl
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>connected<span class="w"> </span>to<span class="w"> </span><span class="m">192</span>.168.1.16:9295
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Sending<span class="w"> </span>ctrl<span class="w"> </span>request
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>received<span class="w"> </span>http<span class="w"> </span>header<span class="w"> </span>as<span class="w"> </span>response
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>received<span class="w"> </span>ctrl<span class="w"> </span>request<span class="w"> </span>http<span class="w"> </span>response
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>got<span class="w"> </span>Server<span class="w"> </span>Type:<span class="w"> </span><span class="m">2</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>connected
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>received<span class="w"> </span>Login<span class="w"> </span>PIN<span class="w"> </span>request
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>requested<span class="w"> </span>Login<span class="w"> </span>PIN
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Session<span class="w"> </span>received<span class="w"> </span>entered<span class="w"> </span>Login<span class="w"> </span>PIN,<span class="w"> </span>forwarding<span class="w"> </span>to<span class="w"> </span>Ctrl
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>received<span class="w"> </span>entered<span class="w"> </span>Login<span class="w"> </span>PIN,<span class="w"> </span>sending<span class="w"> </span>to<span class="w"> </span>console
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Steam<span class="w"> </span>Deck<span class="w"> </span>Haptics<span class="w"> </span>Audio<span class="w"> </span>opened<span class="w"> </span>with<span class="w"> </span><span class="m">2</span><span class="w"> </span>channels<span class="w"> </span>@<span class="w"> </span><span class="m">3000</span><span class="w"> </span>Hz<span class="w"> </span>with<span class="w"> </span><span class="m">150</span><span class="w"> </span>samples<span class="w"> </span>per<span class="w"> </span>audio<span class="w"> </span>analysis.
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>received<span class="w"> </span>Login<span class="w"> </span>message:<span class="w"> </span>success
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>received<span class="w"> </span>valid<span class="w"> </span>Session<span class="w"> </span>Id:<span class="w"> </span>1673022831TZLW3NGFZP76ZLUPAOHZBA64PQQ2AF6LXUET2OFDTKAJF4XVGUAXOMOQDXBVVCAS
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>Senkusha
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Enabling<span class="w"> </span>DualSense<span class="w"> </span>features
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>connecting<span class="w"> </span><span class="o">(</span>version<span class="w"> </span><span class="m">7</span><span class="o">)</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>enabled<span class="w"> </span>Don<span class="err">&#39;</span>t<span class="w"> </span>Fragment<span class="w"> </span>Bit
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>sent<span class="w"> </span>init
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>received<span class="w"> </span>init<span class="w"> </span>ack<span class="w"> </span>with<span class="w"> </span>remote<span class="w"> </span>tag<span class="w"> </span>0xb18ccf,<span class="w"> </span>outbound<span class="w"> </span>streams:<span class="w"> </span>0x64,<span class="w"> </span>inbound<span class="w"> </span>streams:<span class="w"> </span>0x64
+<span class="o">[</span>W<span class="o">]</span><span class="w"> </span>Received<span class="w"> </span>Ctrl<span class="w"> </span>Message<span class="w"> </span>with<span class="w"> </span>unknown<span class="w"> </span><span class="nb">type</span><span class="w"> </span>0x16
+<span class="o">[</span>W<span class="o">]</span><span class="w"> </span>offset<span class="w"> </span><span class="m">0</span><span class="w">  </span><span class="m">1</span><span class="w">  </span><span class="m">2</span><span class="w">  </span><span class="m">3</span><span class="w">  </span><span class="m">4</span><span class="w">  </span><span class="m">5</span><span class="w">  </span><span class="m">6</span><span class="w">  </span><span class="m">7</span><span class="w">  </span><span class="m">8</span><span class="w">  </span><span class="m">9</span><span class="w">  </span>a<span class="w">  </span>b<span class="w">  </span>c<span class="w">  </span>d<span class="w">  </span>e<span class="w">  </span>f<span class="w">  </span>0123456789abcdef
+<span class="o">[</span>W<span class="o">]</span><span class="w">      </span><span class="m">0</span><span class="w"> </span><span class="m">01</span><span class="w"> </span>ff<span class="w">                                           </span>..<span class="w">              </span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>sent<span class="w"> </span>cookie
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>received<span class="w"> </span>cookie<span class="w"> </span>ack
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>connected
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>big
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>successfully<span class="w"> </span>received<span class="w"> </span>bang
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>Ping<span class="w"> </span>Test<span class="w"> </span>with<span class="w"> </span>count<span class="w"> </span><span class="m">10</span><span class="w"> </span>starting
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>enabled<span class="w"> </span><span class="nb">echo</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>.019<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">1</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>.841<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">2</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>.460<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">3</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>.504<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">4</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>.030<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">5</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>.778<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">6</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>.131<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">7</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>.795<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">8</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>.992<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>Ping<span class="w"> </span><span class="m">9</span><span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>index<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>Pong,<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>.064<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>disabled<span class="w"> </span><span class="nb">echo</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>determined<span class="w"> </span>average<span class="w"> </span><span class="nv">RTT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>.961<span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>starting<span class="w"> </span>MTU<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>with<span class="w"> </span>min<span class="w"> </span><span class="m">576</span>,<span class="w"> </span>max<span class="w"> </span><span class="m">1454</span>,<span class="w"> </span>retries<span class="w"> </span><span class="m">3</span>,<span class="w"> </span>timeout<span class="w"> </span><span class="m">14</span><span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>MTU<span class="w"> </span>request<span class="w"> </span><span class="m">1454</span><span class="w"> </span><span class="o">(</span>min<span class="w"> </span><span class="m">576</span>,<span class="w"> </span>max<span class="w"> </span><span class="m">1454</span><span class="o">)</span>,<span class="w"> </span>id<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>attempt<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>MTU<span class="w"> </span><span class="m">1454</span><span class="w"> </span>success
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>determined<span class="w"> </span>inbound<span class="w"> </span>MTU<span class="w"> </span><span class="m">1454</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>starting<span class="w"> </span>MTU<span class="w"> </span>out<span class="w"> </span><span class="nb">test</span><span class="w"> </span>with<span class="w"> </span>min<span class="w"> </span><span class="m">576</span>,<span class="w"> </span>max<span class="w"> </span><span class="m">1454</span>,<span class="w"> </span>retries<span class="w"> </span><span class="m">3</span>,<span class="w"> </span>timeout<span class="w"> </span><span class="m">14</span><span class="w"> </span>ms
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sent<span class="w"> </span>initial<span class="w"> </span>client<span class="w"> </span>MTU<span class="w"> </span><span class="nb">command</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>received<span class="w"> </span>expected<span class="w"> </span>Client<span class="w"> </span>MTU<span class="w"> </span>Command
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>MTU<span class="w"> </span><span class="m">1454</span><span class="w"> </span>out<span class="w"> </span>ping<span class="w"> </span>attempt<span class="w"> </span><span class="m">0</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>MTU<span class="w"> </span>ping<span class="w"> </span><span class="m">1454</span><span class="w"> </span>success
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>determined<span class="w"> </span>outbound<span class="w"> </span>MTU<span class="w"> </span><span class="m">1454</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>sending<span class="w"> </span>final<span class="w"> </span>Client<span class="w"> </span>MTU<span class="w"> </span>Command
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>is<span class="w"> </span>disconnecting
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>closed<span class="w"> </span>takion
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Senkusha<span class="w"> </span>completed<span class="w"> </span>successfully
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>connecting<span class="w"> </span><span class="o">(</span>version<span class="w"> </span><span class="m">12</span><span class="o">)</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>sent<span class="w"> </span>init
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>received<span class="w"> </span>init<span class="w"> </span>ack<span class="w"> </span>with<span class="w"> </span>remote<span class="w"> </span>tag<span class="w"> </span>0x7033129,<span class="w"> </span>outbound<span class="w"> </span>streams:<span class="w"> </span>0x64,<span class="w"> </span>inbound<span class="w"> </span>streams:<span class="w"> </span>0x64
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>sent<span class="w"> </span>cookie
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>received<span class="w"> </span>cookie<span class="w"> </span>ack
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Takion<span class="w"> </span>connected
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>sending<span class="w"> </span>big
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>BANG<span class="w"> </span>received
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>successfully<span class="w"> </span>received<span class="w"> </span>bang
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Crypt<span class="w"> </span>has<span class="w"> </span>become<span class="w"> </span>available.<span class="w"> </span>Re-checking<span class="w"> </span>MACs<span class="w"> </span>of<span class="w"> </span><span class="m">0</span><span class="w"> </span>packets
+<span class="o">[</span>W<span class="o">]</span><span class="w"> </span>Received<span class="w"> </span>Ctrl<span class="w"> </span>Message<span class="w"> </span>with<span class="w"> </span>unknown<span class="w"> </span><span class="nb">type</span><span class="w"> </span>0x41
+<span class="o">[</span>W<span class="o">]</span><span class="w"> </span>offset<span class="w"> </span><span class="m">0</span><span class="w">  </span><span class="m">1</span><span class="w">  </span><span class="m">2</span><span class="w">  </span><span class="m">3</span><span class="w">  </span><span class="m">4</span><span class="w">  </span><span class="m">5</span><span class="w">  </span><span class="m">6</span><span class="w">  </span><span class="m">7</span><span class="w">  </span><span class="m">8</span><span class="w">  </span><span class="m">9</span><span class="w">  </span>a<span class="w">  </span>b<span class="w">  </span>c<span class="w">  </span>d<span class="w">  </span>e<span class="w">  </span>f<span class="w">  </span>0123456789abcdef
+<span class="o">[</span>W<span class="o">]</span><span class="w">      </span><span class="m">0</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">02</span><span class="w"> </span><span class="m">01</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">                         </span>........<span class="w">        </span>
+<span class="o">[</span>D<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>received<span class="w"> </span>audio<span class="w"> </span>header:
+<span class="o">[</span>D<span class="o">]</span><span class="w"> </span>offset<span class="w"> </span><span class="m">0</span><span class="w">  </span><span class="m">1</span><span class="w">  </span><span class="m">2</span><span class="w">  </span><span class="m">3</span><span class="w">  </span><span class="m">4</span><span class="w">  </span><span class="m">5</span><span class="w">  </span><span class="m">6</span><span class="w">  </span><span class="m">7</span><span class="w">  </span><span class="m">8</span><span class="w">  </span><span class="m">9</span><span class="w">  </span>a<span class="w">  </span>b<span class="w">  </span>c<span class="w">  </span>d<span class="w">  </span>e<span class="w">  </span>f<span class="w">  </span>0123456789abcdef
+<span class="o">[</span>D<span class="o">]</span><span class="w">      </span><span class="m">0</span><span class="w"> </span><span class="m">02</span><span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span>bb<span class="w"> </span><span class="m">80</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">01</span><span class="w"> </span>e0<span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">01</span><span class="w">       </span>..............<span class="w">  </span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Audio<span class="w"> </span>Header:
+<span class="o">[</span>I<span class="o">]</span><span class="w">   </span><span class="nv">channels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w">   </span><span class="nv">bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w">   </span><span class="nv">rate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">48000</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w">   </span>frame<span class="w"> </span><span class="nv">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">480</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w">   </span><span class="nv">unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>ChiakiOpusDecoder<span class="w"> </span>initialized
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Audio<span class="w"> </span>Device<span class="w"> </span>alsa_output.pci-0000_04_00.1.hdmi-stereo-extra2<span class="w"> </span>opened<span class="w"> </span>with<span class="w"> </span><span class="m">2</span><span class="w"> </span>channels<span class="w"> </span>@<span class="w"> </span><span class="m">48000</span><span class="w"> </span>Hz,<span class="w"> </span>buffer<span class="w"> </span>size<span class="w"> </span><span class="m">19200</span>
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Video<span class="w"> </span>Profiles:
+<span class="o">[</span>I<span class="o">]</span><span class="w">   </span><span class="m">0</span>:<span class="w"> </span>1920x1080
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>successfully<span class="w"> </span>received<span class="w"> </span>streaminfo
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Switched<span class="w"> </span>to<span class="w"> </span>profile<span class="w"> </span><span class="m">0</span>,<span class="w"> </span>resolution:<span class="w"> </span>1920x1080
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>is<span class="w"> </span>disconnecting
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>sending<span class="w"> </span>Disconnect
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>was<span class="w"> </span>requested<span class="w"> </span>to<span class="w"> </span>stop
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>closed<span class="w"> </span>takion
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>StreamConnection<span class="w"> </span>completed<span class="w"> </span>successfully
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>requested<span class="w"> </span>to<span class="w"> </span>stop
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Ctrl<span class="w"> </span>stopped
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Session<span class="w"> </span>has<span class="w"> </span>quit
+<span class="w">    </span>.__<span class="w">    </span>.__<span class="w">        </span>__<span class="w">   </span>.__<span class="w">   </span>_____<span class="w">     </span>.___<span class="w">             </span>__<span class="w">    </span>
+____<span class="w"> </span><span class="p">|</span><span class="w">  </span><span class="p">|</span>__<span class="w"> </span><span class="p">|</span>__<span class="p">|</span>____<span class="w">  </span><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>_<span class="p">|</span>__<span class="p">|</span><span class="w"> </span>/<span class="w">  </span><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w">  </span>__<span class="p">|</span><span class="w"> </span>_/____<span class="w">   </span>____<span class="w"> </span><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>__
+_/<span class="w"> </span>___<span class="se">\|</span><span class="w">  </span><span class="p">|</span><span class="w">  </span><span class="se">\|</span><span class="w">  </span><span class="se">\_</span>_<span class="w">  </span><span class="se">\ </span><span class="p">|</span><span class="w">  </span><span class="p">|</span>/<span class="w"> </span>/<span class="w">  </span><span class="p">|</span>/<span class="w">   </span><span class="p">|</span><span class="w">  </span><span class="p">|</span>_/<span class="w"> </span>__<span class="w"> </span><span class="p">|</span>/<span class="w"> </span>__<span class="w"> </span><span class="se">\_</span>/<span class="w"> </span>___<span class="se">\|</span><span class="w">  </span><span class="p">|</span>/<span class="w"> </span>/
+<span class="se">\ </span><span class="w"> </span><span class="se">\_</span>__<span class="p">|</span><span class="w">   </span>Y<span class="w">  </span><span class="se">\ </span><span class="w"> </span><span class="p">|</span>/<span class="w"> </span>__<span class="w"> </span><span class="se">\|</span><span class="w">    </span>&lt;<span class="p">|</span><span class="w">  </span>/<span class="w">    </span>^<span class="w">   </span>/<span class="w"> </span>/_/<span class="w"> </span><span class="se">\ </span><span class="w"> </span>___/<span class="se">\ </span><span class="w"> </span><span class="se">\_</span>__<span class="p">|</span><span class="w">    </span>&lt;<span class="w"> </span>
+<span class="se">\_</span>__<span class="w">  </span>&gt;___<span class="p">|</span><span class="w">  </span>/__<span class="o">(</span>____<span class="w">  </span>/__<span class="p">|</span>_<span class="w"> </span><span class="se">\_</span>_<span class="se">\_</span>___<span class="w">   </span><span class="p">|</span><span class="se">\_</span>___<span class="w"> </span><span class="p">|</span><span class="se">\_</span>__<span class="w">  </span>&gt;<span class="se">\_</span>__<span class="w">  </span>&gt;__<span class="p">|</span>_<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="se">\/</span><span class="w">     </span><span class="se">\/</span><span class="w">        </span><span class="se">\/</span><span class="w">     </span><span class="se">\/</span><span class="w">       </span><span class="p">|</span>__<span class="p">|</span><span class="w">     </span><span class="se">\/</span><span class="w">    </span><span class="se">\/</span><span class="w">     </span><span class="se">\/</span><span class="w">     </span><span class="se">\/</span>
+<span class="w">                    </span>.__<span class="w">        </span>__<span class="w">             </span>.___._.
+______<span class="w"> </span>___________<span class="p">|</span>__<span class="p">|</span>______/<span class="w">  </span><span class="p">|</span>_<span class="w">  </span>____<span class="w">   </span>__<span class="p">|</span><span class="w"> </span>_/<span class="p">|</span><span class="w"> </span><span class="p">|</span>
+/<span class="w">  </span>___//<span class="w"> </span>___<span class="se">\_</span><span class="w">  </span>__<span class="w"> </span><span class="se">\ </span><span class="w"> </span><span class="se">\_</span>___<span class="w"> </span><span class="se">\ </span><span class="w">  </span>__<span class="se">\/</span><span class="w"> </span>__<span class="w"> </span><span class="se">\ </span>/<span class="w"> </span>__<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span>
+<span class="se">\_</span>__<span class="w"> </span><span class="se">\ </span><span class="w"> </span><span class="se">\_</span>__<span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span><span class="se">\/</span><span class="w">  </span><span class="p">|</span><span class="w">  </span><span class="p">|</span>_&gt;<span class="w"> </span>&gt;<span class="w">  </span><span class="p">|</span><span class="w"> </span><span class="se">\ </span><span class="w"> </span>___//<span class="w"> </span>/_/<span class="w"> </span><span class="p">|</span><span class="w">  </span><span class="se">\|</span>
+/____<span class="w">  </span>&gt;<span class="se">\_</span>__<span class="w">  </span>&gt;__<span class="p">|</span><span class="w">  </span><span class="p">|</span>__<span class="p">|</span><span class="w">   </span>__/<span class="p">|</span>__<span class="p">|</span><span class="w">  </span><span class="se">\_</span>__<span class="w">  </span>&gt;____<span class="w"> </span><span class="p">|</span><span class="w">  </span>__
+<span class="w">    </span><span class="se">\/</span><span class="w">     </span><span class="se">\/</span><span class="w">         </span><span class="p">|</span>__<span class="p">|</span><span class="w">             </span><span class="se">\/</span><span class="w">     </span><span class="se">\/</span><span class="w">  </span><span class="se">\/</span>
 </code></pre></div>
 </details>
 </li>
@@ -931,11 +1017,11 @@ ______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <sp
 <ol>
 <li>
 <p>It was the nickname listed with your console in the console widget. It can also be obtained with</p>
-<div class="highlight"><pre><span></span><code>flatpak run re.chiaki.Chiaki4deck list
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>list
 </code></pre></div>
 <details class="example" open="open">
 <summary>Example Output</summary>
-<div class="highlight"><pre><span></span><code>Host: PS5-012
+<div class="highlight"><pre><span></span><code>Host:<span class="w"> </span>PS5-012
 </code></pre></div>
 <p>In this example, the console nickname is <code>PS5-012</code>, please use your nickname. If you have multiple, choose the one from the list you want and choose the corresponding regist_key in the next step (i.e.,  if you pick the console on the 2<sup>nd</sup> line here, pick the regist_key on the 2<sup>nd</sup> line in the next step).</p>
 </details>
@@ -947,7 +1033,7 @@ ______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <sp
 <ol>
 <li>
 <p>Run the following command in your console</p>
-<div class="highlight"><pre><span></span><code>cat ~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf <span class="p">|</span> grep regist_key <span class="p">|</span> cut -d <span class="s1">&#39;(&#39;</span> -f2 <span class="p">|</span> cut -d <span class="s1">&#39;\&#39;</span> -f1
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>regist_key<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;(&#39;</span><span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\&#39;</span><span class="w"> </span>-f1
 </code></pre></div>
 <details class="example" open="open">
 <summary>Example Output</summary>
@@ -984,84 +1070,129 @@ ______ ___________<span class="p">|</span>__<span class="p">|</span>______/  <sp
 </li>
 <li>
 <p>Create a new blank file located in the folder <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki</code> named  <code>Chiaki-launcher.sh</code></p>
-<div class="highlight"><pre><span></span><code>touch <span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
+<div class="highlight"><pre><span></span><code>touch<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
 </code></pre></div>
 </li>
 <li>
 <p>Open the <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> file in your favorite editor and save the following output.</p>
 <div class="highlight"><pre><span></span><code><span class="ch">#!/usr/bin/env bash</span>
 
-connect_error<span class="o">()</span>
+connect_error_loc<span class="o">()</span>
 <span class="o">{</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Couldn&#39;t connect to your PlayStation console!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please check that your Steam Deck and PlayStation are on the same network&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: ...and that you have the right PlayStation IP Address!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">1</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Couldn&#39;t connect to your PlayStation console from your local address!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please check that your Steam Deck and PlayStation are on the same network&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: ...and that you have the right PlayStation IP address or hostname!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<span class="o">}</span>
+
+connect_error_ext<span class="o">()</span>
+<span class="o">{</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Couldn&#39;t connect to your PlayStation console from your external address!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please check that you have forwarded the necessary ports on your router&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: ...and that you have the right external PlayStation IP address or hostname!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
 <span class="o">}</span>
 
 wakeup_error<span class="o">()</span>
 <span class="o">{</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Couldn&#39;t wake up PlayStation console from sleep!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please make sure you are using the correct PlayStation # (4 or 5).&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: If not, change the wakeup call to use the number of your PlayStation console&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Couldn&#39;t wake up PlayStation console from sleep!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please make sure you are using a PlayStation 5.&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: If not, change the wakeup call to use the number of your PlayStation console&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span>
 <span class="o">}</span>
 
 timeout_error<span class="o">()</span>
 <span class="o">{</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: PlayStation console didn&#39;t become ready in 35 seconds!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please change 35 to a higher number in your script if this persists.&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">1</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: PlayStation console didn&#39;t become ready in 35 seconds!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please change 35 to a higher number in your script if this persists.&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
 <span class="o">}</span>
-
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>iwgetid<span class="w"> </span>-r<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;&lt;local_ssid&gt;&quot;</span><span class="w"> </span><span class="o">]</span>
+<span class="k">then</span>
+<span class="w">    </span><span class="nv">addr</span><span class="o">=</span><span class="s2">&quot;&lt;local_addr&gt;&quot;</span>
+<span class="w">    </span><span class="nv">local</span><span class="o">=</span><span class="nb">true</span>
+<span class="k">else</span>
+<span class="w">    </span><span class="nv">addr</span><span class="o">=</span><span class="s2">&quot;&lt;external_addr&gt;&quot;</span>
+<span class="w">    </span><span class="nv">local</span><span class="o">=</span><span class="nb">false</span>
+<span class="k">fi</span>
 <span class="nv">SECONDS</span><span class="o">=</span><span class="m">0</span>
 <span class="c1"># Wait for console to be in sleep/rest mode or on (otherwise console isn&#39;t available)</span>
-<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak run re.chiaki.Chiaki4deck discover -h &lt;console_ip&gt; <span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
-<span class="k">while</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q <span class="s1">&#39;ready\|standby&#39;</span>
+<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="k">while</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s1">&#39;ready\|standby&#39;</span>
 <span class="k">do</span>
-    <span class="k">if</span> <span class="o">[</span> <span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span> -gt <span class="m">35</span> <span class="o">]</span>
-    <span class="k">then</span>
-        connect_error
-    <span class="k">fi</span>
-    sleep <span class="m">1</span>
-    <span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak run re.chiaki.Chiaki4deck discover -h &lt;console_ip&gt; <span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">35</span><span class="w"> </span><span class="o">]</span>
+<span class="w">    </span><span class="k">then</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">local</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="o">]</span>
+<span class="w">        </span><span class="k">then</span>
+<span class="w">            </span>connect_error_loc
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span>connect_error_ext
+<span class="w">        </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Wake up console from sleep/rest mode if not already awake</span>
-<span class="k">if</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q ready
+<span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>ready
 <span class="k">then</span>
-    flatpak run re.chiaki.Chiaki4deck wakeup -&lt;playstation_console&gt; -h &lt;console_ip&gt; -r <span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span> <span class="m">2</span>&gt;/dev/null
+<span class="w">    </span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>wakeup<span class="w"> </span>-&lt;playstation_console&gt;<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
 <span class="k">fi</span>
 
 <span class="c1"># Wait for PlayStation to report ready status, exit script on error if it never happens.</span>
-<span class="k">while</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q ready
+<span class="k">while</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>ready
 <span class="k">do</span>
-    <span class="k">if</span> <span class="o">[</span> <span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span> -gt <span class="m">35</span> <span class="o">]</span>
-    <span class="k">then</span>
-        <span class="k">if</span> <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q standby
-        <span class="k">then</span>
-            wakeup_error
-        <span class="k">else</span>
-            timeout_error
-        <span class="k">fi</span>
-    <span class="k">fi</span>
-    sleep <span class="m">1</span>
-    <span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak run re.chiaki.Chiaki4deck discover -h &lt;console_ip&gt; <span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">35</span><span class="w"> </span><span class="o">]</span>
+<span class="w">    </span><span class="k">then</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>standby
+<span class="w">        </span><span class="k">then</span>
+<span class="w">            </span>wakeup_error
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span>timeout_error
+<span class="w">        </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --passcode &lt;login_passcode&gt; --&lt;launch_option&gt; stream <span class="s1">&#39;&lt;console_nickname&gt;&#39;</span> &lt;console_ip&gt;
+flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>--passcode<span class="w"> </span>&lt;login_passcode&gt;<span class="w"> </span>--&lt;launch_option&gt;<span class="w"> </span>stream<span class="w"> </span><span class="s1">&#39;&lt;console_nickname&gt;&#39;</span><span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span>
 </code></pre></div>
 </li>
 <li>
 <p>Edit the <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> file, replacing the following values for your values:</p>
 <ol>
 <li>
-<p><code>&lt;console_ip&gt;</code></p>
+<p><code>&lt;local_ssid&gt;</code> local network name found with:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Via konsole</label><label for="__tabbed_2_2">Via GUI</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>iwgetid<span class="w"> </span>-r
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Must Be Currently Connected to Local Network</p>
+<p>You must be connected to your current local network for this <code>konsole</code> method to work. Otherwise, it will give you the network you are currently connected to or nothing (if you're not currently connected to a network). If you're not connected to your home network you can view your SSID via the GUI using the <code>Via GUI</code> tab.</p>
+</div>
+</div>
+<div class="tabbed-block">
+<p>The connection name/SSID for your home network in Steam Deck network settings such as <code>StreetPea-5G</code>.</p>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p><code>&lt;local_addr&gt;</code> with local PlayStation IP</p>
+</li>
+<li>
+<p><code>&lt;external_addr&gt;</code> with external IP or hostname. </p>
+<div class="admonition tip">
+<p class="admonition-title">Filling this in Later</p>
+<p>You can use your local PlayStation IP or something like <code>foo.bar.com</code> as a placeholder if haven't set up an external IP/hostname yet. Then, if you decide to set up an external connection, you can manually substitute the "real" external IP/hostname.</p>
+</div>
 </li>
 <li>
 <p><code>&lt;console_nickname&gt;</code></p>
-<div class="admonition caution">
+<div class="admonition warning">
 <p class="admonition-title">Beware of '</p>
 <p>If you have any ' in your nickname itself, such as <code>Street Pea's PS5</code>, you will need enter the <code>'</code> as <code>'\''</code>. Thus, for <code>Street Pea's PS5</code> instead of using <code>Street Pea's PS5</code> you would use <code>Street Pea'\''s PS5</code>. All other characters are fine. This is due to the PlayStation console allowing any manner of names (including non-valid hostnames with all manner of special characters) and Chiaki using that name in its configuration file.</p>
 </div>
@@ -1083,66 +1214,86 @@ flatpak run re.chiaki.Chiaki4deck --passcode &lt;login_passcode&gt; --&lt;launch
 <summary>Example Script with "fake" values [yours will be different]</summary>
 <div class="highlight"><pre><span></span><code><span class="ch">#!/usr/bin/env bash</span>
 
-connect_error<span class="o">()</span>
+connect_error_loc<span class="o">()</span>
 <span class="o">{</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Couldn&#39;t connect to your PlayStation console!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please check that your Steam Deck and PlayStation are on the same network&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: ...and that you have the right PlayStation IP Address!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">1</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Couldn&#39;t connect to your PlayStation console from your local address!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please check that your Steam Deck and PlayStation are on the same network&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: ...and that you have the right PlayStation IP address or hostname!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<span class="o">}</span>
+
+connect_error_ext<span class="o">()</span>
+<span class="o">{</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Couldn&#39;t connect to your PlayStation console from your external address!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please check that you have forwarded the necessary ports on your router&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: ...and that you have the right external PlayStation IP address or hostname!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
 <span class="o">}</span>
 
 wakeup_error<span class="o">()</span>
 <span class="o">{</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Couldn&#39;t wake up PlayStation console from sleep!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please make sure you are using the correct PlayStation # (4 or 5).&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: If not, change the wakeup call to use the number of your PlayStation console&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Couldn&#39;t wake up PlayStation console from sleep!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please make sure you are using a PlayStation 5.&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: If not, change the wakeup call to use the number of your PlayStation console&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span>
 <span class="o">}</span>
 
 timeout_error<span class="o">()</span>
 <span class="o">{</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: PlayStation console didn&#39;t become ready in 35 seconds!&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">echo</span> <span class="s2">&quot;Error: Please change 35 to a higher number in your script if this persists.&quot;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">1</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: PlayStation console didn&#39;t become ready in 35 seconds!&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Error: Please change 35 to a higher number in your script if this persists.&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
 <span class="o">}</span>
-
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>iwgetid<span class="w"> </span>-r<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;StreetPea-5G&quot;</span><span class="w"> </span><span class="o">]</span>
+<span class="k">then</span>
+<span class="w">    </span><span class="nv">addr</span><span class="o">=</span><span class="s2">&quot;192.168.1.16&quot;</span>
+<span class="w">    </span><span class="nv">local</span><span class="o">=</span><span class="nb">true</span>
+<span class="k">else</span>
+<span class="w">    </span><span class="nv">addr</span><span class="o">=</span><span class="s2">&quot;foo.bar.com&quot;</span>
+<span class="w">    </span><span class="nv">local</span><span class="o">=</span><span class="nb">false</span>
+<span class="k">fi</span>
 <span class="nv">SECONDS</span><span class="o">=</span><span class="m">0</span>
 <span class="c1"># Wait for console to be in sleep/rest mode or on (otherwise console isn&#39;t available)</span>
-<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak run re.chiaki.Chiaki4deck discover -h <span class="m">192</span>.168.1.16 <span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
-<span class="k">while</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q <span class="s1">&#39;ready\|standby&#39;</span>
+<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="k">while</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s1">&#39;ready\|standby&#39;</span>
 <span class="k">do</span>
-    <span class="k">if</span> <span class="o">[</span> <span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span> -gt <span class="m">35</span> <span class="o">]</span>
-    <span class="k">then</span>
-        connect_error
-    <span class="k">fi</span>
-    sleep <span class="m">1</span>
-    <span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak run re.chiaki.Chiaki4deck discover -h <span class="m">192</span>.168.1.16 <span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">35</span><span class="w"> </span><span class="o">]</span>
+<span class="w">    </span><span class="k">then</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">local</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="o">]</span>
+<span class="w">        </span><span class="k">then</span>
+<span class="w">            </span>connect_error_loc
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span>connect_error_ext
+<span class="w">        </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Wake up console from sleep/rest mode if not already awake</span>
-<span class="k">if</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q ready
+<span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>ready
 <span class="k">then</span>
-    flatpak run re.chiaki.Chiaki4deck wakeup -5 -h <span class="m">192</span>.168.1.16 -r <span class="s1">&#39;2ebf539d&#39;</span> <span class="m">2</span>&gt;/dev/null
+<span class="w">    </span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>wakeup<span class="w"> </span>-5<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;2ebf539d&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
 <span class="k">fi</span>
 
 <span class="c1"># Wait for PlayStation to report ready status, exit script on error if it never happens.</span>
-<span class="k">while</span> ! <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q ready
+<span class="k">while</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>ready
 <span class="k">do</span>
-    <span class="k">if</span> <span class="o">[</span> <span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span> -gt <span class="m">35</span> <span class="o">]</span>
-    <span class="k">then</span>
-        <span class="k">if</span> <span class="nb">echo</span> <span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">|</span> grep -q standby
-        <span class="k">then</span>
-            wakeup_error
-        <span class="k">else</span>
-            timeout_error
-        <span class="k">fi</span>
-    <span class="k">fi</span>
-    sleep <span class="m">1</span>
-    <span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak run re.chiaki.Chiaki4deck discover -h <span class="m">192</span>.168.1.16 <span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">35</span><span class="w"> </span><span class="o">]</span>
+<span class="w">    </span><span class="k">then</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>standby
+<span class="w">        </span><span class="k">then</span>
+<span class="w">            </span>wakeup_error
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span>timeout_error
+<span class="w">        </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39;PS5-012&#39;</span> <span class="m">192</span>.168.1.16
+flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>--passcode<span class="w"> </span>--zoom<span class="w"> </span>stream<span class="w"> </span><span class="s1">&#39;PS5-012&#39;</span><span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Example is Without Login Passcode #</p>
@@ -1152,7 +1303,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
 </li>
 <li>
 <p>Make the script executable:</p>
-<div class="highlight"><pre><span></span><code>chmod +x <span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
+<div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
 </code></pre></div>
 </li>
 </ol>
@@ -1164,7 +1315,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
 <p>Test your newly created script (if you haven't already) by running:</p>
 <div class="highlight"><pre><span></span><code><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
 </code></pre></div>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Your script worked!</label><label for="__tabbed_2_2">Your script didn't work...</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Your script worked!</label><label for="__tabbed_3_2">Your script didn't work...</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="admonition success">
@@ -1173,9 +1324,9 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
 </div>
 </div>
 <div class="tabbed-block">
-<div class="admonition error">
+<div class="admonition failure">
 <p class="admonition-title">You are no longer on the happy path <img alt="😩" class="twemoji" src="https://twemoji.maxcdn.com/v/latest/svg/1f629.svg" title=":weary:" /></p>
-<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Script fails before launching stream window</label><label for="__tabbed_3_2">Error in stream window</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Script fails before launching stream window</label><label for="__tabbed_4_2">Error in stream window</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Check the error message and fix issues if obvious. Otherwise, things to check:</p>
@@ -1211,7 +1362,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 13, 2022</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">January 6, 2023</span>
       
         <br>
         Created:
@@ -1250,9 +1401,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
               
                 
               
-              
-                Thanks for your feedback!
-              
+              Thanks for your feedback!
             </div>
           
             <div data-md-value="0" hidden>
@@ -1260,9 +1409,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
               
                 
               
-              
-                Thanks for your feedback! Help me improve this page by using my <a href="https://github.com/streetpea/chiaki4deck/issues/new/?title=[Feedback]+Automation+-+/setup/automation/" target="_blank" rel="noopener">feedback form</a>.
-              
+              Thanks for your feedback! Help me improve this page by using my <a href="https://github.com/streetpea/chiaki4deck/issues/new/?title=[Feedback]+Automation+-+/setup/automation/" target="_blank" rel="noopener">feedback form</a>.
             </div>
           
         </div>
@@ -1270,12 +1417,14 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
     </fieldset>
   </form>
 
-              
-            </article>
-            
+
+                
+              </article>
+            </div>
+          
+          
   <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
 
-          </div>
         </div>
         
           <a href="#" class="md-top md-icon" data-md-component="top" hidden>
@@ -1288,40 +1437,42 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
         <footer class="md-footer">
   
     
-    <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
-        <a href="../configuration/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Configuration" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Configuration
+          
+          <a href="../configuration/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Configuration" rel="prev">
+            <div class="md-footer__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
             </div>
-          </div>
-        </a>
-      
-      
+            <div class="md-footer__title">
+              <div class="md-ellipsis">
+                <span class="md-footer__direction">
+                  Previous
+                </span>
+                Configuration
+              </div>
+            </div>
+          </a>
         
-        <a href="../steaming/" class="md-footer__link md-footer__link--next" aria-label="Next: Game (Mode) Time" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Game (Mode) Time
+        
+          
+          <a href="../steaming/" class="md-footer__link md-footer__link--next" aria-label="Next: Game (Mode) Time" rel="next">
+            <div class="md-footer__title">
+              <div class="md-ellipsis">
+                <span class="md-footer__direction">
+                  Next
+                </span>
+                Game (Mode) Time
+              </div>
             </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
+            <div class="md-footer__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -1348,7 +1499,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
       
     
     <a href="https://github.com/streetpea/chiaki4deck" target="_blank" rel="noopener" title="github.com" class="md-social__link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
     </a>
   
     
@@ -1357,7 +1508,7 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
       
     
     <a href="https://www.reddit.com/u/Street_Pea_6693/?utm_source=share&utm_medium=ios_app&utm_name=iossmf" target="_blank" rel="noopener" title="www.reddit.com" class="md-social__link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.1.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M201.5 305.5c-13.8 0-24.9-11.1-24.9-24.6 0-13.8 11.1-24.9 24.9-24.9 13.6 0 24.6 11.1 24.6 24.9 0 13.6-11.1 24.6-24.6 24.6zM504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-132.3-41.2c-9.4 0-17.7 3.9-23.8 10-22.4-15.5-52.6-25.5-86.1-26.6l17.4-78.3 55.4 12.5c0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.3 24.9-24.9s-11.1-24.9-24.9-24.9c-9.7 0-18 5.8-22.1 13.8l-61.2-13.6c-3-.8-6.1 1.4-6.9 4.4l-19.1 86.4c-33.2 1.4-63.1 11.3-85.5 26.8-6.1-6.4-14.7-10.2-24.1-10.2-34.9 0-46.3 46.9-14.4 62.8-1.1 5-1.7 10.2-1.7 15.5 0 52.6 59.2 95.2 132 95.2 73.1 0 132.3-42.6 132.3-95.2 0-5.3-.6-10.8-1.9-15.8 31.3-16 19.8-62.5-14.9-62.5zM302.8 331c-18.2 18.2-76.1 17.9-93.6 0-2.2-2.2-6.1-2.2-8.3 0-2.5 2.5-2.5 6.4 0 8.6 22.8 22.8 87.3 22.8 110.2 0 2.5-2.2 2.5-6.1 0-8.6-2.2-2.2-6.1-2.2-8.3 0zm7.7-75c-13.6 0-24.6 11.1-24.6 24.9 0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.1 24.9-24.6 0-13.8-11-24.9-24.9-24.9z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M201.5 305.5c-13.8 0-24.9-11.1-24.9-24.6 0-13.8 11.1-24.9 24.9-24.9 13.6 0 24.6 11.1 24.6 24.9 0 13.6-11.1 24.6-24.6 24.6zM504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-132.3-41.2c-9.4 0-17.7 3.9-23.8 10-22.4-15.5-52.6-25.5-86.1-26.6l17.4-78.3 55.4 12.5c0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.3 24.9-24.9s-11.1-24.9-24.9-24.9c-9.7 0-18 5.8-22.1 13.8l-61.2-13.6c-3-.8-6.1 1.4-6.9 4.4l-19.1 86.4c-33.2 1.4-63.1 11.3-85.5 26.8-6.1-6.4-14.7-10.2-24.1-10.2-34.9 0-46.3 46.9-14.4 62.8-1.1 5-1.7 10.2-1.7 15.5 0 52.6 59.2 95.2 132 95.2 73.1 0 132.3-42.6 132.3-95.2 0-5.3-.6-10.8-1.9-15.8 31.3-16 19.8-62.5-14.9-62.5zM302.8 331c-18.2 18.2-76.1 17.9-93.6 0-2.2-2.2-6.1-2.2-8.3 0-2.5 2.5-2.5 6.4 0 8.6 22.8 22.8 87.3 22.8 110.2 0 2.5-2.2 2.5-6.1 0-8.6-2.2-2.2-6.1-2.2-8.3 0zm7.7-75c-13.6 0-24.6 11.1-24.6 24.9 0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.1 24.9-24.6 0-13.8-11-24.9-24.9-24.9z"/></svg>
     </a>
   
 </div>
@@ -1377,19 +1528,27 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
           <form class="md-consent__form md-grid md-typeset" name="consent">
             
 
+  
+    
+  
 
+
+  
+    
   
 
 
 
   
+
 
 <h4>Cookie consent</h4>
 <p>I use cookies to recognize your repeated visits and preferences, as well as to measure the effectiveness of my documentation and whether users find what they're searching for. With your consent, you're helping me to make my documentation better.</p>
-<input type="checkbox" class="md-toggle" id="__settings">
+<input class="md-toggle" type="checkbox" id="__settings" >
 <div class="md-consent__settings">
   <ul class="task-list">
     
+      
       
         
         
@@ -1399,6 +1558,19 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
           <input type="checkbox" name="analytics" checked>
           <span class="task-list-indicator"></span>
           Google Analytics
+        <label>
+      </li>
+    
+      
+      
+        
+        
+      
+      <li class="task-list-item">
+        <label class="task-list-control">
+          <input type="checkbox" name="github" checked>
+          <span class="task-list-indicator"></span>
+          GitHub
         <label>
       </li>
     
@@ -1422,12 +1594,12 @@ flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream <span class="s1">&#39
           </form>
         </aside>
       </div>
-      <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);console.log(new FormData(form)),__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
+      <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout(function(){document.querySelector("[data-md-component=consent]").hidden=!1},250);var action,form=document.forms.consent;for(action of["submit","reset"])form.addEventListener(action,function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map(function(e){return[e,!0]}))),location.hash="",location.reload()})</script>
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "navigation.footer", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link", "content.code.copy", "content.action.edit", "content.action.view"], "search": "../../assets/javascripts/workers/search.12658920.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.9c69f0bc.min.js"></script>
+      <script src="../../assets/javascripts/bundle.5cf534bf.min.js"></script>
       
         <script src="../../js/print-site.js"></script>
       
