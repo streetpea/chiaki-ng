@@ -16,6 +16,16 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.3.1
+
+Small patch release
+
+- Added scrollbar to settings since bottom of page was cut off on Steam Deck
+- Fixed gyro mapping regression (causing drift in some games [i.e., Dreams])
+- Updated HIDAPI (dependency) to 0.13.1 due to critical bug in release 0.13.0
+
+Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
+
 ### 1.3.0
 
 - Native gyro support for Steam Deck

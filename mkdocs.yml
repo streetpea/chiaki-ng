@@ -24,7 +24,6 @@ nav:
 theme:
   favicon: images/chiaki.svg
   logo: images/chiaki.svg
-  custom_dir: overrides
   features:
     - header.autohide
     - navigation.sections

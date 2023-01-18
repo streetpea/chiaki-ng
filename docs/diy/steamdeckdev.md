@@ -157,7 +157,13 @@ This is for contributors that want to make/test updates to the codebase without 
         ./gui/chiaki
         ```
 
-5. After making changes to the source code, simply rebuild with make as per usual
+5. Make edits to the source code to implement your changes
+
+    !!! Tip "Editing code on Steam Deck"
+
+        Personally, I use vscode which you can install as a flatpak from Discover. You can open your chiaki code directory using vscode from your Steam Deck desktop and save changes. Then, these changes which will be reflected in your flatpak (since you mounted the chiaki code directory to your flatpak in the steps above) when you do a new build in your flatpak environment. The process would be similar with other code editors installed on your Steam Deck.
+
+6. After making changes to the source code, simply rebuild with make as per usual
 
 ## Debug Coredump From a flatpak
 
