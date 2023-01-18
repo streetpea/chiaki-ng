@@ -548,7 +548,7 @@ void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *us
 			event.motion.accel_z = -sdeck->prev_motion.accel_z / STEAM_DECK_ACCEL_RES;
 			event.motion.gyro_x = DEG2RAD * sdeck->prev_motion.gyro_x / STEAM_DECK_GYRO_RES;
 			event.motion.gyro_y = DEG2RAD * sdeck->prev_motion.gyro_y / STEAM_DECK_GYRO_RES;
-			event.motion.gyro_z = DEG2RAD * sdeck->prev_motion.gyro_z / STEAM_DECK_GYRO_RES;
+			event.motion.gyro_z = DEG2RAD * -sdeck->prev_motion.gyro_z / STEAM_DECK_GYRO_RES;
 			event.motion.orient_w = sdeck->prev_motion.orient_w / STEAM_DECK_ORIENT_RES;
 			event.motion.orient_x = sdeck->prev_motion.orient_x / STEAM_DECK_ORIENT_RES;
 			event.motion.orient_y = sdeck->prev_motion.orient_y / STEAM_DECK_ORIENT_RES;

@@ -36,8 +36,8 @@ typedef struct SDControls
     int16_t accel_z;         //0x1A-0x1B top to bottom of deck
     int16_t accel_y;         //0x1C-0x1D front to back of deck
     int16_t gyro_x;          //0x1E-0x1F pitch forward (+)/back (-)
-    int16_t gyro_y;          //0x20-0x21 yaw roate screen side-to-side counter-clockwise (+)(when standing up)
-    int16_t gyro_z;          //0x22-0x23 roll counter-clockwise twist (+)
+    int16_t gyro_z;          //0x20-0x21 roll counter-clockwise twist (+)
+    int16_t gyro_y;          //0x22-0x23 yaw roate screen side-to-side counter-clockwise (+)(when screen up)
     int16_t orient_w;        //0x24-0x25
     int16_t orient_x;        //0x26-0x27
     int16_t orient_z;        //0x28-0x29
