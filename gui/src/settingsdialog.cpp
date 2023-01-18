@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <QComboBox>
 #include <QFormLayout>
+#include <QScrollArea>
 #include <QMap>
 #include <QCheckBox>
 #include <QLineEdit>
@@ -45,8 +46,19 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	auto root_layout = new QVBoxLayout(this);
 	setLayout(root_layout);
 
+	auto scroll_area = new QScrollArea(this);
+	scroll_area->setWidgetResizable(true);
+	scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	root_layout->addWidget(scroll_area);
+
+	auto scroll_content_widget = new QWidget(scroll_area);
+	resize(1280, 800);
+	auto scroll_content_layout = new QVBoxLayout(scroll_content_widget);
+	scroll_content_widget->setLayout(scroll_content_layout);
+	scroll_area->setWidget(scroll_content_widget);
+
 	auto horizontal_layout = new QHBoxLayout();
-	root_layout->addLayout(horizontal_layout);
+	scroll_content_layout->addLayout(horizontal_layout);
 
 	auto left_layout = new QVBoxLayout();
 	horizontal_layout->addLayout(left_layout);
@@ -300,7 +312,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	// Close Button
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
-	root_layout->addWidget(button_box);
+	scroll_content_layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	button_box->button(QDialogButtonBox::Close)->setDefault(true);
 
