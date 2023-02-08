@@ -83,7 +83,7 @@ private class ChiakiNative
 		}
 		@JvmStatic external fun errorCodeToString(value: Int): String
 		@JvmStatic external fun quitReasonToString(value: Int): String
-		@JvmStatic external fun quitReasonIsStopped(value: Int): Boolean
+		@JvmStatic external fun quitReasonIsError(value: Int): Boolean
 		@JvmStatic external fun videoProfilePreset(resolutionPreset: Int, fpsPreset: Int, codec: Codec): ConnectVideoProfile
 		@JvmStatic external fun sessionCreate(result: CreateResult, connectInfo: ConnectInfo, logFile: String?, logVerbose: Boolean, javaSession: Session)
 		@JvmStatic external fun sessionFree(ptr: Long)
@@ -309,10 +309,7 @@ class QuitReason(val value: Int)
 {
 	override fun toString() = ChiakiNative.quitReasonToString(value)
 
-	/**
-	 * whether the reason is CHIAKI_QUIT_REASON_STOPPED
-	 */
-	val isStopped = ChiakiNative.quitReasonIsStopped(value)
+	val isError = ChiakiNative.quitReasonIsError(value)
 }
 
 sealed class Event
