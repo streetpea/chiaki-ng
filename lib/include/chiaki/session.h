@@ -94,10 +94,16 @@ typedef enum {
 	CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED,
 	CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED,
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN,
-	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED
+	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED,
+	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_SHUTDOWN, // like REMOTE_DISCONNECTED, but because the server shut down
 } ChiakiQuitReason;
 
 CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason);
+
+static inline bool chiaki_quit_reason_is_error(ChiakiQuitReason reason)
+{
+	return reason != CHIAKI_QUIT_REASON_STOPPED && reason != CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_SHUTDOWN;
+}
 
 typedef struct chiaki_quit_event_t
 {

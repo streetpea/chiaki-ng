@@ -110,9 +110,9 @@ JNIEXPORT jstring JNICALL JNI_FCN(quitReasonToString)(JNIEnv *env, jobject obj, 
 	return E->NewStringUTF(env, chiaki_quit_reason_string((ChiakiQuitReason)value));
 }
 
-JNIEXPORT jboolean JNICALL JNI_FCN(quitReasonIsStopped)(JNIEnv *env, jobject obj, jint value)
+JNIEXPORT jboolean JNICALL JNI_FCN(quitReasonIsError)(JNIEnv *env, jobject obj, jint value)
 {
-	return value == CHIAKI_QUIT_REASON_STOPPED;
+	return chiaki_quit_reason_is_error(value);
 }
 
 JNIEXPORT jobject JNICALL JNI_FCN(videoProfilePreset)(JNIEnv *env, jobject obj, jint resolution_preset, jint fps_preset, jobject codec)

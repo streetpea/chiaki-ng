@@ -193,7 +193,7 @@ void StreamWindow::closeEvent(QCloseEvent *event)
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
 {
-	if(reason != CHIAKI_QUIT_REASON_STOPPED)
+	if(chiaki_quit_reason_is_error(reason))
 	{
 		QString m = tr("Chiaki Session has quit") + ":\n" + chiaki_quit_reason_string(reason);
 		if(!reason_str.isEmpty())
