@@ -38,26 +38,17 @@ uniform sampler2D plane3; // V
 
 in vec2 uv_var;
 out vec4 out_color;
-
-const float yScale = 255.0 / (235.0 - 16.0);
-const float uvScale = 255.0 / (240.0 - 16.0);
-
-void main() {
-    float y = texture2D(plane1, uv_var).r;
-    float u = texture2D(plane2, uv_var).r - 0.5;
-    float v = texture2D(plane3, uv_var).r - 0.5;
-
-    y = y - 16.0/255.0;
-
-    float r = y*yScale +                          v*uvScale*1.5748;
-    float g = y*yScale - u*uvScale*1.8556*0.101 - v*uvScale*1.5748*0.2973;
-    float b = y*yScale + u*uvScale*1.8556;
-
-    r = clamp(r, 0.0, 1.0);
-    g = clamp(g, 0.0, 1.0);
-    b = clamp(b, 0.0, 1.0);
-
-	out_color = vec4(r,g,b,1.0);
+void main()
+{
+	vec3 yuv = vec3(
+		(texture(plane1, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
+		(texture(plane2, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
+		(texture(plane3, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5);
+	vec3 rgb = mat3(
+		1.0,  		1.0,  		1.0,
+		0.00000,	-0.18733,	1.85563,
+		1.57480,	-0.46812, 	0.0) * yuv;
+	out_color = vec4(rgb, 1.0);
 }
 )glsl";
 
