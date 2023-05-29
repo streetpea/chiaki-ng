@@ -558,7 +558,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
 	else
 	{
 		buf_sz = 0xc + CHIAKI_FEEDBACK_STATE_BUF_SIZE_V12;
-		chiaki_feedback_state_format_v12(buf + 0xc, feedback_state, takion->enable_dualsense);
+		chiaki_feedback_state_format_v12(buf + 0xc, feedback_state);
 	}
 	return takion_send_feedback_packet(takion, buf, buf_sz);
 }
