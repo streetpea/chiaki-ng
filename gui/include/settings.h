@@ -66,6 +66,9 @@ class Settings : public QObject
 		bool GetDualSenseEnabled() const		{ return settings.value("settings/dualsense_enabled", false).toBool(); }
 		void SetDualSenseEnabled(bool enabled)	{ settings.setValue("settings/dualsense_enabled", enabled); }
 
+		bool GetVerticalDeckEnabled() const       { return settings.value("settings/gyro_inverted", false).toBool(); }
+		void SetVerticalDeckEnabled(bool enabled) { settings.setValue("settings/gyro_inverted", enabled); }
+
 		ChiakiVideoResolutionPreset GetResolution() const;
 		void SetResolution(ChiakiVideoResolutionPreset resolution);
 

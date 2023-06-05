@@ -72,6 +72,9 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	bool vertical_sdeck;
+# endif
 
 	StreamSessionConnectInfo(
 			Settings *settings,
@@ -118,6 +121,9 @@ class StreamSession : public QObject
 		int sdeck_queue_segment;
 		uint64_t sdeck_last_haptic;
 		bool sdeck_skipl, sdeck_skipr;
+		ChiakiOrientationTracker sdeck_orient_tracker;
+		bool sdeck_orient_dirty;
+		bool vertical_sdeck;
 #endif
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;

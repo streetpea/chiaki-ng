@@ -39,7 +39,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		QString host,
 		QByteArray regist_key,
 		QByteArray morning,
-		QString initial_login_pin, 
+		QString initial_login_pin,
 		bool fullscreen, 
 		bool zoom, 
 		bool stretch)
@@ -63,6 +63,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
+	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -266,9 +267,23 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	else
 	{
 		CHIAKI_LOGI(GetChiakiLog(), "Connected Steam Deck ... gyro online\n\n");
+		vertical_sdeck = connect_info.vertical_sdeck;
+		if(vertical_sdeck)
+		{
+			chiaki_orientation_tracker_init(&sdeck_orient_tracker);
+			sdeck_orient_dirty = true;
+		}
+		else
+			sdeck_orient_dirty = false;
 		auto sdeck_timer = new QTimer(this);
 		connect(sdeck_timer, &QTimer::timeout, this, [this]{
 			sdeck_read(sdeck, SessionSDeckCb, this);
+			if(sdeck_orient_dirty)
+			{
+				chiaki_orientation_tracker_apply_to_controller_state(&sdeck_orient_tracker, &sdeck_state);
+				SendFeedbackState();
+				sdeck_orient_dirty = false;
+			}
 		});
 		sdeck_timer->start(STEAMDECK_UPDATE_INTERVAL_MS);
 	}
@@ -925,16 +940,28 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 	switch(event->type)
 	{
 		case SDECK_EVENT_MOTION:
-			sdeck_state.gyro_x = event->motion.gyro_x;
-			sdeck_state.gyro_y = event->motion.gyro_y;
-			sdeck_state.gyro_z = event->motion.gyro_z;
-			sdeck_state.accel_x = event->motion.accel_x;
-			sdeck_state.accel_y = event->motion.accel_y;
-			sdeck_state.accel_z = event->motion.accel_z;
-			sdeck_state.orient_w = event->motion.orient_w;
-			sdeck_state.orient_x = event->motion.orient_x;
-			sdeck_state.orient_y = event->motion.orient_y;
-			sdeck_state.orient_z = event->motion.orient_z;
+			if(!vertical_sdeck)
+			{
+				sdeck_state.gyro_x = event->motion.gyro_x;
+				sdeck_state.gyro_y = event->motion.gyro_y;
+				sdeck_state.gyro_z = event->motion.gyro_z;
+				sdeck_state.accel_x = event->motion.accel_x;
+				sdeck_state.accel_y = event->motion.accel_y;
+				sdeck_state.accel_z = event->motion.accel_z;
+				sdeck_state.orient_w = event->motion.orient_w;
+				sdeck_state.orient_x = event->motion.orient_x;
+				sdeck_state.orient_y = event->motion.orient_y;
+				sdeck_state.orient_z = event->motion.orient_z;
+			}
+			else // swap y with z axis to use roll instead of yaw
+			{
+				// use calculated orient
+				chiaki_orientation_tracker_update(&sdeck_orient_tracker,
+					event->motion.gyro_x, -event->motion.gyro_z, event->motion.gyro_y,
+					event->motion.accel_x, -event->motion.accel_z, event->motion.accel_y,
+					chiaki_time_now_monotonic_us());
+				sdeck_orient_dirty = true;
+			}
 			SendFeedbackState();
 			break;
 	}

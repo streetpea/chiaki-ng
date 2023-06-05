@@ -86,6 +86,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	dualsense_check_box->setChecked(settings->GetDualSenseEnabled());
 	connect(dualsense_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::DualSenseChanged);
 
+	vertical_sdeck_check_box = new QCheckBox(this);
+	general_layout->addRow(tr("Use Steam Deck in vertical\norientation (for motion controls)."), vertical_sdeck_check_box);
+	vertical_sdeck_check_box->setChecked(settings->GetVerticalDeckEnabled());
+	connect(vertical_sdeck_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::DeckOrientationChanged);
+
 	auto log_directory_label = new QLineEdit(GetLogBaseDir(), this);
 	log_directory_label->setReadOnly(true);
 	general_layout->addRow(tr("Log Directory:"), log_directory_label);
@@ -342,6 +347,11 @@ void SettingsDialog::LogVerboseChanged()
 void SettingsDialog::DualSenseChanged()
 {
 	settings->SetDualSenseEnabled(dualsense_check_box->isChecked());
+}
+
+void SettingsDialog::DeckOrientationChanged()
+{
+	settings->SetVerticalDeckEnabled(vertical_sdeck_check_box->isChecked());
 }
 
 void SettingsDialog::FPSSelected()
