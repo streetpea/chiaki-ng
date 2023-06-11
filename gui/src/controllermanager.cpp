@@ -74,6 +74,14 @@ static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
 	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
 });
 
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+static QSet<QPair<int16_t, int16_t>> chiaki_steamdeck_controller_ids({
+	// in format (vendor id, product id)
+	QPair<int16_t, int16_t>(0x28de, 0x1205), // Steam Deck
+	QPair<int16_t, int16_t>(0x28de, 0x11ff) // Steam Virtual Controller
+});
+#endif
+
 static ControllerManager *instance = nullptr;
 
 #define UPDATE_INTERVAL_MS 4
@@ -235,7 +243,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 }
 
 Controller::Controller(int device_id, ControllerManager *manager)
-: QObject(manager), is_dualsense(false)
+: QObject(manager), is_dualsense(false), is_steamdeck(false)
 {
 	this->id = device_id;
 	this->manager = manager;
@@ -257,6 +265,10 @@ Controller::Controller(int device_id, ControllerManager *manager)
 #endif
 			auto controller_id = QPair<int16_t, int16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+			is_steamdeck = chiaki_steamdeck_controller_ids.contains(controller_id);
+			//printf("\nVendor ID: %x \nProduct ID: %x\n", controller_id.first, controller_id.second);
+#endif
 			break;
 		}
 	}
@@ -529,3 +541,12 @@ bool Controller::IsDualSense()
 	return is_dualsense;
 #endif
 }
+
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+bool Controller::IsSteamDeck()
+{
+	if(!controller)
+		return false;
+	return is_steamdeck;
+}
+#endif

@@ -113,7 +113,7 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		SDeck *sdeck;
 		ChiakiControllerState sdeck_state;
-		bool haptics_sdeck;
+		int haptics_sdeck;
 		QQueue<haptic_packet_t> sdeck_hapticl;
 		QQueue<haptic_packet_t> sdeck_hapticr;
 		int16_t * sdeck_haptics_senderl;

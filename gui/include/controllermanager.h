@@ -78,6 +78,7 @@ class Controller : public QObject
 		ChiakiOrientationTracker orientation_tracker;
 		ChiakiControllerState state;
 		bool is_dualsense;
+		bool is_steamdeck;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		QMap<QPair<Sint64, Sint64>, uint8_t> touch_ids;
@@ -94,6 +95,9 @@ class Controller : public QObject
 		void SetRumble(uint8_t left, uint8_t right);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
 		bool IsDualSense();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+		bool IsSteamDeck();
+#endif
 
 	signals:
 		void StateChanged();

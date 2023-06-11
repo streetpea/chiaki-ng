@@ -91,12 +91,15 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
+	haptics_sdeck(0),
 #endif
 	haptics_resampler_buf(nullptr)
 {
 	connected = false;
 	ChiakiErrorCode err;
-
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    haptics_sdeck = 0;
+#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
 	{
@@ -546,6 +549,12 @@ void StreamSession::UpdateGamepads()
 			{
 				DisconnectHaptics();
 			}
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+			if (!controller->IsSteamDeck())
+			{
+				haptics_sdeck++;
+			}
+#endif
 			delete controller;
 		}
 	}
@@ -569,6 +578,12 @@ void StreamSession::UpdateGamepads()
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+			if (!controller->IsSteamDeck())
+			{
+				haptics_sdeck--;
+			}
+#endif
 		}
 	}
 	
@@ -635,7 +650,6 @@ void StreamSession::InitHaptics()
 {
 	haptics_output = 0;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	haptics_sdeck = false;
 	sdeck_haptics_senderr = nullptr;
 	sdeck_haptics_senderl = nullptr;
 #endif
@@ -717,11 +731,7 @@ void StreamSession::ConnectHaptics()
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 void StreamSession::ConnectSdeckHaptics()
 {
-	if(this->haptics_output > 0)
-	{
-		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring SteamDeck haptics.");
-		return;
-	}
+	haptics_sdeck++;
 	sdeck_last_haptic = chiaki_time_now_monotonic_ms();
 	const int num_channels = 2; // Left and right haptics
 	const uint32_t samples_per_packet = 120 * sizeof(uint8_t) / (2.0 * sizeof(int16_t));
@@ -740,7 +750,6 @@ void StreamSession::ConnectSdeckHaptics()
 	sdeck_skipr = false;
 	sdeck_haptics_senderl = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
 	sdeck_haptics_senderr = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
-	haptics_sdeck = true;
 
 	qRegisterMetaType<haptic_packet_t>();
 	connect(this, &StreamSession::SdeckHapticPushed, this, &StreamSession::SdeckQueueHaptics);
@@ -826,7 +835,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	if(haptics_output == 0 && sdeck && haptics_sdeck)
+	if(sdeck && haptics_sdeck > 0)
 	{
 		if(buf_size != 120)
 		{
