@@ -16,6 +16,15 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.3.2
+
+Small patch release
+
+- disable Steam Deck haptics when external controllers connected
+- add vertical orientation option for motion controls
+- let analog trigger actions work w/out PlayStation features enabled
+- merge update to RGB mapping with HW accelerated graphics from jonibim
+
 ### 1.3.1
 
 Small patch release

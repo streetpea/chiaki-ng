@@ -226,11 +226,15 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
         ![720p Settings](images/720P_Settings.png)
 
+    !!! Info "Use Steam Deck in Vertical Orientation"
+
+        For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).
+
     !!! Tip "Putting your PlayStation Console to Sleep Automatically"
 
-        For `Action on Disconnect`, choose `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
+        For `Action on Disconnect`, choose `Ask` (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
         
-        If you prefer, you can also use `Ask` (the default) to get prompted about putting your PlayStation to sleep when you close your session with ++ctrl+q++.
+        If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
 
 ## Performance of Chiaki/`chiaki4deck`
 

@@ -55,4 +55,5 @@ Please submit general issues to the [chiaki4deck GitHub](https://github.com/stre
 
 * [Johannes Baiter](https://github.com/jbaiter){target="_blank" rel="noopener"}
 * [Jamie Bartlett](https://github.com/Nikorag?tab=repositories){target="_blank" rel="noopener"}
+* [Joni Bimbashi](https://github.com/jonibim){target="_blank" rel="noopener"}
 * [Street Pea](https://github.com/streetpea){target="_blank" rel="noopener"}

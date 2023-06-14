@@ -17,7 +17,7 @@ Since these features are expiremental, you need to opt-in via a checkbox in the 
 
 ## Updated RGB Mapping
 
-RGB mapping update thanks to [Egoistically](https://github.com/Egoistically){target="_blank" rel="noopener"} via a [Chiaki fork](https://github.com/Egoistically/chiaki){target="_blank" rel="noopener"} which is of course copy-left under the [GNU Affero General Public License version 3](https://www.gnu.org/licenses/agpl-3.0.html){target="_blank" rel="noopener"} as are all of the other `chiaki4deck` changes. I added the patches to `chiaki4deck` and it results in a more accurate picture. Below is a **BEFORE** and **AFTER** from Ghost of Tsushima.
+RGB mapping update thanks to [Egoistically](https://github.com/Egoistically){target="_blank" rel="noopener"} via a [Chiaki fork](https://github.com/Egoistically/chiaki){target="_blank" rel="noopener"} which is of course copy-left under the [GNU Affero General Public License version 3](https://www.gnu.org/licenses/agpl-3.0.html){target="_blank" rel="noopener"} as are all of the other `chiaki4deck` changes. I added the patches to `chiaki4deck` and it results in a more accurate picture. Joni Bimbashi updated the initial mapping to work with HW acceleration. Below is a **BEFORE** and **AFTER** from Ghost of Tsushima.
 
 !!! example "BEFORE"
 
