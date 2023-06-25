@@ -29,22 +29,23 @@ modules:
 
   - name: ffmpeg
     cleanup:
+      - /bin/ffmpeg
+      - /lib/*.so
       - /include
       - /lib/pkgconfig
       - /share/ffmpeg/examples
+      - /share/ffmpeg
     config-opts:
-      - --enable-shared
-      - --disable-static
-      - --enable-gnutls
-      - --disable-doc
-      - --disable-programs
-      - --disable-encoders
-      - --disable-muxers
-      - --enable-encoder=png
+      - --disable-all
+      - --enable-avcodec
+      - --enable-decoder=h264
+      - --enable-decoder=hevc
+      - --enable-hwaccel=h264_vaapi
+      - --enable-hwaccel=hevc_vaapi
     sources:
       - type: archive
-        url: https://ffmpeg.org/releases/ffmpeg-5.1.2.tar.xz
-        sha256: 619e706d662c8420859832ddc259cd4d4096a48a2ce1eefd052db9e440eef3dc
+        url: https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
+        sha256: 57be87c22d9b49c112b6d24bc67d42508660e6b718b3db89c44e47e289137082
 
   - name: python3-google
     buildsystem: simple
