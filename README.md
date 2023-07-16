@@ -1,5 +1,5 @@
 
-![Chiaki Logo](assets/chiaki_wide.png)
+![chiaki4deck Logo](gui/chiaki4deck.png)
 
 # [chiaki4deck](https://streetpea.github.io/chiaki4deck/)
 

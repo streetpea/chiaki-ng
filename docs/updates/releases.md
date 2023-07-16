@@ -16,6 +16,12 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.3.3
+
+Small cosmetic release
+
+- Update icons and display name to `chiaki4deck`
+
 ### 1.3.2
 
 Small patch release

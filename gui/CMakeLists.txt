@@ -100,6 +100,6 @@ set_target_properties(chiaki PROPERTIES
 install(TARGETS chiaki
 		RUNTIME DESTINATION bin
 		BUNDLE DESTINATION bin)
-install(FILES chiaki.desktop DESTINATION share/applications)
-install(FILES chiaki.png DESTINATION share/icons/hicolor/512x512/apps)
+install(FILES chiaki4deck.desktop DESTINATION share/applications)
+install(FILES chiaki4deck.png DESTINATION share/icons/hicolor/512x512/apps)
 install(FILES re.chiaki.Chiaki4deck.appdata.xml DESTINATION share/metainfo)

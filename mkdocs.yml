@@ -22,8 +22,8 @@ nav:
     - Developing chiaki4deck on Steam Deck: diy/steamdeckdev.md
 
 theme:
-  favicon: images/chiaki.svg
-  logo: images/chiaki.svg
+  favicon: images/chiaki4deck.svg
+  logo: images/chiaki4deck.svg
   features:
     - header.autohide
     - navigation.sections

@@ -26,7 +26,9 @@
 #include <chiaki/ffmpegdecoder.h>
 
 const char * const about_string =
-	"<h1>Chiaki</h1> by thestr4ng3r, version " CHIAKI_VERSION
+	"<h1>chiaki4deck</h1> by Street Pea, version " CHIAKI_VERSION
+	""
+	"<h2>Fork of Chiaki</h2> by Florian Markl at version 2.1.1"
 	""
 	"<p>This program is free software: you can redistribute it and/or modify "
 	"it under the terms of the GNU Affero General Public License version 3 "
@@ -142,10 +144,10 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	audio_devices_future_watcher->setFuture(audio_devices_future);
 	general_layout->addRow(tr("Audio Output Device:"), audio_device_combo_box);
 
-	auto about_button = new QPushButton(tr("About Chiaki"), this);
+	auto about_button = new QPushButton(tr("About chiaki4deck"), this);
 	general_layout->addRow(about_button);
 	connect(about_button, &QPushButton::clicked, this, [this]() {
-		QMessageBox::about(this, tr("About Chiaki"), about_string);
+		QMessageBox::about(this, tr("About chiaki4deck"), about_string);
 	});
 
 	// Stream Settings

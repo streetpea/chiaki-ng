@@ -58,6 +58,8 @@ int real_main(int argc, char *argv[])
 
 	QApplication::setOrganizationName("Chiaki");
 	QApplication::setApplicationName("Chiaki");
+	QApplication::setApplicationDisplayName("chiaki4deck");
+	QApplication::setDesktopFileName("chiaki4deck");
 
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -74,7 +76,7 @@ int real_main(int argc, char *argv[])
 #ifdef Q_OS_MACOS
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
 #else
-	QApplication::setWindowIcon(QIcon(":/icons/chiaki.svg"));
+	QApplication::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
 #endif
 
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);

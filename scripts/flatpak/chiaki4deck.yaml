@@ -4,8 +4,8 @@ runtime: org.kde.Platform
 runtime-version: '5.15-22.08'
 sdk: org.kde.Sdk
 command: chiaki
-rename-icon: chiaki
-rename-desktop-file: chiaki.desktop
+rename-icon: chiaki4deck
+rename-desktop-file: chiaki4deck.desktop
 separate-locales: false
 finish-args:
   - --share=network
@@ -86,7 +86,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.26.1
+        tag: release-2.28.1
 
   - name: python3-requests
     buildsystem: simple
