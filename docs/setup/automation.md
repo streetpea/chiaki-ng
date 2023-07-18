@@ -35,7 +35,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
     === "Automated Instructions (Recommended)"
 
-        1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
+        1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki4deck/v1.3.3/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
 
             ``` bash
             bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
