@@ -38,7 +38,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
         1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki4deck/v1.3.3/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
 
             ``` bash
-            bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
+            bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/v1.3.3/scripts/gen-launcher.sh)
             ```
 
             !!! Question "What Do the Different Modes (i.e., fullscreen [uses Normal], zoom, stretch) Look Like?"
