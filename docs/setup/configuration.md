@@ -10,7 +10,7 @@
 
     1. Create initial file templates for `chiaki4deck`
 
-        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run re.chiaki.Chiaki4deck` in the `konsole`.
+        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run io.github.streetpea.Chiaki4deck` in the `konsole`.
 
             !!! Question "What if chiaki4deck doesn't appear in the `Games` section?"
 
@@ -21,7 +21,7 @@
     2. Copy your configuration file from the Chiaki flatpak with the following `konsole` command
 
         ``` bash
-        cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf
+        cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
         ```
 
     3. Open `chiaki4deck` again and you should see your registered console and settings from Chiaki now copied to `chiaki4deck`.
@@ -74,14 +74,14 @@
         1. Run the flatpak with the `psn-account-id` command
 
             ``` bash
-            flatpak run --command=psn-account-id re.chiaki.Chiaki4deck
+            flatpak run --command=psn-account-id io.github.streetpea.Chiaki4deck
             ```
 
         2. Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.
 
         3. Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.
 
-    4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run re.chiaki.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
+    4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
 
         ![Unregistered PS5](images/UnregisteredPS5.png)
 

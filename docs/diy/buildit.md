@@ -97,7 +97,7 @@
 3. Get the [flatpak manifest file](https://docs.flatpak.org/en/latest/manifests.html){target="_blank" rel="noopener"} for `chiaki4deck`
 
     ```
-    curl -LO https://raw.githubusercontent.com/streetpea/chiaki4deck/v1.3.3/scripts/flatpak/chiaki4deck.yaml
+    curl -LO https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/flatpak/chiaki4deck.yaml
     ```
 
 ### Create `gpg` Key for Signing your Builds and Repositories
@@ -144,6 +144,6 @@
 2. Install your self-built `chiaki4deck` flatpak from your new remote
 
     ``` bash
-    flatpak --user install chiaki4deck-diy re.chiaki.Chiaki4deck
+    flatpak --user install chiaki4deck-diy io.github.streetpea.Chiaki4deck
     ```
 

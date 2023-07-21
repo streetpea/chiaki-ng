@@ -20,7 +20,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
         1. Launch Chiaki via your desktop or via:
             
             ``` bash
-            flatpak run re.chiaki.Chiaki4deck
+            flatpak run io.github.streetpea.Chiaki4deck
             ```
 
         2. Get your IP address via the console widget and then close the window and return to the `konsole` session
@@ -35,10 +35,10 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
     === "Automated Instructions (Recommended)"
 
-        1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki4deck/v1.3.3/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
+        1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
 
             ``` bash
-            bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/v1.3.3/scripts/gen-launcher.sh)
+            bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
             ```
 
             !!! Question "What Do the Different Modes (i.e., fullscreen [uses Normal], zoom, stretch) Look Like?"
@@ -104,7 +104,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 Would you like to test the newly created script? (y/n):
                 y
                 sounds good, launching script now...
-                [I] Logging to file /home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
+                [I] Logging to file /home/deck/.var/app/io.github.streetpea.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
                 [I] Chiaki Version 2.1.1
                 [I] Using hardware decoder "vaapi"
                 Device Found
@@ -251,7 +251,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             1. It was the nickname listed with your console in the console widget. It can also be obtained with
 
                 ```bash
-                flatpak run re.chiaki.Chiaki4deck list
+                flatpak run io.github.streetpea.Chiaki4deck list
                 ```
 
                 ???+ example "Example Output"
@@ -267,7 +267,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             1. Run the following command in your console
 
                 ``` bash
-                cat ~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf | grep regist_key | cut -d '(' -f2 | cut -d '\' -f1
+                cat ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf | grep regist_key | cut -d '(' -f2 | cut -d '\' -f1
                 ```
 
                 ???+ example "Example Output"
@@ -278,7 +278,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
                 !!! Note "Chiaki Configuration File"
 
-                    This command is printing the Chiaki configuration file generated when you ran `chiaki4deck` for the first time. This is where the flatpak version of Chiaki saves your settings and details. In fact, all flatpaks store their details with the ~/.var/app/app_id pattern. If you want to look at the file itself and get the value you can open the file at `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf` and look for the remote play registration key [`rp_regist_key`].
+                    This command is printing the Chiaki configuration file generated when you ran `chiaki4deck` for the first time. This is where the flatpak version of Chiaki saves your settings and details. In fact, all flatpaks store their details with the ~/.var/app/app_id pattern. If you want to look at the file itself and get the value you can open the file at `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf` and look for the remote play registration key [`rp_regist_key`].
 
 
         3. Choose your [default launch option](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"} (fullscreen, zoom, or stretch)
@@ -295,13 +295,13 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
 
         4. Get your 4 digit PlayStation login passcode (if applicable). You will know your PlayStation login passcode if you have one because you have to enter it every time you log onto your PlayStation console. If you don't have to do this, you don't have a PlayStation login passcode and will leave that field blank.
 
-        5. Create a new blank file located in the folder `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki` named  `Chiaki-launcher.sh`
+        5. Create a new blank file located in the folder `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki` named  `Chiaki-launcher.sh`
 
             ```bash
-            touch "${HOME}/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"
+            touch "${HOME}/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"
             ```
         
-        6. Open the `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` file in your favorite editor and save the following output.
+        6. Open the `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` file in your favorite editor and save the following output.
 
             ``` bash
             #!/usr/bin/env bash
@@ -346,7 +346,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
             fi
             SECONDS=0
             # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-            ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+            ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
             while ! echo "${ps_status}" | grep -q 'ready\|standby'
             do
                 if [ ${SECONDS} -gt 35 ]
@@ -359,13 +359,13 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                     fi
                 fi
                 sleep 1
-                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+                ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
             done
 
             # Wake up console from sleep/rest mode if not already awake
             if ! echo "${ps_status}" | grep -q ready
             then
-                flatpak run re.chiaki.Chiaki4deck wakeup -<playstation_console> -h ${addr} -r '<remote_play_registration_key>' 2>/dev/null
+                flatpak run io.github.streetpea.Chiaki4deck wakeup -<playstation_console> -h ${addr} -r '<remote_play_registration_key>' 2>/dev/null
             fi
 
             # Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -381,14 +381,14 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                     fi
                 fi
                 sleep 1
-                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+                ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
             done
 
             # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-            flatpak run re.chiaki.Chiaki4deck --passcode <login_passcode> --<launch_option> stream '<console_nickname>' ${addr}
+            flatpak run io.github.streetpea.Chiaki4deck --passcode <login_passcode> --<launch_option> stream '<console_nickname>' ${addr}
             ```
         
-        7. Edit the `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` file, replacing the following values for your values:
+        7. Edit the `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` file, replacing the following values for your values:
 
             1. `<local_ssid>` local network name found with:
 
@@ -474,7 +474,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 fi
                 SECONDS=0
                 # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-                ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+                ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
                 while ! echo "${ps_status}" | grep -q 'ready\|standby'
                 do
                     if [ ${SECONDS} -gt 35 ]
@@ -487,13 +487,13 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                         fi
                     fi
                     sleep 1
-                    ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+                    ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
                 done
 
                 # Wake up console from sleep/rest mode if not already awake
                 if ! echo "${ps_status}" | grep -q ready
                 then
-                    flatpak run re.chiaki.Chiaki4deck wakeup -5 -h ${addr} -r '2ebf539d' 2>/dev/null
+                    flatpak run io.github.streetpea.Chiaki4deck wakeup -5 -h ${addr} -r '2ebf539d' 2>/dev/null
                 fi
 
                 # Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -509,27 +509,27 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                         fi
                     fi
                     sleep 1
-                    ps_status="$(flatpak run re.chiaki.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+                    ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
                 done
 
                 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-                flatpak run re.chiaki.Chiaki4deck --passcode --zoom stream 'PS5-012' ${addr}
+                flatpak run io.github.streetpea.Chiaki4deck --passcode --zoom stream 'PS5-012' ${addr}
                 ```
 
                 !!! Note "Example is Without Login Passcode #"
 
-                    If you have a passcode you would set it like `--passcode 1111`, changing the last line of the example above to `flatpak run re.chiaki.Chiaki4deck --passcode 1111 --zoom stream 'PS5-012' 192.168.1.16`
+                    If you have a passcode you would set it like `--passcode 1111`, changing the last line of the example above to `flatpak run io.github.streetpea.Chiaki4deck --passcode 1111 --zoom stream 'PS5-012' 192.168.1.16`
 
         8. Make the script executable:
 
             ```bash
-            chmod +x "${HOME}/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"
+            chmod +x "${HOME}/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"
             ```
 
 4. Test your newly created script (if you haven't already) by running:
         
     ```bash
-    "${HOME}/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"
+    "${HOME}/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh"
     ```
 
     === "Your script worked!"
@@ -550,7 +550,7 @@ Now that you have `chiaki4deck` configured, it's time to make it wake up your Pl
                 
                 2. Double check the values you entered in the script to make sure they are correct.
                 
-                3. Open your script at: `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` and try to run each command individually to see what's causing your problem.
+                3. Open your script at: `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` and try to run each command individually to see what's causing your problem.
                 
                 4. If issues persist with this and `chiaki4deck` launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me)
 

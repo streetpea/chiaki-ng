@@ -36,7 +36,7 @@
 
     1. Choose `File type: All Files` at the bottom of the screen
 
-    2. Choose `/home/deck` from the dropdown at the top of the screen and then navigate by clicking on each folder to the folder `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki`
+    2. Choose `/home/deck` from the dropdown at the top of the screen and then navigate by clicking on each folder to the folder `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki`
 
     3. Click on the `Chiaki-launcher.sh` file in that directory
 

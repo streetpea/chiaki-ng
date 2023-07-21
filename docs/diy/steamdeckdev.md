@@ -38,7 +38,7 @@ This is for contributors that want to make/test updates to the codebase without 
 3. Install the `Debug` extension for the application build for debugging
 
     ``` bash
-    flatpak install re.chiaki.Chiaki4deck.Debug
+    flatpak install io.github.streetpea.Chiaki4deck.Debug
     ```
 
 4. Clone the project onto your Steam Deck with:
@@ -80,7 +80,7 @@ This is for contributors that want to make/test updates to the codebase without 
 2. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
 
     ``` bash
-    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel re.chiaki.Chiaki4deck
+    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel io.github.streetpea.Chiaki4deck
     ```
 
     and `--env` is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)
@@ -183,10 +183,10 @@ This is for contributors that want to make/test updates to the codebase without 
     flatpak-coredumpctl -m given_pid flatpak_name
     ```
 
-    ???+ Example "Example given pid 4822 and flatpak name `re.chiaki.Chiaki4deck`"
+    ???+ Example "Example given pid 4822 and flatpak name `io.github.streetpea.Chiaki4deck`"
 
         ``` bash
-        flatpak-coredumpctl -m 4822 re.chiaki.Chiaki4deck
+        flatpak-coredumpctl -m 4822 io.github.streetpea.Chiaki4deck
         ```
 
 3. Use gdb commands as per usual such as `bt full`
