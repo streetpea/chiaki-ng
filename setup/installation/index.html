@@ -764,33 +764,20 @@
 </div>
 <ol>
 <li>
-<p>Open a <code>konsole</code> window </p>
-<p>Go to applications in the bottom left corner and type in <code>konsole</code> in the search bar to find it and launch it.</p>
+<p>Open the Discover store</p>
+<p><img alt="Open Discover" src="../images/OpenDiscover.png" /></p>
 </li>
 <li>
-<p>Run the following command in the <code>konsole</code> window to install <code>chiaki4deck</code> as a sandboxed user-level installation (more secure vs default of system-level installation)</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>-y<span class="w"> </span>https://github.com/streetpea/chiaki4deck/releases/download/v1.3.0/re.chiaki.Chiaki4deck.flatpakref
-</code></pre></div>
-<details class="example" open="open">
-<summary>Example Output</summary>
-<div class="highlight"><pre><span></span><code><span class="w">    </span>re.chiaki.Chiaki4deck<span class="w"> </span>permissions:
-<span class="w">    </span>ipc<span class="w">       </span>network<span class="w">       </span>fallback-x11<span class="w">       </span>pulseaudio<span class="w">       </span>wayland<span class="w">      </span>x11<span class="w">      </span>devices<span class="w">      </span>bluetooth<span class="w">      </span>file<span class="w"> </span>access<span class="w"> </span><span class="o">[</span><span class="m">1</span><span class="o">]</span><span class="w">      </span>dbus<span class="w"> </span>access<span class="w"> </span><span class="o">[</span><span class="m">2</span><span class="o">]</span><span class="w">      </span>bus<span class="w"> </span>ownership<span class="w"> </span><span class="o">[</span><span class="m">3</span><span class="o">]</span>
-
-<span class="w">    </span><span class="o">[</span><span class="m">1</span><span class="o">]</span><span class="w"> </span>xdg-config/kdeglobals:ro,<span class="w"> </span>xdg-run/pipewire-0
-<span class="w">    </span><span class="o">[</span><span class="m">2</span><span class="o">]</span><span class="w"> </span>com.canonical.AppMenu.Registrar,<span class="w"> </span>org.freedesktop.ScreenSaver,<span class="w"> </span>org.kde.KGlobalSettings,<span class="w"> </span>org.kde.kconfig.notify
-<span class="w">    </span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="w"> </span>org.kde.*
-
-<span class="w">            </span>ID<span class="w">                    </span>Branch<span class="w">      </span>Op<span class="w"> </span>Remote<span class="w">              </span>Download
-<span class="w">     </span><span class="m">1</span>.<span class="w"> </span><span class="o">[</span>✓<span class="o">]</span><span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>chiaki4deck<span class="w"> </span>i<span class="w">  </span>chiaki4deck-origin<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span>kB<span class="w"> </span>/<span class="w"> </span><span class="m">79</span>.1<span class="w"> </span>MB
-
-<span class="w">    </span>Installation<span class="w"> </span>complete.
-</code></pre></div>
-</details>
+<p>Search for <code>chiaki4deck</code> in the search bar</p>
+<p><img alt="Install chiaki4deck" src="../images/InstallChiaki4deck.png" /></p>
+</li>
+<li>
+<p>Click Install</p>
 </li>
 </ol>
 <div class="admonition note">
 <p class="admonition-title">About <code>chiaki4deck</code></p>
-<p>This is a flatpak I created for <code>chiaki4deck</code> from <a href="../../updates/done/" rel="noopener" target="_blank">updated</a> Chiaki source code and signed with the gpg key I have added to the companion GitHub for this site. This is the recommended install as it is the most straightforward.</p>
+<p>This is a flatpak I created for <code>chiaki4deck</code> from <a href="../../updates/done/" rel="noopener" target="_blank">updated</a> Chiaki source code is available on Flathub. This is the recommended install as it is the most straightforward.</p>
 <p>However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in <a href="../../diy/buildit/" rel="noopener" target="_blank">Building the flatpak yourself</a>.</p>
 </div>
 
@@ -799,7 +786,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">January 5, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 21, 2023</span>
       
         <br>
         Created:

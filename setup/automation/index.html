@@ -779,7 +779,7 @@
 <ol>
 <li>
 <p>Launch Chiaki via your desktop or via:</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck
 </code></pre></div>
 </li>
 <li>
@@ -866,7 +866,7 @@ Enter<span class="w"> </span>your<span class="w"> </span><span class="m">4</span
 Would<span class="w"> </span>you<span class="w"> </span>like<span class="w"> </span>to<span class="w"> </span><span class="nb">test</span><span class="w"> </span>the<span class="w"> </span>newly<span class="w"> </span>created<span class="w"> </span>script?<span class="w"> </span><span class="o">(</span>y/n<span class="o">)</span>:
 y
 sounds<span class="w"> </span>good,<span class="w"> </span>launching<span class="w"> </span>script<span class="w"> </span>now...
-<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Logging<span class="w"> </span>to<span class="w"> </span>file<span class="w"> </span>/home/deck/.var/app/re.chiaki.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
+<span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Logging<span class="w"> </span>to<span class="w"> </span>file<span class="w"> </span>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
 <span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Chiaki<span class="w"> </span>Version<span class="w"> </span><span class="m">2</span>.1.1
 <span class="o">[</span>I<span class="o">]</span><span class="w"> </span>Using<span class="w"> </span>hardware<span class="w"> </span>decoder<span class="w"> </span><span class="s2">&quot;vaapi&quot;</span>
 Device<span class="w"> </span>Found
@@ -1015,7 +1015,7 @@ ______<span class="w"> </span>___________<span class="p">|</span>__<span class="
 <ol>
 <li>
 <p>It was the nickname listed with your console in the console widget. It can also be obtained with</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>list
 </code></pre></div>
 <details class="example" open="open">
 <summary>Example Output</summary>
@@ -1031,7 +1031,7 @@ ______<span class="w"> </span>___________<span class="p">|</span>__<span class="
 <ol>
 <li>
 <p>Run the following command in your console</p>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>regist_key<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;(&#39;</span><span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\&#39;</span><span class="w"> </span>-f1
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>regist_key<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;(&#39;</span><span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\&#39;</span><span class="w"> </span>-f1
 </code></pre></div>
 <details class="example" open="open">
 <summary>Example Output</summary>
@@ -1040,7 +1040,7 @@ ______<span class="w"> </span>___________<span class="p">|</span>__<span class="
 </details>
 <div class="admonition note">
 <p class="admonition-title">Chiaki Configuration File</p>
-<p>This command is printing the Chiaki configuration file generated when you ran <code>chiaki4deck</code> for the first time. This is where the flatpak version of Chiaki saves your settings and details. In fact, all flatpaks store their details with the ~/.var/app/app_id pattern. If you want to look at the file itself and get the value you can open the file at <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf</code> and look for the remote play registration key [<code>rp_regist_key</code>].</p>
+<p>This command is printing the Chiaki configuration file generated when you ran <code>chiaki4deck</code> for the first time. This is where the flatpak version of Chiaki saves your settings and details. In fact, all flatpaks store their details with the ~/.var/app/app_id pattern. If you want to look at the file itself and get the value you can open the file at <code>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf</code> and look for the remote play registration key [<code>rp_regist_key</code>].</p>
 </div>
 </li>
 </ol>
@@ -1067,12 +1067,12 @@ ______<span class="w"> </span>___________<span class="p">|</span>__<span class="
 <p>Get your 4 digit PlayStation login passcode (if applicable). You will know your PlayStation login passcode if you have one because you have to enter it every time you log onto your PlayStation console. If you don't have to do this, you don't have a PlayStation login passcode and will leave that field blank.</p>
 </li>
 <li>
-<p>Create a new blank file located in the folder <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki</code> named  <code>Chiaki-launcher.sh</code></p>
-<div class="highlight"><pre><span></span><code>touch<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
+<p>Create a new blank file located in the folder <code>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki</code> named  <code>Chiaki-launcher.sh</code></p>
+<div class="highlight"><pre><span></span><code>touch<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
 </code></pre></div>
 </li>
 <li>
-<p>Open the <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> file in your favorite editor and save the following output.</p>
+<p>Open the <code>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> file in your favorite editor and save the following output.</p>
 <div class="highlight"><pre><span></span><code><span class="ch">#!/usr/bin/env bash</span>
 
 connect_error_loc<span class="o">()</span>
@@ -1115,7 +1115,7 @@ timeout_error<span class="o">()</span>
 <span class="k">fi</span>
 <span class="nv">SECONDS</span><span class="o">=</span><span class="m">0</span>
 <span class="c1"># Wait for console to be in sleep/rest mode or on (otherwise console isn&#39;t available)</span>
-<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">while</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s1">&#39;ready\|standby&#39;</span>
 <span class="k">do</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">35</span><span class="w"> </span><span class="o">]</span>
@@ -1128,13 +1128,13 @@ timeout_error<span class="o">()</span>
 <span class="w">        </span><span class="k">fi</span>
 <span class="w">    </span><span class="k">fi</span>
 <span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
-<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Wake up console from sleep/rest mode if not already awake</span>
 <span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>ready
 <span class="k">then</span>
-<span class="w">    </span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>wakeup<span class="w"> </span>-&lt;playstation_console&gt;<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<span class="w">    </span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>wakeup<span class="w"> </span>-&lt;playstation_console&gt;<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;&lt;remote_play_registration_key&gt;&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
 <span class="k">fi</span>
 
 <span class="c1"># Wait for PlayStation to report ready status, exit script on error if it never happens.</span>
@@ -1150,15 +1150,15 @@ timeout_error<span class="o">()</span>
 <span class="w">        </span><span class="k">fi</span>
 <span class="w">    </span><span class="k">fi</span>
 <span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
-<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>--passcode<span class="w"> </span>&lt;login_passcode&gt;<span class="w"> </span>--&lt;launch_option&gt;<span class="w"> </span>stream<span class="w"> </span><span class="s1">&#39;&lt;console_nickname&gt;&#39;</span><span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span>
+flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>--passcode<span class="w"> </span>&lt;login_passcode&gt;<span class="w"> </span>--&lt;launch_option&gt;<span class="w"> </span>stream<span class="w"> </span><span class="s1">&#39;&lt;console_nickname&gt;&#39;</span><span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span>
 </code></pre></div>
 </li>
 <li>
-<p>Edit the <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> file, replacing the following values for your values:</p>
+<p>Edit the <code>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> file, replacing the following values for your values:</p>
 <ol>
 <li>
 <p><code>&lt;local_ssid&gt;</code> local network name found with:</p>
@@ -1252,7 +1252,7 @@ timeout_error<span class="o">()</span>
 <span class="k">fi</span>
 <span class="nv">SECONDS</span><span class="o">=</span><span class="m">0</span>
 <span class="c1"># Wait for console to be in sleep/rest mode or on (otherwise console isn&#39;t available)</span>
-<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">while</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s1">&#39;ready\|standby&#39;</span>
 <span class="k">do</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="si">${</span><span class="nv">SECONDS</span><span class="si">}</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">35</span><span class="w"> </span><span class="o">]</span>
@@ -1265,13 +1265,13 @@ timeout_error<span class="o">()</span>
 <span class="w">        </span><span class="k">fi</span>
 <span class="w">    </span><span class="k">fi</span>
 <span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
-<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Wake up console from sleep/rest mode if not already awake</span>
 <span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ps_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span>ready
 <span class="k">then</span>
-<span class="w">    </span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>wakeup<span class="w"> </span>-5<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;2ebf539d&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<span class="w">    </span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>wakeup<span class="w"> </span>-5<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;2ebf539d&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
 <span class="k">fi</span>
 
 <span class="c1"># Wait for PlayStation to report ready status, exit script on error if it never happens.</span>
@@ -1287,21 +1287,21 @@ timeout_error<span class="o">()</span>
 <span class="w">        </span><span class="k">fi</span>
 <span class="w">    </span><span class="k">fi</span>
 <span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
-<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nv">ps_status</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>discover<span class="w"> </span>-h<span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 
 <span class="c1"># Begin playing PlayStation remote play via Chiaki on your Steam Deck :)</span>
-flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<span class="w"> </span>--passcode<span class="w"> </span>--zoom<span class="w"> </span>stream<span class="w"> </span><span class="s1">&#39;PS5-012&#39;</span><span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span>
+flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Chiaki4deck<span class="w"> </span>--passcode<span class="w"> </span>--zoom<span class="w"> </span>stream<span class="w"> </span><span class="s1">&#39;PS5-012&#39;</span><span class="w"> </span><span class="si">${</span><span class="nv">addr</span><span class="si">}</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Example is Without Login Passcode #</p>
-<p>If you have a passcode you would set it like <code>--passcode 1111</code>, changing the last line of the example above to <code>flatpak run re.chiaki.Chiaki4deck --passcode 1111 --zoom stream 'PS5-012' 192.168.1.16</code></p>
+<p>If you have a passcode you would set it like <code>--passcode 1111</code>, changing the last line of the example above to <code>flatpak run io.github.streetpea.Chiaki4deck --passcode 1111 --zoom stream 'PS5-012' 192.168.1.16</code></p>
 </div>
 </details>
 </li>
 <li>
 <p>Make the script executable:</p>
-<div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
+<div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>+x<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
 </code></pre></div>
 </li>
 </ol>
@@ -1311,7 +1311,7 @@ flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<
 </li>
 <li>
 <p>Test your newly created script (if you haven't already) by running:</p>
-<div class="highlight"><pre><span></span><code><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh&quot;</span>
 </code></pre></div>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Your script worked!</label><label for="__tabbed_3_2">Your script didn't work...</label></div>
 <div class="tabbed-content">
@@ -1336,7 +1336,7 @@ flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<
 <p>Double check the values you entered in the script to make sure they are correct.</p>
 </li>
 <li>
-<p>Open your script at: <code>/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> and try to run each command individually to see what's causing your problem.</p>
+<p>Open your script at: <code>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh</code> and try to run each command individually to see what's causing your problem.</p>
 </li>
 <li>
 <p>If issues persist with this and <code>chiaki4deck</code> launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 21.35-1.45-1.32C5.4 15.36 2 12.27 2 8.5 2 5.41 4.42 3 7.5 3c.67 0 1.32.12 1.94.33L13 9.35l-4 5 3 7M16.5 3C19.58 3 22 5.41 22 8.5c0 3.77-3.4 6.86-8.55 11.53L12 21.35l-1-7 4.5-5-2.65-5.08C13.87 3.47 15.17 3 16.5 3Z"/></svg></span> underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a></p>
@@ -1360,7 +1360,7 @@ flatpak<span class="w"> </span>run<span class="w"> </span>re.chiaki.Chiaki4deck<
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 18, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 21, 2023</span>
       
         <br>
         Created:

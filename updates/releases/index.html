@@ -588,6 +588,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#moving-to-flathub" class="md-nav__link">
+    Moving to FlatHub
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#updating-chiaki4deck" class="md-nav__link">
     Updating chiaki4deck
   </a>
@@ -881,6 +888,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#moving-to-flathub" class="md-nav__link">
+    Moving to FlatHub
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#updating-chiaki4deck" class="md-nav__link">
     Updating chiaki4deck
   </a>
@@ -1034,6 +1048,39 @@
 
 
 <h1 id="chiaki4deck-releases"><code>chiaki4deck</code> Releases<a class="headerlink" href="#chiaki4deck-releases" title="Permanent link">&para;</a></h1>
+<h2 id="moving-to-flathub">Moving to FlatHub<a class="headerlink" href="#moving-to-flathub" title="Permanent link">&para;</a></h2>
+<div class="admonition caution">
+<p class="admonition-title">Legacy Repo Deprecation</p>
+<p><code>Chiaki4deck</code> is now on flathub. If you previously installed <code>chiaki4deck</code> via the konsole the flatpak has changed to <code>io.github.streetpea.Chiaki4deck</code>. The old repo is now <strong>deprecated</strong> in favor of using Flathub since Flathub is added by default to the Steam Deck and the hosting is at no cost to the project (unlike the initial repo). While the software will still be accessible from the old repo, it is encouraged for users to switch over.</p>
+</div>
+<p>To migrate to the flathub repo do the following:</p>
+<ol>
+<li>
+<p>Move chiaki4deck's configuration files to their new location</p>
+<div class="highlight"><pre><span></span><code>mv<span class="w"> </span>~/.var/app/re.chiaki.Chiaki4deck<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck
+</code></pre></div>
+</li>
+<li>
+<p>Update automatic launcher script to use <code>io.github.streetpea.Chiaki4deck</code></p>
+<div class="highlight"><pre><span></span><code>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/re.chiaki.Chiaki4deck/io.github.streetpea.Chiaki4deck/g&#39;</span><span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh<span class="w"> </span>
+</code></pre></div>
+</li>
+<li>
+<p>Uninstall the existing legacy <code>chiaki4deck</code> flatpak </p>
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>uninstall<span class="w"> </span>-y<span class="w"> </span>re.chiaki.Chiaki4deck
+</code></pre></div>
+</li>
+<li>
+<p>Install chiaki4deck from flathub using Discover store app or</p>
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--user<span class="w"> </span>flathub<span class="w"> </span>io.github.streetpea.Chiaki4deck
+</code></pre></div>
+</li>
+<li>
+<p>Change properties of non-steam game to point to:</p>
+<div class="highlight"><pre><span></span><code>/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh
+</code></pre></div>
+</li>
+</ol>
 <h2 id="updating-chiaki4deck">Updating <code>chiaki4deck</code><a class="headerlink" href="#updating-chiaki4deck" title="Permanent link">&para;</a></h2>
 <p>In order to update your already installed <code>chiaki4deck</code> to the newest version, either:</p>
 <ul>
@@ -1043,8 +1090,18 @@
 </li>
 <li>
 <p>Update via the <code>konsole</code> with:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Chiaki4deck Installed Via Discover Store</label><label for="__tabbed_1_2">Chiaki4deck Legacy Install Via Konsole</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>update<span class="w"> </span>-y<span class="w"> </span>io.github.streetpea.Chiaki4deck
+</code></pre></div>
+</div>
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>update<span class="w"> </span>--user<span class="w"> </span>-y<span class="w"> </span>re.chiaki.Chiaki4deck
 </code></pre></div>
+</div>
+</div>
+</div>
 </li>
 </ul>
 <h2 id="releases-newest-first">Releases (Newest First)<a class="headerlink" href="#releases-newest-first" title="Permanent link">&para;</a></h2>
@@ -1212,7 +1269,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 16, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 21, 2023</span>
       
         <br>
         Created:
