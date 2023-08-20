@@ -8,6 +8,7 @@ nav:
     - Setup Overview: setup/index.md
     - Installation: setup/installation.md
     - Configuration: setup/configuration.md
+    - Remote Connection: setup/remoteconnection.md
     - Automation: setup/automation.md
     - Game (Mode) Time: setup/steaming.md
     - Controller Options: setup/controlling.md
