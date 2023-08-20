@@ -2,72 +2,77 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/diy/builddocs/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/diy/buildit/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/diy/steamdeckdev/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/setup/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/setup/automation/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/setup/configuration/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/setup/controlling/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/setup/installation/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://streetpea.github.io/chiaki4deck/setup/remoteconnection/</loc>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/setup/steaming/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/updates/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/updates/done/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/updates/planned/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://streetpea.github.io/chiaki4deck/updates/releases/</loc>
-         <lastmod>2023-07-21</lastmod>
+         <lastmod>2023-08-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
