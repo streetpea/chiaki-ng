@@ -18,7 +18,7 @@
 #define SETSU_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_HAPTIC_INTERVAL_MS 10 // check every interval
-#define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 5 // send packets every interval * packets per analysis
+#define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 4 // send packets every interval * packets per analysis
 #define STEAMDECK_HAPTIC_SAMPLING_RATE 3000
 // DualShock4 touchpad is 1920 x 942
 #define PS4_TOUCHPAD_MAX_X 1920.0f
