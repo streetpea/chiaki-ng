@@ -28,12 +28,14 @@
 #define STEAM_DECK_HAPTIC_COMMAND 0x8f
 #define STEAM_DECK_HAPTIC_LENGTH 0x07
 #define STEAM_DECK_HAPTIC_INTENSITY 0.38f
+#define STEAM_DECK_CUTOFF_FREQ 250.0f
+#define STEAM_DECK_HAPTIC_SAMPLING_FREQ 3000.0f
 
 typedef struct freq_t
 {
 	int N;
 	fftw_plan fft;
-	double *hann, *pcm_data;
+	double *hann, *butterworth, *pcm_data;
 	fftw_complex *freq_data;
 } FreqFinder;
 
@@ -50,6 +52,8 @@ hid_device *is_steam_deck();
 void calc_powers(fftw_complex *data, int N);
 void max_power_freq(const int N, const double sampling_rate, double *frequency, double *freq_power, fftw_complex *power);
 void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *user);
+double * butterworth_init();
+void lpf_apply(double * pcm_data, double * butterworth, int N);
 FreqFinder *freqfinder_new(int samples);
 
 SDeck *sdeck_new()
@@ -91,6 +95,7 @@ FreqFinder *freqfinder_new(int samples)
 	FreqFinder *freqfinder = fftw_malloc(sizeof(FreqFinder));
 	freqfinder->N = samples;
 	freqfinder->hann = hann_init(samples);
+	freqfinder->butterworth = butterworth_init();
 	freqfinder->pcm_data = fftw_malloc(2 * samples * sizeof(double));
 	freqfinder->freq_data = fftw_malloc((samples + 1) * sizeof(fftw_complex));
 	freqfinder->fft = fftw_plan_dft_r2c_1d(2 * samples, freqfinder->pcm_data, freqfinder->freq_data, FFTW_MEASURE);
@@ -102,6 +107,7 @@ void haptic_free(FreqFinder *freqfinder)
 	fftw_destroy_plan(freqfinder->fft);
 
 	fftw_free(freqfinder->hann);
+	fftw_free(freqfinder->butterworth);
 	fftw_free(freqfinder->pcm_data);
 	fftw_free(freqfinder->freq_data);
 	fftw_free(freqfinder);
@@ -211,6 +217,32 @@ double *hann_init(int N) // calc hann coefficients (once per array size and can 
 		han[i] = 0.5 * (1 - cos(2 * M_PI * i / (N - 1)));
 	return han;
 }
+double *butterworth_init()
+{
+	double *butterworth = fftw_malloc(5 * sizeof(double));
+	const double ff = STEAM_DECK_CUTOFF_FREQ / STEAM_DECK_HAPTIC_SAMPLING_FREQ;
+	const double ita = 1.0/tan(M_PI * ff);
+	const double q = sqrt(2.0);
+	butterworth[0] = 1.0 / (1.0 + q*ita + ita*ita);
+	butterworth[1] = 2 * butterworth[0];
+	butterworth[2] = butterworth[0];
+	butterworth[3] = 2.0 * (ita * ita - 1.0) * butterworth[0];
+	butterworth[4] = -(1.0 - q * ita + ita * ita) * butterworth[0];
+	return butterworth;
+}
+
+void lpf_apply(double *buf, double * butterworth, int buf_count)
+{
+	double holder_buffer[buf_count];
+	holder_buffer[0] = buf[0];
+	holder_buffer[1] = buf[1];
+	for (int i = 2; i < buf_count; i++)
+		holder_buffer[i] = butterworth[0] * buf[i] + butterworth[1] * buf[i - 1] + butterworth[2] * buf[i - 2] + butterworth[3] * holder_buffer[i - 1] + butterworth[4] * holder_buffer[i - 2];
+	for (int i = 2; i < buf_count; i++)
+	{
+		buf[i] = holder_buffer[i];
+	}
+}
 
 void hann_apply(double *data, double *han, int N) // apply hann window to data
 {
@@ -273,6 +305,7 @@ void calc_freqs(FreqFinder *freqfinder, const int sampling_rate, double *freq, d
 {
 	int N = freqfinder->N;
 	int complexN = freqfinder->N + 1;
+	lpf_apply(freqfinder->pcm_data, freqfinder->butterworth, N);
 	hann_apply(freqfinder->pcm_data, freqfinder->hann, N);
 	zero_pad(freqfinder->pcm_data, N);
 	fftw_execute(freqfinder->fft);
@@ -350,7 +383,7 @@ int play_pcm_haptic(SDeck *sdeck, uint8_t position, int16_t *buf, const int num_
 		return 0;
 	repeat = STEAM_DECK_HAPTIC_INTENSITY * num_elements * freq / (double)sampling_rate;
 	repeat = (repeat > 1) ? repeat : 1;
-	playtime = sdeck_haptic(sdeck, position, freq, interval, repeat);
+	playtime = sdeck_haptic_ratio(sdeck, position, freq, interval, 0.2, repeat);
 	if (playtime < 0)
 		return playtime;
 	if (playtime < interval)
@@ -404,9 +437,7 @@ int sdeck_haptic_ratio(SDeck *sdeck, uint8_t position, double frequency, uint32_
 	double ratio_high = 0, ratio_low = 0;
 	ratio_high = 2 * ratio;
 	ratio_low = 2 - ratio_high;
-	printf("\ninterval is %u\n", interval);
 	double freq_min = 500000 / interval; // can play haptic for at most 2 intervals w/ borrow from future
-	printf("\nfreq min is %f\n", freq_min);
 	uint16_t period = 0;
 	if (frequency >= freq_min)
 	{
@@ -415,10 +446,6 @@ int sdeck_haptic_ratio(SDeck *sdeck, uint8_t position, double frequency, uint32_
 		if (res < 0)
 			return res;
 	}
-	if(position == TRACKPAD_LEFT)
-		printf("\nperiod left: %u, repeat_left: %u\n", period, repeat);
-	else
-		printf("\nperiod right: %u, repeat_right: %u\n", period, repeat);
 	// return interval played
 	return period * 2 * repeat;
 }
