@@ -206,15 +206,58 @@ QString Settings::GetAudioOutDevice() const
 	return settings.value("settings/audio_out_device").toString();
 }
 
+QString Settings::GetAudioInDevice() const
+{
+	return settings.value("settings/audio_in_device").toString();
+}
+
 void Settings::SetAudioOutDevice(QString device_name)
 {
 	settings.setValue("settings/audio_out_device", device_name);
+}
+
+void Settings::SetAudioInDevice(QString device_name)
+{
+	settings.setValue("settings/audio_in_device", device_name);
 }
 
 void Settings::SetAudioBufferSize(unsigned int size)
 {
 	settings.setValue("settings/audio_buffer_size", size);
 }
+
+#if CHIAKI_GUI_ENABLE_SPEEX
+
+bool Settings::GetSpeechProcessingEnabled() const
+{
+	return settings.value("settings/enable_speech_processing", true).toBool();
+}
+
+int Settings::GetNoiseSuppressLevel() const
+{
+	return settings.value("settings/noise_suppress_level", 6).toInt();
+}
+
+int Settings::GetEchoSuppressLevel() const
+{
+	return settings.value("settings/echo_suppress_level", 30).toInt();
+}
+
+void Settings::SetSpeechProcessingEnabled(bool enabled)
+{
+	settings.setValue("settings/enable_speech_processing", enabled);
+}
+
+void Settings::SetNoiseSuppressLevel(int reduceby)
+{
+	settings.setValue("settings/noise_suppress_level", reduceby);
+}
+
+void Settings::SetEchoSuppressLevel(int reduceby)
+{
+	settings.setValue("settings/echo_suppress_level", reduceby);
+}
+#endif
 
 ChiakiConnectVideoProfile Settings::GetVideoProfile()
 {

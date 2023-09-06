@@ -37,12 +37,17 @@ typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_LOGIN_PIN_REP = 0x8004,
 	CTRL_MESSAGE_TYPE_LOGIN = 0x5,
 	CTRL_MESSAGE_TYPE_GOTO_BED = 0x50,
+	CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE = 0xd,
 	CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE = 0x20,
 	CTRL_MESSAGE_TYPE_KEYBOARD_OPEN = 0x21,
 	CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REMOTE = 0x22,
 	CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_REQ = 0x23,
 	CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_RES = 0x24,
 	CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ = 0x25,
+	CTRL_MESSAGE_TYPE_ENABLE_DUALSENSE_FEATURES = 0x13,
+	CTRL_MESSAGE_TYPE_MIC_CONNECT = 0x30,
+	CTRL_MESSAGE_TYPE_MIC_TOGGLE = 0x36,
+	CTRL_MESSAGE_TYPE_DISPLAY_DEVICES = 0x910
 } CtrlMessageType;
 
 typedef enum ctrl_login_state_t {
@@ -88,7 +93,7 @@ void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event);
 
 static void *ctrl_thread_func(void *user);
 static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size);
-static void ctrl_enable_optional_features(ChiakiCtrl *ctrl);
+static void ctrl_enable_features(ChiakiCtrl *ctrl);
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
@@ -439,6 +444,36 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode ctrl_message_connect_microphone(ChiakiCtrl *ctrl)
+{
+	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending microphone connect message");
+	uint8_t connect[2] = {0x00, 0x00};
+	ChiakiErrorCode err = ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_MIC_CONNECT, connect, 0x2);
+
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Failed to connect mic");
+		return err;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode ctrl_message_toggle_microphone(ChiakiCtrl *ctrl, bool muted)
+{
+	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending toggle microphone mute message: %s", muted ? "unmute": "mute");
+	uint8_t toggle[0x4] = {0, 1, 1, 89};
+	if(muted)
+		toggle[2] = 0;
+	ChiakiErrorCode err = ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_MIC_TOGGLE, toggle, 0x4);
+
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Failed to toggle mic mute");
+		return err;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
 static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size)
 {
 	if(payload_size > 0)
@@ -459,7 +494,7 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 	{
 		case CTRL_MESSAGE_TYPE_SESSION_ID:
 			ctrl_message_received_session_id(ctrl, payload, payload_size);
-			ctrl_enable_optional_features(ctrl);
+			ctrl_enable_features(ctrl);
 			break;
 		case CTRL_MESSAGE_TYPE_HEARTBEAT_REQ:
 			ctrl_message_received_heartbeat_req(ctrl, payload, payload_size);
@@ -486,27 +521,29 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 	}
 }
 
-static void ctrl_enable_optional_features(ChiakiCtrl *ctrl)
+static void ctrl_enable_features(ChiakiCtrl *ctrl)
 {
 	if(ctrl->session->connect_info.enable_dualsense)
 	{
 		CHIAKI_LOGI(ctrl->session->log, "Enabling DualSense features");
 		const uint8_t enable[3] = { 0x00, 0x40, 0x00 };
-		ctrl_message_send(ctrl, 0x13, enable, 3);
+		ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_ENABLE_DUALSENSE_FEATURES, enable, 3);
+		const uint8_t connect[0x10] = { 0xa0, 0xab, 0x51, 0xbd, 0xd1, 0x7e, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 };
+		ctrl_message_send(ctrl, 0x11, connect, 0x10);
 	}
 	if(ctrl->session->connect_info.enable_keyboard)
 	{
 		CHIAKI_LOGI(ctrl->session->log, "Enabling Keyboard");
-		// TODO: Last byte of pre_enable request is random (?)
 		// TODO: Signature ?!
 		uint8_t enable = 1;
-		uint8_t pre_enable[4] = { 0x00, 0x01, 0x01, 0x80 };
 		uint8_t signature[0x10] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x05, 0xAE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-		ctrl_message_send(ctrl, 0xD, signature, 0x10);
-		ctrl_message_send(ctrl, 0x36, pre_enable, 4);
+		ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE, signature, 0x10);
 		ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_ENABLE_TOGGLE, &enable, 1);
-		ctrl_message_send(ctrl, 0x36, pre_enable, 4);
 	}
+	ctrl_message_toggle_microphone(ctrl, false);
+	ctrl_message_toggle_microphone(ctrl, false);
+	uint8_t display[0x4] = { 0x00, 0x00, 0x00, 0x00 };
+	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_DISPLAY_DEVICES, display, 0x4);
 }
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)

@@ -79,6 +79,7 @@ class Controller : public QObject
 		ChiakiControllerState state;
 		bool is_dualsense;
 		bool is_steamdeck;
+		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		QMap<QPair<Sint64, Sint64>, uint8_t> touch_ids;
@@ -101,6 +102,7 @@ class Controller : public QObject
 
 	signals:
 		void StateChanged();
+		void MicButtonPush();
 };
 
 /* PS5 trigger effect documentation:

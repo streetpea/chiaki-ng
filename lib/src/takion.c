@@ -313,6 +313,7 @@ CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion)
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *takion, size_t data_size, uint64_t *key_pos)
 {
+	data_size += data_size % CHIAKI_GKCRYPT_BLOCK_SIZE;
 	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
@@ -561,6 +562,38 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_state(ChiakiTakion *ta
 		chiaki_feedback_state_format_v12(buf + 0xc, feedback_state);
 	}
 	return takion_send_feedback_packet(takion, buf, buf_sz);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_mic_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_size, bool ps5)
+{
+	uint8_t ps5_packet = 0;
+	if(ps5)
+		ps5_packet = 1;
+	size_t payload_size = buf_size - 19 - ps5_packet;
+
+	ChiakiErrorCode err = chiaki_mutex_lock(&takion->gkcrypt_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	uint64_t key_pos;
+	err = chiaki_takion_crypt_advance_key_pos(takion, payload_size + CHIAKI_GKCRYPT_BLOCK_SIZE, &key_pos);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
+
+	err = chiaki_gkcrypt_encrypt(takion->gkcrypt_local, key_pos + CHIAKI_GKCRYPT_BLOCK_SIZE, buf + 19 + ps5_packet, payload_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
+
+	*((chiaki_unaligned_uint32_t *)(buf + 14)) = htonl((uint32_t)key_pos);
+
+	err = chiaki_gkcrypt_gmac(takion->gkcrypt_local, key_pos, buf, buf_size, buf + 10);
+
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto beach;
+
+	chiaki_takion_send_raw(takion, buf, buf_size);
+beach:
+	chiaki_mutex_unlock(&takion->gkcrypt_local_mutex);
+	return err;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_feedback_history(ChiakiTakion *takion, ChiakiSeqNum16 seq_num, uint8_t *payload, size_t payload_size)

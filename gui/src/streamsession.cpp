@@ -5,11 +5,11 @@
 #include <controllermanager.h>
 
 #include <chiaki/base64.h>
+#include <chiaki/streamconnection.h>
 
 #include <QKeyEvent>
 #include <QAudioOutput>
-#include <QDebug>
-#include <QThread>
+#include <QAudioInput>
 
 #include <cstring>
 #include <chiaki/session.h>
@@ -27,10 +27,14 @@
 #define PS5_TOUCHPAD_MAX_X 1919.0f
 #define PS5_TOUCHPAD_MAX_Y 1079.0f
 
+#define MICROPHONE_SAMPLES 480
 #ifdef Q_OS_LINUX
 #define DUALSENSE_AUDIO_DEVICE_NEEDLE "DualSense"
 #else
 #define DUALSENSE_AUDIO_DEVICE_NEEDLE "Wireless Controller"
+#endif
+#if CHIAKI_GUI_ENABLE_SPEEX
+#define ECHO_QUEUE_MAX 40
 #endif
 
 StreamSessionConnectInfo::StreamSessionConnectInfo(
@@ -49,6 +53,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	decoder = settings->GetDecoder();
 	hw_decoder = settings->GetHardwareDecoder();
 	audio_out_device = settings->GetAudioOutDevice();
+	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
 	video_profile = settings->GetVideoProfile();
@@ -64,6 +69,11 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
+#if CHIAKI_GUI_ENABLE_SPEEX
+	this->speech_processing_enabled = settings->GetSpeechProcessingEnabled();
+	this->noise_suppress_level = settings->GetNoiseSuppressLevel();
+	this->echo_suppress_level = settings->GetEchoSuppressLevel();
+#endif
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -87,15 +97,25 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	audio_output(nullptr),
 	audio_io(nullptr),
+	audio_input(nullptr),
+	audio_mic(nullptr),
 	haptics_output(0),
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
 	haptics_sdeck(0),
 #endif
+#if CHIAKI_GUI_ENABLE_SPEEX
+	echo_resampler_buf(nullptr),
+	mic_resampler_buf(nullptr),
+#endif
 	haptics_resampler_buf(nullptr)
 {
+	mic_buf.buf = nullptr;
 	connected = false;
+	muted = true;
+	mic_connected = false;
+	allow_unmute = false;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     haptics_sdeck = 0;
@@ -162,7 +182,39 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		}
 	}
 
+	audio_in_device_info = QAudioDeviceInfo::defaultInputDevice();
+	if(!connect_info.audio_in_device.isEmpty())
+	{
+		for(QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
+		{
+			if(di.deviceName() == connect_info.audio_in_device)
+			{
+				audio_in_device_info = di;
+				break;
+			}
+		}
+	}
+
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
+	chiaki_opus_encoder_init(&opus_encoder, log.GetChiakiLog());
+#if CHIAKI_GUI_ENABLE_SPEEX
+	speech_processing_enabled = connect_info.speech_processing_enabled;
+	if(speech_processing_enabled)
+	{
+		echo_state = speex_echo_state_init(MICROPHONE_SAMPLES, MICROPHONE_SAMPLES * 10);
+		preprocess_state = speex_preprocess_state_init(MICROPHONE_SAMPLES, MICROPHONE_SAMPLES * 100);
+		int32_t noise_suppress_level = -1 * connect_info.noise_suppress_level;
+		int32_t echo_suppress_level = -1 * connect_info.echo_suppress_level;
+		speex_preprocess_ctl(preprocess_state, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state);
+		speex_preprocess_ctl(preprocess_state, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &noise_suppress_level);
+		speex_preprocess_ctl(preprocess_state, SPEEX_PREPROCESS_GET_NOISE_SUPPRESS, &noise_suppress_level);
+		CHIAKI_LOGI(GetChiakiLog(), "Noise suppress level is %i dB", noise_suppress_level);
+		speex_preprocess_ctl(preprocess_state, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &echo_suppress_level);
+		speex_preprocess_ctl(preprocess_state, SPEEX_PREPROCESS_GET_ECHO_SUPPRESS, &echo_suppress_level);
+		CHIAKI_LOGI(GetChiakiLog(), "Echo suppress level is %i dB", echo_suppress_level);
+		CHIAKI_LOGI(GetChiakiLog(), "Started microphone echo cancellation and noise suppression");
+	}
+#endif
 	audio_buffer_size = connect_info.audio_buffer_size;
 
 	QByteArray host_str = connect_info.host.toUtf8();
@@ -210,11 +262,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
-
 	chiaki_opus_decoder_set_cb(&opus_decoder, AudioSettingsCb, AudioFrameCb, this);
 	ChiakiAudioSink audio_sink;
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
 	chiaki_session_set_audio_sink(&session, &audio_sink);
+	ChiakiAudioHeader audio_header;
+	chiaki_audio_header_set(&audio_header, 2, 16, MICROPHONE_SAMPLES * 100, MICROPHONE_SAMPLES);
+	chiaki_opus_encoder_header(&audio_header, &opus_encoder, &session);
 
 	if (connect_info.enable_dualsense)
 	{
@@ -240,7 +294,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
 #endif
-
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_motion_device = nullptr;
 	chiaki_controller_state_set_idle(&setsu_state);
@@ -309,6 +362,14 @@ StreamSession::~StreamSession()
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
+	chiaki_opus_encoder_fini(&opus_encoder);
+#if CHIAKI_GUI_ENABLE_SPEEX
+	if(speech_processing_enabled)
+	{
+		speex_echo_state_destroy(echo_state);
+		speex_preprocess_state_destroy(preprocess_state);
+	}
+#endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	for(auto controller : controllers)
 		delete controller;
@@ -352,6 +413,26 @@ StreamSession::~StreamSession()
 		free(sdeck_haptics_senderr);
 		sdeck_haptics_senderr = nullptr;
 	}
+	if(mic_buf.buf)
+	{
+		free(mic_buf.buf);
+		mic_buf.buf = nullptr;
+	}
+#endif
+#if CHIAKI_GUI_ENABLE_SPEEX
+	if(speech_processing_enabled)
+	{
+		if(mic_resampler_buf)
+		{
+			free(mic_resampler_buf);
+			mic_resampler_buf = nullptr;
+		}
+		if(echo_resampler_buf)
+		{
+			free(echo_resampler_buf);
+			echo_resampler_buf = nullptr;
+		}
+	}
 #endif
 }
 
@@ -373,6 +454,33 @@ void StreamSession::Stop()
 void StreamSession::GoToBed()
 {
 	chiaki_session_goto_bed(&session);
+}
+
+void StreamSession::ToggleMute()
+{
+	if(!allow_unmute)
+		return;
+	if(!mic_connected)
+	{
+#if CHIAKI_GUI_ENABLE_SPEEX
+		if(speech_processing_enabled)
+		{
+			//Use 1 channel for SPEEX processing and then mix to 2 channels
+			InitMic(1, opus_encoder.audio_header.rate);
+		}
+		else
+			InitMic(2, opus_encoder.audio_header.rate);
+#else
+		InitMic(2, opus_encoder.audio_header.rate);
+#endif
+		chiaki_session_connect_microphone(&session);
+		mic_connected = true;
+	}
+	chiaki_session_toggle_microphone(&session, muted);
+	if (muted)
+		muted = false;
+	else
+		muted = true;
 }
 
 void StreamSession::SetLoginPIN(const QString &pin)
@@ -572,6 +680,7 @@ void StreamSession::UpdateGamepads()
 			}
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", controller_id, controller->GetName().toLocal8Bit().constData());
 			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
+			connect(controller, &Controller::MicButtonPush, this, &StreamSession::ToggleMute);
 			controllers[controller_id] = controller;
 			if (controller->IsDualSense())
 			{
@@ -644,8 +753,182 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u",
 				audio_device_info.deviceName().toLocal8Bit().constData(),
 				channels, rate, audio_output->bufferSize());
+	allow_unmute = true;
 }
 
+void StreamSession::InitMic(unsigned int channels, unsigned int rate)
+{
+	delete audio_input;
+	audio_input = nullptr;
+	audio_mic = nullptr;
+	mic_buf.buf = nullptr;
+#if CHIAKI_GUI_ENABLE_SPEEX
+	mic_resampler_buf = nullptr;
+	echo_resampler_buf = nullptr;
+#endif
+
+	mic_buf.current_byte = 0;
+	int16_t mic_buf_size = channels * MICROPHONE_SAMPLES;
+	mic_buf.size_bytes = mic_buf_size * sizeof(int16_t);
+	mic_buf.buf = (int16_t*) calloc(mic_buf_size, sizeof(int16_t));
+
+#if CHIAKI_GUI_ENABLE_SPEEX
+	if(speech_processing_enabled)
+	{
+		SDL_AudioCVT cvt;
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 1, 48000, AUDIO_S16LSB, 2, 48000);
+		cvt.len = mic_buf.size_bytes;
+		mic_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
+		if(!mic_resampler_buf)
+		{
+			CHIAKI_LOGE(GetChiakiLog(), "Mic resampler buf could not be created, aborting mic startup");
+			return;
+		}
+
+		SDL_AudioCVT cvt2;
+		SDL_BuildAudioCVT(&cvt2, AUDIO_S16LSB, 2, 48000, AUDIO_S16LSB, 1, 48000);
+		cvt2.len = cvt.len * cvt.len_ratio;
+		echo_resampler_buf = (uint8_t*) calloc(cvt2.len * cvt2.len_mult, sizeof(uint8_t));
+		if(!echo_resampler_buf)
+		{
+			CHIAKI_LOGE(GetChiakiLog(), "Echo resampler buf could not be created, aborting mic startup");
+			return;
+		}
+	}
+#endif
+
+	QAudioFormat audio_format;
+	audio_format.setSampleRate(rate);
+	audio_format.setChannelCount(channels);
+	audio_format.setSampleSize(16);
+	audio_format.setCodec("audio/pcm");
+	audio_format.setSampleType(QAudioFormat::SignedInt);
+
+	QAudioDeviceInfo audio_device_info = audio_in_device_info;
+	if(!audio_device_info.isFormatSupported(audio_format))
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by microphone %s",
+					channels, rate,
+					audio_device_info.deviceName().toLocal8Bit().constData());
+		return;
+	}
+	audio_input = new QAudioInput(audio_device_info, audio_format, this);
+	audio_input->setBufferSize(audio_buffer_size);
+	audio_mic = audio_input->start();
+
+	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone %s opened with %u channels @ %u Hz, buffer size %u",
+			audio_device_info.deviceName().toLocal8Bit().constData(),
+			channels, rate, audio_input->bufferSize());
+	connect(audio_mic, SIGNAL(readyRead()), this, SLOT(ReadMic()));
+}
+
+void StreamSession::ReadMic()
+{
+#if CHIAKI_GUI_ENABLE_SPEEX
+	int16_t echo_buf[mic_buf.size_bytes / sizeof(int16_t)];
+#endif
+	uint32_t mic_bytes_left = mic_buf.size_bytes - mic_buf.current_byte;
+	QByteArray micdata = audio_mic->readAll();
+	// Don't send mic data if muted
+	if(muted)
+		return;
+	qint64 bytes_read = micdata.size();
+	const char * micdataread = micdata.constData();
+	if(bytes_read == 0)
+		return;
+	if(bytes_read < mic_bytes_left)
+	{
+		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, (uint8_t *)micdataread, bytes_read);
+		mic_buf.current_byte += bytes_read;
+	}
+	else
+	{
+		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, (uint8_t *)micdataread, mic_bytes_left);
+#if CHIAKI_GUI_ENABLE_SPEEX
+		SDL_AudioCVT cvt;
+		if(speech_processing_enabled)
+		{
+			// change samples to stereo after processing with SPEEX
+			SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 1, 48000, AUDIO_S16LSB, 2, 48000);
+			cvt.len = mic_buf.size_bytes;
+			cvt.buf = mic_resampler_buf;
+			if(!echo_to_cancel.isEmpty())
+			{
+				int16_t *echo = echo_to_cancel.dequeue();
+				speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
+				speex_preprocess_run(preprocess_state, echo_buf);
+				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)echo_buf, mic_buf.size_bytes);
+				if(SDL_ConvertAudio(&cvt) != 0)
+				{
+					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
+					return;
+				}
+				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
+			}
+			else
+			{
+				memcpy((uint8_t *)mic_buf.buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
+				speex_preprocess_run(preprocess_state, (int16_t *)mic_buf.buf);
+				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
+				if(SDL_ConvertAudio(&cvt) != 0)
+				{
+					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
+					return;
+				}
+				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
+			}
+		}
+		else
+			chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+#else
+	    chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+#endif
+		bytes_read -= mic_bytes_left;
+		uint32_t frames = bytes_read / mic_buf.size_bytes;
+		for (int i = 0; i < frames; i++)
+		{
+			memcpy((uint8_t *)mic_buf.buf, (uint8_t *)micdataread + mic_bytes_left + i * mic_buf.size_bytes, mic_buf.size_bytes);
+#if CHIAKI_GUI_ENABLE_SPEEX
+		if(speech_processing_enabled)
+		{
+			if(!echo_to_cancel.isEmpty())
+			{
+				int16_t *echo = echo_to_cancel.dequeue();
+				speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
+				speex_preprocess_run(preprocess_state, echo_buf);
+				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)echo_buf, mic_buf.size_bytes);
+				if(SDL_ConvertAudio(&cvt) != 0)
+				{
+					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
+					return;
+				}
+				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
+			}
+			else
+			{
+				memcpy((uint8_t *)mic_buf.buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
+				speex_preprocess_run(preprocess_state, (int16_t *)mic_buf.buf);
+				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
+				if(SDL_ConvertAudio(&cvt) != 0)
+				{
+					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
+					return;
+				}
+				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
+			}
+		}
+		else
+			chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+#else
+	    chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+#endif
+		}
+		mic_buf.current_byte = bytes_read % mic_buf.size_bytes;
+		if(mic_buf.current_byte == 0)
+			return;
+		memcpy((uint8_t *)mic_buf.buf, (uint8_t *)micdataread + mic_bytes_left + frames * mic_buf.size_bytes, mic_buf.current_byte);
+	}
+}
 void StreamSession::InitHaptics()
 {
 	haptics_output = 0;
@@ -829,6 +1112,26 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 {
 	if(!audio_io)
 		return;
+
+#if CHIAKI_GUI_ENABLE_SPEEX
+	// change samples to mono for processing with SPEEX
+	if(echo_resampler_buf && speech_processing_enabled && !muted)
+	{
+		SDL_AudioCVT cvt;
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 2, 48000, AUDIO_S16LSB, 1, 48000);
+		cvt.len = mic_buf.size_bytes * 2;
+		cvt.buf = echo_resampler_buf;
+		memcpy(echo_resampler_buf, buf, mic_buf.size_bytes * 2);
+		if(SDL_ConvertAudio(&cvt) != 0)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample echo audio: %s", SDL_GetError());
+			return;
+		}
+		if(echo_to_cancel.size() >= ECHO_QUEUE_MAX)
+			echo_to_cancel.dequeue();
+		echo_to_cancel.enqueue((int16_t *)echo_resampler_buf);
+	}
+#endif
 	audio_io->write((const char *)buf, static_cast<qint64>(samples_count * 2 * 2));
 }
 
@@ -1095,6 +1398,11 @@ class StreamSessionPrivate
 		static void InitAudio(StreamSession *session, uint32_t channels, uint32_t rate)
 		{
 			QMetaObject::invokeMethod(session, "InitAudio", Qt::ConnectionType::BlockingQueuedConnection, Q_ARG(unsigned int, channels), Q_ARG(unsigned int, rate));
+		}
+
+		static void InitMic(StreamSession *session, uint32_t channels, uint32_t rate)
+		{
+			QMetaObject::invokeMethod(session, "InitMic", Qt::ConnectionType::QueuedConnection, Q_ARG(unsigned int, channels), Q_ARG(unsigned int, rate));
 		}
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }

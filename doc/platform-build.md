@@ -6,7 +6,7 @@
 On Fedora, build dependencies can be installed via:
 
 ```
-sudo dnf install cmake make qt5-qtmultimedia-devel qt5-qtsvg-devel qt5-qtbase-gui ffmpeg-devel opus-devel openssl-devel python3-protobuf protobuf-c protobuf-devel qt5-rpm-macros SDL2-devel libevdev-devel systemd-devel
+sudo dnf install cmake make qt5-qtmultimedia-devel qt5-qtsvg-devel qt5-qtbase-gui ffmpeg-devel opus-devel openssl-devel python3-protobuf protobuf-c protobuf-devel qt5-rpm-macros SDL2-devel libevdev-devel systemd-devel speexdsp
 ```
 
 Then, Chiaki builds just like any other CMake project:

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <controllermanager.h>
+#include <streamwindow.h>
 
 #include <QCoreApplication>
 #include <QMessageBox>
@@ -247,6 +248,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 {
 	this->id = device_id;
 	this->manager = manager;
+	this->micbutton_push = false;
 	chiaki_orientation_tracker_init(&this->orientation_tracker);
 	chiaki_controller_state_set_idle(&this->state);
 
@@ -371,6 +373,9 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 		case SDL_CONTROLLER_BUTTON_GUIDE:
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_PS;
 			break;
+		case SDL_CONTROLLER_BUTTON_MISC1:
+			micbutton_push = true;
+			break;
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 		case SDL_CONTROLLER_BUTTON_TOUCHPAD:
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -380,9 +385,20 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 			return false;
 		}
 	if(event.type == SDL_CONTROLLERBUTTONDOWN)
-		state.buttons |= ps_btn;
+	{
+		if(!micbutton_push)
+			state.buttons |= ps_btn;
+	}
 	else
-		state.buttons &= ~ps_btn;
+	{
+		if(micbutton_push)
+		{
+			micbutton_push = false;
+			emit MicButtonPush();
+		}
+		else
+			state.buttons &= ~ps_btn;
+	}
 	return true;
 }
 

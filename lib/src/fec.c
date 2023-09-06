@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 int *create_matrix(unsigned int k, unsigned int m)
 {
@@ -68,6 +69,60 @@ error_data_ptrs:
 	free(data_ptrs);
 error_jerasures:
 	free(jerasures);
+error_matrix:
+	free(matrix);
+	return err;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_encode(uint8_t *frame_buf, size_t unit_size, size_t stride, unsigned int k, unsigned int m)
+{
+	if(stride < unit_size)
+		return CHIAKI_ERR_INVALID_DATA;
+	int *matrix = create_matrix(k, m);
+	if(!matrix)
+		return CHIAKI_ERR_MEMORY;
+
+	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+
+	uint8_t **data_ptrs = calloc(k, sizeof(uint8_t *));
+	if(!data_ptrs)
+	{
+		err = CHIAKI_ERR_MEMORY;
+		goto error_matrix;
+	}
+
+	uint8_t **coding_ptrs = calloc(m, sizeof(uint8_t *));
+	if(!coding_ptrs)
+	{
+		err = CHIAKI_ERR_MEMORY;
+		goto error_data_ptrs;
+	}
+
+	for(size_t i=0; i<m; i++)
+	{
+		coding_ptrs[i] = calloc(unit_size, sizeof(uint8_t));
+		if(!coding_ptrs[i])
+			goto error_coding_ptrs;
+	}
+
+	for(size_t i=0; i<k; i++)
+	{
+		uint8_t *buf_ptr = frame_buf + stride * i;
+		data_ptrs[i] = buf_ptr;
+	}
+
+	jerasure_matrix_encode(k, m, CHIAKI_FEC_WORDSIZE, matrix,
+							(char **)data_ptrs, (char **)coding_ptrs, unit_size);
+
+	for(int i=0; i<m; i++)
+		memcpy(frame_buf + k * unit_size + i * unit_size, coding_ptrs[i], unit_size);
+
+for(int i=0; i<m; i++)
+	free(coding_ptrs[i]);
+error_coding_ptrs:
+	free(coding_ptrs);
+error_data_ptrs:
+	free(data_ptrs);
 error_matrix:
 	free(matrix);
 	return err;

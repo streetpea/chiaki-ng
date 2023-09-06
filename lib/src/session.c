@@ -833,6 +833,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session)
 	return chiaki_ctrl_goto_bed(&session->ctrl);
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_toggle_microphone(ChiakiSession *session, bool muted)
+{
+	ChiakiErrorCode err;
+	err = ctrl_message_toggle_microphone(&session->ctrl, muted);
+	return err;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_connect_microphone(ChiakiSession *session)
+{
+	ChiakiErrorCode err;
+	err = ctrl_message_connect_microphone(&session->ctrl);
+	return err;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_set_text(ChiakiSession *session, const char *text)
 {
 	return chiaki_ctrl_keyboard_set_text(&session->ctrl, text);

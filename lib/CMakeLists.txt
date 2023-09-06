@@ -18,6 +18,7 @@ set(HEADER_FILES
 		include/chiaki/gkcrypt.h
 		include/chiaki/audio.h
 		include/chiaki/audioreceiver.h
+		include/chiaki/audiosender.h
 		include/chiaki/video.h
 		include/chiaki/videoreceiver.h
 		include/chiaki/frameprocessor.h
@@ -36,6 +37,7 @@ set(HEADER_FILES
 		include/chiaki/fec.h
 		include/chiaki/regist.h
 		include/chiaki/opusdecoder.h
+		include/chiaki/opusencoder.h
 		include/chiaki/orientation.h)
 
 set(SOURCE_FILES
@@ -59,6 +61,7 @@ set(SOURCE_FILES
 		src/gkcrypt.c
 		src/audio.c
 		src/audioreceiver.c
+		src/audiosender.c
 		src/videoreceiver.c
 		src/frameprocessor.c
 		src/packetstats.c
@@ -75,6 +78,7 @@ set(SOURCE_FILES
 		src/fec.c
 		src/regist.c
 		src/opusdecoder.c
+		src/opusencoder.c
 		src/orientation.c)
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
