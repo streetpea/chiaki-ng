@@ -17,10 +17,15 @@
 #include <QFormLayout>
 #include <QScrollArea>
 #include <QMap>
+#include <QScrollArea>
 #include <QCheckBox>
 #include <QLineEdit>
 #include <QtConcurrent>
 #include <QFutureWatcher>
+#if CHIAKI_GUI_ENABLE_SPEEX
+#include <QSlider>
+#include <QLabel>
+#endif
 
 #include <chiaki/config.h>
 #include <chiaki/ffmpegdecoder.h>
@@ -120,6 +125,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	general_layout->addRow(tr("Action on Disconnect:"), disconnect_action_combo_box);
 
 	audio_device_combo_box = new QComboBox(this);
+	audio_device_combo_box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	audio_device_combo_box->addItem(tr("Auto"));
 	auto current_audio_device = settings->GetAudioOutDevice();
 	if(!current_audio_device.isEmpty())
@@ -148,6 +154,72 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	});
 	audio_devices_future_watcher->setFuture(audio_devices_future);
 	general_layout->addRow(tr("Audio Output Device:"), audio_device_combo_box);
+
+	microphone_combo_box = new QComboBox(this);
+	microphone_combo_box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+	microphone_combo_box->addItem(tr("Auto"));
+	auto current_microphone = settings->GetAudioInDevice();
+	if(!current_microphone.isEmpty())
+	{
+		// temporarily add the selected device before async fetching is done
+		microphone_combo_box->addItem(current_microphone, current_microphone);
+		microphone_combo_box->setCurrentIndex(1);
+	}
+	connect(microphone_combo_box, QOverload<int>::of(&QComboBox::activated), this, [this](){
+		this->settings->SetAudioInDevice(microphone_combo_box->currentData().toString());
+	});
+
+	// do this async because it's slow, assuming availableDevices() is thread-safe
+	auto microphones_future = QtConcurrent::run([]() {
+		return QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+	});
+	auto microphones_future_watcher = new QFutureWatcher<QList<QAudioDeviceInfo>>(this);
+	connect(microphones_future_watcher, &QFutureWatcher<QList<QAudioDeviceInfo>>::finished, this, [this, microphones_future_watcher, settings]() {
+		auto available_microphones = microphones_future_watcher->result();
+		while(microphone_combo_box->count() > 1) // remove all but "Auto"
+			microphone_combo_box->removeItem(1);
+		for(QAudioDeviceInfo di : available_microphones)
+			microphone_combo_box->addItem(di.deviceName(), di.deviceName());
+		int audio_in_device_index = microphone_combo_box->findData(settings->GetAudioInDevice());
+		microphone_combo_box->setCurrentIndex(audio_in_device_index < 0 ? 0 : audio_in_device_index);
+	});
+	microphones_future_watcher->setFuture(microphones_future);
+	general_layout->addRow(tr("Microphone:"), microphone_combo_box);
+
+#if CHIAKI_GUI_ENABLE_SPEEX
+	speech_processing_check_box = new QCheckBox(this);
+	general_layout->addRow(tr("Enable speech processing:\nnoise suppression + echo cancellation."), speech_processing_check_box);
+	speech_processing_check_box->setChecked(settings->GetSpeechProcessingEnabled());
+	connect(speech_processing_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::SpeechProcessingChanged);
+
+	noiseSuppress = new QSlider(this);
+	noiseSuppress->setRange(0, 60);
+	noiseSuppress->setValue(settings->GetNoiseSuppressLevel());
+	noiseValue = new QLabel(QString::number(settings->GetNoiseSuppressLevel()));
+	noiseSuppress->setOrientation(Qt::Horizontal);
+	connect(noiseSuppress, &QSlider::valueChanged, this, [this](){
+		this->settings->SetNoiseSuppressLevel(noiseSuppress->value());
+	});
+	connect(noiseSuppress, &QSlider::valueChanged, [this](int value) {
+		noiseValue->setText(QString::number(value));
+	});
+	general_layout->addRow(tr("Noise to Suppress (dB)"), noiseSuppress);
+	general_layout->addWidget(noiseValue);
+
+	echoSuppress = new QSlider(this);
+	echoSuppress->setRange(0, 60);
+	echoSuppress->setValue(settings->GetEchoSuppressLevel());
+	echoValue = new QLabel(QString::number(settings->GetEchoSuppressLevel()));
+	echoSuppress->setOrientation(Qt::Horizontal);
+	connect(echoSuppress, &QSlider::valueChanged, this, [this](){
+		this->settings->SetEchoSuppressLevel(echoSuppress->value());
+	});
+	connect(echoSuppress, &QSlider::valueChanged, [this](int value) {
+		echoValue->setText(QString::number(value));
+	});
+	general_layout->addRow(tr("Echo to Suppress (dB)"), echoSuppress);
+	general_layout->addWidget(echoValue);
+#endif
 
 	auto about_button = new QPushButton(tr("About chiaki4deck"), this);
 	general_layout->addRow(about_button);
@@ -365,6 +437,12 @@ void SettingsDialog::AutomaticConnectChanged()
 {
 	settings->SetAutomaticConnect(automatic_connect_check_box->isChecked());
 }
+#if CHIAKI_GUI_ENABLE_SPEEX
+void SettingsDialog::SpeechProcessingChanged()
+{
+	settings->SetSpeechProcessingEnabled(speech_processing_check_box->isChecked());
+}
+#endif
 
 void SettingsDialog::FPSSelected()
 {
@@ -389,6 +467,11 @@ void SettingsDialog::AudioBufferSizeEdited()
 void SettingsDialog::AudioOutputSelected()
 {
 	settings->SetAudioOutDevice(audio_device_combo_box->currentText());
+}
+
+void SettingsDialog::AudioInputSelected()
+{
+	settings->SetAudioInDevice(microphone_combo_box->currentText());
 }
 
 void SettingsDialog::HardwareDecodeEngineSelected()

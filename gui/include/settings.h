@@ -109,6 +109,19 @@ class Settings : public QObject
 		QString GetAudioOutDevice() const;
 		void SetAudioOutDevice(QString device_name);
 
+		QString GetAudioInDevice() const;
+		void SetAudioInDevice(QString device_name);
+
+#if CHIAKI_GUI_ENABLE_SPEEX
+		bool GetSpeechProcessingEnabled() const;
+		int GetNoiseSuppressLevel() const;
+		int GetEchoSuppressLevel() const;
+
+		void SetSpeechProcessingEnabled(bool enabled);
+		void SetNoiseSuppressLevel(int reduceby);
+		void SetEchoSuppressLevel(int reduceby);
+#endif
+
 		ChiakiConnectVideoProfile GetVideoProfile();
 
 		DisconnectAction GetDisconnectAction();

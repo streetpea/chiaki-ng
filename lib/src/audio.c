@@ -29,3 +29,12 @@ void chiaki_audio_header_save(ChiakiAudioHeader *audio_header, uint8_t *buf)
 	*((chiaki_unaligned_uint32_t *)(buf + 6)) = htonl(audio_header->frame_size);
 	*((chiaki_unaligned_uint32_t *)(buf + 0xa)) = htonl(audio_header->unknown);
 }
+
+void chiaki_audio_header_set(ChiakiAudioHeader * audio_header, uint8_t channels, uint8_t bits, uint32_t rate, uint32_t frame_size)
+{
+	audio_header->channels = channels;
+	audio_header->bits = bits;
+	audio_header->rate = rate;
+	audio_header->frame_size = frame_size;
+	audio_header->unknown = 0;
+}

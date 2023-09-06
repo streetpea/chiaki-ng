@@ -21,7 +21,6 @@ class StreamWindow: public QMainWindow
 	private:
 		const StreamSessionConnectInfo connect_info;
 		StreamSession *session;
-
 		AVOpenGLWidget *av_widget;
 
 		void Init();
@@ -46,6 +45,7 @@ class StreamWindow: public QMainWindow
 		void ToggleFullscreen();
 		void ToggleStretch();
 		void ToggleZoom();
+		void ToggleMute();
 		void Quit();
 };
 

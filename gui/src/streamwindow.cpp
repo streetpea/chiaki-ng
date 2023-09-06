@@ -88,6 +88,10 @@ void StreamWindow::Init()
 	addAction(zoom_action);
 	connect(zoom_action, &QAction::triggered, this, &StreamWindow::ToggleZoom);
 
+	auto mute_action = new QAction(tr("Toggle Mute"), this);
+	mute_action->setShortcut(Qt::CTRL + Qt::Key_M);
+	addAction(mute_action);
+	connect(mute_action, &QAction::triggered, this, &StreamWindow::ToggleMute);
 
 	auto quit_action = new QAction(tr("Quit"), this);
 	quit_action->setShortcut(Qt::CTRL + Qt::Key_Q);
@@ -252,6 +256,13 @@ void StreamWindow::ToggleZoom()
 {
 	if(av_widget)
 		av_widget->ToggleZoom();
+}
+
+void StreamWindow::ToggleMute()
+{
+	if(!session)
+		return;
+	session->ToggleMute();
 }
 
 void StreamWindow::resizeEvent(QResizeEvent *event)

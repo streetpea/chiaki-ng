@@ -5,6 +5,7 @@
 
 #include <chiaki/session.h>
 #include <chiaki/opusdecoder.h>
+#include <chiaki/opusencoder.h>
 #include <chiaki/ffmpegdecoder.h>
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
@@ -31,8 +32,14 @@
 #include <QTimer>
 #include <QQueue>
 #include <QElapsedTimer>
+#if CHIAKI_GUI_ENABLE_SPEEX
+#include <QQueue>
+#include <speex/speex_echo.h>
+#include <speex/speex_preprocess.h>
+#endif
 
 class QAudioOutput;
+class QAudioInput;
 class QIODevice;
 class QKeyEvent;
 class Settings;
@@ -58,6 +65,7 @@ struct StreamSessionConnectInfo
 	Decoder decoder;
 	QString hw_decoder;
 	QString audio_out_device;
+	QString audio_in_device;
 	uint32_t log_level_mask;
 	QString log_file;
 	ChiakiTarget target;
@@ -75,6 +83,11 @@ struct StreamSessionConnectInfo
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
 # endif
+#if CHIAKI_GUI_ENABLE_SPEEX
+	bool speech_processing_enabled;
+	int32_t noise_suppress_level;
+	int32_t echo_suppress_level;
+#endif
 
 	StreamSessionConnectInfo(
 			Settings *settings,
@@ -88,6 +101,13 @@ struct StreamSessionConnectInfo
 			bool stretch);
 };
 
+struct MicBuf
+{
+	int16_t *buf;
+	uint32_t size_bytes;
+	uint32_t current_byte;
+};
+
 class StreamSession : public QObject
 {
 	friend class StreamSessionPrivate;
@@ -98,7 +118,11 @@ class StreamSession : public QObject
 		SessionLog log;
 		ChiakiSession session;
 		ChiakiOpusDecoder opus_decoder;
+		ChiakiOpusEncoder opus_encoder;
 		bool connected;
+		bool muted;
+		bool mic_connected;
+		bool allow_unmute;
 
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -138,12 +162,22 @@ class StreamSession : public QObject
 #endif
 
 		QAudioDeviceInfo audio_out_device_info;
+		QAudioDeviceInfo audio_in_device_info;
 		unsigned int audio_buffer_size;
 		QAudioOutput *audio_output;
+		QAudioInput *audio_input;
 		QIODevice *audio_io;
+		QIODevice *audio_mic;
+#if CHIAKI_GUI_ENABLE_SPEEX
+		SpeexEchoState *echo_state;
+		SpeexPreprocessState *preprocess_state;
+		bool speech_processing_enabled;
+		uint8_t *echo_resampler_buf, *mic_resampler_buf;
+		QQueue<int16_t *> echo_to_cancel;
+#endif
 		SDL_AudioDeviceID haptics_output;
 		uint8_t *haptics_resampler_buf;
-
+		MicBuf mic_buf;
 		QMap<Qt::Key, int> key_map;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
@@ -157,6 +191,8 @@ class StreamSession : public QObject
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
+		void InitMic(unsigned int channels, unsigned int rate);
+		void ReadMic();
 		void InitHaptics();
 		void Event(ChiakiEvent *event);
 		void DisconnectHaptics();
@@ -175,7 +211,7 @@ class StreamSession : public QObject
 		void Start();
 		void Stop();
 		void GoToBed();
-
+		void ToggleMute();
 		void SetLoginPIN(const QString &pin);
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }

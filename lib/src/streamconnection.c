@@ -50,6 +50,7 @@ static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_
 static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection);
 static ChiakiErrorCode stream_connection_send_controller_connection(ChiakiStreamConnection *stream_connection);
+static ChiakiErrorCode stream_connection_enable_microphone(ChiakiStreamConnection *stream_connection);
 static ChiakiErrorCode stream_connection_send_disconnect(ChiakiStreamConnection *stream_connection);
 static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
@@ -628,6 +629,13 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send controller connection");
 		goto error;
 	}
+
+	err = stream_connection_enable_microphone(stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to enable microphone input");
+		goto error;
+	}
 	return;
 error:
 	stream_connection->state_failed = true;
@@ -884,6 +892,15 @@ static ChiakiErrorCode stream_connection_send_controller_connection(ChiakiStream
 
 	buf_size = stream.bytes_written;
 	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size, NULL);
+}
+
+static ChiakiErrorCode stream_connection_enable_microphone(ChiakiStreamConnection *stream_connection)
+{
+	char enable[] = "080d7a10120e01100000bb80000001e000000001";
+	size_t msg_size = sizeof(enable) / 2;
+	uint8_t msg[sizeof(enable) / 2];
+	parse_hex(msg, &msg_size, enable, sizeof(enable) - 1);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, msg, msg_size, NULL);
 }
 
 static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection)
