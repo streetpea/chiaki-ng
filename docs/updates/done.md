@@ -10,10 +10,10 @@ Added gyro support for Steam Deck via a native interface since SDL2 doesn't supp
 
 ## [Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
 
-Haptics enabled for PlayStation 5 thanks to [Johannes Baiter](https://github.com/jbaiter). You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller follwing the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.[^2].
+Haptics enabled for PlayStation 5 thanks to [Johannes Baiter](https://github.com/jbaiter). You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.[^2].
 
-I have also added the capabilitiy to play the haptics via the Steam Deck controller using the native interface I added. 
-Since these features are expiremental, you need to opt-in via a checkbox in the GUI.
+I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
+Since these features are experimental, you need to opt-in via a checkbox in the GUI.
 
 ## Updated RGB Mapping
 
@@ -29,7 +29,7 @@ RGB mapping update thanks to [Egoistically](https://github.com/Egoistically){tar
 
 ## 3 view modes for non-standard screen sizes
 
-It's great to have these options for Steam Deck's non-standard 1280x800 resolution.[^1]
+It's great to have these options for Steam Deck's non-standard 1280x800 resolution.[^3]
 
 ???- Info "Using These Options Without the Automation [Not Recommended] (click me to open)"
 
@@ -75,7 +75,7 @@ It's great to have these options for Steam Deck's non-standard 1280x800 resoluti
 
 ## Quit function ++ctrl+q++
 
-Cleanly quits Chiaki, respecting the user's configuration option of either asking to put PlayStation console sleep, putting PlayStation console to sleep without asking, or leaving PlayStation console on.[^1]
+Cleanly quits Chiaki, respecting the user's configuration option of either asking to put PlayStation console sleep, putting PlayStation console to sleep without asking, or leaving PlayStation console on.[^3]
 
 !!! Question "What does this do for me?"
 
@@ -107,8 +107,9 @@ I have added a helper script to generate a `Chiaki-launcher.sh` script as well a
 
 ## Enabled Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak
 
-This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See [Using a DualSense and/or DualShock4 Controller with `chiaki4deck`](../setup/controlling.md#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck){target="_blank" rel="noopener"} to set it up for yourself.[^1]
+This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See [Using a DualSense and/or DualShock4 Controller with `chiaki4deck`](../setup/controlling.md#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck){target="_blank" rel="noopener"} to set it up for yourself.[^3]
 The DualSense/DualShock 4 touchpad and gyro controls work with the binary version of Chiaki but don't work with the official flatpak version. Luckily for you, they now work with the `chiaki4deck` flatpak! :smile:
 
 [^1]: merged upstream, but not yet released in official flatpak
 [^2]: partially merged upstream
+[^3]: now part of upstream Chiaki as of latest release
