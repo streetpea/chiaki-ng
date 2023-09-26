@@ -9,6 +9,7 @@
 #include <streamsession.h>
 #include <streamwindow.h>
 #include <manualhostdialog.h>
+#include <time.h>
 
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -219,8 +220,6 @@ void MainWindow::SendWakeup(const DisplayServer *server)
 		QMessageBox::critical(this, tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
 		return;
 	}
-
-	QMessageBox::information(this, tr("Wakeup"), tr("Wakeup packet sent."));
 }
 
 void MainWindow::ServerItemWidgetTriggered()
@@ -234,17 +233,29 @@ void MainWindow::ServerItemWidgetTriggered()
 	{
 		if(server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
 		{
-			int r = QMessageBox::question(this,
-					tr("Start Stream"),
-					tr("The Console is currently in standby mode.\nShould we send a Wakeup packet instead of trying to connect immediately?"),
-					QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-			if(r == QMessageBox::Yes)
+			if(settings->GetAutomaticConnect())
 			{
 				SendWakeup(&server);
-				return;
+				time_t start, end;
+				time(&start);
+				do
+					time(&end);
+				while(difftime(end, start) <= 10);
 			}
-			else if(r == QMessageBox::Cancel)
-				return;
+			else
+			{
+				int r = QMessageBox::question(this,
+						tr("Start Stream"),
+						tr("The Console is currently in standby mode.\nShould we send a Wakeup packet instead of trying to connect immediately?"),
+						QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+				if(r == QMessageBox::Yes)
+				{
+					SendWakeup(&server);
+					return;
+				}
+				else if(r == QMessageBox::Cancel)
+					return;
+			}
 		}
 
 		QString host = server.GetHostAddr();
