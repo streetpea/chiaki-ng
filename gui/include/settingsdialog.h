@@ -22,6 +22,7 @@ class SettingsDialog : public QDialog
 		QComboBox *disconnect_action_combo_box;
 		QCheckBox *dualsense_check_box;
 		QCheckBox *vertical_sdeck_check_box;
+		QCheckBox *automatic_connect_check_box;
 
 		QComboBox *resolution_combo_box;
 		QComboBox *fps_combo_box;
@@ -41,6 +42,7 @@ class SettingsDialog : public QDialog
 		void LogVerboseChanged();
 		void DualSenseChanged();
 		void DeckOrientationChanged();
+		void AutomaticConnectChanged();
 		void DisconnectActionSelected();
 
 		void ResolutionSelected();
