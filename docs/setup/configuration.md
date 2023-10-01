@@ -244,7 +244,7 @@ Ultimately, the performance will depend on the capability of your wireless route
 
 !!! Example "My Wireless Connection by the Numbers"
 
-    I'm using the $5GHz$ band for `chiaki4deck` on my Steam Deck, meaning the total bandwidth for all devices on my local network is $1,300 Mbps$ (remember Internet connection itself doesn't matter since we're only using our wireless router for local streaming). Since I am using the settings in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), I'm using $(30,000 + 19,200) Kbps \approx 50 Mbps$ out of the total of $1,300 Mbps$. This means I'm using about $4\%$ of my $5GHz$ band. In other words, I still have plenty of bandwidth for watching Netflix :zany_face: while I play on my Steam Deck!
+    I'm using the $5GHz$ band for `chiaki4deck` on my Steam Deck, meaning the total bandwidth for all devices on my local network is $1,300 Mbps$ (remember Internet connection itself doesn't matter since we're only using our wireless router for local streaming). Since I am using the settings in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), I'm using $30,000 Kbps$ or $30 Mbps$ out of the total of $1,300 Mbps$. This means I'm using about $2\%$ of my $5GHz$ band. In other words, I still have plenty of bandwidth for watching Netflix :zany_face: while I play on my Steam Deck!
 
 !!! Question "What Performance Can I Expect?"
 
