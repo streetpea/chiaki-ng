@@ -923,9 +923,9 @@
 <h2 id="enabled-gyro-for-steam-deck">Enabled Gyro for Steam Deck<a class="headerlink" href="#enabled-gyro-for-steam-deck" title="Permanent link">&para;</a></h2>
 <p>Added gyro support for Steam Deck via a native interface since SDL2 doesn't support Steam Deck gyro due to Steam's virtual gamepads not providing gyro.</p>
 <h2 id="experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">[Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
-<p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller follwing the "Turning off Steam Input" tab in <a href="../../setup/controlling/#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup>.</p>
-<p>I have also added the capabilitiy to play the haptics via the Steam Deck controller using the native interface I added. 
-Since these features are expiremental, you need to opt-in via a checkbox in the GUI.</p>
+<p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="../../setup/controlling/#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup>.</p>
+<p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
+Since these features are experimental, you need to opt-in via a checkbox in the GUI.</p>
 <h2 id="updated-rgb-mapping">Updated RGB Mapping<a class="headerlink" href="#updated-rgb-mapping" title="Permanent link">&para;</a></h2>
 <p>RGB mapping update thanks to <a href="https://github.com/Egoistically" rel="noopener" target="_blank">Egoistically</a> via a <a href="https://github.com/Egoistically/chiaki" rel="noopener" target="_blank">Chiaki fork</a> which is of course copy-left under the <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener" target="_blank">GNU Affero General Public License version 3</a> as are all of the other <code>chiaki4deck</code> changes. I added the patches to <code>chiaki4deck</code> and it results in a more accurate picture. Joni Bimbashi updated the initial mapping to work with HW acceleration. Below is a <strong>BEFORE</strong> and <strong>AFTER</strong> from Ghost of Tsushima.</p>
 <div class="admonition example">
@@ -937,7 +937,7 @@ Since these features are expiremental, you need to opt-in via a checkbox in the 
 <p><img alt="Ghost of Tsushima After RGB Update" src="../images/GOTAfterRGB.jpg" /></p>
 </div>
 <h2 id="3-view-modes-for-non-standard-screen-sizes">3 view modes for non-standard screen sizes<a class="headerlink" href="#3-view-modes-for-non-standard-screen-sizes" title="Permanent link">&para;</a></h2>
-<p>It's great to have these options for Steam Deck's non-standard 1280x800 resolution.<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup></p>
+<p>It's great to have these options for Steam Deck's non-standard 1280x800 resolution.<sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup></p>
 <details class="- info">
 <summary>Using These Options Without the Automation [Not Recommended] (click me to open)</summary>
 <p>If for some strange reason you want to launch <code>chiaki4deck</code> via the GUI instead of the automation (not recommended due to the items noted <a href="#enabled-automated-launch">here</a>), it launches by default in a window matching the aspect ratio of the stream (i.e., 16:9). This means that the stream output exactly matches the stream window. In this scenario, there is nothing to stretch or zoom the stream output to because the stream output already perfectly matches with the stream window. If you want to stretch or zoom, you would need to first either:</p>
@@ -982,7 +982,7 @@ Since these features are expiremental, you need to opt-in via a checkbox in the 
 </li>
 </ol>
 <h2 id="quit-function-ctrlq">Quit function <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span><a class="headerlink" href="#quit-function-ctrlq" title="Permanent link">&para;</a></h2>
-<p>Cleanly quits Chiaki, respecting the user's configuration option of either asking to put PlayStation console sleep, putting PlayStation console to sleep without asking, or leaving PlayStation console on.<sup id="fnref2:1"><a class="footnote-ref" href="#fn:1">1</a></sup></p>
+<p>Cleanly quits Chiaki, respecting the user's configuration option of either asking to put PlayStation console sleep, putting PlayStation console to sleep without asking, or leaving PlayStation console on.<sup id="fnref2:3"><a class="footnote-ref" href="#fn:3">3</a></sup></p>
 <div class="admonition question">
 <p class="admonition-title">What does this do for me?</p>
 <p>Now, if you hit a back button (or other button) mapped to <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> on your Steam Deck, your remote play session will shut down cleanly and put your console to sleep automatically if you so choose. This means you no longer have to manually put your console to sleep via a menu or the power button on the PlayStation console itself.</p>
@@ -1020,16 +1020,19 @@ Since these features are expiremental, you need to opt-in via a checkbox in the 
 </ol>
 <p>I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="../../setup/automation/" rel="noopener" target="_blank">Automation section</a>.</p>
 <h2 id="enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak">Enabled Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak<a class="headerlink" href="#enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak" title="Permanent link">&para;</a></h2>
-<p>This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See <a href="../../setup/controlling/#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck" rel="noopener" target="_blank">Using a DualSense and/or DualShock4 Controller with <code>chiaki4deck</code></a> to set it up for yourself.<sup id="fnref3:1"><a class="footnote-ref" href="#fn:1">1</a></sup>
+<p>This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See <a href="../../setup/controlling/#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck" rel="noopener" target="_blank">Using a DualSense and/or DualShock4 Controller with <code>chiaki4deck</code></a> to set it up for yourself.<sup id="fnref3:3"><a class="footnote-ref" href="#fn:3">3</a></sup>
 The DualSense/DualShock 4 touchpad and gyro controls work with the binary version of Chiaki but don't work with the official flatpak version. Luckily for you, they now work with the <code>chiaki4deck</code> flatpak! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f604.svg" title=":smile:" /></p>
 <div class="footnote">
 <hr />
 <ol>
 <li id="fn:1">
-<p>merged upstream, but not yet released in official flatpak&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a><a class="footnote-backref" href="#fnref2:1" title="Jump back to footnote 1 in the text">&#8617;</a><a class="footnote-backref" href="#fnref3:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+<p>merged upstream, but not yet released in official flatpak&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
 <li id="fn:2">
 <p>partially merged upstream&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+<li id="fn:3">
+<p>now part of upstream Chiaki as of latest release&#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a><a class="footnote-backref" href="#fnref2:3" title="Jump back to footnote 3 in the text">&#8617;</a><a class="footnote-backref" href="#fnref3:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>
@@ -1039,7 +1042,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">June 14, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 23, 2023</span>
       
         <br>
         Created:
