@@ -16,6 +16,14 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.3.4
+
+Small patch release
+
+- Adds lowpass filter for haptics and tweaks haptic response => reduced noise while using Steam Deck haptics
+- Automatic connection option for GUI
+- Update automation script to work for PS4 remote connection
+
 ### 1.3.3
 
 Small cosmetic release
