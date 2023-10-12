@@ -8,6 +8,10 @@ Added Touchpad support for touchscreens (use outer edges of touchscreen for touc
 
 Added gyro support for Steam Deck via a native interface since SDL2 doesn't support Steam Deck gyro due to Steam's virtual gamepads not providing gyro.
 
+## Enabled Mic Support
+
+You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.
+
 ## [Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
 
 Haptics enabled for PlayStation 5 thanks to [Johannes Baiter](https://github.com/jbaiter). You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.[^2].

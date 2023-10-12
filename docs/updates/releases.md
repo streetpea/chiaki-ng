@@ -61,6 +61,12 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.4.0
+
+Mic support
+
+- Adds mic support to chiaki4deck
+
 ### 1.3.4
 
 Small patch release
