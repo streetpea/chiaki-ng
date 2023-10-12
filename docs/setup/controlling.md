@@ -134,6 +134,7 @@ You can create your own controller profile by mapping the relevant buttons. The 
 | `Share Button` | ++f++ | The Share button on the PS5 controller used for taking screenshots, videos, etc. stored on your PS5 and uploaded to the PlayStation app on your phone if you so choose. |
 | `Touchpad Click` | ++t++, mouse ++right-button++, tapping border (top, bottom, left or right 5%) of the touchscreen | These actions will all result in a touchpad click. For games that separate the touchpad into multiple regions, they work in conjunction with either the current mouse location (location of finger on Steam Deck trackpad) or current finger location (which edge of the touchscreen you tapped) to delineate which region you are using (most games just have one region for touchpad click though). |
 | `Touchpad Motion` | `Touchscreen touch`, mouse ++left-button++ ++plus++ Mouse Movement (i.e., `drag action` / mouse region touch). | Maps to the PlayStation touchpad (since that's what PlayStation games / the remote streaming console expect). This means that the "cursor" (if one is defined for the game like in *Chicory: A Colorful Tale*) moves according to your gestures but does not snap/follow your fingers' locations (i.e., it behaves like a touchpad as it should).|
+| `Toggle Mute` | ++ctrl+m++ | The toggle microphone mute on and off button on the PlayStation controller. |
 
 !!! Tip "Two Button Shortcuts"
 
@@ -180,6 +181,14 @@ PlayStation 5 haptics are mapped for both the DualSense controller (usb connecti
 
 If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab [here](#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 Once checked, haptics and adaptive triggers (DualSense only) will work in games that support them when streaming from a PlayStation 5. If the DualSense is plugged in via USB (either initially or plugged in during a gaming session), haptics will be directed to it. If you are using the Steam Deck and don't have a DualSense plugged in, haptics will be directed to it and played via the trackpads.
+
+## Microphone
+
+Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation controller. Then use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki4deck menu. 
+
+!!! Note "Bluetooth headsets don't work on Steam Deck by default"
+
+    The Steam Deck does not currently support microphones over bluetooth so you will need to either use a hardwired headset or the Steam Deck microphone unless you change your Steam Deck settings to enable bluetooth headset support (it is currently experimental and turned off by default). Thus, it's advised to use either a hardwired headset or the internal microphone.
 
 ### Standard Button Mappings (These directly map and don't need to be specifically set)
 
