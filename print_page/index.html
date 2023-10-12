@@ -1108,6 +1108,7 @@
 <li>Chiaki Authors (including but not limited to Florian Märkl)</li>
 <li>Reddit users and others who have helped me in my personal Chiaki journey such as u/mintcu7000 with his getting started guide on Reddit</li>
 <li>Egoistically for the RGB update patch</li>
+<li>Florian Grill for his gracious help with adding mic support</li>
 </ul>
 </li>
 <li>
@@ -2670,6 +2671,11 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <td><code>Touchscreen touch</code>, mouse <span class="keys"><kbd class="key-left-button">Left Button</kbd></span> <span class="keys"><kbd class="key-plus">+</kbd></span> Mouse Movement (i.e., <code>drag action</code> / mouse region touch).</td>
 <td>Maps to the PlayStation touchpad (since that's what PlayStation games / the remote streaming console expect). This means that the "cursor" (if one is defined for the game like in <em>Chicory: A Colorful Tale</em>) moves according to your gestures but does not snap/follow your fingers' locations (i.e., it behaves like a touchpad as it should).</td>
 </tr>
+<tr>
+<td><code>Toggle Mute</code></td>
+<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-m">M</kbd></span></td>
+<td>The toggle microphone mute on and off button on the PlayStation controller.</td>
+</tr>
 </tbody>
 </table>
 <div class="admonition tip">
@@ -2718,6 +2724,12 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <p><img alt="Enable PlayStation 5 Features" src="../updates/images/EnablePlayStation5Features.png" /></p>
 <p>If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">here</a>.
 Once checked, haptics and adaptive triggers (DualSense only) will work in games that support them when streaming from a PlayStation 5. If the DualSense is plugged in via USB (either initially or plugged in during a gaming session), haptics will be directed to it. If you are using the Steam Deck and don't have a DualSense plugged in, haptics will be directed to it and played via the trackpads.</p>
+<h2 id="setup-controlling-microphone">Microphone<a class="headerlink" href="#setup-controlling-microphone" title="Permanent link">&para;</a></h2>
+<p>Unmute microphone with either <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-m">M</kbd></span> or the mic button on the PlayStation controller. Then use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki4deck menu. </p>
+<div class="admonition note">
+<p class="admonition-title">Bluetooth headsets don't work on Steam Deck by default</p>
+<p>The Steam Deck does not currently support microphones over bluetooth so you will need to either use a hardwired headset or the Steam Deck microphone unless you change your Steam Deck settings to enable bluetooth headset support (it is currently experimental and turned off by default). Thus, it's advised to use either a hardwired headset or the internal microphone.</p>
+</div>
 <h3 id="setup-controlling-standard-button-mappings-these-directly-map-and-dont-need-to-be-specifically-set">Standard Button Mappings (These directly map and don't need to be specifically set)<a class="headerlink" href="#setup-controlling-standard-button-mappings-these-directly-map-and-dont-need-to-be-specifically-set" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2948,6 +2960,11 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-140">1.4.0<a class="headerlink" href="#updates-releases-140" title="Permanent link">&para;</a></h3>
+<p>Mic support</p>
+<ul>
+<li>Adds mic support to chiaki4deck</li>
+</ul>
 <h3 id="updates-releases-134">1.3.4<a class="headerlink" href="#updates-releases-134" title="Permanent link">&para;</a></h3>
 <p>Small patch release</p>
 <ul>
@@ -3117,6 +3134,8 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>Added Touchpad support for touchscreens (use outer edges of touchscreen for touchpad click) as well as mouse input (enables trackpads to be fully supported with gestures on touch and touchpad click on click). For an example mapping these in a Steam Deck controller profile, see <a href="#setup-controlling-default-chiaki4deck-layout-touchscreen-mapping" rel="noopener" target="_blank">Default <code>chiaki4deck</code> Layout Touchscreen Mapping</a> and <a href="#setup-controlling-default-chiaki4deck-layout-trackpad-mapping" rel="noopener" target="_blank">Default <code>chiaki4deck</code> Layout Trackpad Mapping</a> respectively. Downloading the updated <code>chiaki4deck+</code> controller layout will have these mappings set for your convenience.</p>
 <h2 id="updates-done-enabled-gyro-for-steam-deck">Enabled Gyro for Steam Deck<a class="headerlink" href="#updates-done-enabled-gyro-for-steam-deck" title="Permanent link">&para;</a></h2>
 <p>Added gyro support for Steam Deck via a native interface since SDL2 doesn't support Steam Deck gyro due to Steam's virtual gamepads not providing gyro.</p>
+<h2 id="updates-done-enabled-mic-support">Enabled Mic Support<a class="headerlink" href="#updates-done-enabled-mic-support" title="Permanent link">&para;</a></h2>
+<p>You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.</p>
 <h2 id="updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">[Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
 <p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#updates-done-fn:2">2</a></sup>.</p>
 <p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
@@ -3231,8 +3250,6 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 </ol>
 </div></section><section class="print-page" id="updates-planned"><h1 id="updates-planned-future-updates-planned">Future Updates Planned<a class="headerlink" href="#updates-planned-future-updates-planned" title="Permanent link">&para;</a></h1>
-<h2 id="updates-planned-enable-microphone">Enable Microphone<a class="headerlink" href="#updates-planned-enable-microphone" title="Permanent link">&para;</a></h2>
-<p>Enable using a microphone for in game interactivity and voice chat.</p>
 <h2 id="updates-planned-update-haptics-from-experimental">Update Haptics from Experimental<a class="headerlink" href="#updates-planned-update-haptics-from-experimental" title="Permanent link">&para;</a></h2>
 <p>After feedback and potential future improvements (if necessary), graduate haptics to a regular (default enabled) vs. experimental future.</p></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
                         <h1 class='nav-section-title' id='section-diy'>
