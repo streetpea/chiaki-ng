@@ -28,7 +28,7 @@ Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `c
 
         1. Click the current layout box (it says: *Browse Community Layouts for games without official controller support* underneath it).
 
-        2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck+` by `gmoney23`
+        2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck+ mic` by `gmoney23`
 
             ![Default controller](images/StreetpeaChiaki4deckLayout.png)
 
@@ -70,7 +70,7 @@ The easiest way to configure all of the necessary shortcuts for `chiaki4deck` is
 
 1. Click the current layout box (it says: *Browse Community Layouts for games without official controller support* underneath it).
 
-2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck+` by `gmoney23` (the original `chiaki4deck` layout was from before touchpad mapping to the trackpad and touchscreen was added)
+2. Move to the `COMMUNITY LAYOUTS` tab and select `chiaki4deck+ mic` by `gmoney23` (the `chiaki4deck+` layout was from before the toggle mic mute button mapping to the L4 back button was added and the original `chiaki4deck` layout was from before touchpad mapping to the trackpad and touchscreen was added)
 
     ![Default controller](images/StreetpeaChiaki4deckLayout.png)
 
@@ -106,7 +106,7 @@ The touchpad gestures are mapped using a mouse region with left mouse click on t
 
 ![Steam Deck Back Button Mapping](images/BackButtons.png)
 
-I have mapped `L4` to the PlayStation button, L5 to end session (++ctrl+q++), R4 to zoom (++ctrl+z++), and R5 to stretch (++ctrl+s++).
+I have mapped `L4` to toggle mic mute, `L5` to end session (++ctrl+q++), `R4` to zoom (++ctrl+z++), and `R5` to stretch (++ctrl+s++).
 
 ### Default `chiaki4deck` Layout Gyro Mapping
 
@@ -134,7 +134,7 @@ You can create your own controller profile by mapping the relevant buttons. The 
 | `Share Button` | ++f++ | The Share button on the PS5 controller used for taking screenshots, videos, etc. stored on your PS5 and uploaded to the PlayStation app on your phone if you so choose. |
 | `Touchpad Click` | ++t++, mouse ++right-button++, tapping border (top, bottom, left or right 5%) of the touchscreen | These actions will all result in a touchpad click. For games that separate the touchpad into multiple regions, they work in conjunction with either the current mouse location (location of finger on Steam Deck trackpad) or current finger location (which edge of the touchscreen you tapped) to delineate which region you are using (most games just have one region for touchpad click though). |
 | `Touchpad Motion` | `Touchscreen touch`, mouse ++left-button++ ++plus++ Mouse Movement (i.e., `drag action` / mouse region touch). | Maps to the PlayStation touchpad (since that's what PlayStation games / the remote streaming console expect). This means that the "cursor" (if one is defined for the game like in *Chicory: A Colorful Tale*) moves according to your gestures but does not snap/follow your fingers' locations (i.e., it behaves like a touchpad as it should).|
-| `Toggle Mute` | ++ctrl+m++ | The toggle microphone mute on and off button on the PlayStation controller. |
+| `Toggle Mic Mute` | ++ctrl+m++ | The toggle microphone mute on and off button on the PlayStation controller. |
 
 !!! Tip "Two Button Shortcuts"
 
@@ -144,7 +144,7 @@ You can create your own controller profile by mapping the relevant buttons. The 
 
 #### Using Steam Deck Controller Touchscreen in Your Custom Controller Profile
 
-In order to use the Steam Deck touchscreen as a touchscreen instead of a mouse in Game Mode, you need to enable `Touchscreen Native Support` for it in controller options (this is done for you in the default `chiaki4deck` layout `chiaki4deck+`). For your custom controller profile, do the following:
+In order to use the Steam Deck touchscreen as a touchscreen instead of a mouse in Game Mode, you need to enable `Touchscreen Native Support` for it in controller options (this is done for you in the default `chiaki4deck` layout `chiaki4deck+ mic`). For your custom controller profile, do the following:
 
 1. Edit your controller layout and scroll down to the `Action Sets` tab (on the left menu). 
     
@@ -173,6 +173,7 @@ Gryo directly maps for games that support it (i.e., Concrete genie, Astro's Play
 Additionally, you can use gyro controls for camera options with any game by mapping gyro `As joystick` and adding a condition for when it's used (i.e., `On` with a condition of `right joystick touch`) in the gyro settings for `chiaki4deck`. I have done this in the [default `chiaki4deck` control setting](#default-chiaki4deck-layout-mapping-full-view) and you can do it in your custom control scheme. However, when playing games that have native gyro support (such as Concrete Genie or The Last of Us) you will most likely want to change the gyro mapping from `As joystick` to `As mouse` so that gyro only maps to gyro in the game (i.e., you don't make your camera move when you're trying to shake your flashlight, etc.).
 !!! Warning "Don't turn off gyro entirely, use `As mouse`"
     You need to use `As mouse` instead of just turning off gyro altogether in Steam Input because turning off gyro altogether will pause gyro input and result in native gyro not working. This means games that have gyro in them for actions such as the flashlight in Last of Us or the paintbrush in Concrete Genie won't work properly. Using `As mouse` means only gyro set in the game itself will result in an action (since mouse movement by itself isn't mapped to anything in chiaki4deck) so it has the same effect of turning off gyro for games that don't use it for a required in-game control.
+
 ### Haptics and Adaptive Triggers [Experimental]
 
 PlayStation 5 haptics are mapped for both the DualSense controller (usb connection required) and the Steam Deck controller and adaptive triggers are mapped for the DualSense controller (usb or bluetooth). These need to be explicitly enabled by checking the PS5 features box in the GUI as shown in the picture below:
@@ -184,11 +185,11 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 
 ## Microphone
 
-Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation controller. Then use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki4deck menu. 
+Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation controller. (This is set to `L4` in the default chiaki4deck+ mic controller layout.) Then, use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki4deck menu. 
 
-!!! Note "Bluetooth headsets don't work on Steam Deck by default"
+!!! Note "Bluetooth headset microphones don't work on Steam Deck by default"
 
-    The Steam Deck does not currently support microphones over bluetooth so you will need to either use a hardwired headset or the Steam Deck microphone unless you change your Steam Deck settings to enable bluetooth headset support (it is currently experimental and turned off by default). Thus, it's advised to use either a hardwired headset or the internal microphone.
+    The Steam Deck does not currently support microphones over bluetooth by default so you will need to either use a hardwired headset or the Steam Deck microphone unless you change your Steam Deck settings to enable bluetooth headset support (it is currently experimental and turned off by default due to a noticeable drop in audio quality). Thus, it's advised to use either a hardwired headset or the internal microphone. If you really want to use a bluetooth headset and can live with the drop in audio quality see [How to enable bluetooth headset modes on Steam Deck](https://steamdecki.org/Steam_Deck/Wireless/Bluetooth#Enabling_More_Codecs_and_Enabling_Headsets){target="_blank" rel="noopener"}.
 
 ### Standard Button Mappings (These directly map and don't need to be specifically set)
 

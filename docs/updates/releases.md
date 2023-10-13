@@ -21,6 +21,17 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 Mic support
 
 - Adds mic support to chiaki4deck
+- Noise suppression and echo cancelling for mic configurable in the chiaki4deck menu
+
+!!! Question "Why doesn't my bluetooth headset mic show up as an available microphone on Steam Deck?"
+
+    The Steam Deck does not currently support microphones over bluetooth by default so you will need to either use a hardwired headset or the Steam Deck microphone unless you change your Steam Deck settings to enable bluetooth headset support (it is currently experimental and turned off by default due to a noticeable drop in audio quality). Thus, it's advised to use either a hardwired headset or the internal microphone. If you really want to use a bluetooth headset and can live with the drop in audio quality see [How to enable bluetooth headset modes on Steam Deck](https://steamdecki.org/Steam_Deck/Wireless/Bluetooth#Enabling_More_Codecs_and_Enabling_Headsets){target="_blank" rel="noopener"}.
+
+#### Update Actions for Existing Users
+
+1. [Updating `chiaki4deck`](#updating-chiaki4deck)
+
+2. [Optional] Switch to the new default control layout `chiaki4deck+ mic` which adds toggle mic mute to `L4`. Alternatively, you can manually add toggle mic mute to a button of your choice by mapping ++ctrl+m++ to that button.
 
 ### 1.3.4
 
