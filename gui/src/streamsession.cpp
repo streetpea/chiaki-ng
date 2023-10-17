@@ -1264,6 +1264,7 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 				sdeck_state.orient_x = event->motion.orient_x;
 				sdeck_state.orient_y = event->motion.orient_y;
 				sdeck_state.orient_z = event->motion.orient_z;
+				SendFeedbackState();
 			}
 			else // swap y with z axis to use roll instead of yaw
 			{
@@ -1274,7 +1275,6 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 					chiaki_time_now_monotonic_us());
 				sdeck_orient_dirty = true;
 			}
-			SendFeedbackState();
 			break;
 	}
 }

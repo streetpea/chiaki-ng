@@ -19,6 +19,8 @@
 #define STEAM_DECK_ACCEL_RES 16384.0f
 #define STEAM_DECK_GYRO_RES 16.0f
 #define STEAM_DECK_ORIENT_RES 32492.0f
+// multiplier bc heavier Steam Deck => lower accel values
+#define ACCEL_MOVESPEED_MULT 1.5f
 // sqrt(qw^2 + qx^2 + qy^2 qz^2) approx. above constant due to normalization
 #define STEAM_DECK_ORIENT_FUZZ 24.0f
 #define STEAM_DECK_ACCEL_FUZZ 256.0f
@@ -49,6 +51,7 @@ struct sdeck_t
 };
 
 hid_device *is_steam_deck();
+void movemult_accel(float *accel, float mult);
 void calc_powers(fftw_complex *data, int N);
 void max_power_freq(const int N, const double sampling_rate, double *frequency, double *freq_power, fftw_complex *power);
 void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *user);
@@ -491,6 +494,11 @@ void deadzone(const float cur, float *prev, const float deadzone, bool *motion_d
 	}
 }
 
+void movemult_accel(float *accel, float mult)
+{
+	*accel = *accel * mult;
+}
+
 void sdeck_read(SDeck *sdeck, SDeckEventCb cb, void *user)
 {
 	int res = 0;
@@ -532,9 +540,15 @@ void sdeck_read(SDeck *sdeck, SDeckEventCb cb, void *user)
 	// apply deadzone filter to gyro to reduce jitter when still
 	if (data_to_read)
 	{
-		fuzz(sdc.accel_x, &sdeck->prev_motion.accel_x, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(sdc.accel_y, &sdeck->prev_motion.accel_y, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(sdc.accel_z, &sdeck->prev_motion.accel_z, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+		float accel_x = sdc.accel_x;
+		float accel_y = sdc.accel_y;
+		float accel_z = sdc.accel_z;
+		movemult_accel(&accel_x, ACCEL_MOVESPEED_MULT);
+		movemult_accel(&accel_y, ACCEL_MOVESPEED_MULT);
+		movemult_accel(&accel_z, ACCEL_MOVESPEED_MULT);
+		fuzz(accel_x, &sdeck->prev_motion.accel_x, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+		fuzz(accel_y, &sdeck->prev_motion.accel_y, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+		fuzz(accel_z, &sdeck->prev_motion.accel_z, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
 		fuzz(sdc.orient_w, &sdeck->prev_motion.orient_w, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
 		fuzz(sdc.orient_x, &sdeck->prev_motion.orient_x, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
 		fuzz(sdc.orient_y, &sdeck->prev_motion.orient_y, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
