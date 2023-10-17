@@ -16,6 +16,12 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.4.1
+
+Small patch release
+
+- Adds multiplier to accelerometer values to match acceleration values of lighter DualSense/DualShock 4 controller. Fixes issue in some games where the acceleration value wasn't high enough when moving/shaking the Steam Deck to trigger the in-game action.
+
 ### 1.4.0
 
 Mic support
