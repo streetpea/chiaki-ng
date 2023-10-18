@@ -1,0 +1,194 @@
+# Adpated from nlz242/chiaki-qt6
+name: Build Chiaki4deck (VC)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-win_x64:
+    name: Build Chiaki4deck win_x64 (VC)
+    runs-on: windows-2022
+
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Clean Workspace Action
+        uses: yumis-coconudge/clean-workspace-action@v1.0.5
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          path: 'chiaki4deck'
+
+      - name: Setup NASM
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/win64/nasm-2.15.05-win64.zip" -OutFile ".\nasm-2.15.05-win64.zip"
+          Expand-Archive -LiteralPath "nasm-2.15.05-win64.zip" -DestinationPath "."
+          Rename-Item "nasm-2.15.05" "nasm"
+          Write-Output "${{ github.workspace }}\nasm" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Setup ffmpeg
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.0-latest-win64-lgpl-shared-6.0.zip" -OutFile ".\ffmpeg-n6.0-latest-win64-lgpl-shared-6.0.zip"
+          Expand-Archive -LiteralPath "ffmpeg-n6.0-latest-win64-lgpl-shared-6.0.zip" -DestinationPath "."
+          Rename-Item "ffmpeg-n6.0-latest-win64-lgpl-shared-6.0" "ffmpeg"
+          Write-Output "${{ github.workspace }}\ffmpeg\bin" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Setup protoc
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip" -OutFile ".\protobuf.zip"
+          Expand-Archive -LiteralPath ".\protobuf.zip" -DestinationPath ".\protobuf"
+          Write-Output "${{ github.workspace }}\protobuf\bin" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Setup nanopb
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://jpa.kapsi.fi/nanopb/download/nanopb-0.4.6-windows-x86.zip" -OutFile ".\nanopb-0.4.6-windows-x86.zip"
+          Expand-Archive -LiteralPath "nanopb-0.4.6-windows-x86.zip" -DestinationPath "."
+          Rename-Item "nanopb-0.4.6-windows-x86" "nanopb"
+          
+      - name: Setup OpenSSL
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://mirror.firedaemon.com/OpenSSL/openssl-1.1.1s.zip" -OutFile ".\openssl-1.1.1s.zip"
+          Expand-Archive -LiteralPath "openssl-1.1.1s.zip" -DestinationPath "."
+          Rename-Item "openssl-1.1" "openssl"
+          Write-Output "${{ github.workspace }}\openssl" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Setup Hidapi
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/libusb/hidapi/releases/download/hidapi-0.14.0/hidapi-win.zip" -OutFile ".\hidapi-win.zip"
+          Expand-Archive -LiteralPath "hidapi-win.zip" -DestinationPath "."
+          Rename-Item "x64" "hidapi-x64"
+          Write-Output "${{ github.workspace }}\hidapi-x64" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Setup SDL2
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://www.libsdl.org/release/SDL2-devel-2.28.4-VC.zip" -OutFile ".\SDL2-devel-2.28.4-VC.zip"
+          Expand-Archive -LiteralPath "SDL2-devel-2.28.4-VC.zip" -DestinationPath "."
+          Rename-Item "SDL2-2.28.4" "SDL2"
+          Write-Output "SDL2_DIR=${{ github.workspace }}\SDL2" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          Set-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'set(TARGET_NAME SDL2::SDL2)'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'add_library(${TARGET_NAME} SHARED IMPORTED)'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'set_target_properties(${TARGET_NAME} PROPERTIES'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    IMPORTED_LOCATION "${SDL2_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}SDL2${CMAKE_SHARED_LIBRARY_SUFFIX}"'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    INTERFACE_INCLUDE_DIRECTORIES "$ENV{SDL2_DIR}/include"'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    INTERFACE_LINK_LIBRARIES "$ENV{SDL2_DIR}/lib/x64/SDL2.lib;$ENV{SDL2_DIR}/lib/x64/SDL2main.lib"'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    IMPORTED_LINK_INTERFACE_LANGUAGES "C"'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value ')'
+          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'set_target_properties(SDL2::SDL2 PROPERTIES IMPORTED_IMPLIB "$ENV{SDL2_DIR}/lib/x64/SDL2.lib")'
+          Get-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake"
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+          architecture: "x64"
+
+      - name: Install pip dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade setuptools wheel
+          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtmultimedia'
+          aqtversion: '==2.1.0'
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: "x86_64"
+          toolset: "14"
+
+      - name: Configure & Build Opus
+        run: |
+          git clone https://github.com/xiph/opus.git -b v1.4
+          cd opus
+          mkdir build
+          cmake `
+          -S . `
+          -B build `
+          -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_C_COMPILER=cl `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\opus-prefix"
+          cmake --build build --config Release
+          cmake --install build
+
+      - name: Configure & Build Speex DSP
+        run: |
+          git clone https://github.com/xiph/speexdsp.git -b SpeexDSP-1.2.1
+          cd speexdsp
+          ./configure --prefix="${{ github.workspace }}\speexdsp-prefix"
+          make
+          make install
+
+      - name: Configure Chiaki4deck
+        working-directory: chiaki4deck
+        run: |
+          cmake `
+          -S . `
+          -B build `
+          -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_C_COMPILER=cl `
+          -DCMAKE_C_FLAGS="-we4013" `
+          -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE `
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo  `
+          -DCHIAKI_ENABLE_CLI=ON `
+          -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON `
+          -DPYTHON_EXECUTABLE="${{ env.pythonLocation }}\python.exe" `
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}\nanopb;${{ github.workspace }}\ffmpeg;${{ github.workspace }}\opus-prefix;${{ github.workspace }}\speexdsp-prefix;${{ github.workspace }}\openssl\x64;${{ github.workspace }}\SDL2;${{ github.workspace }}\hidapi-x64;${{ env.Qt5_Dir }}"
+
+      - name: Build Chiaki4deck
+        working-directory: chiaki4deck
+        run: |
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Prepare Qt deployment package
+        working-directory: chiaki4deck
+        run: |
+          mkdir Chiaki4deck-VC
+          cp build\gui\Release\chiaki.exe Chiaki4deck-VC
+          cp "${{ github.workspace }}\openssl\x64\bin\libcrypto-1_1-x64.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\openssl\x64\bin\libssl-1_1-x64.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\SDL2\lib\x64\SDL2.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\ffmpeg\bin\swresample-4.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\ffmpeg\bin\avcodec-59.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\ffmpeg\bin\avutil-57.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\hidapi-x64\hidapi.dll" Chiaki4deck-VC
+          windeployqt.exe --no-translations Chiaki4deck-VC\chiaki.exe
+
+      - name: Package Chiaki4deck
+        working-directory: chiaki4deck
+        run: |
+          $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $RELEASE_PACKAGE_FILE = "Chiaki4deck-win_x64-VC-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
+          Compress-Archive Chiaki-VC $RELEASE_PACKAGE_FILE
+          $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
+          echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload Chiaki4deck Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Chiaki4deck-win_x64-VC-Release
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          if-no-files-found: error
+          retention-days: 1
