@@ -171,8 +171,18 @@ if(CHIAKI_ENABLE_STEAMDECK_NATIVE)
 		set(CHIAKI_ENABLE_STEAMDECK_NATIVE ON)
 	else()
 		if(NOT CHIAKI_ENABLE_STEAMDECK_NATIVE STREQUAL AUTO)
-			message(FATAL_ERROR "
-CHIAKI_ENABLE_STEAMDECK_NATIVE is set to ON, but its dependency (HIDAPI) could not be resolved.")
+			if(NOT HIDAPI_FOUND AND NOT FFTW_FOUND)
+				message(FATAL_ERROR "
+				CHIAKI_ENABLE_STEAMDECK_NATIVE is set to ON, but its dependencies (HIDAPI & FFTW3) could not be resolved.")
+			endif()
+			if(NOT HIDAPI_FOUND)
+				message(FATAL_ERROR "
+				CHIAKI_ENABLE_STEAMDECK_NATIVE is set to ON, but its dependency (HIDAPI) could not be resolved.")
+			endif()
+			if(NOT FFTW_FOUND)
+				message(FATAL_ERROR "
+				CHIAKI_ENABLE_STEAMDECK_NATIVE is set to ON, but its dependency (FFTW3) could not be resolved.")
+			endif()
 		endif()
 		set(CHIAKI_ENABLE_STEAMDECK_NATIVE OFF)
 	endif()

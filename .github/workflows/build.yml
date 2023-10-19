@@ -76,6 +76,17 @@ jobs:
           Expand-Archive -LiteralPath "fftw-3.3.5-dll64.zip" -DestinationPath "./fftw"
           Write-Output "${{ github.workspace }}\fftw" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: "x86_64"
+          toolset: "14"
+
+      - name: fftw libs
+        run: |
+          cd ${{ github.workspace }}\fftw
+          lib /def:libfftw3-3.def
+
       - name: Setup SDL2
         run: |
           $ProgressPreference = 'SilentlyContinue'
@@ -115,12 +126,6 @@ jobs:
           target: 'desktop'
           arch: 'win64_msvc2019_64'
           modules: 'qtmultimedia'
-
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: "x86_64"
-          toolset: "14"
 
       - name: Configure & Build Opus
         run: |
@@ -172,8 +177,6 @@ jobs:
           cp "${{ github.workspace }}\ffmpeg\bin\avutil-58.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\hidapi-x64\hidapi.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\fftw\libfftw3-3.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\fftw\libfftw3f-3.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\fftw\libfftw3l-3.dll" Chiaki4deck-VC
           windeployqt.exe --no-translations Chiaki4deck-VC\chiaki.exe
 
       - name: Package Chiaki4deck
@@ -193,3 +196,4 @@ jobs:
           name: Chiaki4deck-win_x64-VC-Release
           path: ${{ env.RELEASE_PACKAGE_PATH }}
           if-no-files-found: error
+          retention-days: 1
