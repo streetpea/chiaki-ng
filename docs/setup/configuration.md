@@ -260,7 +260,6 @@ Ultimately, the performance will depend on the capability of your wireless route
     Negatives:
 
     - occasional performance issues with certain games (specifically games with VSync enabled)
-    - lack of native microphone support (I use Discord with my friends so not an issue for me, but could be for others).
 
 !!! example "Games I've Played Successfully Using `chiaki4deck` So Far..."
 
