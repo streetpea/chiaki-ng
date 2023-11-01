@@ -3496,13 +3496,15 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <ol>
 <li>
 <p>Install flatpak and/or build a new one with any added dependencies following <a href="#diy-buildit" rel="noopener" target="_blank">Building the Flatpak Yourself</a></p>
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>-y<span class="w"> </span>https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
+</code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Creating local flatpak builds</p>
 <p>If you want to create flatpak builds from local files, you can do this by changing the manifest sources from:</p>
 <div class="highlight"><pre><span></span><code>sources:
 -<span class="w"> </span>type:<span class="w"> </span>git
 <span class="w">  </span>url:<span class="w"> </span>https://github.com/streetpea/chiaki4deck.git
-<span class="w">  </span>branch:<span class="w"> </span>chiaki4deck
+<span class="w">  </span>branch:<span class="w"> </span>main
 </code></pre></div>
 <p>to:</p>
 <div class="highlight"><pre><span></span><code>sources:
@@ -3518,7 +3520,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 <li>
 <p>Install the <code>Debug</code> extension for the application build for debugging</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>io.github.streetpea.Chiaki4deck.Debug
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>io.github.streetpea.Chiaki4deck_devel.Debug
 </code></pre></div>
 </li>
 <li>
@@ -3556,7 +3558,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 <li>
 <p>Enter the development version of the flatpak with the chiaki4deck source code mounted with:</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>--filesystem<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">chiaki_code_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--env<span class="o">=</span><span class="nv">PKG_CONFIG_PATH</span><span class="o">=</span>/app/lib/pkgconfig<span class="w"> </span>--command<span class="o">=</span>bash<span class="w"> </span>--devel<span class="w"> </span>io.github.streetpea.Chiaki4deck
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>--filesystem<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">chiaki_code_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--env<span class="o">=</span><span class="nv">PKG_CONFIG_PATH</span><span class="o">=</span>/app/lib/pkgconfig<span class="w"> </span>--command<span class="o">=</span>bash<span class="w"> </span>--devel<span class="w"> </span>io.github.streetpea.Chiaki4deck-devel
 </code></pre></div>
 <p>and <code>--env</code> is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)</p>
 </li>
@@ -3665,8 +3667,8 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <div class="highlight"><pre><span></span><code>flatpak-coredumpctl<span class="w"> </span>-m<span class="w"> </span>given_pid<span class="w"> </span>flatpak_name
 </code></pre></div>
 <details class="example" open="open">
-<summary>Example given pid 4822 and flatpak name <code>io.github.streetpea.Chiaki4deck</code></summary>
-<div class="highlight"><pre><span></span><code>flatpak-coredumpctl<span class="w"> </span>-m<span class="w"> </span><span class="m">4822</span><span class="w"> </span>io.github.streetpea.Chiaki4deck
+<summary>Example given pid 4822 and flatpak name <code>io.github.streetpea.Chiaki4deck-devel</code></summary>
+<div class="highlight"><pre><span></span><code>flatpak-coredumpctl<span class="w"> </span>-m<span class="w"> </span><span class="m">4822</span><span class="w"> </span>io.github.streetpea.Chiaki4deck-devel
 </code></pre></div>
 </details>
 </li>
