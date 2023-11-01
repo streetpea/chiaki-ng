@@ -10,6 +10,10 @@ This is for contributors that want to make/test updates to the codebase without 
 
 1. Install flatpak and/or build a new one with any added dependencies following [Building the Flatpak Yourself](buildit.md){target="_blank" rel="noopener"}
 
+    ``` bash
+    flatpak install --user -y https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
+    ```
+
     !!! Info "Creating local flatpak builds"
 
         If you want to create flatpak builds from local files, you can do this by changing the manifest sources from:
@@ -18,7 +22,7 @@ This is for contributors that want to make/test updates to the codebase without 
         sources:
         - type: git
           url: https://github.com/streetpea/chiaki4deck.git
-          branch: chiaki4deck
+          branch: main
         ```
 
         to:
@@ -80,7 +84,7 @@ This is for contributors that want to make/test updates to the codebase without 
 2. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
 
     ``` bash
-    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel io.github.streetpea.Chiaki4deck
+    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel io.github.streetpea.Chiaki4deck-devel
     ```
 
     and `--env` is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)
@@ -183,10 +187,10 @@ This is for contributors that want to make/test updates to the codebase without 
     flatpak-coredumpctl -m given_pid flatpak_name
     ```
 
-    ???+ Example "Example given pid 4822 and flatpak name `io.github.streetpea.Chiaki4deck`"
+    ???+ Example "Example given pid 4822 and flatpak name `io.github.streetpea.Chiaki4deck-devel`"
 
         ``` bash
-        flatpak-coredumpctl -m 4822 io.github.streetpea.Chiaki4deck
+        flatpak-coredumpctl -m 4822 io.github.streetpea.Chiaki4deck-devel
         ```
 
 3. Use gdb commands as per usual such as `bt full`
