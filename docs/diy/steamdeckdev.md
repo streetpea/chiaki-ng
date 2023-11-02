@@ -33,19 +33,25 @@ This is for contributors that want to make/test updates to the codebase without 
           path: path-to-chiaki4deck-git
         ```
 
-2. Install the `Debug` extensions for the SDK
+2. Copy config file from chiaki4deck
+
+    ``` bash
+    cp ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck-devel/config/Chiaki/Chiaki.conf 
+    ```
+
+3. Install the `Debug` extensions for the SDK
 
     ``` bash
     flatpak install org.kde.Sdk.Debug//5.15-22.08
     ```
 
-3. Install the `Debug` extension for the application build for debugging
+4. Install the `Debug` extension for the application build for debugging
 
     ``` bash
     flatpak install io.github.streetpea.Chiaki4deck.Debug
     ```
 
-4. Clone the project onto your Steam Deck with:
+5. Clone the project onto your Steam Deck with:
 
     === "HTTPS"
 
@@ -99,6 +105,7 @@ This is for contributors that want to make/test updates to the codebase without 
             ``` bash
             mkdir Debug
             ```
+            
         3. Change into debug directory
 
             ``` bash
@@ -160,6 +167,10 @@ This is for contributors that want to make/test updates to the codebase without 
         ``` bash
         ./gui/chiaki
         ```
+
+    !!! Note "Set vaapi to none"
+        
+        When running chiaki from within the flatpak like this please set vaapi to none as otherwise the video won't work. This is fine since you are just running Chiaki like this for development tests only so worse performance isn't a big concern.
 
 5. Make edits to the source code to implement your changes
 

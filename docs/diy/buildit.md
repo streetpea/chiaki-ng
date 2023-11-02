@@ -4,6 +4,16 @@
 
     This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the [Installation Section](../setup/installation.md){target="_blank" rel="noopener"}.
 
+!!! Danger "Do not try this on the Preview release branch for the Steam Deck"
+
+    Running these instructions on the preview build will cause openssl headers to be deleted which isn't good and results in this error:
+
+    ```
+    error while loading shared libraries: libcrypto.so.1.1: cannot open shared object file: No such file or directory.
+    ``` 
+    
+    This will require you to manually download openssl from the [Steam Deck package mirror](https://steamdeck-packages.steamos.cloud/archlinux-mirror/core-main/os/x86_64/openssl-1.1-1.1.1.u-1-x86_64.pkg.tar.zst){target="_blank" rel="noopener"} and put the libs from that pkg (under /usr/lib once untarred) into /usr/lib/ before turning the system off to prevent bricking your system. In other words, don't do this.
+
 ## Prerequisites
 
 1. A linux operating system (can of course use a VM via VMWare, virtual box, WSL2, etc.)
