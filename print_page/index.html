@@ -3278,6 +3278,13 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <p class="admonition-title">For Advanced Users Only</p>
 <p>This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the <a href="#setup-installation" rel="noopener" target="_blank">Installation Section</a>.</p>
 </div>
+<div class="admonition danger">
+<p class="admonition-title">Do not try this on the Preview release branch for the Steam Deck</p>
+<p>Running these instructions on the preview build will cause openssl headers to be deleted which isn't good and results in this error:</p>
+<div class="highlight"><pre><span></span><code>error while loading shared libraries: libcrypto.so.1.1: cannot open shared object file: No such file or directory.
+</code></pre></div>
+<p>This will require you to manually download openssl from the <a href="https://steamdeck-packages.steamos.cloud/archlinux-mirror/core-main/os/x86_64/openssl-1.1-1.1.1.u-1-x86_64.pkg.tar.zst" rel="noopener" target="_blank">Steam Deck package mirror</a> and put the libs from that pkg (under /usr/lib once untarred) into /usr/lib/ before turning the system off to prevent bricking your system. In other words, don't do this.</p>
+</div>
 <h2 id="diy-buildit-prerequisites">Prerequisites<a class="headerlink" href="#diy-buildit-prerequisites" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
@@ -3514,6 +3521,11 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </div>
 </li>
 <li>
+<p>Copy config file from chiaki4deck</p>
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck-devel/config/Chiaki/Chiaki.conf<span class="w"> </span>
+</code></pre></div>
+</li>
+<li>
 <p>Install the <code>Debug</code> extensions for the SDK</p>
 <div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//5.15-22.08
 </code></pre></div>
@@ -3634,6 +3646,10 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </code></pre></div>
 </div>
 </div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Set vaapi to none</p>
+<p>When running chiaki from within the flatpak like this please set vaapi to none as otherwise the video won't work. This is fine since you are just running Chiaki like this for development tests only so worse performance isn't a big concern.</p>
 </div>
 </li>
 <li>

@@ -873,6 +873,11 @@
 </div>
 </li>
 <li>
+<p>Copy config file from chiaki4deck</p>
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck-devel/config/Chiaki/Chiaki.conf<span class="w"> </span>
+</code></pre></div>
+</li>
+<li>
 <p>Install the <code>Debug</code> extensions for the SDK</p>
 <div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//5.15-22.08
 </code></pre></div>
@@ -994,6 +999,10 @@
 </div>
 </div>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Set vaapi to none</p>
+<p>When running chiaki from within the flatpak like this please set vaapi to none as otherwise the video won't work. This is fine since you are just running Chiaki like this for development tests only so worse performance isn't a big concern.</p>
+</div>
 </li>
 <li>
 <p>Make edits to the source code to implement your changes</p>
@@ -1042,7 +1051,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 1, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 2, 2023</span>
       
         <br>
         Created:
