@@ -1,5 +1,5 @@
 # Adpated from nlz242/chiaki-qt6
-name: Build Chiaki4deck (VC)
+name: Build Chiaki4deck Windows (VC)
 
 on:
   workflow_dispatch:
