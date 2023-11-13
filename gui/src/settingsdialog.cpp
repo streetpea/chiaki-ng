@@ -93,6 +93,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	dualsense_check_box->setChecked(settings->GetDualSenseEnabled());
 	connect(dualsense_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::DualSenseChanged);
 
+	buttons_pos_check_box = new QCheckBox(this);
+	general_layout->addRow(tr("Use buttons by position\n instead of by label."), buttons_pos_check_box);
+	buttons_pos_check_box->setChecked(settings->GetButtonsByPosition());
+	connect(buttons_pos_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::ButtonsPosChanged);
+
 	vertical_sdeck_check_box = new QCheckBox(this);
 	general_layout->addRow(tr("Use Steam Deck in vertical\norientation (for motion controls)."), vertical_sdeck_check_box);
 	vertical_sdeck_check_box->setChecked(settings->GetVerticalDeckEnabled());
@@ -426,6 +431,11 @@ void SettingsDialog::LogVerboseChanged()
 void SettingsDialog::DualSenseChanged()
 {
 	settings->SetDualSenseEnabled(dualsense_check_box->isChecked());
+}
+
+void SettingsDialog::ButtonsPosChanged()
+{
+	settings->SetButtonsByPosition(buttons_pos_check_box->isChecked());
 }
 
 void SettingsDialog::DeckOrientationChanged()

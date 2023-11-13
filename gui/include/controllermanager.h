@@ -46,7 +46,7 @@ class ControllerManager : public QObject
 
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();
-
+		void SetButtonsByPos();
 		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);
 

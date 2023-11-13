@@ -66,6 +66,9 @@ class Settings : public QObject
 		bool GetDualSenseEnabled() const		{ return settings.value("settings/dualsense_enabled", false).toBool(); }
 		void SetDualSenseEnabled(bool enabled)	{ settings.setValue("settings/dualsense_enabled", enabled); }
 
+		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
+		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
+
 		bool GetVerticalDeckEnabled() const       { return settings.value("settings/gyro_inverted", false).toBool(); }
 		void SetVerticalDeckEnabled(bool enabled) { settings.setValue("settings/gyro_inverted", enabled); }
 
