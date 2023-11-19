@@ -20,7 +20,6 @@ cmake \
 	-DCMAKE_BUILD_TYPE=Release \
 	"-DCMAKE_PREFIX_PATH=`pwd`/../appimage/ffmpeg-prefix;`pwd`/../appimage/sdl2-prefix;/opt/qt512" \
 	-DCHIAKI_ENABLE_TESTS=ON \
-	-DCHIAKI_ENABLE_CLI=OFF \
 	-DCHIAKI_ENABLE_GUI=ON \
 	-DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON \
 	-DCMAKE_INSTALL_PREFIX=/usr \
