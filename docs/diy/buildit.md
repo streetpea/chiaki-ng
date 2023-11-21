@@ -4,16 +4,6 @@
 
     This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the [Installation Section](../setup/installation.md){target="_blank" rel="noopener"}.
 
-!!! Danger "Do not try this on the Preview release branch for the Steam Deck"
-
-    Running these instructions on the preview build will cause openssl headers to be deleted which isn't good and results in this error:
-
-    ```
-    error while loading shared libraries: libcrypto.so.1.1: cannot open shared object file: No such file or directory.
-    ``` 
-    
-    This will require you to manually download openssl from the [Steam Deck package mirror](https://steamdeck-packages.steamos.cloud/archlinux-mirror/core-main/os/x86_64/openssl-1.1-1.1.1.u-1-x86_64.pkg.tar.zst){target="_blank" rel="noopener"} and put the libs from that pkg (under /usr/lib once untarred) into /usr/lib/ before turning the system off to prevent bricking your system. In other words, don't do this.
-
 ## Prerequisites
 
 1. A linux operating system (can of course use a VM via VMWare, virtual box, WSL2, etc.)
@@ -73,7 +63,7 @@
         4. Install dependencies
 
             ``` bash
-            sudo pacman -Syy && sudo pacman -S gnupg curl flatpak flatpak-builder
+            sudo pacman -Syy && sudo pacman -S flatpak-builder
             ```
 
         5. Re-enable read-only mode
@@ -95,7 +85,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"} and associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//5.15-22.08 flathub org.kde.Sdk//5.15-22.08
+    flatpak install -y flathub org.kde.Platform//5.15-23.08 flathub org.kde.Sdk//5.15-23.08
     ```
 
 2. Create a directory for your build files and switch into it
