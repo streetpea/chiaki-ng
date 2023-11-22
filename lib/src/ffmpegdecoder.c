@@ -22,6 +22,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->log = log;
 	decoder->frame_available_cb = frame_available_cb;
 	decoder->frame_available_cb_user = frame_available_cb_user;
+	decoder->hdr_enabled = codec == CHIAKI_CODEC_H265_HDR;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -208,9 +209,14 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 
 CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFfmpegDecoder *decoder)
 {
-	// TODO: this is probably very wrong, especially for hdr
-	return decoder->hw_device_ctx
-		? AV_PIX_FMT_NV12
-		: AV_PIX_FMT_YUV420P;
+	if (decoder->hw_device_ctx) {
+		return decoder->hdr_enabled
+			? AV_PIX_FMT_P010LE
+			: AV_PIX_FMT_NV12;
+	} else {
+		return decoder->hdr_enabled
+			? AV_PIX_FMT_YUV420P10LE
+			: AV_PIX_FMT_YUV420P;
+	}
 }
 

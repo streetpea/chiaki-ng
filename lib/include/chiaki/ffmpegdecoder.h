@@ -23,6 +23,7 @@ struct chiaki_ffmpeg_decoder_t
 	AVCodecContext *codec_context;
 	enum AVPixelFormat hw_pix_fmt;
 	AVBufferRef *hw_device_ctx;
+	bool hdr_enabled;
 	ChiakiMutex cb_mutex;
 	ChiakiFfmpegFrameAvailable frame_available_cb;
 	void *frame_available_cb_user;

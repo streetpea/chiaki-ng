@@ -3,6 +3,7 @@
 #include <streamwindow.h>
 #include <streamsession.h>
 #include <avopenglwidget.h>
+#include <avplacebowidget.h>
 #include <loginpindialog.h>
 #include <settings.h>
 
@@ -10,6 +11,7 @@
 #include <QMessageBox>
 #include <QCoreApplication>
 #include <QAction>
+#include <QWindow>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
@@ -18,7 +20,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_AcceptTouchEvents);
 	setWindowTitle(qApp->applicationName() + " | Stream");
-		
+
 	session = nullptr;
 	av_widget = nullptr;
 
@@ -43,24 +45,34 @@ StreamWindow::~StreamWindow()
 
 void StreamWindow::Init()
 {
+    //auto wid = this->winId(); // Neccessary to get the window handle at this point
+	//windowHandle()->setSurfaceType(QSurface::VulkanSurface);
+
 	session = new StreamSession(connect_info, this);
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
-	AVOpenGLWidget::ResolutionMode resolution_mode;
+	ResolutionMode resolution_mode;
 	if(connect_info.zoom)
-		resolution_mode = AVOpenGLWidget::Zoom;
+		resolution_mode = ResolutionMode::Zoom;
 	else if(connect_info.stretch)
-		resolution_mode = AVOpenGLWidget::Stretch;
+		resolution_mode = ResolutionMode::Stretch;
 	else
-		resolution_mode = AVOpenGLWidget::Normal;
+		resolution_mode = ResolutionMode::Normal;
 
 	if(session->GetFfmpegDecoder())
 	{
-		av_widget = new AVOpenGLWidget(session, this, resolution_mode);
-		setCentralWidget(av_widget);
-		av_widget->HideMouse();
+		if (connect_info.settings->GetRenderer() == Renderer::OpenGL)
+		{
+			av_widget = new AVOpenGLWidget(session, this, resolution_mode);
+			setCentralWidget((AVOpenGLWidget*) av_widget);
+		}
+		else
+		{
+			av_widget = new AVPlaceboWidget(session, resolution_mode, connect_info.settings->GetPlaceboPreset());
+			setCentralWidget(QWidget::createWindowContainer((AVPlaceboWidget*) av_widget));
+		}
 	}
 	else
 	{
@@ -159,6 +171,8 @@ void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
 
 void StreamWindow::closeEvent(QCloseEvent *event)
 {
+	if (av_widget)
+		av_widget->Stop();
 	if(session)
 	{
 		if(session->IsConnected())

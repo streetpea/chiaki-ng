@@ -10,6 +10,7 @@ class QListWidget;
 class QComboBox;
 class QCheckBox;
 class QLineEdit;
+class QFormLayout;
 #if CHIAKI_GUI_ENABLE_SPEEX
 class QSlider;
 class QLabel;
@@ -37,6 +38,10 @@ class SettingsDialog : public QDialog
 		QComboBox *microphone_combo_box;
 		QCheckBox *pi_decoder_check_box;
 		QComboBox *hw_decoder_combo_box;
+		QComboBox *renderer_combo_box;
+		QComboBox *placebo_preset_combo_box;
+
+		QFormLayout *renderer_settings_layout;
 #if CHIAKI_GUI_ENABLE_SPEEX
 		QCheckBox *speech_processing_check_box;
 		QSlider *noiseSuppress;
@@ -69,6 +74,8 @@ class SettingsDialog : public QDialog
 		void AudioInputSelected();
 		void HardwareDecodeEngineSelected();
 		void UpdateHardwareDecodeEngineComboBox();
+		void RendererSelected();
+		void PlaceboPresetSelected();
 
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();

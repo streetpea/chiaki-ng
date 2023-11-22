@@ -278,11 +278,16 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	codec_combo_box = new QComboBox(this);
 	static const QList<QPair<ChiakiCodec, QString>> codec_strings = {
 		{ CHIAKI_CODEC_H264, "H264" },
-		{ CHIAKI_CODEC_H265, "H265 (PS5 only)" }
+		{ CHIAKI_CODEC_H265, "H265 (PS5 only)" },
+		{ CHIAKI_CODEC_H265_HDR, "H265 HDR (PS5 only)" }
 	};
 	auto current_codec = settings->GetCodec();
 	for(const auto &p : codec_strings)
 	{
+		// HDR is only supported with Placebo Vulkan renderer
+		if (p.first == CHIAKI_CODEC_H265_HDR && settings->GetRenderer() != Renderer::PlaceboVk)
+			continue;
+
 		codec_combo_box->addItem(p.second, (int)p.first);
 		if(current_codec == p.first)
 			codec_combo_box->setCurrentIndex(codec_combo_box->count() - 1);
@@ -335,6 +340,46 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(hw_decoder_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(HardwareDecodeEngineSelected()));
 	decode_settings_layout->addRow(tr("Hardware decode method:"), hw_decoder_combo_box);
 	UpdateHardwareDecodeEngineComboBox();
+
+	// Renderer Settings
+	auto renderer_settings = new QGroupBox(tr("Renderer Settings"));
+	left_layout->addWidget(renderer_settings);
+
+	renderer_settings_layout = new QFormLayout();
+	renderer_settings->setLayout(renderer_settings_layout);
+
+	renderer_combo_box = new QComboBox(this);
+	static const QList<QPair<Renderer, QString>> renderer_strings = {
+		{ Renderer::OpenGL, "OpenGL" },
+		{ Renderer::PlaceboVk, "Placebo (Vulkan, needed for HDR)" }
+	};
+
+	auto current_renderer = settings->GetRenderer();
+	for(const auto &p : renderer_strings)
+	{
+		renderer_combo_box->addItem(p.second, (int)p.first);
+		if(current_renderer == p.first)
+			renderer_combo_box->setCurrentIndex(renderer_combo_box->count() - 1);
+	}
+	connect(renderer_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(RendererSelected()));
+	renderer_settings_layout->addRow(tr("Renderer:"), renderer_combo_box);
+
+	placebo_preset_combo_box = new QComboBox(this);
+	static const QList<QPair<PlaceboPreset, QString>> placebo_preset_strings = {
+		{ PlaceboPreset::Default, "Default (balance of performance, quality and battery usage)" },
+		{ PlaceboPreset::Fast, "Fast (no advanced rendering features, easy on the battery)" },
+		{ PlaceboPreset::HighQuality, "High Quality (high battery use)" }
+	};
+	auto current_placebo_preset = settings->GetPlaceboPreset();
+	for(const auto &p : placebo_preset_strings)
+	{
+		placebo_preset_combo_box->addItem(p.second, (int)p.first);
+		if(current_placebo_preset == p.first)
+			placebo_preset_combo_box->setCurrentIndex(placebo_preset_combo_box->count() - 1);
+	}
+	connect(placebo_preset_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(PlaceboPresetSelected()));
+	if (current_renderer == Renderer::PlaceboVk)
+		renderer_settings_layout->addRow(tr("Placebo Preset:"), placebo_preset_combo_box);
 
 	// Registered Consoles
 
@@ -482,6 +527,40 @@ void SettingsDialog::HardwareDecodeEngineSelected()
 void SettingsDialog::UpdateHardwareDecodeEngineComboBox()
 {
 	hw_decoder_combo_box->setEnabled(settings->GetDecoder() == Decoder::Ffmpeg);
+}
+
+void SettingsDialog::RendererSelected()
+{
+	Renderer current_renderer = settings->GetRenderer();
+	Renderer new_renderer = (Renderer)renderer_combo_box->currentData().toInt();
+
+	if (current_renderer == new_renderer)
+		return;
+
+	settings->SetRenderer(new_renderer);
+
+	// Update codec combo box and codec setting if HDR becomes available/unavailable
+	if (new_renderer == Renderer::PlaceboVk)
+	{
+		codec_combo_box->addItem("H265 HDR (PS5 only)", (int)CHIAKI_CODEC_H265_HDR);
+		renderer_settings_layout->insertRow(1, tr("Placebo Preset:"), placebo_preset_combo_box);
+	}
+	else if (current_renderer == Renderer::PlaceboVk)
+	{
+		ChiakiCodec current_codec = settings->GetCodec();
+		if (current_codec == CHIAKI_CODEC_H265_HDR)
+		{
+			settings->SetCodec(CHIAKI_CODEC_H265);
+			codec_combo_box->setCurrentIndex(codec_combo_box->findData((int)CHIAKI_CODEC_H265));
+		}
+		codec_combo_box->removeItem(codec_combo_box->findData((int)CHIAKI_CODEC_H265_HDR));
+		renderer_settings_layout->removeRow(placebo_preset_combo_box);
+	}
+}
+
+void SettingsDialog::PlaceboPresetSelected()
+{
+	settings->SetPlaceboPreset((PlaceboPreset)placebo_preset_combo_box->currentData().toInt());
 }
 
 void SettingsDialog::UpdateBitratePlaceholder()

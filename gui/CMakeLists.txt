@@ -6,6 +6,8 @@ find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Concurrent Multimedia Open
 if(APPLE)
 	find_package(Qt5 REQUIRED COMPONENTS MacExtras)
 endif()
+find_package(PkgConfig REQUIRED)
+pkg_search_module(LIBPLACEBO REQUIRED libplacebo)
 
 if(WIN32)
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
@@ -39,6 +41,10 @@ add_executable(chiaki WIN32
 		src/avopenglwidget.cpp
 		include/avopenglframeuploader.h
 		src/avopenglframeuploader.cpp
+		include/avplacebowidget.h
+		src/avplacebowidget.cpp
+		include/avplaceboframeuploader.h
+		src/avplaceboframeuploader.cpp
 		include/servericonwidget.h
 		src/servericonwidget.cpp
 		include/settings.h
@@ -59,6 +65,13 @@ add_executable(chiaki WIN32
 		include/loginpindialog.h
 		src/loginpindialog.cpp)
 target_include_directories(chiaki PRIVATE include)
+target_include_directories(chiaki PRIVATE ${LIBPLACEBO_INCLUDE_DIRS})
+
+add_library(placebo-libav-impl src/libav_impl.c)
+target_include_directories(placebo-libav-impl PRIVATE ${LIBPLACEBO_INCLUDE_DIRS})
+target_link_libraries(placebo-libav-impl ${LIBPLACEBO_LIBRARIES} avcodec avutil avformat)
+
+target_link_libraries(chiaki placebo-libav-impl)
 
 target_link_libraries(chiaki chiaki-lib)
 if(CHIAKI_ENABLE_CLI)
@@ -68,6 +81,7 @@ endif()
 
 target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
 target_link_libraries(chiaki SDL2::SDL2)
+target_link_libraries(chiaki ${LIBPLACEBO_LIBRARIES})
 if(APPLE)
 	target_link_libraries(chiaki Qt5::MacExtras)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_MACEXTRAS)

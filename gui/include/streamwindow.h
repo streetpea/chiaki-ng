@@ -4,11 +4,12 @@
 #define CHIAKI_GUI_STREAMWINDOW_H
 
 #include <QMainWindow>
+#include <libplacebo/log.h>
 
 #include "streamsession.h"
+#include "avwidget.h"
 
 class QLabel;
-class AVOpenGLWidget;
 
 class StreamWindow: public QMainWindow
 {
@@ -21,7 +22,7 @@ class StreamWindow: public QMainWindow
 	private:
 		const StreamSessionConnectInfo connect_info;
 		StreamSession *session;
-		AVOpenGLWidget *av_widget;
+		IAVWidget *av_widget;
 
 		void Init();
 		void UpdateVideoTransform();

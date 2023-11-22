@@ -64,6 +64,7 @@ struct StreamSessionConnectInfo
 	QMap<Qt::Key, int> key_map;
 	Decoder decoder;
 	QString hw_decoder;
+	Renderer renderer;
 	QString audio_out_device;
 	QString audio_in_device;
 	uint32_t log_level_mask;
