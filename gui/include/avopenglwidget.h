@@ -11,6 +11,7 @@
 extern "C"
 {
 #include <libavcodec/avcodec.h>
+#include <libavutil/hwcontext_drm.h>
 }
 
 #define MAX_PANES 3
@@ -46,6 +47,7 @@ struct AVOpenGLFrame
 	ConversionConfig *conversion_config;
 
 	bool Update(AVFrame *frame, ChiakiLog *log);
+	bool UpdateDrmPrime(AVFrame *frame, ChiakiLog *log);
 };
 
 class AVOpenGLWidget: public QOpenGLWidget

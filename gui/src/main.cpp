@@ -61,6 +61,9 @@ int real_main(int argc, char *argv[])
 	QApplication::setApplicationDisplayName("chiaki4deck");
 	QApplication::setDesktopFileName("chiaki4deck");
 
+	// Needed for dmabuf import on X11
+	qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
+
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

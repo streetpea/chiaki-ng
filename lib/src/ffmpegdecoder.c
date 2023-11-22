@@ -157,7 +157,17 @@ hell:
 static AVFrame *pull_from_hw(ChiakiFfmpegDecoder *decoder, AVFrame *hw_frame)
 {
 	AVFrame *sw_frame = av_frame_alloc();
-	if(av_hwframe_transfer_data(sw_frame, hw_frame, 0) < 0)
+	if(hw_frame->format == AV_PIX_FMT_VAAPI)
+	{
+		sw_frame->format = AV_PIX_FMT_DRM_PRIME;
+		if(av_hwframe_map(sw_frame, hw_frame, AV_HWFRAME_MAP_READ) < 0)
+		{
+			CHIAKI_LOGE(decoder->log, "Failed to map hardware frame to DRM_PRIME");
+			av_frame_unref(sw_frame);
+			sw_frame = NULL;
+		}
+	}
+	else if(av_hwframe_transfer_data(sw_frame, hw_frame, 0) < 0)
 	{
 		CHIAKI_LOGE(decoder->log, "Failed to transfer frame from hardware");
 		av_frame_unref(sw_frame);

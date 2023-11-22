@@ -11,6 +11,9 @@
 #include <QThread>
 #include <QTimer>
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
 //#define MOUSE_TIMEOUT_MS 1000
 
 //#define DEBUG_OPENGL
@@ -208,8 +211,103 @@ void AVOpenGLWidget::SwapFrames()
 	QMetaObject::invokeMethod(this, "update");
 }
 
+bool AVOpenGLFrame::UpdateDrmPrime(AVFrame *frame, ChiakiLog *log)
+{
+	static struct {
+		PFNEGLGETCURRENTDISPLAYPROC GetCurrentDisplay = nullptr;
+		PFNEGLCREATEIMAGEPROC CreateImage = nullptr;
+		PFNEGLDESTROYIMAGEPROC DestroyImage = nullptr;
+		PFNGLEGLIMAGETARGETTEXTURE2DOESPROC ImageTargetTexture2DOES = nullptr;
+	} egl;
+	if(!egl.GetCurrentDisplay)
+	{
+		egl.GetCurrentDisplay = reinterpret_cast<typeof(egl.GetCurrentDisplay)>(QOpenGLContext::currentContext()->getProcAddress("eglGetCurrentDisplay"));
+		egl.CreateImage = reinterpret_cast<typeof(egl.CreateImage)>(QOpenGLContext::currentContext()->getProcAddress("eglCreateImage"));
+		egl.DestroyImage = reinterpret_cast<typeof(egl.DestroyImage)>(QOpenGLContext::currentContext()->getProcAddress("eglDestroyImage"));
+		egl.ImageTargetTexture2DOES = reinterpret_cast<typeof(egl.ImageTargetTexture2DOES)>(QOpenGLContext::currentContext()->getProcAddress("glEGLImageTargetTexture2DOES"));
+	}
+
+	if(!egl.GetCurrentDisplay || !egl.CreateImage || !egl.DestroyImage || !egl.ImageTargetTexture2DOES)
+	{
+		CHIAKI_LOGE(log, "AVOpenGLFrame failed to resolve EGL functions");
+		return false;
+	}
+
+	AVDRMFrameDescriptor *drm_frame = reinterpret_cast<AVDRMFrameDescriptor *>(frame->data[0]);
+
+	if(!drm_frame || !drm_frame->nb_objects)
+	{
+		CHIAKI_LOGE(log, "AVOpenGLFrame got AVFrame with invalid frame descriptor");
+		return false;
+	}
+
+	if(drm_frame->nb_layers != conversion_config->planes)
+	{
+		CHIAKI_LOGE(log, "AVOpenGLFrame got AVFrame with wrong number of planes");
+		return false;
+	}
+
+	EGLDisplay dpy = egl.GetCurrentDisplay();
+	if(dpy == EGL_NO_DISPLAY)
+	{
+		CHIAKI_LOGE(log, "AVOpenGLFrame no current EGLDisplay");
+		return false;
+	}
+
+	width = frame->width;
+	height = frame->height;
+
+	for(int i=0; i<conversion_config->planes; i++)
+	{
+		int width = frame->width / conversion_config->plane_configs[i].width_divider;
+		int height = frame->height / conversion_config->plane_configs[i].height_divider;
+AVDRMLayerDescriptor *layer = &drm_frame->layers[i];
+
+		unsigned atti = 0;
+		EGLAttrib attribs[50];
+		attribs[atti++] = EGL_WIDTH;
+		attribs[atti++] = width;
+		attribs[atti++] = EGL_HEIGHT;
+		attribs[atti++] = height;
+		attribs[atti++] = EGL_LINUX_DRM_FOURCC_EXT;
+		attribs[atti++] = layer->format;
+		for(int j=0; j<layer->nb_planes; j++)
+		{
+			AVDRMPlaneDescriptor *plane = &layer->planes[j];
+			AVDRMObjectDescriptor *object = &drm_frame->objects[plane->object_index];
+			attribs[atti++] = EGL_DMA_BUF_PLANE0_FD_EXT + (j * 3);
+			attribs[atti++] = object->fd;
+			attribs[atti++] = EGL_DMA_BUF_PLANE0_OFFSET_EXT + (j * 3);
+			attribs[atti++] = plane->offset;
+			attribs[atti++] = EGL_DMA_BUF_PLANE0_PITCH_EXT + (j * 3);
+			attribs[atti++] = plane->pitch;
+			attribs[atti++] = EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT + (j * 2);
+			attribs[atti++] = object->format_modifier & 0xFFFFFFFF;
+			attribs[atti++] = EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT + (j * 2);
+			attribs[atti++] = object->format_modifier >> 32;
+		}
+		attribs[atti++] = EGL_NONE;
+		EGLImage img = egl.CreateImage(dpy, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs);
+		if(!img)
+		{
+			CHIAKI_LOGE(log, "AVOpenGLFrame failed to create EGL image from dmabuf");
+			continue;
+		}
+		QOpenGLContext::currentContext()->functions()->glBindTexture(GL_TEXTURE_2D, tex[i]);
+		egl.ImageTargetTexture2DOES(GL_TEXTURE_2D, img);
+		egl.DestroyImage(dpy, img);
+	}
+
+	return true;
+}
+
 bool AVOpenGLFrame::Update(AVFrame *frame, ChiakiLog *log)
 {
+	if(frame->format == AV_PIX_FMT_DRM_PRIME)
+	{
+		return UpdateDrmPrime(frame, log);
+	}
+
 	auto f = QOpenGLContext::currentContext()->extraFunctions();
 
 	if(frame->format != conversion_config->pixel_format)
