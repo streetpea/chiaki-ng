@@ -179,6 +179,11 @@ jobs:
           cp "${{ github.workspace }}\fftw\libfftw3-3.dll" Chiaki4deck-VC
           windeployqt.exe --no-translations Chiaki4deck-VC\chiaki.exe
 
+      - name: Remove qtaudio_windows.dll to fix choppy audio
+        working-directory: chiaki4deck
+        run: !
+          Remove-Item -Path Chiaki4deck-VC\audio\qtaudio_windows.dll
+
       - name: Package Chiaki4deck
         working-directory: chiaki4deck
         run: |
