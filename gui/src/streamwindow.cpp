@@ -212,10 +212,8 @@ bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
 		case QEvent::KeyRelease:
 			QCoreApplication::sendEvent(this, event);
 			return true;
-			break; 
 		default:
 			return false;
-			break;
 	}
 }
 

@@ -51,6 +51,7 @@ AVPlaceboWidget::~AVPlaceboWidget()
 
 void AVPlaceboWidget::showEvent(QShowEvent *event) {
     QWindow::showEvent(event);
+    this->requestActivate();
 
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = vulkan_instance->surfaceForWindow(this),
