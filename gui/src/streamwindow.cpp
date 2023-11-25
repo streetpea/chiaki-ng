@@ -114,6 +114,7 @@ void StreamWindow::Init()
 			auto widget = new AVPlaceboWidget(
 				session, placebo_log, placebo_vk_inst, vulkan_instance,
 				resolution_mode, connect_info.settings->GetPlaceboPreset());
+			widget->installEventFilter(this);
 			VkSurfaceKHR surface = vulkan_instance->surfaceForWindow(widget);
 
 			struct pl_vulkan_params vulkan_params = {
@@ -126,7 +127,6 @@ void StreamWindow::Init()
 			placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
 			widget->setPlaceboVulkan(placebo_vulkan);
 			auto container_widget = QWidget::createWindowContainer(widget);
-			container_widget->installEventFilter(this);
 			setCentralWidget(container_widget);
 			placebo_widget = container_widget;
 			av_widget = widget;
@@ -196,6 +196,27 @@ bool StreamWindow::event(QEvent *event)
 	}
 	// hand non-touch events + cancelled touches back to regular handler
 	return QMainWindow::event(event);
+}
+
+bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
+{
+	switch(event->type()){
+		case QEvent::TouchBegin:
+		case QEvent::TouchUpdate:
+		case QEvent::TouchEnd:
+		case QEvent::MouseButtonDblClick:
+		case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonRelease:
+		case QEvent::MouseMove:
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease:
+			QCoreApplication::sendEvent(this, event);
+			return true;
+			break; 
+		default:
+			return false;
+			break;
+	}
 }
 
 void StreamWindow::Quit()
