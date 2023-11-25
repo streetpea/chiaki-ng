@@ -5,11 +5,13 @@
 
 #include <QMainWindow>
 #include <libplacebo/log.h>
+#include <libplacebo/vulkan.h>
 
 #include "streamsession.h"
 #include "avwidget.h"
 
 class QLabel;
+class QVulkanInstance;
 
 class StreamWindow: public QMainWindow
 {
@@ -24,8 +26,20 @@ class StreamWindow: public QMainWindow
 		StreamSession *session;
 		IAVWidget *av_widget;
 
+		// Only needed for Placebo renderer
+		// Needs to be placed here since the Vulkan instance needs
+		// to be kept alive until the QWindow destructor has been run, i.e.
+		// we can't tie it to the lifetime of the AVWidget since we'd tear
+		// it down too early
+		pl_log placebo_log;
+		pl_vk_inst placebo_vk_inst;
+		pl_vulkan placebo_vulkan;
+		QVulkanInstance *vulkan_instance;
+		QWidget *placebo_widget;
+
 		void Init();
 		void UpdateVideoTransform();
+		static void PlaceboLog(void *user, pl_log_level level, const char *msg);
 
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;

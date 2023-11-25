@@ -501,8 +501,36 @@ static void stream_connection_takion_data_idle(ChiakiStreamConnection *stream_co
 	CHIAKI_LOGV(stream_connection->log, "StreamConnection received data with msg.type == %d", msg.type);
 	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, buf_size);
 
-	if(msg.type == tkproto_TakionMessage_PayloadType_DISCONNECT)
+	switch (msg.type)
+	{
+	case tkproto_TakionMessage_PayloadType_DISCONNECT:
 		stream_connection_takion_data_handle_disconnect(stream_connection, buf, buf_size);
+		break;
+	case tkproto_TakionMessage_PayloadType_CONNECTIONQUALITY:
+	{
+		tkproto_ConnectionQualityPayload q = msg.connection_quality_payload;
+		CHIAKI_LOGV(
+			stream_connection->log,
+			"StreamConnection received connection quality: target_bitrate=%d, "
+			"upstream_bitrate=%d, upstream_loss=%.4f, "
+			"disable_upstream_audio=%d, rtt=%.4f, loss=%lld",
+			 q.target_bitrate, q.upstream_bitrate,
+			 q.upstream_loss,
+			 q.disable_upstream_audio, q.rtt, q.loss);
+		CHIAKI_LOGV(stream_connection->log, "StreamConnection measured bitrate: %.4f MBit/s", chiaki_stream_stats_bitrate(&stream_connection->video_receiver->frame_processor.stream_stats, stream_connection->session->connect_info.video_profile.max_fps) / 1000000.0);
+		chiaki_stream_stats_reset(&stream_connection->video_receiver->frame_processor.stream_stats);
+		break;
+	}
+	case tkproto_TakionMessage_PayloadType_CORRUPTFRAME:
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection received corrupt frame from %d to %d",
+			msg.corrupt_payload.start, msg.corrupt_payload.end);
+		break;
+	case tkproto_TakionMessage_PayloadType_STREAMINFOACK:
+		CHIAKI_LOGV(stream_connection->log, "StreamConnection received streaminfo ack");
+		break;
+	default:
+		break;
+	}
 }
 
 static ChiakiErrorCode stream_connection_init_crypt(ChiakiStreamConnection *stream_connection)

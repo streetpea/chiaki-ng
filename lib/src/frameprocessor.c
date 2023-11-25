@@ -29,6 +29,8 @@ CHIAKI_EXPORT void chiaki_stream_stats_frame(ChiakiStreamStats *stats, uint64_t 
 
 CHIAKI_EXPORT uint64_t chiaki_stream_stats_bitrate(ChiakiStreamStats *stats, uint64_t framerate)
 {
+	if (stats->frames == 0)
+		return 0;
 	return (stats->bytes * 8 * framerate) / stats->frames;
 }
 

@@ -44,43 +44,21 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         pl_vulkan placebo_vulkan;
         pl_swapchain placebo_swapchain;
         pl_renderer placebo_renderer;
-        #ifdef USE_FRAME_MIXING
-        pl_queue frame_queue;
-        pl_frame_mix mix;
-        pl_options placebo_options;
-
-        QElapsedTimer pts_timer;
-        uint64_t pts_timer_start = 0;
-        double pts_target = 0.0;
-        double prev_pts = 0.0;
-        double first_pts = 0.0;
-        double base_pts = 0.0;
-        double last_pts = 0.0;
-        uint64_t num_frames = 0;
-        #else
         pl_tex placebo_tex[4] = {nullptr, nullptr, nullptr, nullptr};
-        #endif
-
-        static void PlaceboLog(void *user, pl_log_level level, const char *msg);
-
-        #ifdef USE_FRAME_MIXING
-        static bool MapFrame(pl_gpu  gpu, pl_tex *tex, const struct pl_source_frame *src, struct pl_frame *out_frame);
-        static void UnmapFrame(pl_gpu gpu, struct pl_frame *frame, const struct pl_source_frame *src);
-        static void DiscardFrame(const struct pl_source_frame *src);
-        #endif
 
     public:
-        explicit AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode = Normal, PlaceboPreset preset = PlaceboPreset::Default);
+        explicit AVPlaceboWidget(
+            StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,  QVulkanInstance *qvkinst,
+            ResolutionMode resolution_mode = Normal, PlaceboPreset preset = PlaceboPreset::Default
+        );
         ~AVPlaceboWidget() override;
 
-        #ifdef USE_FRAME_MIXING
-        void QueueFrame(AVFrame *frame);
-        bool event(QEvent *event) override;
-        #endif
         bool RenderFrame(AVFrame *frame);
+        void setPlaceboVulkan(pl_vulkan vulkan) { placebo_vulkan = vulkan; };
         void Stop() override;
         void showEvent(QShowEvent *event) override;
         void resizeEvent(QResizeEvent *event) override;
+        static void PlaceboLog(void *user, pl_log_level level, const char *msg);
 
     protected:
         ResolutionMode resolution_mode;

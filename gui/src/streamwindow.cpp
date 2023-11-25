@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 #include <QAction>
 #include <QWindow>
+#include <QGuiApplication>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
@@ -41,13 +42,15 @@ StreamWindow::~StreamWindow()
 {
 	// make sure av_widget is always deleted before the session
 	delete av_widget;
+	pl_vulkan_destroy(&placebo_vulkan);
+	pl_vk_inst_destroy(&placebo_vk_inst);
+	pl_log_destroy(&placebo_log);
+	vulkan_instance->destroy();
+	delete vulkan_instance;
 }
 
 void StreamWindow::Init()
 {
-    //auto wid = this->winId(); // Neccessary to get the window handle at this point
-	//windowHandle()->setSurfaceType(QSurface::VulkanSurface);
-
 	session = new StreamSession(connect_info, this);
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
@@ -70,8 +73,63 @@ void StreamWindow::Init()
 		}
 		else
 		{
-			av_widget = new AVPlaceboWidget(session, resolution_mode, connect_info.settings->GetPlaceboPreset());
-			setCentralWidget(QWidget::createWindowContainer((AVPlaceboWidget*) av_widget));
+			// Set up Vulkan resources whose lifetime needs to exceed that of the widget
+			char** vk_exts = new char*[2]{
+				(char*)VK_KHR_SURFACE_EXTENSION_NAME,
+				nullptr,
+			};
+
+			QString platformName = QGuiApplication::platformName();
+			if (platformName == "wayland") {
+				vk_exts[1] = (char*)"VK_KHR_wayland_surface";
+			} else if (platformName.contains("xcb")) {
+				vk_exts[1] = (char*)"VK_KHR_xcb_surface";
+			} else {
+				// TODO: Bail out?
+			}
+
+			const char* opt_extensions[] = {
+				VK_EXT_HDR_METADATA_EXTENSION_NAME,
+			};
+
+			struct pl_log_params log_params = {
+				.log_cb = PlaceboLog,
+				.log_priv = session->GetChiakiLog(),
+				.log_level = PL_LOG_DEBUG,
+			};
+			placebo_log = pl_log_create(PL_API_VER, &log_params);
+
+			struct pl_vk_inst_params vk_inst_params = {
+				.extensions = vk_exts,
+				.num_extensions = 2,
+				.opt_extensions = opt_extensions,
+				.num_opt_extensions = 1,
+			};
+			placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
+
+			vulkan_instance = new QVulkanInstance();
+			vulkan_instance->setVkInstance(placebo_vk_inst->instance);
+			vulkan_instance->create();
+
+			auto widget = new AVPlaceboWidget(
+				session, placebo_log, placebo_vk_inst, vulkan_instance,
+				resolution_mode, connect_info.settings->GetPlaceboPreset());
+			VkSurfaceKHR surface = vulkan_instance->surfaceForWindow(widget);
+
+			struct pl_vulkan_params vulkan_params = {
+				.instance = placebo_vk_inst->instance,
+				.get_proc_addr = placebo_vk_inst->get_proc_addr,
+				.surface = surface,
+				.allow_software = true,
+				PL_VULKAN_DEFAULTS
+			};
+			placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
+			widget->setPlaceboVulkan(placebo_vulkan);
+			auto container_widget = QWidget::createWindowContainer(widget);
+			container_widget->installEventFilter(this);
+			setCentralWidget(container_widget);
+			placebo_widget = container_widget;
+			av_widget = widget;
 		}
 	}
 	else
@@ -308,4 +366,32 @@ void StreamWindow::UpdateVideoTransform()
 		chiaki_pi_decoder_set_params(pi_decoder, r.x(), r.y(), r.width(), r.height(), isActiveWindow());
 	}
 #endif
+}
+
+void StreamWindow::PlaceboLog(void *user, pl_log_level level, const char *msg)
+{
+    ChiakiLog *log = (ChiakiLog*)user;
+    if (!log) {
+        return;
+    }
+
+    ChiakiLogLevel chiaki_level;
+    switch (level)
+    {
+        case PL_LOG_DEBUG:
+            chiaki_level = CHIAKI_LOG_VERBOSE;
+            break;
+        case PL_LOG_INFO:
+            chiaki_level = CHIAKI_LOG_INFO;
+            break;
+        case PL_LOG_WARN:
+            chiaki_level = CHIAKI_LOG_WARNING;
+            break;
+        case PL_LOG_ERR:
+        case PL_LOG_FATAL:
+            chiaki_level = CHIAKI_LOG_ERROR;
+            break;
+    }
+
+    chiaki_log(log, chiaki_level, "[libplacebo] %s", msg);
 }

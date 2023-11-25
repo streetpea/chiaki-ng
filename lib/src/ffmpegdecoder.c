@@ -2,6 +2,7 @@
 #include <chiaki/ffmpegdecoder.h>
 
 #include <libavcodec/avcodec.h>
+#include <libavutil/pixdesc.h>
 
 static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 {
@@ -51,7 +52,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 
 	if(hw_decoder_name)
 	{
-		CHIAKI_LOGI(log, "Using hardware decoder \"%s\"", hw_decoder_name);
+		CHIAKI_LOGI(log, "Trying to use hardware decoder \"%s\"", hw_decoder_name);
 		enum AVHWDeviceType type = av_hwdevice_find_type_by_name(hw_decoder_name);
 		if(type == AV_HWDEVICE_TYPE_NONE)
 		{
@@ -80,6 +81,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 			goto error_codec_context;
 		}
 		decoder->codec_context->hw_device_ctx = av_buffer_ref(decoder->hw_device_ctx);
+		CHIAKI_LOGI(log, "Using hardware decoder \"%s\" with pix_fmt=%s", hw_decoder_name, av_get_pix_fmt_name(decoder->hw_pix_fmt));
 	}
 
 	if(avcodec_open2(decoder->codec_context, decoder->av_codec, NULL) < 0)

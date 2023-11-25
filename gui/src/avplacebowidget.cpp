@@ -13,10 +13,13 @@
 #define PL_LIBAV_IMPLEMENTATION 0
 #include <libplacebo/utils/libav.h>
 
-AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset)
-    : session(session), resolution_mode(resolution_mode)
+AVPlaceboWidget::AVPlaceboWidget(
+    StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst, QVulkanInstance *qvkinst,
+    ResolutionMode resolution_mode, PlaceboPreset preset)
+    : placebo_log(placebo_log), placebo_vk_inst(placebo_vk_inst), session(session), resolution_mode(resolution_mode)
 {
     setSurfaceType(QWindow::VulkanSurface);
+    this->setVulkanInstance(qvkinst);
 
     if (preset == PlaceboPreset::Default)
     {
@@ -33,7 +36,6 @@ AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resoluti
         CHIAKI_LOGI(session->GetChiakiLog(), "Using placebo high quality preset");
         render_params = pl_render_high_quality_params;
     }
-
 }
 
 AVPlaceboWidget::~AVPlaceboWidget()
@@ -43,75 +45,15 @@ AVPlaceboWidget::~AVPlaceboWidget()
             pl_tex_destroy(placebo_vulkan->gpu, &placebo_tex[i]);
     }
 
-    if (placebo_renderer)
-        pl_renderer_destroy(&placebo_renderer);
-    if (placebo_swapchain)
-        pl_swapchain_destroy(&placebo_swapchain);
-    if (placebo_vulkan)
-        pl_vulkan_destroy(&placebo_vulkan);
-    if (vulkan_instance)
-        vulkan_instance->destroy();
-    if (placebo_vk_inst)
-        pl_vk_inst_destroy(&placebo_vk_inst);
-    if (placebo_log)
-        pl_log_destroy(&placebo_log);
+    pl_renderer_destroy(&placebo_renderer);
+    pl_swapchain_destroy(&placebo_swapchain);
 }
 
 void AVPlaceboWidget::showEvent(QShowEvent *event) {
     QWindow::showEvent(event);
-    char** vk_exts = new char*[2]{
-        (char*)VK_KHR_SURFACE_EXTENSION_NAME,
-        nullptr,
-    };
-
-    QString platformName = QGuiApplication::platformName();
-    if (platformName == "wayland") {
-        vk_exts[1] = (char*)"VK_KHR_wayland_surface";
-    } else if (platformName.contains("xcb")) {
-        vk_exts[1] = (char*)"VK_KHR_xcb_surface";
-    } else {
-		// TODO: Bail out?
-	}
-
-	const char* opt_extensions[] = {
-		VK_EXT_HDR_METADATA_EXTENSION_NAME,
-	};
-
-    // NOTE: Can't use the nice libplacebo macros for populating, since they're
-    // incompatible with C++ :-/
-    struct pl_log_params log_params = {
-        .log_cb = PlaceboLog,
-        .log_priv = session->GetChiakiLog(),
-        .log_level = PL_LOG_DEBUG,
-    };
-    placebo_log = pl_log_create(PL_API_VER, &log_params);
-
-    struct pl_vk_inst_params vk_inst_params = {
-        .extensions = vk_exts,
-        .num_extensions = 2,
-        .opt_extensions = opt_extensions,
-        .num_opt_extensions = 1,
-    };
-    placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
-
-    vulkan_instance = new QVulkanInstance();
-    vulkan_instance->setVkInstance(placebo_vk_inst->instance);
-    vulkan_instance->create();
-    this->setVulkanInstance(vulkan_instance);
-
-    VkSurfaceKHR surface = vulkan_instance->surfaceForWindow(this);
-
-    struct pl_vulkan_params vulkan_params = {
-        .instance = placebo_vk_inst->instance,
-        .get_proc_addr = placebo_vk_inst->get_proc_addr,
-        .surface = surface,
-        .allow_software = true,
-        PL_VULKAN_DEFAULTS
-    };
-    placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
 
     struct pl_vulkan_swapchain_params swapchain_params = {
-        .surface = surface,
+        .surface = vulkan_instance->surfaceForWindow(this),
         .present_mode = VK_PRESENT_MODE_FIFO_KHR,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
