@@ -40,6 +40,7 @@ class StreamWindow: public QMainWindow
 		void Init();
 		void UpdateVideoTransform();
 		static void PlaceboLog(void *user, pl_log_level level, const char *msg);
+		bool eventFilter(QObject *obj, QEvent *event);
 
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
