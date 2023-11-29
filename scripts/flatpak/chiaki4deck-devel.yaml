@@ -1,6 +1,6 @@
 app-id: io.github.streetpea.Chiaki4deck-devel
 runtime: org.kde.Platform
-runtime-version: '5.15-22.08'
+runtime-version: '5.15-23.08'
 sdk: org.kde.Sdk
 command: chiaki
 rename-icon: chiaki4deck
@@ -42,8 +42,8 @@ modules:
       - --enable-encoder=png
     sources:
       - type: archive
-        url: https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
-        sha256: 57be87c22d9b49c112b6d24bc67d42508660e6b718b3db89c44e47e289137082 
+        url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
+        sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
 
   - name: python3-google
     buildsystem: simple
