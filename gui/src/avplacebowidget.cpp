@@ -105,6 +105,9 @@ bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
         CHIAKI_LOGE(session->GetChiakiLog(), "Failed to map AVFrame to Placebo frame!");
         return false;
     }
+    // set colorspace hint
+    struct pl_color_space hint = placebo_frame.color;
+    pl_swapchain_colorspace_hint(placebo_swapchain, &hint);
 
     pl_rect2df crop;
 
