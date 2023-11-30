@@ -41,6 +41,7 @@ modules:
       - /share/ffmpeg
     config-opts:
       - --disable-all
+      - --enable-libdrm
       - --enable-avcodec
       - --enable-decoder=h264
       - --enable-decoder=hevc
