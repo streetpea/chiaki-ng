@@ -19,7 +19,7 @@ void AVPlaceboFrameUploader::UpdateFrameFromDecoder()
         return;
     }
 
-    AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder);
+    AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false);
     if(!next_frame)
         return;
 

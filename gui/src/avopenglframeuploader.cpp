@@ -29,7 +29,7 @@ void AVOpenGLFrameUploader::UpdateFrameFromDecoder()
 	if(QOpenGLContext::currentContext() != context)
 		context->makeCurrent(surface);
 
-	AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder);
+	AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ true);
 	if(!next_frame)
 		return;
 

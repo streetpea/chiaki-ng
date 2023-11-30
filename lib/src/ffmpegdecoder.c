@@ -170,7 +170,7 @@ static AVFrame *pull_from_hw(ChiakiFfmpegDecoder *decoder, AVFrame *hw_frame)
 	return sw_frame;
 }
 
-CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder)
+CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, bool hw_download)
 {
 	chiaki_mutex_lock(&decoder->mutex);
 	// always try to pull as much as possible and return only the very last frame
@@ -194,7 +194,7 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 		frame = next_frame;
 		int r = avcodec_receive_frame(decoder->codec_context, frame);
 		if(!r)
-			frame = decoder->hw_device_ctx ? pull_from_hw(decoder, frame) : frame;
+			frame = hw_download && decoder->hw_device_ctx ? pull_from_hw(decoder, frame) : frame;
 		else
 		{
 			if(r != AVERROR(EAGAIN))
