@@ -11,7 +11,6 @@
 #include "avwidget.h"
 
 class QLabel;
-class QVulkanInstance;
 
 class StreamWindow: public QMainWindow
 {
@@ -34,7 +33,6 @@ class StreamWindow: public QMainWindow
 		pl_log placebo_log;
 		pl_vk_inst placebo_vk_inst;
 		pl_vulkan placebo_vulkan;
-		QVulkanInstance *vulkan_instance;
 		QWidget *placebo_widget;
 
 		void Init();

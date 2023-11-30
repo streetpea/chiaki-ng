@@ -10,7 +10,6 @@
 
 #include <QWidget>
 #include <QMutex>
-#include <QVulkanInstance>
 #include <QWindow>
 #include <QElapsedTimer>
 #include <libplacebo/options.h>
@@ -36,8 +35,8 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         AVPlaceboFrameUploader *frame_uploader;
         QMutex frames_mutex;
         QThread *frame_uploader_thread;
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-        QVulkanInstance *vulkan_instance;
         pl_render_params render_params;
         pl_log placebo_log;
         pl_vk_inst placebo_vk_inst;
@@ -48,7 +47,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
 
     public:
         explicit AVPlaceboWidget(
-            StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,  QVulkanInstance *qvkinst,
+            StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,
             ResolutionMode resolution_mode = Normal, PlaceboPreset preset = PlaceboPreset::Default
         );
         ~AVPlaceboWidget() override;
@@ -59,6 +58,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void showEvent(QShowEvent *event) override;
         void resizeEvent(QResizeEvent *event) override;
         static void PlaceboLog(void *user, pl_log_level level, const char *msg);
+        VkSurfaceKHR vkSurface() const { return surface; }
 
     protected:
         ResolutionMode resolution_mode;

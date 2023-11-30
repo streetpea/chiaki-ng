@@ -77,7 +77,7 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
+target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::GuiPrivate Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
 target_link_libraries(chiaki SDL2::SDL2)
 target_link_libraries(chiaki PkgConfig::LIBPLACEBO)
 if(APPLE)

@@ -13,13 +13,18 @@
 #define PL_LIBAV_IMPLEMENTATION 0
 #include <libplacebo/utils/libav.h>
 
+#include <xcb/xcb.h>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_xcb.h>
+#include <vulkan/vulkan_wayland.h>
+#include <qpa/qplatformnativeinterface.h>
+
 AVPlaceboWidget::AVPlaceboWidget(
-    StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst, QVulkanInstance *qvkinst,
+    StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,
     ResolutionMode resolution_mode, PlaceboPreset preset)
     : placebo_log(placebo_log), placebo_vk_inst(placebo_vk_inst), session(session), resolution_mode(resolution_mode)
 {
     setSurfaceType(QWindow::VulkanSurface);
-    this->setVulkanInstance(qvkinst);
 
     if (preset == PlaceboPreset::Default)
     {
@@ -47,14 +52,50 @@ AVPlaceboWidget::~AVPlaceboWidget()
 
     pl_renderer_destroy(&placebo_renderer);
     pl_swapchain_destroy(&placebo_swapchain);
+
+    PFN_vkDestroySurfaceKHR destroySurface = reinterpret_cast<PFN_vkDestroySurfaceKHR>(
+            placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkDestroySurfaceKHR"));
+    destroySurface(placebo_vk_inst->instance, surface, nullptr);
 }
 
 void AVPlaceboWidget::showEvent(QShowEvent *event) {
     QWindow::showEvent(event);
     this->requestActivate();
 
+    VkResult err;
+
+    if (QGuiApplication::platformName().startsWith("wayland")) {
+        PFN_vkCreateWaylandSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateWaylandSurfaceKHR>(
+                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateWaylandSurfaceKHR"));
+
+        VkWaylandSurfaceCreateInfoKHR surfaceInfo;
+        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
+        surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
+        surfaceInfo.display = static_cast<struct wl_display*>(pni->nativeResourceForWindow("display", this));
+        surfaceInfo.surface = static_cast<struct wl_surface*>(pni->nativeResourceForWindow("surface", this));
+        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+    } else if (QGuiApplication::platformName().startsWith("xcb")) {
+        PFN_vkCreateXcbSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateXcbSurfaceKHR>(
+                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateXcbSurfaceKHR"));
+
+        VkXcbSurfaceCreateInfoKHR surfaceInfo;
+        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
+        surfaceInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
+        surfaceInfo.connection = static_cast<xcb_connection_t*>(pni->nativeResourceForWindow("connection", this));
+        surfaceInfo.window = static_cast<xcb_window_t>(winId());
+        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+    } else {
+        Q_UNREACHABLE();
+    }
+
+    if (err != VK_SUCCESS) {
+        qFatal("Failed to create VkSurfaceKHR");
+    }
+
     struct pl_vulkan_swapchain_params swapchain_params = {
-        .surface = vulkan_instance->surfaceForWindow(this),
+        .surface = surface,
         .present_mode = VK_PRESENT_MODE_FIFO_KHR,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
@@ -76,10 +117,6 @@ void AVPlaceboWidget::showEvent(QShowEvent *event) {
 }
 
 void AVPlaceboWidget::Stop() {
-    // Need to stop the frame uploader thread before the widget is destroyed,
-    // otherwise it segfaults inside the QtWaylandClient
-    // FIXME: Sometimes it still crashes on exit deep inside of Qt, why is this?
-    //        Test on Steam Deck/gamescope if it happens there as well...
     if (frame_uploader_thread) {
         frame_uploader_thread->quit();
         frame_uploader_thread->wait();

@@ -45,8 +45,6 @@ StreamWindow::~StreamWindow()
 	pl_vulkan_destroy(&placebo_vulkan);
 	pl_vk_inst_destroy(&placebo_vk_inst);
 	pl_log_destroy(&placebo_log);
-	vulkan_instance->destroy();
-	delete vulkan_instance;
 }
 
 void StreamWindow::Init()
@@ -107,15 +105,11 @@ void StreamWindow::Init()
 			};
 			placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
 
-			vulkan_instance = new QVulkanInstance();
-			vulkan_instance->setVkInstance(placebo_vk_inst->instance);
-			vulkan_instance->create();
-
 			auto widget = new AVPlaceboWidget(
-				session, placebo_log, placebo_vk_inst, vulkan_instance,
+				session, placebo_log, placebo_vk_inst,
 				resolution_mode, connect_info.settings->GetPlaceboPreset());
 			widget->installEventFilter(this);
-			VkSurfaceKHR surface = vulkan_instance->surfaceForWindow(widget);
+			VkSurfaceKHR surface = widget->vkSurface();
 
 			struct pl_vulkan_params vulkan_params = {
 				.instance = placebo_vk_inst->instance,
