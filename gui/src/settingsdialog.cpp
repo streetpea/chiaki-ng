@@ -279,7 +279,9 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	static const QList<QPair<ChiakiCodec, QString>> codec_strings = {
 		{ CHIAKI_CODEC_H264, "H264" },
 		{ CHIAKI_CODEC_H265, "H265 (PS5 only)" },
+#if CHIAKI_GUI_ENABLE_PLACEBO
 		{ CHIAKI_CODEC_H265_HDR, "H265 HDR (PS5 only)" }
+#endif
 	};
 	auto current_codec = settings->GetCodec();
 	for(const auto &p : codec_strings)
@@ -341,6 +343,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	decode_settings_layout->addRow(tr("Hardware decode method:"), hw_decoder_combo_box);
 	UpdateHardwareDecodeEngineComboBox();
 
+#if CHIAKI_GUI_ENABLE_PLACEBO
 	// Renderer Settings
 	auto renderer_settings = new QGroupBox(tr("Renderer Settings"));
 	left_layout->addWidget(renderer_settings);
@@ -380,6 +383,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	connect(placebo_preset_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(PlaceboPresetSelected()));
 	if (current_renderer == Renderer::PlaceboVk)
 		renderer_settings_layout->addRow(tr("Placebo Preset:"), placebo_preset_combo_box);
+#endif
 
 	// Registered Consoles
 
@@ -539,6 +543,7 @@ void SettingsDialog::RendererSelected()
 
 	settings->SetRenderer(new_renderer);
 
+#ifdef CHIAKI_GUI_ENABLE_PLACEBO
 	// Update codec combo box and codec setting if HDR becomes available/unavailable
 	if (new_renderer == Renderer::PlaceboVk)
 	{
@@ -556,12 +561,15 @@ void SettingsDialog::RendererSelected()
 		codec_combo_box->removeItem(codec_combo_box->findData((int)CHIAKI_CODEC_H265_HDR));
 		renderer_settings_layout->removeRow(placebo_preset_combo_box);
 	}
+#endif
 }
 
+#if CHIAKI_GUI_ENABLE_PLACEBO
 void SettingsDialog::PlaceboPresetSelected()
 {
 	settings->SetPlaceboPreset((PlaceboPreset)placebo_preset_combo_box->currentData().toInt());
 }
+#endif
 
 void SettingsDialog::UpdateBitratePlaceholder()
 {

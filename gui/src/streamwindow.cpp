@@ -3,7 +3,9 @@
 #include <streamwindow.h>
 #include <streamsession.h>
 #include <avopenglwidget.h>
+#if CHIAKI_GUI_ENABLE_PLACEBO
 #include <avplacebowidget.h>
+#endif
 #include <loginpindialog.h>
 #include <settings.h>
 
@@ -42,9 +44,11 @@ StreamWindow::~StreamWindow()
 {
 	// make sure av_widget is always deleted before the session
 	delete av_widget;
+#if CHIAKI_GUI_ENABLE_PLACEBO
 	pl_vulkan_destroy(&placebo_vulkan);
 	pl_vk_inst_destroy(&placebo_vk_inst);
 	pl_log_destroy(&placebo_log);
+#endif
 }
 
 void StreamWindow::Init()
@@ -71,6 +75,7 @@ void StreamWindow::Init()
 		}
 		else
 		{
+#if CHIAKI_GUI_ENABLE_PLACEBO
 			// Set up Vulkan resources whose lifetime needs to exceed that of the widget
 			char** vk_exts = new char*[2]{
 				(char*)VK_KHR_SURFACE_EXTENSION_NAME,
@@ -124,6 +129,9 @@ void StreamWindow::Init()
 			setCentralWidget(container_widget);
 			placebo_widget = container_widget;
 			av_widget = widget;
+#else
+			Q_UNREACHABLE();
+#endif // CHIAKI_GUI_ENABLE_PLACEBO
 		}
 	}
 	else
@@ -381,6 +389,7 @@ void StreamWindow::UpdateVideoTransform()
 #endif
 }
 
+#if CHIAKI_GUI_ENABLE_PLACEBO
 void StreamWindow::PlaceboLog(void *user, pl_log_level level, const char *msg)
 {
     ChiakiLog *log = (ChiakiLog*)user;
@@ -408,3 +417,4 @@ void StreamWindow::PlaceboLog(void *user, pl_log_level level, const char *msg)
 
     chiaki_log(log, chiaki_level, "[libplacebo] %s", msg);
 }
+#endif

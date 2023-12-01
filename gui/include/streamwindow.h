@@ -4,8 +4,10 @@
 #define CHIAKI_GUI_STREAMWINDOW_H
 
 #include <QMainWindow>
+#if CHIAKI_GUI_ENABLE_PLACEBO
 #include <libplacebo/log.h>
 #include <libplacebo/vulkan.h>
+#endif
 
 #include "streamsession.h"
 #include "avwidget.h"
@@ -25,7 +27,7 @@ class StreamWindow: public QMainWindow
 		StreamSession *session;
 		IAVWidget *av_widget;
 
-		// Only needed for Placebo renderer
+#if CHIAKI_GUI_ENABLE_PLACEBO
 		// Needs to be placed here since the Vulkan instance needs
 		// to be kept alive until the QWindow destructor has been run, i.e.
 		// we can't tie it to the lifetime of the AVWidget since we'd tear
@@ -34,10 +36,14 @@ class StreamWindow: public QMainWindow
 		pl_vk_inst placebo_vk_inst;
 		pl_vulkan placebo_vulkan;
 		QWidget *placebo_widget;
+#endif
 
 		void Init();
 		void UpdateVideoTransform();
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
 		static void PlaceboLog(void *user, pl_log_level level, const char *msg);
+#endif
 
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;

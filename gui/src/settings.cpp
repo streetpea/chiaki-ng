@@ -194,17 +194,20 @@ void Settings::SetDecoder(Decoder decoder)
 
 static const QMap<Renderer, QString> renderer_values = {
 	{ Renderer::OpenGL, "opengl" },
+#if CHIAKI_GUI_ENABLE_PLACEBO
 	{ Renderer::PlaceboVk, "placebo_vk" }
+#endif
 };
 static const Renderer renderer_default = Renderer::OpenGL;
 
 Renderer Settings::GetRenderer() const
 {
 	auto v = settings.value("settings/renderer", renderer_values[renderer_default]).toString();
+#if  CHIAKI_GUI_ENABLE_PLACEBO
 	if (v == renderer_values[Renderer::PlaceboVk])
 		return Renderer::PlaceboVk;
-	else
-		return Renderer::OpenGL;
+#endif
+	return Renderer::OpenGL;
 }
 
 void Settings::SetRenderer(Renderer renderer)
@@ -212,6 +215,7 @@ void Settings::SetRenderer(Renderer renderer)
 	settings.setValue("settings/renderer", renderer_values[renderer]);
 }
 
+#if CHIAKI_GUI_ENABLE_PLACEBO
 static const QMap<PlaceboPreset, QString> placebo_preset_values = {
 	{ PlaceboPreset::Fast, "fast" },
 	{ PlaceboPreset::Default, "default" },
@@ -228,6 +232,7 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 {
 	settings.setValue("settings/placebo_preset", placebo_preset_values[preset]);
 }
+#endif
 
 
 QString Settings::GetHardwareDecoder() const

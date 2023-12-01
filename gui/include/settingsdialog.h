@@ -39,9 +39,11 @@ class SettingsDialog : public QDialog
 		QCheckBox *pi_decoder_check_box;
 		QComboBox *hw_decoder_combo_box;
 		QComboBox *renderer_combo_box;
+#if CHIAKI_GUI_ENABLE_PLACEBO
 		QComboBox *placebo_preset_combo_box;
 
 		QFormLayout *renderer_settings_layout;
+#endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 		QCheckBox *speech_processing_check_box;
 		QSlider *noiseSuppress;
@@ -75,7 +77,9 @@ class SettingsDialog : public QDialog
 		void HardwareDecodeEngineSelected();
 		void UpdateHardwareDecodeEngineComboBox();
 		void RendererSelected();
+#if CHIAKI_GUI_ENABLE_PLACEBO
 		void PlaceboPresetSelected();
+#endif
 
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();

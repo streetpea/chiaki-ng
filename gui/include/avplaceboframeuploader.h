@@ -20,5 +20,4 @@ class AVPlaceboFrameUploader: public QObject
     public:
         AVPlaceboFrameUploader(StreamSession *session, AVPlaceboWidget *widget);
 };
-
 #endif // CHIAKI_AVPLACEBOFRAMEUPLOADER_H

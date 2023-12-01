@@ -42,11 +42,13 @@ enum class Renderer
 	PlaceboVk
 };
 
+#if CHIAKI_GUI_ENABLE_PLACEBO
 enum class PlaceboPreset {
 	Fast,
 	Default,
 	HighQuality
 };
+#endif
 
 class Settings : public QObject
 {
@@ -108,8 +110,10 @@ class Settings : public QObject
 		Renderer GetRenderer() const;
 		void SetRenderer(Renderer renderer);
 
+#if CHIAKI_GUI_ENABLE_PLACEBO
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
+#endif
 
 		unsigned int GetAudioBufferSizeDefault() const;
 
