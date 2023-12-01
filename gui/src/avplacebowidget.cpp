@@ -44,6 +44,9 @@ AVPlaceboWidget::AVPlaceboWidget(
         CHIAKI_LOGI(session->GetChiakiLog(), "Using placebo high quality preset");
         render_params = pl_render_high_quality_params;
     }
+
+    QImageReader logoReader(":icons/chiaki.svg");
+    logo_image = logoReader.read();
 }
 
 AVPlaceboWidget::~AVPlaceboWidget()
@@ -130,7 +133,7 @@ void AVPlaceboWidget::Stop() {
     frame_uploader = nullptr;
 }
 
-bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
+bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
     bool render = true;
     frames_mutex.lock();
     if (queued_frame) {
@@ -141,13 +144,13 @@ bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
     queued_frame = frame;
     frames_mutex.unlock();
     if (render) {
-        QMetaObject::invokeMethod(this, &AVPlaceboWidget::DoRenderFrame);
+        QMetaObject::invokeMethod(this, &AVPlaceboWidget::RenderFrame);
     }
     stream_started = true;
     return true;
 }
 
-void AVPlaceboWidget::DoRenderFrame()
+void AVPlaceboWidget::RenderFrame()
 {
     struct pl_swapchain_frame sw_frame = {0};
     struct pl_frame placebo_frame = {0};
@@ -273,11 +276,10 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
 
     QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
     img.fill(Qt::black);
-    QImageReader logoReader(":icons/chiaki.svg");
-    logoReader.setScaledSize(QSize(img.height() / 2, img.height() / 2));
-    QImage logoImg = logoReader.read();
+
+    QImage scaledLogo = logo_image.scaledToHeight(img.height() / 2, Qt::SmoothTransformation);
     QPainter p(&img);
-    p.drawImage(QPoint((img.width() - logoImg.width()) / 2, (img.height() - logoImg.height()) / 2), logoImg);
+    p.drawImage(QPoint((img.width() - scaledLogo.width()) / 2, (img.height() - scaledLogo.height()) / 2), scaledLogo);
     p.end();
     RenderImage(img);
 }

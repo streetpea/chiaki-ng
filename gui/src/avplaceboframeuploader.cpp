@@ -23,5 +23,5 @@ void AVPlaceboFrameUploader::UpdateFrameFromDecoder()
     if(!next_frame)
         return;
 
-    widget->RenderFrame(next_frame);
+    widget->QueueFrame(next_frame);
 }
