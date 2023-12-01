@@ -22,7 +22,6 @@ finish-args:
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
   - --env=VK_LAYER_PATH=/app/vulkan-layers/
-  - --env=VK_INSTANCE_LAYERS=VK_LAYER_FROG_gamescope_wsi_x86_64:VK_LAYER_FROG_gamescope_wsi_x86
   
 modules:
   - name: protobuf-compilers

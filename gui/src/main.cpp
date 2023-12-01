@@ -61,6 +61,15 @@ int real_main(int argc, char *argv[])
 	QApplication::setApplicationDisplayName("chiaki4deck");
 	QApplication::setDesktopFileName("chiaki4deck");
 
+	if(qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
+	{
+		QString layers = qEnvironmentVariable("VK_INSTANCE_LAYERS");
+		if(!layers.isEmpty())
+			layers.append(",");
+		layers.append("VK_LAYER_FROG_gamescope_wsi_x86_64");
+		qputenv("VK_INSTANCE_LAYERS", qPrintable(layers));
+	}
+
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
