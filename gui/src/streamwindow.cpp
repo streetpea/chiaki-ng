@@ -15,6 +15,12 @@
 #include <QAction>
 #include <QWindow>
 #include <QGuiApplication>
+#include <QStandardPaths>
+
+static inline QString GetShaderCacheFile()
+{
+	return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/pl_shader.cache";
+}
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
@@ -45,6 +51,12 @@ StreamWindow::~StreamWindow()
 	// make sure av_widget is always deleted before the session
 	delete av_widget;
 #if CHIAKI_GUI_ENABLE_PLACEBO
+	FILE *file = fopen(qPrintable(GetShaderCacheFile()), "wb");
+	if (file) {
+		pl_cache_save_file(placebo_cache, file);
+		fclose(file);
+	}
+	pl_cache_destroy(&placebo_cache);
 	pl_vulkan_destroy(&placebo_vulkan);
 	pl_vk_inst_destroy(&placebo_vk_inst);
 	pl_log_destroy(&placebo_log);
@@ -124,6 +136,18 @@ void StreamWindow::Init()
 				PL_VULKAN_DEFAULTS
 			};
 			placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
+
+			struct pl_cache_params cache_params = {
+				.log = placebo_log,
+				.max_total_size = 10 << 20, // 10 MB
+			};
+			placebo_cache = pl_cache_create(&cache_params);
+			pl_gpu_set_cache(placebo_vulkan->gpu, placebo_cache);
+			FILE *file = fopen(qPrintable(GetShaderCacheFile()), "rb");
+			if (file) {
+				pl_cache_load_file(placebo_cache, file);
+				fclose(file);
+			}
 			widget->setPlaceboVulkan(placebo_vulkan);
 			auto container_widget = QWidget::createWindowContainer(widget);
 			setCentralWidget(container_widget);

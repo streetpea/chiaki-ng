@@ -7,6 +7,7 @@
 #if CHIAKI_GUI_ENABLE_PLACEBO
 #include <libplacebo/log.h>
 #include <libplacebo/vulkan.h>
+#include <libplacebo/cache.h>
 #endif
 
 #include "streamsession.h"
@@ -35,6 +36,7 @@ class StreamWindow: public QMainWindow
 		pl_log placebo_log;
 		pl_vk_inst placebo_vk_inst;
 		pl_vulkan placebo_vulkan;
+		pl_cache placebo_cache;
 		QWidget *placebo_widget;
 #endif
 
