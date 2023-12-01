@@ -22,6 +22,7 @@
 #include <QLineEdit>
 #include <QtConcurrent>
 #include <QFutureWatcher>
+#include <QTabWidget>
 #if CHIAKI_GUI_ENABLE_SPEEX
 #include <QSlider>
 #include <QLabel>
@@ -51,6 +52,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	setWindowTitle(tr("Settings"));
 
 	auto root_layout = new QVBoxLayout(this);
+	root_layout->setContentsMargins(4, 4, 4, 4);
+	root_layout->setSpacing(4);
 	setLayout(root_layout);
 
 	auto scroll_area = new QScrollArea(this);
@@ -58,20 +61,28 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	root_layout->addWidget(scroll_area);
 
+	auto tab_widget = new QTabWidget(this);
+	tab_widget->setTabPosition(QTabWidget::West);
+	tab_widget->tabBar()->setIconSize(QSize(32, 32));
+	scroll_area->setWidget(tab_widget);
+
 	auto scroll_content_widget = new QWidget(scroll_area);
 	resize(1280, 800);
-	auto scroll_content_layout = new QVBoxLayout(scroll_content_widget);
-	scroll_content_widget->setLayout(scroll_content_layout);
-	scroll_area->setWidget(scroll_content_widget);
-
 	auto horizontal_layout = new QHBoxLayout();
-	scroll_content_layout->addLayout(horizontal_layout);
+	scroll_content_widget->setLayout(horizontal_layout);
+	tab_widget->addTab(scroll_content_widget, QIcon(":icons/settings-20px.svg"), tr("General"));
 
 	auto left_layout = new QVBoxLayout();
 	horizontal_layout->addLayout(left_layout);
 
 	auto right_layout = new QVBoxLayout();
 	horizontal_layout->addLayout(right_layout);
+
+	QWidget *other_tab = new QWidget();
+	tab_widget->addTab(other_tab, QIcon(":icons/discover-24px.svg"), tr("Stream && Consoles"));
+
+	auto other_layout = new QVBoxLayout();
+	other_tab->setLayout(other_layout);
 
 	// General
 
@@ -230,7 +241,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Stream Settings
 
 	auto stream_settings_group_box = new QGroupBox(tr("Stream Settings"));
-	left_layout->addWidget(stream_settings_group_box);
+	other_layout->addWidget(stream_settings_group_box);
 
 	auto stream_settings_layout = new QFormLayout();
 	stream_settings_group_box->setLayout(stream_settings_layout);
@@ -301,7 +312,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Decode Settings
 
 	auto decode_settings = new QGroupBox(tr("Decode Settings"));
-	left_layout->addWidget(decode_settings);
+	other_layout->addWidget(decode_settings);
 
 	auto decode_settings_layout = new QFormLayout();
 	decode_settings->setLayout(decode_settings_layout);
@@ -337,9 +348,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	UpdateHardwareDecodeEngineComboBox();
 
 	// Registered Consoles
-
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
-	left_layout->addWidget(registered_hosts_group_box);
+	other_layout->addWidget(registered_hosts_group_box);
 
 	auto registered_hosts_layout = new QHBoxLayout();
 	registered_hosts_group_box->setLayout(registered_hosts_layout);
@@ -396,7 +406,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	// Close Button
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
-	scroll_content_layout->addWidget(button_box);
+	button_box->button(QDialogButtonBox::Close)->setMinimumSize(140, 40);
+	root_layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	button_box->button(QDialogButtonBox::Close)->setDefault(true);
 
