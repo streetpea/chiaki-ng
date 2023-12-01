@@ -198,7 +198,12 @@ static const QMap<Renderer, QString> renderer_values = {
 	{ Renderer::PlaceboVk, "placebo_vk" }
 #endif
 };
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
+static const Renderer renderer_default = Renderer::PlaceboVk;
+#else
 static const Renderer renderer_default = Renderer::OpenGL;
+#endif
 
 Renderer Settings::GetRenderer() const
 {
@@ -224,7 +229,7 @@ static const QMap<PlaceboPreset, QString> placebo_preset_values = {
 
 PlaceboPreset Settings::GetPlaceboPreset() const
 {
-	auto v = settings.value("settings/placebo_preset", placebo_preset_values[PlaceboPreset::Default]).toString();
+	auto v = settings.value("settings/placebo_preset", placebo_preset_values[PlaceboPreset::HighQuality]).toString();
 	return placebo_preset_values.key(v, PlaceboPreset::Default);
 }
 

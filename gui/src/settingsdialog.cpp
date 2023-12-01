@@ -369,9 +369,9 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	placebo_preset_combo_box = new QComboBox(this);
 	static const QList<QPair<PlaceboPreset, QString>> placebo_preset_strings = {
-		{ PlaceboPreset::Default, "Default (balance of performance, quality and battery usage)" },
-		{ PlaceboPreset::Fast, "Fast (no advanced rendering features, easy on the battery)" },
-		{ PlaceboPreset::HighQuality, "High Quality (high battery use)" }
+		{ PlaceboPreset::Default, "Default (balance of performance and quality)" },
+		{ PlaceboPreset::Fast, "Fast (no advanced rendering features)" },
+		{ PlaceboPreset::HighQuality, "High Quality" }
 	};
 	auto current_placebo_preset = settings->GetPlaceboPreset();
 	for(const auto &p : placebo_preset_strings)
