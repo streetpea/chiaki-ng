@@ -9,6 +9,9 @@
 #include <QGuiApplication>
 #include <QWindow>
 #include <stdio.h>
+#include <QImage>
+#include <QImageReader>
+#include <QPainter>
 
 #define PL_LIBAV_IMPLEMENTATION 0
 #include <libplacebo/utils/libav.h>
@@ -140,6 +143,7 @@ bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
     if (render) {
         QMetaObject::invokeMethod(this, &AVPlaceboWidget::DoRenderFrame);
     }
+    stream_started = true;
     return true;
 }
 
@@ -214,6 +218,70 @@ cleanup:
     pl_unmap_avframe(placebo_vulkan->gpu, &placebo_frame);
 }
 
+void AVPlaceboWidget::RenderImage(const QImage &img)
+{
+    struct pl_frame target_frame = {0};
+    struct pl_swapchain_frame sw_frame = {0};
+    struct pl_plane plane = {0};
+    pl_tex tex = {0};
+
+    if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
+        CHIAKI_LOGE(session->GetChiakiLog(), "Failed to start Placebo frame!");
+        return;
+    }
+
+    pl_frame_from_swapchain(&target_frame, &sw_frame);
+
+    struct pl_plane_data data = {
+        .type           = PL_FMT_UNORM,
+        .width          = img.width(),
+        .height         = img.height(),
+        .pixel_stride   = static_cast<size_t>(img.bytesPerLine() / img.width()),
+        .pixels         = img.constBits(),
+    };
+
+    for (int c = 0; c < 4; c++) {
+        data.component_size[c] = img.pixelFormat().redSize();
+        data.component_pad[c] = 0;
+        data.component_map[c] = c;
+    }
+
+    if (!pl_upload_plane(placebo_vulkan->gpu, &plane, &tex, &data)) {
+        CHIAKI_LOGE(session->GetChiakiLog(), "Failed to upload Placebo plane!");
+        return;
+    }
+
+    struct pl_frame image = {
+        .num_planes = 1,
+        .planes     = { plane },
+        .repr       = pl_color_repr_unknown,
+        .color      = pl_color_space_unknown,
+        .crop       = {0, 0, static_cast<float>(img.width()), static_cast<float>(img.height())},
+    };
+
+    pl_render_image(placebo_renderer, &image, &target_frame, &render_params);
+    pl_swapchain_submit_frame(placebo_swapchain);
+    pl_swapchain_swap_buffers(placebo_swapchain);
+    pl_tex_destroy(placebo_vulkan->gpu, &tex);
+}
+
+void AVPlaceboWidget::RenderPlaceholderIcon()
+{
+    if (stream_started) {
+        return;
+    }
+
+    QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
+    img.fill(Qt::black);
+    QImageReader logoReader(":icons/chiaki.svg");
+    logoReader.setScaledSize(QSize(img.height() / 2, img.height() / 2));
+    QImage logoImg = logoReader.read();
+    QPainter p(&img);
+    p.drawImage(QPoint((img.width() - logoImg.width()) / 2, (img.height() - logoImg.height()) / 2), logoImg);
+    p.end();
+    RenderImage(img);
+}
+
 void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
 {
     QWindow::resizeEvent(event);
@@ -221,6 +289,7 @@ void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
     int width = event->size().width() * this->devicePixelRatio();
     int height = event->size().height() * this->devicePixelRatio();
     pl_swapchain_resize(placebo_swapchain, &width, &height);
+    RenderPlaceholderIcon();
 }
 
 void AVPlaceboWidget::ToggleZoom()

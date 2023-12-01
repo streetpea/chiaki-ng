@@ -37,6 +37,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         QThread *frame_uploader_thread;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         AVFrame *queued_frame = nullptr;
+        bool stream_started = false;
 
         pl_render_params render_params;
         pl_log placebo_log;
@@ -55,6 +56,8 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
 
         bool RenderFrame(AVFrame *frame);
         void DoRenderFrame();
+        void RenderImage(const QImage &img);
+        void RenderPlaceholderIcon();
         void setPlaceboVulkan(pl_vulkan vulkan) { placebo_vulkan = vulkan; };
         void Stop() override;
         void showEvent(QShowEvent *event) override;
