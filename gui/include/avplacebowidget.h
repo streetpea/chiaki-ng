@@ -48,6 +48,9 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         pl_renderer placebo_renderer;
         pl_tex placebo_tex[4] = {nullptr, nullptr, nullptr, nullptr};
 
+        qint64 num_frames_total = 0;
+        qint64 num_frames_dropped = 0;
+
     public:
         explicit AVPlaceboWidget(
             StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,

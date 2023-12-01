@@ -134,10 +134,12 @@ void AVPlaceboWidget::Stop() {
 }
 
 bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
+    num_frames_total++;
     bool render = true;
     frames_mutex.lock();
     if (queued_frame) {
-        CHIAKI_LOGW(session->GetChiakiLog(), "Dropped rendering frame!");
+        CHIAKI_LOGV(session->GetChiakiLog(), "Dropped rendering frame!");
+        num_frames_dropped++;
         av_frame_free(&queued_frame);
         render = false;
     }
