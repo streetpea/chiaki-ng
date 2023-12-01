@@ -24,5 +24,4 @@ void AVPlaceboFrameUploader::UpdateFrameFromDecoder()
         return;
 
     widget->RenderFrame(next_frame);
-    av_frame_free(&next_frame);
 }

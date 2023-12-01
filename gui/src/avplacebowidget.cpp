@@ -128,9 +128,36 @@ void AVPlaceboWidget::Stop() {
 }
 
 bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
+    bool render = true;
+    frames_mutex.lock();
+    if (queued_frame) {
+        CHIAKI_LOGW(session->GetChiakiLog(), "Dropped rendering frame!");
+        av_frame_free(&queued_frame);
+        render = false;
+    }
+    queued_frame = frame;
+    frames_mutex.unlock();
+    if (render) {
+        QMetaObject::invokeMethod(this, &AVPlaceboWidget::DoRenderFrame);
+    }
+    return true;
+}
+
+void AVPlaceboWidget::DoRenderFrame()
+{
     struct pl_swapchain_frame sw_frame = {0};
     struct pl_frame placebo_frame = {0};
     struct pl_frame target_frame = {0};
+
+    frames_mutex.lock();
+    AVFrame *frame = queued_frame;
+    queued_frame = nullptr;
+    frames_mutex.unlock();
+
+    if (!frame) {
+        CHIAKI_LOGE(session->GetChiakiLog(), "No frame to render!");
+        return;
+    }
 
     struct pl_avframe_params avparams = {
         .frame = frame,
@@ -138,9 +165,11 @@ bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
         .map_dovi = false,
     };
 
-    if (!pl_map_avframe_ex(placebo_vulkan->gpu, &placebo_frame, &avparams)) {
+    bool mapped = pl_map_avframe_ex(placebo_vulkan->gpu, &placebo_frame, &avparams);
+    av_frame_free(&frame);
+    if (!mapped) {
         CHIAKI_LOGE(session->GetChiakiLog(), "Failed to map AVFrame to Placebo frame!");
-        return false;
+        return;
     }
     // set colorspace hint
     struct pl_color_space hint = placebo_frame.color;
@@ -180,11 +209,9 @@ bool AVPlaceboWidget::RenderFrame(AVFrame *frame) {
         goto cleanup;
     }
     pl_swapchain_swap_buffers(placebo_swapchain);
-    ret = true;
 
 cleanup:
     pl_unmap_avframe(placebo_vulkan->gpu, &placebo_frame);
-    return ret;
 }
 
 void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
