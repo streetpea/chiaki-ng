@@ -44,9 +44,6 @@ AVPlaceboWidget::AVPlaceboWidget(
         CHIAKI_LOGI(session->GetChiakiLog(), "Using placebo high quality preset");
         render_params = pl_render_high_quality_params;
     }
-
-    QImageReader logoReader(":icons/chiaki.svg");
-    logo_image = logoReader.read();
 }
 
 AVPlaceboWidget::~AVPlaceboWidget()
@@ -232,9 +229,11 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
     QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
     img.fill(Qt::black);
 
-    QImage scaledLogo = logo_image.scaledToHeight(img.height() / 2, Qt::SmoothTransformation);
+    QImageReader logo_reader(":/icons/chiaki.svg");
+    logo_reader.setScaledSize(QSize(img.width() / 2, img.height() / 2));
+    QImage logo_img = logo_reader.read();
     QPainter p(&img);
-    p.drawImage(QPoint((img.width() - scaledLogo.width()) / 2, (img.height() - scaledLogo.height()) / 2), scaledLogo);
+    p.drawImage(QPoint((img.width() - logo_img.width()) / 2, (img.height() - logo_img.height()) / 2), logo_img);
     p.end();
     RenderImage(img);
 }
