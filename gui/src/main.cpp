@@ -65,7 +65,7 @@ int real_main(int argc, char *argv[])
 	{
 		QString layers = qEnvironmentVariable("VK_INSTANCE_LAYERS");
 		if(!layers.isEmpty())
-			layers.append(",");
+			layers.append(":");
 		layers.append("VK_LAYER_FROG_gamescope_wsi_x86_64");
 		qputenv("VK_INSTANCE_LAYERS", qPrintable(layers));
 	}
