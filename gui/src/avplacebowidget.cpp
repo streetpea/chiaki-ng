@@ -120,6 +120,12 @@ void AVPlaceboWidget::showEvent(QShowEvent *event) {
     frame_uploader_thread->setObjectName("Frame Uploader");
     frame_uploader->moveToThread(frame_uploader_thread);
     frame_uploader_thread->start();
+
+    QObject *render_obj = new QObject();
+    render_thread = new QThread(render_obj);
+    render_thread->setObjectName("Render");
+    render_thread->start();
+    render_obj->moveToThread(render_thread);
 }
 
 void AVPlaceboWidget::Stop() {
@@ -131,6 +137,11 @@ void AVPlaceboWidget::Stop() {
     }
     delete frame_uploader;
     frame_uploader = nullptr;
+
+    render_thread->quit();
+    render_thread->wait();
+    delete render_thread->parent();
+    render_thread = nullptr;
 }
 
 bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
@@ -146,7 +157,7 @@ bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
     queued_frame = frame;
     frames_mutex.unlock();
     if (render) {
-        QMetaObject::invokeMethod(this, &AVPlaceboWidget::RenderFrame);
+        QMetaObject::invokeMethod(render_thread->parent(), std::bind(&AVPlaceboWidget::RenderFrame, this));
     }
     stream_started = true;
     return true;

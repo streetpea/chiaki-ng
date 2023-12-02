@@ -35,6 +35,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         AVPlaceboFrameUploader *frame_uploader;
         QMutex frames_mutex;
         QThread *frame_uploader_thread;
+        QThread *render_thread;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         AVFrame *queued_frame = nullptr;
         bool stream_started = false;
