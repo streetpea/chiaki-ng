@@ -307,6 +307,11 @@ void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
     RenderPlaceholderIcon();
 }
 
+void AVPlaceboWidget::HideMouse()
+{
+	setCursor(Qt::BlankCursor);
+}
+
 void AVPlaceboWidget::ToggleZoom()
 {
 	if( resolution_mode == Zoom )
