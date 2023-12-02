@@ -73,6 +73,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         ResolutionMode resolution_mode;
 
     public slots:
+        void HideMouse();
         void ToggleStretch() override;
         void ToggleZoom() override;
 };

@@ -82,7 +82,9 @@ void StreamWindow::Init()
 	{
 		if (connect_info.settings->GetRenderer() == Renderer::OpenGL)
 		{
-			av_widget = new AVOpenGLWidget(session, this, resolution_mode);
+			auto widget = new AVOpenGLWidget(session, this, resolution_mode);
+			widget->HideMouse();
+			av_widget=widget;
 			setCentralWidget((AVOpenGLWidget*) av_widget);
 		}
 		else
@@ -149,6 +151,7 @@ void StreamWindow::Init()
 				fclose(file);
 			}
 			widget->setPlaceboVulkan(placebo_vulkan);
+			widget->HideMouse();
 			auto container_widget = QWidget::createWindowContainer(widget);
 			setCentralWidget(container_widget);
 			placebo_widget = container_widget;
