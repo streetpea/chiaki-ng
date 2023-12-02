@@ -46,7 +46,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         pl_vk_inst placebo_vk_inst;
         pl_vulkan placebo_vulkan;
         pl_swapchain placebo_swapchain;
-        pl_renderer placebo_renderer;
+        pl_renderer placebo_renderer = nullptr;
         pl_tex placebo_tex[4] = {nullptr, nullptr, nullptr, nullptr};
 
         qint64 num_frames_total = 0;
@@ -63,6 +63,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void RenderFrame();
         void RenderImage(const QImage &img);
         void RenderPlaceholderIcon();
+        void CreateSwapchain();
         void setPlaceboVulkan(pl_vulkan vulkan) { placebo_vulkan = vulkan; };
         void Stop() override;
         void showEvent(QShowEvent *event) override;

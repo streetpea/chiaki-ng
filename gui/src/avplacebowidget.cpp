@@ -68,64 +68,6 @@ void AVPlaceboWidget::showEvent(QShowEvent *event) {
     QWindow::showEvent(event);
     this->requestActivate();
 
-    VkResult err;
-
-    if (QGuiApplication::platformName().startsWith("wayland")) {
-        PFN_vkCreateWaylandSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateWaylandSurfaceKHR>(
-                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateWaylandSurfaceKHR"));
-
-        VkWaylandSurfaceCreateInfoKHR surfaceInfo;
-        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
-        surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
-        surfaceInfo.display = static_cast<struct wl_display*>(pni->nativeResourceForWindow("display", this));
-        surfaceInfo.surface = static_cast<struct wl_surface*>(pni->nativeResourceForWindow("surface", this));
-        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
-    } else if (QGuiApplication::platformName().startsWith("xcb")) {
-        PFN_vkCreateXcbSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateXcbSurfaceKHR>(
-                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateXcbSurfaceKHR"));
-
-        VkXcbSurfaceCreateInfoKHR surfaceInfo;
-        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
-        surfaceInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
-        surfaceInfo.connection = static_cast<xcb_connection_t*>(pni->nativeResourceForWindow("connection", this));
-        surfaceInfo.window = static_cast<xcb_window_t>(winId());
-        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
-    } else {
-        Q_UNREACHABLE();
-    }
-
-    if (err != VK_SUCCESS) {
-        qFatal("Failed to create VkSurfaceKHR");
-    }
-
-    struct pl_vulkan_swapchain_params swapchain_params = {
-        .surface = surface,
-        .present_mode = VK_PRESENT_MODE_FIFO_KHR,
-    };
-    placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
-
-    int initialWidth = this->width() * this->devicePixelRatio();
-    int initialHeight = this->height() * this->devicePixelRatio();
-    pl_swapchain_resize(placebo_swapchain, &initialWidth, &initialHeight);
-
-    placebo_renderer = pl_renderer_create(
-        placebo_log,
-        placebo_vulkan->gpu
-    );
-
-    frame_uploader = new AVPlaceboFrameUploader(session, this);
-    frame_uploader_thread = new QThread(this);
-    frame_uploader_thread->setObjectName("Frame Uploader");
-    frame_uploader->moveToThread(frame_uploader_thread);
-    frame_uploader_thread->start();
-
-    QObject *render_obj = new QObject();
-    render_thread = new QThread(render_obj);
-    render_thread->setObjectName("Render");
-    render_thread->start();
-    render_obj->moveToThread(render_thread);
 }
 
 void AVPlaceboWidget::Stop() {
@@ -297,9 +239,68 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
     RenderImage(img);
 }
 
+void AVPlaceboWidget::CreateSwapchain()
+{
+    VkResult err;
+    if (QGuiApplication::platformName().startsWith("wayland")) {
+        PFN_vkCreateWaylandSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateWaylandSurfaceKHR>(
+                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateWaylandSurfaceKHR"));
+
+        VkWaylandSurfaceCreateInfoKHR surfaceInfo;
+        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
+        surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
+        surfaceInfo.display = static_cast<struct wl_display*>(pni->nativeResourceForWindow("display", this));
+        surfaceInfo.surface = static_cast<struct wl_surface*>(pni->nativeResourceForWindow("surface", this));
+        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+    } else if (QGuiApplication::platformName().startsWith("xcb")) {
+        PFN_vkCreateXcbSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateXcbSurfaceKHR>(
+                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateXcbSurfaceKHR"));
+
+        VkXcbSurfaceCreateInfoKHR surfaceInfo;
+        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
+        surfaceInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
+        surfaceInfo.connection = static_cast<xcb_connection_t*>(pni->nativeResourceForWindow("connection", this));
+        surfaceInfo.window = static_cast<xcb_window_t>(winId());
+        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+    } else {
+        Q_UNREACHABLE();
+    }
+
+    if (err != VK_SUCCESS)
+        qFatal("Failed to create VkSurfaceKHR");
+
+    struct pl_vulkan_swapchain_params swapchain_params = {
+        .surface = surface,
+        .present_mode = VK_PRESENT_MODE_FIFO_KHR,
+    };
+    placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
+
+    placebo_renderer = pl_renderer_create(
+        placebo_log,
+        placebo_vulkan->gpu
+    );
+
+    frame_uploader = new AVPlaceboFrameUploader(session, this);
+    frame_uploader_thread = new QThread(this);
+    frame_uploader_thread->setObjectName("Frame Uploader");
+    frame_uploader->moveToThread(frame_uploader_thread);
+    frame_uploader_thread->start();
+
+    QObject *render_obj = new QObject();
+    render_thread = new QThread(render_obj);
+    render_thread->setObjectName("Render");
+    render_thread->start();
+    render_obj->moveToThread(render_thread);
+}
+
 void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
 {
     QWindow::resizeEvent(event);
+
+    if (!placebo_renderer)
+        CreateSwapchain();
 
     int width = event->size().width() * this->devicePixelRatio();
     int height = event->size().height() * this->devicePixelRatio();
