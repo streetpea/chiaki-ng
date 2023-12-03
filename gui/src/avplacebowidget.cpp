@@ -230,7 +230,8 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
     img.fill(Qt::black);
 
     QImageReader logo_reader(":/icons/chiaki.svg");
-    logo_reader.setScaledSize(QSize(img.width() / 2, img.height() / 2));
+    int logo_size = std::min(img.width(), img.height()) / 2;
+    logo_reader.setScaledSize(QSize(logo_size, logo_size));
     QImage logo_img = logo_reader.read();
     QPainter p(&img);
     p.drawImage(QPoint((img.width() - logo_img.width()) / 2, (img.height() - logo_img.height()) / 2), logo_img);
