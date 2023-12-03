@@ -202,7 +202,19 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
     ![Open Settings](images/OpenSettings.png)
 
-2. Adjust the settings to your preferences. Below are the settings you'll want to try first with your PlayStation console (choose the **PS5/1080p** tab if you have a PS5 or the **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+2. Adjust the settings to your preferences. 
+
+    1. General Settings for Steam Deck
+
+        ![General Settings](images/MainSettings.png)
+    
+    2. Below are the Stream settings you'll want to try first with your PlayStation console (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+
+    === "PS5/1080P HDR"
+
+        Stream output can be up to 1080p with [HDR](#hdr-high-dynamic-range). Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
+
+        ![1080p Settings](images/1080P_SettingsHDR.png)
 
     === "PS5/1080P"
 
@@ -226,6 +238,10 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
         ![720p Settings](images/720P_Settings.png)
 
+    !!! Info "Use Buttons by Position Instead of by Label"
+
+        This enables the option to use the face buttons of your controller by position (i.e., NSEW) as opposed to by their label (i.e., ABXY). This enables you to use a Nintendo-style controller and still be able to use the buttons in the same positions as on a PlayStation controller instead of the swapped Nintendo controller positions.
+
     !!! Info "Use Steam Deck in Vertical Orientation"
 
         For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).
@@ -235,6 +251,15 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
         For `Action on Disconnect`, choose `Ask` (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
         
         If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
+
+### HDR (High Dynamic Range)
+
+HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For HDR to work you need to:
+
+1. Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use [tonemapping](https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/){target="_blank" rel="noopener"} instead of outputting HDR)
+2. Connect your PS5 to a device such as an HDR TV or monitor (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR. You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those)
+3. Select H265 HDR (PS5 only) as your codec option
+4. Launch via gamescope (i.e., game mode on the Steam Deck)
 
 ## Performance of Chiaki/`chiaki4deck`
 
