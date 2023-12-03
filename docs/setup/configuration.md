@@ -257,9 +257,26 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For HDR to work you need to:
 
 1. Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use [tonemapping](https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/){target="_blank" rel="noopener"} instead of outputting HDR)
-2. Connect your PS5 to a device such as an HDR TV or monitor (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR. You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those)
-3. Select H265 HDR (PS5 only) as your codec option
-4. Launch via gamescope (i.e., game mode on the Steam Deck)
+    
+    ???+ Question "How do I know when HDR is active on my Steam Deck?"
+        You can see when HDR is active by hitting the quick access button (3 dots button on the bottom right of the Steam Deck) going to the gear icon and looking at `BRIGHTNESS`. When HDR is active there will be a purple/blue banner to the right of the `BRIGHTNESS` label.
+
+2. Connect your PS5 to a device such as an HDR TV or monitor (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR)
+
+    ???+ Question "How do I know if the PS5 is outputting HDR?"
+        You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those.
+
+3. Enable HDR in your PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> HDR` and selecting either `Always On` or `On When Supported`.
+
+4. Select `H265 HDR (PS5 only)` as your codec option in `chiaki4deck`
+
+5. Launch `chiaki4deck` via gamescope (i.e., game mode on the Steam Deck)
+
+!!! Tip "Adjusting PS5 HDR for Steam Deck"
+
+    You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> Adjust HDR`. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via [arshiatn](https://github.com/arshiatn){target="_blank" rel="noopener"}) for an 1000 nits display you want to use 16-16-0 for the HDR settings. To set this in the `Adjust HDR set` move 16 steps (16 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 16 steps from the beginning for the 2nd test screen and 0 steps from the beginning on the last test screen. 
+    
+    Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.
 
 ## Performance of Chiaki/`chiaki4deck`
 
