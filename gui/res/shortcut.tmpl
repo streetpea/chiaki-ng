@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+connect_error_loc()
+{
+    echo "Error: Couldn't connect to your PlayStation console from your local address!" >&2
+    echo "Error: Please check that your Steam Deck and PlayStation are on the same network" >&2
+    echo "Error: ...and that you have the right PlayStation IP address or hostname/DDNS!" >&2
+    exit 1
+}
+
+connect_error_ext()
+{
+    echo "Error: Couldn't connect to your PlayStation console from your external address!" >&2
+    echo "Error: Please check that you have forwarded the necessary ports on your router" >&2
+    echo "Error: ...and that you have the right external PlayStation IP address or hostname/DDNS!" >&2
+    exit 1
+}
+
+wakeup_error()
+{
+    echo "Error: Couldn't wake up PlayStation console from sleep!" >&2
+    echo "Error: Please make sure you are using a PlayStation{{ps_console}}." >&2
+    echo "Error: If not, change the wakeup call to use the number of your PlayStation console" >&2
+    exit 2
+}
+
+timeout_error()
+{
+    echo "Error: PlayStation console didn't become ready in{{wait_timeout}} seconds!" >&2
+    echo "Error: Please change{{wait_timeout}} to a higher number in your script if this persists." >&2
+    exit 1
+}

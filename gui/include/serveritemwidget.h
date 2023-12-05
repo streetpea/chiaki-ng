@@ -23,6 +23,7 @@ class ServerItemWidget : public QFrame
 
 		QAction *delete_action;
 		QAction *wake_action;
+		QAction *create_shortcut_action;
 
 	protected:
 		void mousePressEvent(QMouseEvent *event) override;
@@ -41,6 +42,7 @@ class ServerItemWidget : public QFrame
 		void Triggered();
 		void DeleteTriggered();
 		void WakeTriggered();
+		void CreateShortcutTriggered();
 };
 
 #endif //CHIAKI_CONSOLEITEMWIDGET_H

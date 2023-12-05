@@ -9,4 +9,12 @@
     <file>console-ps4.svg</file>
     <file>console-ps5.svg</file>
   </qresource>
+  <qresource prefix="/templates">
+    <file>shortcut.tmpl</file>
+    <file>ps5_external.tmpl</file>
+    <file>ps4_external.tmpl</file>
+    <file>local.tmpl</file>
+    <file>discover_wakeup.tmpl</file>
+    <file>launch.tmpl</file>
+  </qresource>
 </RCC>

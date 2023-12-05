@@ -52,6 +52,13 @@ typedef struct chiaki_connect_video_profile_t
 } ChiakiConnectVideoProfile;
 
 typedef enum {
+	CHIAKI_MODE_ZOOM = 1,
+	CHIAKI_MODE_FULLSCREEN = 2,
+	CHIAKI_MODE_STRETCH = 3,
+
+} ChiakiScreenModePreset;
+
+typedef enum {
 	// values must not change
 	CHIAKI_VIDEO_RESOLUTION_PRESET_360p = 1,
 	CHIAKI_VIDEO_RESOLUTION_PRESET_540p = 2,

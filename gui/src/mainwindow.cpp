@@ -6,6 +6,7 @@
 #include <settings.h>
 #include <registdialog.h>
 #include <settingsdialog.h>
+#include <shortcutdialog.h>
 #include <streamsession.h>
 #include <streamwindow.h>
 #include <manualhostdialog.h>
@@ -304,6 +305,13 @@ void MainWindow::ServerItemWidgetWakeTriggered()
 	SendWakeup(server);
 }
 
+void MainWindow::ServerItemWidgetCreateShortcutTriggered()
+{
+	auto server = DisplayServerFromSender();
+	ShortcutDialog dialog(server, this);
+	dialog.exec();
+}
+
 void MainWindow::UpdateDiscoveryEnabled()
 {
 	bool enabled = discover_action->isChecked();
@@ -371,6 +379,7 @@ void MainWindow::UpdateServerWidgets()
 		connect(widget, &ServerItemWidget::Triggered, this, &MainWindow::ServerItemWidgetTriggered);
 		connect(widget, &ServerItemWidget::DeleteTriggered, this, &MainWindow::ServerItemWidgetDeleteTriggered, Qt::QueuedConnection);
 		connect(widget, &ServerItemWidget::WakeTriggered, this, &MainWindow::ServerItemWidgetWakeTriggered);
+		connect(widget, &ServerItemWidget::CreateShortcutTriggered, this, &MainWindow::ServerItemWidgetCreateShortcutTriggered);
 		server_item_widgets.append(widget);
 		grid_widget->AddWidget(widget);
 	}

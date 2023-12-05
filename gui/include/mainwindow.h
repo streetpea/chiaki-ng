@@ -52,6 +52,7 @@ class MainWindow : public QMainWindow
 		void ServerItemWidgetTriggered();
 		void ServerItemWidgetDeleteTriggered();
 		void ServerItemWidgetWakeTriggered();
+		void ServerItemWidgetCreateShortcutTriggered();
 
 		void UpdateDiscoveryEnabled();
 		void ShowSettings();

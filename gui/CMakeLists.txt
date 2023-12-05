@@ -57,7 +57,9 @@ add_executable(chiaki WIN32
 		include/controllermanager.h
 		src/controllermanager.cpp
 		include/loginpindialog.h
-		src/loginpindialog.cpp)
+		src/loginpindialog.cpp
+		include/shortcutdialog.h
+		src/shortcutdialog.cpp)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
