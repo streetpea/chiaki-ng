@@ -12,6 +12,7 @@
 #include <QImage>
 #include <QImageReader>
 #include <QPainter>
+#include <QStandardPaths>
 
 #define PL_LIBAV_IMPLEMENTATION 0
 #include <libplacebo/utils/libav.h>
@@ -22,10 +23,13 @@
 #include <vulkan/vulkan_wayland.h>
 #include <qpa/qplatformnativeinterface.h>
 
-AVPlaceboWidget::AVPlaceboWidget(
-    StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,
-    ResolutionMode resolution_mode, PlaceboPreset preset)
-    : placebo_log(placebo_log), placebo_vk_inst(placebo_vk_inst), session(session), resolution_mode(resolution_mode)
+static inline QString GetShaderCacheFile()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/pl_shader.cache";
+}
+
+AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset)
+    : session(session), resolution_mode(resolution_mode)
 {
     setSurfaceType(QWindow::VulkanSurface);
 
@@ -44,11 +48,73 @@ AVPlaceboWidget::AVPlaceboWidget(
         CHIAKI_LOGI(session->GetChiakiLog(), "Using placebo high quality preset");
         render_params = pl_render_high_quality_params;
     }
+
+    const char *vk_exts[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        nullptr,
+    };
+
+    QString platformName = QGuiApplication::platformName();
+    if (platformName.startsWith("wayland")) {
+        vk_exts[1] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+    } else if (platformName.startsWith("xcb")) {
+        vk_exts[1] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+    } else {
+        Q_UNREACHABLE();
+    }
+
+    const char *opt_extensions[] = {
+        VK_EXT_HDR_METADATA_EXTENSION_NAME,
+    };
+
+    struct pl_log_params log_params = {
+        .log_cb = PlaceboLog,
+        .log_priv = session->GetChiakiLog(),
+        .log_level = PL_LOG_DEBUG,
+    };
+    placebo_log = pl_log_create(PL_API_VER, &log_params);
+
+    struct pl_vk_inst_params vk_inst_params = {
+        .extensions = vk_exts,
+        .num_extensions = 2,
+        .opt_extensions = opt_extensions,
+        .num_opt_extensions = 1,
+    };
+    placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
+
+    struct pl_vulkan_params vulkan_params = {
+        .instance = placebo_vk_inst->instance,
+        .get_proc_addr = placebo_vk_inst->get_proc_addr,
+        PL_VULKAN_DEFAULTS
+    };
+    placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
+
+    struct pl_cache_params cache_params = {
+        .log = placebo_log,
+        .max_total_size = 10 << 20, // 10 MB
+    };
+    placebo_cache = pl_cache_create(&cache_params);
+    pl_gpu_set_cache(placebo_vulkan->gpu, placebo_cache);
+    FILE *file = fopen(qPrintable(GetShaderCacheFile()), "rb");
+    if (file) {
+        pl_cache_load_file(placebo_cache, file);
+        fclose(file);
+    }
 }
 
 AVPlaceboWidget::~AVPlaceboWidget()
 {
     ReleaseSwapchain();
+
+    FILE *file = fopen(qPrintable(GetShaderCacheFile()), "wb");
+    if (file) {
+        pl_cache_save_file(placebo_cache, file);
+        fclose(file);
+    }
+    pl_cache_destroy(&placebo_cache);
+    pl_vulkan_destroy(&placebo_vulkan);
+    pl_vk_inst_destroy(&placebo_vk_inst);
+    pl_log_destroy(&placebo_log);
 }
 
 void AVPlaceboWidget::showEvent(QShowEvent *event) {
@@ -350,6 +416,8 @@ void AVPlaceboWidget::PlaceboLog(void *user, pl_log_level level, const char *msg
     ChiakiLogLevel chiaki_level;
     switch (level)
     {
+        case PL_LOG_NONE:
+        case PL_LOG_TRACE:
         case PL_LOG_DEBUG:
             chiaki_level = CHIAKI_LOG_VERBOSE;
             break;
