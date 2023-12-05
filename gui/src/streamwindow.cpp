@@ -277,8 +277,6 @@ void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
 
 void StreamWindow::closeEvent(QCloseEvent *event)
 {
-	if (av_widget)
-		av_widget->Stop();
 	if(session)
 	{
 		if(session->IsConnected())
@@ -313,6 +311,8 @@ void StreamWindow::closeEvent(QCloseEvent *event)
 		}
 		session->Stop();
 	}
+	if (av_widget)
+		av_widget->Stop();
 }
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
