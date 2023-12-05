@@ -63,6 +63,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void RenderImage(const QImage &img);
         void RenderPlaceholderIcon();
         void CreateSwapchain();
+        void ReleaseSwapchain();
         void setPlaceboVulkan(pl_vulkan vulkan) { placebo_vulkan = vulkan; };
         void Stop() override;
         void showEvent(QShowEvent *event) override;

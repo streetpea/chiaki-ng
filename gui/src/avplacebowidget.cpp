@@ -48,39 +48,16 @@ AVPlaceboWidget::AVPlaceboWidget(
 
 AVPlaceboWidget::~AVPlaceboWidget()
 {
-    for (int i = 0; i < 4; i++) {
-        if (placebo_tex[i])
-            pl_tex_destroy(placebo_vulkan->gpu, &placebo_tex[i]);
-    }
-
-    pl_renderer_destroy(&placebo_renderer);
-    pl_swapchain_destroy(&placebo_swapchain);
-
-    PFN_vkDestroySurfaceKHR destroySurface = reinterpret_cast<PFN_vkDestroySurfaceKHR>(
-            placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkDestroySurfaceKHR"));
-    destroySurface(placebo_vk_inst->instance, surface, nullptr);
+    ReleaseSwapchain();
 }
 
 void AVPlaceboWidget::showEvent(QShowEvent *event) {
     QWindow::showEvent(event);
     this->requestActivate();
-
 }
 
 void AVPlaceboWidget::Stop() {
-    if (frame_uploader_thread) {
-        frame_uploader_thread->quit();
-        frame_uploader_thread->wait();
-        delete frame_uploader_thread;
-        frame_uploader_thread = nullptr;
-    }
-    delete frame_uploader;
-    frame_uploader = nullptr;
-
-    render_thread->quit();
-    render_thread->wait();
-    delete render_thread->parent();
-    render_thread = nullptr;
+    ReleaseSwapchain();
 }
 
 bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
@@ -295,9 +272,43 @@ void AVPlaceboWidget::CreateSwapchain()
     render_obj->moveToThread(render_thread);
 }
 
+void AVPlaceboWidget::ReleaseSwapchain()
+{
+    if (!frame_uploader_thread)
+        return;
+
+    frame_uploader_thread->quit();
+    frame_uploader_thread->wait();
+    delete frame_uploader_thread;
+    frame_uploader_thread = nullptr;
+
+    delete frame_uploader;
+    frame_uploader = nullptr;
+
+    render_thread->quit();
+    render_thread->wait();
+    delete render_thread->parent();
+    render_thread = nullptr;
+
+    for (int i = 0; i < 4; i++) {
+        if (placebo_tex[i])
+            pl_tex_destroy(placebo_vulkan->gpu, &placebo_tex[i]);
+    }
+
+    pl_renderer_destroy(&placebo_renderer);
+    pl_swapchain_destroy(&placebo_swapchain);
+
+    PFN_vkDestroySurfaceKHR destroySurface = reinterpret_cast<PFN_vkDestroySurfaceKHR>(
+            placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkDestroySurfaceKHR"));
+    destroySurface(placebo_vk_inst->instance, surface, nullptr);
+}
+
 void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
 {
     QWindow::resizeEvent(event);
+
+    if (!isVisible())
+        return;
 
     if (!placebo_renderer)
         CreateSwapchain();
