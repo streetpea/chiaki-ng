@@ -1,8 +1,8 @@
-if [ "$(iwgetid -r)" == {{home_ssid}}" ]
+if [ "$(iwgetid -r)" == "{{home_ssid}}" ]
 		then
-		    addr={{home_addr}}"
+		    addr="{{home_addr}}"
 		    local=true
 		else
-		    addr={{away_addr}}"
+		    addr="{{away_addr}}"
 		    local=false
 		fi

@@ -19,7 +19,7 @@ SECONDS=0
 	# Wake up console from sleep/rest mode if not already awake
 	if ! echo "${ps_status}" | grep -q ready
 	then
-	    flatpak run io.github.streetpea.Chiaki4deck wakeup {{ps_console}} -h ${addr} -r '${regist_key}' 2>/dev/null
+	    flatpak run io.github.streetpea.Chiaki4deck wakeup {{ps_console}} -h ${addr} -r '{{regist_key}}' 2>/dev/null
 	fi
 
 	# Wait for PlayStation to report ready status, exit script on error if it never happens.
