@@ -15,12 +15,6 @@
 #include <QAction>
 #include <QWindow>
 #include <QGuiApplication>
-#include <QStandardPaths>
-
-static inline QString GetShaderCacheFile()
-{
-	return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/pl_shader.cache";
-}
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
@@ -101,71 +95,11 @@ void StreamWindow::Init()
 		else
 		{
 #if CHIAKI_GUI_ENABLE_PLACEBO
-			// Set up Vulkan resources whose lifetime needs to exceed that of the widget
-			char** vk_exts = new char*[2]{
-				(char*)VK_KHR_SURFACE_EXTENSION_NAME,
-				nullptr,
-			};
-
-			QString platformName = QGuiApplication::platformName();
-			if (platformName == "wayland") {
-				vk_exts[1] = (char*)"VK_KHR_wayland_surface";
-			} else if (platformName.contains("xcb")) {
-				vk_exts[1] = (char*)"VK_KHR_xcb_surface";
-			} else {
-				// TODO: Bail out?
-			}
-
-			const char* opt_extensions[] = {
-				VK_EXT_HDR_METADATA_EXTENSION_NAME,
-			};
-
-			struct pl_log_params log_params = {
-				.log_cb = PlaceboLog,
-				.log_priv = session->GetChiakiLog(),
-				.log_level = PL_LOG_DEBUG,
-			};
-			placebo_log = pl_log_create(PL_API_VER, &log_params);
-
-			struct pl_vk_inst_params vk_inst_params = {
-				.extensions = vk_exts,
-				.num_extensions = 2,
-				.opt_extensions = opt_extensions,
-				.num_opt_extensions = 1,
-			};
-			placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
-
-			auto widget = new AVPlaceboWidget(
-				session, placebo_log, placebo_vk_inst,
-				resolution_mode, connect_info.settings->GetPlaceboPreset());
+			auto widget = new AVPlaceboWidget(session, resolution_mode, connect_info.settings->GetPlaceboPreset());
 			widget->installEventFilter(this);
-			VkSurfaceKHR surface = widget->vkSurface();
-
-			struct pl_vulkan_params vulkan_params = {
-				.instance = placebo_vk_inst->instance,
-				.get_proc_addr = placebo_vk_inst->get_proc_addr,
-				.surface = surface,
-				.allow_software = true,
-				PL_VULKAN_DEFAULTS
-			};
-			placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
-
-			struct pl_cache_params cache_params = {
-				.log = placebo_log,
-				.max_total_size = 10 << 20, // 10 MB
-			};
-			placebo_cache = pl_cache_create(&cache_params);
-			pl_gpu_set_cache(placebo_vulkan->gpu, placebo_cache);
-			FILE *file = fopen(qPrintable(GetShaderCacheFile()), "rb");
-			if (file) {
-				pl_cache_load_file(placebo_cache, file);
-				fclose(file);
-			}
-			widget->setPlaceboVulkan(placebo_vulkan);
 			widget->HideMouse();
 			auto container_widget = QWidget::createWindowContainer(widget);
 			setCentralWidget(container_widget);
-			placebo_widget = container_widget;
 			av_widget = widget;
 #else
 			Q_UNREACHABLE();
@@ -288,8 +222,6 @@ void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
 
 void StreamWindow::closeEvent(QCloseEvent *event)
 {
-	if (av_widget)
-		av_widget->Stop();
 	if(session)
 	{
 		if(session->IsConnected())
@@ -324,6 +256,8 @@ void StreamWindow::closeEvent(QCloseEvent *event)
 		}
 		session->Stop();
 	}
+	if (av_widget)
+		av_widget->Stop();
 }
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)
@@ -426,33 +360,3 @@ void StreamWindow::UpdateVideoTransform()
 	}
 #endif
 }
-
-#if CHIAKI_GUI_ENABLE_PLACEBO
-void StreamWindow::PlaceboLog(void *user, pl_log_level level, const char *msg)
-{
-    ChiakiLog *log = (ChiakiLog*)user;
-    if (!log) {
-        return;
-    }
-
-    ChiakiLogLevel chiaki_level;
-    switch (level)
-    {
-        case PL_LOG_DEBUG:
-            chiaki_level = CHIAKI_LOG_VERBOSE;
-            break;
-        case PL_LOG_INFO:
-            chiaki_level = CHIAKI_LOG_INFO;
-            break;
-        case PL_LOG_WARN:
-            chiaki_level = CHIAKI_LOG_WARNING;
-            break;
-        case PL_LOG_ERR:
-        case PL_LOG_FATAL:
-            chiaki_level = CHIAKI_LOG_ERROR;
-            break;
-    }
-
-    chiaki_log(log, chiaki_level, "[libplacebo] %s", msg);
-}
-#endif

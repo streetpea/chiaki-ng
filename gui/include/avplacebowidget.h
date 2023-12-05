@@ -16,6 +16,8 @@
 #include <libplacebo/vulkan.h>
 #include <libplacebo/renderer.h>
 #include <libplacebo/utils/frame_queue.h>
+#include <libplacebo/log.h>
+#include <libplacebo/cache.h>
 
 extern "C"
 {
@@ -40,6 +42,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         AVFrame *queued_frame = nullptr;
         bool stream_started = false;
 
+        pl_cache placebo_cache;
         pl_render_params render_params;
         pl_log placebo_log;
         pl_vk_inst placebo_vk_inst;
@@ -52,10 +55,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         qint64 num_frames_dropped = 0;
 
     public:
-        explicit AVPlaceboWidget(
-            StreamSession *session, pl_log placebo_log, pl_vk_inst placebo_vk_inst,
-            ResolutionMode resolution_mode = Normal, PlaceboPreset preset = PlaceboPreset::Default
-        );
+        explicit AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset);
         ~AVPlaceboWidget() override;
 
         bool QueueFrame(AVFrame *frame);
@@ -63,6 +63,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void RenderImage(const QImage &img);
         void RenderPlaceholderIcon();
         void CreateSwapchain();
+        void ReleaseSwapchain();
         void setPlaceboVulkan(pl_vulkan vulkan) { placebo_vulkan = vulkan; };
         void Stop() override;
         void showEvent(QShowEvent *event) override;
