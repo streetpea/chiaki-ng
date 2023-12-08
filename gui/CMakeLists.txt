@@ -59,7 +59,10 @@ add_executable(chiaki WIN32
 		include/loginpindialog.h
 		src/loginpindialog.cpp
 		include/shortcutdialog.h
-		src/shortcutdialog.cpp)
+		src/shortcutdialog.cpp
+		include/crc.h
+		src/crc.c
+		include/vdfparser.h)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
