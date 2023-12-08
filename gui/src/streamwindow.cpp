@@ -44,23 +44,6 @@ StreamWindow::~StreamWindow()
 {
 	// make sure av_widget is always deleted before the session
 	delete av_widget;
-#if CHIAKI_GUI_ENABLE_PLACEBO
-	if(placebo_cache)
-	{
-		FILE *file = fopen(qPrintable(GetShaderCacheFile()), "wb");
-		if (file) {
-			pl_cache_save_file(placebo_cache, file);
-			fclose(file);
-		}
-		pl_cache_destroy(&placebo_cache);
-	}
-	if(placebo_vulkan)
-		pl_vulkan_destroy(&placebo_vulkan);
-	if(placebo_vk_inst)
-		pl_vk_inst_destroy(&placebo_vk_inst);
-	if(placebo_log)
-		pl_log_destroy(&placebo_log);
-#endif
 }
 
 void StreamWindow::Init()
@@ -77,12 +60,6 @@ void StreamWindow::Init()
 		resolution_mode = ResolutionMode::Stretch;
 	else
 		resolution_mode = ResolutionMode::Normal;
-#if CHIAKI_GUI_ENABLE_PLACEBO
-	placebo_cache = NULL;
-	placebo_log = NULL;
-	placebo_vulkan = NULL;
-	placebo_vk_inst = NULL;
-#endif
 	if(session->GetFfmpegDecoder())
 	{
 		if (connect_info.settings->GetRenderer() == Renderer::OpenGL)
