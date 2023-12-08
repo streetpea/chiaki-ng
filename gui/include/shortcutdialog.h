@@ -11,28 +11,27 @@
 #include <QComboBox>
 
 class ShortcutDialog : public QDialog{
-    private:
-        const DisplayServer* server;
+private:
+    const DisplayServer* server;
 
-        QCheckBox *allow_external_access_checkbox;
-        QLineEdit *external_dns_edit;
-        QLineEdit *local_ssid_edit;
-        QComboBox *mode_combo_box;
-        QLineEdit *passcode_edit;
+    QCheckBox *allow_external_access_checkbox;
+    QLineEdit *external_dns_edit;
+    QLineEdit *local_ssid_edit;
+    QComboBox *mode_combo_box;
+    QLineEdit *passcode_edit;
+    QCheckBox *add_to_steam_checkbox;
 
-        QPushButton *create_shortcut_button;
-
+    QPushButton *create_shortcut_button;
 
     private slots:
         void ExternalChanged();
-        void CreateShortcut();
+    void CreateShortcut();
 
-    public:
-        ShortcutDialog(const DisplayServer *server, QWidget *parent = nullptr);
-        std::string compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap);
-        std::string getConnectedSSID();
+public:
+    ShortcutDialog(const DisplayServer *server, QWidget *parent = nullptr);
+    std::string compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap);
+    std::string getConnectedSSID();
+    static void AddToSteam(const DisplayServer* server, std::string filePath);
 };
-
-
 
 #endif //SHORTCUTDIALOG_H
