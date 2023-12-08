@@ -4,7 +4,6 @@
 
 #include "../include/shortcutdialog.h"
 
-#include <filesystem>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QPushButton>
@@ -13,9 +12,7 @@
 #include <QFileDialog>
 #include <qtextstream.h>
 #include <regex>
-#include <sstream>
 #include <string>
-#include <vdfparser.h>
 
 ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     this->server = server;
@@ -54,9 +51,6 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
 
     passcode_edit = new QLineEdit(this);
     general_layout->addRow(tr("4 Digit passcode (optional):"), passcode_edit);
-
-    add_to_steam_checkbox = new QCheckBox(this);
-    general_layout->addRow(tr("Add to Steam?"), add_to_steam_checkbox);
 
     create_shortcut_button = new QPushButton(tr("Create"), this);
     general_layout->addWidget(create_shortcut_button);
@@ -122,11 +116,7 @@ void ShortcutDialog::CreateShortcut() {
     // Execute the shell command to make it executable
     std::system(chmodCommand.c_str());
 
-    if (add_to_steam_checkbox->isChecked()) {
-        AddToSteam(server, filePath.toStdString());
-    }
-
-    close();
+    ShortcutDialog::close();
 }
 
 std::string ShortcutDialog::compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap) {
@@ -170,7 +160,7 @@ std::string ShortcutDialog::getConnectedSSID() {
     std::string command;
     #if defined(__APPLE__)
         command = "/System/Library/PrivateFrameworks/Apple80211.framework/Resources/airport -I | grep SSID | grep -v BSSID | awk -F: '{print $2}'";
-    #elif defined(__linux__)
+    #elif defined(__linux__) || defined(__APPLE__)
         // Linux and macOS
         command = "iwgetid -r";
     #elif defined(_WIN32)
@@ -201,10 +191,4 @@ std::string ShortcutDialog::getConnectedSSID() {
     result.erase(std::remove(result.begin(), result.end(), '\r'), result.end());
 
     return result;
-}
-
-void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePath) {
-    std::vector<std::map<std::string, std::string>> shortcuts = VDFParser::parseShortcuts();
-    shortcuts.emplace_back(VDFParser::buildShortcutEntry(server, filePath));
-    VDFParser::updateShortcuts(shortcuts);
 }
