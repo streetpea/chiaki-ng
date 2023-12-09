@@ -16,6 +16,7 @@ finish-args:
   - --socket=pulseaudio
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
+  - --env=CPATH=/app/include
   - --talk-name=org.freedesktop.ScreenSaver
   - --filesystem=xdg-run/pipewire-0
   
