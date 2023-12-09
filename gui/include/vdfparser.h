@@ -23,12 +23,6 @@
 
 namespace VDFParser {
 
-    static std::string iconURL = "https://cdn2.steamgriddb.com/icon/a1f46c591a7f820502944b52ab87e7ee.ico";
-    static std::string landscapeGrid = "https://cdn2.steamgriddb.com/grid/6c9982cad060f78ef27d1b70b62c6ac3.png";
-    static std::string portraitGrid = "https://cdn2.steamgriddb.com/grid/7592a131e90e695350acecd1c4e221bf.png";
-    static std::string hero = "https://cdn2.steamgriddb.com/hero/0e6b0b0ea52f6be7a057b21c0e63f3eb.png";
-    static std::string logo = "https://cdn2.steamgriddb.com/logo/fc92a1bd5b74317dca6b5938ede5843d.png";
-
     static std::vector<char> fileHeader = { 0x00, 0x73, 0x68, 0x6F, 0x72, 0x74, 0x63, 0x75, 0x74, 0x73, 0x00 };
 
     // Callback function to write data to a file
@@ -114,30 +108,30 @@ namespace VDFParser {
         return true;
     }
 
-    inline void downloadAssets(std::string gridPath, std::string shortAppId) {
+    inline void downloadAssets(std::string gridPath, std::string shortAppId, std::map<std::string, std::string> artwork) {
         std::string landscapeGridPath;
         landscapeGridPath.append(gridPath);
         landscapeGridPath.append(shortAppId);
         landscapeGridPath.append(".png");
-        downloadFile(landscapeGrid.c_str(), landscapeGridPath.c_str());
+        downloadFile(artwork["landscape"].c_str(), landscapeGridPath.c_str());
 
         std::string portraitGridPath;
         portraitGridPath.append(gridPath);
         portraitGridPath.append(shortAppId);
         portraitGridPath.append("p.png");
-        downloadFile(portraitGrid.c_str(), portraitGridPath.c_str());
+        downloadFile(artwork["portrait"].c_str(), portraitGridPath.c_str());
 
         std::string heroPath;
         heroPath.append(gridPath);
         heroPath.append(shortAppId);
         heroPath.append("_hero.png");
-        downloadFile(hero.c_str(), heroPath.c_str());
+        downloadFile(artwork["hero"].c_str(), heroPath.c_str());
 
         std::string logoPath;
         logoPath.append(gridPath);
         logoPath.append(shortAppId);
         logoPath.append("_logo.png");
-        downloadFile(logo.c_str(), logoPath.c_str());
+        downloadFile(artwork["logo"].c_str(), logoPath.c_str());
     }
 
     inline uint64_t generatePreliminaryId(const std::string& exe, const std::string& appname) {
@@ -473,7 +467,7 @@ namespace VDFParser {
         }
     }
 
-    inline std::map<std::string, std::string> buildShortcutEntry(const DisplayServer* server, std::string filepath) {
+    inline std::map<std::string, std::string> buildShortcutEntry(const DisplayServer* server, std::string filepath, std::map<std::string, std::string> artwork) {
         std::string shortcutFile = getShortcutFile();
         std::string appName = server->registered_host.GetServerNickname().toStdString();
 
@@ -492,10 +486,10 @@ namespace VDFParser {
         gridPath.append("/config/grid/");
         iconPath.append(gridPath);
         iconPath.append(shortAppId);
-        iconPath.append("_icon.ico");
-        downloadFile(iconURL.c_str(), iconPath.c_str());
+        iconPath.append("_icon.png");
+        downloadFile(artwork["icon"].c_str(), iconPath.c_str());
 
-        downloadAssets(gridPath, shortAppId);
+        downloadAssets(gridPath, shortAppId, artwork);
 
         std::map<std::string, std::string> shortcutMap;
 

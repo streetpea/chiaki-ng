@@ -40,7 +40,7 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 	addAction(wake_action);
 	connect(wake_action, &QAction::triggered, this, [this]{ emit WakeTriggered(); });
 
-	create_shortcut_action = new QAction(tr("Create Shortcut"), this);
+	create_shortcut_action = new QAction(tr("Add to Steam"), this);
 	addAction(create_shortcut_action);
 	connect(create_shortcut_action, &QAction::triggered, this, [this]{ emit CreateShortcutTriggered(); });
 
