@@ -61,11 +61,11 @@ namespace VDFParser {
         createDirectories(destPath);
 
         // Check if the destination file already exists
-        struct stat fileStat;
-        if (stat(destPath, &fileStat) == 0) {
-            std::cout << "File already exists at: " << destPath << std::endl;
-            return true; // File already exists, no need to download
-        }
+        // struct stat fileStat;
+        // if (stat(destPath, &fileStat) == 0) {
+        //     std::cout << "File already exists at: " << destPath << std::endl;
+        //     return true; // File already exists, no need to download
+        // }
 
         // Open the file for writing
         FILE* file = fopen(destPath, "wb");

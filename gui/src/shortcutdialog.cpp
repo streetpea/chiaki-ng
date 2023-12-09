@@ -22,6 +22,7 @@
 #include <steamgriddbapi.h>
 #include <QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
+#include <QMessageBox>
 
 #include "imageloader.h"
 
@@ -280,6 +281,8 @@ void ShortcutDialog::CreateShortcut(std::map<std::string, std::string> artwork) 
     std::system(chmodCommand.c_str());
 
     AddToSteam(server, filePath, artwork);
+
+    QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam"), QMessageBox::Ok);
 
     close();
 }
