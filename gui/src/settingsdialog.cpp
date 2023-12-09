@@ -362,7 +362,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 #if CHIAKI_GUI_ENABLE_PLACEBO
 	// Renderer Settings
 	auto renderer_settings = new QGroupBox(tr("Renderer Settings"));
-	left_layout->addWidget(renderer_settings);
+	other_layout->addWidget(renderer_settings);
 
 	renderer_settings_layout = new QFormLayout();
 	renderer_settings->setLayout(renderer_settings_layout);
