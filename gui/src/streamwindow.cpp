@@ -29,7 +29,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 
 	try
 	{
-		if(connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
+		if(connect_info.fullscreen || connect_info.zoom || connect_info.stretch || qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
 			showFullScreen();
 		Init();
 	}
