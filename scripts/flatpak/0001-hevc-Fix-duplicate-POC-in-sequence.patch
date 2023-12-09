@@ -1,0 +1,39 @@
+From 621000fedb632fabd972c50938ff5566853bfe36 Mon Sep 17 00:00:00 2001
+From: David Rosca <nowrep@gmail.com>
+Date: Sat, 9 Dec 2023 08:44:38 +0100
+Subject: [PATCH] hevc: Fix duplicate POC in sequence
+
+---
+ libavcodec/hevcdec.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/libavcodec/hevcdec.c b/libavcodec/hevcdec.c
+index 3ce845dddb..0e1c54fb7c 100644
+--- a/libavcodec/hevcdec.c
++++ b/libavcodec/hevcdec.c
+@@ -710,6 +710,22 @@ static int hls_slice_header(HEVCContext *s)
+                     return AVERROR_INVALIDDATA;
+                 poc = s->poc;
+             }
++            while (1) {
++                int found = 0;
++                for (i = 0; i < FF_ARRAY_ELEMS(s->DPB); i++) {
++                    HEVCFrame *frame = &s->DPB[i];
++                    if (frame->frame->buf[0] && frame->sequence == s->seq_decode &&
++                        frame->poc == poc) {
++                        av_log(s->avctx, AV_LOG_WARNING, "Fixing duplicate POC in a sequence: %d.\n",
++                               poc);
++                        poc++;
++                        found = 1;
++                        break;
++                    }
++                }
++                if (!found)
++                    break;
++            }
+             s->poc = poc;
+ 
+             sh->short_term_ref_pic_set_sps_flag = get_bits1(gb);
+-- 
+2.43.0
+
