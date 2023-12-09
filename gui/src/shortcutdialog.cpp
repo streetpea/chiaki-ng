@@ -205,6 +205,27 @@ std::string ShortcutDialog::getConnectedSSID() {
 
 void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePath) {
     std::vector<std::map<std::string, std::string>> shortcuts = VDFParser::parseShortcuts();
-    shortcuts.emplace_back(VDFParser::buildShortcutEntry(server, filePath));
+
+    std::map<std::string, std::string> newShortcut = VDFParser::buildShortcutEntry(server, filePath);
+
+    bool found = false;
+    //Look to see if we need to update
+    for (auto& map : shortcuts) {
+        // Check if the key exists and its value matches the valueToSearch
+        auto it = map.find("Exe");
+        if (it != map.end() && it->second == VDFParser::getValueFromMap(newShortcut, "Exe")) {
+            // Replace the entire map with the new one
+            std::cout << "Updating Steam entry" << std::endl;
+            map = newShortcut;
+            found = true;
+            break;  // Stop iterating once a match is found
+        }
+    }
+
+    //If we didn't find it to update, let's add it to the end
+    if (!found) {
+        std::cout << "Adding Steam entry" << std::endl;
+        shortcuts.emplace_back(VDFParser::buildShortcutEntry(server, filePath));
+    }
     VDFParser::updateShortcuts(shortcuts);
 }

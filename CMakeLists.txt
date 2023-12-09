@@ -16,6 +16,7 @@ option(CHIAKI_ENABLE_ANDROID "Enable Android (Use only as part of the Gradle Pro
 option(CHIAKI_ENABLE_BOREALIS "Enable Borealis GUI (For Nintendo Switch or PC)" OFF)
 tri_option(CHIAKI_ENABLE_SETSU "Enable libsetsu for touchpad input from controller" AUTO)
 tri_option(CHIAKI_ENABLE_STEAMDECK_NATIVE "Enable sdeck for native gyro and haptic feedback from Steam Deck" ON)
+tri_option(CHIAKI_ENABLE_ADD_TO_STEAM "Enable Add to Steam" ON)
 option(CHIAKI_LIB_ENABLE_OPUS "Use Opus as part of Chiaki Lib" ON)
 tri_option(CHIAKI_ENABLE_SPEEX "Use speex for echo cancelling mic playback" AUTO)
 if(CHIAKI_ENABLE_GUI OR CHIAKI_ENABLE_BOREALIS)

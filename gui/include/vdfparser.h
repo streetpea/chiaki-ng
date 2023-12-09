@@ -7,52 +7,138 @@
 #include <fstream>
 #include <string>
 #include <crc.h>
+#include <vdfstatemachine.h>
+
+#include <iostream>
+#include <curl/curl.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#if defined(_WIN32)
+#include <direct.h>
+#define mkdir(dir, mode) _mkdir(dir)
+#else
+#include <sys/stat.h>
+#endif
 
 namespace VDFParser {
 
-    enum class FieldType {
-        STRING,
-        BOOLEAN,
-        LIST,
-        DATE
-    };
-
-    enum class ParseState {
-        APPID,
-        WAITING,
-        KEY,
-        VALUE,
-        ENDING
-    };
-
-    enum class ListParseState {
-        WAITING,
-        INDEX,
-        VALUE,
-        ENDING
-    };
-
-    static std::vector<std::string> headers = {
-        "appid",
-        "AppName",
-        "Exe",
-        "StartDir",
-        "icon",
-        "ShortcutPath",
-        "LaunchOptions",
-        "IsHidden",
-        "AllowDesktopConfig",
-        "AllowOverlay",
-        "OpenVR",
-        "Devkit",
-        "DevkitGameID",
-        "DevkitOverrideAppID",
-        "LastPlayTime",
-        "FlatpakAppID",
-        "tags"
-    };
+    static std::string iconURL = "https://cdn2.steamgriddb.com/icon/a1f46c591a7f820502944b52ab87e7ee.ico";
+    static std::string landscapeGrid = "https://cdn2.steamgriddb.com/grid/6c9982cad060f78ef27d1b70b62c6ac3.png";
+    static std::string portraitGrid = "https://cdn2.steamgriddb.com/grid/7592a131e90e695350acecd1c4e221bf.png";
+    static std::string hero = "https://cdn2.steamgriddb.com/hero/0e6b0b0ea52f6be7a057b21c0e63f3eb.png";
+    static std::string logo = "https://cdn2.steamgriddb.com/logo/fc92a1bd5b74317dca6b5938ede5843d.png";
 
     static std::vector<char> fileHeader = { 0x00, 0x73, 0x68, 0x6F, 0x72, 0x74, 0x63, 0x75, 0x74, 0x73, 0x00 };
+
+    // Callback function to write data to a file
+    size_t WriteCallback(void* contents, size_t size, size_t nmemb, FILE* stream) {
+        return fwrite(contents, size, nmemb, stream);
+    }
+
+    void createDirectories(const std::string& path) {
+        size_t pos = 0;
+        while ((pos = path.find_first_of("/\\", pos + 1)) != std::string::npos) {
+            std::string subPath = path.substr(0, pos);
+
+            // Check if the directory already exists
+            struct stat info;
+            if (stat(subPath.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
+                // If not, create the directory
+                if (mkdir(subPath.c_str(), 0777) != 0) {
+                    std::cerr << "Error creating directory: " << subPath << std::endl;
+                    return;
+                }
+                std::cout << "Created directory: " << subPath << std::endl;
+            }
+        }
+    }
+
+    // Function to download a file from a URL to a destination directory
+    bool downloadFile(const char* url, const char* destPath) {
+        // Extract the directory from the destination path
+        std::string destDir = destPath;
+        size_t lastSlash = destDir.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            destDir = destDir.substr(0, lastSlash);
+        }
+
+        // Ensure the destination directory exists
+        createDirectories(destPath);
+
+        // Check if the destination file already exists
+        struct stat fileStat;
+        if (stat(destPath, &fileStat) == 0) {
+            std::cout << "File already exists at: " << destPath << std::endl;
+            return true; // File already exists, no need to download
+        }
+
+        // Open the file for writing
+        FILE* file = fopen(destPath, "wb");
+        if (!file) {
+            std::cerr << "Error opening file for writing: " << strerror(errno) << std::endl;
+            return false;
+        }
+
+        // Initialize libcurl
+        CURL* curl = curl_easy_init();
+        if (!curl) {
+            std::cerr << "Error initializing libcurl." << std::endl;
+            fclose(file);
+            return false;
+        }
+
+        // Set the URL to download
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+
+        // Set the callback function to write data to the file
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+
+        // Perform the download
+        CURLcode res = curl_easy_perform(curl);
+
+        // Check for errors
+        if (res != CURLE_OK) {
+            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+            fclose(file);
+            curl_easy_cleanup(curl);
+            return false;
+        }
+
+        // Clean up and close the file
+        fclose(file);
+        curl_easy_cleanup(curl);
+
+        std::cout << "File downloaded successfully to: " << destPath << std::endl;
+        return true;
+    }
+
+    inline void downloadAssets(std::string gridPath, std::string shortAppId) {
+        std::string landscapeGridPath;
+        landscapeGridPath.append(gridPath);
+        landscapeGridPath.append(shortAppId);
+        landscapeGridPath.append(".png");
+        downloadFile(landscapeGrid.c_str(), landscapeGridPath.c_str());
+
+        std::string portraitGridPath;
+        portraitGridPath.append(gridPath);
+        portraitGridPath.append(shortAppId);
+        portraitGridPath.append("p.png");
+        downloadFile(portraitGrid.c_str(), portraitGridPath.c_str());
+
+        std::string heroPath;
+        heroPath.append(gridPath);
+        heroPath.append(shortAppId);
+        heroPath.append("_hero.png");
+        downloadFile(hero.c_str(), heroPath.c_str());
+
+        std::string logoPath;
+        logoPath.append(gridPath);
+        logoPath.append(shortAppId);
+        logoPath.append("_logo.png");
+        downloadFile(logo.c_str(), logoPath.c_str());
+    }
 
     inline uint64_t generatePreliminaryId(const std::string& exe, const std::string& appname) {
         std::string key = exe + appname;
@@ -70,6 +156,22 @@ namespace VDFParser {
         uint64_t preliminaryId = (top << 32) | static_cast<uint64_t>(0x02000000);
 
         return preliminaryId;
+    }
+
+    // Function to generate App ID
+    std::string generateAppId(const std::string& exe, const std::string& appname) {
+        return std::to_string(generatePreliminaryId(exe, appname));
+    }
+
+    // Function to shorten App ID
+    std::string shortenAppId(const std::string& longId) {
+        return std::to_string(std::stoull(longId) >> 32);
+    }
+
+    // Function to generate Short App ID
+    std::string generateShortAppId(const std::string& exe, const std::string& appname) {
+        std::string longId = generateAppId(exe, appname);
+        return shortenAppId(longId);
     }
 
     inline uint32_t generateShortcutId(const std::string& exe, const std::string& appname) {
@@ -116,24 +218,6 @@ namespace VDFParser {
         return retVector;
     }
 
-    inline std::string delimit(const std::vector<std::string>& vec, char delimiter) {
-        std::stringstream result;
-
-        // Iterate through the vector
-        for (auto it = vec.begin(); it != vec.end(); ++it) {
-            // Append the current string to the result
-            result << *it;
-
-            // Add a comma if it's not the last element
-            if (std::next(it) != vec.end()) {
-                result << delimiter;
-            }
-        }
-
-        // Convert the stringstream to a string and return
-        return result.str();
-    }
-
     inline int countStringOccurrencesInFile(const std::string& filename, const std::string& targetString) {
         std::ifstream file(filename);
 
@@ -159,24 +243,12 @@ namespace VDFParser {
     }
 
     inline std::string getDirectoryFromPath(std::string fullPath) {
-        // Split the path by "/"
-        std::vector<std::string> parts;
-        std::istringstream iss(fullPath);
-        std::string part;
-        while (std::getline(iss, part, '/')) {
-            parts.push_back(part);
+        // Extract the directory from the destination path
+        size_t lastSlash = fullPath.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            fullPath = fullPath.substr(0, lastSlash-1);
         }
-
-        // Rejoin all parts except the last one
-        std::ostringstream os;
-        for (size_t i = 0; i < parts.size() - 1; ++i) {
-            os << parts[i];
-            if (i < parts.size() - 2) {
-                os << '/';
-            }
-        }
-
-        return os.str();
+        return fullPath;
     }
 
     inline void copyFile(const std::string& sourcePath, const std::string& destinationPath) {
@@ -313,9 +385,9 @@ namespace VDFParser {
 
             buffer.erase(buffer.begin(), buffer.begin() + 11);
 
-            ParseState state = ParseState::APPID;
-            ListParseState listState = ListParseState::WAITING;
-            FieldType type;
+            VDFStateMachine::ParseState state = VDFStateMachine::ParseState::APPID;
+            VDFStateMachine::ListParseState listState = VDFStateMachine::ListParseState::WAITING;
+            VDFStateMachine::FieldType type;
             std::ostringstream utf8String;
             std::string key;
             std::map<std::string, std::string> entry;
@@ -326,129 +398,36 @@ namespace VDFParser {
                 // Convert the byte to an unsigned integer (uint8)
                 uint8_t value = static_cast<uint8_t>(byte);
 
-                //Print the file
-                if (value == 0x00) {
-                    std::cout << "\\0x00";
-                } else if (value == 0x01) {
-                    std::cout << "\\0x01";
-                } else if (value == 0x02) {
-                    std::cout << "\\0x02";
-                } else if (value == 0x08) {
-                    std::cout << "\\0x08";
-                } else {
-                    std::cout << static_cast<char>(value);
-                }
-
-                //Parse it
-                if (state == ParseState::APPID && value == 0x01) {
-                    //Update the state
-                    state = ParseState::KEY;
-                    if (value == 0x01) type = FieldType::STRING;
-                } else if (state == ParseState::WAITING && value != 0x08) {
-                    //Update the state
-                    state = ParseState::KEY;
-                    if (value == 0x01) type = FieldType::STRING;
-                    if (value == 0x02) type = FieldType::BOOLEAN;
-                    if (value == 0x00) {
-                        listValue.clear();
-                        type = FieldType::LIST;
-                    }
-                } else if (state == ParseState::KEY && value != 0x00) {
-                    utf8String << static_cast<char>(value);
-                } else if (state == ParseState::KEY) {
-                    //Set key and reset string
-                    key = utf8String.str();
-                    utf8String.str("");
-
-                    //Update the state
-                    state = ParseState::VALUE;
-                    if (key == "LastPlayTime") type = FieldType::DATE;
-
-                //Handle Strings
-                } else if (state == ParseState::VALUE && type == FieldType::STRING && value != 0x00) {
-                    utf8String << static_cast<char>(value);
-                } else if (state == ParseState::VALUE && type == FieldType::STRING) {
-                    entry[key] = utf8String.str();
-                    utf8String.str("");
-
-                    //Update the state
-                    state = ParseState::WAITING;
-                //Handle Booleans and dates
-                } else if (state == ParseState::VALUE && type == FieldType::BOOLEAN) {
-                    if (value == 0x01) entry[key] = "true";
-                    if (value == 0x00) entry[key] = "false";
-
-                    //Update the state
-                    state = ParseState::ENDING;
-                }  else if (state == ParseState::VALUE && type == FieldType::DATE) {
-                    entry[key] = "";
-
-                    //Update the state
-                    state = ParseState::ENDING;
-                } else if (state == ParseState::ENDING && (type == FieldType::BOOLEAN || type == FieldType::DATE) && endingBuffer.size() < 2) {
-                    endingBuffer.emplace_back(value);
-                } else if (state == ParseState::ENDING && (type == FieldType::BOOLEAN || type == FieldType::DATE) && endingBuffer.size() == 2) {
-                    endingBuffer.clear();
-                    //Update the state
-                    state = ParseState::WAITING;
-                //Handle Lists
-                } else if (state == ParseState::VALUE && type == FieldType::LIST) {
-                    if (listState == ListParseState::WAITING && value == 0x08 && endingBuffer.size() < 1) {
-                        endingBuffer.emplace_back(value);
-                    } else if (listState == ListParseState::WAITING && value == 0x08 && endingBuffer.size() == 1) {
-                        entry[key] = delimit(listValue, ',');
-                        endingBuffer.clear();
-                        //Update states
-                        // Bit of a hack here but we know that tags is the only list and it's last off the block so we handle that here
-                        listState = ListParseState::WAITING;
-                        state = ParseState::APPID;
-                        //Add this entry and make a new one
-                        shortcuts.emplace_back(entry);
-                        entry.clear();
-                    } else if (listState == ListParseState::WAITING && value != 0x08) {
-                        listState = ListParseState::INDEX;
-                    } else if (listState == ListParseState::INDEX && value == 0x00) {
-                        listState = ListParseState::VALUE;
-                        utf8String.str("");
-                    } else if (listState == ListParseState::VALUE && value != 0x00) {
-                        utf8String << static_cast<char>(value);
-                    } else if (listState == ListParseState::VALUE) {
-                        listValue.emplace_back(utf8String.str());
-                        listState = ListParseState::WAITING;
-                        utf8String.str("");
-                    }
+                switch(state) {
+                    case VDFStateMachine::ParseState::APPID:
+                        VDFStateMachine::APPID::handleState(value, state, type);
+                    break;
+                    case VDFStateMachine::ParseState::WAITING:
+                        VDFStateMachine::WAITING::handleState(value, state, type, listValue);
+                    break;
+                    case VDFStateMachine::ParseState::KEY:
+                        VDFStateMachine::KEY::handleState(value, state, type, utf8String, key);
+                    break;
+                    case VDFStateMachine::ParseState::VALUE:
+                        VDFStateMachine::VALUE::handleState(value, state, type, utf8String, key, entry, listState, listValue, endingBuffer, shortcuts);
+                    break;
+                    case VDFStateMachine::ParseState::ENDING:
+                        VDFStateMachine::ENDING::handleState(value, state, type, endingBuffer);
                 }
             }
-
-            std::cout << std::endl;
 
         } else {
             std::cerr << "Error opening file: " << shortcutFile << std::endl;
         }
 
-        for (const auto& myMap : shortcuts) {
-            std::cout << "{ ";
-
-            for (auto it = myMap.begin(); it != myMap.end(); ++it) {
-                std::cout << it->first << ": " << it->second;
-
-                // Add a comma if it's not the last element
-                if (std::next(it) != myMap.end()) {
-                    std::cout << ", ";
-                }
-            }
-
-            std::cout << " }" << std::endl;
-        }
-
         return shortcuts;
     }
 
-    inline void writeShortcut(std::ofstream& outFile, FieldType type, const std::string key, const std::string value) {
+    inline void writeShortcut(std::ofstream& outFile, VDFStateMachine::FieldType type, const std::string key, const std::string value) {
         // Write the identifying bit
-        if (type == FieldType::LIST) {
+        if (type == VDFStateMachine::FieldType::LIST) {
             outFile.put(0x00);
-        } else if (type == FieldType::STRING) {
+        } else if (type == VDFStateMachine::FieldType::STRING) {
             outFile.put(0x01);
         } else {
             outFile.put(0x02);
@@ -461,20 +440,20 @@ namespace VDFParser {
         outFile.put(0x00);
 
         // Write the value based on the type
-        if (type == FieldType::STRING) {
+        if (type == VDFStateMachine::FieldType::STRING) {
             outFile << value;
             // Ending sequence for string
             outFile.put(0x00);
-        } else if (type == FieldType::BOOLEAN) {
+        } else if (type == VDFStateMachine::FieldType::BOOLEAN) {
             // Boolean value encoding (0x01 for true, 0x00 for false)
             outFile.put(value == "true" ? 0x01 : 0x00);
             // Ending sequence for boolean
             outFile.put(0x00).put(0x00).put(0x00);
-        } else if (type == FieldType::DATE) {
+        } else if (type == VDFStateMachine::FieldType::DATE) {
             // Date encoding (0x00 0x00 0x00 0x00)
             outFile.put(0x00).put(0x00).put(0x00).put(0x00);
-        } else if (type == FieldType::LIST) {
-            std::vector<std::string> list = VDFParser::splitString(value, ',');
+        } else if (type == VDFStateMachine::FieldType::LIST) {
+            std::vector<std::string> list = splitString(value, ',');
             int index = 0;
             for (const auto& element : list) {
                 // Index for list entry (incremented manually in actual usage)
@@ -495,18 +474,36 @@ namespace VDFParser {
     }
 
     inline std::map<std::string, std::string> buildShortcutEntry(const DisplayServer* server, std::string filepath) {
-        std::string shortcutFile = VDFParser::getShortcutFile();
+        std::string shortcutFile = getShortcutFile();
+        std::string appName = server->registered_host.GetServerNickname().toStdString();
+
+        std::string shortAppId = generateShortAppId("\""+filepath+"\"", appName);
 
         int entryID = countStringOccurrencesInFile(shortcutFile, "appid");
         entryID++;
 
+        //Download the icon
+        std::string gridPath;
+        std::string iconPath;
+
+        gridPath.append(getSteamBaseDir());
+        gridPath.append("/userdata/");
+        gridPath.append(getMostRecentUser());
+        gridPath.append("/config/grid/");
+        iconPath.append(gridPath);
+        iconPath.append(shortAppId);
+        iconPath.append("_icon.ico");
+        downloadFile(iconURL.c_str(), iconPath.c_str());
+
+        downloadAssets(gridPath, shortAppId);
+
         std::map<std::string, std::string> shortcutMap;
 
         shortcutMap["appid"] = std::to_string(entryID);
-        shortcutMap["AppName"] = server->registered_host.GetServerNickname().toStdString();
+        shortcutMap["AppName"] = appName;
         shortcutMap["Exe"] = "\""+filepath+"\"";
-        shortcutMap["StartDir"] = "\""+getDirectoryFromPath(filepath)+"/\"";
-        shortcutMap["icon"] = "";
+        shortcutMap["StartDir"] = getDirectoryFromPath(filepath);
+        shortcutMap["icon"] = iconPath;
         shortcutMap["ShortcutPath"] = "";
         shortcutMap["LaunchOptions"] = "";
         shortcutMap["IsHidden"] = "";
@@ -553,22 +550,22 @@ namespace VDFParser {
                 uint32_t shortcutId = generateShortcutId(exe, appName);
                 outFile.write(reinterpret_cast<const char*>(&shortcutId), sizeof(shortcutId));
 
-                writeShortcut(outFile, FieldType::STRING, "AppName", getValueFromMap(shortcut, "AppName"));
-                writeShortcut(outFile, FieldType::STRING, "Exe", getValueFromMap(shortcut, "Exe"));
-                writeShortcut(outFile, FieldType::STRING, "StartDir", getValueFromMap(shortcut, "StartDir"));
-                writeShortcut(outFile, FieldType::STRING, "icon", getValueFromMap(shortcut, "icon"));
-                writeShortcut(outFile, FieldType::STRING, "ShortcutPath", getValueFromMap(shortcut, "ShortcutPath"));
-                writeShortcut(outFile, FieldType::STRING, "LaunchOptions", getValueFromMap(shortcut, "LaunchOptions"));
-                writeShortcut(outFile, FieldType::BOOLEAN, "IsHidden", getValueFromMap(shortcut, "IsHidden"));
-                writeShortcut(outFile, FieldType::BOOLEAN, "AllowDesktopConfig", getValueFromMap(shortcut, "AllowDesktopConfig"));
-                writeShortcut(outFile, FieldType::BOOLEAN, "AllowOverlay", getValueFromMap(shortcut, "AllowOverlay"));
-                writeShortcut(outFile, FieldType::BOOLEAN, "OpenVR", getValueFromMap(shortcut, "OpenVR"));
-                writeShortcut(outFile, FieldType::BOOLEAN, "Devkit", getValueFromMap(shortcut, "Devkit"));
-                writeShortcut(outFile, FieldType::STRING, "DevkitGameID", getValueFromMap(shortcut, "DevkitGameID"));
-                writeShortcut(outFile, FieldType::BOOLEAN, "DevkitOverrideAppID", getValueFromMap(shortcut, "DevkitOverrideAppID"));
-                writeShortcut(outFile, FieldType::DATE, "LastPlayTime", getValueFromMap(shortcut, "LastPlayTime"));
-                writeShortcut(outFile, FieldType::STRING, "FlatpakAppID", getValueFromMap(shortcut, "FlatpakAppID"));
-                writeShortcut(outFile, FieldType::LIST, "tags", getValueFromMap(shortcut, "tags"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "AppName", getValueFromMap(shortcut, "AppName"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "Exe", getValueFromMap(shortcut, "Exe"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "StartDir", getValueFromMap(shortcut, "StartDir"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "icon", getValueFromMap(shortcut, "icon"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "ShortcutPath", getValueFromMap(shortcut, "ShortcutPath"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "LaunchOptions", getValueFromMap(shortcut, "LaunchOptions"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::BOOLEAN, "IsHidden", getValueFromMap(shortcut, "IsHidden"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::BOOLEAN, "AllowDesktopConfig", getValueFromMap(shortcut, "AllowDesktopConfig"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::BOOLEAN, "AllowOverlay", getValueFromMap(shortcut, "AllowOverlay"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::BOOLEAN, "OpenVR", getValueFromMap(shortcut, "OpenVR"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::BOOLEAN, "Devkit", getValueFromMap(shortcut, "Devkit"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "DevkitGameID", getValueFromMap(shortcut, "DevkitGameID"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::BOOLEAN, "DevkitOverrideAppID", getValueFromMap(shortcut, "DevkitOverrideAppID"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::DATE, "LastPlayTime", getValueFromMap(shortcut, "LastPlayTime"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::STRING, "FlatpakAppID", getValueFromMap(shortcut, "FlatpakAppID"));
+                writeShortcut(outFile, VDFStateMachine::FieldType::LIST, "tags", getValueFromMap(shortcut, "tags"));
                 appId++;
             }
 
