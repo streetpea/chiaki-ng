@@ -2,6 +2,7 @@
 #include <chiaki/ffmpegdecoder.h>
 
 #include <libavcodec/avcodec.h>
+#include <libavutil/pixdesc.h>
 
 static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 {
@@ -22,6 +23,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->log = log;
 	decoder->frame_available_cb = frame_available_cb;
 	decoder->frame_available_cb_user = frame_available_cb_user;
+	decoder->hdr_enabled = codec == CHIAKI_CODEC_H265_HDR;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -50,7 +52,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 
 	if(hw_decoder_name)
 	{
-		CHIAKI_LOGI(log, "Using hardware decoder \"%s\"", hw_decoder_name);
+		CHIAKI_LOGI(log, "Trying to use hardware decoder \"%s\"", hw_decoder_name);
 		enum AVHWDeviceType type = av_hwdevice_find_type_by_name(hw_decoder_name);
 		if(type == AV_HWDEVICE_TYPE_NONE)
 		{
@@ -79,6 +81,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 			goto error_codec_context;
 		}
 		decoder->codec_context->hw_device_ctx = av_buffer_ref(decoder->hw_device_ctx);
+		CHIAKI_LOGI(log, "Using hardware decoder \"%s\" with pix_fmt=%s", hw_decoder_name, av_get_pix_fmt_name(decoder->hw_pix_fmt));
 	}
 
 	if(avcodec_open2(decoder->codec_context, decoder->av_codec, NULL) < 0)
@@ -167,7 +170,7 @@ static AVFrame *pull_from_hw(ChiakiFfmpegDecoder *decoder, AVFrame *hw_frame)
 	return sw_frame;
 }
 
-CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder)
+CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, bool hw_download)
 {
 	chiaki_mutex_lock(&decoder->mutex);
 	// always try to pull as much as possible and return only the very last frame
@@ -191,7 +194,7 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 		frame = next_frame;
 		int r = avcodec_receive_frame(decoder->codec_context, frame);
 		if(!r)
-			frame = decoder->hw_device_ctx ? pull_from_hw(decoder, frame) : frame;
+			frame = hw_download && decoder->hw_device_ctx ? pull_from_hw(decoder, frame) : frame;
 		else
 		{
 			if(r != AVERROR(EAGAIN))
@@ -208,9 +211,14 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 
 CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFfmpegDecoder *decoder)
 {
-	// TODO: this is probably very wrong, especially for hdr
-	return decoder->hw_device_ctx
-		? AV_PIX_FMT_NV12
-		: AV_PIX_FMT_YUV420P;
+	if (decoder->hw_device_ctx) {
+		return decoder->hdr_enabled
+			? AV_PIX_FMT_P010LE
+			: AV_PIX_FMT_NV12;
+	} else {
+		return decoder->hdr_enabled
+			? AV_PIX_FMT_YUV420P10LE
+			: AV_PIX_FMT_YUV420P;
+	}
 }
 

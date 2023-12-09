@@ -3,6 +3,9 @@
 #include <streamwindow.h>
 #include <streamsession.h>
 #include <avopenglwidget.h>
+#if CHIAKI_GUI_ENABLE_PLACEBO
+#include <avplacebowidget.h>
+#endif
 #include <loginpindialog.h>
 #include <settings.h>
 
@@ -10,6 +13,8 @@
 #include <QMessageBox>
 #include <QCoreApplication>
 #include <QAction>
+#include <QWindow>
+#include <QGuiApplication>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
 	: QMainWindow(parent),
@@ -18,7 +23,7 @@ StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget
 	setAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_AcceptTouchEvents);
 	setWindowTitle(qApp->applicationName() + " | Stream");
-		
+
 	session = nullptr;
 	av_widget = nullptr;
 
@@ -48,19 +53,35 @@ void StreamWindow::Init()
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
 
-	AVOpenGLWidget::ResolutionMode resolution_mode;
+	ResolutionMode resolution_mode;
 	if(connect_info.zoom)
-		resolution_mode = AVOpenGLWidget::Zoom;
+		resolution_mode = ResolutionMode::Zoom;
 	else if(connect_info.stretch)
-		resolution_mode = AVOpenGLWidget::Stretch;
+		resolution_mode = ResolutionMode::Stretch;
 	else
-		resolution_mode = AVOpenGLWidget::Normal;
-
+		resolution_mode = ResolutionMode::Normal;
 	if(session->GetFfmpegDecoder())
 	{
-		av_widget = new AVOpenGLWidget(session, this, resolution_mode);
-		setCentralWidget(av_widget);
-		av_widget->HideMouse();
+		if (connect_info.settings->GetRenderer() == Renderer::OpenGL)
+		{
+			auto widget = new AVOpenGLWidget(session, this, resolution_mode);
+			widget->HideMouse();
+			av_widget=widget;
+			setCentralWidget((AVOpenGLWidget*) av_widget);
+		}
+		else
+		{
+#if CHIAKI_GUI_ENABLE_PLACEBO
+			auto widget = new AVPlaceboWidget(session, resolution_mode, connect_info.settings->GetPlaceboPreset());
+			widget->installEventFilter(this);
+			widget->HideMouse();
+			auto container_widget = QWidget::createWindowContainer(widget);
+			setCentralWidget(container_widget);
+			av_widget = widget;
+#else
+			Q_UNREACHABLE();
+#endif // CHIAKI_GUI_ENABLE_PLACEBO
+		}
 	}
 	else
 	{
@@ -128,6 +149,25 @@ bool StreamWindow::event(QEvent *event)
 	return QMainWindow::event(event);
 }
 
+bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
+{
+	switch(event->type()){
+		case QEvent::TouchBegin:
+		case QEvent::TouchUpdate:
+		case QEvent::TouchEnd:
+		case QEvent::MouseButtonDblClick:
+		case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonRelease:
+		case QEvent::MouseMove:
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease:
+			QCoreApplication::sendEvent(this, event);
+			return true;
+		default:
+			return false;
+	}
+}
+
 void StreamWindow::Quit()
 {
 	close();
@@ -193,6 +233,8 @@ void StreamWindow::closeEvent(QCloseEvent *event)
 		}
 		session->Stop();
 	}
+	if (av_widget)
+		av_widget->Stop();
 }
 
 void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_str)

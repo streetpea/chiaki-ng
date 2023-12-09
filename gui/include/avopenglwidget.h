@@ -4,6 +4,7 @@
 #define CHIAKI_AVOPENGLWIDGET_H
 
 #include <chiaki/log.h>
+#include "avwidget.h"
 
 #include <QOpenGLWidget>
 #include <QMutex>
@@ -48,7 +49,7 @@ struct AVOpenGLFrame
 	bool Update(AVFrame *frame, ChiakiLog *log);
 };
 
-class AVOpenGLWidget: public QOpenGLWidget
+class AVOpenGLWidget: public QOpenGLWidget, public IAVWidget
 {
 	Q_OBJECT
 
@@ -74,10 +75,10 @@ class AVOpenGLWidget: public QOpenGLWidget
 	public:
 		static QSurfaceFormat CreateSurfaceFormat();
 
-		enum ResolutionMode {Normal = 0, Zoom = 1, Stretch = 2};
 		explicit AVOpenGLWidget(StreamSession *session, QWidget *parent = nullptr, ResolutionMode resolution_mode = Normal);
 		~AVOpenGLWidget() override;
 
+		void Stop() override {};
 		void SwapFrames();
 		AVOpenGLFrame *GetBackgroundFrame()	{ return &frames[1 - frame_fg]; }
 
@@ -92,8 +93,8 @@ class AVOpenGLWidget: public QOpenGLWidget
 		//void ResetMouseTimeout();
 	public slots:
 		void HideMouse();
-		void ToggleStretch();
-		void ToggleZoom();
+		void ToggleStretch() override;
+		void ToggleZoom() override;
 };
 
 #endif // CHIAKI_AVOPENGLWIDGET_H
