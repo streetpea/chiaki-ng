@@ -67,9 +67,10 @@ HDR support
 
 - Adds HDR support for Chiaki4deck perfect with the Steam Deck OLED ([see the configuration section](../setup/configuration.md#hdr-high-dynamic-range) for more details).
 - New libplacebo vulkan renderer with better picture quality due to post-processing techniques like debanding (now the default renderer)
-- Adds option to use controller by positional layout instead of button labels (paticularly for Nintendo-style controllers)
+- Adds option to use controller by positional layout instead of button labels (particularly for Nintendo-style controllers)
 - Adds launcher script for appimage
 - Adds vulkan video decoding for video cards that support it (Steam Deck doesn't)
+- Implements basic FEC error concealment to improve streaming experience (white flashses / green blocking)
 
 ### 1.4.1
 
