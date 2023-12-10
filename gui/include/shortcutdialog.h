@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 04/12/2023.
-//
-
 #ifndef SHORTCUTDIALOG_H
 #define SHORTCUTDIALOG_H
 #include <QDialog>
