@@ -1128,6 +1128,7 @@
 <li><a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a></li>
 <li><a href="https://github.com/Nikorag?tab=repositories" rel="noopener" target="_blank">Jamie Bartlett</a></li>
 <li><a href="https://github.com/jonibim" rel="noopener" target="_blank">Joni Bimbashi</a></li>
+<li><a href="https://github.com/nowrep" rel="noopener" target="_blank">David Rosca</a></li>
 <li><a href="https://github.com/streetpea" rel="noopener" target="_blank">Street Pea</a></li>
 </ul></section>
                         <h1 class='nav-section-title' id='section-setup'>
@@ -1184,6 +1185,9 @@
 <p class="admonition-title">Copying from and Pasting into Konsole Windows</p>
 <p>You can copy from and paste into <code>konsole</code> windows with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-shift">Shift</kbd><span>+</span><kbd class="key-c">C</kbd></span> (copy) and <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-shift">Shift</kbd><span>+</span><kbd class="key-v">V</kbd></span> (paste) instead of the normal <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-c">C</kbd></span> (copy) and <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-v">V</kbd></span> (paste) shortcuts. In fact, <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-c">C</kbd></span> is a shortcut to terminate the current process in the <code>konsole</code>. Additionally, you can still right-click and select copy or paste as per normal.</p>
 </div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="setup-installation-__tabbed_1_1" name="setup-installation-__tabbed_1" type="radio" /><input id="setup-installation-__tabbed_1_2" name="setup-installation-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-installation-__tabbed_1_1">Using the Discover Store (Recommended)</label><label for="setup-installation-__tabbed_1_2">Using the <code>konsole</code> (If for some reason it doesn't show up on the Discover store)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <ol>
 <li>
 <p>Open the Discover store</p>
@@ -1197,6 +1201,18 @@
 <p>Click Install</p>
 </li>
 </ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Run the following command in the <code>konsole</code></p>
+<div class="highlight"><pre><span></span><code>flatpak install -y io.github.streetpea.Chiaki4deck
+</code></pre></div>
+</li>
+</ol>
+</div>
+</div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">About <code>chiaki4deck</code></p>
 <p>This is a flatpak I created for <code>chiaki4deck</code> from <a href="#updates-done" rel="noopener" target="_blank">updated</a> Chiaki source code is available on Flathub. This is the recommended install as it is the most straightforward.</p>
@@ -1492,9 +1508,22 @@
 <p><img alt="Open Settings" src="../setup/images/OpenSettings.png" /></p>
 </li>
 <li>
-<p>Adjust the settings to your preferences. Below are the settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p</strong> tab if you have a PS5 or the <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="setup-configuration-__tabbed_8_1" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_2" name="setup-configuration-__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_8_1">PS5/1080P</label><label for="setup-configuration-__tabbed_8_2">PS4/720P</label></div>
+<p>Adjust the settings to your preferences. </p>
+<ol>
+<li>
+<p>General Settings for Steam Deck</p>
+<p><img alt="General Settings" src="../setup/images/MainSettings.png" /></p>
+</li>
+<li>
+<p>Below are the Stream settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5/1080p</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
+</li>
+</ol>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:3"><input checked="checked" id="setup-configuration-__tabbed_8_1" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_2" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_3" name="setup-configuration-__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_8_1">PS5/1080P HDR</label><label for="setup-configuration-__tabbed_8_2">PS5/1080P</label><label for="setup-configuration-__tabbed_8_3">PS4/720P</label></div>
 <div class="tabbed-content">
+<div class="tabbed-block">
+<p>Stream output can be up to 1080p with <a href="#setup-configuration-hdr-high-dynamic-range">HDR</a>. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
+<p><img alt="1080p Settings" src="../setup/images/1080P_SettingsHDR.png" /></p>
+</div>
 <div class="tabbed-block">
 <p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
 <p><img alt="1080p Settings" src="../setup/images/1080P_Settings.png" /></p>
@@ -1515,6 +1544,10 @@
 </div>
 </div>
 <div class="admonition info">
+<p class="admonition-title">Use Buttons by Position Instead of by Label</p>
+<p>This enables the option to use the face buttons of your controller by position (i.e., NSEW) as opposed to by their label (i.e., ABXY). This enables you to use a Nintendo-style controller and still be able to use the buttons in the same positions as on a PlayStation controller instead of the swapped Nintendo controller positions.</p>
+</div>
+<div class="admonition info">
 <p class="admonition-title">Use Steam Deck in Vertical Orientation</p>
 <p>For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).</p>
 </div>
@@ -1525,6 +1558,38 @@
 </div>
 </li>
 </ol>
+<h3 id="setup-configuration-hdr-high-dynamic-range">HDR (High Dynamic Range)<a class="headerlink" href="#setup-configuration-hdr-high-dynamic-range" title="Permanent link">&para;</a></h3>
+<p>HDR is now supported when you select the <code>H265 HDR (PS5 only)</code> codec option. For HDR to work you need to:</p>
+<ol>
+<li>
+<p>Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use <a href="https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/" rel="noopener" target="_blank">tonemapping</a> instead of outputting HDR)</p>
+<details class="question" open="open">
+<summary>How do I know when HDR is active on my Steam Deck?</summary>
+<p>You can see when HDR is active by hitting the quick access button (3 dots button on the bottom right of the Steam Deck) going to the gear icon and looking at <code>BRIGHTNESS</code>. When HDR is active there will be a purple/blue banner to the right of the <code>BRIGHTNESS</code> label.</p>
+</details>
+</li>
+<li>
+<p>Connect your PS5 to a device such as an HDR TV or monitor (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR)</p>
+<details class="question" open="open">
+<summary>How do I know if the PS5 is outputting HDR?</summary>
+<p>You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those.</p>
+</details>
+</li>
+<li>
+<p>Enable HDR in your PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; HDR</code> and selecting either <code>Always On</code> or <code>On When Supported</code>.</p>
+</li>
+<li>
+<p>Select <code>H265 HDR (PS5 only)</code> as your codec option in <code>chiaki4deck</code></p>
+</li>
+<li>
+<p>Launch <code>chiaki4deck</code> via gamescope (i.e., game mode on the Steam Deck)</p>
+</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Adjusting PS5 HDR for Steam Deck</p>
+<p>You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; Adjust HDR</code>. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via <a href="https://github.com/arshiatn" rel="noopener" target="_blank">arshiatn</a>) for an 1000 nits display you want to use 16-16-0 for the HDR settings. To set this in the <code>Adjust HDR set</code> move 16 steps (16 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 16 steps from the beginning for the 2<sup>nd</sup> test screen and 0 steps from the beginning on the last test screen. </p>
+<p>Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.</p>
+</div>
 <h2 id="setup-configuration-performance-of-chiakichiaki4deck">Performance of Chiaki/<code>chiaki4deck</code><a class="headerlink" href="#setup-configuration-performance-of-chiakichiaki4deck" title="Permanent link">&para;</a></h2>
 <h3 id="setup-configuration-my-experience">My Experience<a class="headerlink" href="#setup-configuration-my-experience" title="Permanent link">&para;</a></h3>
 <p>Ultimately, the performance will depend on the capability of your wireless router and which system (<span class="arithmatex">\(PS5 &gt; PS4 Pro &gt; PS4\)</span>) you are using. Here are some notes from my experience using <code>chiaki4deck</code> on my Steam Deck with a PS5 console and a relatively good (<span class="arithmatex">\(450 Mbps\)</span> for <span class="arithmatex">\(2.4GHz\)</span> / <span class="arithmatex">\(1,300 Mbps\)</span> for <span class="arithmatex">\(5GHz\)</span>) wireless router.</p>
@@ -2340,6 +2405,10 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <p><img alt="Browse Games" src="../setup/images/ChooseBrowse.png" /></p>
 </li>
 <li>
+<p>Show hidden files using the GUI or <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-h">H</kbd></span> (to see the hidden <code>.</code> directories)</p>
+<p><img alt="Show Hidden Files" src="../setup/images/ShowHiddenFiles.png" /></p>
+</li>
+<li>
 <p>Choose <code>Chiaki-launcher.sh</code> as your game</p>
 <div class="admonition tip">
 <p class="admonition-title">If You're missing <code>Chiaki-launcher.sh</code>, You Skipped the Automation Section</p>
@@ -2959,6 +3028,16 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-150">1.5.0<a class="headerlink" href="#updates-releases-150" title="Permanent link">&para;</a></h3>
+<p>HDR support</p>
+<ul>
+<li>Adds HDR support for Chiaki4deck perfect with the Steam Deck OLED (<a href="#setup-configuration-hdr-high-dynamic-range">see the configuration section</a> for more details).</li>
+<li>New libplacebo vulkan renderer with better picture quality due to post-processing techniques like debanding (now the default renderer)</li>
+<li>Adds option to use controller by positional layout instead of button labels (particularly for Nintendo-style controllers)</li>
+<li>Adds launcher script for appimage</li>
+<li>Adds vulkan video decoding for video cards that support it (Steam Deck doesn't)</li>
+<li>Implements basic FEC error concealment to improve streaming experience (white flashses / green blocking)</li>
+</ul>
 <h3 id="updates-releases-141">1.4.1<a class="headerlink" href="#updates-releases-141" title="Permanent link">&para;</a></h3>
 <p>Small patch release</p>
 <ul>
@@ -3148,6 +3227,19 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>Enabled Automated Launch</p>
 </li>
 </ol></section><section class="print-page" id="updates-done"><h1 id="updates-done-completed-done-updates">Completed (Done) Updates<a class="headerlink" href="#updates-done-completed-done-updates" title="Permanent link">&para;</a></h1>
+<h2 id="updates-done-hdr-for-steam-deck-oled-in-game-mode">HDR for Steam Deck OLED in game mode<a class="headerlink" href="#updates-done-hdr-for-steam-deck-oled-in-game-mode" title="Permanent link">&para;</a></h2>
+<p>You can now use <a href="#setup-configuration-hdr-high-dynamic-range">HDR with your Steam Deck OLED</a> thanks to <a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a> and <a href="https://github.com/nowrep" rel="noopener" target="_blank">David Rosca</a> as well as many patient testers. In order to enable this, you must have:</p>
+<ol>
+<li>
+<p>An HDR-capable streaming device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck(non-HDR device will still work but use <a href="https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/" rel="noopener" target="_blank">tonemapping</a> instead of outputting HDR)</p>
+</li>
+<li>
+<p>A PlayStation 5 console (PlayStation 4 doesn't support H265 streaming)</p>
+</li>
+<li>
+<p>An HDR-capable TV/monitor attached to your Playstation 5 (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR. You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those)</p>
+</li>
+</ol>
 <h2 id="updates-done-enabled-touchpad-for-steam-deck-touchscreen-andor-trackpads">Enabled Touchpad for Steam Deck Touchscreen and/or Trackpads<a class="headerlink" href="#updates-done-enabled-touchpad-for-steam-deck-touchscreen-andor-trackpads" title="Permanent link">&para;</a></h2>
 <p>Added Touchpad support for touchscreens (use outer edges of touchscreen for touchpad click) as well as mouse input (enables trackpads to be fully supported with gestures on touch and touchpad click on click). For an example mapping these in a Steam Deck controller profile, see <a href="#setup-controlling-default-chiaki4deck-layout-touchscreen-mapping" rel="noopener" target="_blank">Default <code>chiaki4deck</code> Layout Touchscreen Mapping</a> and <a href="#setup-controlling-default-chiaki4deck-layout-trackpad-mapping" rel="noopener" target="_blank">Default <code>chiaki4deck</code> Layout Trackpad Mapping</a> respectively. Downloading the updated <code>chiaki4deck+</code> controller layout will have these mappings set for your convenience.</p>
 <h2 id="updates-done-enabled-gyro-for-steam-deck">Enabled Gyro for Steam Deck<a class="headerlink" href="#updates-done-enabled-gyro-for-steam-deck" title="Permanent link">&para;</a></h2>
@@ -3155,7 +3247,7 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <h2 id="updates-done-enabled-mic-support">Enabled Mic Support<a class="headerlink" href="#updates-done-enabled-mic-support" title="Permanent link">&para;</a></h2>
 <p>You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.</p>
 <h2 id="updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">[Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
-<p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#updates-done-fn:2">2</a></sup>.</p>
+<p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#updates-done-fn:2">2</a></sup>.</p>
 <p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
 Since these features are experimental, you need to opt-in via a checkbox in the GUI.</p>
 <h2 id="updates-done-updated-rgb-mapping">Updated RGB Mapping<a class="headerlink" href="#updates-done-updated-rgb-mapping" title="Permanent link">&para;</a></h2>
@@ -3278,13 +3370,6 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <p class="admonition-title">For Advanced Users Only</p>
 <p>This is for advanced users who are comfortable going through the build process themselves, such as those who want to build on top of the changes I have made. For regular users, please install using the <a href="#setup-installation" rel="noopener" target="_blank">Installation Section</a>.</p>
 </div>
-<div class="admonition danger">
-<p class="admonition-title">Do not try this on the Preview release branch for the Steam Deck</p>
-<p>Running these instructions on the preview build will cause openssl headers to be deleted which isn't good and results in this error:</p>
-<div class="highlight"><pre><span></span><code>error while loading shared libraries: libcrypto.so.1.1: cannot open shared object file: No such file or directory.
-</code></pre></div>
-<p>This will require you to manually download openssl from the <a href="https://steamdeck-packages.steamos.cloud/archlinux-mirror/core-main/os/x86_64/openssl-1.1-1.1.1.u-1-x86_64.pkg.tar.zst" rel="noopener" target="_blank">Steam Deck package mirror</a> and put the libs from that pkg (under /usr/lib once untarred) into /usr/lib/ before turning the system off to prevent bricking your system. In other words, don't do this.</p>
-</div>
 <h2 id="diy-buildit-prerequisites">Prerequisites<a class="headerlink" href="#diy-buildit-prerequisites" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
@@ -3343,7 +3428,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 <li>
 <p>Install dependencies</p>
-<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>pacman<span class="w"> </span>-Syy<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>pacman<span class="w"> </span>-S<span class="w"> </span>gnupg<span class="w"> </span>curl<span class="w"> </span>flatpak<span class="w"> </span>flatpak-builder
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>pacman<span class="w"> </span>-Syy<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>pacman<span class="w"> </span>-S<span class="w"> </span>flatpak-builder
 </code></pre></div>
 </li>
 <li>
@@ -3367,7 +3452,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <ol>
 <li>
 <p>Install the necessary <a href="https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes" rel="noopener" target="_blank">flatpak runtime</a> and associated <a href="https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks" rel="noopener" target="_blank">sdk</a></p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>flathub<span class="w"> </span>org.kde.Platform//5.15-22.08<span class="w"> </span>flathub<span class="w"> </span>org.kde.Sdk//5.15-22.08
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>flathub<span class="w"> </span>org.kde.Platform//5.15-23.08<span class="w"> </span>flathub<span class="w"> </span>org.kde.Sdk//5.15-23.08
 </code></pre></div>
 </li>
 <li>
@@ -3527,7 +3612,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 <li>
 <p>Install the <code>Debug</code> extensions for the SDK</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//5.15-22.08
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//5.15-23.08
 </code></pre></div>
 </li>
 <li>

@@ -495,6 +495,19 @@
     Choosing your Remote Play Settings
   </a>
   
+    <nav class="md-nav" aria-label="Choosing your Remote Play Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hdr-high-dynamic-range" class="md-nav__link">
+    HDR (High Dynamic Range)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -847,6 +860,19 @@
   <a href="#choosing-your-remote-play-settings" class="md-nav__link">
     Choosing your Remote Play Settings
   </a>
+  
+    <nav class="md-nav" aria-label="Choosing your Remote Play Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hdr-high-dynamic-range" class="md-nav__link">
+    HDR (High Dynamic Range)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1206,9 +1232,22 @@
 <p><img alt="Open Settings" src="../images/OpenSettings.png" /></p>
 </li>
 <li>
-<p>Adjust the settings to your preferences. Below are the settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p</strong> tab if you have a PS5 or the <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">PS5/1080P</label><label for="__tabbed_8_2">PS4/720P</label></div>
+<p>Adjust the settings to your preferences. </p>
+<ol>
+<li>
+<p>General Settings for Steam Deck</p>
+<p><img alt="General Settings" src="../images/MainSettings.png" /></p>
+</li>
+<li>
+<p>Below are the Stream settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5/1080p</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
+</li>
+</ol>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:3"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">PS5/1080P HDR</label><label for="__tabbed_8_2">PS5/1080P</label><label for="__tabbed_8_3">PS4/720P</label></div>
 <div class="tabbed-content">
+<div class="tabbed-block">
+<p>Stream output can be up to 1080p with <a href="#hdr-high-dynamic-range">HDR</a>. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
+<p><img alt="1080p Settings" src="../images/1080P_SettingsHDR.png" /></p>
+</div>
 <div class="tabbed-block">
 <p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
 <p><img alt="1080p Settings" src="../images/1080P_Settings.png" /></p>
@@ -1229,6 +1268,10 @@
 </div>
 </div>
 <div class="admonition info">
+<p class="admonition-title">Use Buttons by Position Instead of by Label</p>
+<p>This enables the option to use the face buttons of your controller by position (i.e., NSEW) as opposed to by their label (i.e., ABXY). This enables you to use a Nintendo-style controller and still be able to use the buttons in the same positions as on a PlayStation controller instead of the swapped Nintendo controller positions.</p>
+</div>
+<div class="admonition info">
 <p class="admonition-title">Use Steam Deck in Vertical Orientation</p>
 <p>For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).</p>
 </div>
@@ -1239,6 +1282,38 @@
 </div>
 </li>
 </ol>
+<h3 id="hdr-high-dynamic-range">HDR (High Dynamic Range)<a class="headerlink" href="#hdr-high-dynamic-range" title="Permanent link">&para;</a></h3>
+<p>HDR is now supported when you select the <code>H265 HDR (PS5 only)</code> codec option. For HDR to work you need to:</p>
+<ol>
+<li>
+<p>Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use <a href="https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/" rel="noopener" target="_blank">tonemapping</a> instead of outputting HDR)</p>
+<details class="question" open="open">
+<summary>How do I know when HDR is active on my Steam Deck?</summary>
+<p>You can see when HDR is active by hitting the quick access button (3 dots button on the bottom right of the Steam Deck) going to the gear icon and looking at <code>BRIGHTNESS</code>. When HDR is active there will be a purple/blue banner to the right of the <code>BRIGHTNESS</code> label.</p>
+</details>
+</li>
+<li>
+<p>Connect your PS5 to a device such as an HDR TV or monitor (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR)</p>
+<details class="question" open="open">
+<summary>How do I know if the PS5 is outputting HDR?</summary>
+<p>You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those.</p>
+</details>
+</li>
+<li>
+<p>Enable HDR in your PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; HDR</code> and selecting either <code>Always On</code> or <code>On When Supported</code>.</p>
+</li>
+<li>
+<p>Select <code>H265 HDR (PS5 only)</code> as your codec option in <code>chiaki4deck</code></p>
+</li>
+<li>
+<p>Launch <code>chiaki4deck</code> via gamescope (i.e., game mode on the Steam Deck)</p>
+</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Adjusting PS5 HDR for Steam Deck</p>
+<p>You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; Adjust HDR</code>. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via <a href="https://github.com/arshiatn" rel="noopener" target="_blank">arshiatn</a>) for an 1000 nits display you want to use 16-16-0 for the HDR settings. To set this in the <code>Adjust HDR set</code> move 16 steps (16 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 16 steps from the beginning for the 2<sup>nd</sup> test screen and 0 steps from the beginning on the last test screen. </p>
+<p>Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.</p>
+</div>
 <h2 id="performance-of-chiakichiaki4deck">Performance of Chiaki/<code>chiaki4deck</code><a class="headerlink" href="#performance-of-chiakichiaki4deck" title="Permanent link">&para;</a></h2>
 <h3 id="my-experience">My Experience<a class="headerlink" href="#my-experience" title="Permanent link">&para;</a></h3>
 <p>Ultimately, the performance will depend on the capability of your wireless router and which system (<span class="arithmatex">\(PS5 &gt; PS4 Pro &gt; PS4\)</span>) you are using. Here are some notes from my experience using <code>chiaki4deck</code> on my Steam Deck with a PS5 console and a relatively good (<span class="arithmatex">\(450 Mbps\)</span> for <span class="arithmatex">\(2.4GHz\)</span> / <span class="arithmatex">\(1,300 Mbps\)</span> for <span class="arithmatex">\(5GHz\)</span>) wireless router.</p>
@@ -1332,7 +1407,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 22, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">December 3, 2023</span>
       
         <br>
         Created:
