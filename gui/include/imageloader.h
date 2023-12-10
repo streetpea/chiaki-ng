@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 09/12/2023.
-//
-
 #ifndef IMAGELOADER_H
 #define IMAGELOADER_H
 #include <QDialog>

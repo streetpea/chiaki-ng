@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 09/12/2023.
-//
-
 #ifndef STEAMGRIDDBAPI_H
 #define STEAMGRIDDBAPI_H
 
@@ -13,7 +9,7 @@
 namespace SteamGridDb {
     static std::vector<std::string> gameIDs = {"5247907"};
     static std::string apiRoot = "https://www.steamgriddb.com/api/v2";
-    static std::string apiKey = "f80f92019254471cca9d62ff91c21eee";
+    static std::string apiKey = "112c9e0822e85e054b87793e684b231a"; //API Key for @Nikorag
 
     // Callback function to write the response data to a string
     inline size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {

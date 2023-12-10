@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 08/12/2023.
-//
-
 #ifndef VDFSTATEMACHINE_H
 #define VDFSTATEMACHINE_H
 

@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 07/12/2023.
-//
-
 #ifndef VDFPARSER_H
 #define VDFPARSER_H
 #include <fstream>
