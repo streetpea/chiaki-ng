@@ -23,6 +23,7 @@ struct chiaki_ffmpeg_decoder_t
 	AVCodecContext *codec_context;
 	enum AVPixelFormat hw_pix_fmt;
 	AVBufferRef *hw_device_ctx;
+	bool hdr_enabled;
 	ChiakiMutex cb_mutex;
 	ChiakiFfmpegFrameAvailable frame_available_cb;
 	void *frame_available_cb_user;
@@ -33,7 +34,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user);
 CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder);
 CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, void *user);
-CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder);
+CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, bool hw_download);
 CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFfmpegDecoder *decoder);
 
 #ifdef __cplusplus

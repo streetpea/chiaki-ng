@@ -263,7 +263,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void
 #else
 	struct timespec timeout;
 	set_timeout(&timeout, timeout_ms);
-	int r = pthread_timedjoin_np(thread->thread, retval, &timeout);
+	int r = pthread_clockjoin_np(thread->thread, retval, CLOCK_MONOTONIC, &timeout);
 	if(r != 0)
 	{
 		if(r == ETIMEDOUT)

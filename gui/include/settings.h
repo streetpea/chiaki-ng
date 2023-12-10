@@ -36,6 +36,20 @@ enum class Decoder
 	Pi
 };
 
+enum class Renderer
+{
+	OpenGL,
+	PlaceboVk
+};
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
+enum class PlaceboPreset {
+	Fast,
+	Default,
+	HighQuality
+};
+#endif
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -95,6 +109,14 @@ class Settings : public QObject
 
 		QString GetHardwareDecoder() const;
 		void SetHardwareDecoder(const QString &hw_decoder);
+
+		Renderer GetRenderer() const;
+		void SetRenderer(Renderer renderer);
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
+		PlaceboPreset GetPlaceboPreset() const;
+		void SetPlaceboPreset(PlaceboPreset preset);
+#endif
 
 		unsigned int GetAudioBufferSizeDefault() const;
 

@@ -6,9 +6,9 @@
 #include <QMainWindow>
 
 #include "streamsession.h"
+#include "avwidget.h"
 
 class QLabel;
-class AVOpenGLWidget;
 
 class StreamWindow: public QMainWindow
 {
@@ -21,7 +21,7 @@ class StreamWindow: public QMainWindow
 	private:
 		const StreamSessionConnectInfo connect_info;
 		StreamSession *session;
-		AVOpenGLWidget *av_widget;
+		IAVWidget *av_widget;
 
 		void Init();
 		void UpdateVideoTransform();
@@ -30,6 +30,7 @@ class StreamWindow: public QMainWindow
 		void keyPressEvent(QKeyEvent *event) override;
 		void keyReleaseEvent(QKeyEvent *event) override;
 		bool event(QEvent *event) override;
+		bool eventFilter(QObject *obj, QEvent *event) override;
 		void closeEvent(QCloseEvent *event) override;
 		void mousePressEvent(QMouseEvent *event) override;
 		void mouseReleaseEvent(QMouseEvent *event) override;

@@ -11,56 +11,83 @@ if(WIN32)
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
+set(SOURCE_FILES
+	include/exception.h
+	src/main.cpp
+	include/streamwindow.h
+	src/streamwindow.cpp
+	include/mainwindow.h
+	src/mainwindow.cpp
+	include/dynamicgridwidget.h
+	src/dynamicgridwidget.cpp
+	include/serveritemwidget.h
+	src/serveritemwidget.cpp
+	include/discoverymanager.h
+	src/discoverymanager.cpp
+	include/streamsession.h
+	src/streamsession.cpp
+	include/sessionlog.h
+	src/sessionlog.cpp
+	include/avopenglwidget.h
+	src/avopenglwidget.cpp
+	include/avopenglframeuploader.h
+	src/avopenglframeuploader.cpp
+	include/servericonwidget.h
+	src/servericonwidget.cpp
+	include/settings.h
+	src/settings.cpp
+	include/registdialog.h
+	src/registdialog.cpp
+	include/host.h
+	src/host.cpp
+	include/settingskeycapturedialog.h
+	src/settingskeycapturedialog.cpp
+	include/settingsdialog.h
+	src/settingsdialog.cpp
+	include/manualhostdialog.h
+	src/manualhostdialog.cpp
+	res/resources.qrc
+	include/controllermanager.h
+	src/controllermanager.cpp
+	include/loginpindialog.h
+	src/loginpindialog.cpp
+  include/shortcutdialog.h
+	src/shortcutdialog.cpp)
 set(RESOURCE_FILES "")
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki.icns")
 endif()
 
+if (CHIAKI_ENABLE_PLACEBO)
+	list(APPEND SOURCE_FILES
+		include/avplacebowidget.h
+		src/avplacebowidget.cpp
+		include/avplaceboframeuploader.h
+		src/avplaceboframeuploader.cpp
+	)
+endif()
+
 add_executable(chiaki WIN32
 		${RESOURCE_FILES}
-		include/exception.h
-		src/main.cpp
-		include/streamwindow.h
-		src/streamwindow.cpp
-		include/mainwindow.h
-		src/mainwindow.cpp
-		include/dynamicgridwidget.h
-		src/dynamicgridwidget.cpp
-		include/serveritemwidget.h
-		src/serveritemwidget.cpp
-		include/discoverymanager.h
-		src/discoverymanager.cpp
-		include/streamsession.h
-		src/streamsession.cpp
-		include/sessionlog.h
-		src/sessionlog.cpp
-		include/avopenglwidget.h
-		src/avopenglwidget.cpp
-		include/avopenglframeuploader.h
-		src/avopenglframeuploader.cpp
-		include/servericonwidget.h
-		src/servericonwidget.cpp
-		include/settings.h
-		src/settings.cpp
-		include/registdialog.h
-		src/registdialog.cpp
-		include/host.h
-		src/host.cpp
-		include/settingskeycapturedialog.h
-		src/settingskeycapturedialog.cpp
-		include/settingsdialog.h
-		src/settingsdialog.cpp
-		include/manualhostdialog.h
-		src/manualhostdialog.cpp
-		res/resources.qrc
-		include/controllermanager.h
-		src/controllermanager.cpp
-		include/loginpindialog.h
-		src/loginpindialog.cpp
-		include/shortcutdialog.h
-		src/shortcutdialog.cpp)
+		${SOURCE_FILES}
+)
 target_include_directories(chiaki PRIVATE include)
+
+
+if(CHIAKI_ENABLE_PLACEBO)
+	if (NOT TARGET Qt5::GuiPrivate)
+		message(FATAL_ERROR "Placebo renderer requires Qt5::GuiPrivate, please install qtbase5-private-dev if you're on Ubuntu/Debian.")
+		return()
+	endif()
+
+	target_link_libraries(chiaki Qt5::GuiPrivate)
+	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_PLACEBO)
+	add_library(placebo-libav-impl src/libav_impl.c)
+	target_link_libraries(placebo-libav-impl PkgConfig::LIBPLACEBO avcodec avutil avformat)
+	target_link_libraries(chiaki placebo-libav-impl)
+	target_link_libraries(chiaki PkgConfig::LIBPLACEBO)
+endif()
 
 target_link_libraries(chiaki chiaki-lib)
 if(CHIAKI_ENABLE_CLI)
