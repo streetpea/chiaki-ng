@@ -24,12 +24,11 @@ jobs:
         working-directory: chiaki4deck/scripts
         run: |
           ./run-podman-build-appimage.sh
-          chmod +x ../appimage/Chiaki4deck.AppImage
 
       - name: Upload Chiaki4deck Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Chiaki4deck-win_x64-VC-Release
+          name: Chiaki4deck.AppImage
           path: chiaki4deck/appimage/Chiaki4deck.AppImage
           if-no-files-found: error
           retention-days: 1

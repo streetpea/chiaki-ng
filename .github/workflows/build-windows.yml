@@ -181,8 +181,8 @@ jobs:
 
       - name: Remove qtaudio_windows.dll to fix choppy audio
         working-directory: chiaki4deck
-        run: !
-          Remove-Item -Path Chiaki4deck-VC\audio\qtaudio_windows.dll
+        run: |
+          rm Chiaki4deck-VC\audio\qtaudio_windows.dll
 
       - name: Package Chiaki4deck
         working-directory: chiaki4deck

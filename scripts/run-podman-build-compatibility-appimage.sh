@@ -11,5 +11,5 @@ podman run --rm \
 	--device /dev/fuse \
 	--cap-add SYS_ADMIN \
 	-t chiaki-focal \
-	/bin/bash -c "scripts/build-appimage-compatibility.sh /build/appdir"
+	/bin/bash -c "scripts/build-compatibility-appimage.sh /build/appdir"
 
