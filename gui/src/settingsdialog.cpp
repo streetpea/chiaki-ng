@@ -22,6 +22,7 @@
 #include <QLineEdit>
 #include <QtConcurrent>
 #include <QFutureWatcher>
+#include <QTabWidget>
 #if CHIAKI_GUI_ENABLE_SPEEX
 #include <QSlider>
 #include <QLabel>
@@ -51,6 +52,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	setWindowTitle(tr("Settings"));
 
 	auto root_layout = new QVBoxLayout(this);
+	root_layout->setContentsMargins(4, 4, 4, 4);
+	root_layout->setSpacing(4);
 	setLayout(root_layout);
 
 	auto scroll_area = new QScrollArea(this);
@@ -58,20 +61,28 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	root_layout->addWidget(scroll_area);
 
+	auto tab_widget = new QTabWidget(this);
+	tab_widget->setTabPosition(QTabWidget::West);
+	tab_widget->tabBar()->setIconSize(QSize(32, 32));
+	scroll_area->setWidget(tab_widget);
+
 	auto scroll_content_widget = new QWidget(scroll_area);
 	resize(1280, 800);
-	auto scroll_content_layout = new QVBoxLayout(scroll_content_widget);
-	scroll_content_widget->setLayout(scroll_content_layout);
-	scroll_area->setWidget(scroll_content_widget);
-
 	auto horizontal_layout = new QHBoxLayout();
-	scroll_content_layout->addLayout(horizontal_layout);
+	scroll_content_widget->setLayout(horizontal_layout);
+	tab_widget->addTab(scroll_content_widget, QIcon(":icons/settings-20px.svg"), tr("General"));
 
 	auto left_layout = new QVBoxLayout();
 	horizontal_layout->addLayout(left_layout);
 
 	auto right_layout = new QVBoxLayout();
 	horizontal_layout->addLayout(right_layout);
+
+	QWidget *other_tab = new QWidget();
+	tab_widget->addTab(other_tab, QIcon(":icons/discover-24px.svg"), tr("Stream && Consoles"));
+
+	auto other_layout = new QVBoxLayout();
+	other_tab->setLayout(other_layout);
 
 	// General
 
@@ -92,6 +103,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	general_layout->addRow(tr("PS5 Features [Experimental]:\nEnable haptics and adaptive triggers\nfor attached DualSense controllers\nand haptics for Steam Deck\nif no DualSense attached."), dualsense_check_box);
 	dualsense_check_box->setChecked(settings->GetDualSenseEnabled());
 	connect(dualsense_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::DualSenseChanged);
+
+	buttons_pos_check_box = new QCheckBox(this);
+	general_layout->addRow(tr("Use buttons by position\n instead of by label."), buttons_pos_check_box);
+	buttons_pos_check_box->setChecked(settings->GetButtonsByPosition());
+	connect(buttons_pos_check_box, &QCheckBox::stateChanged, this, &SettingsDialog::ButtonsPosChanged);
 
 	vertical_sdeck_check_box = new QCheckBox(this);
 	general_layout->addRow(tr("Use Steam Deck in vertical\norientation (for motion controls)."), vertical_sdeck_check_box);
@@ -230,7 +246,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Stream Settings
 
 	auto stream_settings_group_box = new QGroupBox(tr("Stream Settings"));
-	left_layout->addWidget(stream_settings_group_box);
+	other_layout->addWidget(stream_settings_group_box);
 
 	auto stream_settings_layout = new QFormLayout();
 	stream_settings_group_box->setLayout(stream_settings_layout);
@@ -278,11 +294,18 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	codec_combo_box = new QComboBox(this);
 	static const QList<QPair<ChiakiCodec, QString>> codec_strings = {
 		{ CHIAKI_CODEC_H264, "H264" },
-		{ CHIAKI_CODEC_H265, "H265 (PS5 only)" }
+		{ CHIAKI_CODEC_H265, "H265 (PS5 only)" },
+#if CHIAKI_GUI_ENABLE_PLACEBO
+		{ CHIAKI_CODEC_H265_HDR, "H265 HDR (PS5 only)" }
+#endif
 	};
 	auto current_codec = settings->GetCodec();
 	for(const auto &p : codec_strings)
 	{
+		// HDR is only supported with Placebo Vulkan renderer
+		if (p.first == CHIAKI_CODEC_H265_HDR && settings->GetRenderer() != Renderer::PlaceboVk)
+			continue;
+
 		codec_combo_box->addItem(p.second, (int)p.first);
 		if(current_codec == p.first)
 			codec_combo_box->setCurrentIndex(codec_combo_box->count() - 1);
@@ -301,7 +324,7 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	// Decode Settings
 
 	auto decode_settings = new QGroupBox(tr("Decode Settings"));
-	left_layout->addWidget(decode_settings);
+	other_layout->addWidget(decode_settings);
 
 	auto decode_settings_layout = new QFormLayout();
 	decode_settings->setLayout(decode_settings_layout);
@@ -336,10 +359,51 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	decode_settings_layout->addRow(tr("Hardware decode method:"), hw_decoder_combo_box);
 	UpdateHardwareDecodeEngineComboBox();
 
-	// Registered Consoles
+#if CHIAKI_GUI_ENABLE_PLACEBO
+	// Renderer Settings
+	auto renderer_settings = new QGroupBox(tr("Renderer Settings"));
+	other_layout->addWidget(renderer_settings);
 
+	renderer_settings_layout = new QFormLayout();
+	renderer_settings->setLayout(renderer_settings_layout);
+
+	renderer_combo_box = new QComboBox(this);
+	static const QList<QPair<Renderer, QString>> renderer_strings = {
+		{ Renderer::OpenGL, "OpenGL" },
+		{ Renderer::PlaceboVk, "Placebo (Vulkan, needed for HDR)" }
+	};
+
+	auto current_renderer = settings->GetRenderer();
+	for(const auto &p : renderer_strings)
+	{
+		renderer_combo_box->addItem(p.second, (int)p.first);
+		if(current_renderer == p.first)
+			renderer_combo_box->setCurrentIndex(renderer_combo_box->count() - 1);
+	}
+	connect(renderer_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(RendererSelected()));
+	renderer_settings_layout->addRow(tr("Renderer:"), renderer_combo_box);
+
+	placebo_preset_combo_box = new QComboBox(this);
+	static const QList<QPair<PlaceboPreset, QString>> placebo_preset_strings = {
+		{ PlaceboPreset::Default, "Default (balance of performance and quality)" },
+		{ PlaceboPreset::Fast, "Fast (no advanced rendering features)" },
+		{ PlaceboPreset::HighQuality, "High Quality" }
+	};
+	auto current_placebo_preset = settings->GetPlaceboPreset();
+	for(const auto &p : placebo_preset_strings)
+	{
+		placebo_preset_combo_box->addItem(p.second, (int)p.first);
+		if(current_placebo_preset == p.first)
+			placebo_preset_combo_box->setCurrentIndex(placebo_preset_combo_box->count() - 1);
+	}
+	connect(placebo_preset_combo_box, SIGNAL(currentIndexChanged(int)), this, SLOT(PlaceboPresetSelected()));
+	if (current_renderer == Renderer::PlaceboVk)
+		renderer_settings_layout->addRow(tr("Placebo Preset:"), placebo_preset_combo_box);
+#endif
+
+	// Registered Consoles
 	auto registered_hosts_group_box = new QGroupBox(tr("Registered Consoles"));
-	left_layout->addWidget(registered_hosts_group_box);
+	other_layout->addWidget(registered_hosts_group_box);
 
 	auto registered_hosts_layout = new QHBoxLayout();
 	registered_hosts_group_box->setLayout(registered_hosts_layout);
@@ -396,7 +460,8 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	// Close Button
 	auto button_box = new QDialogButtonBox(QDialogButtonBox::Close, this);
-	scroll_content_layout->addWidget(button_box);
+	button_box->button(QDialogButtonBox::Close)->setMinimumSize(140, 40);
+	root_layout->addWidget(button_box);
 	connect(button_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	button_box->button(QDialogButtonBox::Close)->setDefault(true);
 
@@ -426,6 +491,11 @@ void SettingsDialog::LogVerboseChanged()
 void SettingsDialog::DualSenseChanged()
 {
 	settings->SetDualSenseEnabled(dualsense_check_box->isChecked());
+}
+
+void SettingsDialog::ButtonsPosChanged()
+{
+	settings->SetButtonsByPosition(buttons_pos_check_box->isChecked());
 }
 
 void SettingsDialog::DeckOrientationChanged()
@@ -483,6 +553,44 @@ void SettingsDialog::UpdateHardwareDecodeEngineComboBox()
 {
 	hw_decoder_combo_box->setEnabled(settings->GetDecoder() == Decoder::Ffmpeg);
 }
+
+void SettingsDialog::RendererSelected()
+{
+	Renderer current_renderer = settings->GetRenderer();
+	Renderer new_renderer = (Renderer)renderer_combo_box->currentData().toInt();
+
+	if (current_renderer == new_renderer)
+		return;
+
+	settings->SetRenderer(new_renderer);
+
+#ifdef CHIAKI_GUI_ENABLE_PLACEBO
+	// Update codec combo box and codec setting if HDR becomes available/unavailable
+	if (new_renderer == Renderer::PlaceboVk)
+	{
+		codec_combo_box->addItem("H265 HDR (PS5 only)", (int)CHIAKI_CODEC_H265_HDR);
+		renderer_settings_layout->insertRow(1, tr("Placebo Preset:"), placebo_preset_combo_box);
+	}
+	else if (current_renderer == Renderer::PlaceboVk)
+	{
+		ChiakiCodec current_codec = settings->GetCodec();
+		if (current_codec == CHIAKI_CODEC_H265_HDR)
+		{
+			settings->SetCodec(CHIAKI_CODEC_H265);
+			codec_combo_box->setCurrentIndex(codec_combo_box->findData((int)CHIAKI_CODEC_H265));
+		}
+		codec_combo_box->removeItem(codec_combo_box->findData((int)CHIAKI_CODEC_H265_HDR));
+		renderer_settings_layout->removeRow(placebo_preset_combo_box);
+	}
+#endif
+}
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
+void SettingsDialog::PlaceboPresetSelected()
+{
+	settings->SetPlaceboPreset((PlaceboPreset)placebo_preset_combo_box->currentData().toInt());
+}
+#endif
 
 void SettingsDialog::UpdateBitratePlaceholder()
 {

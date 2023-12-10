@@ -10,6 +10,7 @@ class QListWidget;
 class QComboBox;
 class QCheckBox;
 class QLineEdit;
+class QFormLayout;
 #if CHIAKI_GUI_ENABLE_SPEEX
 class QSlider;
 class QLabel;
@@ -25,6 +26,7 @@ class SettingsDialog : public QDialog
 		QCheckBox *log_verbose_check_box;
 		QComboBox *disconnect_action_combo_box;
 		QCheckBox *dualsense_check_box;
+		QCheckBox *buttons_pos_check_box;
 		QCheckBox *vertical_sdeck_check_box;
 		QCheckBox *automatic_connect_check_box;
 
@@ -37,6 +39,12 @@ class SettingsDialog : public QDialog
 		QComboBox *microphone_combo_box;
 		QCheckBox *pi_decoder_check_box;
 		QComboBox *hw_decoder_combo_box;
+		QComboBox *renderer_combo_box;
+#if CHIAKI_GUI_ENABLE_PLACEBO
+		QComboBox *placebo_preset_combo_box;
+
+		QFormLayout *renderer_settings_layout;
+#endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 		QCheckBox *speech_processing_check_box;
 		QSlider *noiseSuppress;
@@ -53,6 +61,7 @@ class SettingsDialog : public QDialog
 	private slots:
 		void LogVerboseChanged();
 		void DualSenseChanged();
+		void ButtonsPosChanged();
 		void DeckOrientationChanged();
 		void AutomaticConnectChanged();
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -69,6 +78,10 @@ class SettingsDialog : public QDialog
 		void AudioInputSelected();
 		void HardwareDecodeEngineSelected();
 		void UpdateHardwareDecodeEngineComboBox();
+		void RendererSelected();
+#if CHIAKI_GUI_ENABLE_PLACEBO
+		void PlaceboPresetSelected();
+#endif
 
 		void UpdateRegisteredHosts();
 		void UpdateRegisteredHostsButtons();

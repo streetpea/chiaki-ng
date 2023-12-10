@@ -28,7 +28,11 @@
 
     ![Browse Games](images/ChooseBrowse.png)
 
-3. Choose `Chiaki-launcher.sh` as your game
+3. Show hidden files using the GUI or ++ctrl+h++ (to see the hidden `.` directories)
+
+    ![Show Hidden Files](images/ShowHiddenFiles.png)
+
+4. Choose `Chiaki-launcher.sh` as your game
 
     !!! Tip "If You're missing `Chiaki-launcher.sh`, You Skipped the Automation Section"
 
@@ -36,7 +40,7 @@
 
     1. Choose `File type: All Files` at the bottom of the screen
 
-    2. Choose `/home/deck` from the dropdown at the top of the screen and then navigate by clicking on each folder to the folder `/home/deck/.var/app/re.chiaki.Chiaki4deck/config/Chiaki`
+    2. Choose `/home/deck` from the dropdown at the top of the screen and then navigate by clicking on each folder to the folder `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki`
 
     3. Click on the `Chiaki-launcher.sh` file in that directory
 
@@ -44,7 +48,7 @@
 
     ![Chiaki Launcher Select](images/SelectChiakiLauncher.png)
 
-4. Click `Add Selected Programs`
+5. Click `Add Selected Programs`
 
     ![Add Selected Program](images/AddChiakiLauncher.png)
 

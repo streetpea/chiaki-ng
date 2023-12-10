@@ -10,7 +10,7 @@
 
     1. Create initial file templates for `chiaki4deck`
 
-        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run re.chiaki.Chiaki4deck` in the `konsole`.
+        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run io.github.streetpea.Chiaki4deck` in the `konsole`.
 
             !!! Question "What if chiaki4deck doesn't appear in the `Games` section?"
 
@@ -21,7 +21,7 @@
     2. Copy your configuration file from the Chiaki flatpak with the following `konsole` command
 
         ``` bash
-        cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/re.chiaki.Chiaki4deck/config/Chiaki/Chiaki.conf
+        cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
         ```
 
     3. Open `chiaki4deck` again and you should see your registered console and settings from Chiaki now copied to `chiaki4deck`.
@@ -74,14 +74,14 @@
         1. Run the flatpak with the `psn-account-id` command
 
             ``` bash
-            flatpak run --command=psn-account-id re.chiaki.Chiaki4deck
+            flatpak run --command=psn-account-id io.github.streetpea.Chiaki4deck
             ```
 
         2. Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.
 
         3. Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.
 
-    4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run re.chiaki.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
+    4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
 
         ![Unregistered PS5](images/UnregisteredPS5.png)
 
@@ -202,7 +202,19 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
     ![Open Settings](images/OpenSettings.png)
 
-2. Adjust the settings to your preferences. Below are the settings you'll want to try first with your PlayStation console (choose the **PS5/1080p** tab if you have a PS5 or the **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+2. Adjust the settings to your preferences. 
+
+    1. General Settings for Steam Deck
+
+        ![General Settings](images/MainSettings.png)
+    
+    2. Below are the Stream settings you'll want to try first with your PlayStation console (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+
+    === "PS5/1080P HDR"
+
+        Stream output can be up to 1080p with [HDR](#hdr-high-dynamic-range). Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
+
+        ![1080p Settings](images/1080P_SettingsHDR.png)
 
     === "PS5/1080P"
 
@@ -226,6 +238,10 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
         ![720p Settings](images/720P_Settings.png)
 
+    !!! Info "Use Buttons by Position Instead of by Label"
+
+        This enables the option to use the face buttons of your controller by position (i.e., NSEW) as opposed to by their label (i.e., ABXY). This enables you to use a Nintendo-style controller and still be able to use the buttons in the same positions as on a PlayStation controller instead of the swapped Nintendo controller positions.
+
     !!! Info "Use Steam Deck in Vertical Orientation"
 
         For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).
@@ -235,6 +251,32 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
         For `Action on Disconnect`, choose `Ask` (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
         
         If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
+
+### HDR (High Dynamic Range)
+
+HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For HDR to work you need to:
+
+1. Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use [tonemapping](https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/){target="_blank" rel="noopener"} instead of outputting HDR)
+    
+    ???+ Question "How do I know when HDR is active on my Steam Deck?"
+        You can see when HDR is active by hitting the quick access button (3 dots button on the bottom right of the Steam Deck) going to the gear icon and looking at `BRIGHTNESS`. When HDR is active there will be a purple/blue banner to the right of the `BRIGHTNESS` label.
+
+2. Connect your PS5 to a device such as an HDR TV or monitor (depending on the connected HDR TV/monitor it may also need to be turned on for the PS5 to output HDR)
+
+    ???+ Question "How do I know if the PS5 is outputting HDR?"
+        You can test the PS5 is outputting HDR by going to a game that has HDR settings in the menu such as Cyberpunk 2077 or Ghost of Tsushima and seeing if the game will let you adjust those.
+
+3. Enable HDR in your PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> HDR` and selecting either `Always On` or `On When Supported`.
+
+4. Select `H265 HDR (PS5 only)` as your codec option in `chiaki4deck`
+
+5. Launch `chiaki4deck` via gamescope (i.e., game mode on the Steam Deck)
+
+!!! Tip "Adjusting PS5 HDR for Steam Deck"
+
+    You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> Adjust HDR`. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via [arshiatn](https://github.com/arshiatn){target="_blank" rel="noopener"}) for an 1000 nits display you want to use 16-16-0 for the HDR settings. To set this in the `Adjust HDR set` move 16 steps (16 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 16 steps from the beginning for the 2nd test screen and 0 steps from the beginning on the last test screen. 
+    
+    Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.
 
 ## Performance of Chiaki/`chiaki4deck`
 
@@ -260,7 +302,6 @@ Ultimately, the performance will depend on the capability of your wireless route
     Negatives:
 
     - occasional performance issues with certain games (specifically games with VSync enabled)
-    - lack of native microphone support (I use Discord with my friends so not an issue for me, but could be for others).
 
 !!! example "Games I've Played Successfully Using `chiaki4deck` So Far..."
 

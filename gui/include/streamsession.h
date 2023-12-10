@@ -64,6 +64,7 @@ struct StreamSessionConnectInfo
 	QMap<Qt::Key, int> key_map;
 	Decoder decoder;
 	QString hw_decoder;
+	Renderer renderer;
 	QString audio_out_device;
 	QString audio_in_device;
 	uint32_t log_level_mask;
@@ -80,6 +81,7 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
+	bool buttons_by_pos;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
 # endif

@@ -36,6 +36,20 @@ enum class Decoder
 	Pi
 };
 
+enum class Renderer
+{
+	OpenGL,
+	PlaceboVk
+};
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
+enum class PlaceboPreset {
+	Fast,
+	Default,
+	HighQuality
+};
+#endif
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -66,6 +80,9 @@ class Settings : public QObject
 		bool GetDualSenseEnabled() const		{ return settings.value("settings/dualsense_enabled", false).toBool(); }
 		void SetDualSenseEnabled(bool enabled)	{ settings.setValue("settings/dualsense_enabled", enabled); }
 
+		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
+		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
+
 		bool GetVerticalDeckEnabled() const       { return settings.value("settings/gyro_inverted", false).toBool(); }
 		void SetVerticalDeckEnabled(bool enabled) { settings.setValue("settings/gyro_inverted", enabled); }
 
@@ -92,6 +109,14 @@ class Settings : public QObject
 
 		QString GetHardwareDecoder() const;
 		void SetHardwareDecoder(const QString &hw_decoder);
+
+		Renderer GetRenderer() const;
+		void SetRenderer(Renderer renderer);
+
+#if CHIAKI_GUI_ENABLE_PLACEBO
+		PlaceboPreset GetPlaceboPreset() const;
+		void SetPlaceboPreset(PlaceboPreset preset);
+#endif
 
 		unsigned int GetAudioBufferSizeDefault() const;
 

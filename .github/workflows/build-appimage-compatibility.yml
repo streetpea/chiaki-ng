@@ -1,0 +1,34 @@
+name: Build Chiaki4deck Appimage Compatibility
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-appimage_compat_x64:
+    name: Build compatibility Chiaki4deck appimage_x64
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup Podman
+        run: |
+          sudo apt update
+          sudo apt-get -y install podman
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+          path: 'chiaki4deck'
+
+      - name: Run build script
+        working-directory: chiaki4deck/scripts
+        run: |
+          ./run-podman-build-compatibility-appimage.sh
+
+      - name: Upload Chiaki4deck Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Chiaki4deck-compatibility.AppImage
+          path: chiaki4deck/appimage/Chiaki4deck-compatibility.AppImage
+          if-no-files-found: error
+          retention-days: 1

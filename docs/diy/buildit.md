@@ -63,7 +63,7 @@
         4. Install dependencies
 
             ``` bash
-            sudo pacman -Syy && sudo pacman -S gnupg curl flatpak flatpak-builder
+            sudo pacman -Syy && sudo pacman -S flatpak-builder
             ```
 
         5. Re-enable read-only mode
@@ -85,7 +85,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"} and associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//5.15-22.08 flathub org.kde.Sdk//5.15-22.08
+    flatpak install -y flathub org.kde.Platform//5.15-23.08 flathub org.kde.Sdk//5.15-23.08
     ```
 
 2. Create a directory for your build files and switch into it
@@ -144,6 +144,6 @@
 2. Install your self-built `chiaki4deck` flatpak from your new remote
 
     ``` bash
-    flatpak --user install chiaki4deck-diy re.chiaki.Chiaki4deck
+    flatpak --user install chiaki4deck-diy io.github.streetpea.Chiaki4deck
     ```
 

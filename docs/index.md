@@ -26,7 +26,7 @@ Visit [chiaki4deck Releases](updates/releases.md){target="_blank" rel="noopener"
 
     I have provided a flatpak with my updates named `chiaki4deck` (to distinguish it from the official Chiaki release to avoid confusion if users have both installed) as a solution for users that want an easy way to use these improvements on their Steam Deck. For installation instructions, see the [Installation section](setup/installation.md){target="_blank" rel="noopener"}
     
-For users that want to build from source, I have also provided the updated source code on the accompanying GitHub repo (the link to the GitHub is on the top right [top left menu on mobile] of the site banner you see if you scroll to the top of any page). Instructions for this are in the [DIY section](diy/buildit.md){target="_blank" rel="noopener"}. As it stands, a lot of the documentation applies to the general Chiaki flatpak in addition to the `chiaki4deck` flatpak, but instructions are specifically tailored to `chiaki4deck` and the updates included therein. To use this documentation with the Chiaki flatpak replace `re.chiaki.Chiaki4deck` with `re.chiaki.Chiaki` where applicable and note that the features listed in the [Updates section](updates/done.md){target="_blank" rel="noopener"} will not work with that version (they only work with `chiaki4deck` until the main `Chiaki` flatpak gets an update.)
+For users that want to build from source, I have also provided the updated source code on the accompanying GitHub repo (the link to the GitHub is on the top right [top left menu on mobile] of the site banner you see if you scroll to the top of any page). Instructions for this are in the [DIY section](diy/buildit.md){target="_blank" rel="noopener"}. As it stands, a lot of the documentation applies to the general Chiaki flatpak in addition to the `chiaki4deck` flatpak, but instructions are specifically tailored to `chiaki4deck` and the updates included therein. To use this documentation with the Chiaki flatpak replace `io.github.streetpea.Chiaki4deck` with `re.chiaki.Chiaki` where applicable and note that the features listed in the [Updates section](updates/done.md){target="_blank" rel="noopener"} will not work with that version (they only work with `chiaki4deck` until the main `Chiaki` flatpak gets an update.)
 
 ## Submitting Documentation Updates
 
@@ -57,4 +57,5 @@ Please submit general issues to the [chiaki4deck GitHub](https://github.com/stre
 * [Johannes Baiter](https://github.com/jbaiter){target="_blank" rel="noopener"}
 * [Jamie Bartlett](https://github.com/Nikorag?tab=repositories){target="_blank" rel="noopener"}
 * [Joni Bimbashi](https://github.com/jonibim){target="_blank" rel="noopener"}
+* [David Rosca](https://github.com/nowrep){target="_blank" rel="noopener"}
 * [Street Pea](https://github.com/streetpea){target="_blank" rel="noopener"}

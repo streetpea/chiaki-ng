@@ -10,6 +10,10 @@ This is for contributors that want to make/test updates to the codebase without 
 
 1. Install flatpak and/or build a new one with any added dependencies following [Building the Flatpak Yourself](buildit.md){target="_blank" rel="noopener"}
 
+    ``` bash
+    flatpak install --user -y https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
+    ```
+
     !!! Info "Creating local flatpak builds"
 
         If you want to create flatpak builds from local files, you can do this by changing the manifest sources from:
@@ -18,7 +22,7 @@ This is for contributors that want to make/test updates to the codebase without 
         sources:
         - type: git
           url: https://github.com/streetpea/chiaki4deck.git
-          branch: chiaki4deck
+          branch: main
         ```
 
         to:
@@ -29,19 +33,25 @@ This is for contributors that want to make/test updates to the codebase without 
           path: path-to-chiaki4deck-git
         ```
 
-2. Install the `Debug` extensions for the SDK
+2. Copy config file from chiaki4deck
 
     ``` bash
-    flatpak install org.kde.Sdk.Debug//5.15-22.08
+    cp ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck-devel/config/Chiaki/Chiaki.conf 
     ```
 
-3. Install the `Debug` extension for the application build for debugging
+3. Install the `Debug` extensions for the SDK
 
     ``` bash
-    flatpak install re.chiaki.Chiaki4deck.Debug
+    flatpak install org.kde.Sdk.Debug//5.15-23.08
     ```
 
-4. Clone the project onto your Steam Deck with:
+4. Install the `Debug` extension for the application build for debugging
+
+    ``` bash
+    flatpak install io.github.streetpea.Chiaki4deck.Debug
+    ```
+
+5. Clone the project onto your Steam Deck with:
 
     === "HTTPS"
 
@@ -80,7 +90,7 @@ This is for contributors that want to make/test updates to the codebase without 
 2. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
 
     ``` bash
-    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel re.chiaki.Chiaki4deck
+    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel io.github.streetpea.Chiaki4deck-devel
     ```
 
     and `--env` is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)
@@ -95,6 +105,7 @@ This is for contributors that want to make/test updates to the codebase without 
             ``` bash
             mkdir Debug
             ```
+            
         3. Change into debug directory
 
             ``` bash
@@ -157,6 +168,10 @@ This is for contributors that want to make/test updates to the codebase without 
         ./gui/chiaki
         ```
 
+    !!! Note "Set vaapi to none"
+        
+        When running chiaki from within the flatpak like this please set vaapi to none as otherwise the video won't work. This is fine since you are just running Chiaki like this for development tests only so worse performance isn't a big concern.
+
 5. Make edits to the source code to implement your changes
 
     !!! Tip "Editing code on Steam Deck"
@@ -183,10 +198,10 @@ This is for contributors that want to make/test updates to the codebase without 
     flatpak-coredumpctl -m given_pid flatpak_name
     ```
 
-    ???+ Example "Example given pid 4822 and flatpak name `re.chiaki.Chiaki4deck`"
+    ???+ Example "Example given pid 4822 and flatpak name `io.github.streetpea.Chiaki4deck-devel`"
 
         ``` bash
-        flatpak-coredumpctl -m 4822 re.chiaki.Chiaki4deck
+        flatpak-coredumpctl -m 4822 io.github.streetpea.Chiaki4deck-devel
         ```
 
 3. Use gdb commands as per usual such as `bt full`

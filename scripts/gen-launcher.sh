@@ -5,12 +5,12 @@ set -Eeo pipefail
 
 # Allow users to override preset variables on command line via exports 
 #(i.e. export config_path=${HOME}/my_fav_path) before running script
-config_path=${config_path:-"${HOME}/.var/app/re.chiaki.Chiaki4deck/config/Chiaki"}
+config_path=${config_path:-"${HOME}/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki"}
 config_file=${config_file:-"${config_path}/Chiaki.conf"}
 if ! [ -f "${config_file}" ]
 then
     echo "Config file: ${config_file} does not exist" >&2
-    echo "Please run your flatpak at least once with: flatpak run re.chiaki.Chiaki4deck and try again" >&2
+    echo "Please run your flatpak at least once with: flatpak run io.github.streetpea.Chiaki4deck and try again" >&2
     exit 2
 fi
 if ! grep regist_key < "${config_file}" &>/dev/null
@@ -71,8 +71,8 @@ select_addr()
 {
     local address_type=""
     local addr=""
-    PS3="NOTICE: Use 1 unless you created a hostname (FQDN) for your PlayStation"$'\n'"Please select the number corresponding to your address type: "
-    select address_type in "IP" "hostname"
+    PS3="NOTICE: Use 1 unless you created a hostname/DDNS (FQDN) for your PlayStation"$'\n'"Please select the number corresponding to your address type: "
+    select address_type in "IP" "hostname/DDNS"
     do
         if [ -z "${address_type}" ]
         then
@@ -98,16 +98,61 @@ select_addr()
     else
         while true
         do
-            read -e -p $'Enter your PlayStation FQDN (hostname) (should be abc.ident like foo.bar.com):\x0a' addr
+            read -e -p $'Enter your PlayStation FQDN (hostname/DDNS) (should be abc.ident like foo.bar.com):\x0a' addr
             if fdqn_validator "${addr}" &>/dev/null
             then
                 break
             else
-                echo "FQDN (hostname) not valid: ${addr}. Please re-enter your hostname" >&2
+                echo "FQDN (hostname/DDNS) not valid: ${addr}. Please re-enter your hostname/DDNS" >&2
             fi
         done
     fi
     echo "${addr}"
+}
+
+append_discover_wakeup()
+{
+    cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
+	SECONDS=0
+	# Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
+	ps_status="\$(flatpak run io.github.streetpea.Chiaki4deck discover -h \${addr} 2>/dev/null)"
+	while ! echo "\${ps_status}" | grep -q 'ready\|standby'
+	do
+	    if [ \${SECONDS} -gt ${wait_timeout} ]
+	    then
+	        if [ "\${local}" = true ]
+	        then
+	            connect_error_loc
+	        else
+	            connect_error_ext
+	        fi
+	    fi
+	    sleep 1
+	    ps_status="\$(flatpak run io.github.streetpea.Chiaki4deck discover -h \${addr} 2>/dev/null)"
+	done
+
+	# Wake up console from sleep/rest mode if not already awake
+	if ! echo "\${ps_status}" | grep -q ready
+	then
+	    flatpak run io.github.streetpea.Chiaki4deck wakeup -${ps_console} -h \${addr} -r '${regist_key}' 2>/dev/null
+	fi
+
+	# Wait for PlayStation to report ready status, exit script on error if it never happens.
+	while ! echo "\${ps_status}" | grep -q ready
+	do
+	    if [ \${SECONDS} -gt ${wait_timeout} ]
+	    then
+	        if echo "\${ps_status}" | grep -q standby
+	        then
+	            wakeup_error
+	        else
+	            timeout_error
+	        fi
+	    fi
+	    sleep 1
+	    ps_status="\$(flatpak run io.github.streetpea.Chiaki4deck discover -h \${addr} 2>/dev/null)"
+	done
+	EOF
 }
 
 # main
@@ -154,6 +199,7 @@ do
 done
 
 echo -e "\n\n\nHOME ADDRESS\n-------------"
+echo -e "Note: You will have the option to set an external address later."
 home_addr="$(select_addr)"
 
 while true
@@ -162,7 +208,7 @@ do
 
     case "${response}" in 
         [yY] )
-            if iwgetid -r
+            if iwgetid -r &>/dev/null
             then
                 default_ssid="$(iwgetid -r)"
             else
@@ -234,7 +280,7 @@ connect_error_loc()
 {
     echo "Error: Couldn't connect to your PlayStation console from your local address!" >&2
     echo "Error: Please check that your Steam Deck and PlayStation are on the same network" >&2
-    echo "Error: ...and that you have the right PlayStation IP address or hostname!" >&2
+    echo "Error: ...and that you have the right PlayStation IP address or hostname/DDNS!" >&2
     exit 1
 }
 
@@ -242,7 +288,7 @@ connect_error_ext()
 {
     echo "Error: Couldn't connect to your PlayStation console from your external address!" >&2
     echo "Error: Please check that you have forwarded the necessary ports on your router" >&2
-    echo "Error: ...and that you have the right external PlayStation IP address or hostname!" >&2
+    echo "Error: ...and that you have the right external PlayStation IP address or hostname/DDNS!" >&2
     exit 1
 }
 
@@ -263,65 +309,82 @@ timeout_error()
 EOF
 if [ -n "${away_addr}" ]
 then
-	cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
-	if [ "\$(iwgetid -r)" == "${home_ssid}" ]
+	if [ ${ps_console} -eq 5 ]
 	then
-	    addr="${home_addr}"
-	    local=true
+		cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
+		if [ "\$(iwgetid -r)" == "${home_ssid}" ]
+		then
+		    addr="${home_addr}"
+		    local=true
+		else
+		    addr="${away_addr}"
+		    local=false
+		fi
+
+		EOF
+		append_discover_wakeup
+    # Discover doesn't work on remote network for PS4 so just sleep for a bit and hope for the best when connecting to PS4 remotely
+	# Worst case: it didn't wait long enough and you can simply re-run the script to connect
 	else
-	    addr="${away_addr}"
-	    local=false
+		cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
+		if [ "\$(iwgetid -r)" == "${home_ssid}" ]
+		then
+		    addr="${home_addr}"
+		    SECONDS=0
+		    # Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
+		    ps_status="\$(flatpak run io.github.streetpea.Chiaki4deck discover -h \${addr} 2>/dev/null)"
+		    while ! echo "\${ps_status}" | grep -q 'ready\|standby'
+		    do
+		        if [ \${SECONDS} -gt ${wait_timeout} ]
+		        then
+		            connect_error_loc
+		        fi
+	            sleep 1
+	            ps_status="\$(flatpak run io.github.streetpea.Chiaki4deck discover -h \${addr} 2>/dev/null)"
+		    done
+
+		    # Wake up console from sleep/rest mode if not already awake
+		    if ! echo "\${ps_status}" | grep -q ready
+		    then
+		        flatpak run io.github.streetpea.Chiaki4deck wakeup -${ps_console} -h \${addr} -r '${regist_key}' 2>/dev/null
+		    fi
+
+		    # Wait for PlayStation to report ready status, exit script on error if it never happens.
+		    while ! echo "\${ps_status}" | grep -q ready
+		    do
+		        if [ \${SECONDS} -gt ${wait_timeout} ]
+		        then
+		            if echo "\${ps_status}" | grep -q standby
+		            then
+		                wakeup_error
+		            else
+		                timeout_error
+		            fi
+		        fi
+		        sleep 1
+		        ps_status="\$(flatpak run io.github.streetpea.Chiaki4deck discover -h \${addr} 2>/dev/null)"
+		    done
+		else
+		    addr="${away_addr}"
+		    SECONDS=0
+		    # Wake up console from sleep/rest mode if not already awake
+		    flatpak run io.github.streetpea.Chiaki4deck wakeup -${ps_console} -h \${addr} -r '${regist_key}' 2>/dev/null
+		    sleep 10
+		fi
+		EOF
 	fi
-	EOF
 else
 	cat <<-EOF >> "$config_path/Chiaki-launcher.sh"
 	addr="${home_addr}"
 	local=true
+
 	EOF
+	append_discover_wakeup
 fi
+
 cat <<EOF >> "$config_path/Chiaki-launcher.sh"
-SECONDS=0
-# Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${addr} 2>/dev/null)"
-while ! echo "\${ps_status}" | grep -q 'ready\|standby'
-do
-    if [ \${SECONDS} -gt ${wait_timeout} ]
-    then
-        if [ "\${local}" = true ]
-        then
-            connect_error_loc
-        else
-            connect_error_ext
-        fi
-    fi
-    sleep 1
-    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${addr} 2>/dev/null)"
-done
-
-# Wake up console from sleep/rest mode if not already awake
-if ! echo "\${ps_status}" | grep -q ready
-then
-    flatpak run re.chiaki.Chiaki4deck wakeup -${ps_console} -h \${addr} -r '${regist_key}' 2>/dev/null
-fi
-
-# Wait for PlayStation to report ready status, exit script on error if it never happens.
-while ! echo "\${ps_status}" | grep -q ready
-do
-    if [ \${SECONDS} -gt ${wait_timeout} ]
-    then
-        if echo "\${ps_status}" | grep -q standby
-        then
-            wakeup_error
-        else
-            timeout_error
-        fi
-    fi
-    sleep 1
-    ps_status="\$(flatpak run re.chiaki.Chiaki4deck discover -h \${addr} 2>/dev/null)"
-done
-
 # Begin playing PlayStation remote play via Chiaki on your Steam Deck :)
-flatpak run re.chiaki.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") \${addr}
+flatpak run io.github.streetpea.Chiaki4deck --passcode "${login_passcode}" --${mode} stream $(printf %q "${server_nickname}") \${addr}
 EOF
 
 # Make script executable

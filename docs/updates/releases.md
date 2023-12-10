@@ -1,4 +1,41 @@
 # `chiaki4deck` Releases
+## Moving to FlatHub
+
+!!! Caution "Legacy Repo Deprecation"
+
+    `Chiaki4deck` is now on flathub. If you previously installed `chiaki4deck` via the konsole the flatpak has changed to `io.github.streetpea.Chiaki4deck`. The old repo is now **deprecated** in favor of using Flathub since Flathub is added by default to the Steam Deck and the hosting is at no cost to the project (unlike the initial repo). While the software will still be accessible from the old repo, it is encouraged for users to switch over.
+
+To migrate to the flathub repo do the following:
+
+1. Move chiaki4deck's configuration files to their new location
+
+    ``` bash
+    mv ~/.var/app/re.chiaki.Chiaki4deck ~/.var/app/io.github.streetpea.Chiaki4deck
+    ```
+
+2. Update automatic launcher script to use `io.github.streetpea.Chiaki4deck`
+
+    ``` bash
+    sed -i 's/re.chiaki.Chiaki4deck/io.github.streetpea.Chiaki4deck/g' ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh 
+    ```
+
+3. Uninstall the existing legacy `chiaki4deck` flatpak 
+
+    ``` bash
+    flatpak uninstall -y re.chiaki.Chiaki4deck
+    ```
+
+4. Install chiaki4deck from flathub using Discover store app or
+
+    ``` bash
+    flatpak install -y --user flathub io.github.streetpea.Chiaki4deck
+    ```
+
+5. Change properties of non-steam game to point to:
+
+    ``` bash
+    /home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh
+    ```
 
 ## Updating `chiaki4deck`
 
@@ -10,11 +47,30 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 - Update via the `konsole` with:
 
-    ``` bash
-    flatpak update --user -y re.chiaki.Chiaki4deck
-    ```
+    === "Chiaki4deck Installed Via Discover Store"
+
+        ``` bash
+        flatpak update -y io.github.streetpea.Chiaki4deck
+        ```
+
+    === "Chiaki4deck Legacy Install Via Konsole"
+
+        ``` bash
+        flatpak update --user -y re.chiaki.Chiaki4deck
+        ```
 
 ## Releases (Newest First)
+
+### 1.5.0
+
+HDR support
+
+- Adds HDR support for Chiaki4deck perfect with the Steam Deck OLED ([see the configuration section](../setup/configuration.md#hdr-high-dynamic-range) for more details).
+- New libplacebo vulkan renderer with better picture quality due to post-processing techniques like debanding (now the default renderer)
+- Adds option to use controller by positional layout instead of button labels (particularly for Nintendo-style controllers)
+- Adds launcher script for appimage
+- Adds vulkan video decoding for video cards that support it (Steam Deck doesn't)
+- Implements basic FEC error concealment to improve streaming experience (white flashses / green blocking)
 
 ### 1.4.1
 
