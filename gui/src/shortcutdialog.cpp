@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 04/12/2023.
-//
-
 #include "../include/shortcutdialog.h"
 
 #include <filesystem>
