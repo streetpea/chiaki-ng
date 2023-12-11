@@ -22,6 +22,19 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2023-12-10" version="1.5.0">
+      <description>
+        <p>This release brings HDR to Chiaki4deck including:</p>
+        <ul>
+          <li>Adds HDR support for Chiaki4deck perfect with the Steam Deck OLED.</li>
+          <li>New libplacebo vulkan renderer with better picture quality due to post-processing techniques like debanding (now the default renderer)</li>
+          <li>Adds option to use controller by positional layout instead of button labels (particularly for Nintendo-style controllers)</li>
+          <li>Adds launcher script for appimage</li>
+          <li>Adds vulkan video decoding for video cards that support it (Steam Deck doesn't)</li>
+          <li>Implements basic FEC error concealment to improve streaming experience (white flashses / green blocking)</li>
+        </ul>
+      </description>
+    </release>
     <release date="2023-10-17" version="1.4.1">
       <description>
         <p>This release fixes the following bug:</p>
