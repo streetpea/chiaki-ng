@@ -61,6 +61,15 @@ set(SOURCE_FILES
 	include/imageloader.h)
 set(RESOURCE_FILES "")
 
+set(UI_FILES
+	ui/shortcutdialog.ui
+)
+
+qt5_wrap_ui(UI_HEADERS ${UI_FILES})
+
+MESSAGE(STATUS "Jamie")
+MESSAGE(STATUS ${UI_HEADERS})
+
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki.icns")
 endif()
@@ -77,9 +86,9 @@ endif()
 add_executable(chiaki WIN32
 		${RESOURCE_FILES}
 		${SOURCE_FILES}
+		${UI_HEADERS}
 )
 target_include_directories(chiaki PRIVATE include)
-
 
 if(CHIAKI_ENABLE_PLACEBO)
 	if (NOT TARGET Qt5::GuiPrivate)

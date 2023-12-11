@@ -7,7 +7,12 @@
 #include <vdfstatemachine.h>
 
 namespace SteamGridDb {
-    static std::vector<std::string> gameIDs = {"5247907"};
+    static const std::map<std::string, std::string> gameIDs {
+        {"PS4 Remote Play", "5247907"},
+        {"Chiaki Remote Play", "5319543"},
+        {"Playstation 4", "5327254"},
+        {"Playstation 5", "5327255"}
+    };
     static std::string apiRoot = "https://www.steamgriddb.com/api/v2";
     static std::string apiKey = "112c9e0822e85e054b87793e684b231a"; //API Key for @Nikorag
 
@@ -56,13 +61,13 @@ namespace SteamGridDb {
         return response;
     }
 
-    inline std::vector<std::string> getArtwork(std::string type, std::string queryParams, int page) {
+    inline std::vector<std::string> getArtwork(std::string type, std::string queryParams, std::string gameId, int page) {
         std::string url;
         url.append(apiRoot);
         url.append("/");
         url.append(type);
         url.append("/game/");
-        url.append(VDFStateMachine::VALUE::delimit(gameIDs, ','));
+        url.append(gameId);
         url.append("?page=");
         url.append(std::to_string(page));
         url.append(queryParams);
@@ -99,24 +104,24 @@ namespace SteamGridDb {
         return result_vector;
     }
 
-    inline std::vector<std::string> getLandscapes(int page) {
-        return getArtwork("grids", "&dimensions=460x215,920x430", page);
+    inline std::vector<std::string> getLandscapes(std::string gameId,int page) {
+        return getArtwork("grids", "&dimensions=460x215,920x430", gameId, page);
     }
 
-    inline std::vector<std::string> getPortraits(int page) {
-        return getArtwork("grids", "&dimensions=600x900", page);
+    inline std::vector<std::string> getPortraits(std::string gameId,int page) {
+        return getArtwork("grids", "&dimensions=600x900", gameId, page);
     }
 
-    inline std::vector<std::string> getHeroes(int page) {
-        return getArtwork("heroes", "", page);
+    inline std::vector<std::string> getHeroes(std::string gameId,int page) {
+        return getArtwork("heroes", "", gameId, page);
     }
 
-    inline std::vector<std::string> getLogos(int page) {
-        return getArtwork("logos", "", page);
+    inline std::vector<std::string> getLogos(std::string gameId,int page) {
+        return getArtwork("logos", "", gameId, page);
     }
 
-    inline std::vector<std::string> getIcons(int page) {
-        return getArtwork("icons", "", page);
+    inline std::vector<std::string> getIcons(std::string gameId,int page) {
+        return getArtwork("icons", "", gameId, page);
     }
 }
 

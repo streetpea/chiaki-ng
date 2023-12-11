@@ -2,13 +2,10 @@
 
 #include <filesystem>
 #include <QComboBox>
-#include <QFormLayout>
-#include <QPushButton>
 #include <iostream>
 #include <fstream>
 #include <qeventloop.h>
 #include <QFileDialog>
-#include <QGroupBox>
 #include <QLabel>
 #include <qtextstream.h>
 #include <regex>
@@ -16,55 +13,19 @@
 #include <string>
 #include <vdfparser.h>
 #include <steamgriddbapi.h>
-#include <QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
 #include <QMessageBox>
 
 #include "imageloader.h"
 
-
 ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
-    this->server = server;
-    const std::string windowTitle{"Add to Steam "+(server->discovered ? server->discovery_host.host_name.toStdString() : server->registered_host.GetServerNickname().toStdString())};
-    setWindowTitle(tr(windowTitle.c_str()));
+    setupUi(this);
 
-    auto root_layout = new QVBoxLayout(this);
-    setLayout(root_layout);
+    Ui::ShortcutDialog::local_ssid_edit->setText(QString::fromStdString(getConnectedSSID()));
 
-    auto vertical_layout = new QVBoxLayout();
-    root_layout->addLayout(vertical_layout);
+    //Allow External Access Checkbox
+    connect(Ui::ShortcutDialog::allow_external_access_checkbox, &QCheckBox::stateChanged, this, &ShortcutDialog::ExternalChanged);
 
-    // Settings
-    auto settings_group_box = new QGroupBox(tr("Shortcut Settings"));
-    vertical_layout->addWidget(settings_group_box);
-
-    auto settings_layout = new QFormLayout();
-    settings_group_box->setLayout(settings_layout);
-    if(settings_layout->spacing() < 16)
-        settings_layout->setSpacing(16);
-
-    allow_external_access_checkbox = new QCheckBox(this);
-    settings_layout->addRow(tr("Access this Playstation externally?"), allow_external_access_checkbox);
-    connect(allow_external_access_checkbox, &QCheckBox::stateChanged, this, &ShortcutDialog::ExternalChanged);
-
-    external_group_box = new QGroupBox(tr("External Access"));
-    settings_layout->addRow(external_group_box);
-
-    auto external_layout = new QFormLayout();
-    external_group_box->setLayout(external_layout);
-    if(external_layout->spacing() < 16)
-        external_layout->setSpacing(16);
-
-    external_group_box->setVisible(false);
-
-    external_dns_edit = new QLineEdit(this);
-    external_layout->addRow(tr("External IP Address or DNS Entry"), external_dns_edit);
-
-    local_ssid_edit = new QLineEdit(this);
-    external_layout->addRow(tr("What's the SSID of your home wifi?"), local_ssid_edit);
-    local_ssid_edit->setText(QString::fromStdString(getConnectedSSID()));
-
-    mode_combo_box = new QComboBox(this);
+    //Screen Mode combo
     static const QList<QPair<ChiakiScreenModePreset, const char *>> mode_strings = {
         { CHIAKI_MODE_ZOOM, "zoom" },
         { CHIAKI_MODE_STRETCH, "stretch" },
@@ -72,129 +33,102 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     };
     for(const auto &p : mode_strings)
     {
-        mode_combo_box->addItem(tr(p.second), p.first);
+        Ui::ShortcutDialog::mode_combo_box->addItem(tr(p.second), p.first);
     }
-    settings_layout->addRow(tr("Mode: "), mode_combo_box);
 
-    passcode_edit = new QLineEdit(this);
-    settings_layout->addRow(tr("4 Digit passcode (optional):"), passcode_edit);
-
-    //Artwork
-    auto grid_group_box = new QGroupBox(tr("Grid Artwork"));
-    vertical_layout->addWidget(grid_group_box);
-
-    auto grid_layout = new QVBoxLayout();
-    grid_group_box->setLayout(grid_layout);
-    if(grid_layout->spacing() < 16)
-        grid_layout->setSpacing(16);
-
-    auto art_line_one = new QHBoxLayout();
-    grid_layout->addLayout(art_line_one);
-
-    auto art_line_two = new QHBoxLayout();
-    grid_layout->addLayout(art_line_two);
+    //Update the game dropdown for all artworks
+    for (auto it = SteamGridDb::gameIDs.begin(); it != SteamGridDb::gameIDs.end(); ++it) {
+        Ui::ShortcutDialog::landscape_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
+        Ui::ShortcutDialog::portrait_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
+        Ui::ShortcutDialog::hero_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
+        Ui::ShortcutDialog::icon_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
+        Ui::ShortcutDialog::logo_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
+    }
 
     //Landscapes
-    auto landscapeLayout = new QVBoxLayout();
-    art_line_one->addLayout(landscapeLayout);
-    landscapes = SteamGridDb::getLandscapes(0);
+    landscapes = SteamGridDb::getLandscapes(Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), 0);
     landscapeIndex = 0;
-    landscapeLabel = new QLabel(this);
-    landscapeLabel->setScaledContents(true);
-    landscapeLabel->setFixedWidth(200);
-    landscapeLabel->setFixedHeight(94);
-    landscapeLayout->addWidget(landscapeLabel);
-    loadImage(landscapeLabel, landscapes, landscapeIndex);
-    auto nextLandscapeButton = new QPushButton(tr("Next Landscape"), this);
-    nextLandscapeButton->setFixedWidth(120);
-    landscapeLayout->addWidget(nextLandscapeButton);
-    connect(nextLandscapeButton, &QPushButton::clicked, [=]() {
-        RotateImage(landscapeLabel, landscapes, landscapeIndex, "landscape");
+    loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
+    connect(Ui::ShortcutDialog::landscape_next_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex, "landscape");
+    });
+    connect(Ui::ShortcutDialog::landscape_prev_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex, "landscape");
+    });
+    connect(Ui::ShortcutDialog::landscape_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+        UpdateImageList(ArtworkType::LANDSCAPE, landscapes, Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString());
+        loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
     });
 
     //Portraits
-    auto portraitLayout = new QVBoxLayout();
-    art_line_one->addLayout(portraitLayout);
-    portraits = SteamGridDb::getPortraits(0);
+    portraits = SteamGridDb::getPortraits(Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), 0);
     portraitIndex = 0;
-    portraitLabel = new QLabel(this);
-    portraitLabel->setScaledContents(true);
-    portraitLabel->setFixedWidth(132);
-    portraitLabel->setFixedHeight(200);
-    portraitLayout->addWidget(portraitLabel);
-    loadImage(portraitLabel, portraits, portraitIndex);
-    auto nextPortraitButton = new QPushButton(tr("Next Portrait"), this);
-    nextPortraitButton->setFixedWidth(110);
-    portraitLayout->addWidget(nextPortraitButton);
-    connect(nextPortraitButton, &QPushButton::clicked, [=]() {
-        RotateImage(portraitLabel, portraits, portraitIndex, "portrait");
+    loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
+    connect(Ui::ShortcutDialog::portrait_next_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::portrait_label, portraits, portraitIndex, "portrait");
+    });
+    connect(Ui::ShortcutDialog::portrait_prev_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::portrait_label, portraits, portraitIndex, "portrait");
+    });
+    connect(Ui::ShortcutDialog::portrait_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+        UpdateImageList(ArtworkType::PORTRAIT, portraits, Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString());
+        loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
     });
 
-    //Heroes
-    auto heroLayout = new QVBoxLayout();
-    art_line_two->addLayout(heroLayout);
-    heroes = SteamGridDb::getHeroes(0);
+    //Heros
+    heroes = SteamGridDb::getHeroes(Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), 0);
     heroIndex = 0;
-    heroLabel = new QLabel(this);
-    heroLabel->setScaledContents(true);
-    heroLabel->setFixedWidth(200);
-    heroLabel->setFixedHeight(94);
-    heroLayout->addWidget(heroLabel);
-    loadImage(heroLabel, heroes, heroIndex);
-    auto nextHeroButton = new QPushButton(tr("Next Hero"), this);
-    heroLayout->addWidget(nextHeroButton);
-    connect(nextHeroButton, &QPushButton::clicked, [=]() {
-        RotateImage(heroLabel, heroes, heroIndex, "hero");
+    loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
+    connect(Ui::ShortcutDialog::hero_next_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::hero_label, heroes, heroIndex, "hero");
+    });
+    connect(Ui::ShortcutDialog::hero_prev_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::hero_label, heroes, heroIndex, "hero");
+    });
+    connect(Ui::ShortcutDialog::hero_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+        UpdateImageList(ArtworkType::HERO, heroes, Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString());
+        loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
     });
 
     //Logos
-    auto logoLayout = new QVBoxLayout();
-    art_line_two->addLayout(logoLayout);
-    logos = SteamGridDb::getLogos(0);
+    logos = SteamGridDb::getLogos(Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), 0);
     logoIndex = 0;
-    logoLabel = new QLabel(this);
-    logoLabel->setScaledContents(true);
-    logoLabel->setMaximumWidth(200);
-    logoLabel->setMaximumHeight(94);
-    logoLayout->addWidget(logoLabel);
-    loadImage(logoLabel, logos, logoIndex);
-    auto nextLogoButton = new QPushButton(tr("Next Logo"), this);
-    logoLayout->addWidget(nextLogoButton);
-    connect(nextLogoButton, &QPushButton::clicked, [=]() {
-        RotateImage(logoLabel, logos, logoIndex, "logo");
+    loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
+    connect(Ui::ShortcutDialog::logo_next_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::logo_label, logos, logoIndex, "logo");
+    });
+    connect(Ui::ShortcutDialog::logo_prev_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::logo_label, logos, logoIndex, "logo");
+    });
+    connect(Ui::ShortcutDialog::logo_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+        UpdateImageList(ArtworkType::LOGO, logos, Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString());
+        loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
     });
 
     //Icons
-    auto iconLayout = new QVBoxLayout();
-    art_line_two->addLayout(iconLayout);
-    icons = SteamGridDb::getIcons(0);
+    icons = SteamGridDb::getIcons(Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), 0);
     iconIndex = 0;
-    iconLabel = new QLabel(this);
-    iconLabel->setScaledContents(true);
-    iconLabel->setFixedWidth(94);
-    iconLabel->setFixedHeight(94);
-    iconLayout->addWidget(iconLabel);
-    loadImage(iconLabel, icons, iconIndex);
-    auto nextIconButton = new QPushButton(tr("Next Icon"), this);
-    iconLayout->addWidget(nextIconButton);
-    connect(nextIconButton, &QPushButton::clicked, [=]() {
-        RotateImage(iconLabel, icons, iconIndex, "icon");
+    loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
+    connect(Ui::ShortcutDialog::icon_next_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::icon_label, icons, iconIndex, "icon");
+    });
+    connect(Ui::ShortcutDialog::icon_prev_button, &QPushButton::clicked, [=]() {
+        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::icon_label, icons, iconIndex, "icon");
+    });
+    connect(Ui::ShortcutDialog::icon_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+        UpdateImageList(ArtworkType::ICON, icons, Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString());
+        loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
     });
 
-    auto action_line = new QHBoxLayout();
-    vertical_layout->addLayout(action_line);
-
-    create_shortcut_button = new QPushButton(tr("Add to Steam"), this);
-    action_line->addWidget(create_shortcut_button);
-    // connect(create_shortcut_button, &QPushButton::clicked, this, &ShortcutDialog::CreateShortcut);
-    connect(create_shortcut_button, &QPushButton::clicked, [=]() {
+    //Shortcut Button
+    connect(Ui::ShortcutDialog::add_to_steam_button, &QPushButton::clicked, [=]() {
         std::map<std::string, std::string> artwork;
         artwork["landscape"] = landscapes.at(landscapeIndex);
         artwork["portrait"] = portraits.at(portraitIndex);
         artwork["hero"] = heroes.at(heroIndex);
         artwork["logo"] = logos.at(logoIndex);
         artwork["icon"] = icons.at(iconIndex);
-        CreateShortcut(artwork);
+        CreateShortcut(server, artwork);
     });
 }
 
@@ -204,37 +138,72 @@ void ShortcutDialog::loadImage(QLabel* label, std::vector<std::string> images, i
     imageLoader.loadImage(QString::fromStdString(url));
 }
 
-void ShortcutDialog::RotateImage(QLabel* label, std::vector<std::string>& images, int& index, std::string type) {
-    index++;
-    //If we've run out of images
-    if (index >= images.size()) {
-        index = 0;
+void ShortcutDialog::UpdateImageList(ArtworkType artworktype, std::vector<std::string>& images, std::string gameId) {
+    switch (artworktype) {
+        case ArtworkType::LANDSCAPE:
+            images = SteamGridDb::getLandscapes(gameId, 0);
+            landscapeIndex = 0;
+            break;
+        case ArtworkType::PORTRAIT:
+            images = SteamGridDb::getPortraits(gameId, 0);
+            portraitIndex = 0;
+            break;
+        case ArtworkType::HERO:
+            images = SteamGridDb::getHeroes(gameId, 0);
+            heroIndex = 0;
+            break;
+        case ArtworkType::ICON:
+            images = SteamGridDb::getIcons(gameId, 0);
+            iconIndex = 0;
+            break;
+        case ArtworkType::LOGO:
+            images = SteamGridDb::getLogos(gameId, 0);
+            logoIndex = 0;
+            break;
+    }
+}
+
+void ShortcutDialog::RotateImage(RotateDirection direction, QLabel* label, std::vector<std::string>& images, int& index, std::string type) {
+    if (direction == RotateDirection::NEXT) {
+        index++;
+        //If we've run out of images
+        if (index >= images.size()) {
+            index = 0;
+        }
+    } else {
+        index--;
+        //Loop around the bottom
+        if (index < 0) {
+            index = (images.size() - 1);
+        }
     }
     loadImage(label, images, index);
 }
 
 void ShortcutDialog::ExternalChanged() {
-    external_group_box->setVisible(allow_external_access_checkbox->isChecked());
+    Ui::ShortcutDialog::external_dns_edit->setFocus();
+    Ui::ShortcutDialog::external_dns_edit->setEnabled(Ui::ShortcutDialog::allow_external_access_checkbox->isChecked());
+    Ui::ShortcutDialog::local_ssid_edit->setEnabled(Ui::ShortcutDialog::allow_external_access_checkbox->isChecked());
 }
 
-void ShortcutDialog::CreateShortcut(std::map<std::string, std::string> artwork) {
+void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map<std::string, std::string> artwork) {
     //Create a map of variables for the template
     std::map<std::string, std::string> paramMap;
 
     paramMap["home_ssid"] = local_ssid_edit->text().toStdString();
-    paramMap["ps_console"] = server->IsPS5() ? "5" : "4";
+    paramMap["ps_console"] = displayServer->IsPS5() ? "5" : "4";
     paramMap["wait_timeout"] = "35";
-    paramMap["home_addr"] = server->GetHostAddr().toStdString();
+    paramMap["home_addr"] = displayServer->GetHostAddr().toStdString();
     paramMap["away_addr"] = external_dns_edit->text().toStdString();
-    paramMap["regist_key"] = server->registered_host.GetRPRegistKey().toStdString();
+    paramMap["regist_key"] = displayServer->registered_host.GetRPRegistKey().toStdString();
     paramMap["login_passcode"] = passcode_edit->text().toStdString();
     paramMap["mode"] = mode_combo_box->currentText().toStdString();
-    paramMap["server_nickname"] = server->discovered ? server->discovery_host.host_name.toStdString() : server->registered_host.GetServerNickname().toStdString();
+    paramMap["server_nickname"] = displayServer->discovered ? displayServer->discovery_host.host_name.toStdString() : displayServer->registered_host.GetServerNickname().toStdString();
 
     std::string fileText = compileTemplate("shortcut.tmpl", paramMap);
 
     if (allow_external_access_checkbox->isChecked()) {
-        if (server->IsPS5()) {
+        if (displayServer->IsPS5()) {
             fileText = fileText+compileTemplate("ps5_external.tmpl", paramMap);
             fileText = fileText+compileTemplate("discover_wakeup.tmpl", paramMap);
         } else {
@@ -276,7 +245,7 @@ void ShortcutDialog::CreateShortcut(std::map<std::string, std::string> artwork) 
     // Execute the shell command to make it executable
     std::system(chmodCommand.c_str());
 
-    AddToSteam(server, filePath, artwork);
+    AddToSteam(displayServer, filePath, artwork);
 
     QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam"), QMessageBox::Ok);
 

@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ShortcutDialog</class>
+ <widget class="QDialog" name="ShortcutDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>550</width>
+    <height>580</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Add to Steam</string>
+  </property>
+  <widget class="QGroupBox" name="shortcut_settings_group">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>0</y>
+     <width>530</width>
+     <height>180</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Shortcut Settings</string>
+   </property>
+   <widget class="QWidget" name="shortcut_settings_form">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>20</y>
+      <width>530</width>
+      <height>160</height>
+     </rect>
+    </property>
+    <layout class="QFormLayout" name="formLayout">
+     <property name="verticalSpacing">
+      <number>-1</number>
+     </property>
+     <item row="0" column="0">
+      <widget class="QLabel" name="allow_external_access_label">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Access Externally?</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QCheckBox" name="allow_external_access_checkbox"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="external_dns_label">
+       <property name="text">
+        <string>External IP Address or DNS Entry</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="external_dns_edit">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="local_ssid_label">
+       <property name="text">
+        <string>What's the SSID of your home wifi?</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="local_ssid_edit">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="mode_combo_box"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="mode_combo_box_label">
+       <property name="text">
+        <string>Screen Mode</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="passcode_edit"/>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="passcode_label">
+       <property name="text">
+        <string>Pincode (Optional)</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="artwork_group_box">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>190</y>
+     <width>530</width>
+     <height>350</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Artwork</string>
+   </property>
+   <widget class="QTabWidget" name="artwork_tabs">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>490</width>
+      <height>300</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="landscapeTab">
+     <attribute name="title">
+      <string>Landscape</string>
+     </attribute>
+     <widget class="QWidget" name="landscape_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="landscape_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="landscape_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="landscape_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="landscape_label">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="landscape_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="landscape_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="landscape_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="landscape_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="portraitTab">
+     <attribute name="title">
+      <string>Portrait</string>
+     </attribute>
+     <widget class="QWidget" name="portrait_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="portrait_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="portrait_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="portrait_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="portrait_label">
+           <property name="maximumSize">
+            <size>
+             <width>94</width>
+             <height>140</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="portrait_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="portrait_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="portrait_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="portrait_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="heroTab">
+     <attribute name="title">
+      <string>Hero</string>
+     </attribute>
+     <widget class="QWidget" name="hero_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="hero_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="hero_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="hero_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="hero_label">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="hero_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="hero_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="hero_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="hero_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="iconTab">
+     <attribute name="title">
+      <string>Icon</string>
+     </attribute>
+     <widget class="QWidget" name="icon_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="icon_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="icon_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="icon_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="icon_label">
+           <property name="maximumSize">
+            <size>
+             <width>94</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="icon_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="icon_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="icon_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="icon_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="logoTab">
+     <attribute name="title">
+      <string>Logo</string>
+     </attribute>
+     <widget class="QWidget" name="logo_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="logo_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="logo_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="logo_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="logo_label">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="logo_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="logo_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="logo_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="logo_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="add_to_steam_button">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>540</y>
+     <width>510</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Add to Steam</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
