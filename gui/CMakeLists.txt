@@ -67,9 +67,6 @@ set(UI_FILES
 
 qt5_wrap_ui(UI_HEADERS ${UI_FILES})
 
-MESSAGE(STATUS "Jamie")
-MESSAGE(STATUS ${UI_HEADERS})
-
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki.icns")
 endif()
