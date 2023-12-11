@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-  <id>io.github.streetpea.Chiaki4deck</id>
+  <id>re.chiaki.Chiaki4deck</id>
   <launchable type="desktop-id">chiaki4deck.desktop</launchable>
   <name>Chiaki4deck</name>
   <summary>Free and Open Source Client for PlayStation Remote Play modified for Steam Deck</summary>

@@ -1,4 +1,4 @@
-app-id: io.github.streetpea.Chiaki4deck
+app-id: re.chiaki.Chiaki4deck
 branch: chiaki4deck
 runtime: org.kde.Platform
 runtime-version: '5.15-23.08'
