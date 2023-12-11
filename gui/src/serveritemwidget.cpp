@@ -40,9 +40,11 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 	addAction(wake_action);
 	connect(wake_action, &QAction::triggered, this, [this]{ emit WakeTriggered(); });
 
-	create_shortcut_action = new QAction(tr("Add to Steam"), this);
-	addAction(create_shortcut_action);
-	connect(create_shortcut_action, &QAction::triggered, this, [this]{ emit CreateShortcutTriggered(); });
+	#if defined(__APPLE__) || defined(__linux)
+		create_shortcut_action = new QAction(tr("Add to Steam"), this);
+		addAction(create_shortcut_action);
+		connect(create_shortcut_action, &QAction::triggered, this, [this]{ emit CreateShortcutTriggered(); });
+	#endif
 
 	this->selected = true;
 	SetSelected(false);
@@ -73,7 +75,9 @@ void ServerItemWidget::Update(const DisplayServer &display_server)
 {
 	delete_action->setEnabled(!display_server.discovered);
 	wake_action->setEnabled(display_server.registered);
-	create_shortcut_action->setEnabled(display_server.registered);
+	#if defined(__APPLE__) || defined(__linux)
+		create_shortcut_action->setEnabled(display_server.registered);
+	#endif
 
 	icon_widget->SetState(display_server.IsPS5(),
 			display_server.discovered ? display_server.discovery_host.state : CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN);
