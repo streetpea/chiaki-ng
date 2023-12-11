@@ -44,8 +44,42 @@ namespace VDFParser {
         }
     }
 
+    inline void copyFile(const std::string& sourcePath, const std::string& destinationPath) {
+        // Open the source file for binary input
+        std::ifstream sourceFile(sourcePath, std::ios::binary);
+
+        if (!sourceFile.is_open()) {
+            std::cerr << "Error opening the source file: " << sourcePath << std::endl;
+            return;
+        }
+
+        // Open the destination file for binary output
+        std::ofstream destinationFile(destinationPath, std::ios::binary);
+
+        if (!destinationFile.is_open()) {
+            std::cerr << "Error opening the destination file: " << destinationPath << std::endl;
+            sourceFile.close(); // Close the source file
+            return;
+        }
+
+        // Copy the contents of the source file to the destination file
+        destinationFile << sourceFile.rdbuf();
+
+        // Close both files
+        sourceFile.close();
+        destinationFile.close();
+
+        std::cout << "File copied successfully from " << sourcePath << " to " << destinationPath << std::endl;
+    }
+
     // Function to download a file from a URL to a destination directory
     bool downloadFile(const char* url, const char* destPath) {
+        if (strncmp(url, "http", strlen("http")) != 0) {
+            //Not remote, let's just copy it
+            copyFile(url, destPath);
+            std::cout << "Copying " << url << " to " << destPath << std::endl;
+            return true;
+        }
         // Extract the directory from the destination path
         std::string destDir = destPath;
         size_t lastSlash = destDir.find_last_of('/');
@@ -239,34 +273,6 @@ namespace VDFParser {
             fullPath = fullPath.substr(0, lastSlash-1);
         }
         return fullPath;
-    }
-
-    inline void copyFile(const std::string& sourcePath, const std::string& destinationPath) {
-        // Open the source file for binary input
-        std::ifstream sourceFile(sourcePath, std::ios::binary);
-
-        if (!sourceFile.is_open()) {
-            std::cerr << "Error opening the source file: " << sourcePath << std::endl;
-            return;
-        }
-
-        // Open the destination file for binary output
-        std::ofstream destinationFile(destinationPath, std::ios::binary);
-
-        if (!destinationFile.is_open()) {
-            std::cerr << "Error opening the destination file: " << destinationPath << std::endl;
-            sourceFile.close(); // Close the source file
-            return;
-        }
-
-        // Copy the contents of the source file to the destination file
-        destinationFile << sourceFile.rdbuf();
-
-        // Close both files
-        sourceFile.close();
-        destinationFile.close();
-
-        std::cout << "File copied successfully from " << sourcePath << " to " << destinationPath << std::endl;
     }
 
     inline std::string getSteamBaseDir() {

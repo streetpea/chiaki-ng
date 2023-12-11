@@ -31,6 +31,12 @@ class ShortcutDialog : public QDialog, private Ui::ShortcutDialog{
     private:
         const DisplayServer* server;
 
+        std::string customLandscape;
+        std::string customPortrait;
+        std::string customIcon;
+        std::string customHero;
+        std::string customLogo;
+
         std::vector<std::string> landscapes;
         std::vector<std::string> portraits;
         std::vector<std::string> icons;
@@ -46,7 +52,7 @@ class ShortcutDialog : public QDialog, private Ui::ShortcutDialog{
     private slots:
         void ExternalChanged();
         void CreateShortcut(const DisplayServer* server, std::map<std::string, std::string> artwork);
-        void UpdateImageList(ArtworkType artworkType, std::vector<std::string>& images, std::string gameId);
+        void UpdateImageList(ArtworkType artworkType, std::vector<std::string>& images, std::string gameId, std::string& custom, QPushButton* prev, QPushButton* next);
         void RotateImage(RotateDirection direction, QLabel* label, std::vector<std::string>& images, int& index, std::string type);
 
     public:
