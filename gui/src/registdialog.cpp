@@ -12,7 +12,12 @@
 #include <QScrollBar>
 #include <QMessageBox>
 #include <QCheckBox>
+#include <qeventloop.h>
 #include <QRadioButton>
+#include <QWebEngineView>
+#include <regex>
+
+#include "psnaccountid.h"
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -68,6 +73,9 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	form_layout->addRow(tr("PSN Online-ID (username, case-sensitive):"), psn_online_id_edit);
 	psn_account_id_edit = new QLineEdit(this);
 	form_layout->addRow(tr("PSN Account-ID (base64):"), psn_account_id_edit);
+	psn_account_id_button = new QPushButton(this);
+	psn_account_id_button->setText("Get PSN Account ID");
+	form_layout->addRow(tr(""), psn_account_id_button);
 
 	ps5_radio_button->setChecked(true);
 
@@ -85,12 +93,55 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 
 	connect(host_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
 	connect(psn_online_id_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
+	connect(psn_account_id_button, &QPushButton::clicked, this, [=]() {
+		GetAccountID(parent);
+	});
 	connect(pin_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
 	ValidateInput();
 }
 
 RegistDialog::~RegistDialog()
 {
+}
+
+void RegistDialog::GetAccountID(QWidget *parent) {
+	std::string redirectCode;
+	QWebEngineView* webView = new QWebEngineView();
+	webView->setUrl(QUrl(QString::fromStdString(PSNAuth::LOGIN_URL)));
+	webView->setFocus();
+	webView->setFocusProxy(this);
+	webView->show();
+
+	QEventLoop loop;
+	QObject::connect(webView, &QWebEngineView::loadFinished, [&loop, webView, &redirectCode]() {
+		if (webView->url().toString().toStdString().compare(0, PSNAuth::REDIRECT_PAGE.length(), PSNAuth::REDIRECT_PAGE) == 0) {
+			std::string queryParam = webView->url().query().toStdString();
+
+			size_t codePos = queryParam.find("code=");
+
+			// Extract the substring starting from the position after 'code='
+			redirectCode = queryParam.substr(codePos + 5); // 5 is the length of "code="
+
+			// Find the position of '&' to exclude other parameters
+			size_t ampersandPos = redirectCode.find('&');
+			if (ampersandPos != std::string::npos) {
+				redirectCode = redirectCode.substr(0, ampersandPos);
+			}
+
+			webView->close();
+			loop.quit();
+		}
+	});
+
+	loop.exec();
+
+	std::string accessToken = PSNAccountID::getAccessToken(redirectCode);
+	std::string userId = PSNAccountID::GetAccountInfo(accessToken);
+
+	psn_account_id_edit->setText(QString::fromStdString(userId));
+	psn_account_id_button->setDisabled(true);
+
+	this->show();
 }
 
 bool RegistDialog::NeedAccountId()

@@ -274,7 +274,13 @@ void MainWindow::ServerItemWidgetTriggered()
 	else
 	{
 		RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
-		int r = regist_dialog.exec();
+		regist_dialog.show();
+
+		QEventLoop loop;
+		connect(&regist_dialog, &QDialog::finished, &loop, &QEventLoop::quit);
+		loop.exec();
+
+		int r = regist_dialog.result();
 		if(r == QDialog::Accepted && !server.discovered) // success
 		{
 			ManualHost manual_host = server.manual_host;

@@ -533,7 +533,7 @@ void SettingsDialog::UpdateRegisteredHostsButtons()
 void SettingsDialog::RegisterNewHost()
 {
 	RegistDialog dialog(settings, QString(), this);
-	dialog.exec();
+	dialog.show();
 }
 
 void SettingsDialog::DeleteRegisteredHost()

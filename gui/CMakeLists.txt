@@ -2,7 +2,7 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Concurrent Multimedia OpenGL Svg)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Concurrent Multimedia OpenGL Svg WebEngineWidgets)
 if(APPLE)
 	find_package(Qt5 REQUIRED COMPONENTS MacExtras)
 endif()
@@ -57,7 +57,8 @@ add_executable(chiaki WIN32
 		include/controllermanager.h
 		src/controllermanager.cpp
 		include/loginpindialog.h
-		src/loginpindialog.cpp)
+		src/loginpindialog.cpp
+		include/psnaccountid.h)
 target_include_directories(chiaki PRIVATE include)
 
 target_link_libraries(chiaki chiaki-lib)
@@ -66,7 +67,7 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
+target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg Qt5::WebEngineWidgets)
 target_link_libraries(chiaki SDL2::SDL2)
 if(APPLE)
 	target_link_libraries(chiaki Qt5::MacExtras)
@@ -107,3 +108,6 @@ install(TARGETS chiaki
 install(FILES chiaki4deck.desktop DESTINATION share/applications)
 install(FILES chiaki4deck.png DESTINATION share/icons/hicolor/512x512/apps)
 install(FILES io.github.streetpea.Chiaki4deck.appdata.xml DESTINATION share/metainfo)
+
+find_package(CURL REQUIRED)
+target_link_libraries(chiaki CURL::libcurl)
