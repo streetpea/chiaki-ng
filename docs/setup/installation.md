@@ -4,15 +4,25 @@
 
     You can copy from and paste into `konsole` windows with ++ctrl+shift+c++ (copy) and ++ctrl+shift+v++ (paste) instead of the normal ++ctrl+c++ (copy) and ++ctrl+v++ (paste) shortcuts. In fact, ++ctrl+c++ is a shortcut to terminate the current process in the `konsole`. Additionally, you can still right-click and select copy or paste as per normal.
 
-1. Open the Discover store
+=== "Using the Discover Store (Recommended)"
 
-    ![Open Discover](images/OpenDiscover.png)
+    1. Open the Discover store
 
-2. Search for `chiaki4deck` in the search bar
+        ![Open Discover](images/OpenDiscover.png)
 
-    ![Install chiaki4deck](images/InstallChiaki4deck.png)
+    2. Search for `chiaki4deck` in the search bar
 
-3. Click Install
+        ![Install chiaki4deck](images/InstallChiaki4deck.png)
+
+    3. Click Install
+
+=== "Using the `konsole` (If for some reason it doesn't show up on the Discover store)"
+
+    1. Run the following command in the `konsole`
+
+        ```
+        flatpak install -y io.github.streetpea.Chiaki4deck
+        ```
 
 !!! Note "About `chiaki4deck`"
 
