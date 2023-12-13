@@ -38,6 +38,9 @@
      <property name="verticalSpacing">
       <number>-1</number>
      </property>
+     <property name="topMargin">
+      <number>4</number>
+     </property>
      <item row="0" column="0">
       <widget class="QLabel" name="allow_external_access_label">
        <property name="maximumSize">
