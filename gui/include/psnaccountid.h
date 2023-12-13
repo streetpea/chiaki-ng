@@ -112,7 +112,10 @@ class PSNAccountID {
                         userIdStart += userIdKey.length();
                         size_t userIdEnd = responseData.find('\"', userIdStart);
                         if (userIdEnd != std::string::npos) {
-                            return base64_encode(responseData.substr(userIdStart, userIdEnd - userIdStart));
+                            std::string user_id = responseData.substr(userIdStart, userIdEnd - userIdStart);
+                            std::vector<unsigned char> byte_representation = to_bytes(std::stoll(user_id), 8, false);
+
+                            return base64_encode(byte_representation);
                         }
                     }
 
@@ -122,46 +125,59 @@ class PSNAccountID {
 
                 // Cleanup
                 curl_easy_cleanup(curl);
-                return nullptr;
             }
+            return nullptr;
         }
 
     private:
+
+    static std::vector<unsigned char> to_bytes(long number, int num_bytes, bool big_endian = true) {
+        std::vector<unsigned char> result(num_bytes);
+
+        if (big_endian) {
+            for (int i = num_bytes - 1; i >= 0; --i) {
+                result[i] = static_cast<unsigned char>(number & 0xFF);
+                number >>= 8;
+            }
+        } else {
+            for (int i = 0; i < num_bytes; ++i) {
+                result[i] = static_cast<unsigned char>(number & 0xFF);
+                number >>= 8;
+            }
+        }
+
+        return result;
+    }
+
+    static std::string base64_encode(const std::vector<unsigned char>& input) {
+        const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        std::string result;
+        size_t i = 0;
+
+        while (i < input.size()) {
+            unsigned char char1 = input[i++];
+            unsigned char char2 = (i < input.size()) ? input[i++] : 0;
+            unsigned char char3 = (i < input.size()) ? input[i++] : 0;
+
+            unsigned char enc1 = char1 >> 2;
+            unsigned char enc2 = ((char1 & 0x03) << 4) | (char2 >> 4);
+            unsigned char enc3 = ((char2 & 0x0F) << 2) | (char3 >> 6);
+            unsigned char enc4 = char3 & 0x3F;
+
+            result += base64_chars[enc1];
+            result += base64_chars[enc2];
+            result += (char2 != 0) ? base64_chars[enc3] : '=';
+            result += (char3 != 0) ? base64_chars[enc4] : '=';
+        }
+
+        return result;
+    }
+
         static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {
             size_t totalSize = size * nmemb;
             output->append(static_cast<char*>(contents), totalSize);
             return totalSize;
-        }
-
-        static std::string base64_encode(const std::string& input) {
-            static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-            std::stringstream encoded;
-            size_t i = 0;
-            uint32_t buffer = 0;
-            int bits_remaining = 0;
-
-            for (char c : input) {
-                buffer = (buffer << 8) | static_cast<uint8_t>(c);
-                bits_remaining += 8;
-
-                while (bits_remaining >= 6) {
-                    bits_remaining -= 6;
-                    encoded << base64_chars[(buffer >> bits_remaining) & 0x3F];
-                }
-            }
-
-            if (bits_remaining > 0) {
-                buffer <<= 6 - bits_remaining;
-                encoded << base64_chars[buffer & 0x3F];
-            }
-
-            // Add padding if necessary
-            while (encoded.str().size() % 4 != 0) {
-                encoded << "=";
-            }
-
-            return encoded.str();
         }
 };
 

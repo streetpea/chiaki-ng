@@ -18,6 +18,7 @@
 #include <regex>
 
 #include "psnaccountid.h"
+#include "psnloginwindow.h"
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -51,7 +52,7 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	auto UpdatePSNIDEdits = [this]() {
 		bool need_account_id = NeedAccountId();
 		psn_online_id_edit->setEnabled(!need_account_id);
-		psn_account_id_edit->setEnabled(need_account_id);
+		psn_account_id_button->setEnabled(need_account_id);
 	};
 
 	auto target_layout = new QVBoxLayout(nullptr);
@@ -71,11 +72,10 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 
 	psn_online_id_edit = new QLineEdit(this);
 	form_layout->addRow(tr("PSN Online-ID (username, case-sensitive):"), psn_online_id_edit);
-	psn_account_id_edit = new QLineEdit(this);
-	form_layout->addRow(tr("PSN Account-ID (base64):"), psn_account_id_edit);
+
 	psn_account_id_button = new QPushButton(this);
-	psn_account_id_button->setText("Get PSN Account ID");
-	form_layout->addRow(tr(""), psn_account_id_button);
+	psn_account_id_button->setText("Log in to Playstation");
+	form_layout->addRow(tr("PSN Account-ID:"), psn_account_id_button);
 
 	ps5_radio_button->setChecked(true);
 
@@ -105,43 +105,14 @@ RegistDialog::~RegistDialog()
 }
 
 void RegistDialog::GetAccountID(QWidget *parent) {
-	std::string redirectCode;
-	QWebEngineView* webView = new QWebEngineView();
-	webView->setUrl(QUrl(QString::fromStdString(PSNAuth::LOGIN_URL)));
-	webView->setFocus();
-	webView->setFocusProxy(this);
-	webView->show();
+	PSNLoginWindow* window = new PSNLoginWindow(this);
+	window->show();
+}
 
-	QEventLoop loop;
-	QObject::connect(webView, &QWebEngineView::loadFinished, [&loop, webView, &redirectCode]() {
-		if (webView->url().toString().toStdString().compare(0, PSNAuth::REDIRECT_PAGE.length(), PSNAuth::REDIRECT_PAGE) == 0) {
-			std::string queryParam = webView->url().query().toStdString();
-
-			size_t codePos = queryParam.find("code=");
-
-			// Extract the substring starting from the position after 'code='
-			redirectCode = queryParam.substr(codePos + 5); // 5 is the length of "code="
-
-			// Find the position of '&' to exclude other parameters
-			size_t ampersandPos = redirectCode.find('&');
-			if (ampersandPos != std::string::npos) {
-				redirectCode = redirectCode.substr(0, ampersandPos);
-			}
-
-			webView->close();
-			loop.quit();
-		}
-	});
-
-	loop.exec();
-
-	std::string accessToken = PSNAccountID::getAccessToken(redirectCode);
-	std::string userId = PSNAccountID::GetAccountInfo(accessToken);
-
-	psn_account_id_edit->setText(QString::fromStdString(userId));
+void RegistDialog::updatePsnAccountID(std::string accountId) {
+	psn_account_id = accountId;
 	psn_account_id_button->setDisabled(true);
-
-	this->show();
+	psn_account_id_button->setText("Logged In");
 }
 
 bool RegistDialog::NeedAccountId()
@@ -154,7 +125,7 @@ void RegistDialog::ValidateInput()
 	bool need_account_id = NeedAccountId();
 	bool valid = !host_edit->text().trimmed().isEmpty()
 				 && !(!need_account_id && psn_online_id_edit->text().trimmed().isEmpty())
-				 && !(need_account_id && psn_account_id_edit->text().trimmed().isEmpty())
+				 && !(need_account_id && QString::fromStdString(psn_account_id).trimmed().isEmpty())
 				 && pin_edit->text().length() == PIN_LENGTH;
 	register_button->setEnabled(valid);
 }
@@ -183,7 +154,7 @@ void RegistDialog::accept()
 	}
 	else
 	{
-		QString account_id_b64 = psn_account_id_edit->text().trimmed();
+		QString account_id_b64 = QString::fromStdString(psn_account_id).trimmed();
 		QByteArray account_id = QByteArray::fromBase64(account_id_b64.toUtf8());
 		if(account_id.size() != CHIAKI_PSN_ACCOUNT_ID_SIZE)
 		{

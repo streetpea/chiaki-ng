@@ -51,7 +51,9 @@ set(SOURCE_FILES
 	src/controllermanager.cpp
 	include/loginpindialog.h
 	src/loginpindialog.cpp
-  include/psnaccountid.h)
+  	include/psnaccountid.h
+	include/psnloginwindow.h
+	src/psnloginwindow.cpp)
 set(RESOURCE_FILES "")
 
 if(APPLE)
