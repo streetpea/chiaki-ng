@@ -17,6 +17,7 @@ finish-args:
   - --socket=pulseaudio
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
+  - --env=RADV_PERFTEST=video_decode
   - --talk-name=org.freedesktop.ScreenSaver
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
