@@ -1,9 +1,5 @@
-//
-// Created by Jamie Bartlett on 13/12/2023.
-//
-
-#ifndef PSNLIGINWINDOW_H
-#define PSNLIGINWINDOW_H
+#ifndef PSNLOGINWINDOW_H
+#define PSNLOGINWINDOW_H
 
 #include <QLabel>
 #include <QMainWindow>
@@ -30,4 +26,4 @@ public:
 
 
 
-#endif //PSNLIGINWINDOW_H
+#endif //PSNLOGINWINDOW_H

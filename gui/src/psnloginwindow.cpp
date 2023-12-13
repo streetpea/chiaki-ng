@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 13/12/2023.
-//
-
 #include "psnloginwindow.h"
 
 PSNLoginWindow::PSNLoginWindow(RegistDialog *parent) : QMainWindow(parent) {
