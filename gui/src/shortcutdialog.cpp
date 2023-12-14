@@ -343,12 +343,22 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
 
     fileText = fileText+compileTemplate("launch.tmpl", paramMap);
 
+    bool steamExists = VDFParser::steamExists();
+
     std::string filePath;
-    filePath.append(getenv("HOME"));
-    filePath.append("/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/");
-    filePath.append(paramMap["server_nickname"]);
-    filePath.append(".sh");
-    VDFParser::createDirectories(&log, filePath);
+    if (steamExists) {
+        filePath.append(getenv("HOME"));
+        filePath.append("/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/");
+        filePath.append(paramMap["server_nickname"]);
+        filePath.append(".sh");
+        VDFParser::createDirectories(&log, filePath);
+    } else {
+        int createShortcut = QMessageBox::critical(nullptr, "Steam not found", QString::fromStdString("Steam not found! Save shortcut elsewhere?"), QMessageBox::Ok, QMessageBox::Cancel);
+        if (createShortcut == QMessageBox::Cancel) {
+            return;
+        }
+        filePath.append(QFileDialog::getSaveFileName(nullptr, "Save Shell Script", QDir::homePath() + QDir::separator() + paramMap["server_nickname"].c_str() + ".sh", "Shell Scripts (*.sh)").toStdString());
+    }
 
     // Check if the user canceled the dialog
     if (QString::fromStdString(filePath).isEmpty()) {
@@ -372,10 +382,13 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     // Execute the shell command to make it executable
     std::system(chmodCommand.c_str());
 
-    AddToSteam(displayServer, filePath, artwork);
-
-    QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam"), QMessageBox::Ok);
-
+    std::string steamBaseDir = VDFParser::getSteamBaseDir();
+    if (steamExists) {
+        AddToSteam(displayServer, filePath, artwork);
+        QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam"), QMessageBox::Ok);
+    } else {
+        QMessageBox::information(nullptr, "Success", QString::fromStdString("Saved shortcut to "+paramMap["server_nickname"]), QMessageBox::Ok);
+    }
     close();
 }
 

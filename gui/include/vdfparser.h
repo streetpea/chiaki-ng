@@ -293,6 +293,20 @@ namespace VDFParser {
         return steamBaseDir;
     }
 
+    inline bool steamExists() {
+        std::string directoryPath = VDFParser::getSteamBaseDir();
+        #ifdef _WIN32
+                DWORD attributes = GetFileAttributes(directoryPath.c_str());
+                return (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY));
+        #elif __linux__ || __APPLE__
+                struct stat info;
+                return (stat(directoryPath.c_str(), &info) == 0 && S_ISDIR(info.st_mode));
+        #else
+                // Unsupported platform, you may need to add platform-specific code here
+                return false;
+        #endif
+    }
+
     inline std::string getMostRecentUser(ChiakiLog* log) {
         std::string steamid = "";
         std::string user_id;
