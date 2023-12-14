@@ -454,7 +454,7 @@ std::string ShortcutDialog::getConnectedSSID() {
 }
 
 void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork) {
-    std::vector<std::map<std::string, std::string>> shortcuts = VDFParser::parseShortcuts();
+    std::vector<std::map<std::string, std::string>> shortcuts = VDFParser::parseShortcuts(&log);
 
     std::map<std::string, std::string> newShortcut = VDFParser::buildShortcutEntry(&log, server, filePath, artwork);
 

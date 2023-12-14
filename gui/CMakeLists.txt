@@ -149,8 +149,3 @@ install(TARGETS chiaki
 install(FILES chiaki4deck.desktop DESTINATION share/applications)
 install(FILES chiaki4deck.png DESTINATION share/icons/hicolor/512x512/apps)
 install(FILES io.github.streetpea.Chiaki4deck.appdata.xml DESTINATION share/metainfo)
-
-if(CHIAKI_ENABLE_ADD_TO_STEAM)
-	find_package(CURL REQUIRED)
-	target_link_libraries(chiaki CURL::libcurl)
-endif()

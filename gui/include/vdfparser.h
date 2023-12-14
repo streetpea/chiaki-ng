@@ -36,7 +36,7 @@ namespace VDFParser {
             if (stat(subPath.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
                 // If not, create the directory
                 if (mkdir(subPath.c_str(), 0777) != 0) {
-                    std::cerr << "Error creating directory: " << subPath << std::endl;
+                    CHIAKI_LOGE(log, "Error creating directory: %s", subPath.c_str());
                     return;
                 }
                 CHIAKI_LOGI(log, "Created directory: %s", subPath.c_str());
@@ -44,12 +44,12 @@ namespace VDFParser {
         }
     }
 
-    inline void copyFile(const std::string& sourcePath, const std::string& destinationPath) {
+    inline void copyFile(ChiakiLog* log, const std::string& sourcePath, const std::string& destinationPath) {
         // Open the source file for binary input
         std::ifstream sourceFile(sourcePath, std::ios::binary);
 
         if (!sourceFile.is_open()) {
-            std::cerr << "Error opening the source file: " << sourcePath << std::endl;
+            CHIAKI_LOGE(log, "Error opening the source file: %s", sourcePath.c_str());
             return;
         }
 
@@ -57,7 +57,7 @@ namespace VDFParser {
         std::ofstream destinationFile(destinationPath, std::ios::binary);
 
         if (!destinationFile.is_open()) {
-            std::cerr << "Error opening the destination file: " << destinationPath << std::endl;
+            CHIAKI_LOGE(log, "Error opening the destination file: %s", destinationPath.c_str());
             sourceFile.close(); // Close the source file
             return;
         }
@@ -69,17 +69,18 @@ namespace VDFParser {
         sourceFile.close();
         destinationFile.close();
 
-        std::cout << "File copied successfully from " << sourcePath << " to " << destinationPath << std::endl;
+        CHIAKI_LOGI(log, "File copied successfully from %s to %s", sourcePath.c_str(), destinationPath.c_str());
     }
 
     // Function to download a file from a URL to a destination directory
     bool downloadFile(ChiakiLog* log, const char* url, const char* destPath) {
         if (strncmp(url, "http", strlen("http")) != 0) {
             //Not remote, let's just copy it
-            copyFile(url, destPath);
-            std::cout << "Copying " << url << " to " << destPath << std::endl;
+            copyFile(log, url, destPath);
+            CHIAKI_LOGI(log, "Copying %s to %s", url, destPath);
             return true;
         }
+
         // Extract the directory from the destination path
         std::string destDir = destPath;
         size_t lastSlash = destDir.find_last_of('/');
@@ -90,44 +91,44 @@ namespace VDFParser {
         // Ensure the destination directory exists
         createDirectories(log, destPath);
 
-        // Open the file for writing
-        FILE* file = fopen(destPath, "wb");
-        if (!file) {
-            CHIAKI_LOGE(log, "Error opening file for writing: %s", strerror(errno));
-            return false;
-        }
+        // URL of the file to download
+        QUrl q_url(url);
 
-        // Initialize libcurl
-        CURL* curl = curl_easy_init();
-        if (!curl) {
-            std::cerr << "Error initializing libcurl." << std::endl;
-            fclose(file);
-            return false;
-        }
+        // Create a QNetworkAccessManager
+        QNetworkAccessManager manager;
 
-        // Set the URL to download
-        curl_easy_setopt(curl, CURLOPT_URL, url);
+        // Create a QNetworkRequest with the specified URL
+        QNetworkRequest request(q_url);
 
-        // Set the callback function to write data to the file
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+        // Send a GET request to the server
+        QNetworkReply *reply = manager.get(request);
 
-        // Perform the download
-        CURLcode res = curl_easy_perform(curl);
+        // Setup a QEventLoop to wait for the request to finish
+        QEventLoop loop;
+        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        loop.exec();
 
         // Check for errors
-        if (res != CURLE_OK) {
-            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-            fclose(file);
-            curl_easy_cleanup(curl);
-            return false;
+        if (reply->error() == QNetworkReply::NoError) {
+            // Get the downloaded data
+            QByteArray data = reply->readAll();
+
+            // Save the data to a file
+            QFile file(destPath);
+            if (file.open(QIODevice::WriteOnly)) {
+                file.write(data);
+                file.close();
+                CHIAKI_LOGI(log, "File downloaded successfully");
+            } else {
+                CHIAKI_LOGE(log, "Error saving the file");
+            }
+        } else {
+            CHIAKI_LOGE(log, "Download failed: %s", reply->errorString().toStdString().c_str());
         }
 
-        // Clean up and close the file
-        fclose(file);
-        curl_easy_cleanup(curl);
+        // Clean up
+        reply->deleteLater();
 
-        std::cout << "File downloaded successfully to: " << destPath << std::endl;
         return true;
     }
 
@@ -235,11 +236,11 @@ namespace VDFParser {
         return retVector;
     }
 
-    inline int countStringOccurrencesInFile(const std::string& filename, const std::string& targetString) {
+    inline int countStringOccurrencesInFile(ChiakiLog* log, const std::string& filename, const std::string& targetString) {
         std::ifstream file(filename);
 
         if (!file.is_open()) {
-            std::cerr << "Error opening file: " << filename << std::endl;
+            CHIAKI_LOGE(log, "Error opening file: %s", filename.c_str());
             return -1; // Return -1 to indicate an error
         }
 
@@ -292,7 +293,7 @@ namespace VDFParser {
         return steamBaseDir;
     }
 
-    inline std::string getMostRecentUser() {
+    inline std::string getMostRecentUser(ChiakiLog* log) {
         std::string steamid = "";
         std::string user_id;
         std::string steamBaseDir = getSteamBaseDir();
@@ -306,7 +307,7 @@ namespace VDFParser {
 
         // Check if the file is open
         if (!inputFile.is_open()) {
-            std::cerr << "Error opening the file." << std::endl;
+            CHIAKI_LOGE(log, "Error opening the file.");
             return nullptr;
         }
 
@@ -331,19 +332,19 @@ namespace VDFParser {
         return user_id;
     }
 
-    inline std::string getShortcutFile() {
+    inline std::string getShortcutFile(ChiakiLog* log) {
         std::string shortcutFile = "";
         shortcutFile.append(getSteamBaseDir());
         shortcutFile.append("/userdata/");
-        shortcutFile.append(getMostRecentUser());
+        shortcutFile.append(getMostRecentUser(log));
         shortcutFile.append("/config/shortcuts.vdf");
 
         return shortcutFile;
     }
 
-    inline std::vector<std::map<std::string, std::string>> parseShortcuts() {
+    inline std::vector<std::map<std::string, std::string>> parseShortcuts(ChiakiLog* log) {
         std::vector<std::map<std::string, std::string>> shortcuts;
-        std::string shortcutFile = getShortcutFile();
+        std::string shortcutFile = getShortcutFile(log);
 
         std::ifstream file(shortcutFile, std::ios::binary);
 
@@ -354,7 +355,7 @@ namespace VDFParser {
             file.seekg(0, std::ios::beg);
 
             if (fileSize < 16) {
-                std::cout << "shortcut file not valid" << std::endl;
+                CHIAKI_LOGI(log, "shortcut file not valid");
                 return shortcuts;
             }
 
@@ -368,7 +369,7 @@ namespace VDFParser {
             file.close();
 
             if(!compareFirstElements(11, buffer, fileHeader)) {
-                std::cout << "shortcut file not valid, incorrect header" << std::endl;
+                CHIAKI_LOGI(log, "shortcut file not valid, incorrect header");
                 return shortcuts;
             }
 
@@ -406,7 +407,7 @@ namespace VDFParser {
             }
 
         } else {
-            std::cerr << "Error opening file: " << shortcutFile << std::endl;
+            CHIAKI_LOGE(log, "Error opening file: ", shortcutFile.c_str());
         }
 
         return shortcuts;
@@ -463,12 +464,12 @@ namespace VDFParser {
     }
 
     inline std::map<std::string, std::string> buildShortcutEntry(ChiakiLog* log, const DisplayServer* server, std::string filepath, std::map<std::string, std::string> artwork) {
-        std::string shortcutFile = getShortcutFile();
+        std::string shortcutFile = getShortcutFile(log);
         std::string appName = server->registered_host.GetServerNickname().toStdString();
 
         std::string shortAppId = generateShortAppId("\""+filepath+"\"", appName);
 
-        int entryID = countStringOccurrencesInFile(shortcutFile, "appid");
+        int entryID = countStringOccurrencesInFile(log, shortcutFile, "appid");
         entryID++;
 
         //Download the icon
@@ -477,7 +478,7 @@ namespace VDFParser {
 
         gridPath.append(getSteamBaseDir());
         gridPath.append("/userdata/");
-        gridPath.append(getMostRecentUser());
+        gridPath.append(getMostRecentUser(log));
         gridPath.append("/config/grid/");
         iconPath.append(gridPath);
         iconPath.append(shortAppId);
@@ -509,11 +510,11 @@ namespace VDFParser {
     }
 
     inline void updateShortcuts(ChiakiLog* log, std::vector<std::map<std::string, std::string>> shortcuts) {
-        const std::string shortcutFile = getShortcutFile();
+        const std::string shortcutFile = getShortcutFile(log);
 
         std::string backupFile = getDirectoryFromPath(shortcutFile);
         backupFile.append("shortcuts.vdf.bak");
-        copyFile(shortcutFile, backupFile);
+        copyFile(log, shortcutFile, backupFile);
 
         // Open the file for binary writing
         std::ofstream outFile(shortcutFile, std::ios::binary);
