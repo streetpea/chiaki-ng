@@ -10,6 +10,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
+#include <utility>
+#include <utility>
+
+#include "vdf_parser.hpp"
 #if defined(_WIN32)
 #include <direct.h>
 #define mkdir(dir, mode) _mkdir(dir)
@@ -17,9 +22,10 @@
 #include <sys/stat.h>
 #endif
 
-namespace VDFParser {
+namespace SteamShortcutParser {
 
     static std::vector<char> fileHeader = { 0x00, 0x73, 0x68, 0x6F, 0x72, 0x74, 0x63, 0x75, 0x74, 0x73, 0x00 };
+    static std::string controller_layout_workshop_id = "3049833406";
 
     // Callback function to write data to a file
     size_t WriteCallback(void* contents, size_t size, size_t nmemb, FILE* stream) {
@@ -294,7 +300,7 @@ namespace VDFParser {
     }
 
     inline bool steamExists() {
-        std::string directoryPath = VDFParser::getSteamBaseDir();
+        std::string directoryPath = SteamShortcutParser::getSteamBaseDir();
         #ifdef _WIN32
                 DWORD attributes = GetFileAttributes(directoryPath.c_str());
                 return (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY));
@@ -581,6 +587,55 @@ namespace VDFParser {
             CHIAKI_LOGI(log, "File '%s' created successfully.", shortcutFile.c_str());
         } else {
             CHIAKI_LOGE(log, "Error opening file '%s' for writing.", shortcutFile.c_str());
+        }
+    }
+
+    void updateControllerConfig(ChiakiLog* log, std::string titleName) {
+        std::string controllerFile = getSteamBaseDir();
+        std::string userId = getMostRecentUser(log);
+        controllerFile.append("/steamapps/common/Steam Controller Configs/");
+        controllerFile.append(userId);
+        controllerFile.append("/config/configset_controller_neptune.vdf");
+
+        bool fileExists;
+        #ifdef _WIN32
+                    DWORD attributes = GetFileAttributes(controllerFile.c_str());
+            fileExists = attributes != INVALID_FILE_ATTRIBUTES;
+        #elif __linux__ || __APPLE__
+            struct stat info;
+            fileExists = stat(controllerFile.c_str(), &info) == 0;
+        #else
+            // Unsupported platform, you may need to add platform-specific code here
+            fileExists = false;
+        #endif
+
+        if (!fileExists) {
+            CHIAKI_LOGE(log, "Neptune controller config not found, not adding");
+            return;
+        }
+
+        // Convert the string to lowercase
+        std::transform(titleName.begin(), titleName.end(), titleName.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        std::ifstream file(controllerFile);
+        auto root = tyti::vdf::read(file);
+        auto existingRecord = root.childs.find(titleName);
+
+        if (existingRecord == root.childs.end()) {
+            CHIAKI_LOGI(log, "No controller config found for %s so adding in chiaki4deck workshop id", titleName.c_str());
+            tyti::vdf::basic_object<std::ifstream::char_type> controllerEntry;
+            controllerEntry.set_name(titleName);
+            controllerEntry.add_attribute("workshop", controller_layout_workshop_id);
+
+            std::unique_ptr<tyti::vdf::basic_object<std::ifstream::char_type>> uniqueObjectPtr(new tyti::vdf::basic_object<char>(controllerEntry));
+
+            root.add_child(std::move(uniqueObjectPtr));
+            std::ofstream outFile(controllerFile);
+            tyti::vdf::write(outFile, root);
+        } else {
+            CHIAKI_LOGI(log, "Controller config already set for %s, not overwriting", titleName.c_str());
         }
     }
 }

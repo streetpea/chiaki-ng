@@ -55,7 +55,8 @@ set(SOURCE_FILES
 	src/shortcutdialog.cpp
 	include/crc.h
 	src/crc.c
-	include/vdfparser.h
+	include/steamshortcutparser.h
+	include/vdf_parser.hpp
 	include/vdfstatemachine.h
 	include/steamgriddbapi.h
 	include/imageloader.h

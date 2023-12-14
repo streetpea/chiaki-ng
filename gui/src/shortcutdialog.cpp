@@ -11,7 +11,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
-#include <vdfparser.h>
+#include <steamshortcutparser.h>
 #include <steamgriddbapi.h>
 #include <QMessageBox>
 
@@ -343,7 +343,7 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
 
     fileText = fileText+compileTemplate("launch.tmpl", paramMap);
 
-    bool steamExists = VDFParser::steamExists();
+    bool steamExists = SteamShortcutParser::steamExists();
 
     std::string filePath;
     if (steamExists) {
@@ -351,7 +351,7 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
         filePath.append("/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/");
         filePath.append(paramMap["server_nickname"]);
         filePath.append(".sh");
-        VDFParser::createDirectories(&log, filePath);
+        SteamShortcutParser::createDirectories(&log, filePath);
     } else {
         int createShortcut = QMessageBox::critical(nullptr, "Steam not found", QString::fromStdString("Steam not found! Save shortcut elsewhere?"), QMessageBox::Ok, QMessageBox::Cancel);
         if (createShortcut == QMessageBox::Cancel) {
@@ -382,10 +382,10 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     // Execute the shell command to make it executable
     std::system(chmodCommand.c_str());
 
-    std::string steamBaseDir = VDFParser::getSteamBaseDir();
+    std::string steamBaseDir = SteamShortcutParser::getSteamBaseDir();
     if (steamExists) {
         AddToSteam(displayServer, filePath, artwork);
-        QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam"), QMessageBox::Ok);
+        QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam. Please restart Steam."), QMessageBox::Ok);
     } else {
         QMessageBox::information(nullptr, "Success", QString::fromStdString("Saved shortcut to "+paramMap["server_nickname"]), QMessageBox::Ok);
     }
@@ -467,16 +467,16 @@ std::string ShortcutDialog::getConnectedSSID() {
 }
 
 void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork) {
-    std::vector<std::map<std::string, std::string>> shortcuts = VDFParser::parseShortcuts(&log);
+    std::vector<std::map<std::string, std::string>> shortcuts = SteamShortcutParser::parseShortcuts(&log);
 
-    std::map<std::string, std::string> newShortcut = VDFParser::buildShortcutEntry(&log, server, filePath, artwork);
+    std::map<std::string, std::string> newShortcut = SteamShortcutParser::buildShortcutEntry(&log, server, filePath, artwork);
 
     bool found = false;
     //Look to see if we need to update
     for (auto& map : shortcuts) {
         // Check if the key exists and its value matches the valueToSearch
         auto it = map.find("Exe");
-        if (it != map.end() && it->second == VDFParser::getValueFromMap(newShortcut, "Exe")) {
+        if (it != map.end() && it->second == SteamShortcutParser::getValueFromMap(newShortcut, "Exe")) {
             // Replace the entire map with the new one
 
             CHIAKI_LOGI(&log, "Updating Steam entry");
@@ -489,7 +489,8 @@ void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePat
     //If we didn't find it to update, let's add it to the end
     if (!found) {
         CHIAKI_LOGI(&log, "Adding Steam entry");
-        shortcuts.emplace_back(VDFParser::buildShortcutEntry(&log, server, filePath, artwork));
+        shortcuts.emplace_back(SteamShortcutParser::buildShortcutEntry(&log, server, filePath, artwork));
     }
-    VDFParser::updateShortcuts(&log, shortcuts);
+    SteamShortcutParser::updateShortcuts(&log, shortcuts);
+    SteamShortcutParser::updateControllerConfig(&log, newShortcut["AppName"]);
 }
