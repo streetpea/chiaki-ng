@@ -322,7 +322,7 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     paramMap["wait_timeout"] = "35";
     paramMap["home_addr"] = displayServer->GetHostAddr().toStdString();
     paramMap["away_addr"] = external_dns_edit->text().toStdString();
-    paramMap["regist_key"] = displayServer->registered_host.GetRPRegistKey().toStdString();
+    paramMap["regist_key"] = QString::fromUtf8(displayServer->registered_host.GetRPRegistKey()).toStdString();
     paramMap["login_passcode"] = passcode_edit->text().toStdString();
     paramMap["mode"] = mode_combo_box->currentText().toStdString();
     paramMap["server_nickname"] = displayServer->discovered ? displayServer->discovery_host.host_name.toStdString() : displayServer->registered_host.GetServerNickname().toStdString();
