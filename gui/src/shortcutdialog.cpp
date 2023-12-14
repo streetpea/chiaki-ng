@@ -17,9 +17,10 @@
 
 #include "imageloader.h"
 
-ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
+ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget* parent) {
     setupUi(this);
 
+    chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
     Ui::ShortcutDialog::local_ssid_edit->setText(QString::fromStdString(getConnectedSSID()));
 
     //Allow External Access Checkbox
@@ -46,7 +47,7 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     }
 
     //Landscapes
-    landscapes = SteamGridDb::getLandscapes(Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), 0);
+    landscapes = SteamGridDb::getLandscapes(&log, Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), 0);
     landscapeIndex = 0;
     loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
     connect(Ui::ShortcutDialog::landscape_next_button, &QPushButton::clicked, [=]() {
@@ -84,7 +85,7 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     });
 
     //Portraits
-    portraits = SteamGridDb::getPortraits(Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), 0);
+    portraits = SteamGridDb::getPortraits(&log, Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), 0);
     portraitIndex = 0;
     loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
     connect(Ui::ShortcutDialog::portrait_next_button, &QPushButton::clicked, [=]() {
@@ -122,7 +123,7 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     });
 
     //Heroes
-    heroes = SteamGridDb::getHeroes(Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), 0);
+    heroes = SteamGridDb::getHeroes(&log, Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), 0);
     heroIndex = 0;
     loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
     connect(Ui::ShortcutDialog::hero_next_button, &QPushButton::clicked, [=]() {
@@ -160,7 +161,7 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     });
 
     //Icons
-    icons = SteamGridDb::getIcons(Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), 0);
+    icons = SteamGridDb::getIcons(&log, Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), 0);
     iconIndex = 0;
     loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
     connect(Ui::ShortcutDialog::icon_next_button, &QPushButton::clicked, [=]() {
@@ -198,7 +199,7 @@ ShortcutDialog::ShortcutDialog(const DisplayServer *server, QWidget* parent) {
     });
 
     //Logos
-    logos = SteamGridDb::getLogos(Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), 0);
+    logos = SteamGridDb::getLogos(&log, Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), 0);
     logoIndex = 0;
     loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
     connect(Ui::ShortcutDialog::logo_next_button, &QPushButton::clicked, [=]() {
@@ -266,23 +267,23 @@ void ShortcutDialog::UpdateImageList(ArtworkType artworktype, std::vector<std::s
         next->setEnabled(true);
         switch (artworktype) {
             case ArtworkType::LANDSCAPE:
-                images = SteamGridDb::getLandscapes(gameId, 0);
+                images = SteamGridDb::getLandscapes(&log, gameId, 0);
                 landscapeIndex = 0;
                 break;
             case ArtworkType::PORTRAIT:
-                images = SteamGridDb::getPortraits(gameId, 0);
+                images = SteamGridDb::getPortraits(&log, gameId, 0);
                 portraitIndex = 0;
                 break;
             case ArtworkType::HERO:
-                images = SteamGridDb::getHeroes(gameId, 0);
+                images = SteamGridDb::getHeroes(&log, gameId, 0);
                 heroIndex = 0;
                 break;
             case ArtworkType::ICON:
-                images = SteamGridDb::getIcons(gameId, 0);
+                images = SteamGridDb::getIcons(&log, gameId, 0);
                 iconIndex = 0;
                 break;
             case ArtworkType::LOGO:
-                images = SteamGridDb::getLogos(gameId, 0);
+                images = SteamGridDb::getLogos(&log, gameId, 0);
                 logoIndex = 0;
                 break;
         }
@@ -347,7 +348,7 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     filePath.append("/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/");
     filePath.append(paramMap["server_nickname"]);
     filePath.append(".sh");
-    VDFParser::createDirectories(filePath);
+    VDFParser::createDirectories(&log, filePath);
 
     // Check if the user canceled the dialog
     if (QString::fromStdString(filePath).isEmpty()) {
@@ -455,7 +456,7 @@ std::string ShortcutDialog::getConnectedSSID() {
 void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork) {
     std::vector<std::map<std::string, std::string>> shortcuts = VDFParser::parseShortcuts();
 
-    std::map<std::string, std::string> newShortcut = VDFParser::buildShortcutEntry(server, filePath, artwork);
+    std::map<std::string, std::string> newShortcut = VDFParser::buildShortcutEntry(&log, server, filePath, artwork);
 
     bool found = false;
     //Look to see if we need to update
@@ -464,7 +465,8 @@ void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePat
         auto it = map.find("Exe");
         if (it != map.end() && it->second == VDFParser::getValueFromMap(newShortcut, "Exe")) {
             // Replace the entire map with the new one
-            std::cout << "Updating Steam entry" << std::endl;
+
+            CHIAKI_LOGI(&log, "Updating Steam entry");
             map = newShortcut;
             found = true;
             break;  // Stop iterating once a match is found
@@ -473,8 +475,8 @@ void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePat
 
     //If we didn't find it to update, let's add it to the end
     if (!found) {
-        std::cout << "Adding Steam entry" << std::endl;
-        shortcuts.emplace_back(VDFParser::buildShortcutEntry(server, filePath, artwork));
+        CHIAKI_LOGI(&log, "Adding Steam entry");
+        shortcuts.emplace_back(VDFParser::buildShortcutEntry(&log, server, filePath, artwork));
     }
-    VDFParser::updateShortcuts(shortcuts);
+    VDFParser::updateShortcuts(&log, shortcuts);
 }

@@ -26,7 +26,7 @@ namespace VDFParser {
         return fwrite(contents, size, nmemb, stream);
     }
 
-    void createDirectories(const std::string& path) {
+    void createDirectories(ChiakiLog* log, const std::string& path) {
         size_t pos = 0;
         while ((pos = path.find_first_of("/\\", pos + 1)) != std::string::npos) {
             std::string subPath = path.substr(0, pos);
@@ -39,7 +39,7 @@ namespace VDFParser {
                     std::cerr << "Error creating directory: " << subPath << std::endl;
                     return;
                 }
-                std::cout << "Created directory: " << subPath << std::endl;
+                CHIAKI_LOGI(log, "Created directory: %s", subPath.c_str());
             }
         }
     }
@@ -73,7 +73,7 @@ namespace VDFParser {
     }
 
     // Function to download a file from a URL to a destination directory
-    bool downloadFile(const char* url, const char* destPath) {
+    bool downloadFile(ChiakiLog* log, const char* url, const char* destPath) {
         if (strncmp(url, "http", strlen("http")) != 0) {
             //Not remote, let's just copy it
             copyFile(url, destPath);
@@ -88,19 +88,12 @@ namespace VDFParser {
         }
 
         // Ensure the destination directory exists
-        createDirectories(destPath);
-
-        // Check if the destination file already exists
-        // struct stat fileStat;
-        // if (stat(destPath, &fileStat) == 0) {
-        //     std::cout << "File already exists at: " << destPath << std::endl;
-        //     return true; // File already exists, no need to download
-        // }
+        createDirectories(log, destPath);
 
         // Open the file for writing
         FILE* file = fopen(destPath, "wb");
         if (!file) {
-            std::cerr << "Error opening file for writing: " << strerror(errno) << std::endl;
+            CHIAKI_LOGE(log, "Error opening file for writing: %s", strerror(errno));
             return false;
         }
 
@@ -138,30 +131,30 @@ namespace VDFParser {
         return true;
     }
 
-    inline void downloadAssets(std::string gridPath, std::string shortAppId, std::map<std::string, std::string> artwork) {
+    inline void downloadAssets(ChiakiLog* log, std::string gridPath, std::string shortAppId, std::map<std::string, std::string> artwork) {
         std::string landscapeGridPath;
         landscapeGridPath.append(gridPath);
         landscapeGridPath.append(shortAppId);
         landscapeGridPath.append(".png");
-        downloadFile(artwork["landscape"].c_str(), landscapeGridPath.c_str());
+        downloadFile(log, artwork["landscape"].c_str(), landscapeGridPath.c_str());
 
         std::string portraitGridPath;
         portraitGridPath.append(gridPath);
         portraitGridPath.append(shortAppId);
         portraitGridPath.append("p.png");
-        downloadFile(artwork["portrait"].c_str(), portraitGridPath.c_str());
+        downloadFile(log, artwork["portrait"].c_str(), portraitGridPath.c_str());
 
         std::string heroPath;
         heroPath.append(gridPath);
         heroPath.append(shortAppId);
         heroPath.append("_hero.png");
-        downloadFile(artwork["hero"].c_str(), heroPath.c_str());
+        downloadFile(log, artwork["hero"].c_str(), heroPath.c_str());
 
         std::string logoPath;
         logoPath.append(gridPath);
         logoPath.append(shortAppId);
         logoPath.append("_logo.png");
-        downloadFile(artwork["logo"].c_str(), logoPath.c_str());
+        downloadFile(log, artwork["logo"].c_str(), logoPath.c_str());
     }
 
     inline uint64_t generatePreliminaryId(const std::string& exe, const std::string& appname) {
@@ -469,7 +462,7 @@ namespace VDFParser {
         }
     }
 
-    inline std::map<std::string, std::string> buildShortcutEntry(const DisplayServer* server, std::string filepath, std::map<std::string, std::string> artwork) {
+    inline std::map<std::string, std::string> buildShortcutEntry(ChiakiLog* log, const DisplayServer* server, std::string filepath, std::map<std::string, std::string> artwork) {
         std::string shortcutFile = getShortcutFile();
         std::string appName = server->registered_host.GetServerNickname().toStdString();
 
@@ -489,9 +482,9 @@ namespace VDFParser {
         iconPath.append(gridPath);
         iconPath.append(shortAppId);
         iconPath.append("_icon.png");
-        downloadFile(artwork["icon"].c_str(), iconPath.c_str());
+        downloadFile(log, artwork["icon"].c_str(), iconPath.c_str());
 
-        downloadAssets(gridPath, shortAppId, artwork);
+        downloadAssets(log, gridPath, shortAppId, artwork);
 
         std::map<std::string, std::string> shortcutMap;
 
@@ -515,7 +508,7 @@ namespace VDFParser {
         return shortcutMap;
     }
 
-    inline void updateShortcuts(std::vector<std::map<std::string, std::string>> shortcuts) {
+    inline void updateShortcuts(ChiakiLog* log, std::vector<std::map<std::string, std::string>> shortcuts) {
         const std::string shortcutFile = getShortcutFile();
 
         std::string backupFile = getDirectoryFromPath(shortcutFile);
@@ -570,10 +563,9 @@ namespace VDFParser {
 
             // Close the file
             outFile.close();
-
-            std::cout << "File '" << shortcutFile << "' created successfully." << std::endl;
+            CHIAKI_LOGI(log, "File '%s' created successfully.", shortcutFile.c_str());
         } else {
-            std::cerr << "Error opening file '" << shortcutFile << "' for writing." << std::endl;
+            CHIAKI_LOGE(log, "Error opening file '%s' for writing.", shortcutFile.c_str());
         }
     }
 }

@@ -12,6 +12,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include "ui_shortcutdialog.h"
+#include "settings.h"
 
 enum class ArtworkType {
     LANDSCAPE,
@@ -30,6 +31,7 @@ class ShortcutDialog : public QDialog, private Ui::ShortcutDialog{
     Q_OBJECT
     private:
         const DisplayServer* server;
+        ChiakiLog log;
 
         std::string customLandscape;
         std::string customPortrait;
@@ -56,11 +58,11 @@ class ShortcutDialog : public QDialog, private Ui::ShortcutDialog{
         void RotateImage(RotateDirection direction, QLabel* label, std::vector<std::string>& images, int& index, std::string type);
 
     public:
-        ShortcutDialog(const DisplayServer *server, QWidget *parent = nullptr);
+        ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget *parent = nullptr);
         std::string compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap);
         std::string getConnectedSSID();
-        static void AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork);
-        static void loadImage(QLabel* label, std::vector<std::string> images, int index);
+        void AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork);
+        void loadImage(QLabel* label, std::vector<std::string> images, int index);
 };
 
 #endif //SHORTCUTDIALOG_H

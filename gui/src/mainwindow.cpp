@@ -308,7 +308,7 @@ void MainWindow::ServerItemWidgetWakeTriggered()
 void MainWindow::ServerItemWidgetCreateShortcutTriggered()
 {
 	auto server = DisplayServerFromSender();
-	ShortcutDialog dialog(server, this);
+	ShortcutDialog dialog(settings, server, this);
 	dialog.exec();
 }
 

@@ -25,6 +25,22 @@ class JsonUtils {
         static std::string postJsonAttributeBearer(ChiakiLog* log, std::string url, std::string token, std::string jsonAttribute, std::string body, std::string contentType){
             return postJsonAttribute(log, url, "Bearer "+token, jsonAttribute, body, contentType);
         }
+
+        static std::vector<std::string> getJsonAttributesBasic(ChiakiLog* log, std::string url, std::string username, std::string password, std::string jsonAttribute){
+            return getJsonAttributes(log, url, generateBasicAuthHeader(username, password), jsonAttribute);
+        }
+
+        static std::vector<std::string> getJsonAttributesBearer(ChiakiLog* log, std::string url, std::string token, std::string jsonAttribute){
+            return getJsonAttributes(log, url, "Bearer "+token, jsonAttribute);
+        }
+
+        static std::vector<std::string> postJsonAttributesBasic(ChiakiLog* log, std::string url, std::string username, std::string password, std::string jsonAttribute, std::string body){
+            return getJsonAttributes(log, url, generateBasicAuthHeader(username, password), jsonAttribute);
+        }
+
+        static std::vector<std::string> postJsonAttributesBearer(ChiakiLog* log, std::string url, std::string token, std::string jsonAttribute, std::string body, std::string contentType){
+            return postJsonAttributes(log, url, "Bearer "+token, jsonAttribute, body, contentType);
+        }
     private:
         static std::string generateBasicAuthHeader(std::string username, std::string password) {
             QString q_username = QString::fromStdString(username);
@@ -53,6 +69,27 @@ class JsonUtils {
             return "";
         }
 
+        static std::vector<std::string> getJsonValuesforAttribute(std::string jsonResponse, std::string jsonAttribute) {
+            // Your regular expression pattern with groups
+            std::regex regex_pattern("\""+jsonAttribute+"\":\"([^\"]+)\"");
+
+            // Iterator for matching
+            std::sregex_iterator iter(jsonResponse.begin(), jsonResponse.end(), regex_pattern);
+            std::sregex_iterator end;
+
+            // Vector to store group 1 of each match
+            std::vector<std::string> result_vector;
+
+            // Iterate over matches and store group 1 in the vector
+            while (iter != end) {
+                std::string value = (*iter)[1].str();
+                result_vector.emplace_back(value);
+                ++iter;
+            }
+
+            return result_vector;
+        }
+
         static std::string getJsonAttribute(ChiakiLog* log, std::string url, std::string authHeader, std::string jsonAttribute){
             std::string jsonResponse = responseBody(log, url, authHeader, "", "application/json");
             return getJsonValueforAttribute(jsonResponse, jsonAttribute);
@@ -61,6 +98,16 @@ class JsonUtils {
         static std::string postJsonAttribute(ChiakiLog* log, std::string url, std::string authHeader, std::string jsonAttribute, std::string body, std::string contentType) {
             std::string jsonResponse = responseBody(log, url, authHeader, body, contentType);
             return getJsonValueforAttribute(jsonResponse, jsonAttribute);
+        }
+
+        static std::vector<std::string> getJsonAttributes(ChiakiLog* log, std::string url, std::string authHeader, std::string jsonAttribute){
+            std::string jsonResponse = responseBody(log, url, authHeader, "", "application/json");
+            return getJsonValuesforAttribute(jsonResponse, jsonAttribute);
+        }
+
+        static std::vector<std::string> postJsonAttributes(ChiakiLog* log, std::string url, std::string authHeader, std::string jsonAttribute, std::string body, std::string contentType) {
+            std::string jsonResponse = responseBody(log, url, authHeader, body, contentType);
+            return getJsonValuesforAttribute(jsonResponse, jsonAttribute);
         }
 
         static std::string responseBody(ChiakiLog* log, std::string url, std::string authHeader, std::string body, std::string contentType) {
