@@ -9,15 +9,17 @@
 #include <qeventloop.h>
 #include "registdialog.h"
 #include "psnaccountid.h"
+#include "settings.h"
 
 class PSNLoginWindow : public QMainWindow {
     Q_OBJECT
 
 private:
     QWebEngineView* web_engine_view;
+    ChiakiLog log;
 
 public:
-    PSNLoginWindow(RegistDialog *parent = nullptr);
+    PSNLoginWindow(Settings *settings, RegistDialog *parent = nullptr);
 
     private slots:
         void handleWebEngineLoadFinished(bool);

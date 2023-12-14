@@ -1,6 +1,7 @@
 #include "psnloginwindow.h"
 
-PSNLoginWindow::PSNLoginWindow(RegistDialog *parent) : QMainWindow(parent) {
+PSNLoginWindow::PSNLoginWindow(Settings *settings, RegistDialog *parent) : QMainWindow(parent) {
+    chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
     setWindowTitle(tr("Playstation Login"));
     setFixedSize(800, 600); // Adjust the size as needed
     web_engine_view = new QWebEngineView(this);
@@ -31,8 +32,8 @@ void PSNLoginWindow::handleWebEngineLoadFinished(bool) {
 
         web_engine_view->close();
 
-        std::string accessToken = PSNAccountID::getAccessToken(redirectCode);
-        std::string userId = PSNAccountID::GetAccountInfo(accessToken);
+        std::string accessToken = PSNAccountID::getAccessToken(&log, redirectCode);
+        std::string userId = PSNAccountID::GetAccountInfo(&log, accessToken);
 
         RegistDialog* parentDialog = qobject_cast<RegistDialog*>(parent());
         if (parentDialog) {

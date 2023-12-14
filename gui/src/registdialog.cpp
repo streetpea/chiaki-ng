@@ -52,7 +52,11 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 	auto UpdatePSNIDEdits = [this]() {
 		bool need_account_id = NeedAccountId();
 		psn_online_id_edit->setEnabled(!need_account_id);
-		psn_account_id_button->setEnabled(need_account_id);
+		if (!psn_account_id.empty()) {
+			psn_account_id_button->setEnabled(false);
+		} else {
+			psn_account_id_button->setEnabled(need_account_id);
+		}
 	};
 
 	auto target_layout = new QVBoxLayout(nullptr);
@@ -105,7 +109,7 @@ RegistDialog::~RegistDialog()
 }
 
 void RegistDialog::GetAccountID(QWidget *parent) {
-	PSNLoginWindow* window = new PSNLoginWindow(this);
+	PSNLoginWindow* window = new PSNLoginWindow(settings, this);
 	window->show();
 }
 
