@@ -53,7 +53,8 @@ set(SOURCE_FILES
 	src/loginpindialog.cpp
   	include/psnaccountid.h
 	include/psnloginwindow.h
-	src/psnloginwindow.cpp)
+	src/psnloginwindow.cpp
+	include/jsonutils.h)
 set(RESOURCE_FILES "")
 
 if(APPLE)
