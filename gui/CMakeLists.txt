@@ -50,7 +50,8 @@ set(SOURCE_FILES
 	include/controllermanager.h
 	src/controllermanager.cpp
 	include/loginpindialog.h
-	src/loginpindialog.cpp)
+	src/loginpindialog.cpp
+	include/jsonutils.h)
 set(RESOURCE_FILES "")
 
 if(APPLE)
