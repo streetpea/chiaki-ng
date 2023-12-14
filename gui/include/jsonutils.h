@@ -18,8 +18,8 @@ class JsonUtils {
             return getJsonAttribute(log, url, "Bearer "+token, jsonAttribute);
         }
 
-        static std::string postJsonAttributeBasic(ChiakiLog* log, std::string url, std::string username, std::string password, std::string jsonAttribute, std::string body){
-            return getJsonAttribute(log, url, generateBasicAuthHeader(username, password), jsonAttribute);
+        static std::string postJsonAttributeBasic(ChiakiLog* log, std::string url, std::string username, std::string password, std::string jsonAttribute, std::string body, std::string contentType){
+            return postJsonAttribute(log, url, generateBasicAuthHeader(username, password), jsonAttribute, body, contentType);
         }
 
         static std::string postJsonAttributeBearer(ChiakiLog* log, std::string url, std::string token, std::string jsonAttribute, std::string body, std::string contentType){
