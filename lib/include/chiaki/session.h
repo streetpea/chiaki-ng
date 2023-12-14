@@ -176,7 +176,7 @@ typedef void (*ChiakiEventCallback)(ChiakiEvent *event, void *user);
  * buf will always have an allocated padding of at least CHIAKI_VIDEO_BUFFER_PADDING_SIZE after buf_size
  * @return whether the sample was successfully pushed into the decoder. On false, a corrupt frame will be reported to get a new keyframe.
  */
-typedef bool (*ChiakiVideoSampleCallback)(uint8_t *buf, size_t buf_size, void *user);
+typedef bool (*ChiakiVideoSampleCallback)(uint8_t *buf, size_t buf_size, int32_t frames_lost, void *user);
 
 
 

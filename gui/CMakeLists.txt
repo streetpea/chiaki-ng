@@ -58,7 +58,8 @@ set(SOURCE_FILES
 	include/vdfparser.h
 	include/vdfstatemachine.h
 	include/steamgriddbapi.h
-	include/imageloader.h)
+	include/imageloader.h
+	include/jsonutils.h)
 set(RESOURCE_FILES "")
 
 set(UI_FILES

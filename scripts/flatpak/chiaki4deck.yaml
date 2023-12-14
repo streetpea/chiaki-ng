@@ -109,6 +109,10 @@ modules:
       - type: archive
         url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
         sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
+      - type: patch
+        path: 0001-hevc-Fix-duplicate-POC-in-sequence.patch
+      - type: patch
+        path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
 
   - name: python3-google
     buildsystem: simple
@@ -173,13 +177,29 @@ modules:
         sha256: 84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae
 
   - name: hidapi
-    buildsystem: cmake
+    buildsystem: cmake-ninja
     config-opts:
       - "-DHIDAPI_WITH_LIBUSB=FALSE"
     sources:
       - type: git
         url: https://github.com/libusb/hidapi.git
         tag: hidapi-0.14.0
+    cleanup:
+      - /lib/*.la
+      - /lib/pkgconfig
+      - /include
+
+  - name: speexDSP
+    buildsystem: simple
+    build-commands:
+      - ./autogen.sh
+      - ./configure --prefix=/app
+      - make
+      - make install
+    sources:
+    - type: git
+      url: https://gitlab.xiph.org/xiph/speexdsp.git
+      tag: SpeexDSP-1.2.1
 
   - name: vulkanso
     buildsystem: simple
@@ -190,7 +210,7 @@ modules:
         ln -s libvulkan.so.1 /app/lib/libvulkan.so
 
   - name: chiaki4deck
-    buildsystem: cmake
+    buildsystem: cmake-ninja
     builddir: true
     sources:
       - type: git

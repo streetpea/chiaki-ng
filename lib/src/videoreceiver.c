@@ -21,6 +21,12 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 
 	chiaki_frame_processor_init(&video_receiver->frame_processor, video_receiver->log);
 	video_receiver->packet_stats = packet_stats;
+
+	video_receiver->old_frame = NULL;
+	video_receiver->old_frame_size = 0;
+	video_receiver->old_frame_allocd = 0;
+
+	video_receiver->frames_lost = 0;
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver)
@@ -28,6 +34,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receive
 	for(size_t i=0; i<video_receiver->profiles_count; i++)
 		free(video_receiver->profiles[i].header);
 	chiaki_frame_processor_fini(&video_receiver->frame_processor);
+	free(video_receiver->old_frame);
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_receiver, ChiakiVideoProfile *profiles, size_t profiles_count)
@@ -76,7 +83,9 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		ChiakiVideoProfile *profile = video_receiver->profiles + video_receiver->profile_cur;
 		CHIAKI_LOGI(video_receiver->log, "Switched to profile %d, resolution: %ux%u", video_receiver->profile_cur, profile->width, profile->height);
 		if(video_receiver->session->video_sample_cb)
-			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, video_receiver->session->video_sample_cb_user);
+			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, 0, video_receiver->session->video_sample_cb_user);
+
+		video_receiver->old_frame_size = 0;
 	}
 
 	// next frame?
@@ -96,6 +105,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		{
 			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
 			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, frame_index - 1);
+			video_receiver->frames_lost = frame_index - next_frame_expected;
 		}
 
 		video_receiver->frame_index_cur = frame_index;
@@ -131,13 +141,32 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	// TODO: Error Concealment on CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED
-
 	bool succ = flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED;
+
+	if(video_receiver->session->connect_info.video_profile.codec > CHIAKI_CODEC_H264)
+	{
+		if(succ)
+		{
+			if(video_receiver->old_frame_allocd < frame_size)
+			{
+				free(video_receiver->old_frame);
+				video_receiver->old_frame_allocd = frame_size * 2;
+				video_receiver->old_frame = malloc(video_receiver->old_frame_allocd);
+			}
+			video_receiver->old_frame_size = frame_size;
+			memcpy(video_receiver->old_frame, frame, frame_size);
+		}
+		else if(video_receiver->old_frame_size)
+		{
+			frame = video_receiver->old_frame;
+			frame_size = video_receiver->old_frame_size;
+		}
+	}
 
 	if(video_receiver->session->video_sample_cb)
 	{
-		bool cb_succ = video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->session->video_sample_cb_user);
+		bool cb_succ = video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->frames_lost, video_receiver->session->video_sample_cb_user);
+		video_receiver->frames_lost = 0;
 		if(!cb_succ)
 		{
 			succ = false;

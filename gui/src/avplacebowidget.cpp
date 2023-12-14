@@ -127,6 +127,11 @@ void AVPlaceboWidget::Stop() {
 }
 
 bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
+    if (frame->decode_error_flags) {
+        CHIAKI_LOGW(session->GetChiakiLog(), "Skip decode error!");
+        av_frame_free(&frame);
+        return false;
+    }
     num_frames_total++;
     bool render = true;
     frames_mutex.lock();
