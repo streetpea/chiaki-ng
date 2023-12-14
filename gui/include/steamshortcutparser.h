@@ -633,6 +633,10 @@ namespace SteamShortcutParser {
 
             root.add_child(std::move(uniqueObjectPtr));
             std::ofstream outFile(controllerFile);
+            std::string backupFile;
+            backupFile.append(controllerFile);
+            backupFile.append(".bak");
+            copyFile(log, controllerFile, backupFile);
             tyti::vdf::write(outFile, root);
         } else {
             CHIAKI_LOGI(log, "Controller config already set for %s, not overwriting", titleName.c_str());
