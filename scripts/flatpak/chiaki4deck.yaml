@@ -201,6 +201,20 @@ modules:
       url: https://gitlab.xiph.org/xiph/speexdsp.git
       tag: SpeexDSP-1.2.1
 
+  - name: wireless-tools
+    buildsystem: simple
+    build-commands: 
+     - make
+     - make PREFIX=/app INSTALL_DIR=/app/bin install
+    sources:
+    - type: archive
+      url: https://hewlettpackard.github.io/wireless-tools/wireless_tools.29.tar.gz
+      sha256: 6fb80935fe208538131ce2c4178221bab1078a1656306bce8909c19887e2e5a1
+      cleanup:
+        - /include
+        - /lib
+        - /man
+        
   - name: vulkanso
     buildsystem: simple
     build-commands:
