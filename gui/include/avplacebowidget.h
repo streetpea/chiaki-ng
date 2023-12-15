@@ -41,6 +41,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         AVFrame *queued_frame = nullptr;
         bool stream_started = false;
+        bool first_frame_done = false;
 
         pl_cache placebo_cache;
         pl_render_params render_params;
