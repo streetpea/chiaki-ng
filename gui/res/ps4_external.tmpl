@@ -3,7 +3,7 @@ then
 	addr="{{home_addr}}"
 	SECONDS=0
 	# Wait for console to be in sleep/rest mode or on (otherwise console isn't available)
-	ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+	ps_status="$({{executable}} discover -h ${addr} 2>/dev/null)"
 	while ! echo "${ps_status}" | grep -q 'ready\|standby'
 	do
 		if [ ${SECONDS} -gt{{wait_timeout}} ]
@@ -11,13 +11,13 @@ then
 			connect_error_loc
 		fi
 		sleep 1
-		ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+		ps_status="$({{executable}} discover -h ${addr} 2>/dev/null)"
 	done
 
 	# Wake up console from sleep/rest mode if not already awake
 	if ! echo "${ps_status}" | grep -q ready
 	then
-		flatpak run io.github.streetpea.Chiaki4deck wakeup {{ps_console}}-h ${addr} -r '{{regist_key}}' 2>/dev/null
+		{{executable}} wakeup {{ps_console}}-h ${addr} -r '{{regist_key}}' 2>/dev/null
 	fi
 
 	# Wait for PlayStation to report ready status, exit script on error if it never happens.
@@ -33,12 +33,12 @@ then
 			fi
 		fi
 		sleep 1
-		ps_status="$(flatpak run io.github.streetpea.Chiaki4deck discover -h ${addr} 2>/dev/null)"
+		ps_status="$({{executable}} discover -h ${addr} 2>/dev/null)"
 	done
 else
 	addr="{{away_addr}}"
 	SECONDS=0
 	# Wake up console from sleep/rest mode if not already awake
-	flatpak run io.github.streetpea.Chiaki4deck wakeup {{ps_console}}-h ${addr} -r '{{regist_key}}' 2>/dev/null
+	{{executable}} wakeup {{ps_console}}-h ${addr} -r '{{regist_key}}' 2>/dev/null
 	sleep 10
 fi

@@ -14,6 +14,9 @@
 #include <steamshortcutparser.h>
 #include <steamgriddbapi.h>
 #include <QMessageBox>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
 
 #include "imageloader.h"
 
@@ -313,6 +316,42 @@ void ShortcutDialog::ExternalChanged() {
     Ui::ShortcutDialog::local_ssid_edit->setEnabled(Ui::ShortcutDialog::allow_external_access_checkbox->isChecked());
 }
 
+std::string ShortcutDialog::getExecutable() {
+#if defined(__APPLE__)
+    char buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+
+    if (_NSGetExecutablePath(buffer, &size) == -1) {
+        // Buffer is not large enough, allocate a larger one
+        char* largerBuffer = new char[size];
+        if (_NSGetExecutablePath(largerBuffer, &size) == 0) {
+            return largerBuffer;
+        }
+    } else {
+        return buffer;
+    }
+#elif defined(__linux)
+    std::string chiakiFlatpakDir = "";
+
+    chiakiFlatpakDir.append(getenv("HOME"));
+    chiakiFlatpakDir.append("/.var/app/io.github.streetpea.Chiaki4deck");
+    //Installed via Flatpak
+    if (access(chiakiFlatpakDir.c_str(), 0) == 0) {
+        return "flatpak run io.github.streetpea.Chiaki4deck";
+    }
+    else {
+        har buffer[PATH_MAX];
+        ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+
+        if (len != -1) {
+            buffer[len] = '\0';
+            return buffer;
+        }
+    }
+#endif
+    return "";
+}
+
 void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map<std::string, std::string> artwork) {
     //Create a map of variables for the template
     std::map<std::string, std::string> paramMap;
@@ -326,6 +365,7 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     paramMap["login_passcode"] = passcode_edit->text().toStdString();
     paramMap["mode"] = mode_combo_box->currentText().toStdString();
     paramMap["server_nickname"] = displayServer->discovered ? displayServer->discovery_host.host_name.toStdString() : displayServer->registered_host.GetServerNickname().toStdString();
+    paramMap["executable"] = getExecutable();
 
     std::string fileText = compileTemplate("shortcut.tmpl", paramMap);
 

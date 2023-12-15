@@ -58,6 +58,7 @@ class ShortcutDialog : public QDialog, private Ui::ShortcutDialog{
         void RotateImage(RotateDirection direction, QLabel* label, std::vector<std::string>& images, int& index, std::string type);
 
     public:
+        std::string getExecutable();
         ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget *parent = nullptr);
         std::string compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap);
         std::string getConnectedSSID();
