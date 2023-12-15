@@ -136,6 +136,22 @@
      <attribute name="title">
       <string>Landscape</string>
      </attribute>
+     <widget class="QLabel" name="landscape_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
      <widget class="QWidget" name="landscape_verticalLayoutWidget">
       <property name="geometry">
        <rect>
@@ -198,6 +214,22 @@
      <attribute name="title">
       <string>Portrait</string>
      </attribute>
+     <widget class="QLabel" name="portrait_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
      <widget class="QWidget" name="portrait_verticalLayoutWidget">
       <property name="geometry">
        <rect>
@@ -260,6 +292,22 @@
      <attribute name="title">
       <string>Hero</string>
      </attribute>
+     <widget class="QLabel" name="hero_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
      <widget class="QWidget" name="hero_verticalLayoutWidget">
       <property name="geometry">
        <rect>
@@ -322,6 +370,22 @@
      <attribute name="title">
       <string>Icon</string>
      </attribute>
+     <widget class="QLabel" name="icon_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
      <widget class="QWidget" name="icon_verticalLayoutWidget">
       <property name="geometry">
        <rect>
@@ -384,6 +448,22 @@
      <attribute name="title">
       <string>Logo</string>
      </attribute>
+     <widget class="QLabel" name="logo_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
      <widget class="QWidget" name="logo_verticalLayoutWidget">
       <property name="geometry">
        <rect>
