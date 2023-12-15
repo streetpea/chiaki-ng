@@ -222,11 +222,15 @@ void RegistExecuteDialog::Success(RegisteredHost host)
 
 	settings->AddRegisteredHost(host);
 
+#ifdef(__linux)
 	int addToSteam = QMessageBox::question(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered! Would you like to add it to steam?").arg(host.GetServerNickname(), host.GetServerMAC().ToString()), QMessageBox::Yes, QMessageBox::No);
 
 	if (addToSteam == QMessageBox::Yes) {
 		settings->AddNewHostToSteam(host);
 	}
+#else
+	QMessageBox::information(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered!").arg(host.GetServerNickname(), host.GetServerMAC().ToString()));
+#endif
 
 	accept();
 }
