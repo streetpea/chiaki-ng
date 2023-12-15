@@ -154,6 +154,7 @@ class Settings : public QObject
 
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);
+		void AddNewHostToSteam(const RegisteredHost &host);
 		void RemoveRegisteredHost(const HostMAC &mac);
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
@@ -171,6 +172,7 @@ class Settings : public QObject
 
 	signals:
 		void RegisteredHostsUpdated();
+		void OpenAddToSteamDialog(std::string nickname);
 		void ManualHostsUpdated();
 };
 

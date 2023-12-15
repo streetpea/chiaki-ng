@@ -58,6 +58,7 @@ class MainWindow : public QMainWindow
 		void ShowSettings();
 
 		void UpdateDisplayServers();
+		void OpenAddToSteamDialog(std::string nickname);
 		void UpdateServerWidgets();
 
 	public:

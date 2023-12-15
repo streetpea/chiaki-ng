@@ -171,6 +171,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &MainWindow::UpdateDisplayServers);
+	connect(settings, &Settings::OpenAddToSteamDialog, this, &MainWindow::OpenAddToSteamDialog);
 	connect(settings, &Settings::ManualHostsUpdated, this, &MainWindow::UpdateDisplayServers);
 
 	UpdateDisplayServers();
@@ -359,6 +360,16 @@ void MainWindow::UpdateDisplayServers()
 	}
 
 	UpdateServerWidgets();
+}
+
+void MainWindow::OpenAddToSteamDialog(std::string nickname) {
+	QList<DisplayServer>::iterator it;
+	for (it = display_servers.begin(); it != display_servers.end(); ++it) {
+		if (it->registered_host.GetServerNickname() == QString::fromStdString(nickname)) {
+			ShortcutDialog dialog(settings, &(*it), this);
+			dialog.exec();
+		}
+	}
 }
 
 void MainWindow::UpdateServerWidgets()
