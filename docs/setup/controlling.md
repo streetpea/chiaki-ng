@@ -10,6 +10,10 @@ Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `c
 
     ![Chiaki Desktop Mode Controller](images/ChooseControllerLayout.png)
 
+!!! Tip "Check if `chiaki4deck+ mic` by gmoney23 is selected"
+
+    If it is already selected (it should be if you used the Add to Steam option by right-clicking on your console in the GUI) you can skip this section. Otherwise, continue this section to configure your controller layout manually.
+
 ## Retrieving chiaki4deck Controller Layouts when Using An Alternate Game Name [Most Users Can Skip This]
 
 ???- Tip "Only If You Didn't Use `chiaki4deck` As the Name of the Game in Steam [Click to Open Me]"
