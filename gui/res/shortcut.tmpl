@@ -26,7 +26,7 @@ wakeup_error()
 
 timeout_error()
 {
-    echo "Error: PlayStation console didn't become ready in{{wait_timeout}} seconds!" >&2
-    echo "Error: Please change{{wait_timeout}} to a higher number in your script if this persists." >&2
+    echo "Error: PlayStation console didn't become ready in {{wait_timeout}} seconds!" >&2
+    echo "Error: Please change {{wait_timeout}} to a higher number in your script if this persists." >&2
     exit 1
 }
