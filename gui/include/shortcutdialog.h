@@ -56,6 +56,7 @@ class ShortcutDialog : public QDialog, private Ui::ShortcutDialog{
         void CreateShortcut(const DisplayServer* server, std::map<std::string, std::string> artwork);
         void UpdateImageList(ArtworkType artworkType, std::vector<std::string>& images, std::string gameId, std::string& custom, QPushButton* prev, QPushButton* next);
         void RotateImage(RotateDirection direction, QLabel* label, std::vector<std::string>& images, int& index, std::string type);
+        void dialogLoaded();
 
     public:
         std::string getExecutable();

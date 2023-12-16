@@ -18,6 +18,8 @@
 #include <mach-o/dyld.h>
 #endif
 
+#include <QTimer>
+
 #include "imageloader.h"
 
 ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget* parent) {
@@ -50,9 +52,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     }
 
     //Landscapes
-    landscapes = SteamGridDb::getLandscapes(&log, Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), 0);
     landscapeIndex = 0;
-    loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
     connect(Ui::ShortcutDialog::landscape_next_button, &QPushButton::clicked, [=]() {
         RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex, "landscape");
     });
@@ -88,9 +88,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     });
 
     //Portraits
-    portraits = SteamGridDb::getPortraits(&log, Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), 0);
     portraitIndex = 0;
-    loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
     connect(Ui::ShortcutDialog::portrait_next_button, &QPushButton::clicked, [=]() {
         RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::portrait_label, portraits, portraitIndex, "portrait");
     });
@@ -126,9 +124,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     });
 
     //Heroes
-    heroes = SteamGridDb::getHeroes(&log, Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), 0);
     heroIndex = 0;
-    loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
     connect(Ui::ShortcutDialog::hero_next_button, &QPushButton::clicked, [=]() {
         RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::hero_label, heroes, heroIndex, "hero");
     });
@@ -164,9 +160,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     });
 
     //Icons
-    icons = SteamGridDb::getIcons(&log, Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), 0);
     iconIndex = 0;
-    loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
     connect(Ui::ShortcutDialog::icon_next_button, &QPushButton::clicked, [=]() {
         RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::icon_label, icons, iconIndex, "icon");
     });
@@ -202,9 +196,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     });
 
     //Logos
-    logos = SteamGridDb::getLogos(&log, Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), 0);
     logoIndex = 0;
-    loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
     connect(Ui::ShortcutDialog::logo_next_button, &QPushButton::clicked, [=]() {
         RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::logo_label, logos, logoIndex, "logo");
     });
@@ -240,6 +232,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     });
 
     //Shortcut Button
+    add_to_steam_button->setEnabled(false);
     connect(Ui::ShortcutDialog::add_to_steam_button, &QPushButton::clicked, [=]() {
         std::map<std::string, std::string> artwork;
         artwork["landscape"] = landscapes.at(landscapeIndex);
@@ -249,6 +242,32 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
         artwork["icon"] = icons.at(iconIndex);
         CreateShortcut(server, artwork);
     });
+
+    QTimer::singleShot(0, this, &ShortcutDialog::dialogLoaded);
+}
+
+void ShortcutDialog::dialogLoaded() {
+    landscape_label->setText("Loading");
+    landscapes = SteamGridDb::getLandscapes(&log, Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), 0);
+    loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
+
+    portrait_label->setText("Loading");
+    portraits = SteamGridDb::getPortraits(&log, Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), 0);
+    loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
+
+    hero_label->setText("Loading");
+    heroes = SteamGridDb::getHeroes(&log, Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), 0);
+    loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
+
+    logo_label->setText("Loading");
+    logos = SteamGridDb::getLogos(&log, Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), 0);
+    loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
+
+    icon_label->setText("Loading");
+    icons = SteamGridDb::getIcons(&log, Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), 0);
+    loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
+
+    add_to_steam_button->setEnabled(true);
 }
 
 void ShortcutDialog::loadImage(QLabel* label, std::vector<std::string> images, int index) {
