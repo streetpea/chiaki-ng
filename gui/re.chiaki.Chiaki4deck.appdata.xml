@@ -22,6 +22,14 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2023-12-15" version="1.5.1">
+      <description>
+        <p>This release provides a workaround for the following gamescope bug:</p>
+        <ul>
+          <li>Swapchain for HDR surface hangs on creation.</li>
+        </ul>
+      </description>
+    </release>
     <release date="2023-12-10" version="1.5.0">
       <description>
         <p>This release brings HDR to Chiaki4deck including:</p>

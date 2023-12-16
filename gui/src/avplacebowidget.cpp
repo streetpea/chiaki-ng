@@ -178,6 +178,18 @@ void AVPlaceboWidget::RenderFrame()
         CHIAKI_LOGE(session->GetChiakiLog(), "Failed to map AVFrame to Placebo frame!");
         return;
     }
+
+    // XXX: Revert when it's fixed in gamescope
+    if (!first_frame_done) {
+        first_frame_done = true;
+        pl_swapchain_destroy(&placebo_swapchain);
+        struct pl_vulkan_swapchain_params swapchain_params = {
+            .surface = surface,
+            .present_mode = VK_PRESENT_MODE_FIFO_KHR,
+        };
+        placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
+    }
+
     // set colorspace hint
     struct pl_color_space hint = placebo_frame.color;
     pl_swapchain_colorspace_hint(placebo_swapchain, &hint);
