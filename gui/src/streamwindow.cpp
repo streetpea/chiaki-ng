@@ -162,10 +162,11 @@ bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
 		case QEvent::KeyPress:
 		case QEvent::KeyRelease:
 			QCoreApplication::sendEvent(this, event);
-			return true;
+			break;
 		default:
-			return false;
+			break;
 	}
+	return false;
 }
 
 void StreamWindow::Quit()
@@ -244,7 +245,10 @@ void StreamWindow::SessionQuit(ChiakiQuitReason reason, const QString &reason_st
 		QString m = tr("Chiaki Session has quit") + ":\n" + chiaki_quit_reason_string(reason);
 		if(!reason_str.isEmpty())
 			m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
-		QMessageBox::critical(this, tr("Session has quit"), m);
+		QString t = tr("Session has quit");
+		if (av_widget && av_widget->ShowError(t, m))
+			return;
+		QMessageBox::critical(this, t, m);
 	}
 	close();
 }

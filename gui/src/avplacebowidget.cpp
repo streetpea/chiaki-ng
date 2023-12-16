@@ -126,6 +126,14 @@ void AVPlaceboWidget::Stop() {
     ReleaseSwapchain();
 }
 
+bool AVPlaceboWidget::ShowError(const QString &title, const QString &message) {
+    error_title = title;
+    error_text = message;
+    RenderPlaceholderIcon();
+    QTimer::singleShot(5000, this, &AVPlaceboWidget::CloseWindow);
+    return true;
+}
+
 bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
     if (frame->decode_error_flags) {
         CHIAKI_LOGW(session->GetChiakiLog(), "Skip decode error!");
@@ -240,6 +248,11 @@ void AVPlaceboWidget::RenderImage(const QImage &img)
     struct pl_plane plane = {0};
     pl_tex tex = {0};
 
+    if (!placebo_renderer) {
+        CHIAKI_LOGE(session->GetChiakiLog(), "No renderer!");
+        return;
+    }
+
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
         CHIAKI_LOGE(session->GetChiakiLog(), "Failed to start Placebo frame!");
         return;
@@ -282,10 +295,6 @@ void AVPlaceboWidget::RenderImage(const QImage &img)
 
 void AVPlaceboWidget::RenderPlaceholderIcon()
 {
-    if (stream_started) {
-        return;
-    }
-
     QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
     img.fill(Qt::black);
 
@@ -294,9 +303,28 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
     logo_reader.setScaledSize(QSize(logo_size, logo_size));
     QImage logo_img = logo_reader.read();
     QPainter p(&img);
-    p.drawImage(QPoint((img.width() - logo_img.width()) / 2, (img.height() - logo_img.height()) / 2), logo_img);
+    QRect imageRect((img.width() - logo_img.width()) / 2, (img.height() - logo_img.height()) / 2, logo_img.width(), logo_img.height());
+    p.drawImage(imageRect, logo_img);
+    if (!error_title.isEmpty()) {
+        QFont f = p.font();
+        f.setPixelSize(26 * devicePixelRatio());
+        p.setPen(Qt::white);
+        f.setBold(true);
+        p.setFont(f);
+        int title_height = QFontMetrics(f).boundingRect(error_title).height();
+        int title_y = imageRect.bottom() + (img.height() - imageRect.bottom() - title_height * 5) / 2;
+        p.drawText(QRect(0, title_y, img.width(), title_height), Qt::AlignCenter, error_title);
+        f.setPixelSize(22 * devicePixelRatio());
+        f.setBold(false);
+        p.setFont(f);
+        p.drawText(QRect(0, title_y + title_height + 10, img.width(), img.height()), Qt::AlignTop | Qt::AlignHCenter, error_text);
+    }
     p.end();
-    RenderImage(img);
+
+    if (render_thread)
+        QMetaObject::invokeMethod(render_thread->parent(), std::bind(&AVPlaceboWidget::RenderImage, this, img));
+    else
+        RenderImage(img);
 }
 
 void AVPlaceboWidget::CreateSwapchain()
@@ -386,6 +414,14 @@ void AVPlaceboWidget::ReleaseSwapchain()
     destroySurface(placebo_vk_inst->instance, surface, nullptr);
 }
 
+void AVPlaceboWidget::CloseWindow()
+{
+    QWindow *p = parent();
+    while (p && !p->isTopLevel())
+        p = p->parent();
+    p->close();
+}
+
 void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
 {
     QWindow::resizeEvent(event);
@@ -399,7 +435,17 @@ void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
     int width = event->size().width() * this->devicePixelRatio();
     int height = event->size().height() * this->devicePixelRatio();
     pl_swapchain_resize(placebo_swapchain, &width, &height);
-    RenderPlaceholderIcon();
+
+    if (!stream_started)
+        RenderPlaceholderIcon();
+}
+
+void AVPlaceboWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (!error_title.isEmpty())
+        QTimer::singleShot(250, this, &AVPlaceboWidget::CloseWindow);
+
+    QWindow::mousePressEvent(event);
 }
 
 void AVPlaceboWidget::HideMouse()

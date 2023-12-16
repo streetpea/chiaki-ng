@@ -37,11 +37,13 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         AVPlaceboFrameUploader *frame_uploader;
         QMutex frames_mutex;
         QThread *frame_uploader_thread;
-        QThread *render_thread;
+        QThread *render_thread = nullptr;
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         AVFrame *queued_frame = nullptr;
         bool stream_started = false;
         bool first_frame_done = false;
+        QString error_title;
+        QString error_text;
 
         pl_cache placebo_cache;
         pl_render_params render_params;
@@ -65,10 +67,12 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void RenderPlaceholderIcon();
         void CreateSwapchain();
         void ReleaseSwapchain();
-        void setPlaceboVulkan(pl_vulkan vulkan) { placebo_vulkan = vulkan; };
+        void CloseWindow();
         void Stop() override;
+        bool ShowError(const QString &title, const QString &message) override;
         void showEvent(QShowEvent *event) override;
         void resizeEvent(QResizeEvent *event) override;
+        void mousePressEvent(QMouseEvent *event) override;
         static void PlaceboLog(void *user, pl_log_level level, const char *msg);
         VkSurfaceKHR vkSurface() const { return surface; }
 
