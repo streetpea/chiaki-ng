@@ -10,6 +10,7 @@
 #include <qtextstream.h>
 #include <regex>
 #include <sstream>
+#include <array>
 #include <string>
 #include <steamshortcutparser.h>
 #include <steamgriddbapi.h>
@@ -33,8 +34,8 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
 
     //Screen Mode combo
     static const QList<QPair<ChiakiScreenModePreset, const char *>> mode_strings = {
-        { CHIAKI_MODE_ZOOM, "zoom" },
         { CHIAKI_MODE_STRETCH, "stretch" },
+        { CHIAKI_MODE_ZOOM, "zoom" },
         { CHIAKI_MODE_FULLSCREEN, "fullscreen" }
     };
     for(const auto &p : mode_strings)
@@ -359,7 +360,7 @@ std::string ShortcutDialog::getExecutable() {
         return "flatpak run io.github.streetpea.Chiaki4deck";
     }
     else {
-        har buffer[PATH_MAX];
+        char buffer[PATH_MAX];
         ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
 
         if (len != -1) {
@@ -385,6 +386,20 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     paramMap["mode"] = mode_combo_box->currentText().toStdString();
     paramMap["server_nickname"] = displayServer->discovered ? displayServer->discovery_host.host_name.toStdString() : displayServer->registered_host.GetServerNickname().toStdString();
     paramMap["executable"] = getExecutable();
+    std::stringstream escapeCommandStream;
+    escapeCommandStream << "printf %q " << "\"" << paramMap["server_nickname"] << "\"";
+    const std::string escapeCommandStr = escapeCommandStream.str();
+    const char* escapeCommand = escapeCommandStr.c_str();
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(escapeCommand, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        paramMap["escaped_server_nickname"] += buffer.data();
+    }
+
 
     std::string fileText = compileTemplate("shortcut.tmpl", paramMap);
 
@@ -436,8 +451,11 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     }
 
     // Construct the shell command to make the file executable
-    const std::string chmodCommand = "chmod +x " + filePath;
+    std::stringstream chmodCommandStream;
+    chmodCommandStream << "chmod +x " << "\"" << filePath << "\"";
+    const std::string chmodCommand = chmodCommandStream.str();
 
+    
     // Execute the shell command to make it executable
     std::system(chmodCommand.c_str());
 
