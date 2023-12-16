@@ -174,6 +174,18 @@ void StreamWindow::Quit()
 	close();
 }
 
+void StreamWindow::StopSession(bool sleep)
+{
+	if(session)
+	{
+		if(session->IsConnected() && sleep)
+			session->GoToBed();
+		session->Stop();
+	}
+	if (av_widget)
+		av_widget->Stop();
+}
+
 void StreamWindow::mousePressEvent(QMouseEvent *event)
 {
 	if(session)
@@ -208,8 +220,14 @@ void StreamWindow::closeEvent(QCloseEvent *event)
 			switch(connect_info.settings->GetDisconnectAction())
 			{
 				case DisconnectAction::Ask: {
-					auto res = QMessageBox::question(this, tr("Disconnect Session"), tr("Do you want the Console to go into sleep mode?"),
-							QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+					QMessageBox::StandardButton res;
+					QString t = tr("Disconnect Session");
+					QString m = tr("Do you want the Console to go into sleep mode?");
+					if (av_widget && av_widget->ShowDisconnectDialog(t, m, std::bind(&StreamWindow::StopSession, this, std::placeholders::_1))) {
+						event->ignore();
+						return;
+					}
+					res = QMessageBox::question(this, t, m, QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 					switch(res)
 					{
 						case QMessageBox::Yes:

@@ -12,6 +12,7 @@
 #include <QMutex>
 #include <QWindow>
 #include <QElapsedTimer>
+#include <QMessageBox>
 #include <libplacebo/options.h>
 #include <libplacebo/vulkan.h>
 #include <libplacebo/renderer.h>
@@ -45,6 +46,10 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         QString error_title;
         QString error_text;
         QImage overlay_img;
+        QRect dialog_rect;
+        QString dialog_title;
+        QString dialog_text;
+        std::function<void(bool)> dialog_cb;
 
         pl_cache placebo_cache;
         pl_render_params render_params;
@@ -66,11 +71,13 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void RenderFrame();
         void RenderImage(const QImage &img);
         void RenderPlaceholderIcon();
+        void RenderDisconnectDialog();
         void CreateSwapchain();
         void ReleaseSwapchain();
         void CloseWindow();
         void Stop() override;
         bool ShowError(const QString &title, const QString &message) override;
+        bool ShowDisconnectDialog(const QString &title, const QString &message, std::function<void(bool)> cb) override;
         void showEvent(QShowEvent *event) override;
         void resizeEvent(QResizeEvent *event) override;
         void mousePressEvent(QMouseEvent *event) override;

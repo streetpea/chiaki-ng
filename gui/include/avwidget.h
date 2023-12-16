@@ -4,6 +4,7 @@
 #define CHIAKI_AVWIDGET_H
 
 #include <QString>
+#include <QMessageBox>
 
 class IAVWidget  {
 public:
@@ -13,6 +14,7 @@ public:
     virtual void ToggleStretch() = 0;
     virtual void ToggleZoom() = 0;
     virtual bool ShowError(const QString &title, const QString &text) { return false; }
+    virtual bool ShowDisconnectDialog(const QString &title, const QString &text, std::function<void(bool)> cb) { return false; }
 };
 
 enum ResolutionMode {Normal = 0, Zoom = 1, Stretch = 2};

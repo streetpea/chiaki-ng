@@ -48,6 +48,7 @@ class StreamWindow: public QMainWindow
 		void ToggleZoom();
 		void ToggleMute();
 		void Quit();
+		void StopSession(bool sleep);
 };
 
 #endif // CHIAKI_GUI_STREAMWINDOW_H

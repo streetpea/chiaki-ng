@@ -47,6 +47,20 @@ static bool UploadImage(const QImage &img, pl_gpu gpu, struct pl_plane *out_plan
     return pl_upload_plane(gpu, out_plane, tex, &data);
 }
 
+static QRect DialogRect(const QSize &size, const QFontMetrics &fm, const QString &title, const QString &text)
+{
+    int w = std::max(fm.boundingRect(title).width(), fm.boundingRect(text).width());
+    int h = std::max(fm.boundingRect(title).height(), fm.boundingRect(text).height()) * 6;
+    return QRect((size.width() - w) / 2, (size.height() - h) / 2, w, h);
+}
+
+static QRect DialogButton(const QRect &dialog_rect, int button)
+{
+    int x = dialog_rect.x() + (button ? dialog_rect.width() / 2 : 0);
+    int y = dialog_rect.bottom() - dialog_rect.height() * 0.35 + 4;
+    return QRect(x, y, dialog_rect.width() / 2, dialog_rect.height() * 0.35);
+}
+
 AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset)
     : session(session), resolution_mode(resolution_mode)
 {
@@ -153,6 +167,15 @@ bool AVPlaceboWidget::ShowError(const QString &title, const QString &message) {
     return true;
 }
 
+bool AVPlaceboWidget::ShowDisconnectDialog(const QString &title, const QString &message, std::function<void(bool)> cb) {
+    dialog_title = title;
+    dialog_text = message;
+    dialog_cb = cb;
+    RenderDisconnectDialog();
+    setCursor(Qt::ArrowCursor);
+    return true;
+}
+
 bool AVPlaceboWidget::QueueFrame(AVFrame *frame) {
     if (frame->decode_error_flags) {
         CHIAKI_LOGW(session->GetChiakiLog(), "Skip decode error!");
@@ -226,7 +249,6 @@ void AVPlaceboWidget::RenderFrame()
 
     pl_rect2df crop;
 
-    bool ret = false;
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
         CHIAKI_LOGE(session->GetChiakiLog(), "Failed to start Placebo frame!");
         goto cleanup;
@@ -352,6 +374,44 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
         RenderImage(img);
 }
 
+void AVPlaceboWidget::RenderDisconnectDialog()
+{
+    QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
+    img.fill(qRgba(30, 30, 30, 230));
+
+    QPainter p(&img);
+    QFont f = p.font();
+    f.setPixelSize(26 * devicePixelRatio());
+    p.setPen(Qt::white);
+    f.setBold(true);
+    p.setFont(f);
+    QFontMetrics fm(f);
+    dialog_rect = DialogRect(img.size(), fm, dialog_title, dialog_text);
+    int title_height = fm.boundingRect(dialog_title).height();
+    int title_y = dialog_rect.top() + title_height;
+    p.fillRect(dialog_rect, Qt::black);
+    // Title
+    p.drawText(QRect(dialog_rect.left(), title_y, dialog_rect.width(), title_height), Qt::AlignCenter, dialog_title);
+    f.setPixelSize(22 * devicePixelRatio());
+    f.setBold(false);
+    p.setFont(f);
+    // Text
+    p.drawText(QRect(dialog_rect.left(), title_y + title_height + 10, dialog_rect.width(), dialog_rect.height()), Qt::AlignTop | Qt::AlignHCenter, dialog_text);
+    // Sleep button
+    f.setBold(true);
+    p.setFont(f);
+    QRect button1_rect = DialogButton(dialog_rect, 0);
+    p.fillRect(button1_rect, qRgb(10, 10, 60));
+    p.drawText(button1_rect, Qt::AlignCenter, tr("⏻  SLEEP"));
+    // No button
+    QRect button2_rect = DialogButton(dialog_rect, 1);
+    p.fillRect(button2_rect, qRgb(15, 15, 15));
+    p.drawText(button2_rect, Qt::AlignCenter, tr("NO"));
+    p.end();
+
+    QMetaObject::invokeMethod(render_thread->parent(), [this, img]() { overlay_img = img; });
+}
+
 void AVPlaceboWidget::CreateSwapchain()
 {
     VkResult err;
@@ -463,14 +523,31 @@ void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
 
     if (!stream_started)
         RenderPlaceholderIcon();
+
+    if (!dialog_rect.isEmpty())
+        RenderDisconnectDialog();
 }
 
 void AVPlaceboWidget::mousePressEvent(QMouseEvent *event)
 {
+    QWindow::mousePressEvent(event);
+
     if (!error_title.isEmpty())
         QTimer::singleShot(250, this, &AVPlaceboWidget::CloseWindow);
 
-    QWindow::mousePressEvent(event);
+    if (!dialog_rect.isEmpty()) {
+        if (DialogButton(dialog_rect, 0).contains(event->pos())) {
+            QTimer::singleShot(250, this, std::bind(dialog_cb, true));
+        } else if (DialogButton(dialog_rect, 1).contains(event->pos())) {
+            QTimer::singleShot(250, this, std::bind(dialog_cb, false));
+        } else if (!dialog_rect.adjusted(-25, -25, 50, 50).contains(event->pos())) {
+            dialog_title.clear();
+            dialog_text.clear();
+            dialog_rect = {};
+            QMetaObject::invokeMethod(render_thread->parent(), [this]() { overlay_img = {}; });
+            HideMouse();
+        }
+    }
 }
 
 void AVPlaceboWidget::HideMouse()
