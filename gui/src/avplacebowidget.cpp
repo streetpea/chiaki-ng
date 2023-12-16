@@ -28,6 +28,25 @@ static inline QString GetShaderCacheFile()
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/pl_shader.cache";
 }
 
+static bool UploadImage(const QImage &img, pl_gpu gpu, struct pl_plane *out_plane, pl_tex *tex)
+{
+    struct pl_plane_data data = {
+        .type = PL_FMT_UNORM,
+        .width = img.width(),
+        .height = img.height(),
+        .pixel_stride = static_cast<size_t>(img.bytesPerLine() / img.width()),
+        .pixels = img.constBits(),
+    };
+
+    for (int c = 0; c < 4; c++) {
+        data.component_size[c] = img.pixelFormat().redSize();
+        data.component_pad[c] = 0;
+        data.component_map[c] = c;
+    }
+
+    return pl_upload_plane(gpu, out_plane, tex, &data);
+}
+
 AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset)
     : session(session), resolution_mode(resolution_mode)
 {
@@ -163,6 +182,9 @@ void AVPlaceboWidget::RenderFrame()
     struct pl_swapchain_frame sw_frame = {0};
     struct pl_frame placebo_frame = {0};
     struct pl_frame target_frame = {0};
+    pl_tex overlay_tex = {0};
+    struct pl_overlay_part overlay_part = {0};
+    struct pl_overlay overlay = {0};
 
     frames_mutex.lock();
     AVFrame *frame = queued_frame;
@@ -225,6 +247,22 @@ void AVPlaceboWidget::RenderFrame()
             break;
     }
 
+    if (!overlay_img.isNull()) {
+        if (!UploadImage(overlay_img, placebo_vulkan->gpu, nullptr, &overlay_tex)) {
+            CHIAKI_LOGE(session->GetChiakiLog(), "Failed to upload QImage!");
+            goto cleanup;
+        }
+        overlay_part.src = {0, 0, static_cast<float>(overlay_img.width()), static_cast<float>(overlay_img.height())};
+        overlay_part.dst = overlay_part.src;
+        overlay.tex = overlay_tex;
+        overlay.repr = pl_color_repr_rgb;
+        overlay.color = pl_color_space_srgb;
+        overlay.parts = &overlay_part;
+        overlay.num_parts = 1;
+        target_frame.overlays = &overlay;
+        target_frame.num_overlays = 1;
+    }
+
     if (!pl_render_image(placebo_renderer, &placebo_frame, &target_frame,
                          &render_params)) {
         CHIAKI_LOGE(session->GetChiakiLog(), "Failed to render Placebo frame!");
@@ -239,6 +277,7 @@ void AVPlaceboWidget::RenderFrame()
 
 cleanup:
     pl_unmap_avframe(placebo_vulkan->gpu, &placebo_frame);
+    pl_tex_destroy(placebo_vulkan->gpu, &overlay_tex);
 }
 
 void AVPlaceboWidget::RenderImage(const QImage &img)
@@ -260,31 +299,17 @@ void AVPlaceboWidget::RenderImage(const QImage &img)
 
     pl_frame_from_swapchain(&target_frame, &sw_frame);
 
-    struct pl_plane_data data = {
-        .type           = PL_FMT_UNORM,
-        .width          = img.width(),
-        .height         = img.height(),
-        .pixel_stride   = static_cast<size_t>(img.bytesPerLine() / img.width()),
-        .pixels         = img.constBits(),
-    };
-
-    for (int c = 0; c < 4; c++) {
-        data.component_size[c] = img.pixelFormat().redSize();
-        data.component_pad[c] = 0;
-        data.component_map[c] = c;
-    }
-
-    if (!pl_upload_plane(placebo_vulkan->gpu, &plane, &tex, &data)) {
-        CHIAKI_LOGE(session->GetChiakiLog(), "Failed to upload Placebo plane!");
+    if (!UploadImage(img, placebo_vulkan->gpu, &plane, &tex)) {
+        CHIAKI_LOGE(session->GetChiakiLog(), "Failed to upload QImage!");
         return;
     }
 
     struct pl_frame image = {
         .num_planes = 1,
-        .planes     = { plane },
-        .repr       = pl_color_repr_unknown,
-        .color      = pl_color_space_unknown,
-        .crop       = {0, 0, static_cast<float>(img.width()), static_cast<float>(img.height())},
+        .planes = { plane },
+        .repr = pl_color_repr_rgb,
+        .color = pl_color_space_srgb,
+        .crop = {0, 0, static_cast<float>(img.width()), static_cast<float>(img.height())},
     };
 
     pl_render_image(placebo_renderer, &image, &target_frame, &render_params);

@@ -44,6 +44,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         bool first_frame_done = false;
         QString error_title;
         QString error_text;
+        QImage overlay_img;
 
         pl_cache placebo_cache;
         pl_render_params render_params;
