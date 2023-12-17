@@ -31,12 +31,12 @@ class RegistDialog : public QDialog
 		QRadioButton *ps4_10_radio_button;
 		QRadioButton *ps5_radio_button;
 		QLineEdit *psn_online_id_edit;
+		QLineEdit *psn_account_id_edit;
 		QPushButton *psn_account_id_button;
 
 		QLineEdit *pin_edit;
 		QDialogButtonBox *button_box;
 		QPushButton *register_button;
-		std::string psn_account_id;
 
 		RegisteredHost registered_host;
 

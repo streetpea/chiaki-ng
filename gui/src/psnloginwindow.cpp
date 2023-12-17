@@ -1,10 +1,17 @@
 #include "psnloginwindow.h"
+#include <QWebEngineSettings>
 
 PSNLoginWindow::PSNLoginWindow(Settings *settings, RegistDialog *parent) : QMainWindow(parent) {
     chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
     setWindowTitle(tr("Playstation Login"));
     setFixedSize(800, 600); // Adjust the size as needed
     web_engine_view = new QWebEngineView(this);
+
+    // Get the QWebEngineSettings of the view
+    QWebEngineSettings *web_engine_settings = web_engine_view->settings();
+
+    // Disable WebGL
+    web_engine_settings->setAttribute(QWebEngineSettings::WebGLEnabled, false);
 
     web_engine_view->setUrl(QUrl(QString::fromStdString(PSNAuth::LOGIN_URL)));
 
