@@ -234,6 +234,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
 
     //Shortcut Button
     add_to_steam_button->setEnabled(false);
+    add_to_steam_button->setText("...Loading Artwork");
     connect(Ui::ShortcutDialog::add_to_steam_button, &QPushButton::clicked, [=]() {
         std::map<std::string, std::string> artwork;
         artwork["landscape"] = landscapes.at(landscapeIndex);
@@ -269,6 +270,7 @@ void ShortcutDialog::dialogLoaded() {
     loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
 
     add_to_steam_button->setEnabled(true);
+    add_to_steam_button->setText("Add to Steam");
 }
 
 void ShortcutDialog::loadImage(QLabel* label, std::vector<std::string> images, int index) {
@@ -418,18 +420,21 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     fileText = fileText+compileTemplate("launch.tmpl", paramMap);
 
     bool steamExists = SteamShortcutParser::steamExists();
+    std::string executable = getExecutable();
 
     std::string filePath;
-    if (steamExists) {
+    if (steamExists && executable.rfind("flatpak run io.github.streetpea.Chiaki4deck", 0) == 0) {
         filePath.append(getenv("HOME"));
         filePath.append("/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/");
         filePath.append(paramMap["server_nickname"]);
         filePath.append(".sh");
         SteamShortcutParser::createDirectories(&log, filePath);
     } else {
-        int createShortcut = QMessageBox::critical(nullptr, "Steam not found", QString::fromStdString("Steam not found! Save shortcut elsewhere?"), QMessageBox::Ok, QMessageBox::Cancel);
-        if (createShortcut == QMessageBox::Cancel) {
-            return;
+        if (!steamExists) {
+            int createShortcut = QMessageBox::critical(nullptr, "Steam not found", QString::fromStdString("Steam not found! Save shortcut elsewhere?"), QMessageBox::Ok, QMessageBox::Cancel);
+            if (createShortcut == QMessageBox::Cancel) {
+                return;
+            }
         }
         filePath.append(QFileDialog::getSaveFileName(nullptr, "Save Shell Script", QDir::homePath() + QDir::separator() + paramMap["server_nickname"].c_str() + ".sh", "Shell Scripts (*.sh)").toStdString());
     }
