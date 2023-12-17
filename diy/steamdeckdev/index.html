@@ -848,7 +848,7 @@
 <h1 id="developing-chiaki4deck-updates-on-steam-deck">Developing chiaki4deck updates on Steam Deck<a class="headerlink" href="#developing-chiaki4deck-updates-on-steam-deck" title="Permanent link">&para;</a></h1>
 <p>This is for contributors that want to make/test updates to the codebase without building a new flatpak each time.</p>
 <div class="admonition info">
-<p class="admonition-title">Addding Dependencies</p>
+<p class="admonition-title">Adding Dependencies</p>
 <p>If you want to add new dependencies that aren't already included in the flatpak modules or SDK, then you will need to create a new flatpak build adding that module or install the module locally and it to your PATH. However, this would only be needed in rare circumstances.</p>
 </div>
 <h2 id="setup-environment">Setup Environment<a class="headerlink" href="#setup-environment" title="Permanent link">&para;</a></h2>
@@ -878,6 +878,11 @@
 </code></pre></div>
 </li>
 <li>
+<p>Install the SDK</p>
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk//5.15-23.08
+</code></pre></div>
+</li>
+<li>
 <p>Install the <code>Debug</code> extensions for the SDK</p>
 <div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//5.15-23.08
 </code></pre></div>
@@ -892,11 +897,11 @@
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HTTPS</label><label for="__tabbed_1_2">SSH</label><label for="__tabbed_1_3">GitHub cli</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/streetpea/chiaki4deck.git
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodules<span class="w"> </span>https://github.com/streetpea/chiaki4deck.git
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:streetpea/chiaki4deck.git<span class="w"> </span>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodules<span class="w"> </span>git@github.com:streetpea/chiaki4deck.git<span class="w"> </span>
 </code></pre></div>
 </div>
 <div class="tabbed-block">
@@ -905,26 +910,18 @@
 </div>
 </div>
 </div>
+<div class="admonition question">
+<p class="admonition-title">What if I'm testing changes from my branch?</p>
+<p>Clone that branch or pull it into the git repo cloned above</p>
+</div>
 </li>
 </ol>
 <h2 id="creating-and-debugging-builds-without-new-flatpak-build">Creating and Debugging Builds without New Flatpak Build<a class="headerlink" href="#creating-and-debugging-builds-without-new-flatpak-build" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
-<p>Set your Chiaki code dir as an environment variable (can add to <code>~/.bashrc</code> to persist across restarts)</p>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">chiaki_code_dir</span><span class="o">=</span><span class="s2">&quot;path_to_chiaki_code_dir&quot;</span>
-</code></pre></div>
-<p>where <code>path_to_chiaki_code_dir</code> is the path to the directory you created with the <code>git clone</code> in the last step.</p>
-<details class="- example">
-<summary>Example Code Directory</summary>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">chiaki_code_dir</span><span class="o">=</span><span class="s2">&quot;~/Documents/chiaki-code&quot;</span>
-</code></pre></div>
-</details>
-</li>
-<li>
 <p>Enter the development version of the flatpak with the chiaki4deck source code mounted with:</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>--filesystem<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">chiaki_code_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--env<span class="o">=</span><span class="nv">PKG_CONFIG_PATH</span><span class="o">=</span>/app/lib/pkgconfig<span class="w"> </span>--command<span class="o">=</span>bash<span class="w"> </span>--devel<span class="w"> </span>io.github.streetpea.Chiaki4deck-devel
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>--command<span class="o">=</span>bash<span class="w"> </span>--devel<span class="w"> </span>io.github.streetpea.Chiaki4deck-devel
 </code></pre></div>
-<p>and <code>--env</code> is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)</p>
 </li>
 <li>
 <p>Create a build using cmake as per usual</p>
@@ -932,7 +929,7 @@
 <div class="tabbed-content">
 <div class="tabbed-block">
 <ol>
-<li>Change into the git directory you mounted</li>
+<li>Change into the git directory for your cloned project</li>
 <li>
 <p>Make a directory for your debug build</p>
 <div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>Debug
@@ -1051,7 +1048,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 21, 2023</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">December 17, 2023</span>
       
         <br>
         Created:
