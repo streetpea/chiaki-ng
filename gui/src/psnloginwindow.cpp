@@ -4,7 +4,7 @@
 PSNLoginWindow::PSNLoginWindow(Settings *settings, RegistDialog *parent) : QMainWindow(parent) {
     chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
     setWindowTitle(tr("Playstation Login"));
-    setFixedSize(800, 600); // Adjust the size as needed
+    resize(800, 600); // Adjust the size as needed
     web_engine_view = new QWebEngineView(this);
 
     // Get the QWebEngineSettings of the view
