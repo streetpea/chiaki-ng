@@ -23,6 +23,9 @@ PSNLoginWindow::PSNLoginWindow(Settings *settings, RegistDialog *parent) : QMain
 void PSNLoginWindow::handleWebEngineLoadFinished(bool) {
     std::string redirectCode;
 
+    //TODO: We could check here for a valid certificate before showing the lock.
+    setWindowTitle("🔒" + web_engine_view->url().toString());
+
     if (web_engine_view->url().toString().toStdString().compare(0, PSNAuth::REDIRECT_PAGE.length(), PSNAuth::REDIRECT_PAGE) == 0) {
         std::string queryParam = web_engine_view->url().query().toStdString();
 
