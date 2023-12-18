@@ -3,14 +3,14 @@
 #ifndef CHIAKI_GUI_STREAMWINDOW_H
 #define CHIAKI_GUI_STREAMWINDOW_H
 
-#include <QMainWindow>
+#include <QWidget>
 
 #include "streamsession.h"
 #include "avwidget.h"
 
 class QLabel;
 
-class StreamWindow: public QMainWindow
+class StreamWindow: public QWidget
 {
 	Q_OBJECT
 
@@ -30,7 +30,6 @@ class StreamWindow: public QMainWindow
 		void keyPressEvent(QKeyEvent *event) override;
 		void keyReleaseEvent(QKeyEvent *event) override;
 		bool event(QEvent *event) override;
-		bool eventFilter(QObject *obj, QEvent *event) override;
 		void closeEvent(QCloseEvent *event) override;
 		void mousePressEvent(QMouseEvent *event) override;
 		void mouseReleaseEvent(QMouseEvent *event) override;
@@ -39,6 +38,7 @@ class StreamWindow: public QMainWindow
 		void resizeEvent(QResizeEvent *event) override;
 		void moveEvent(QMoveEvent *event) override;
 		void changeEvent(QEvent *event) override;
+		QPaintEngine *paintEngine() const override { return nullptr; };
 
 	private slots:
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);

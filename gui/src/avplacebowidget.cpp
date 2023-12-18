@@ -61,10 +61,11 @@ static QRect DialogButton(const QRect &dialog_rect, int button)
     return QRect(x, y, dialog_rect.width() / 2, dialog_rect.height() * 0.35);
 }
 
-AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset)
-    : session(session), resolution_mode(resolution_mode)
+AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset, QWidget *window)
+    : window(window), session(session), resolution_mode(resolution_mode)
 {
-    setSurfaceType(QWindow::VulkanSurface);
+    window->windowHandle()->installEventFilter(this);
+    window->windowHandle()->setSurfaceType(QWindow::VulkanSurface);
 
     if (preset == PlaceboPreset::Default)
     {
@@ -150,11 +151,6 @@ AVPlaceboWidget::~AVPlaceboWidget()
     pl_log_destroy(&placebo_log);
 }
 
-void AVPlaceboWidget::showEvent(QShowEvent *event) {
-    QWindow::showEvent(event);
-    this->requestActivate();
-}
-
 void AVPlaceboWidget::Stop() {
     ReleaseSwapchain();
 }
@@ -163,7 +159,7 @@ bool AVPlaceboWidget::ShowError(const QString &title, const QString &message) {
     error_title = title;
     error_text = message;
     RenderPlaceholderIcon();
-    QTimer::singleShot(5000, this, &AVPlaceboWidget::CloseWindow);
+    QTimer::singleShot(5000, window, &QWidget::close);
     return true;
 }
 
@@ -172,7 +168,7 @@ bool AVPlaceboWidget::ShowDisconnectDialog(const QString &title, const QString &
     dialog_text = message;
     dialog_cb = cb;
     RenderDisconnectDialog();
-    setCursor(Qt::ArrowCursor);
+    window->setCursor(Qt::ArrowCursor);
     return true;
 }
 
@@ -342,7 +338,7 @@ void AVPlaceboWidget::RenderImage(const QImage &img)
 
 void AVPlaceboWidget::RenderPlaceholderIcon()
 {
-    QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
+    QImage img(window->size() * window->devicePixelRatio(), QImage::Format_RGBA8888);
     img.fill(Qt::black);
 
     QImageReader logo_reader(":/icons/chiaki.svg");
@@ -354,14 +350,14 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
     p.drawImage(imageRect, logo_img);
     if (!error_title.isEmpty()) {
         QFont f = p.font();
-        f.setPixelSize(26 * devicePixelRatio());
+        f.setPixelSize(26 * window->devicePixelRatio());
         p.setPen(Qt::white);
         f.setBold(true);
         p.setFont(f);
         int title_height = QFontMetrics(f).boundingRect(error_title).height();
         int title_y = imageRect.bottom() + (img.height() - imageRect.bottom() - title_height * 5) / 2;
         p.drawText(QRect(0, title_y, img.width(), title_height), Qt::AlignCenter, error_title);
-        f.setPixelSize(22 * devicePixelRatio());
+        f.setPixelSize(22 * window->devicePixelRatio());
         f.setBold(false);
         p.setFont(f);
         p.drawText(QRect(0, title_y + title_height + 10, img.width(), img.height()), Qt::AlignTop | Qt::AlignHCenter, error_text);
@@ -376,12 +372,12 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
 
 void AVPlaceboWidget::RenderDisconnectDialog()
 {
-    QImage img(size() * devicePixelRatio(), QImage::Format_RGBA8888);
+    QImage img(window->size() * window->devicePixelRatio(), QImage::Format_RGBA8888);
     img.fill(qRgba(30, 30, 30, 230));
 
     QPainter p(&img);
     QFont f = p.font();
-    f.setPixelSize(26 * devicePixelRatio());
+    f.setPixelSize(26 * window->devicePixelRatio());
     p.setPen(Qt::white);
     f.setBold(true);
     p.setFont(f);
@@ -392,7 +388,7 @@ void AVPlaceboWidget::RenderDisconnectDialog()
     p.fillRect(dialog_rect, Qt::black);
     // Title
     p.drawText(QRect(dialog_rect.left(), title_y, dialog_rect.width(), title_height), Qt::AlignCenter, dialog_title);
-    f.setPixelSize(22 * devicePixelRatio());
+    f.setPixelSize(22 * window->devicePixelRatio());
     f.setBold(false);
     p.setFont(f);
     // Text
@@ -423,8 +419,8 @@ void AVPlaceboWidget::CreateSwapchain()
         memset(&surfaceInfo, 0, sizeof(surfaceInfo));
         surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
         QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
-        surfaceInfo.display = static_cast<struct wl_display*>(pni->nativeResourceForWindow("display", this));
-        surfaceInfo.surface = static_cast<struct wl_surface*>(pni->nativeResourceForWindow("surface", this));
+        surfaceInfo.display = static_cast<struct wl_display*>(pni->nativeResourceForWindow("display", window->windowHandle()));
+        surfaceInfo.surface = static_cast<struct wl_surface*>(pni->nativeResourceForWindow("surface", window->windowHandle()));
         err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
     } else if (QGuiApplication::platformName().startsWith("xcb")) {
         PFN_vkCreateXcbSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateXcbSurfaceKHR>(
@@ -434,8 +430,8 @@ void AVPlaceboWidget::CreateSwapchain()
         memset(&surfaceInfo, 0, sizeof(surfaceInfo));
         surfaceInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
         QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
-        surfaceInfo.connection = static_cast<xcb_connection_t*>(pni->nativeResourceForWindow("connection", this));
-        surfaceInfo.window = static_cast<xcb_window_t>(winId());
+        surfaceInfo.connection = static_cast<xcb_connection_t*>(pni->nativeResourceForWindow("connection", window->windowHandle()));
+        surfaceInfo.window = static_cast<xcb_window_t>(window->windowHandle()->winId());
         err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
     } else {
         Q_UNREACHABLE();
@@ -499,60 +495,57 @@ void AVPlaceboWidget::ReleaseSwapchain()
     destroySurface(placebo_vk_inst->instance, surface, nullptr);
 }
 
-void AVPlaceboWidget::CloseWindow()
+bool AVPlaceboWidget::eventFilter(QObject *object, QEvent *event)
 {
-    QWindow *p = parent();
-    while (p && !p->isTopLevel())
-        p = p->parent();
-    p->close();
-}
+    if (event->type() == QEvent::Resize) {
+        QResizeEvent *e = static_cast<QResizeEvent*>(event);
+        if (!window->isVisible())
+            return false;
 
-void AVPlaceboWidget::resizeEvent(QResizeEvent *event)
-{
-    QWindow::resizeEvent(event);
+        if (!placebo_renderer)
+            CreateSwapchain();
 
-    if (!isVisible())
-        return;
+        int width = e->size().width() * window->devicePixelRatio();
+        int height = e->size().height() * window->devicePixelRatio();
+        pl_swapchain_resize(placebo_swapchain, &width, &height);
 
-    if (!placebo_renderer)
-        CreateSwapchain();
+        if (!stream_started)
+            QMetaObject::invokeMethod(this, &AVPlaceboWidget::RenderPlaceholderIcon, Qt::QueuedConnection);
 
-    int width = event->size().width() * this->devicePixelRatio();
-    int height = event->size().height() * this->devicePixelRatio();
-    pl_swapchain_resize(placebo_swapchain, &width, &height);
+        if (!dialog_rect.isEmpty())
+            QMetaObject::invokeMethod(this, &AVPlaceboWidget::RenderDisconnectDialog, Qt::QueuedConnection);
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *e = static_cast<QMouseEvent*>(event);
+        if (!error_title.isEmpty()) {
+            QTimer::singleShot(250, window, &QWidget::close);
+            return true;
+        }
 
-    if (!stream_started)
-        RenderPlaceholderIcon();
-
-    if (!dialog_rect.isEmpty())
-        RenderDisconnectDialog();
-}
-
-void AVPlaceboWidget::mousePressEvent(QMouseEvent *event)
-{
-    QWindow::mousePressEvent(event);
-
-    if (!error_title.isEmpty())
-        QTimer::singleShot(250, this, &AVPlaceboWidget::CloseWindow);
-
-    if (!dialog_rect.isEmpty()) {
-        if (DialogButton(dialog_rect, 0).contains(event->pos())) {
-            QTimer::singleShot(250, this, std::bind(dialog_cb, true));
-        } else if (DialogButton(dialog_rect, 1).contains(event->pos())) {
-            QTimer::singleShot(250, this, std::bind(dialog_cb, false));
-        } else if (!dialog_rect.adjusted(-25, -25, 50, 50).contains(event->pos())) {
-            dialog_title.clear();
-            dialog_text.clear();
-            dialog_rect = {};
-            QMetaObject::invokeMethod(render_thread->parent(), [this]() { overlay_img = {}; });
-            HideMouse();
+        if (!dialog_rect.isEmpty()) {
+            if (DialogButton(dialog_rect, 0).contains(e->pos())) {
+                QTimer::singleShot(250, this, std::bind(dialog_cb, true));
+                return true;
+            }
+            if (DialogButton(dialog_rect, 1).contains(e->pos())) {
+                QTimer::singleShot(250, this, std::bind(dialog_cb, false));
+                return true;
+            }
+            if (!dialog_rect.adjusted(-25, -25, 50, 50).contains(e->pos())) {
+                dialog_title.clear();
+                dialog_text.clear();
+                dialog_rect = {};
+                QMetaObject::invokeMethod(render_thread->parent(), [this]() { overlay_img = {}; });
+                HideMouse();
+                return true;
+            }
         }
     }
+    return false;
 }
 
 void AVPlaceboWidget::HideMouse()
 {
-	setCursor(Qt::BlankCursor);
+	window->setCursor(Qt::BlankCursor);
 }
 
 void AVPlaceboWidget::ToggleZoom()

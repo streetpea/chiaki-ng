@@ -15,9 +15,10 @@
 #include <QAction>
 #include <QWindow>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 
 StreamWindow::StreamWindow(const StreamSessionConnectInfo &connect_info, QWidget *parent)
-	: QMainWindow(parent),
+	: QWidget(parent),
 	connect_info(connect_info)
 {
 	setAttribute(Qt::WA_DeleteOnClose);
@@ -67,16 +68,18 @@ void StreamWindow::Init()
 			auto widget = new AVOpenGLWidget(session, this, resolution_mode);
 			widget->HideMouse();
 			av_widget=widget;
-			setCentralWidget((AVOpenGLWidget*) av_widget);
+			auto l = new QHBoxLayout;
+			l->setContentsMargins(0, 0, 0, 0);
+			l->addWidget(widget);
+			setLayout(l);
 		}
 		else
 		{
 #if CHIAKI_GUI_ENABLE_PLACEBO
-			auto widget = new AVPlaceboWidget(session, resolution_mode, connect_info.settings->GetPlaceboPreset());
-			widget->installEventFilter(this);
+			setAttribute(Qt::WA_NativeWindow);
+			setAttribute(Qt::WA_PaintOnScreen);
+			auto widget = new AVPlaceboWidget(session, resolution_mode, connect_info.settings->GetPlaceboPreset(), this);
 			widget->HideMouse();
-			auto container_widget = QWidget::createWindowContainer(widget);
-			setCentralWidget(container_widget);
 			av_widget = widget;
 #else
 			Q_UNREACHABLE();
@@ -85,9 +88,7 @@ void StreamWindow::Init()
 	}
 	else
 	{
-		QWidget *bg_widget = new QWidget(this);
-		bg_widget->setStyleSheet("background-color: black;");
-		setCentralWidget(bg_widget);
+		Q_UNREACHABLE();
 	}
 
 	grabKeyboard();
@@ -146,27 +147,7 @@ bool StreamWindow::event(QEvent *event)
 		}
 	}
 	// hand non-touch events + cancelled touches back to regular handler
-	return QMainWindow::event(event);
-}
-
-bool StreamWindow::eventFilter(QObject *obj, QEvent *event)
-{
-	switch(event->type()){
-		case QEvent::TouchBegin:
-		case QEvent::TouchUpdate:
-		case QEvent::TouchEnd:
-		case QEvent::MouseButtonDblClick:
-		case QEvent::MouseButtonPress:
-		case QEvent::MouseButtonRelease:
-		case QEvent::MouseMove:
-		case QEvent::KeyPress:
-		case QEvent::KeyRelease:
-			QCoreApplication::sendEvent(this, event);
-			break;
-		default:
-			break;
-	}
-	return false;
+	return QWidget::event(event);
 }
 
 void StreamWindow::Quit()
@@ -207,7 +188,7 @@ void StreamWindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
 	ToggleFullscreen();
 
-	QMainWindow::mouseDoubleClickEvent(event);
+	QWidget::mouseDoubleClickEvent(event);
 }
 
 void StreamWindow::closeEvent(QCloseEvent *event)
@@ -329,23 +310,23 @@ void StreamWindow::ToggleMute()
 	session->ToggleMute();
 }
 
-void StreamWindow::resizeEvent(QResizeEvent *event)
+    void StreamWindow::resizeEvent(QResizeEvent *event)
 {
 	UpdateVideoTransform();
-	QMainWindow::resizeEvent(event);
+	QWidget::resizeEvent(event);
 }
 
 void StreamWindow::moveEvent(QMoveEvent *event)
 {
 	UpdateVideoTransform();
-	QMainWindow::moveEvent(event);
+	QWidget::moveEvent(event);
 }
 
 void StreamWindow::changeEvent(QEvent *event)
 {
 	if(event->type() == QEvent::ActivationChange)
 		UpdateVideoTransform();
-	QMainWindow::changeEvent(event);
+	QWidget::changeEvent(event);
 }
 
 void StreamWindow::UpdateVideoTransform()

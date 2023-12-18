@@ -29,11 +29,12 @@ class StreamSession;
 class AVPlaceboFrameUploader;
 
 
-class AVPlaceboWidget : public QWindow, public IAVWidget
+class AVPlaceboWidget : public QObject, public IAVWidget
 {
     Q_OBJECT
 
     private:
+        QWidget *window;
         StreamSession *session;
         AVPlaceboFrameUploader *frame_uploader;
         QMutex frames_mutex;
@@ -64,7 +65,7 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         qint64 num_frames_dropped = 0;
 
     public:
-        explicit AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset);
+        explicit AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset, QWidget *window);
         ~AVPlaceboWidget() override;
 
         bool QueueFrame(AVFrame *frame);
@@ -74,15 +75,11 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         void RenderDisconnectDialog();
         void CreateSwapchain();
         void ReleaseSwapchain();
-        void CloseWindow();
         void Stop() override;
         bool ShowError(const QString &title, const QString &message) override;
         bool ShowDisconnectDialog(const QString &title, const QString &message, std::function<void(bool)> cb) override;
-        void showEvent(QShowEvent *event) override;
-        void resizeEvent(QResizeEvent *event) override;
-        void mousePressEvent(QMouseEvent *event) override;
+        bool eventFilter(QObject *object, QEvent *event) override;
         static void PlaceboLog(void *user, pl_log_level level, const char *msg);
-        VkSurfaceKHR vkSurface() const { return surface; }
 
     protected:
         ResolutionMode resolution_mode;
