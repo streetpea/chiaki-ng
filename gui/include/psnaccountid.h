@@ -35,54 +35,21 @@ class PSNAccountID {
             std::string accountInfoUrl = PSNAuth::TOKEN_URL + "/" + token.c_str();
 
             std::string user_id = JsonUtils::getJsonAttributeBasic(log, accountInfoUrl, PSNAuth::CLIENT_ID, PSNAuth::CLIENT_SECRET, "user_id");
-            std::vector<unsigned char> byte_representation = to_bytes(std::stoll(user_id), 8, false);
+            QByteArray byte_representation = to_bytes(std::stoll(user_id), 8);
 
-            return base64_encode(byte_representation);
+            return byte_representation.toBase64().toStdString();
         }
 
     private:
 
-    static std::vector<unsigned char> to_bytes(long number, int num_bytes, bool big_endian = true) {
+    static QByteArray to_bytes(long number, int num_bytes) {
         std::vector<unsigned char> result(num_bytes);
-
-        if (big_endian) {
-            for (int i = num_bytes - 1; i >= 0; --i) {
-                result[i] = static_cast<unsigned char>(number & 0xFF);
-                number >>= 8;
-            }
-        } else {
-            for (int i = 0; i < num_bytes; ++i) {
-                result[i] = static_cast<unsigned char>(number & 0xFF);
-                number >>= 8;
-            }
+        for (int i = 0; i < num_bytes; ++i) {
+            result[i] = static_cast<unsigned char>(number & 0xFF);
+            number >>= 8;
         }
-
-        return result;
-    }
-
-    static std::string base64_encode(const std::vector<unsigned char>& input) {
-        const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-        std::string result;
-        size_t i = 0;
-
-        while (i < input.size()) {
-            unsigned char char1 = input[i++];
-            unsigned char char2 = (i < input.size()) ? input[i++] : 0;
-            unsigned char char3 = (i < input.size()) ? input[i++] : 0;
-
-            unsigned char enc1 = char1 >> 2;
-            unsigned char enc2 = ((char1 & 0x03) << 4) | (char2 >> 4);
-            unsigned char enc3 = ((char2 & 0x0F) << 2) | (char3 >> 6);
-            unsigned char enc4 = char3 & 0x3F;
-
-            result += base64_chars[enc1];
-            result += base64_chars[enc2];
-            result += (char2 != 0) ? base64_chars[enc3] : '=';
-            result += (char3 != 0) ? base64_chars[enc4] : '=';
-        }
-
-        return result;
+        QByteArray byte_array(reinterpret_cast<const char*>(result.data()), static_cast<int>(result.size()));
+        return byte_array;
     }
 };
 
