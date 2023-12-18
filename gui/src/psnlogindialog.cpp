@@ -1,4 +1,4 @@
-#include "..\include\psnlogindialog.h"
+#include "psnlogindialog.h"
 
 #include <QVBoxLayout>
 #include <QWebEngineSettings>

@@ -1,12 +1,7 @@
 #ifndef PSNLOGINDIALOG_H
 #define PSNLOGINDIALOG_H
 
-#include <QLabel>
-#include <QMainWindow>
-#include <QSurfaceFormat>
 #include <QWebEngineView>
-
-#include <qeventloop.h>
 #include "registdialog.h"
 #include "psnaccountid.h"
 #include "settings.h"

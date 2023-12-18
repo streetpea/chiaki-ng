@@ -14,11 +14,10 @@
 #include <QCheckBox>
 #include <qeventloop.h>
 #include <QRadioButton>
-#include <QWebEngineView>
 #include <regex>
 
 #include "psnaccountid.h"
-#include "..\include\psnlogindialog.h"
+#include "psnlogindialog.h"
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
