@@ -116,6 +116,9 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 
 	free(stream_connection->ecdh_secret);
 
+	if (stream_connection->congestion_control.thread.thread)
+		chiaki_congestion_control_stop(&stream_connection->congestion_control);
+
 	chiaki_packet_stats_fini(&stream_connection->packet_stats);
 
 	chiaki_mutex_fini(&stream_connection->feedback_sender_mutex);
@@ -197,8 +200,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		goto err_video_receiver;
 	}
 
-	ChiakiCongestionControl congestion_control;
-	err = chiaki_congestion_control_start(&congestion_control, &stream_connection->takion, &stream_connection->packet_stats);
+	err = chiaki_congestion_control_start(&stream_connection->congestion_control, &stream_connection->takion, &stream_connection->packet_stats);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to start Congestion Control");
@@ -322,7 +324,7 @@ disconnect:
 	}
 
 err_congestion_control:
-	chiaki_congestion_control_stop(&congestion_control);
+	chiaki_congestion_control_stop(&stream_connection->congestion_control);
 
 close_takion:
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
