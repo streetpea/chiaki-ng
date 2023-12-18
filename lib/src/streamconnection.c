@@ -924,11 +924,37 @@ static ChiakiErrorCode stream_connection_send_controller_connection(ChiakiStream
 
 static ChiakiErrorCode stream_connection_enable_microphone(ChiakiStreamConnection *stream_connection)
 {
-	char enable[] = "080d7a10120e01100000bb80000001e000000001";
-	size_t msg_size = sizeof(enable) / 2;
-	uint8_t msg[sizeof(enable) / 2];
-	parse_hex(msg, &msg_size, enable, sizeof(enable) - 1);
-	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, msg, msg_size, NULL);
+	tkproto_TakionMessage msg;
+	memset(&msg, 0, sizeof(msg));
+
+	ChiakiAudioHeader audio_header_input;
+	chiaki_audio_header_set(&audio_header_input, 16, 1, 48000, 480);
+	uint8_t audio_header[CHIAKI_AUDIO_HEADER_SIZE];
+	chiaki_audio_header_save(&audio_header_input, audio_header);
+	ChiakiPBBuf audio_header_buf = { sizeof(audio_header), (uint8_t *)audio_header };
+
+	msg.type = tkproto_TakionMessage_PayloadType_STREAMINFO;
+	msg.has_stream_info_payload = true;
+	msg.stream_info_payload.audio_header.arg = &audio_header_buf;
+	msg.stream_info_payload.audio_header.funcs.encode = chiaki_pb_encode_buf;
+	msg.stream_info_payload.has_start_timeout = false;
+	msg.stream_info_payload.has_afk_timeout = false;
+	msg.stream_info_payload.has_afk_timeout_disconnect = false;
+	msg.stream_info_payload.has_congestion_control_interval = false;
+
+	uint8_t buf[2048];
+	size_t buf_size;
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection controller connection protobuf encoding failed");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	buf_size = stream.bytes_written;
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size, NULL);
 }
 
 static ChiakiErrorCode stream_connection_send_streaminfo_ack(ChiakiStreamConnection *stream_connection)
