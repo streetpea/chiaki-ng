@@ -52,8 +52,8 @@ set(SOURCE_FILES
 	include/loginpindialog.h
 	src/loginpindialog.cpp
   	include/psnaccountid.h
-	include/psnloginwindow.h
-	src/psnloginwindow.cpp
+		include/psnlogindialog.h
+        src/psnlogindialog.cpp
 	include/jsonutils.h)
 set(RESOURCE_FILES "")
 

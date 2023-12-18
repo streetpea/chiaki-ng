@@ -18,7 +18,7 @@
 #include <regex>
 
 #include "psnaccountid.h"
-#include "psnloginwindow.h"
+#include "..\include\psnlogindialog.h"
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -109,8 +109,8 @@ RegistDialog::~RegistDialog()
 }
 
 void RegistDialog::GetAccountID(QWidget *parent) {
-	PSNLoginWindow* window = new PSNLoginWindow(settings, this);
-	window->show();
+	PSNLoginDialog* window = new PSNLoginDialog(settings, this);
+	window->exec();
 }
 
 void RegistDialog::updatePsnAccountID(std::string accountId) {

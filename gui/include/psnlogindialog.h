@@ -1,5 +1,5 @@
-#ifndef PSNLOGINWINDOW_H
-#define PSNLOGINWINDOW_H
+#ifndef PSNLOGINDIALOG_H
+#define PSNLOGINDIALOG_H
 
 #include <QLabel>
 #include <QMainWindow>
@@ -11,7 +11,7 @@
 #include "psnaccountid.h"
 #include "settings.h"
 
-class PSNLoginWindow : public QMainWindow {
+class PSNLoginDialog : public QDialog {
     Q_OBJECT
 
 private:
@@ -19,7 +19,7 @@ private:
     ChiakiLog log;
 
 public:
-    PSNLoginWindow(Settings *settings, RegistDialog *parent = nullptr);
+    PSNLoginDialog(Settings *settings, RegistDialog *parent = nullptr);
 
     private slots:
         void handleWebEngineLoadFinished(bool);
@@ -28,4 +28,4 @@ public:
 
 
 
-#endif //PSNLOGINWINDOW_H
+#endif //PSNLOGINDIALOG_H

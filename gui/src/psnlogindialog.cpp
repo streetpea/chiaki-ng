@@ -1,7 +1,9 @@
-#include "psnloginwindow.h"
+#include "..\include\psnlogindialog.h"
+
+#include <QVBoxLayout>
 #include <QWebEngineSettings>
 
-PSNLoginWindow::PSNLoginWindow(Settings *settings, RegistDialog *parent) : QMainWindow(parent) {
+PSNLoginDialog::PSNLoginDialog(Settings *settings, RegistDialog *parent) : QDialog(parent) {
     chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
     setWindowTitle(tr("Playstation Login"));
     resize(800, 600); // Adjust the size as needed
@@ -15,12 +17,15 @@ PSNLoginWindow::PSNLoginWindow(Settings *settings, RegistDialog *parent) : QMain
 
     web_engine_view->setUrl(QUrl(QString::fromStdString(PSNAuth::LOGIN_URL)));
 
-    connect(web_engine_view, &QWebEngineView::loadFinished, this, &PSNLoginWindow::handleWebEngineLoadFinished);
+    connect(web_engine_view, &QWebEngineView::loadFinished, this, &PSNLoginDialog::handleWebEngineLoadFinished);
 
-    setCentralWidget(web_engine_view);
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->addWidget(web_engine_view);
+
+    setLayout(layout);
 }
 
-void PSNLoginWindow::handleWebEngineLoadFinished(bool) {
+void PSNLoginDialog::handleWebEngineLoadFinished(bool) {
     std::string redirectCode;
 
 

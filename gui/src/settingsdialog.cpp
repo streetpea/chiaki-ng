@@ -620,7 +620,7 @@ void SettingsDialog::UpdateRegisteredHostsButtons()
 void SettingsDialog::RegisterNewHost()
 {
 	RegistDialog dialog(settings, QString(), this);
-	dialog.show();
+	dialog.exec();
 }
 
 void SettingsDialog::DeleteRegisteredHost()
