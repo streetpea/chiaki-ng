@@ -5,6 +5,7 @@
 #include <string>
 #include <vdfstatemachine.h>
 #include <jsonutils.h>
+#include <qjsonarray.h>
 
 namespace SteamGridDb {
     static const std::map<std::string, std::string> gameIDs {
@@ -27,9 +28,15 @@ namespace SteamGridDb {
         url.append(std::to_string(page));
         url.append(queryParams);
 
-        std::vector<std::string> result_vector = JsonUtils::getJsonAttributesBearer(log, url, apiKey, "url");
+        std::vector<std::string> result_vector;
+        QJsonDocument sgdbResult = JsonUtils::getResponseBodyBearer(log, url, apiKey);
+        QJsonObject resultObject = sgdbResult.object();
+        QJsonArray resultData = resultObject.value("data").toArray();
 
-        for (std::string& imageUrl : result_vector) {
+
+        for (QJsonArray::iterator it = resultData.begin(); it != resultData.end(); ++it) {
+            QJsonObject gameObject = it->toObject();
+            std::string imageUrl = gameObject.value("url").toString().toStdString();
             // Find the first occurrence of "\\/"
             size_t found = imageUrl.find("\\/");
 
@@ -38,6 +45,7 @@ namespace SteamGridDb {
                 imageUrl.replace(found, 2, "/"); // 2 is the length of "\\"
                 found = imageUrl.find("\\/", found + 1);
             }
+            result_vector.emplace_back(imageUrl);
         }
 
         return result_vector;
