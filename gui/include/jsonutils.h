@@ -5,6 +5,8 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QEventLoop>
+#include <qjsondocument.h>
+#include <qjsonobject.h>
 
 #include "chiaki/log.h"
 
@@ -54,16 +56,24 @@ class JsonUtils {
         }
 
         static std::string getJsonAttribute(ChiakiLog* log, std::string url, std::string authHeader, std::string jsonAttribute){
-            std::string jsonResponse = responseBody(log, url, authHeader, "", "application/json");
-            return getJsonValueforAttribute(jsonResponse, jsonAttribute);
+            QJsonDocument jsonResponse = responseBody(log, url, authHeader, "", "application/json");
+            QJsonObject object = jsonResponse.object();
+            if (object.contains(QString::fromStdString(jsonAttribute))) {
+                return object.value(QString::fromStdString(jsonAttribute)).toString().toStdString();
+            }
+            return nullptr;
         }
 
         static std::string postJsonAttribute(ChiakiLog* log, std::string url, std::string authHeader, std::string jsonAttribute, std::string body, std::string contentType) {
-            std::string jsonResponse = responseBody(log, url, authHeader, body, contentType);
-            return getJsonValueforAttribute(jsonResponse, jsonAttribute);
+            QJsonDocument jsonResponse = responseBody(log, url, authHeader, body, contentType);
+            QJsonObject object = jsonResponse.object();
+            if (object.contains(QString::fromStdString(jsonAttribute))) {
+                return object.value(QString::fromStdString(jsonAttribute)).toString().toStdString();
+            }
+            return nullptr;
         }
 
-        static std::string responseBody(ChiakiLog* log, std::string url, std::string authHeader, std::string body, std::string contentType) {
+        static QJsonDocument responseBody(ChiakiLog* log, std::string url, std::string authHeader, std::string body, std::string contentType) {
             contentType = (contentType.empty()) ? "application/json" : contentType;
 
             // Create a QNetworkAccessManager
@@ -91,11 +101,11 @@ class JsonUtils {
             QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
             loop.exec();
 
-            QString response;
+            QJsonDocument response;
             // Check for errors
             if (reply->error() == QNetworkReply::NoError) {
-                // Read the response as a QString
-                response = QString::fromUtf8(reply->readAll());
+                QByteArray responseData = reply->readAll();
+                response = QJsonDocument::fromJson(responseData);
             } else {
                 CHIAKI_LOGI(log, "Error:  %s", reply->errorString().toStdString().c_str());
             }
@@ -103,7 +113,7 @@ class JsonUtils {
             // Clean up
             delete reply;
 
-            return response.toStdString();
+            return response;
         }
 };
 
