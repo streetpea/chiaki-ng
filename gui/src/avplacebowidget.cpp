@@ -497,6 +497,8 @@ void AVPlaceboWidget::ReleaseSwapchain()
 
 bool AVPlaceboWidget::eventFilter(QObject *object, QEvent *event)
 {
+    QPoint clickPos;
+
     if (event->type() == QEvent::Resize) {
         QResizeEvent *e = static_cast<QResizeEvent*>(event);
         if (!window->isVisible())
@@ -516,21 +518,28 @@ bool AVPlaceboWidget::eventFilter(QObject *object, QEvent *event)
             QMetaObject::invokeMethod(this, &AVPlaceboWidget::RenderDisconnectDialog, Qt::QueuedConnection);
     } else if (event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *e = static_cast<QMouseEvent*>(event);
+        clickPos = e->pos();
+    } else if (event->type() == QEvent::TouchBegin) {
+        QTouchEvent *e = static_cast<QTouchEvent*>(event);
+        clickPos = e->touchPoints().at(0).pos().toPoint();
+    }
+
+    if (!clickPos.isNull()) {
         if (!error_title.isEmpty()) {
             QTimer::singleShot(250, window, &QWidget::close);
             return true;
         }
 
         if (!dialog_rect.isEmpty()) {
-            if (DialogButton(dialog_rect, 0).contains(e->pos())) {
+            if (DialogButton(dialog_rect, 0).contains(clickPos)) {
                 QTimer::singleShot(250, this, std::bind(dialog_cb, true));
                 return true;
             }
-            if (DialogButton(dialog_rect, 1).contains(e->pos())) {
+            if (DialogButton(dialog_rect, 1).contains(clickPos)) {
                 QTimer::singleShot(250, this, std::bind(dialog_cb, false));
                 return true;
             }
-            if (!dialog_rect.adjusted(-25, -25, 50, 50).contains(e->pos())) {
+            if (!dialog_rect.adjusted(-25, -25, 50, 50).contains(clickPos)) {
                 dialog_title.clear();
                 dialog_text.clear();
                 dialog_rect = {};
@@ -540,6 +549,7 @@ bool AVPlaceboWidget::eventFilter(QObject *object, QEvent *event)
             }
         }
     }
+
     return false;
 }
 
