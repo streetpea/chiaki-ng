@@ -3,7 +3,6 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
-#include <streamwindow.h>
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
@@ -117,6 +116,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	muted = true;
 	mic_connected = false;
 	allow_unmute = false;
+	input_blocked = false;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     haptics_sdeck = 0;
@@ -488,13 +488,13 @@ void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 	SendFeedbackState();
 }
 
-void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float height)
+void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height)
 {
 	// left button with move => touchpad gesture, otherwise ignore
 	if (event->buttons() == Qt::LeftButton)
 	{
-		float x = event->globalPosition().x();
-		float y = event->globalPosition().y();
+		float x = std::clamp(0.0, event->scenePosition().x(), width);
+		float y = std::clamp(0.0, event->scenePosition().y(), height);
 		float psx = x * (PS_TOUCHPAD_MAX_X / width);
 		float psy = y * (PS_TOUCHPAD_MAX_Y / height);
 		// if touch id is set, move, otherwise start
@@ -560,7 +560,7 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 	SendFeedbackState();
 }
 
-void StreamSession::HandleTouchEvent(QTouchEvent *event)
+void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal height)
 {
 	//unset touchpad (we will set it if user touches edge of screen)
 	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -578,9 +578,9 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 			case QEventPoint::State::Pressed:
 			case QEventPoint::State::Updated:
 			{
-				float norm_x = touchPoint.normalizedPosition().x();
-				float norm_y = touchPoint.normalizedPosition().y();
-				
+				float norm_x = std::clamp(0.0, touchPoint.scenePosition().x() / width, 1.0);
+				float norm_y = std::clamp(0.0, touchPoint.scenePosition().y() / height, 1.0);
+
 				// Touching edges of screen is a touchpad click
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
 					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -680,6 +680,13 @@ void StreamSession::SendFeedbackState()
 {
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
+
+	if(input_blocked)
+	{
+		chiaki_controller_state_set_idle(&keyboard_state);
+		chiaki_session_set_controller_state(&session, &state);
+		return;
+	}
 
 #if CHIAKI_GUI_ENABLE_SETSU
 	// setsu is the one that potentially has gyro/accel/orient so copy that directly first

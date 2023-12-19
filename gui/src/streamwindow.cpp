@@ -142,7 +142,7 @@ bool StreamWindow::event(QEvent *event)
 	{
 		if ((event->type() == QEvent::TouchBegin) || (event->type() == QEvent::TouchUpdate) || (event->type() == QEvent::TouchEnd))
 		{
-			session->HandleTouchEvent(static_cast<QTouchEvent *>(event));
+			session->HandleTouchEvent(static_cast<QTouchEvent *>(event), frameSize().width(), frameSize().height());
 			return true;
 		}
 	}

@@ -40,7 +40,6 @@
 
 class QKeyEvent;
 class Settings;
-class StreamWindow;
 
 class ChiakiException: public Exception
 {
@@ -123,6 +122,7 @@ class StreamSession : public QObject
 		bool muted;
 		bool mic_connected;
 		bool allow_unmute;
+		bool input_blocked;
 
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -221,11 +221,13 @@ class StreamSession : public QObject
 		ChiakiPiDecoder *GetPiDecoder()	{ return pi_decoder; }
 #endif
 		void HandleKeyboardEvent(QKeyEvent *event);
-		void HandleTouchEvent(QTouchEvent *event);
+		void HandleTouchEvent(QTouchEvent *event, qreal width, qreal height);
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
-		void HandleMouseMoveEvent(QMouseEvent *event, float width, float height);
+		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
 		void ReadMic(const QByteArray &micdata);
+
+		void BlockInput(bool block) { input_blocked = block; }
 
 	signals:
 		void FfmpegFrameAvailable();
