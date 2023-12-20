@@ -13,7 +13,6 @@
 #include <array>
 #include <string>
 #include <steamshortcutparser.h>
-#include <steamgriddbapi.h>
 #include <QMessageBox>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
@@ -22,6 +21,7 @@
 #include <QTimer>
 
 #include "imageloader.h"
+#include "steamgriddbapi.h"
 
 ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget* parent) {
     setupUi(this);
@@ -460,7 +460,7 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     chmodCommandStream << "chmod +x " << "\"" << filePath << "\"";
     const std::string chmodCommand = chmodCommandStream.str();
 
-    
+
     // Execute the shell command to make it executable
     std::system(chmodCommand.c_str());
 

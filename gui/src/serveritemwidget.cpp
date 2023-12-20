@@ -40,7 +40,7 @@ ServerItemWidget::ServerItemWidget(QWidget *parent) : QFrame(parent)
 	addAction(wake_action);
 	connect(wake_action, &QAction::triggered, this, [this]{ emit WakeTriggered(); });
 
-	#if defined(__linux) || (defined(__APPLE__) && defined(CHIAKI_ENABLE_CLI))
+	#if defined(__linux) || (defined(__APPLE__))
 		create_shortcut_action = new QAction(tr("Add to Steam"), this);
 		addAction(create_shortcut_action);
 		connect(create_shortcut_action, &QAction::triggered, this, [this]{ emit CreateShortcutTriggered(); });

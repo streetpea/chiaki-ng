@@ -7,6 +7,7 @@
 #include <QEventLoop>
 #include <qjsondocument.h>
 #include <qjsonobject.h>
+#include <regex>
 
 #include "chiaki/log.h"
 

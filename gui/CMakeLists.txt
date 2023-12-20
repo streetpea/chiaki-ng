@@ -56,9 +56,12 @@ set(SOURCE_FILES
 	include/crc.h
 	src/crc.c
 	include/steamshortcutparser.h
+	src/steamshortcutparser.cpp
 	include/vdf_parser.hpp
 	include/vdfstatemachine.h
+	src/vdfstatemachine.cpp
 	include/steamgriddbapi.h
+	src/steamgriddbapi.cpp
 	include/imageloader.h
 	include/jsonutils.h)
 set(RESOURCE_FILES "")
