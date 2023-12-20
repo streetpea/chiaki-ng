@@ -1,15 +1,7 @@
 #ifndef SHORTCUTDIALOG_H
 #define SHORTCUTDIALOG_H
-#include <QDialog>
 #include <mainwindow.h>
-#include <QCheckBox>
-#include <QLineEdit>
-#include <QComboBox>
 #include <qeventloop.h>
-#include <QFormLayout>
-#include <QGroupBox>
-#include <QLabel>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include "ui_shortcutdialog.h"
 #include "settings.h"

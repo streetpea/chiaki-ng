@@ -3,26 +3,16 @@
 
 #include <fstream>
 #include <string>
-#include <crc.h>
 #include <vdfstatemachine.h>
 
-#include <iostream>
-#include <curl/curl.h>
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <utility>
-#include <utility>
-#include <utility>
 
 #include "mainwindow.h"
-#include "vdf_parser.hpp"
 #include "chiaki/log.h"
 #if defined(_WIN32)
 #include <direct.h>
 #define mkdir(dir, mode) _mkdir(dir)
 #else
-#include <sys/stat.h>
 #endif
 
 

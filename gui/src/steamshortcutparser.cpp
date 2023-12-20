@@ -8,7 +8,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <utility>
 
 #include "vdf_parser.hpp"
 #if defined(_WIN32)
@@ -19,7 +18,6 @@
 #endif
 #include <QEventLoop>
 #include <QFile>
-#include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QUrl>
 #include <sstream>
