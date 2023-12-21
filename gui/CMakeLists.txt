@@ -51,7 +51,8 @@ set(SOURCE_FILES
 	src/controllermanager.cpp
 	include/loginpindialog.h
 	src/loginpindialog.cpp
-	include/jsonutils.h)
+	include/jsonrequester.h
+	src/jsonrequester.cpp)
 set(RESOURCE_FILES "")
 
 if(APPLE)
