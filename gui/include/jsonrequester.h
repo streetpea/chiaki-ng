@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 class JsonRequester : public QObject {
     Q_OBJECT
@@ -22,6 +23,7 @@ public:
 
 signals:
     void requestFinished(const QString& url, const QJsonDocument& jsonDocument);
+    void requestError(const QString& url, const QNetworkReply::NetworkError& error);
 
 private slots:
     void onRequestFinished(QNetworkReply* reply);
