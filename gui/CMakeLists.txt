@@ -95,6 +95,13 @@ else()
 	endif()
 endif()
 
+if(CHIAKI_ENABLE_STEAMDECK_NATIVE)
+	list(APPEND SOURCE_FILES
+		include/sdinputcontext.h
+		src/sdinputcontext.cpp
+	)
+endif()
+
 add_executable(chiaki WIN32
 		${RESOURCE_FILES}
 		${SOURCE_FILES}
@@ -147,7 +154,7 @@ if(CHIAKI_ENABLE_SETSU)
 endif()
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE)
 	target_link_libraries(chiaki sdeck)
-	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE)
+	target_compile_definitions(chiaki PRIVATE QT_STATICPLUGIN CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE)
 endif()
 if(NOT CHIAKI_ENABLE_FFMPEG_DECODER)
 	message(FATAL_ERROR "Chiaki GUI requires CHIAKI_ENABLE_FFMPEG_DECODER=ON")
