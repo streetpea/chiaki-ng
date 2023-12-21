@@ -1,7 +1,3 @@
-//
-// Created by Jamie Bartlett on 20/12/2023.
-//
-
 #ifndef JSONREQUESTER_H
 #define JSONREQUESTER_H
 #include <QObject>
@@ -15,7 +11,7 @@ public:
     explicit JsonRequester(QObject* parent = nullptr);
 
     void makePostRequest(const QString& url, const QString& authHeader, QString contentType = "application/json",
-                         const QString body);
+    QString body = "");
 
     void makeGetRequest(const QString& url, const QString& authHeader, QString contentType = "application/json");
 

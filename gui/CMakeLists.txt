@@ -52,10 +52,11 @@ set(SOURCE_FILES
 	include/loginpindialog.h
 	src/loginpindialog.cpp
   	include/psnaccountid.h
+	src/psnaccountid.cpp
 	include/psnlogindialog.h
     src/psnlogindialog.cpp
 	include/jsonrequester.h
-	src/jsonrequester.cpp
+	src/jsonrequester.cpp)
 set(RESOURCE_FILES "")
 
 if(APPLE)

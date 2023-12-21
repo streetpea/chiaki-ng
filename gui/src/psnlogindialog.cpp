@@ -15,7 +15,7 @@ PSNLoginDialog::PSNLoginDialog(Settings *settings, RegistDialog *parent) : QDial
     // Disable WebGL
     web_engine_settings->setAttribute(QWebEngineSettings::WebGLEnabled, false);
 
-    web_engine_view->setUrl(QUrl(QString::fromStdString(PSNAuth::LOGIN_URL)));
+    web_engine_view->setUrl(QUrl(PSNAuth::LOGIN_URL));
 
     connect(web_engine_view, &QWebEngineView::loadFinished, this, &PSNLoginDialog::handleWebEngineLoadFinished);
 
@@ -53,13 +53,17 @@ void PSNLoginDialog::handleWebEngineLoadFinished(bool) {
 
         web_engine_view->close();
 
-        std::string accessToken = PSNAccountID::getAccessToken(&log, redirectCode);
-        std::string userId = PSNAccountID::GetAccountInfo(&log, accessToken);
+        PSNAccountID* psn_account_id = new PSNAccountID(this);
+        connect(psn_account_id, &PSNAccountID::AccountIDResponse, this, &PSNLoginDialog::handlePsnAccountIdResponse);
 
-        RegistDialog* parentDialog = qobject_cast<RegistDialog*>(parent());
-        if (parentDialog) {
-            parentDialog->updatePsnAccountID(userId);
-            close();
-        }
+        psn_account_id->GetPsnAccountId(QString::fromStdString(redirectCode));
+    }
+}
+
+void PSNLoginDialog::handlePsnAccountIdResponse(std::string accountId) {
+    RegistDialog* parentDialog = qobject_cast<RegistDialog*>(parent());
+    if (parentDialog) {
+        parentDialog->updatePsnAccountID(accountId);
+        close();
     }
 }

@@ -18,6 +18,7 @@ public:
 
     private slots:
         void handleWebEngineLoadFinished(bool);
+        void handlePsnAccountIdResponse(std::string accountId);
 
 };
 

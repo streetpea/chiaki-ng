@@ -16,7 +16,6 @@
 #include <QRadioButton>
 #include <regex>
 
-#include "psnaccountid.h"
 #include "psnlogindialog.h"
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
