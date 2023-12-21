@@ -184,7 +184,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (!connect_info.initial_login_pin.isEmpty() && incorrect == false)
             session->SetLoginPIN(connect_info.initial_login_pin);
         else
-            showLoginPINDialog(incorrect);
+            emit sessionPinDialogRequested();
     });
 
     if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
@@ -341,6 +341,12 @@ void QmlBackend::stopSession(bool sleep)
     session->Stop();
 }
 
+void QmlBackend::enterPin(const QString &pin)
+{
+    if (session)
+        session->SetLoginPIN(pin);
+}
+
 void QmlBackend::showSettingsDialog()
 {
 }
@@ -387,10 +393,6 @@ void QmlBackend::sendWakeup(const DisplayServer &server)
     } catch(const Exception &e) {
         emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
     }
-}
-
-void QmlBackend::showLoginPINDialog(bool incorrect)
-{
 }
 
 void QmlBackend::updateControllers()
