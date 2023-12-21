@@ -51,6 +51,8 @@ if(CHIAKI_ENABLE_QMLGUI)
 		src/qmlbackend.cpp
 		include/qmlcontroller.h
 		src/qmlcontroller.cpp
+		include/qmlsettings.h
+		src/qmlsettings.cpp
 	)
 else()
 	list(APPEND SOURCE_FILES

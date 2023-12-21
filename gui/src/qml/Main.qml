@@ -31,6 +31,14 @@ Item {
         confirmDialog.open();
     }
 
+    function showRegistDialog(host, ps5) {
+        stack.push(registDialogComponent, {host: host, ps5: ps5});
+    }
+
+    function showSettingsDialog() {
+        stack.push(settingsDialogComponent);
+    }
+
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
@@ -124,7 +132,7 @@ Item {
         }
 
         function onRegistDialogRequested(host, ps5) {
-            stack.push(registDialogComponent, {host: host, ps5: ps5});
+            showRegistDialog(host, ps5);
         }
     }
 
@@ -141,6 +149,11 @@ Item {
     Component {
         id: manualHostDialogComponent
         ManualHostDialog { }
+    }
+
+    Component {
+        id: settingsDialogComponent
+        SettingsDialog { }
     }
 
     Component {

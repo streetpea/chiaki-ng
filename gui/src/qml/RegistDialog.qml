@@ -8,9 +8,12 @@ DialogView {
     property bool ps5: true
     property alias host: hostField.text
     title: qsTr("Register Console")
-    buttonText: qsTr("Register")
+    buttonText: qsTr("✓ Register")
     buttonEnabled: hostField.text.trim() && pin.acceptableInput && (!onlineId.visible || onlineId.text.trim()) && (!accountId.visible || accountId.text.trim())
-    StackView.onActivated: host ? accountId.forceActiveFocus() : hostField.forceActiveFocus()
+    StackView.onActivated: {
+        if (host == "255.255.255.255")
+            broadcast.checked = true;
+    }
     onAccepted: {
         let psnId = onlineId.visible ? onlineId.text.trim() : accountId.text.trim();
         let registerOk = Chiaki.registerHost(hostField.text.trim(), psnId, pin.text.trim(), broadcast.checked, consoleButtons.checkedButton.target, function(msg, ok, done) {
@@ -39,6 +42,7 @@ DialogView {
             columnSpacing: 20
 
             Label {
+                Layout.alignment: Qt.AlignRight
                 text: qsTr("Host:")
             }
 
@@ -48,6 +52,7 @@ DialogView {
             }
 
             Label {
+                Layout.alignment: Qt.AlignRight
                 text: qsTr("PSN Online-ID:")
                 visible: onlineId.visible
             }
@@ -60,6 +65,7 @@ DialogView {
             }
 
             Label {
+                Layout.alignment: Qt.AlignRight
                 text: qsTr("PSN Account-ID:")
                 visible: accountId.visible
             }
@@ -72,6 +78,7 @@ DialogView {
             }
 
             Label {
+                Layout.alignment: Qt.AlignRight
                 text: qsTr("PIN:")
             }
 
@@ -82,6 +89,7 @@ DialogView {
             }
 
             Label {
+                Layout.alignment: Qt.AlignRight
                 text: qsTr("Broadcast:")
             }
 
@@ -90,6 +98,7 @@ DialogView {
             }
 
             Label {
+                Layout.alignment: Qt.AlignRight
                 text: qsTr("Console:")
             }
 

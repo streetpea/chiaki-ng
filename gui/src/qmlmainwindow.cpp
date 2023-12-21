@@ -203,7 +203,7 @@ void QmlMainWindow::show()
         return;
     }
 
-    resize(800, 600);
+    resize(1280, 720);
 
     if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
         showFullScreen();

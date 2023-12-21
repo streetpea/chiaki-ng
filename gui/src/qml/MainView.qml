@@ -56,7 +56,7 @@ Item {
                 icon.width: 50
                 icon.height: 50
                 Material.roundedScale: Material.SmallScale
-                onClicked: Chiaki.showSettingsDialog()
+                onClicked: root.showSettingsDialog()
             }
         }
 
@@ -178,7 +178,7 @@ Item {
         padding: 20
         checkable: true
         checked: Chiaki.discoveryEnabled
-        onCheckedChanged: Chiaki.discoveryEnabled = checked
+        onToggled: Chiaki.discoveryEnabled = checked
         Material.background: Material.accent
     }
 

@@ -1,4 +1,5 @@
 #include "qmlbackend.h"
+#include "qmlsettings.h"
 #include "qmlmainwindow.h"
 #include "streamsession.h"
 #include "controllermanager.h"
@@ -39,11 +40,13 @@ void QmlRegist::regist_cb(ChiakiRegistEvent *event, void *user)
 QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     : QObject(window)
     , settings(settings)
+    , settings_qml(new QmlSettings(settings, this))
     , window(window)
 {
     const char *uri = "org.streetpea.chiaki4deck";
     qmlRegisterSingletonInstance(uri, 1, 0, "Chiaki", this);
     qmlRegisterUncreatableType<QmlMainWindow>(uri, 1, 0, "ChiakiWindow", {});
+    qmlRegisterUncreatableType<QmlSettings>(uri, 1, 0, "ChiakiSettings", {});
     qmlRegisterUncreatableType<StreamSession>(uri, 1, 0, "ChiakiSession", {});
 
     QObject *frame_obj = new QObject();
@@ -71,6 +74,11 @@ QmlBackend::~QmlBackend()
 QmlMainWindow *QmlBackend::qmlWindow() const
 {
     return window;
+}
+
+QmlSettings *QmlBackend::qmlSettings() const
+{
+    return settings_qml;
 }
 
 StreamSession *QmlBackend::qmlSession() const
@@ -345,10 +353,6 @@ void QmlBackend::enterPin(const QString &pin)
 {
     if (session)
         session->SetLoginPIN(pin);
-}
-
-void QmlBackend::showSettingsDialog()
-{
 }
 
 QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const

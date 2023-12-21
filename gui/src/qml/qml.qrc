@@ -8,5 +8,6 @@
     <file>DialogView.qml</file>
     <file>ManualHostDialog.qml</file>
     <file>RegistDialog.qml</file>
+    <file>SettingsDialog.qml</file>
   </qresource>
 </RCC>

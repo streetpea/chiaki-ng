@@ -7,6 +7,7 @@ Item {
     property alias title: titleLabel.text
     property alias buttonText: okButton.text
     property alias buttonEnabled: okButton.enabled
+    property alias buttonVisible: okButton.visible
     default property Item mainItem: null
 
     signal accepted()

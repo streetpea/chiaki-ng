@@ -4,6 +4,7 @@
 #include "discoverymanager.h"
 #include "qmlmainwindow.h"
 #include "qmlcontroller.h"
+#include "qmlsettings.h"
 
 #include <QObject>
 #include <QThread>
@@ -33,6 +34,7 @@ class QmlBackend : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QmlMainWindow* window READ qmlWindow CONSTANT)
+    Q_PROPERTY(QmlSettings* settings READ qmlSettings CONSTANT)
     Q_PROPERTY(StreamSession* session READ qmlSession NOTIFY sessionChanged)
     Q_PROPERTY(QList<QmlController*> controllers READ qmlControllers NOTIFY controllersChanged)
     Q_PROPERTY(bool discoveryEnabled READ discoveryEnabled WRITE setDiscoveryEnabled NOTIFY discoveryEnabledChanged)
@@ -43,6 +45,7 @@ public:
     ~QmlBackend();
 
     QmlMainWindow *qmlWindow() const;
+    QmlSettings *qmlSettings() const;
     StreamSession *qmlSession() const;
     QList<QmlController*> qmlControllers() const;
 
@@ -62,8 +65,6 @@ public:
     Q_INVOKABLE void connectToHost(int index);
     Q_INVOKABLE void stopSession(bool sleep);
     Q_INVOKABLE void enterPin(const QString &pin);
-
-    Q_INVOKABLE void showSettingsDialog();
 
 signals:
     void sessionChanged(StreamSession *session);
@@ -98,6 +99,7 @@ private:
     void updateControllers();
 
     Settings *settings = {};
+    QmlSettings *settings_qml = {};
     QmlMainWindow *window = {};
     StreamSession *session = {};
     QThread *frame_thread = {};
