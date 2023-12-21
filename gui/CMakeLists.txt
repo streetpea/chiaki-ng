@@ -63,7 +63,8 @@ set(SOURCE_FILES
 	include/steamgriddbapi.h
 	src/steamgriddbapi.cpp
 	include/imageloader.h
-	include/jsonutils.h)
+	include/jsonrequester.h
+	src/jsonrequester.cpp)
 set(RESOURCE_FILES "")
 
 set(UI_FILES
