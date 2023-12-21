@@ -5,6 +5,37 @@
 
 #include <QGuiApplication>
 
+QmlRegist::QmlRegist(const ChiakiRegistInfo &regist_info, uint32_t log_mask, QObject *parent)
+    : QObject(parent)
+{
+    chiaki_log_init(&chiaki_log, log_mask, &QmlRegist::log_cb, this);
+    chiaki_regist_start(&chiaki_regist, &chiaki_log, &regist_info, &QmlRegist::regist_cb, this);
+}
+
+void QmlRegist::log_cb(ChiakiLogLevel level, const char *msg, void *user)
+{
+    chiaki_log_cb_print(level, msg, nullptr);
+    auto r = static_cast<QmlRegist*>(user);
+    QMetaObject::invokeMethod(r, std::bind(&QmlRegist::log, r, level, QString::fromUtf8(msg)), Qt::QueuedConnection);
+}
+
+void QmlRegist::regist_cb(ChiakiRegistEvent *event, void *user)
+{
+    auto r = static_cast<QmlRegist*>(user);
+    switch (event->type) {
+    case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
+        QMetaObject::invokeMethod(r, std::bind(&QmlRegist::success, r, *event->registered_host), Qt::QueuedConnection);
+        QMetaObject::invokeMethod(r, &QObject::deleteLater, Qt::QueuedConnection);
+        break;
+    case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
+        QMetaObject::invokeMethod(r, &QmlRegist::failed, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(r, &QObject::deleteLater, Qt::QueuedConnection);
+        break;
+    default:
+        break;
+    }
+}
+
 QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     : QObject(window)
     , settings(settings)
@@ -222,6 +253,53 @@ void QmlBackend::addManualHost(int index, const QString &address)
     settings->SetManualHost(host);
 }
 
+bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const QString &pin, bool broadcast, int target, const QJSValue &callback)
+{
+    ChiakiRegistInfo info = {};
+    QByteArray hostb = host.toUtf8();
+    info.host = hostb.constData();
+    info.target = static_cast<ChiakiTarget>(target);
+    info.broadcast = broadcast;
+    info.pin = (uint32_t)pin.toULong();
+    QByteArray psn_idb;
+    if (target != CHIAKI_TARGET_PS4_8) {
+        psn_idb = psn_id.toUtf8();
+        info.psn_online_id = psn_idb.constData();
+    } else {
+        QByteArray account_id = QByteArray::fromBase64(psn_id.toUtf8());
+        if (account_id.size() != CHIAKI_PSN_ACCOUNT_ID_SIZE) {
+            emit error(tr("Invalid Account-ID"), tr("The PSN Account-ID must be exactly %1 bytes encoded as base64.").arg(CHIAKI_PSN_ACCOUNT_ID_SIZE));
+            return false;
+        }
+        info.psn_online_id = nullptr;
+        memcpy(info.psn_account_id, account_id.constData(), CHIAKI_PSN_ACCOUNT_ID_SIZE);
+    }
+    auto regist = new QmlRegist(info, settings->GetLogLevelMask(), this);
+    connect(regist, &QmlRegist::log, this, [callback](ChiakiLogLevel level, QString msg) {
+        QJSValue cb = callback;
+        if (cb.isCallable())
+            cb.call({QString("[%1] %2").arg(chiaki_log_level_char(level)).arg(msg), true, false});
+    });
+    connect(regist, &QmlRegist::failed, this, [this, callback]() {
+        QJSValue cb = callback;
+        if (cb.isCallable())
+            cb.call({QString(), false, true});
+
+        regist_dialog_server = {};
+    });
+    connect(regist, &QmlRegist::success, this, [this, callback](RegisteredHost host) {
+        QJSValue cb = callback;
+        if (cb.isCallable())
+            cb.call({QString(), true, true});
+
+        settings->AddRegisteredHost(host);
+        ManualHost manual_host = regist_dialog_server.manual_host;
+        manual_host.Register(host);
+        settings->SetManualHost(manual_host);
+    });
+    return true;
+}
+
 void QmlBackend::connectToHost(int index)
 {
     auto server = displayServerAt(index);
@@ -229,6 +307,8 @@ void QmlBackend::connectToHost(int index)
         return;
 
     if (!server.registered) {
+        regist_dialog_server = server;
+        emit registDialogRequested(server.GetHostAddr(), server.IsPS5());
         return;
     }
 

@@ -7,6 +7,27 @@
 
 #include <QObject>
 #include <QThread>
+#include <QJSValue>
+
+class QmlRegist : public QObject
+{
+    Q_OBJECT
+
+public:
+    QmlRegist(const ChiakiRegistInfo &regist_info, uint32_t log_mask, QObject *parent = nullptr);
+
+signals:
+    void log(ChiakiLogLevel level, const QString &msg);
+    void failed();
+    void success(RegisteredHost host);
+
+private:
+    static void log_cb(ChiakiLogLevel level, const char *msg, void *user);
+    static void regist_cb(ChiakiRegistEvent *event, void *user);
+
+    ChiakiLog chiaki_log;
+    ChiakiRegist chiaki_regist;
+};
 
 class QmlBackend : public QObject
 {
@@ -37,6 +58,7 @@ public:
     Q_INVOKABLE void deleteHost(int index);
     Q_INVOKABLE void wakeUpHost(int index);
     Q_INVOKABLE void addManualHost(int index, const QString &address);
+    Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, bool broadcast, int target, const QJSValue &callback);
     Q_INVOKABLE void connectToHost(int index);
     Q_INVOKABLE void stopSession(bool sleep);
 
@@ -51,6 +73,7 @@ signals:
     void error(const QString &title, const QString &text);
     void sessionError(const QString &title, const QString &text);
     void sessionStopDialogRequested();
+    void registDialogRequested(const QString &host, bool ps5);
 
 private:
     struct DisplayServer {
@@ -79,4 +102,5 @@ private:
     QThread *frame_thread = {};
     DiscoveryManager discovery_manager;
     QHash<int, QmlController*> controllers;
+    DisplayServer regist_dialog_server;
 };

@@ -12,6 +12,10 @@ Item {
     signal accepted()
     signal rejected()
 
+    function close() {
+        stack.pop();
+    }
+
     onMainItemChanged: {
         if (mainItem) {
             mainItem.parent = contentItem;
@@ -43,7 +47,7 @@ Item {
                 Material.roundedScale: Material.SmallScale
                 onClicked: {
                     dialog.rejected();
-                    stack.pop();
+                    dialog.close();
                 }
             }
 
@@ -56,10 +60,7 @@ Item {
                 padding: 30
                 font.pixelSize: 25
                 Material.roundedScale: Material.SmallScale
-                onClicked: {
-                    dialog.accepted();
-                    stack.pop();
-                }
+                onClicked: dialog.accepted()
             }
         }
 
