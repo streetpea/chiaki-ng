@@ -1,7 +1,6 @@
 #include "vdfstatemachine.h"
 
 #include <sstream>
-#include <string>
 
 namespace VDFStateMachine {
 
