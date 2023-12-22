@@ -239,7 +239,7 @@ class StreamSession : public QObject
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
 		void ReadMic(const QByteArray &micdata);
 
-		void BlockInput(bool block) { input_blocked = block; }
+		void BlockInput(bool block) { input_blocked = block; SendFeedbackState(); }
 
 	signals:
 		void FfmpegFrameAvailable();

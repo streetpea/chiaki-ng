@@ -10,5 +10,11 @@
     <file>RegistDialog.qml</file>
     <file>SettingsDialog.qml</file>
     <file>PSNLoginDialog.qml</file>
+    <file>controls/Button.qml</file>
+    <file>controls/CheckBox.qml</file>
+    <file>controls/ComboBox.qml</file>
+    <file>controls/RadioButton.qml</file>
+    <file>controls/Slider.qml</file>
+    <file>controls/TextField.qml</file>
   </qresource>
 </RCC>

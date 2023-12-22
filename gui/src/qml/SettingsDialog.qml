@@ -5,10 +5,26 @@ import QtQuick.Controls.Material
 
 import org.streetpea.chiaki4deck
 
+import "controls" as C
+
 DialogView {
     id: dialog
     title: qsTr("Settings")
     buttonVisible: false
+    Keys.onPressed: (event) => {
+        if (event.modifiers)
+            return;
+        switch (event.key) {
+        case Qt.Key_PageUp:
+            bar.decrementCurrentIndex();
+            event.accepted = true;
+            break;
+        case Qt.Key_PageDown:
+            bar.incrementCurrentIndex();
+            event.accepted = true;
+            break;
+        }
+    }
 
     Item {
         TabBar {
@@ -54,7 +70,7 @@ DialogView {
                 bottom: parent.bottom
             }
             currentIndex: bar.currentIndex
-            onCurrentIndexChanged: dialog.forceActiveFocus()
+            onCurrentIndexChanged: nextItemInFocusChain().forceActiveFocus(Qt.TabFocusReason)
 
             Item {
                 // General
@@ -73,9 +89,9 @@ DialogView {
                         text: qsTr("Action On Disconnect:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
+                        firstInFocusChain: true
                         model: [qsTr("Do Nothing"), qsTr("Enter Sleep Mode"), qsTr("Ask")]
                         currentIndex: Chiaki.settings.disconnectAction
                         onActivated: index => Chiaki.settings.disconnectAction = index
@@ -86,8 +102,7 @@ DialogView {
                         text: qsTr("Verbose Logging:")
                     }
 
-                    CheckBox {
-                        focusPolicy: Qt.NoFocus
+                    C.CheckBox {
                         text: qsTr("Warning: Don't enable for regular use")
                         checked: Chiaki.settings.logVerbose
                         onToggled: Chiaki.settings.logVerbose = checked
@@ -98,8 +113,7 @@ DialogView {
                         text: qsTr("PS5 Features:")
                     }
 
-                    CheckBox {
-                        focusPolicy: Qt.NoFocus
+                    C.CheckBox {
                         text: qsTr("DualSense and Steam Deck haptics and adaptive triggers")
                         checked: Chiaki.settings.dualSense
                         onToggled: Chiaki.settings.dualSense = checked
@@ -110,8 +124,7 @@ DialogView {
                         text: qsTr("Buttons By Position:")
                     }
 
-                    CheckBox {
-                        focusPolicy: Qt.NoFocus
+                    C.CheckBox {
                         text: qsTr("Use buttons by position instead of by label")
                         checked: Chiaki.settings.buttonsByPosition
                         onToggled: Chiaki.settings.buttonsByPosition = checked
@@ -122,8 +135,7 @@ DialogView {
                         text: qsTr("Steam Deck Vertical:")
                     }
 
-                    CheckBox {
-                        focusPolicy: Qt.NoFocus
+                    C.CheckBox {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
                         checked: Chiaki.settings.verticalDeck
                         onToggled: Chiaki.settings.verticalDeck = checked
@@ -141,7 +153,7 @@ DialogView {
                         fontSizeMode: Text.HorizontalFit
                         minimumPixelSize: 10
 
-                        Button {
+                        C.Button {
                             anchors {
                                 left: parent.left
                                 verticalCenter: parent.verticalCenter
@@ -154,18 +166,19 @@ DialogView {
                     }
                 }
 
-                Button {
+                C.Button {
+                    id: aboutButton
                     anchors {
                         bottom: parent.bottom
                         horizontalCenter: parent.horizontalCenter
                         bottomMargin: 50
                     }
+                    lastInFocusChain: true
                     implicitWidth: 200
                     topPadding: 26
                     leftPadding: 30
                     rightPadding: 30
                     bottomPadding: 26
-                    focusPolicy: Qt.NoFocus
                     text: qsTr("About %1").arg(Qt.application.name)
                     onClicked: aboutDialog.open()
                     Material.roundedScale: Material.SmallScale
@@ -189,9 +202,9 @@ DialogView {
                         text: qsTr("Resolution:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
+                        firstInFocusChain: true
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolution - 1
                         onActivated: (index) => Chiaki.settings.resolution = index + 1
@@ -202,9 +215,8 @@ DialogView {
                         text: qsTr("FPS:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
                         model: [qsTr("30 fps"), qsTr("60 fps")]
                         currentIndex: (Chiaki.settings.fps / 30) - 1
                         onActivated: (index) => Chiaki.settings.fps = (index + 1) * 30
@@ -215,7 +227,7 @@ DialogView {
                         text: qsTr("Bitrate:")
                     }
 
-                    TextField {
+                    C.TextField {
                         Layout.preferredWidth: 400
                         text: Chiaki.settings.bitrate || ""
                         validator: IntValidator { bottom: 0; top: 99999; }
@@ -230,7 +242,6 @@ DialogView {
                             return qsTr("Automatic (%1)").arg(bitrate);
                         }
                         Material.accent: text && !validate() ? Material.Red : undefined
-                        onAccepted: dialog.forceActiveFocus()
                         onEditingFinished: {
                             if (validate()) {
                                 Chiaki.settings.bitrate = parseInt(text);
@@ -250,9 +261,9 @@ DialogView {
                         text: qsTr("Codec:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
+                        id: codec
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
                         model: [qsTr("H264"), qsTr("H265 (PS5)"), qsTr("H265 HDR (PS5)")]
                         currentIndex: Chiaki.settings.codec
                         onActivated: (index) => Chiaki.settings.codec = index
@@ -263,9 +274,8 @@ DialogView {
                         text: qsTr("Hardware Decoder:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
                         model: Chiaki.settings.availableDecoders
                         currentIndex: Math.max(0, model.indexOf(Chiaki.settings.decoder))
                         onActivated: (index) => Chiaki.settings.decoder = index ? model[index] : ""
@@ -276,9 +286,9 @@ DialogView {
                         text: qsTr("Render Preset:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
+                        lastInFocusChain: true
                         model: [qsTr("Default"), qsTr("Fast"), qsTr("High Quality")]
                         currentIndex: Chiaki.settings.videoPreset
                         onActivated: (index) => Chiaki.settings.videoPreset = index
@@ -304,13 +314,12 @@ DialogView {
                         text: qsTr("Output Device:")
                     }
 
-                    ComboBox {
-                        id: audioOutDevice
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
                         popup.x: (width - popup.width) / 2
                         popup.width: 700
                         popup.font.pixelSize: 16
+                        firstInFocusChain: true
                         model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
                         currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioOutDevice))
                         onActivated: (index) => Chiaki.settings.audioOutDevice = index ? model[index] : ""
@@ -321,9 +330,8 @@ DialogView {
                         text: qsTr("Input Device:")
                     }
 
-                    ComboBox {
+                    C.ComboBox {
                         Layout.preferredWidth: 400
-                        focusPolicy: Qt.NoFocus
                         popup.x: (width - popup.width) / 2
                         popup.width: 700
                         popup.font.pixelSize: 16
@@ -337,13 +345,12 @@ DialogView {
                         text: qsTr("Buffer Size:")
                     }
 
-                    TextField {
+                    C.TextField {
                         Layout.preferredWidth: 400
                         validator: IntValidator { bottom: 0; top: 999999; }
                         text: Chiaki.settings.audioBufferSize || ""
                         placeholderText: qsTr("Default (9600)")
                         Material.accent: text && !validate() ? Material.Red : undefined
-                        onAccepted: dialog.forceActiveFocus()
                         onEditingFinished: {
                             if (validate()) {
                                 Chiaki.settings.audioBufferSize = parseInt(text);
@@ -363,11 +370,11 @@ DialogView {
                         text: qsTr("Speech Processing:")
                     }
 
-                    CheckBox {
-                        focusPolicy: Qt.NoFocus
+                    C.CheckBox {
+                        lastInFocusChain: !checked
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
-                        onToggled: Chiaki.settings.speechProcessing = checked
+                        onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
                     }
 
                     Label {
@@ -376,12 +383,11 @@ DialogView {
                         visible: Chiaki.settings.speechProcessing
                     }
 
-                    Slider {
+                    C.Slider {
                         Layout.preferredWidth: 250
                         from: 0
                         to: 60
                         stepSize: 1
-                        focusPolicy: Qt.NoFocus
                         visible: Chiaki.settings.speechProcessing
                         value: Chiaki.settings.noiseSuppressLevel
                         onMoved: Chiaki.settings.noiseSuppressLevel = value
@@ -402,12 +408,12 @@ DialogView {
                         visible: Chiaki.settings.speechProcessing
                     }
 
-                    Slider {
+                    C.Slider {
                         Layout.preferredWidth: 250
+                        lastInFocusChain: true
                         from: 0
                         to: 60
                         stepSize: 1
-                        focusPolicy: Qt.NoFocus
                         value: Chiaki.settings.echoSuppressLevel
                         visible: Chiaki.settings.speechProcessing
                         onMoved: Chiaki.settings.echoSuppressLevel = value
@@ -426,7 +432,7 @@ DialogView {
 
             Item {
                 // Consoles
-                Button {
+                C.Button {
                     id: registerNewButton
                     anchors {
                         top: parent.top
@@ -437,7 +443,7 @@ DialogView {
                     leftPadding: 30
                     rightPadding: 30
                     bottomPadding: 26
-                    focusPolicy: Qt.NoFocus
+                    firstInFocusChain: true
                     text: qsTr("Register New")
                     onClicked: root.showRegistDialog("255.255.255.255", true)
                     Material.roundedScale: Material.SmallScale
@@ -455,6 +461,7 @@ DialogView {
                 }
 
                 ListView {
+                    id: consolesView
                     anchors {
                         top: consolesLabel.bottom
                         horizontalCenter: consolesLabel.horizontalCenter
@@ -469,12 +476,13 @@ DialogView {
                         height: 80
                         width: parent ? parent.width : 0
 
-                        Button {
+                        C.Button {
                             anchors {
                                 right: parent.right
                                 verticalCenter: parent.verticalCenter
                                 rightMargin: 20
                             }
+                            lastInFocusChain: index == consolesView.count - 1
                             text: qsTr("Delete")
                             onClicked: root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.settings.deleteRegisteredHost(index));
                             Material.roundedScale: Material.SmallScale
@@ -535,9 +543,13 @@ DialogView {
             modal: true
             standardButtons: Dialog.Ok
             Material.roundedScale: Material.MediumScale
+            onAboutToHide: aboutButton.forceActiveFocus(Qt.TabFocusReason)
 
             RowLayout {
                 spacing: 50
+                onVisibleChanged: if (visible) forceActiveFocus()
+                Keys.onReturnPressed: aboutDialog.close()
+                Keys.onEscapePressed: aboutDialog.close()
 
                 Image {
                     Layout.preferredWidth: 200

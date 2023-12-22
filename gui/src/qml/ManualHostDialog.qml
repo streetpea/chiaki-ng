@@ -4,6 +4,8 @@ import QtQuick.Controls
 
 import org.streetpea.chiaki4deck
 
+import "controls" as C
+
 DialogView {
     title: qsTr("Add Manual Console")
     buttonText: qsTr("✓ Add")
@@ -29,9 +31,10 @@ DialogView {
                 text: qsTr("Host:")
             }
 
-            TextField {
+            C.TextField {
                 id: hostField
                 Layout.preferredWidth: 400
+                firstInFocusChain: true
             }
 
             Label {
@@ -39,9 +42,10 @@ DialogView {
                 text: qsTr("Registered Consoles:")
             }
 
-            ComboBox {
+            C.ComboBox {
                 id: consoleCombo
                 Layout.preferredWidth: 400
+                lastInFocusChain: true
                 textRole: "name"
                 model: {
                     let m = [];

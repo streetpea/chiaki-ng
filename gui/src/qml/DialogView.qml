@@ -8,6 +8,7 @@ Item {
     property alias buttonText: okButton.text
     property alias buttonEnabled: okButton.enabled
     property alias buttonVisible: okButton.visible
+    property Item restoreFocusItem
     default property Item mainItem: null
 
     signal accepted()
@@ -15,6 +16,28 @@ Item {
 
     function close() {
         stack.pop();
+    }
+
+    Keys.onEscapePressed: close()
+
+    Keys.onMenuPressed: {
+        if (okButton.enabled)
+            okButton.clicked()
+    }
+
+    StackView.onDeactivating: {
+        restoreFocusItem = Window.window.activeFocusItem;
+    }
+
+    StackView.onActivated: {
+        if (!restoreFocusItem) {
+            let item = mainItem.nextItemInFocusChain();
+            if (item)
+                item.forceActiveFocus(Qt.TabFocusReason);
+        } else {
+            restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+            restoreFocusItem = null;
+        }
     }
 
     onMainItemChanged: {
@@ -45,6 +68,7 @@ Item {
                 Layout.preferredWidth: 100
                 flat: true
                 text: "❮"
+                focusPolicy: Qt.NoFocus
                 Material.roundedScale: Material.SmallScale
                 onClicked: {
                     dialog.rejected();
@@ -60,6 +84,7 @@ Item {
                 flat: true
                 padding: 30
                 font.pixelSize: 25
+                focusPolicy: Qt.NoFocus
                 Material.roundedScale: Material.SmallScale
                 onClicked: dialog.accepted()
             }

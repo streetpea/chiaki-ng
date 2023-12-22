@@ -8,6 +8,19 @@ import org.streetpea.chiaki4deck
 Item {
     id: root
 
+    function controllerButton(name) {
+        let type = "ps";
+        for (let i = 0; i < Chiaki.controllers.length; ++i) {
+            if (Chiaki.controllers[i].steamDeck)
+                type = "deck";
+            if (Chiaki.controllers[i].dualSense) {
+                type = "ps";
+                break;
+            }
+        }
+        return "image://svg/button-%1#%2".arg(type).arg(name);
+    }
+
     function showMainView() {
         if (stack.depth > 1)
             stack.pop(stack.get(0));

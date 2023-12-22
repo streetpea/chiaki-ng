@@ -42,16 +42,42 @@ Dialog {
                 focusPolicy: Qt.NoFocus
                 text: qsTr("Yes")
                 flat: true
+                leftPadding: 50
                 onClicked: dialog.accept()
                 Material.roundedScale: Material.SmallScale
+
+                Image {
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: root.controllerButton("cross")
+                }
             }
 
             Button {
                 focusPolicy: Qt.NoFocus
                 text: qsTr("No")
                 flat: true
+                leftPadding: 50
                 onClicked: dialog.reject()
                 Material.roundedScale: Material.SmallScale
+
+                Image {
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: root.controllerButton("moon")
+                }
             }
         }
     }
