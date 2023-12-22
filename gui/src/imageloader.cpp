@@ -25,8 +25,7 @@ void ImageLoader::onRequestFinished(QNetworkReply* reply) {
         label->setPixmap(pixmap);
         label->setText("");
     } else {
-        // Handle error if needed
-        CHIAKI_LOGE(log, "Failed to load image. Error: %s", reply->errorString());
+        CHIAKI_LOGE(log, "Failed to load image. Error: %s", reply->errorString().toStdString().c_str());
     }
 
     // Clean up
