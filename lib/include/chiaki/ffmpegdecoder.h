@@ -28,6 +28,7 @@ struct chiaki_ffmpeg_decoder_t
 	ChiakiFfmpegFrameAvailable frame_available_cb;
 	void *frame_available_cb_user;
 	int32_t frames_lost;
+	int32_t session_bitrate_kbps;
 };
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,

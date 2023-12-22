@@ -40,7 +40,6 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
     Q_PROPERTY(int corruptedFrames READ corruptedFrames NOTIFY corruptedFramesChanged)
     Q_PROPERTY(bool keepVideo READ keepVideo WRITE setKeepVideo NOTIFY keepVideoChanged)
-    Q_PROPERTY(bool grabInput READ grabInput WRITE setGrabInput NOTIFY grabInputChanged)
     Q_PROPERTY(VideoMode videoMode READ videoMode WRITE setVideoMode NOTIFY videoModeChanged)
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
 
@@ -69,14 +68,14 @@ public:
     bool keepVideo() const;
     void setKeepVideo(bool keep);
 
-    bool grabInput() const;
-    void setGrabInput(bool grab);
-
     VideoMode videoMode() const;
     void setVideoMode(VideoMode mode);
 
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
+
+    Q_INVOKABLE void grabInput();
+    Q_INVOKABLE void releaseInput();
 
     void show();
     void presentFrame(AVFrame *frame);
@@ -87,9 +86,9 @@ signals:
     void hasVideoChanged();
     void corruptedFramesChanged();
     void keepVideoChanged();
-    void grabInputChanged();
     void videoModeChanged();
     void videoPresetChanged();
+    void menuRequested();
 
 private:
     void init(Settings *settings);
@@ -109,7 +108,7 @@ private:
 
     bool has_video = false;
     bool keep_video = false;
-    bool grab_input = false;
+    int grab_input = 0;
     int corrupted_frames = 0;
     VideoMode video_mode = VideoMode::Normal;
     VideoPreset video_preset = VideoPreset::HighQuality;
