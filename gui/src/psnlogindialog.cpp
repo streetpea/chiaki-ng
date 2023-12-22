@@ -1,5 +1,7 @@
 #include "psnlogindialog.h"
 
+#include <QMessageBox>
+#include <qmetaobject.h>
 #include <QVBoxLayout>
 #include <QWebEngineSettings>
 
@@ -55,6 +57,7 @@ void PSNLoginDialog::handleWebEngineLoadFinished(bool) {
 
         PSNAccountID* psn_account_id = new PSNAccountID(this);
         connect(psn_account_id, &PSNAccountID::AccountIDResponse, this, &PSNLoginDialog::handlePsnAccountIdResponse);
+        connect(psn_account_id, &PSNAccountID::AccountIDError, this, &PSNLoginDialog::handlePsnAccountIdCollectionError);
 
         psn_account_id->GetPsnAccountId(redirectCode);
     }
@@ -66,4 +69,12 @@ void PSNLoginDialog::handlePsnAccountIdResponse(QString accountId) {
         parentDialog->updatePsnAccountID(accountId);
         close();
     }
+}
+
+void PSNLoginDialog::handlePsnAccountIdCollectionError(const QString& url, const QNetworkReply::NetworkError& error) {
+    RegistDialog* parentDialog = qobject_cast<RegistDialog*>(parent());
+    QMetaEnum metaEnum = QMetaEnum::fromType<QNetworkReply::NetworkError>();
+    QString enumString = metaEnum.valueToKey(static_cast<int>(error));
+    CHIAKI_LOGE(&log, "Error Retrieving PSN Account ID from %s: %s", url.toStdString().c_str(), enumString.toStdString().c_str());
+    QMessageBox::critical(parentDialog, "Error retrieving PSN Account ID", "There has been an error retrieving your PSN Account ID. Please see Chiaki Logs for more information");
 }

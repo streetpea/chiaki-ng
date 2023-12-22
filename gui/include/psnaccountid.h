@@ -5,6 +5,7 @@
 #ifndef PSNACCOUNTID_H
 #define PSNACCOUNTID_H
 #include <ostream>
+#include <QNetworkReply>
 #include <qobject.h>
 #include <sstream>
 
@@ -32,6 +33,7 @@ public:
 
 signals:
     void AccountIDResponse(QString accountId);
+    void AccountIDError(const QString& url, const QNetworkReply::NetworkError& error);
 
 private:
     QString basicAuthHeader;
@@ -50,6 +52,8 @@ private slots:
     void handleAccessTokenResponse(const QString& url, const QJsonDocument& jsonDocument);
 
     void handUserIDResponse(const QString& url, const QJsonDocument& jsonDocument);
+
+    void handleErrorResponse(const QString& url, const QNetworkReply::NetworkError& error);
 };
 
 #endif //PSNACCOUNTID_H

@@ -1,6 +1,7 @@
 #ifndef PSNLOGINDIALOG_H
 #define PSNLOGINDIALOG_H
 
+#include <QNetworkReply>
 #include <QWebEngineView>
 #include "registdialog.h"
 #include "psnaccountid.h"
@@ -19,6 +20,7 @@ public:
     private slots:
         void handleWebEngineLoadFinished(bool);
         void handlePsnAccountIdResponse(QString accountId);
+        void handlePsnAccountIdCollectionError(const QString& url, const QNetworkReply::NetworkError& error);
 
 };
 
