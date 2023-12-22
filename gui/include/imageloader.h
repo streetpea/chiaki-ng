@@ -14,36 +14,17 @@
 class ImageLoader : public QObject {
     Q_OBJECT
 public:
-    ImageLoader(QLabel* label) : label(label) {}
+    explicit ImageLoader(QObject* parent, ChiakiLog* log, QLabel* label);
 
-    void loadImage(const QString& url) {
-        QNetworkAccessManager* manager = new QNetworkAccessManager(this);
-        QUrl qurl = QUrl(url);
-        QNetworkRequest request(qurl);
+    void loadImage(const QString& url);
 
-        QNetworkReply* reply = manager->get(request);
-
-        // Use a QEventLoop to wait for the image to be downloaded
-        QEventLoop loop;
-        connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-        loop.exec();
-
-        if (reply->error() == QNetworkReply::NoError) {
-            // Load the image into QPixmap and set it as the label's pixmap
-            QPixmap pixmap;
-            pixmap.loadFromData(reply->readAll());
-            label->setPixmap(pixmap);
-        } else {
-            // Handle error if needed
-            qWarning() << "Failed to load image. Error:" << reply->errorString();
-        }
-
-        // Clean up
-        reply->deleteLater();
-    }
+public slots:
+    void onRequestFinished(QNetworkReply* reply);
 
 private:
+    QNetworkAccessManager* networkManager;
     QLabel* label;
+    ChiakiLog* log;
 };
 
 #endif //IMAGELOADER_H

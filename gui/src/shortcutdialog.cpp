@@ -2,11 +2,9 @@
 
 #include <filesystem>
 #include <QComboBox>
-#include <iostream>
 #include <fstream>
 #include <qeventloop.h>
 #include <QFileDialog>
-#include <QLabel>
 #include <qtextstream.h>
 #include <regex>
 #include <sstream>
@@ -17,8 +15,6 @@
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
-
-#include <QTimer>
 
 #include "imageloader.h"
 #include "steamgriddbapi.h"
@@ -43,293 +39,30 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
         Ui::ShortcutDialog::mode_combo_box->addItem(tr(p.second), p.first);
     }
 
-    //Update the game dropdown for all artworks
-    for (auto it = SteamGridDb::gameIDs.begin(); it != SteamGridDb::gameIDs.end(); ++it) {
-        Ui::ShortcutDialog::landscape_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
-        Ui::ShortcutDialog::portrait_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
-        Ui::ShortcutDialog::hero_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
-        Ui::ShortcutDialog::icon_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
-        Ui::ShortcutDialog::logo_game_combo->addItem(tr(it->first.c_str()), it->second.c_str());
-    }
-
-    //Landscapes
-    landscapeIndex = 0;
-    connect(Ui::ShortcutDialog::landscape_next_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex, "landscape");
-    });
-    connect(Ui::ShortcutDialog::landscape_prev_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex, "landscape");
-    });
-    connect(Ui::ShortcutDialog::landscape_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
-        UpdateImageList(ArtworkType::LANDSCAPE, landscapes, Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), customLandscape, landscape_prev_button, landscape_next_button);
-        if (landscape_game_combo->currentData().toString().toStdString() == "custom") {
-            landscapeIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customLandscape));
-            // Set the pixmap as the image for the QLabel
-            landscape_label->setPixmap(pixmap);
-        } else {
-            loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
-        }
-    });
-    connect(Ui::ShortcutDialog::landscape_upload_button, &QPushButton::clicked, [=]() {
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Png Files (*.png)"));
-        customLandscape = fileName.toStdString();
-        if (landscape_game_combo->count() == SteamGridDb::gameIDs.size()) {
-            //Add the custom item
-            landscape_game_combo->addItem(tr("Custom"), "custom");
-            landscape_game_combo->setCurrentIndex(landscape_game_combo->count()-1);
-        }
-        landscapes = {customLandscape};
-            landscapeIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customLandscape));
-            // Set the pixmap as the image for the QLabel
-            landscape_label->setPixmap(pixmap);
-    });
-
-    //Portraits
-    portraitIndex = 0;
-    connect(Ui::ShortcutDialog::portrait_next_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::portrait_label, portraits, portraitIndex, "portrait");
-    });
-    connect(Ui::ShortcutDialog::portrait_prev_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::portrait_label, portraits, portraitIndex, "portrait");
-    });
-    connect(Ui::ShortcutDialog::portrait_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
-        UpdateImageList(ArtworkType::PORTRAIT, portraits, Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), customPortrait, portrait_prev_button, portrait_next_button);
-        if (portrait_game_combo->currentData().toString().toStdString() == "custom") {
-            portraitIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customPortrait));
-            // Set the pixmap as the image for the QLabel
-            portrait_label->setPixmap(pixmap);
-        } else {
-            loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
-        }
-    });
-    connect(Ui::ShortcutDialog::portrait_upload_button, &QPushButton::clicked, [=]() {
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Png Files (*.png)"));
-        customPortrait = fileName.toStdString();
-        if (portrait_game_combo->count() == SteamGridDb::gameIDs.size()) {
-            //Add the custom item
-            portrait_game_combo->addItem(tr("Custom"), "custom");
-            portrait_game_combo->setCurrentIndex(portrait_game_combo->count()-1);
-        }
-        portraits = {customPortrait};
-            portraitIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customPortrait));
-            // Set the pixmap as the image for the QLabel
-            portrait_label->setPixmap(pixmap);
-    });
-
-    //Heroes
-    heroIndex = 0;
-    connect(Ui::ShortcutDialog::hero_next_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::hero_label, heroes, heroIndex, "hero");
-    });
-    connect(Ui::ShortcutDialog::hero_prev_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::hero_label, heroes, heroIndex, "hero");
-    });
-    connect(Ui::ShortcutDialog::hero_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
-        UpdateImageList(ArtworkType::HERO, heroes, Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), customHero, hero_prev_button, hero_next_button);
-        if (hero_game_combo->currentData().toString().toStdString() == "custom") {
-            heroIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customHero));
-            // Set the pixmap as the image for the QLabel
-            hero_label->setPixmap(pixmap);
-        } else {
-            loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
-        }
-    });
-    connect(Ui::ShortcutDialog::hero_upload_button, &QPushButton::clicked, [=]() {
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Png Files (*.png)"));
-        customHero = fileName.toStdString();
-        if (hero_game_combo->count() == SteamGridDb::gameIDs.size()) {
-            //Add the custom item
-            hero_game_combo->addItem(tr("Custom"), "custom");
-            hero_game_combo->setCurrentIndex(hero_game_combo->count()-1);
-        }
-        heroes = {customHero};
-            heroIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customHero));
-            // Set the pixmap as the image for the QLabel
-            hero_label->setPixmap(pixmap);
-    });
-
-    //Icons
-    iconIndex = 0;
-    connect(Ui::ShortcutDialog::icon_next_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::icon_label, icons, iconIndex, "icon");
-    });
-    connect(Ui::ShortcutDialog::icon_prev_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::icon_label, icons, iconIndex, "icon");
-    });
-    connect(Ui::ShortcutDialog::icon_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
-        UpdateImageList(ArtworkType::ICON, icons, Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), customIcon, icon_prev_button, icon_next_button);
-        if (icon_game_combo->currentData().toString().toStdString() == "custom") {
-            iconIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customIcon));
-            // Set the pixmap as the image for the QLabel
-            icon_label->setPixmap(pixmap);
-        } else {
-            loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
-        }
-    });
-    connect(Ui::ShortcutDialog::icon_upload_button, &QPushButton::clicked, [=]() {
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Png Files (*.png)"));
-        customIcon = fileName.toStdString();
-        if (icon_game_combo->count() == SteamGridDb::gameIDs.size()) {
-            //Add the custom item
-            icon_game_combo->addItem(tr("Custom"), "custom");
-            icon_game_combo->setCurrentIndex(icon_game_combo->count()-1);
-        }
-        icons = {customIcon};
-            iconIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customIcon));
-            // Set the pixmap as the image for the QLabel
-            icon_label->setPixmap(pixmap);
-    });
-
-    //Logos
-    logoIndex = 0;
-    connect(Ui::ShortcutDialog::logo_next_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::NEXT, Ui::ShortcutDialog::logo_label, logos, logoIndex, "logo");
-    });
-    connect(Ui::ShortcutDialog::logo_prev_button, &QPushButton::clicked, [=]() {
-        RotateImage(RotateDirection::PREV, Ui::ShortcutDialog::logo_label, logos, logoIndex, "logo");
-    });
-    connect(Ui::ShortcutDialog::logo_game_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
-        UpdateImageList(ArtworkType::LOGO, logos, Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), customLogo, logo_prev_button, logo_next_button);
-        if (logo_game_combo->currentData().toString().toStdString() == "custom") {
-            logoIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customLogo));
-            // Set the pixmap as the image for the QLabel
-            logo_label->setPixmap(pixmap);
-        } else {
-            loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
-        }
-    });
-    connect(Ui::ShortcutDialog::logo_upload_button, &QPushButton::clicked, [=]() {
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Png Files (*.png)"));
-        customLogo = fileName.toStdString();
-        if (logo_game_combo->count() == SteamGridDb::gameIDs.size()) {
-            //Add the custom item
-            logo_game_combo->addItem(tr("Custom"), "custom");
-            logo_game_combo->setCurrentIndex(logo_game_combo->count()-1);
-        }
-        logos = {customLogo};
-            logoIndex = 0;
-            // Create a QPixmap from the image file
-            QPixmap pixmap(QString::fromStdString(customLogo));
-            // Set the pixmap as the image for the QLabel
-            logo_label->setPixmap(pixmap);
-    });
+    //Widgets
+    artworkWidgets.insert(ArtworkType::LANDSCAPE,
+        new SGDBArtworkWidget(this, &log, ArtworkType::LANDSCAPE, landscape_label, landscape_upload_button, landscape_prev_button, landscape_next_button, landscape_game_combo));
+    artworkWidgets.insert(ArtworkType::PORTRAIT,
+        new SGDBArtworkWidget(this, &log, ArtworkType::PORTRAIT, portrait_label, portrait_upload_button, portrait_prev_button, portrait_next_button, portrait_game_combo));
+    artworkWidgets.insert(ArtworkType::HERO,
+        new SGDBArtworkWidget(this, &log, ArtworkType::HERO, hero_label, hero_upload_button, hero_prev_button, hero_next_button, hero_game_combo));
+    artworkWidgets.insert(ArtworkType::ICON,
+        new SGDBArtworkWidget(this, &log, ArtworkType::ICON, icon_label, icon_upload_button, icon_prev_button, icon_next_button, icon_game_combo));
+    artworkWidgets.insert(ArtworkType::LOGO,
+        new SGDBArtworkWidget(this, &log, ArtworkType::LOGO, logo_label, logo_upload_button, logo_prev_button, logo_next_button, logo_game_combo));
 
     //Shortcut Button
-    add_to_steam_button->setEnabled(false);
-    add_to_steam_button->setText("...Loading Artwork");
     connect(Ui::ShortcutDialog::add_to_steam_button, &QPushButton::clicked, [=]() {
         std::map<std::string, std::string> artwork;
-        artwork["landscape"] = landscapes.at(landscapeIndex);
-        artwork["portrait"] = portraits.at(portraitIndex);
-        artwork["hero"] = heroes.at(heroIndex);
-        artwork["logo"] = logos.at(logoIndex);
-        artwork["icon"] = icons.at(iconIndex);
+        artwork["landscape"] = artworkWidgets.value(ArtworkType::LANDSCAPE)->getUrl().toStdString();
+        artwork["portrait"] = artworkWidgets.value(ArtworkType::PORTRAIT)->getUrl().toStdString();
+        artwork["hero"] = artworkWidgets.value(ArtworkType::HERO)->getUrl().toStdString();
+        artwork["logo"] = artworkWidgets.value(ArtworkType::LOGO)->getUrl().toStdString();
+        artwork["icon"] = artworkWidgets.value(ArtworkType::ICON)->getUrl().toStdString();
         CreateShortcut(server, artwork);
     });
 
-    QTimer::singleShot(0, this, &ShortcutDialog::dialogLoaded);
-}
-
-void ShortcutDialog::dialogLoaded() {
-    landscape_label->setText("Loading");
-    landscapes = SteamGridDb::getLandscapes(&log, Ui::ShortcutDialog::landscape_game_combo->currentData().toString().toStdString(), 0);
-    loadImage(Ui::ShortcutDialog::landscape_label, landscapes, landscapeIndex);
-
-    portrait_label->setText("Loading");
-    portraits = SteamGridDb::getPortraits(&log, Ui::ShortcutDialog::portrait_game_combo->currentData().toString().toStdString(), 0);
-    loadImage(Ui::ShortcutDialog::portrait_label, portraits, portraitIndex);
-
-    hero_label->setText("Loading");
-    heroes = SteamGridDb::getHeroes(&log, Ui::ShortcutDialog::hero_game_combo->currentData().toString().toStdString(), 0);
-    loadImage(Ui::ShortcutDialog::hero_label, heroes, heroIndex);
-
-    logo_label->setText("Loading");
-    logos = SteamGridDb::getLogos(&log, Ui::ShortcutDialog::logo_game_combo->currentData().toString().toStdString(), 0);
-    loadImage(Ui::ShortcutDialog::logo_label, logos, logoIndex);
-
-    icon_label->setText("Loading");
-    icons = SteamGridDb::getIcons(&log, Ui::ShortcutDialog::icon_game_combo->currentData().toString().toStdString(), 0);
-    loadImage(Ui::ShortcutDialog::icon_label, icons, iconIndex);
-
-    add_to_steam_button->setEnabled(true);
-    add_to_steam_button->setText("Add to Steam");
-}
-
-void ShortcutDialog::loadImage(QLabel* label, std::vector<std::string> images, int index) {
-    label->clear();
-    label->setText("Loading");
-    std::string url = images.at(index);
-    ImageLoader imageLoader(label);
-    imageLoader.loadImage(QString::fromStdString(url));
-    label->setText("");
-}
-
-void ShortcutDialog::UpdateImageList(ArtworkType artworktype, std::vector<std::string>& images, std::string gameId, std::string& custom, QPushButton* prev, QPushButton* next) {
-    if (gameId == "custom") {
-        images = {custom};
-        prev->setEnabled(false);
-        next->setEnabled(false);
-    } else {
-        prev->setEnabled(true);
-        next->setEnabled(true);
-        switch (artworktype) {
-            case ArtworkType::LANDSCAPE:
-                images = SteamGridDb::getLandscapes(&log, gameId, 0);
-                landscapeIndex = 0;
-                break;
-            case ArtworkType::PORTRAIT:
-                images = SteamGridDb::getPortraits(&log, gameId, 0);
-                portraitIndex = 0;
-                break;
-            case ArtworkType::HERO:
-                images = SteamGridDb::getHeroes(&log, gameId, 0);
-                heroIndex = 0;
-                break;
-            case ArtworkType::ICON:
-                images = SteamGridDb::getIcons(&log, gameId, 0);
-                iconIndex = 0;
-                break;
-            case ArtworkType::LOGO:
-                images = SteamGridDb::getLogos(&log, gameId, 0);
-                logoIndex = 0;
-                break;
-        }
-    }
-}
-
-void ShortcutDialog::RotateImage(RotateDirection direction, QLabel* label, std::vector<std::string>& images, int& index, std::string type) {
-    if (direction == RotateDirection::NEXT) {
-        index++;
-        //If we've run out of images
-        if (index >= images.size()) {
-            index = 0;
-        }
-    } else {
-        index--;
-        //Loop around the bottom
-        if (index < 0) {
-            index = (images.size() - 1);
-        }
-    }
-    loadImage(label, images, index);
+    //QTimer::singleShot(0, this, &ShortcutDialog::dialogLoaded);
 }
 
 void ShortcutDialog::ExternalChanged() {
@@ -527,7 +260,7 @@ std::string ShortcutDialog::getConnectedSSID() {
 
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe) {
-        std::cerr << "Error executing command." << std::endl;
+        CHIAKI_LOGE(&log, "Error executing command.");
         return "";
     }
 

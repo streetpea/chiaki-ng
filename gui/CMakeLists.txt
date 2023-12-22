@@ -60,9 +60,13 @@ set(SOURCE_FILES
 	include/vdf_parser.hpp
 	include/vdfstatemachine.h
 	src/vdfstatemachine.cpp
+	include/sgdbenums.h
 	include/steamgriddbapi.h
 	src/steamgriddbapi.cpp
+	include/sgdbartworkwidget.h
+	src/sgdbartworkwidget.cpp
 	include/imageloader.h
+	src/imageloader.cpp
 	include/jsonrequester.h
 	src/jsonrequester.cpp)
 set(RESOURCE_FILES "")

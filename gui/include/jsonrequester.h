@@ -12,7 +12,7 @@ public:
     explicit JsonRequester(QObject* parent = nullptr);
 
     void makePostRequest(const QString& url, const QString& authHeader, QString contentType = "application/json",
-                         const QString body);
+    QString body = "");
 
     void makeGetRequest(const QString& url, const QString& authHeader, QString contentType = "application/json");
 

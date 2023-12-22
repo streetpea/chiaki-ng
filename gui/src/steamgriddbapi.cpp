@@ -1,69 +1,88 @@
 #include "steamgriddbapi.h"
 
 #include <qjsonarray.h>
+#include <qjsonobject.h>
 
-namespace SteamGridDb {
-    const std::map<std::string, std::string> gameIDs {
-                {"PS4 Remote Play", "5247907"},
-                {"Chiaki Remote Play", "5319543"},
-                {"Playstation 4", "5327254"},
-                {"Playstation 5", "5327255"}
-    };
+#include "jsonrequester.h"
 
-    std::string apiRoot = "https://www.steamgriddb.com/api/v2";
-    std::string apiKey = "112c9e0822e85e054b87793e684b231a"; //API Key for @Nikorag
+SteamGridDb::SteamGridDb(QObject* parent) {
+    apiRoot = "https://www.steamgriddb.com/api/v2";
+    apiKey = "112c9e0822e85e054b87793e684b231a"; //API Key for @Nikorag
+}
 
-    std::vector<std::string> getArtwork(ChiakiLog* log, std::string type, std::string queryParams, std::string gameId, int page) {
-        std::string url;
-        url.append(apiRoot);
-        url.append("/");
-        url.append(type);
-        url.append("/game/");
-        url.append(gameId);
-        url.append("?page=");
-        url.append(std::to_string(page));
-        url.append(queryParams);
+void SteamGridDb::getArtwork(ChiakiLog* log, QString gameId, ArtworkType type, int page) {
+    switch(type) {
+        case ArtworkType::LANDSCAPE:
+            getLandscapes(log, gameId, page);
+            break;
+        case ArtworkType::PORTRAIT:
+            getPortraits(log, gameId, page);
+            break;
+        case ArtworkType::HERO:
+            getHeroes(log, gameId, page);
+            break;
+        case ArtworkType::ICON:
+            getIcons(log, gameId, page);
+            break;
+        case ArtworkType::LOGO:
+            getLogos(log, gameId, page);
+            break;
+    }
+}
 
-        std::vector<std::string> result_vector;
-        QJsonDocument sgdbResult = JsonUtils::getResponseBodyBearer(log, url, apiKey);
-        QJsonObject resultObject = sgdbResult.object();
-        QJsonArray resultData = resultObject.value("data").toArray();
+void SteamGridDb::getLandscapes(ChiakiLog* log, QString gameId, int page) {
+    requestArtwork(log, "grids", "&dimensions=460x215,920x430", gameId, page);
+}
+
+void SteamGridDb::getPortraits(ChiakiLog* log, QString gameId, int page) {
+    requestArtwork(log, "grids", "&dimensions=600x900", gameId, page);
+}
+
+void SteamGridDb::getHeroes(ChiakiLog* log, QString gameId, int page) {
+    requestArtwork(log, "heroes", "", gameId, page);
+}
+
+void SteamGridDb::getLogos(ChiakiLog* log, QString gameId, int page) {
+    requestArtwork(log, "logos", "", gameId, page);
+}
+
+void SteamGridDb::getIcons(ChiakiLog* log, QString gameId, int page) {
+    requestArtwork(log, "icons", "", gameId, page);
+}
+
+void SteamGridDb::requestArtwork(ChiakiLog* log, QString type, QString queryParams, QString gameId, int page) {
+    QString url = QString("%1/%2/game/%3?page=%4%5")
+        .arg(apiRoot)
+        .arg(type)
+        .arg(gameId)
+        .arg(QString(page))
+        .arg(queryParams);
+
+    QString bearerToken = JsonRequester::generateBearerAuthHeader(apiKey);
+    JsonRequester* requester = new JsonRequester(this);
+    connect(requester, &JsonRequester::requestFinished, this, &SteamGridDb::handleJsonResponse);
+    requester->makeGetRequest(url, bearerToken);
+}
+
+void SteamGridDb::handleJsonResponse(const QString& url, const QJsonDocument jsonDocument) {
+    QVector<QString> result_vector;
+    QJsonObject resultObject = jsonDocument.object();
+    QJsonArray resultData = resultObject.value("data").toArray();
 
 
-        for (QJsonArray::iterator it = resultData.begin(); it != resultData.end(); ++it) {
-            QJsonObject gameObject = it->toObject();
-            std::string imageUrl = gameObject.value("url").toString().toStdString();
-            // Find the first occurrence of "\\/"
-            size_t found = imageUrl.find("\\/");
+    for (QJsonArray::iterator it = resultData.begin(); it != resultData.end(); ++it) {
+        QJsonObject gameObject = it->toObject();
+        QString imageUrl = gameObject.value("url").toString();
+        // Find the first occurrence of "\\/"
+        size_t found = imageUrl.toStdString().find("\\/");
 
-            // Iterate and replace all occurrences of "\\/"
-            while (found != std::string::npos) {
-                imageUrl.replace(found, 2, "/"); // 2 is the length of "\\"
-                found = imageUrl.find("\\/", found + 1);
-            }
-            result_vector.emplace_back(imageUrl);
+        // Iterate and replace all occurrences of "\\/"
+        while (found != std::string::npos) {
+            imageUrl.replace(found, 2, "/"); // 2 is the length of "\\"
+            found = imageUrl.toStdString().find("\\/", found + 1);
         }
-
-        return result_vector;
+        result_vector.append(imageUrl);
     }
 
-    std::vector<std::string> getLandscapes(ChiakiLog* log, std::string gameId, int page) {
-        return getArtwork(log, "grids", "&dimensions=460x215,920x430", gameId, page);
-    }
-
-    std::vector<std::string> getPortraits(ChiakiLog* log, std::string gameId, int page) {
-        return getArtwork(log, "grids", "&dimensions=600x900", gameId, page);
-    }
-
-    std::vector<std::string> getHeroes(ChiakiLog* log, std::string gameId, int page) {
-        return getArtwork(log, "heroes", "", gameId, page);
-    }
-
-    std::vector<std::string> getLogos(ChiakiLog* log, std::string gameId, int page) {
-        return getArtwork(log, "logos", "", gameId, page);
-    }
-
-    std::vector<std::string> getIcons(ChiakiLog* log, std::string gameId, int page) {
-        return getArtwork(log, "icons", "", gameId, page);
-    }
+    emit handleArtworkResponse(result_vector);
 }
