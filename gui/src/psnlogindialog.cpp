@@ -26,29 +26,29 @@ PSNLoginDialog::PSNLoginDialog(Settings *settings, RegistDialog *parent) : QDial
 }
 
 void PSNLoginDialog::handleWebEngineLoadFinished(bool) {
-    std::string redirectCode;
+    QString redirectCode;
 
 
-    std::string windowTitle;
+    QString windowTitle;
     if (web_engine_view->url().toString().toStdString().rfind("https", 0) == 0) {
         //We know the page is secure here because the QWebEngineView won't accept ivalid certificates.
         windowTitle.append("🔒 ");
     }
-    windowTitle.append(web_engine_view->url().toString().toStdString());
-    setWindowTitle(QString::fromStdString(windowTitle));
+    windowTitle.append(web_engine_view->url().toString());
+    setWindowTitle(windowTitle);
 
     if (web_engine_view->url().toString().toStdString().compare(0, PSNAuth::REDIRECT_PAGE.length(), PSNAuth::REDIRECT_PAGE) == 0) {
-        std::string queryParam = web_engine_view->url().query().toStdString();
+        QString queryParam = web_engine_view->url().query();
 
-        size_t codePos = queryParam.find("code=");
+        size_t codePos = queryParam.indexOf("code=");
 
         // Extract the substring starting from the position after 'code='
-        redirectCode = queryParam.substr(codePos + 5); // 5 is the length of "code="
+        redirectCode = queryParam.mid(codePos + 5); // 5 is the length of "code="
 
         // Find the position of '&' to exclude other parameters
-        size_t ampersandPos = redirectCode.find('&');
+        size_t ampersandPos = redirectCode.indexOf('&');
         if (ampersandPos != std::string::npos) {
-            redirectCode = redirectCode.substr(0, ampersandPos);
+            redirectCode = redirectCode.mid(0, ampersandPos);
         }
 
         web_engine_view->close();
@@ -56,11 +56,11 @@ void PSNLoginDialog::handleWebEngineLoadFinished(bool) {
         PSNAccountID* psn_account_id = new PSNAccountID(this);
         connect(psn_account_id, &PSNAccountID::AccountIDResponse, this, &PSNLoginDialog::handlePsnAccountIdResponse);
 
-        psn_account_id->GetPsnAccountId(QString::fromStdString(redirectCode));
+        psn_account_id->GetPsnAccountId(redirectCode);
     }
 }
 
-void PSNLoginDialog::handlePsnAccountIdResponse(std::string accountId) {
+void PSNLoginDialog::handlePsnAccountIdResponse(QString accountId) {
     RegistDialog* parentDialog = qobject_cast<RegistDialog*>(parent());
     if (parentDialog) {
         parentDialog->updatePsnAccountID(accountId);

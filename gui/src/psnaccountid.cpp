@@ -30,5 +30,5 @@ void PSNAccountID::handUserIDResponse(const QString& url, const QJsonDocument& j
     QString user_id = object.value("user_id").toString();
 
     QByteArray byte_representation = to_bytes(std::stoll(user_id.toStdString()), 8);
-    emit AccountIDResponse(byte_representation.toBase64().toStdString());
+    emit AccountIDResponse(byte_representation.toBase64());
 }

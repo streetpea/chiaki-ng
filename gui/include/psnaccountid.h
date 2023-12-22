@@ -31,7 +31,7 @@ public:
 
 
 signals:
-    void AccountIDResponse(std::string accountId);
+    void AccountIDResponse(QString accountId);
 
 private:
     QString basicAuthHeader;
