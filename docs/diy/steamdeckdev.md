@@ -2,7 +2,7 @@
 
 This is for contributors that want to make/test updates to the codebase without building a new flatpak each time.
 
-!!! Info "Addding Dependencies"
+!!! Info "Adding Dependencies"
 
     If you want to add new dependencies that aren't already included in the flatpak modules or SDK, then you will need to create a new flatpak build adding that module or install the module locally and it to your PATH. However, this would only be needed in rare circumstances.
 
@@ -39,30 +39,36 @@ This is for contributors that want to make/test updates to the codebase without 
     cp ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck-devel/config/Chiaki/Chiaki.conf 
     ```
 
-3. Install the `Debug` extensions for the SDK
+3. Install the SDK
+
+    ``` bash
+    flatpak install org.kde.Sdk//5.15-23.08
+    ```
+
+4. Install the `Debug` extensions for the SDK
 
     ``` bash
     flatpak install org.kde.Sdk.Debug//5.15-23.08
     ```
 
-4. Install the `Debug` extension for the application build for debugging
+5. Install the `Debug` extension for the application build for debugging
 
     ``` bash
     flatpak install io.github.streetpea.Chiaki4deck.Debug
     ```
 
-5. Clone the project onto your Steam Deck with:
+6. Clone the project onto your Steam Deck with:
 
     === "HTTPS"
 
         ``` bash
-        git clone https://github.com/streetpea/chiaki4deck.git
+        git clone --recurse-submodules https://github.com/streetpea/chiaki4deck.git
         ```
 
     === "SSH"
 
         ``` bash
-        git clone git@github.com:streetpea/chiaki4deck.git 
+        git clone --recurse-submodules git@github.com:streetpea/chiaki4deck.git 
         ```
 
     === "GitHub cli"
@@ -71,35 +77,23 @@ This is for contributors that want to make/test updates to the codebase without 
         gh repo clone streetpea/chiaki4deck
         ```
 
+    !!! Question "What if I'm testing changes from my branch?"
+
+        Clone that branch or pull it into the git repo cloned above
+
 ## Creating and Debugging Builds without New Flatpak Build
 
-1. Set your Chiaki code dir as an environment variable (can add to `~/.bashrc` to persist across restarts)
+1. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
 
     ``` bash
-    export chiaki_code_dir="path_to_chiaki_code_dir"
+    flatpak run --command=bash --devel io.github.streetpea.Chiaki4deck-devel
     ```
 
-    where `path_to_chiaki_code_dir` is the path to the directory you created with the `git clone` in the last step.
-
-    ???- example "Example Code Directory"
-
-        ``` bash
-        export chiaki_code_dir="~/Documents/chiaki-code"
-        ```
-
-2. Enter the development version of the flatpak with the chiaki4deck source code mounted with:
-
-    ``` bash
-    flatpak run --filesystem="${chiaki_code_dir}" --env=PKG_CONFIG_PATH=/app/lib/pkgconfig --command=bash --devel io.github.streetpea.Chiaki4deck-devel
-    ```
-
-    and `--env` is to set your pkgconfig path to pick up flatpak modules (done by default by flatpak-builder)
-
-3. Create a build using cmake as per usual
+2. Create a build using cmake as per usual
 
     === "Debug build"
 
-        1. Change into the git directory you mounted
+        1. Change into the git directory for your cloned project
         2. Make a directory for your debug build
 
             ``` bash
@@ -150,7 +144,7 @@ This is for contributors that want to make/test updates to the codebase without 
             make
             ```
 
-4. Run build as usual from executables (using gdb for debugging Debug build)
+3. Run build as usual from executables (using gdb for debugging Debug build)
 
     === "Debug"
 
@@ -172,13 +166,13 @@ This is for contributors that want to make/test updates to the codebase without 
         
         When running chiaki from within the flatpak like this please set vaapi to none as otherwise the video won't work. This is fine since you are just running Chiaki like this for development tests only so worse performance isn't a big concern.
 
-5. Make edits to the source code to implement your changes
+4. Make edits to the source code to implement your changes
 
     !!! Tip "Editing code on Steam Deck"
 
         Personally, I use vscode which you can install as a flatpak from Discover. You can open your chiaki code directory using vscode from your Steam Deck desktop and save changes. Then, these changes which will be reflected in your flatpak (since you mounted the chiaki code directory to your flatpak in the steps above) when you do a new build in your flatpak environment. The process would be similar with other code editors installed on your Steam Deck.
 
-6. After making changes to the source code, simply rebuild with make as per usual
+5. After making changes to the source code, simply rebuild with make as per usual
 
 ## Debug Coredump From a flatpak
 

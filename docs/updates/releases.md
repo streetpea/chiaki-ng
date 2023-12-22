@@ -61,6 +61,12 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.5.1
+
+Small patch release
+
+- Workaround for gamescope bug (in Steam Deck Preview channel) causing HDR surface swapchain creation to hang.
+
 ### 1.5.0
 
 HDR support

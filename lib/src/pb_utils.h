@@ -16,6 +16,28 @@ static inline bool chiaki_pb_encode_string(pb_ostream_t *stream, const pb_field_
 	return pb_encode_string(stream, (uint8_t*)str, strlen(str));
 }
 
+typedef struct
+{
+    int32_t items[4];
+    int32_t num_items;
+}
+List;
+
+static inline bool chiaki_pb_encode_list(pb_ostream_t *ostream, const pb_field_t *field, void *const *arg)
+{
+    List *myList = *arg;
+
+    for (int i = 0; i < myList->num_items; i++)
+    {
+        if (!pb_encode_tag_for_field(ostream, field))
+            return false;
+
+        if (!pb_encode_varint(ostream, myList->items[i]))
+            return false;
+    }
+    return true;
+}
+
 typedef struct chiaki_pb_buf_t
 {
 	size_t size;

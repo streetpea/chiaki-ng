@@ -35,6 +35,7 @@ typedef struct chiaki_stream_connection_t
 	ChiakiAudioReceiver *haptics_receiver;
 
 	ChiakiFeedbackSender feedback_sender;
+	ChiakiCongestionControl congestion_control;
 	/**
 	 * whether feedback_sender is initialized
 	 * only if this is true, feedback_sender may be accessed!

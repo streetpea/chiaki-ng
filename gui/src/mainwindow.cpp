@@ -276,6 +276,7 @@ void MainWindow::ServerItemWidgetTriggered()
 	else
 	{
 		RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
+
 		int r = regist_dialog.exec();
 		if(r == QDialog::Accepted && !server.discovered) // success
 		{
