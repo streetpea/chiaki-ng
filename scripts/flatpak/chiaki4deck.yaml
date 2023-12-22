@@ -21,6 +21,7 @@ finish-args:
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=RADV_PERFTEST=video_decode
   - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
+  - --env=QML_IMPORT_PATH=/app/qml
   - --env=QML_DISABLE_DISK_CACHE=1
   - --talk-name=org.freedesktop.ScreenSaver
   - --filesystem=xdg-run/pipewire-0

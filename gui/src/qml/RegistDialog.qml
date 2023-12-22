@@ -74,7 +74,21 @@ DialogView {
                 id: accountId
                 visible: !ps4_7.checked
                 placeholderText: qsTr("base64")
-                Layout.preferredWidth: 400
+                Layout.preferredWidth: 400 - loginButton.width - 10
+
+                Button {
+                    id: loginButton
+                    anchors {
+                        left: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 10
+                    }
+                    topPadding: 18
+                    bottomPadding: 18
+                    text: qsTr("PSN Login")
+                    onClicked: stack.push(psnLoginDialogComponent, {callback: (id) => accountId.text = id})
+                    Material.roundedScale: Material.SmallScale
+                }
             }
 
             Label {
@@ -169,6 +183,11 @@ DialogView {
                     Keys.onEscapePressed: logDialog.close()
                 }
             }
+        }
+
+        Component {
+            id: psnLoginDialogComponent
+            PSNLoginDialog { }
         }
     }
 }

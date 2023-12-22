@@ -70,6 +70,8 @@ int real_main(int argc, char *argv[])
 	Application::setApplicationDisplayName("chiaki4deck");
 	Application::setDesktopFileName("chiaki4deck");
 
+	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
+
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

@@ -3,7 +3,10 @@
 #include "qmlmainwindow.h"
 #include "streamsession.h"
 #include "controllermanager.h"
+#include "psnaccountid.h"
 
+#include <QUrl>
+#include <QUrlQuery>
 #include <QGuiApplication>
 
 QmlRegist::QmlRegist(const ChiakiRegistInfo &regist_info, uint32_t log_mask, QObject *parent)
@@ -353,6 +356,31 @@ void QmlBackend::enterPin(const QString &pin)
 {
     if (session)
         session->SetLoginPIN(pin);
+}
+
+QUrl QmlBackend::psnLoginUrl() const
+{
+    return QUrl(PSNAuth::LOGIN_URL);
+}
+
+bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
+{
+    if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
+        return false;
+
+    const QString code = QUrlQuery(url).queryItemValue("code");
+    if (code.isEmpty()) {
+        qCWarning(chiakiGui) << "Invalid code from redirect url";
+        emit psnLoginAccountIdDone({});
+        return false;
+    }
+    PSNAccountID *psnId = new PSNAccountID(this);
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, [this, psnId](const QString &accountId) {
+        psnId->deleteLater();
+        emit psnLoginAccountIdDone(accountId);
+    });
+    psnId->GetPsnAccountId(code);
+    return true;
 }
 
 QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
