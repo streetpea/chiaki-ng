@@ -77,4 +77,5 @@ void PSNLoginDialog::handlePsnAccountIdCollectionError(const QString& url, const
     QString enumString = metaEnum.valueToKey(static_cast<int>(error));
     CHIAKI_LOGE(&log, "Error Retrieving PSN Account ID from %s: %s", url.toStdString().c_str(), enumString.toStdString().c_str());
     QMessageBox::critical(parentDialog, "Error retrieving PSN Account ID", "There has been an error retrieving your PSN Account ID. Please see Chiaki Logs for more information");
+    close();
 }
