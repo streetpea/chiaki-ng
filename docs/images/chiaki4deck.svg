@@ -8,11 +8,12 @@
    id="svg254"
    sodipodi:docname="chiaki4deck.svg"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
-   inkscape:export-filename="../gui/chiaki4deck.png"
-   inkscape:export-xdpi="48"
-   inkscape:export-ydpi="48"
+   inkscape:export-filename="../../../../../tmp/chiaki4deck.png"
+   inkscape:export-xdpi="192"
+   inkscape:export-ydpi="192"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <sodipodi:namedview
@@ -24,26 +25,43 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="false"
      inkscape:deskcolor="#d1d1d1"
-     showgrid="false"
-     inkscape:zoom="0.5"
-     inkscape:cx="256"
-     inkscape:cy="256"
+     showgrid="true"
+     inkscape:zoom="2.7159296"
+     inkscape:cx="129.23752"
+     inkscape:cy="99.413474"
      inkscape:window-width="1920"
      inkscape:window-height="1152"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg254" />
+     inkscape:current-layer="g1005"
+     showguides="false">
+    <inkscape:grid
+       type="xygrid"
+       id="grid22882" />
+  </sodipodi:namedview>
   <path
      fill-rule="evenodd"
      clip-rule="evenodd"
      d="m 210.2056,128 c 0,-45.315885 -36.73531,-82.051242 -82.05119,-82.051242 V 0 c 70.69267,0 128,57.30733 128,128 0,70.69267 -57.30733,128 -128,128 v -45.94881 c 45.31588,0 82.05119,-36.73531 82.05119,-82.05119 z"
      fill="#000000"
      id="path225"
-     style="fill:#1688ff;fill-opacity:1;stroke:none;stroke-width:4.66534;stroke-dasharray:none;stroke-opacity:1"
+     style="fill:url(#linearGradient13041);fill-opacity:1;stroke:none;stroke-width:4.66534;stroke-dasharray:none;stroke-opacity:1"
      inkscape:label="steam deck circle" />
   <defs
      id="defs252">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient13039">
+      <stop
+         style="stop-color:#ac63ea;stop-opacity:1;"
+         offset="0"
+         id="stop13035" />
+      <stop
+         style="stop-color:#1a9fff;stop-opacity:1;"
+         offset="1"
+         id="stop13037" />
+    </linearGradient>
     <linearGradient
        id="paint0_linear"
        x1="-9.5"
@@ -87,22 +105,31 @@
          style="fill:#008080;fill-opacity:1;stroke:none;stroke-width:11.1206;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          sodipodi:arc-type="slice" />
     </clipPath>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient13039"
+       id="linearGradient13041"
+       x1="128.15441"
+       y1="128"
+       x2="244.71709"
+       y2="178.23232"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <g
      id="g1005"
      inkscape:label="main icon"
      clip-path="url(#clipPath891)"
      style="display:inline"
-     transform="matrix(0.5455828,0,0,0.53079365,51,42.944532)">
+     transform="matrix(0.5455828,0,0,0.54558437,54.090999,39.86946)">
     <rect
        inkscape:label="circle background"
-       ry="1.0565645"
-       y="26.066624"
-       x="-4.0937502e-07"
-       height="270.93335"
-       width="270.93335"
+       ry="1.058604"
+       y="25.840181"
+       x="1.8329024e-06"
+       height="271.45633"
+       width="271.00235"
        id="rect873"
-       style="fill:#cfff0d;fill-opacity:1;stroke:none;stroke-width:8.46431;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+       style="display:inline;fill:#cfff0d;fill-opacity:1;stroke:none;stroke-width:8.47355;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     <g
        style="display:inline;stroke:none"
        transform="translate(8.65301,19.503562)"
