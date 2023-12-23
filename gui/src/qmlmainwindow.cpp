@@ -1,5 +1,6 @@
 #include "qmlmainwindow.h"
 #include "qmlbackend.h"
+#include "qmlsvgprovider.h"
 #include "chiaki/log.h"
 #include "streamsession.h"
 
@@ -346,6 +347,7 @@ void QmlMainWindow::init(Settings *settings)
     connect(quick_window, &QQuickWindow::focusObjectChanged, this, &QmlMainWindow::focusObjectChanged);
 
     qml_engine = new QQmlEngine(this);
+    qml_engine->addImageProvider(QStringLiteral("svg"), new QmlSvgProvider);
     if (!qml_engine->incubationController())
         qml_engine->setIncubationController(quick_window->incubationController());
     connect(qml_engine, &QQmlEngine::quit, this, &QWindow::close);

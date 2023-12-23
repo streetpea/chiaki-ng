@@ -103,7 +103,7 @@ Item {
                     Layout.fillHeight: true
                     Layout.preferredWidth: 150
                     fillMode: Image.PreserveAspectFit
-                    source: "qrc:/icons/console-ps" + (modelData.ps5 ? "5" : "4") + ".svg"
+                    source: "image://svg/console-ps" + (modelData.ps5 ? "5" : "4") + (modelData.state == "standby" ? "#light_standby" : "#light_on")
                     sourceSize: Qt.size(width, height)
                 }
 
@@ -170,7 +170,7 @@ Item {
         anchors {
             left: parent.left
             bottom: parent.bottom
-            margins: 10
+            margins: 20
         }
         icon.source: "qrc:/icons/discover-" + (checked ? "" : "off-") + "24px.svg"
         icon.width: 50
