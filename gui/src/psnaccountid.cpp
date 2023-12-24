@@ -12,6 +12,7 @@ void PSNAccountID::GetPsnAccountId(QString redirectCode) {
     QString body = QString("grant_type=authorization_code&code=%1&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&").arg(redirectCode);
     JsonRequester* requester = new JsonRequester(this);
     connect(requester, &JsonRequester::requestFinished, this, &PSNAccountID::handleAccessTokenResponse);
+    connect(requester, &JsonRequester::requestError, this, &PSNAccountID::handleErrorResponse);
     requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", body);
 }
 
@@ -22,6 +23,7 @@ void PSNAccountID::handleAccessTokenResponse(const QString& url, const QJsonDocu
     QString accountInfoUrl = QString("%1/%2").arg(PSNAuth::TOKEN_URL).arg(access_token);
     JsonRequester* requester = new JsonRequester(this);
     connect(requester, &JsonRequester::requestFinished, this, &PSNAccountID::handUserIDResponse);
+    connect(requester, &JsonRequester::requestError, this, &PSNAccountID::handleErrorResponse);
     requester->makeGetRequest(accountInfoUrl, basicAuthHeader, "application/json");
 }
 
@@ -30,5 +32,9 @@ void PSNAccountID::handUserIDResponse(const QString& url, const QJsonDocument& j
     QString user_id = object.value("user_id").toString();
 
     QByteArray byte_representation = to_bytes(std::stoll(user_id.toStdString()), 8);
-    emit AccountIDResponse(byte_representation.toBase64().toStdString());
+    emit AccountIDResponse(byte_representation.toBase64());
+}
+
+void PSNAccountID::handleErrorResponse(const QString& url, const QNetworkReply::NetworkError& error) {
+    emit AccountIDError(url, error);
 }

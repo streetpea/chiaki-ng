@@ -51,7 +51,7 @@ class RegistDialog : public QDialog
 		~RegistDialog();
 
 		RegisteredHost GetRegisteredHost() { return registered_host; }
-		void updatePsnAccountID(std::string accountId);
+		void updatePsnAccountID(QString accountId);
 
 	public slots:
 		void accept() override;
