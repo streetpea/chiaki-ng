@@ -146,8 +146,16 @@ int Host::InitSession(IO *user)
 	chiaki_connect_info.host = this->host_addr.c_str();
 	chiaki_connect_info.video_profile = this->video_profile;
 	chiaki_connect_info.video_profile_auto_downgrade = true;
+	if (this->IsPS5()) {
+		chiaki_connect_info.video_profile.codec = CHIAKI_CODEC_H265;
+	}
 
 	chiaki_connect_info.ps5 = this->IsPS5();
+
+	if(!user->InitAVCodec(this->IsPS5()))
+	{
+		throw Exception("Failed to initiate libav codec");
+	}
 
 	memcpy(chiaki_connect_info.regist_key, this->rp_regist_key, sizeof(chiaki_connect_info.regist_key));
 	memcpy(chiaki_connect_info.morning, this->rp_key, sizeof(chiaki_connect_info.morning));

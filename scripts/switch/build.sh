@@ -2,6 +2,22 @@
 
 set -xveo pipefail
 
+
+# borrowed from wiliwili for building
+BASE_URL="https://github.com/xfangfang/wiliwili/releases/download/v0.1.0/"
+
+PKGS=(
+    "switch-dav1d-1.2.1-1-any.pkg.tar.zst"
+    "switch-ffmpeg-6.1-2-any.pkg.tar.zst"
+)
+for PKG in "${PKGS[@]}"; do
+    [ -f "${PKG}" ] || curl -LO ${BASE_URL}${PKG}
+    dkp-pacman -U --noconfirm ${PKG}
+done
+
+# dkp-pacman -Sy
+# dkp-pacman -S switch-dav1d switch-ffmpeg
+
 arg1=$1
 build="./build"
 if [ "$arg1" != "linux" ]; then
