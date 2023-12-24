@@ -2,6 +2,8 @@ app-id: io.github.streetpea.Chiaki4deck-devel
 runtime: org.kde.Platform
 runtime-version: '5.15-23.08'
 sdk: org.kde.Sdk
+base: io.qt.qtwebengine.BaseApp
+base-version: '5.15-23.08'
 command: chiaki
 rename-icon: chiaki4deck
 rename-desktop-file: chiaki4deck.desktop
@@ -18,8 +20,11 @@ finish-args:
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=CPATH=/app/include
   - --env=RADV_PERFTEST=video_decode
+  - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
+  - --env=PKG_CONFIG_PATH=/app/lib/pkgconfig
   - --talk-name=org.freedesktop.ScreenSaver
   - --filesystem=xdg-run/pipewire-0
+  - --filesystem=host
   
 modules:
   - name: protobuf-compilers
@@ -51,6 +56,7 @@ modules:
          - /bin
          - /include
          - /lib/cmake
+         - /lib/*.a
          - /lib/pkgconfig
         sources:
           - type: git

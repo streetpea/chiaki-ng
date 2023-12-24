@@ -3,6 +3,8 @@ branch: chiaki4deck
 runtime: org.kde.Platform
 runtime-version: '5.15-23.08'
 sdk: org.kde.Sdk
+base: io.qt.qtwebengine.BaseApp
+base-version: '5.15-23.08'
 command: chiaki
 rename-icon: chiaki4deck
 rename-desktop-file: chiaki4deck.desktop
@@ -18,11 +20,13 @@ finish-args:
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=RADV_PERFTEST=video_decode
+  - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
   - --talk-name=org.freedesktop.ScreenSaver
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
-  
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
 modules:
   - name: protobuf-compilers
     sources:
@@ -207,10 +211,9 @@ modules:
   - name: vulkanso
     buildsystem: simple
     build-commands:
-      - |
-        cp /usr/lib/x86_64-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
-        ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
-        ln -s libvulkan.so.1 /app/lib/libvulkan.so
+      - cp /usr/lib/x86_64-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
+      - ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
+      - ln -s libvulkan.so.1 /app/lib/libvulkan.so
 
   - name: chiaki4deck
     buildsystem: cmake-ninja
