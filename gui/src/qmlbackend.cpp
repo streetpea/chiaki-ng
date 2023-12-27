@@ -187,8 +187,15 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     controllers.clear();
     emit controllersChanged();
 
+    StreamSessionConnectInfo info = connect_info;
+    if (info.hw_decoder == "vulkan") {
+        info.hw_device_ctx = window->vulkanHwDeviceCtx();
+        if (!info.hw_device_ctx)
+            info.hw_decoder.clear();
+    }
+
     try {
-        session = new StreamSession(connect_info, this);
+        session = new StreamSession(info, this);
     } catch(const Exception &e) {
         emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
         updateControllers();

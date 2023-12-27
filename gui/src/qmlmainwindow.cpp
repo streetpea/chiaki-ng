@@ -81,8 +81,11 @@ QmlMainWindow::~QmlMainWindow()
     delete qml_engine;
     delete qt_vk_inst;
 
+    av_buffer_unref(&vulkan_hw_dev_ctx);
+
     pl_tex_destroy(placebo_vulkan->gpu, &quick_tex);
     pl_vulkan_sem_destroy(placebo_vulkan->gpu, &quick_sem);
+
     for (int i = 0; i < 4; i++)
         pl_tex_destroy(placebo_vulkan->gpu, &placebo_tex[i]);
 
@@ -219,6 +222,48 @@ void QmlMainWindow::presentFrame(AVFrame *frame)
     update();
 }
 
+AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
+{
+    if (vulkan_hw_dev_ctx || vk_decode_queue_index < 0)
+        return vulkan_hw_dev_ctx;
+
+    vulkan_hw_dev_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_VULKAN);
+    AVHWDeviceContext *hwctx = reinterpret_cast<AVHWDeviceContext*>(vulkan_hw_dev_ctx->data);
+    hwctx->user_opaque = const_cast<void*>(reinterpret_cast<const void*>(placebo_vulkan));
+    AVVulkanDeviceContext *vkctx = reinterpret_cast<AVVulkanDeviceContext*>(hwctx->hwctx);
+    vkctx->get_proc_addr = placebo_vulkan->get_proc_addr;
+    vkctx->inst = placebo_vulkan->instance;
+    vkctx->phys_dev = placebo_vulkan->phys_device;
+    vkctx->act_dev = placebo_vulkan->device;
+    vkctx->device_features = *placebo_vulkan->features;
+    vkctx->enabled_inst_extensions = placebo_vk_inst->extensions;
+    vkctx->nb_enabled_inst_extensions = placebo_vk_inst->num_extensions;
+    vkctx->enabled_dev_extensions = placebo_vulkan->extensions;
+    vkctx->nb_enabled_dev_extensions = placebo_vulkan->num_extensions;
+    vkctx->queue_family_index = placebo_vulkan->queue_graphics.index;
+    vkctx->nb_graphics_queues = placebo_vulkan->queue_graphics.count;
+    vkctx->queue_family_tx_index = placebo_vulkan->queue_transfer.index;
+    vkctx->nb_tx_queues = placebo_vulkan->queue_transfer.count;
+    vkctx->queue_family_comp_index = placebo_vulkan->queue_compute.index;
+    vkctx->nb_comp_queues = placebo_vulkan->queue_compute.count;
+    vkctx->queue_family_decode_index = vk_decode_queue_index;
+    vkctx->nb_decode_queues = 1;
+    vkctx->lock_queue = [](struct AVHWDeviceContext *dev_ctx, uint32_t queue_family, uint32_t index) {
+        auto vk = reinterpret_cast<pl_vulkan>(dev_ctx->user_opaque);
+        vk->lock_queue(vk, queue_family, index);
+    };
+    vkctx->unlock_queue = [](struct AVHWDeviceContext *dev_ctx, uint32_t queue_family, uint32_t index) {
+        auto vk = reinterpret_cast<pl_vulkan>(dev_ctx->user_opaque);
+        vk->unlock_queue(vk, queue_family, index);
+    };
+    if (av_hwdevice_ctx_init(vulkan_hw_dev_ctx) < 0) {
+        qCWarning(chiakiGui) << "Failed to create Vulkan decode context";
+        av_buffer_unref(&vulkan_hw_dev_ctx);
+    }
+
+    return vulkan_hw_dev_ctx;
+}
+
 QSurfaceFormat QmlMainWindow::createSurfaceFormat()
 {
     QSurfaceFormat format;
@@ -289,13 +334,24 @@ void QmlMainWindow::init(Settings *settings)
     GET_PROC(vkCreateWin32SurfaceKHR)
 #endif
     GET_PROC(vkDestroySurfaceKHR)
+    GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
 #undef GET_PROC
+
+    const char *opt_dev_extensions[] = {
+        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME,
+    };
 
     struct pl_vulkan_params vulkan_params = {
         .instance = placebo_vk_inst->instance,
         .get_proc_addr = placebo_vk_inst->get_proc_addr,
         .allow_software = true,
         PL_VULKAN_DEFAULTS
+        .extra_queues = VK_QUEUE_VIDEO_DECODE_BIT_KHR,
+        .opt_extensions = opt_dev_extensions,
+        .num_opt_extensions = 4,
     };
     placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
 
@@ -308,6 +364,16 @@ void QmlMainWindow::init(Settings *settings)
     } }
     GET_PROC(vkWaitSemaphores)
 #undef GET_PROC
+
+    uint32_t queueFamilyCount = 0;
+    vk_funcs.vkGetPhysicalDeviceQueueFamilyProperties(placebo_vulkan->phys_device, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+    vk_funcs.vkGetPhysicalDeviceQueueFamilyProperties(placebo_vulkan->phys_device, &queueFamilyCount, queueFamilyProperties.data());
+    auto queue_it = std::find_if(queueFamilyProperties.begin(), queueFamilyProperties.end(), [](VkQueueFamilyProperties prop) {
+        return prop.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR;
+    });
+    if (queue_it != queueFamilyProperties.end())
+        vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
 
     struct pl_cache_params cache_params = {
         .log = placebo_log,

@@ -61,6 +61,7 @@ struct StreamSessionConnectInfo
 	QMap<Qt::Key, int> key_map;
 	Decoder decoder;
 	QString hw_decoder;
+	AVBufferRef *hw_device_ctx;
 	Renderer renderer;
 	QString audio_out_device;
 	QString audio_in_device;
