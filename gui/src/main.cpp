@@ -24,8 +24,6 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <string.h>
 
 #include <QApplication>
-#include <QAudioOutput>
-#include <QAudioFormat>
 #include <QCommandLineParser>
 #include <QMap>
 #include <QSurfaceFormat>
@@ -65,6 +63,12 @@ int real_main(int argc, char *argv[])
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		fprintf(stderr, "Chiaki lib init failed: %s\n", chiaki_error_string(err));
+		return 1;
+	}
+
+	if(SDL_Init(SDL_INIT_AUDIO) < 0)
+	{
+		fprintf(stderr, "SDL Audio init failed: %s\n", SDL_GetError());
 		return 1;
 	}
 

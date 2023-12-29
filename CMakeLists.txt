@@ -218,7 +218,7 @@ else()
 	message(STATUS "Steamdeck native gyro and hatpics disabled")
 endif()
 
-if(CHIAKI_ENABLE_GUI AND CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
+if(CHIAKI_ENABLE_GUI)
 	find_package(SDL2 MODULE REQUIRED)
 endif()
 

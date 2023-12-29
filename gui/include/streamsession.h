@@ -38,9 +38,6 @@
 #include <speex/speex_preprocess.h>
 #endif
 
-class QAudioOutput;
-class QAudioInput;
-class QIODevice;
 class QKeyEvent;
 class Settings;
 
@@ -163,13 +160,12 @@ class StreamSession : public QObject
 		ChiakiPiDecoder *pi_decoder;
 #endif
 
-		QAudioDeviceInfo audio_out_device_info;
-		QAudioDeviceInfo audio_in_device_info;
+		QString audio_out_device_name;
+		QString audio_in_device_name;
+		SDL_AudioDeviceID audio_out;
+		SDL_AudioDeviceID audio_in;
+		size_t audio_out_sample_size;
 		unsigned int audio_buffer_size;
-		QAudioOutput *audio_output;
-		QAudioInput *audio_input;
-		QIODevice *audio_io;
-		QIODevice *audio_mic;
 #if CHIAKI_GUI_ENABLE_SPEEX
 		SpeexEchoState *echo_state;
 		SpeexPreprocessState *preprocess_state;
@@ -194,7 +190,6 @@ class StreamSession : public QObject
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
 		void InitMic(unsigned int channels, unsigned int rate);
-		void ReadMic();
 		void InitHaptics();
 		void Event(ChiakiEvent *event);
 		void DisconnectHaptics();
@@ -227,6 +222,7 @@ class StreamSession : public QObject
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
 		void HandleMouseMoveEvent(QMouseEvent *event, float width, float height);
+		void ReadMic(const QByteArray &micdata);
 
 	signals:
 		void FfmpegFrameAvailable();
