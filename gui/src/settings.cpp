@@ -162,7 +162,7 @@ void Settings::SetCodec(ChiakiCodec codec)
 
 unsigned int Settings::GetAudioBufferSizeDefault() const
 {
-	return 19200;
+	return 9600;
 }
 
 unsigned int Settings::GetAudioBufferSizeRaw() const
