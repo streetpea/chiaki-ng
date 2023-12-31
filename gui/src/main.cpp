@@ -83,8 +83,6 @@ int real_main(int argc, char *argv[])
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
 #endif
 
-	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-
 	Settings settings;
 
 	QCommandLineParser parser;

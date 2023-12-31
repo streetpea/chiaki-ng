@@ -482,8 +482,8 @@ void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float 
 	// left button with move => touchpad gesture, otherwise ignore
 	if (event->buttons() == Qt::LeftButton)
 	{
-		float x = event->screenPos().x();
-		float y = event->screenPos().y();
+		float x = event->globalPosition().x();
+		float y = event->globalPosition().y();
 		float psx = x * (PS_TOUCHPAD_MAX_X / width);
 		float psy = y * (PS_TOUCHPAD_MAX_Y / height);
 		// if touch id is set, move, otherwise start
@@ -554,7 +554,7 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 	//unset touchpad (we will set it if user touches edge of screen)
 	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 
-	const QList<QTouchEvent::TouchPoint> touchPoints = event->touchPoints();
+	const QList<QTouchEvent::TouchPoint> touchPoints = event->points();
 
 	for (const QTouchEvent::TouchPoint &touchPoint : touchPoints)
 	{
@@ -562,13 +562,13 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 		switch (touchPoint.state())
 		{
 			//skip unchanged touchpoints
-			case Qt::TouchPointStationary:
+			case QEventPoint::State::Stationary:
 				continue;
-			case Qt::TouchPointPressed:
-			case Qt::TouchPointMoved:
+			case QEventPoint::State::Pressed:
+			case QEventPoint::State::Updated:
 			{
-				float norm_x = touchPoint.normalizedPos().x();
-				float norm_y = touchPoint.normalizedPos().y();
+				float norm_x = touchPoint.normalizedPosition().x();
+				float norm_y = touchPoint.normalizedPosition().y();
 				
 				// Touching edges of screen is a touchpad click
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
@@ -590,7 +590,7 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 					chiaki_controller_state_set_touch_pos(&touch_state, it.value(), (uint16_t)psx, (uint16_t)psy);
 				break;
 			}
-			case Qt::TouchPointReleased:
+			case QEventPoint::State::Released:
 			{
 				for(auto it=touch_tracker.begin(); it!=touch_tracker.end(); it++)
 				{
