@@ -43,6 +43,7 @@ class QAudioInput;
 class QIODevice;
 class QKeyEvent;
 class Settings;
+class StreamWindow;
 
 class ChiakiException: public Exception
 {
@@ -184,6 +185,7 @@ class StreamSession : public QObject
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
+		void CantDisplayMessage();
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
 #endif
@@ -215,6 +217,7 @@ class StreamSession : public QObject
 		void GoToBed();
 		void ToggleMute();
 		void SetLoginPIN(const QString &pin);
+		void GoHome();
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
 		QList<Controller *> GetControllers()	{ return controllers.values(); }
@@ -230,6 +233,7 @@ class StreamSession : public QObject
 
 	signals:
 		void FfmpegFrameAvailable();
+		void CantDisplay();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
 #endif

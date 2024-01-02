@@ -18,7 +18,15 @@
 extern "C" {
 #endif
 
+typedef void (*ChiakiCantDisplayCb)(void *user);
+
 typedef struct chiaki_ctrl_message_queue_t ChiakiCtrlMessageQueue;
+
+typedef struct chiaki_ctrl_display_sink_t
+{
+	void *user;
+	ChiakiCantDisplayCb cantdisplay_cb;
+} ChiakiCtrlDisplaySink;
 
 typedef struct chiaki_ctrl_t
 {
@@ -34,6 +42,8 @@ typedef struct chiaki_ctrl_t
 	ChiakiMutex notif_mutex;
 
 	bool login_pin_requested;
+	bool cant_displaya;
+	bool cant_displayb;
 
 	chiaki_socket_t sock;
 
@@ -61,6 +71,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_goto_bed(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, const char* text);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_accept(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_reject(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode ctrl_message_go_home(ChiakiCtrl *ctrl);
 
 #ifdef __cplusplus
 }

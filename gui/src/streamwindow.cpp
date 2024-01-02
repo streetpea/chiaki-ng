@@ -52,6 +52,7 @@ void StreamWindow::Init()
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
+	connect(session, &StreamSession::CantDisplay, this, &StreamWindow::CantDisplayMessage);
 
 	ResolutionMode resolution_mode;
 	if(connect_info.zoom)
@@ -275,6 +276,22 @@ void StreamWindow::LoginPINRequested(bool incorrect)
 		});
 		releaseKeyboard();
 		dialog->show();
+	}
+}
+
+void StreamWindow::CantDisplayMessage()
+{
+	if(!session)
+		return;
+	auto res = QMessageBox::question(this, tr("Can't Display Screen on the Console"), tr("Go to Home Screen on PlayStation?"),
+			QMessageBox::Yes | QMessageBox::Cancel);
+	switch(res)
+	{
+		case QMessageBox::Yes:
+			session->GoHome();
+			break;
+		default:
+			break;
 	}
 }
 

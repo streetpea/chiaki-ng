@@ -3,6 +3,7 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
+#include <streamwindow.h>
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
@@ -82,6 +83,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
+static void CantDisplayCb(void *user);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
 static void SessionSetsuCb(SetsuEvent *event, void *user);
@@ -265,6 +267,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
+	ChiakiCtrlDisplaySink display_sink;
+	display_sink.user = this;
+	display_sink.cantdisplay_cb = CantDisplayCb;
+	chiaki_session_ctrl_set_display_sink(&session, &display_sink);
 	chiaki_opus_decoder_set_cb(&opus_decoder, AudioSettingsCb, AudioFrameCb, this);
 	ChiakiAudioSink audio_sink;
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
@@ -492,6 +498,11 @@ void StreamSession::SetLoginPIN(const QString &pin)
 {
 	QByteArray data = pin.toUtf8();
 	chiaki_session_set_login_pin(&session, (const uint8_t *)data.constData(), data.size());
+}
+
+void StreamSession::GoHome()
+{
+	chiaki_session_go_home(&session);
 }
 
 void StreamSession::HandleMousePressEvent(QMouseEvent *event)
@@ -1285,6 +1296,11 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 }
 #endif
 
+void StreamSession::CantDisplayMessage()
+{
+	emit CantDisplay();
+}
+
 #if CHIAKI_GUI_ENABLE_SETSU
 void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 {
@@ -1412,6 +1428,7 @@ class StreamSessionPrivate
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
+		static void CantDisplayMessage(StreamSession *session)                                  {session->CantDisplayMessage(); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
@@ -1438,6 +1455,12 @@ static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushHapticsFrame(session, buf, buf_size);
+}
+
+static void CantDisplayCb(void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::CantDisplayMessage(session);
 }
 
 static void EventCb(ChiakiEvent *event, void *user)
