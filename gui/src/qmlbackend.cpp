@@ -396,6 +396,14 @@ void QmlBackend::stopSession(bool sleep)
     session->Stop();
 }
 
+void QmlBackend::sessionGoHome()
+{
+    if (!session)
+        return;
+
+    session->GoHome();
+}
+
 void QmlBackend::enterPin(const QString &pin)
 {
     if (session)

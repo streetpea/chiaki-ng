@@ -64,6 +64,7 @@ public:
     Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, bool broadcast, int target, const QJSValue &callback);
     Q_INVOKABLE void connectToHost(int index);
     Q_INVOKABLE void stopSession(bool sleep);
+    Q_INVOKABLE void sessionGoHome();
     Q_INVOKABLE void enterPin(const QString &pin);
     Q_INVOKABLE QUrl psnLoginUrl() const;
     Q_INVOKABLE bool handlePsnLoginRedirect(const QUrl &url);

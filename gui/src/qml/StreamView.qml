@@ -59,6 +59,42 @@ Item {
         }
     }
 
+    ColumnLayout {
+        id: cantDisplayMessage
+        anchors.centerIn: parent
+        opacity: Chiaki.window.hasVideo && Chiaki.session && Chiaki.session.cantDisplay ? 1.0 : 0.0
+        visible: opacity
+        spacing: 30
+
+        Behavior on opacity { NumberAnimation { duration: 250 } }
+
+        onVisibleChanged: {
+            if (visible) {
+                Chiaki.window.grabInput();
+                goToHomeButton.forceActiveFocus();
+            } else {
+                Chiaki.window.releaseInput();
+            }
+        }
+
+        Label {
+            Layout.alignment: Qt.AlignCenter
+            text: qsTr("The screen contains content that can't be displayed using Remote Play.")
+        }
+
+        Button {
+            id: goToHomeButton
+            Layout.alignment: Qt.AlignCenter
+            Layout.preferredHeight: 60
+            text: qsTr("Go to Home Screen")
+            Material.background: Material.accent
+            Material.roundedScale: Material.SmallScale
+            onClicked: Chiaki.sessionGoHome()
+            Keys.onReturnPressed: clicked()
+            Keys.onEscapePressed: clicked()
+        }
+    }
+
     RoundButton {
         anchors {
             right: parent.right
@@ -391,6 +427,8 @@ Item {
         }
 
         function onSessionStopDialogRequested() {
+            if (cantDisplayMessage.visible)
+                return;
             menuView.close();
             sessionStopDialog.open();
         }
@@ -414,7 +452,7 @@ Item {
         function onMenuRequested() {
             if (!Chiaki.window.hasVideo)
                 return;
-            if (sessionPinDialog.opened || sessionStopDialog.opened)
+            if (sessionPinDialog.opened || sessionStopDialog.opened || cantDisplayMessage.visible)
                 return;
             menuView.toggle();
         }

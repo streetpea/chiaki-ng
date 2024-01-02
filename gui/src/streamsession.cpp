@@ -80,7 +80,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
-static void CantDisplayCb(void *user);
+static void CantDisplayCb(void *user, bool cant_display);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
 static void SessionSetsuCb(SetsuEvent *event, void *user);
@@ -1252,9 +1252,10 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 }
 #endif
 
-void StreamSession::CantDisplayMessage()
+void StreamSession::CantDisplayMessage(bool cant_display)
 {
-	emit CantDisplay();
+	this->cant_display = cant_display;
+	emit CantDisplayChanged();
 }
 
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -1389,7 +1390,7 @@ class StreamSessionPrivate
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
-		static void CantDisplayMessage(StreamSession *session)                                  {session->CantDisplayMessage(); }
+		static void CantDisplayMessage(StreamSession *session, bool cant_display)	{session->CantDisplayMessage(cant_display); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
@@ -1418,10 +1419,10 @@ static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
 	StreamSessionPrivate::PushHapticsFrame(session, buf, buf_size);
 }
 
-static void CantDisplayCb(void *user)
+static void CantDisplayCb(void *user, bool cant_display)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
-	StreamSessionPrivate::CantDisplayMessage(session);
+	StreamSessionPrivate::CantDisplayMessage(session, cant_display);
 }
 
 static void EventCb(ChiakiEvent *event, void *user)

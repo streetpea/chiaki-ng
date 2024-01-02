@@ -659,6 +659,7 @@ static void ctrl_message_received_displaya(ChiakiCtrl *ctrl, uint8_t *payload, s
 	{
 		ctrl->cant_displaya = false;
 		CHIAKI_LOGI(ctrl->session->log, "Ctrl received message that the stream can now display.");
+		ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, false);
 	}
 }
 
@@ -668,7 +669,7 @@ static void ctrl_message_received_displayb(ChiakiCtrl *ctrl, uint8_t *payload, s
 	{
 		if(payload[0] == 0x00 && payload[1] == 0x00 && !ctrl->cant_displayb)
 		{
-			ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user);
+			ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, true);
 			CHIAKI_LOGI(ctrl->session->log, "Ctrl received message that the stream can't display due to displaying some content that can't be streamed.");
 			ctrl->cant_displayb = true;
 		}
@@ -776,6 +777,7 @@ typedef struct ctrl_response_t
 {
 	bool server_type_valid;
 	uint8_t rp_server_type[0x10];
+	bool rp_prohibit;
 	bool success;
 } CtrlResponse;
 
@@ -791,6 +793,7 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 
 	response->success = true;
 	response->server_type_valid = false;
+	response->rp_prohibit = false;
 	for(ChiakiHttpHeader *header=http_response->headers; header; header=header->next)
 	{
 		if(strcmp(header->key, "RP-Server-Type") == 0)
@@ -799,6 +802,8 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 			chiaki_base64_decode(header->value, strlen(header->value) + 1, response->rp_server_type, &server_type_size);
 			response->server_type_valid = server_type_size == sizeof(response->rp_server_type);
 		}
+		else if(strcmp(header->key, "RP-Prohibit") == 0)
+			response->rp_prohibit = atoi(header->value) == 1;
 	}
 }
 
@@ -1086,6 +1091,9 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	}
 	else
 		CHIAKI_LOGE(session->log, "No valid Server Type in ctrl response");
+
+	if(response.rp_prohibit)
+		ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, true);
 
 	ctrl->sock = sock;
 
