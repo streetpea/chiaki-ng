@@ -24,8 +24,6 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <string.h>
 
 #include <QApplication>
-#include <QAudioOutput>
-#include <QAudioFormat>
 #include <QCommandLineParser>
 #include <QMap>
 #include <QSurfaceFormat>
@@ -68,6 +66,12 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
+	if(SDL_Init(SDL_INIT_AUDIO) < 0)
+	{
+		fprintf(stderr, "SDL Audio init failed: %s\n", SDL_GetError());
+		return 1;
+	}
+
 	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat());
 
@@ -78,8 +82,6 @@ int real_main(int argc, char *argv[])
 #else
 	QApplication::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
 #endif
-
-	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
 	Settings settings;
 

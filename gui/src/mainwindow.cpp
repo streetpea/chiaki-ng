@@ -82,7 +82,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	auto layout = new QVBoxLayout();
 	main_widget->setLayout(layout);
 	setCentralWidget(main_widget);
-	layout->setMargin(0);
+	layout->setContentsMargins(0, 0, 0, 0);
 
 	auto LoadIcon = [this](const QString &filename) {
 		return QIcon(new IconEngine(filename));

@@ -101,22 +101,22 @@ void StreamWindow::Init()
 	connect(fullscreen_action, &QAction::triggered, this, &StreamWindow::ToggleFullscreen);
 
 	auto stretch_action = new QAction(tr("Stretch"), this);
-	stretch_action->setShortcut(Qt::CTRL + Qt::Key_S);
+	stretch_action->setShortcut(Qt::CTRL | Qt::Key_S);
 	addAction(stretch_action);
 	connect(stretch_action, &QAction::triggered, this, &StreamWindow::ToggleStretch);
 
 	auto zoom_action = new QAction(tr("Zoom"), this);
-	zoom_action->setShortcut(Qt::CTRL + Qt::Key_Z);
+	zoom_action->setShortcut(Qt::CTRL | Qt::Key_Z);
 	addAction(zoom_action);
 	connect(zoom_action, &QAction::triggered, this, &StreamWindow::ToggleZoom);
 
 	auto mute_action = new QAction(tr("Toggle Mute"), this);
-	mute_action->setShortcut(Qt::CTRL + Qt::Key_M);
+	mute_action->setShortcut(Qt::CTRL | Qt::Key_M);
 	addAction(mute_action);
 	connect(mute_action, &QAction::triggered, this, &StreamWindow::ToggleMute);
 
 	auto quit_action = new QAction(tr("Quit"), this);
-	quit_action->setShortcut(Qt::CTRL + Qt::Key_Q);
+	quit_action->setShortcut(Qt::CTRL | Qt::Key_Q);
 	addAction(quit_action);
 	connect(quit_action, &QAction::triggered, this, &StreamWindow::Quit);
 
