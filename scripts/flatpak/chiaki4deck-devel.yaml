@@ -1,9 +1,9 @@
 app-id: io.github.streetpea.Chiaki4deck-devel
 runtime: org.kde.Platform
-runtime-version: '5.15-23.08'
+runtime-version: '6.6'
 sdk: org.kde.Sdk
 base: io.qt.qtwebengine.BaseApp
-base-version: '5.15-23.08'
+base-version: '6.6'
 command: chiaki
 rename-icon: chiaki4deck
 rename-desktop-file: chiaki4deck.desktop
@@ -22,6 +22,8 @@ finish-args:
   - --env=RADV_PERFTEST=video_decode
   - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
   - --env=PKG_CONFIG_PATH=/app/lib/pkgconfig
+  - --env=QML_IMPORT_PATH=/app/qml
+  - --env=QML_DISABLE_DISK_CACHE=1
   - --talk-name=org.freedesktop.ScreenSaver
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=host
@@ -42,6 +44,8 @@ modules:
       - type: git
         url: https://github.com/haasn/libplacebo
         tag: v6.338.1
+      - type: patch
+        path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
     modules:
       - name: shaderc
         buildsystem: cmake-ninja
@@ -102,10 +106,15 @@ modules:
       - --disable-encoders
       - --disable-muxers
       - --enable-encoder=png
+      - --enable-libdrm
     sources:
       - type: archive
         url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
         sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
+      - type: patch
+        path: 0001-hevc-Fix-duplicate-POC-in-sequence.patch
+      - type: patch
+        path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
 
   - name: python3-google
     buildsystem: simple
@@ -177,6 +186,18 @@ modules:
       - type: git
         url: https://github.com/libusb/hidapi.git
         tag: hidapi-0.14.0
+
+  - name: speexDSP
+    buildsystem: simple
+    build-commands:
+      - ./autogen.sh
+      - ./configure --prefix=/app
+      - make
+      - make install
+    sources:
+    - type: git
+      url: https://gitlab.xiph.org/xiph/speexdsp.git
+      tag: SpeexDSP-1.2.1
 
   - name: chiaki4deck
     buildsystem: cmake-ninja
