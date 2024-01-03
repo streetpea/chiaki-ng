@@ -187,6 +187,7 @@ class StreamSession : public QObject
 		uint8_t *haptics_resampler_buf;
 		MicBuf mic_buf;
 		QMap<Qt::Key, int> key_map;
+		QElapsedTimer connect_timer;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
