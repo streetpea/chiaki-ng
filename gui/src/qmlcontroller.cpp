@@ -34,8 +34,20 @@ QmlController::QmlController(Controller *c, QObject *t, QObject *parent)
     });
 
     connect(controller, &Controller::StateChanged, this, [this]() {
-        uint32_t buttons = controller->GetState().buttons;
-        for (auto &k : key_map) {
+        auto state = controller->GetState();
+        auto buttons = state.buttons;
+
+        if (state.left_x > 30000)
+            buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+        else if (state.left_x < -30000)
+            buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+
+        if (state.left_y > 30000)
+            buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+        else if (state.left_y < -30000)
+            buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+
+        for (auto &k : std::as_const(key_map)) {
             const bool pressed = buttons & k.first;
             const bool old_pressed = old_buttons & k.first;
             if (pressed && !old_pressed) {
