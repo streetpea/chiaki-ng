@@ -230,7 +230,6 @@ DialogView {
                     C.TextField {
                         Layout.preferredWidth: 400
                         text: Chiaki.settings.bitrate || ""
-                        validator: IntValidator { bottom: 0; top: 99999; }
                         placeholderText: {
                             var bitrate = 0;
                             switch (Chiaki.settings.resolution) {
@@ -347,9 +346,8 @@ DialogView {
 
                     C.TextField {
                         Layout.preferredWidth: 400
-                        validator: IntValidator { bottom: 0; top: 999999; }
                         text: Chiaki.settings.audioBufferSize || ""
-                        placeholderText: qsTr("Default (9600)")
+                        placeholderText: qsTr("Default (5760)")
                         Material.accent: text && !validate() ? Material.Red : undefined
                         onEditingFinished: {
                             if (validate()) {
@@ -361,7 +359,7 @@ DialogView {
                         }
                         function validate() {
                             var num = parseInt(text);
-                            return num >= 1024 && num <= 0x20000;
+                            return num >= 1920 && num <= 19200;
                         }
                     }
 

@@ -730,6 +730,8 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		return;
 	}
 
+	audio_out_drain_queue = false;
+
 	SDL_PauseAudioDevice(audio_out, 0);
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %d Hz, buffer size %u",
@@ -1085,6 +1087,20 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 {
 	if(!audio_out)
 		return;
+
+	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
+
+	// Start draining queue when the latency gets too high
+	if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
+		audio_out_drain_queue = true;
+
+	if(audio_out_drain_queue)
+	{
+		// Stop when the queue is smaller than configured buffer size
+		if(SDL_GetQueuedAudioSize(audio_out) >= audio_buffer_size)
+			return;
+		audio_out_drain_queue = false;
+	}
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 	// change samples to mono for processing with SPEEX
