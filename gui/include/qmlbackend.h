@@ -10,6 +10,8 @@
 #include <QThread>
 #include <QJSValue>
 
+class SystemdInhibit;
+
 class QmlRegist : public QObject
 {
     Q_OBJECT
@@ -110,4 +112,7 @@ private:
     DiscoveryManager discovery_manager;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;
+    StreamSessionConnectInfo session_info = {};
+    SystemdInhibit *sleep_inhibit = {};
+    bool resume_session = false;
 };

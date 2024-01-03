@@ -89,6 +89,7 @@ struct StreamSessionConnectInfo
 	int32_t echo_suppress_level;
 #endif
 
+	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
 			Settings *settings,
 			ChiakiTarget target,

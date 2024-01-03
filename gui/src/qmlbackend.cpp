@@ -4,6 +4,7 @@
 #include "streamsession.h"
 #include "controllermanager.h"
 #include "psnaccountid.h"
+#include "systemdinhibit.h"
 
 #include <QUrl>
 #include <QUrlQuery>
@@ -99,6 +100,33 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
     updateControllers();
+
+    sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
+    connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
+        qCInfo(chiakiGui) << "About to sleep";
+        if (session) {
+            session->Stop();
+            resume_session = true;
+        }
+    });
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this]() {
+        qCInfo(chiakiGui) << "Resumed from sleep";
+        if (resume_session) {
+            qCInfo(chiakiGui) << "Resuming session...";
+            resume_session = false;
+            createSession({
+                session_info.settings,
+                session_info.target,
+                session_info.host,
+                session_info.regist_key,
+                session_info.morning,
+                session_info.initial_login_pin,
+                session_info.fullscreen,
+                session_info.zoom,
+                session_info.stretch,
+            });
+        }
+    });
 }
 
 QmlBackend::~QmlBackend()
@@ -183,15 +211,16 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
-    StreamSessionConnectInfo info = connect_info;
-    if (info.hw_decoder == "vulkan") {
-        info.hw_device_ctx = window->vulkanHwDeviceCtx();
-        if (!info.hw_device_ctx)
-            info.hw_decoder.clear();
+
+    session_info = connect_info;
+    if (session_info.hw_decoder == "vulkan") {
+        session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
+        if (!session_info.hw_device_ctx)
+            session_info.hw_decoder.clear();
     }
 
     try {
-        session = new StreamSession(info, this);
+        session = new StreamSession(session_info, this);
     } catch (const Exception &e) {
         emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
         return;
@@ -223,6 +252,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         session->deleteLater();
         session = nullptr;
         emit sessionChanged(session);
+
+        sleep_inhibit->release();
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
@@ -243,6 +274,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     session->Start();
     emit sessionChanged(session);
+
+    sleep_inhibit->inhibit();
 }
 
 bool QmlBackend::closeRequested()

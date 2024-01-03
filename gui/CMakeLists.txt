@@ -3,6 +3,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg)
+if(UNIX AND NOT APPLE)
+    find_package(Qt6 REQUIRED COMPONENTS DBus)
+endif()
 if(APPLE)
 	find_package(Qt6 REQUIRED COMPONENTS MacExtras)
 endif()
@@ -55,6 +58,8 @@ if(CHIAKI_ENABLE_QMLGUI)
 		src/qmlsettings.cpp
 		include/qmlsvgprovider.h
 		src/qmlsvgprovider.cpp
+		include/systemdinhibit.h
+		src/systemdinhibit.cpp
 	)
 else()
 	list(APPEND SOURCE_FILES
@@ -139,6 +144,9 @@ endif()
 
 target_link_libraries(chiaki Qt::Core Qt::Gui Qt::Concurrent Qt::Svg)
 target_link_libraries(chiaki SDL2::SDL2)
+if(UNIX AND NOT APPLE)
+	target_link_libraries(chiaki Qt::DBus)
+endif()
 if(APPLE)
 	target_link_libraries(chiaki Qt::MacExtras)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_MACEXTRAS)
