@@ -3,7 +3,6 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
-#include <streamwindow.h>
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
@@ -51,6 +50,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	key_map = settings->GetControllerMappingForDecoding();
 	decoder = settings->GetDecoder();
 	hw_decoder = settings->GetHardwareDecoder();
+	hw_device_ctx = nullptr;
 	audio_out_device = settings->GetAudioOutDevice();
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
@@ -81,7 +81,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
-static void CantDisplayCb(void *user);
+static void CantDisplayCb(void *user, bool cant_display);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
 static void SessionSetsuCb(SetsuEvent *event, void *user);
@@ -117,6 +117,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	muted = true;
 	mic_connected = false;
 	allow_unmute = false;
+	input_blocked = false;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     haptics_sdeck = 0;
@@ -138,7 +139,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 				chiaki_log_sniffer_get_log(&sniffer),
 				chiaki_target_is_ps5(connect_info.target) ? connect_info.video_profile.codec : CHIAKI_CODEC_H264,
 				connect_info.hw_decoder.isEmpty() ? NULL : connect_info.hw_decoder.toUtf8().constData(),
-				FfmpegFrameCb, this);
+				connect_info.hw_device_ctx, FfmpegFrameCb, this);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			QString log = QString::fromUtf8(chiaki_log_sniffer_get_buffer(&sniffer));
@@ -176,6 +177,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	audio_buffer_size = connect_info.audio_buffer_size;
 
+	host = connect_info.host;
 	QByteArray host_str = connect_info.host.toUtf8();
 
 	ChiakiConnectInfo chiaki_connect_info = {};
@@ -452,6 +454,7 @@ void StreamSession::ToggleMute()
 		muted = true;
 	if(audio_in)
 		SDL_PauseAudioDevice(audio_in, muted);
+	emit MutedChanged();
 }
 
 void StreamSession::SetLoginPIN(const QString &pin)
@@ -488,13 +491,13 @@ void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 	SendFeedbackState();
 }
 
-void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float height)
+void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height)
 {
 	// left button with move => touchpad gesture, otherwise ignore
 	if (event->buttons() == Qt::LeftButton)
 	{
-		float x = event->globalPosition().x();
-		float y = event->globalPosition().y();
+		float x = std::clamp(0.0, event->scenePosition().x(), width);
+		float y = std::clamp(0.0, event->scenePosition().y(), height);
 		float psx = x * (PS_TOUCHPAD_MAX_X / width);
 		float psy = y * (PS_TOUCHPAD_MAX_Y / height);
 		// if touch id is set, move, otherwise start
@@ -560,7 +563,7 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 	SendFeedbackState();
 }
 
-void StreamSession::HandleTouchEvent(QTouchEvent *event)
+void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal height)
 {
 	//unset touchpad (we will set it if user touches edge of screen)
 	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -578,9 +581,9 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 			case QEventPoint::State::Pressed:
 			case QEventPoint::State::Updated:
 			{
-				float norm_x = touchPoint.normalizedPosition().x();
-				float norm_y = touchPoint.normalizedPosition().y();
-				
+				float norm_x = std::clamp(0.0, touchPoint.scenePosition().x() / width, 1.0);
+				float norm_y = std::clamp(0.0, touchPoint.scenePosition().y() / height, 1.0);
+
 				// Touching edges of screen is a touchpad click
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
 					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -680,6 +683,13 @@ void StreamSession::SendFeedbackState()
 {
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
+
+	if(input_blocked)
+	{
+		chiaki_controller_state_set_idle(&keyboard_state);
+		chiaki_session_set_controller_state(&session, &state);
+		return;
+	}
 
 #if CHIAKI_GUI_ENABLE_SETSU
 	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
@@ -1243,9 +1253,10 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 }
 #endif
 
-void StreamSession::CantDisplayMessage()
+void StreamSession::CantDisplayMessage(bool cant_display)
 {
-	emit CantDisplay();
+	this->cant_display = cant_display;
+	emit CantDisplayChanged();
 }
 
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -1358,6 +1369,11 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 void StreamSession::TriggerFfmpegFrameAvailable()
 {
 	emit FfmpegFrameAvailable();
+	if(measured_bitrate != session.stream_connection.measured_bitrate)
+	{
+		measured_bitrate = session.stream_connection.measured_bitrate;
+		emit MeasuredBitrateChanged();
+	}
 }
 
 class StreamSessionPrivate
@@ -1375,7 +1391,7 @@ class StreamSessionPrivate
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
-		static void CantDisplayMessage(StreamSession *session)                                  {session->CantDisplayMessage(); }
+		static void CantDisplayMessage(StreamSession *session, bool cant_display)	{session->CantDisplayMessage(cant_display); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
@@ -1404,10 +1420,10 @@ static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
 	StreamSessionPrivate::PushHapticsFrame(session, buf, buf_size);
 }
 
-static void CantDisplayCb(void *user)
+static void CantDisplayCb(void *user, bool cant_display)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
-	StreamSessionPrivate::CantDisplayMessage(session);
+	StreamSessionPrivate::CantDisplayMessage(session, cant_display);
 }
 
 static void EventCb(ChiakiEvent *event, void *user)

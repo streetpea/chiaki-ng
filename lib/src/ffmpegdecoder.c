@@ -17,7 +17,7 @@ static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
-		ChiakiCodec codec, const char *hw_decoder_name,
+		ChiakiCodec codec, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user)
 {
 	decoder->log = log;
@@ -30,7 +30,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
-	decoder->hw_device_ctx = NULL;
+	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
 	decoder->hw_pix_fmt = AV_PIX_FMT_NONE;
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 10, 100)
@@ -76,7 +76,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 			}
 		}
 
-		if(av_hwdevice_ctx_create(&decoder->hw_device_ctx, type, NULL, NULL, 0) < 0)
+		if(!decoder->hw_device_ctx && av_hwdevice_ctx_create(&decoder->hw_device_ctx, type, NULL, NULL, 0) < 0)
 		{
 			CHIAKI_LOGE(log, "Failed to create hwdevice context");
 			goto error_codec_context;

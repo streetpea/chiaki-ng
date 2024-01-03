@@ -62,6 +62,8 @@ typedef struct chiaki_stream_connection_t
 	bool should_stop;
 	bool remote_disconnected;
 	char *remote_disconnect_reason;
+
+	double measured_bitrate;
 } ChiakiStreamConnection;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnection *stream_connection, ChiakiSession *session);

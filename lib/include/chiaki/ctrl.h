@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-typedef void (*ChiakiCantDisplayCb)(void *user);
+typedef void (*ChiakiCantDisplayCb)(void *user, bool cant_display);
 
 typedef struct chiaki_ctrl_message_queue_t ChiakiCtrlMessageQueue;
 

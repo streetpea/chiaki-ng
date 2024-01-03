@@ -88,6 +88,4 @@ class RegistExecuteDialog: public QDialog
 		RegisteredHost GetRegisteredHost()	{ return registered_host; }
 };
 
-Q_DECLARE_METATYPE(ChiakiRegistEventType)
-
 #endif // CHIAKI_REGISTDIALOG_H

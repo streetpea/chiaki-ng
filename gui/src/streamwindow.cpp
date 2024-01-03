@@ -142,7 +142,7 @@ bool StreamWindow::event(QEvent *event)
 	{
 		if ((event->type() == QEvent::TouchBegin) || (event->type() == QEvent::TouchUpdate) || (event->type() == QEvent::TouchEnd))
 		{
-			session->HandleTouchEvent(static_cast<QTouchEvent *>(event));
+			session->HandleTouchEvent(static_cast<QTouchEvent *>(event), frameSize().width(), frameSize().height());
 			return true;
 		}
 	}
@@ -279,9 +279,9 @@ void StreamWindow::LoginPINRequested(bool incorrect)
 	}
 }
 
-void StreamWindow::CantDisplayMessage()
+void StreamWindow::CantDisplayMessage(bool cant_display)
 {
-	if(!session)
+	if(!session || !cant_display)
 		return;
 	auto res = QMessageBox::question(this, tr("Can't Display Screen on the Console"), tr("Go to Home Screen on PlayStation?"),
 			QMessageBox::Yes | QMessageBox::Cancel);

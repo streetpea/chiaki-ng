@@ -40,7 +40,6 @@
 
 class QKeyEvent;
 class Settings;
-class StreamWindow;
 
 class ChiakiException: public Exception
 {
@@ -62,6 +61,7 @@ struct StreamSessionConnectInfo
 	QMap<Qt::Key, int> key_map;
 	Decoder decoder;
 	QString hw_decoder;
+	AVBufferRef *hw_device_ctx;
 	Renderer renderer;
 	QString audio_out_device;
 	QString audio_in_device;
@@ -113,6 +113,10 @@ class StreamSession : public QObject
 	friend class StreamSessionPrivate;
 
 	Q_OBJECT
+	Q_PROPERTY(QString host READ GetHost CONSTANT)
+	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
+	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
+	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
 
 	private:
 		SessionLog log;
@@ -123,6 +127,10 @@ class StreamSession : public QObject
 		bool muted;
 		bool mic_connected;
 		bool allow_unmute;
+		bool input_blocked;
+		QString host;
+		double measured_bitrate = 0;
+		bool cant_display = false;
 
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -181,7 +189,7 @@ class StreamSession : public QObject
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
-		void CantDisplayMessage();
+		void CantDisplayMessage(bool cant_display);
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
 #endif
@@ -213,6 +221,11 @@ class StreamSession : public QObject
 		void ToggleMute();
 		void SetLoginPIN(const QString &pin);
 		void GoHome();
+		QString GetHost() { return host; }
+		double GetMeasuredBitrate()	{ return measured_bitrate; }
+		bool GetMuted()	{ return muted; }
+		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
+		bool GetCantDisplay()	{ return cant_display; }
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
 		QList<Controller *> GetControllers()	{ return controllers.values(); }
@@ -221,20 +234,24 @@ class StreamSession : public QObject
 		ChiakiPiDecoder *GetPiDecoder()	{ return pi_decoder; }
 #endif
 		void HandleKeyboardEvent(QKeyEvent *event);
-		void HandleTouchEvent(QTouchEvent *event);
+		void HandleTouchEvent(QTouchEvent *event, qreal width, qreal height);
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
-		void HandleMouseMoveEvent(QMouseEvent *event, float width, float height);
+		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
 		void ReadMic(const QByteArray &micdata);
+
+		void BlockInput(bool block) { input_blocked = block; SendFeedbackState(); }
 
 	signals:
 		void FfmpegFrameAvailable();
-		void CantDisplay();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
 #endif
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
+		void MeasuredBitrateChanged();
+		void MutedChanged();
+		void CantDisplayChanged();
 
 	private slots:
 		void UpdateGamepads();

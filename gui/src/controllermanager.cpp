@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <controllermanager.h>
-#include <streamwindow.h>
 
 #include <QCoreApplication>
-#include <QMessageBox>
 #include <QByteArray>
 #include <QTimer>
 
@@ -103,10 +101,7 @@ ControllerManager::ControllerManager(QObject *parent)
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5_RUMBLE, "1");
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 	if(SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
-	{
-		const char *err = SDL_GetError();
-		QMessageBox::critical(nullptr, "SDL Init", tr("Failed to initialized SDL Gamecontroller: %1").arg(err ? err : ""));
-	}
+		return;
 
 	auto timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, &ControllerManager::HandleEvents);
@@ -563,13 +558,15 @@ bool Controller::IsDualSense()
 		return false;
 	return is_dualsense;
 #endif
+	return false;
 }
 
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 bool Controller::IsSteamDeck()
 {
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(!controller)
 		return false;
 	return is_steamdeck;
-}
 #endif
+	return false;
+}
