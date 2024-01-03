@@ -174,6 +174,7 @@ class StreamSession : public QObject
 		SDL_AudioDeviceID audio_out;
 		SDL_AudioDeviceID audio_in;
 		size_t audio_out_sample_size;
+		bool audio_out_drain_queue;
 		unsigned int audio_buffer_size;
 #if CHIAKI_GUI_ENABLE_SPEEX
 		SpeexEchoState *echo_state;
