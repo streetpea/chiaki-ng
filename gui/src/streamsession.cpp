@@ -1256,7 +1256,7 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 void StreamSession::CantDisplayMessage(bool cant_display)
 {
 	this->cant_display = cant_display;
-	emit CantDisplayChanged();
+	emit CantDisplayChanged(cant_display);
 }
 
 #if CHIAKI_GUI_ENABLE_SETSU

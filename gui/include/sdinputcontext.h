@@ -6,7 +6,7 @@
 class SDInputContextPlugin : public QPlatformInputContextPlugin
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID QPlatformInputContextFactoryInterface_iid FILE "sdinput.json")
+    Q_PLUGIN_METADATA(IID "QPlatformInputContextFactoryInterface_iid" FILE "sdinput.json")
 
 public:
     QPlatformInputContext *create(const QString &key, const QStringList &paramList) override;

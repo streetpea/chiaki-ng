@@ -52,7 +52,7 @@ void StreamWindow::Init()
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
-	connect(session, &StreamSession::CantDisplay, this, &StreamWindow::CantDisplayMessage);
+	connect(session, &StreamSession::CantDisplayChanged, this, &StreamWindow::CantDisplayMessage);
 
 	ResolutionMode resolution_mode;
 	if(connect_info.zoom)

@@ -251,7 +251,7 @@ class StreamSession : public QObject
 		void LoginPINRequested(bool incorrect);
 		void MeasuredBitrateChanged();
 		void MutedChanged();
-		void CantDisplayChanged();
+		void CantDisplayChanged(bool cant_display);
 
 	private slots:
 		void UpdateGamepads();
