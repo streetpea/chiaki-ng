@@ -60,8 +60,7 @@ set(UI_FILES ui/shortcutdialog.ui)
 if (CHIAKI_ENABLE_ARTWORK)
 	add_definitions(-DCHIAKI_ENABLE_ARTWORK)
 
-	set(SOURCE_FILES
-			${SOURCE_FILES}
+	list(APPEND SOURCE_FILES
 			include/sgdbenums.h
 			include/steamgriddbapi.h
 			src/steamgriddbapi.cpp
@@ -72,8 +71,7 @@ if (CHIAKI_ENABLE_ARTWORK)
 			include/artworkdialog.h
 			src/artworkdialog.cpp)
 
-	set(UI_FILES
-			${UI_FILES}
+	list(APPEND UI_FILES
 			ui/artworkdialog.ui)
 endif()
 

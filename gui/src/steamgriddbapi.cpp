@@ -73,14 +73,7 @@ void SteamGridDb::handleJsonResponse(const QString& url, const QJsonDocument jso
     for (QJsonArray::iterator it = resultData.begin(); it != resultData.end(); ++it) {
         QJsonObject gameObject = it->toObject();
         QString imageUrl = gameObject.value("url").toString();
-        // Find the first occurrence of "\\/"
-        size_t found = imageUrl.toStdString().find("\\/");
 
-        // Iterate and replace all occurrences of "\\/"
-        while (found != std::string::npos) {
-            imageUrl.replace(found, 2, "/"); // 2 is the length of "\\"
-            found = imageUrl.toStdString().find("\\/", found + 1);
-        }
         result_vector.append(imageUrl);
     }
 
