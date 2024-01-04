@@ -14,12 +14,9 @@
  */
 #ifndef STEAMTOOLS_H
 #define STEAMTOOLS_H
-#include <QObject>
-#include <QMap>
 
 #include "mainwindow.h"
 #include "steamshortcutentry.h"
-#include "chiaki/log.h"
 
 class SteamTools : public QObject {
     Q_OBJECT
