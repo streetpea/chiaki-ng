@@ -53,7 +53,7 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     };
     for(const auto &p : mode_strings)
     {
-        mode_combo_box->addItem(tr(p.second), p.first);
+        mode_combo_box->addItem(p.second, p.first);
     }
 
     #ifdef CHIAKI_ENABLE_ARTWORK
