@@ -15,8 +15,9 @@
 #ifndef STEAMTOOLS_H
 #define STEAMTOOLS_H
 
-#include "mainwindow.h"
 #include "steamshortcutentry.h"
+#include <QObject>
+#include <QPixmap>
 
 class SteamTools : public QObject {
     Q_OBJECT
