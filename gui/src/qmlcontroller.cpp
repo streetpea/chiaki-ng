@@ -64,6 +64,11 @@ QmlController::QmlController(Controller *c, QObject *t, QObject *parent)
     });
 }
 
+QmlController::~QmlController()
+{
+    controller->Unref();
+}
+
 bool QmlController::isDualSense() const
 {
     return controller->IsDualSense();
