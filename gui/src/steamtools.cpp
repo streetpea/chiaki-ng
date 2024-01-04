@@ -138,7 +138,6 @@ bool compareFirstElements(int size, const std::vector<char>& vector1, const std:
 
 /**
  * \brief Create a list of SteamShortcutEntries for all the shortcuts currently in shortcut.vdf
- * \param log Chiaki4Deck log object for log messages
  * \return a QVector of SteamShortcutEntry for each existing non-steam shortcut
  */
 QVector<SteamShortcutEntry> SteamTools::parseShortcuts() {
