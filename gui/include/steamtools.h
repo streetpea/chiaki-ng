@@ -6,8 +6,11 @@
  *  - Writing entries back to shortcuts.vdf
  *  - Setting the neptune controller config for a shortcut
  *
+ *  Logic for finding Steam's install location and ID of most recent user is based upon SGDBoop. Reference code found here:
+ *  https://github.com/SteamGridDB/SGDBoop/blob/8a3d5dd5a815a4234634a02b5bc3186821d6862c/sgdboop.c
+ *
  *  Logic for creating the APP-ID for use in shortcuts.vdf is based upon Steam Rom Manager. Reference code found here:
- *  https://github.com/SteamGridDB/steam-rom-manager/blob/ed718710bdc2cb14527f801b82afb8c8353efb40/src/lib/helpers/steam/generate-app-id.ts#L2
+ *  https://github.com/SteamGridDB/steam-rom-manager/blob/ed718710bdc2cb14527f801b82afb8c8353efb40/src/lib/helpers/steam/generate-app-id.ts
  */
 #ifndef STEAMTOOLS_H
 #define STEAMTOOLS_H
