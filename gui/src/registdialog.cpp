@@ -111,8 +111,8 @@ void RegistDialog::GetAccountID(QWidget *parent) {
 	window->exec();
 }
 
-void RegistDialog::updatePsnAccountID(std::string accountId) {
-	psn_account_id_edit->setText(QString::fromStdString(accountId));
+void RegistDialog::updatePsnAccountID(QString accountId) {
+	psn_account_id_edit->setText(accountId);
 }
 
 bool RegistDialog::NeedAccountId()

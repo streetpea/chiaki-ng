@@ -85,7 +85,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"}, associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}, and base app.
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//5.15-23.08 flathub org.kde.Sdk//5.15-23.08 flathub io.qt.qtwebengine.BaseApp/x86_64/5.15-23.08
+    flatpak install -y flathub org.kde.Platform//6.6 flathub org.kde.Sdk//6.6 flathub io.qt.qtwebengine.BaseApp/x86_64/6.6
     ```
 
 2. Create a directory for your build files and switch into it

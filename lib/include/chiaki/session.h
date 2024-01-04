@@ -217,6 +217,7 @@ typedef struct chiaki_session_t
 	void *video_sample_cb_user;
 	ChiakiAudioSink audio_sink;
 	ChiakiAudioSink haptics_sink;
+	ChiakiCtrlDisplaySink display_sink;
 
 	ChiakiThread session_thread;
 
@@ -253,6 +254,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_connect_microphone(ChiakiSession *s
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_set_text(ChiakiSession *session, const char *text);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_reject(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *session);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_go_home(ChiakiSession *session);
 
 static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
 {
@@ -280,6 +282,14 @@ static inline void chiaki_session_set_audio_sink(ChiakiSession *session, ChiakiA
 static inline void chiaki_session_set_haptics_sink(ChiakiSession *session, ChiakiAudioSink *sink)
 {
 	session->haptics_sink = *sink;
+}
+
+/**
+ * @param sink contents are copied
+ */
+static inline void chiaki_session_ctrl_set_display_sink(ChiakiSession *session, ChiakiCtrlDisplaySink *sink)
+{
+	session->display_sink = *sink;
 }
 
 #ifdef __cplusplus

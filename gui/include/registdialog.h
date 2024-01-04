@@ -51,7 +51,7 @@ class RegistDialog : public QDialog
 		~RegistDialog();
 
 		RegisteredHost GetRegisteredHost() { return registered_host; }
-		void updatePsnAccountID(std::string accountId);
+		void updatePsnAccountID(QString accountId);
 
 	public slots:
 		void accept() override;
@@ -87,7 +87,5 @@ class RegistExecuteDialog: public QDialog
 
 		RegisteredHost GetRegisteredHost()	{ return registered_host; }
 };
-
-Q_DECLARE_METATYPE(ChiakiRegistEventType)
 
 #endif // CHIAKI_REGISTDIALOG_H

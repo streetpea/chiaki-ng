@@ -9,6 +9,8 @@
     <file>chiaki_macos.svg</file>
     <file>console-ps4.svg</file>
     <file>console-ps5.svg</file>
+    <file>buttons-ps.svg</file>
+    <file>buttons-deck.svg</file>
   </qresource>
   <qresource prefix="/templates">
     <file>shortcut.tmpl</file>

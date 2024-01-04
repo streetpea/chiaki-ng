@@ -8,8 +8,6 @@
 #include <chiaki/streamconnection.h>
 
 #include <QKeyEvent>
-#include <QAudioOutput>
-#include <QAudioInput>
 
 #include <cstring>
 #include <chiaki/session.h>
@@ -52,6 +50,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	key_map = settings->GetControllerMappingForDecoding();
 	decoder = settings->GetDecoder();
 	hw_decoder = settings->GetHardwareDecoder();
+	hw_device_ctx = nullptr;
 	audio_out_device = settings->GetAudioOutDevice();
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
@@ -82,6 +81,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
+static void CantDisplayCb(void *user, bool cant_display);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
 static void SessionSetsuCb(SetsuEvent *event, void *user);
@@ -98,10 +98,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	pi_decoder(nullptr),
 #endif
-	audio_output(nullptr),
-	audio_io(nullptr),
-	audio_input(nullptr),
-	audio_mic(nullptr),
+	audio_out(0),
+	audio_in(0),
 	haptics_output(0),
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
@@ -119,6 +117,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	muted = true;
 	mic_connected = false;
 	allow_unmute = false;
+	input_blocked = false;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     haptics_sdeck = 0;
@@ -140,7 +139,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 				chiaki_log_sniffer_get_log(&sniffer),
 				chiaki_target_is_ps5(connect_info.target) ? connect_info.video_profile.codec : CHIAKI_CODEC_H264,
 				connect_info.hw_decoder.isEmpty() ? NULL : connect_info.hw_decoder.toUtf8().constData(),
-				FfmpegFrameCb, this);
+				connect_info.hw_device_ctx, FfmpegFrameCb, this);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			QString log = QString::fromUtf8(chiaki_log_sniffer_get_buffer(&sniffer));
@@ -153,50 +152,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	}
 #endif
 
-	audio_out_device_info = QAudioDeviceInfo::defaultOutputDevice();
-	if(!connect_info.audio_out_device.isEmpty())
-	{
-		for(QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioOutput))
-		{
-			if(di.deviceName() == connect_info.audio_out_device)
-			{
-				audio_out_device_info = di;
-				break;
-			}
-		}
-	}
-	// echo-cancel sink can't be opened causing stream failure, workaround issue by explicitly checking
-	// first try pulse audio, if not found use first available option in list
-	if(audio_out_device_info.deviceName() == "echo-cancel-sink")
-	{
-		const auto device_list = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
-		for(QAudioDeviceInfo di : device_list)
-		{
-			if (di.deviceName() == "pulse")
-			{
-				audio_out_device_info = di;
-				CHIAKI_LOGI(GetChiakiLog(), "echo-cancel sink cannot be used as audio sink. Reverting to pulse audio...");
-			}
-		}
-		if (audio_out_device_info.deviceName() != "pulse")
-		{
-			audio_out_device_info = device_list[0];
-			CHIAKI_LOGI(GetChiakiLog(), "echo-cancel sink cannot be used as audio sink and pulse audio not found Reverting to %s...", audio_out_device_info.deviceName().toLocal8Bit().constData());
-		}
-	}
-
-	audio_in_device_info = QAudioDeviceInfo::defaultInputDevice();
-	if(!connect_info.audio_in_device.isEmpty())
-	{
-		for(QAudioDeviceInfo di : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
-		{
-			if(di.deviceName() == connect_info.audio_in_device)
-			{
-				audio_in_device_info = di;
-				break;
-			}
-		}
-	}
+	audio_out_device_name = connect_info.audio_out_device;
+	audio_in_device_name = connect_info.audio_in_device;
 
 	chiaki_opus_decoder_init(&opus_decoder, log.GetChiakiLog());
 	chiaki_opus_encoder_init(&opus_encoder, log.GetChiakiLog());
@@ -220,6 +177,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	audio_buffer_size = connect_info.audio_buffer_size;
 
+	host = connect_info.host;
 	QByteArray host_str = connect_info.host.toUtf8();
 
 	ChiakiConnectInfo chiaki_connect_info = {};
@@ -265,6 +223,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
+	ChiakiCtrlDisplaySink display_sink;
+	display_sink.user = this;
+	display_sink.cantdisplay_cb = CantDisplayCb;
+	chiaki_session_ctrl_set_display_sink(&session, &display_sink);
 	chiaki_opus_decoder_set_cb(&opus_decoder, AudioSettingsCb, AudioFrameCb, this);
 	ChiakiAudioSink audio_sink;
 	chiaki_opus_decoder_get_sink(&opus_decoder, &audio_sink);
@@ -364,6 +326,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 StreamSession::~StreamSession()
 {
+	if(audio_out)
+		SDL_CloseAudioDevice(audio_out);
+	if(audio_in)
+		SDL_CloseAudioDevice(audio_in);
 	chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
@@ -486,12 +452,20 @@ void StreamSession::ToggleMute()
 		muted = false;
 	else
 		muted = true;
+	if(audio_in)
+		SDL_PauseAudioDevice(audio_in, muted);
+	emit MutedChanged();
 }
 
 void StreamSession::SetLoginPIN(const QString &pin)
 {
 	QByteArray data = pin.toUtf8();
 	chiaki_session_set_login_pin(&session, (const uint8_t *)data.constData(), data.size());
+}
+
+void StreamSession::GoHome()
+{
+	chiaki_session_go_home(&session);
 }
 
 void StreamSession::HandleMousePressEvent(QMouseEvent *event)
@@ -517,13 +491,13 @@ void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 	SendFeedbackState();
 }
 
-void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, float width, float height)
+void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height)
 {
 	// left button with move => touchpad gesture, otherwise ignore
 	if (event->buttons() == Qt::LeftButton)
 	{
-		float x = event->screenPos().x();
-		float y = event->screenPos().y();
+		float x = std::clamp(0.0, event->scenePosition().x(), width);
+		float y = std::clamp(0.0, event->scenePosition().y(), height);
 		float psx = x * (PS_TOUCHPAD_MAX_X / width);
 		float psy = y * (PS_TOUCHPAD_MAX_Y / height);
 		// if touch id is set, move, otherwise start
@@ -589,12 +563,12 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 	SendFeedbackState();
 }
 
-void StreamSession::HandleTouchEvent(QTouchEvent *event)
+void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal height)
 {
 	//unset touchpad (we will set it if user touches edge of screen)
 	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 
-	const QList<QTouchEvent::TouchPoint> touchPoints = event->touchPoints();
+	const QList<QTouchEvent::TouchPoint> touchPoints = event->points();
 
 	for (const QTouchEvent::TouchPoint &touchPoint : touchPoints)
 	{
@@ -602,14 +576,14 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 		switch (touchPoint.state())
 		{
 			//skip unchanged touchpoints
-			case Qt::TouchPointStationary:
+			case QEventPoint::State::Stationary:
 				continue;
-			case Qt::TouchPointPressed:
-			case Qt::TouchPointMoved:
+			case QEventPoint::State::Pressed:
+			case QEventPoint::State::Updated:
 			{
-				float norm_x = touchPoint.normalizedPos().x();
-				float norm_y = touchPoint.normalizedPos().y();
-				
+				float norm_x = std::clamp(0.0, touchPoint.scenePosition().x() / width, 1.0);
+				float norm_y = std::clamp(0.0, touchPoint.scenePosition().y() / height, 1.0);
+
 				// Touching edges of screen is a touchpad click
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
 					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -630,7 +604,7 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event)
 					chiaki_controller_state_set_touch_pos(&touch_state, it.value(), (uint16_t)psx, (uint16_t)psy);
 				break;
 			}
-			case Qt::TouchPointReleased:
+			case QEventPoint::State::Released:
 			{
 				for(auto it=touch_tracker.begin(); it!=touch_tracker.end(); it++)
 				{
@@ -710,6 +684,13 @@ void StreamSession::SendFeedbackState()
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
 
+	if(input_blocked)
+	{
+		chiaki_controller_state_set_idle(&keyboard_state);
+		chiaki_session_set_controller_state(&session, &state);
+		return;
+	}
+
 #if CHIAKI_GUI_ENABLE_SETSU
 	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
 	state = setsu_state;
@@ -731,41 +712,38 @@ void StreamSession::SendFeedbackState()
 
 void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 {
-	delete audio_output;
-	audio_output = nullptr;
-	audio_io = nullptr;
+	if(audio_out)
+		SDL_CloseAudioDevice(audio_out);
 
-	QAudioFormat audio_format;
-	audio_format.setSampleRate(rate);
-	audio_format.setChannelCount(channels);
-	audio_format.setSampleSize(16);
-	audio_format.setCodec("audio/pcm");
-	audio_format.setSampleType(QAudioFormat::SignedInt);
+	SDL_AudioSpec spec = {0};
+	spec.freq = rate;
+	spec.channels = channels;
+	spec.format = AUDIO_S16SYS;
+	audio_out_sample_size = sizeof(int16_t) * channels;
+	spec.samples = audio_buffer_size / audio_out_sample_size;
 
-	QAudioDeviceInfo audio_device_info = audio_out_device_info;
-	if(!audio_device_info.isFormatSupported(audio_format))
+	SDL_AudioSpec obtained;
+	audio_out = SDL_OpenAudioDevice(audio_out_device_name.isEmpty() ? nullptr : qPrintable(audio_out_device_name), false, &spec, &obtained, false);
+	if(!audio_out)
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by Audio Device %s",
-					channels, rate,
-					audio_device_info.deviceName().toLocal8Bit().constData());
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Output Device: %s", SDL_GetError());
 		return;
 	}
 
-	audio_output = new QAudioOutput(audio_device_info, audio_format, this);
-	audio_output->setBufferSize(audio_buffer_size);
-	audio_io = audio_output->start();
+	audio_out_drain_queue = false;
 
-	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %u Hz, buffer size %u",
-				audio_device_info.deviceName().toLocal8Bit().constData(),
-				channels, rate, audio_output->bufferSize());
+	SDL_PauseAudioDevice(audio_out, 0);
+
+	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %d Hz, buffer size %u",
+				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
 	allow_unmute = true;
 }
 
 void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 {
-	delete audio_input;
-	audio_input = nullptr;
-	audio_mic = nullptr;
+	if(audio_in)
+		SDL_CloseAudioDevice(audio_in);
+
 	mic_buf.buf = nullptr;
 #if CHIAKI_GUI_ENABLE_SPEEX
 	mic_resampler_buf = nullptr;
@@ -802,38 +780,36 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	}
 #endif
 
-	QAudioFormat audio_format;
-	audio_format.setSampleRate(rate);
-	audio_format.setChannelCount(channels);
-	audio_format.setSampleSize(16);
-	audio_format.setCodec("audio/pcm");
-	audio_format.setSampleType(QAudioFormat::SignedInt);
+	SDL_AudioSpec spec = {0};
+	spec.freq = rate;
+	spec.channels = channels;
+	spec.format = AUDIO_S16SYS;
+	spec.samples = audio_buffer_size / 4;
+	spec.callback = [](void *userdata, Uint8 *stream, int len) {
+		auto s = static_cast<StreamSession*>(userdata);
+		QByteArray data(reinterpret_cast<char*>(stream), len);
+		QMetaObject::invokeMethod(s, std::bind(&StreamSession::ReadMic, s, data));
+	};
+	spec.userdata = this;
 
-	QAudioDeviceInfo audio_device_info = audio_in_device_info;
-	if(!audio_device_info.isFormatSupported(audio_format))
+	SDL_AudioSpec obtained;
+	audio_in = SDL_OpenAudioDevice(audio_in_device_name.isEmpty() ? nullptr : qPrintable(audio_in_device_name), true, &spec, &obtained, false);
+	if(!audio_in)
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Audio Format with %u channels @ %u Hz not supported by microphone %s",
-					channels, rate,
-					audio_device_info.deviceName().toLocal8Bit().constData());
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Input Device: %s", SDL_GetError());
 		return;
 	}
-	audio_input = new QAudioInput(audio_device_info, audio_format, this);
-	audio_input->setBufferSize(audio_buffer_size);
-	audio_mic = audio_input->start();
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone %s opened with %u channels @ %u Hz, buffer size %u",
-			audio_device_info.deviceName().toLocal8Bit().constData(),
-			channels, rate, audio_input->bufferSize());
-	connect(audio_mic, SIGNAL(readyRead()), this, SLOT(ReadMic()));
+			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
 }
 
-void StreamSession::ReadMic()
+void StreamSession::ReadMic(const QByteArray &micdata)
 {
 #if CHIAKI_GUI_ENABLE_SPEEX
 	int16_t echo_buf[mic_buf.size_bytes / sizeof(int16_t)];
 #endif
 	uint32_t mic_bytes_left = mic_buf.size_bytes - mic_buf.current_byte;
-	QByteArray micdata = audio_mic->readAll();
 	// Don't send mic data if muted
 	if(muted)
 		return;
@@ -946,12 +922,6 @@ void StreamSession::InitHaptics()
 	// Haptics work most reliably with Pipewire, so try to use that if available
 	SDL_SetHint("SDL_AUDIODRIVER", "pipewire");
 #endif
-
-	if (SDL_Init(SDL_INIT_AUDIO) < 0)
-	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Could not initialize SDL Audio for haptics output: %s", SDL_GetError());
-		return;
-	}
 
 #ifdef Q_OS_LINUX
 	if (!strstr(SDL_GetCurrentAudioDriver(), "pipewire"))
@@ -1115,8 +1085,22 @@ void StreamSession::ConnectSdeckHaptics()
 
 void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 {
-	if(!audio_io)
+	if(!audio_out)
 		return;
+
+	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
+
+	// Start draining queue when the latency gets too high
+	if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
+		audio_out_drain_queue = true;
+
+	if(audio_out_drain_queue)
+	{
+		// Stop when the queue is smaller than configured buffer size
+		if(SDL_GetQueuedAudioSize(audio_out) >= audio_buffer_size)
+			return;
+		audio_out_drain_queue = false;
+	}
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 	// change samples to mono for processing with SPEEX
@@ -1137,7 +1121,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 		echo_to_cancel.enqueue((int16_t *)echo_resampler_buf);
 	}
 #endif
-	audio_io->write((const char *)buf, static_cast<qint64>(samples_count * 2 * 2));
+	SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size);
 }
 
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
@@ -1285,6 +1269,12 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 }
 #endif
 
+void StreamSession::CantDisplayMessage(bool cant_display)
+{
+	this->cant_display = cant_display;
+	emit CantDisplayChanged(cant_display);
+}
+
 #if CHIAKI_GUI_ENABLE_SETSU
 void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 {
@@ -1395,6 +1385,11 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 void StreamSession::TriggerFfmpegFrameAvailable()
 {
 	emit FfmpegFrameAvailable();
+	if(measured_bitrate != session.stream_connection.measured_bitrate)
+	{
+		measured_bitrate = session.stream_connection.measured_bitrate;
+		emit MeasuredBitrateChanged();
+	}
 }
 
 class StreamSessionPrivate
@@ -1412,6 +1407,7 @@ class StreamSessionPrivate
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
+		static void CantDisplayMessage(StreamSession *session, bool cant_display)	{session->CantDisplayMessage(cant_display); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
 		static void HandleSetsuEvent(StreamSession *session, SetsuEvent *event)					{ session->HandleSetsuEvent(event); }
@@ -1438,6 +1434,12 @@ static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushHapticsFrame(session, buf, buf_size);
+}
+
+static void CantDisplayCb(void *user, bool cant_display)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::CantDisplayMessage(session, cant_display);
 }
 
 static void EventCb(ChiakiEvent *event, void *user)

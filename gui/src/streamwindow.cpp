@@ -52,6 +52,7 @@ void StreamWindow::Init()
 
 	connect(session, &StreamSession::SessionQuit, this, &StreamWindow::SessionQuit);
 	connect(session, &StreamSession::LoginPINRequested, this, &StreamWindow::LoginPINRequested);
+	connect(session, &StreamSession::CantDisplayChanged, this, &StreamWindow::CantDisplayMessage);
 
 	ResolutionMode resolution_mode;
 	if(connect_info.zoom)
@@ -100,22 +101,22 @@ void StreamWindow::Init()
 	connect(fullscreen_action, &QAction::triggered, this, &StreamWindow::ToggleFullscreen);
 
 	auto stretch_action = new QAction(tr("Stretch"), this);
-	stretch_action->setShortcut(Qt::CTRL + Qt::Key_S);
+	stretch_action->setShortcut(Qt::CTRL | Qt::Key_S);
 	addAction(stretch_action);
 	connect(stretch_action, &QAction::triggered, this, &StreamWindow::ToggleStretch);
 
 	auto zoom_action = new QAction(tr("Zoom"), this);
-	zoom_action->setShortcut(Qt::CTRL + Qt::Key_Z);
+	zoom_action->setShortcut(Qt::CTRL | Qt::Key_Z);
 	addAction(zoom_action);
 	connect(zoom_action, &QAction::triggered, this, &StreamWindow::ToggleZoom);
 
 	auto mute_action = new QAction(tr("Toggle Mute"), this);
-	mute_action->setShortcut(Qt::CTRL + Qt::Key_M);
+	mute_action->setShortcut(Qt::CTRL | Qt::Key_M);
 	addAction(mute_action);
 	connect(mute_action, &QAction::triggered, this, &StreamWindow::ToggleMute);
 
 	auto quit_action = new QAction(tr("Quit"), this);
-	quit_action->setShortcut(Qt::CTRL + Qt::Key_Q);
+	quit_action->setShortcut(Qt::CTRL | Qt::Key_Q);
 	addAction(quit_action);
 	connect(quit_action, &QAction::triggered, this, &StreamWindow::Quit);
 
@@ -141,7 +142,7 @@ bool StreamWindow::event(QEvent *event)
 	{
 		if ((event->type() == QEvent::TouchBegin) || (event->type() == QEvent::TouchUpdate) || (event->type() == QEvent::TouchEnd))
 		{
-			session->HandleTouchEvent(static_cast<QTouchEvent *>(event));
+			session->HandleTouchEvent(static_cast<QTouchEvent *>(event), frameSize().width(), frameSize().height());
 			return true;
 		}
 	}
@@ -275,6 +276,22 @@ void StreamWindow::LoginPINRequested(bool incorrect)
 		});
 		releaseKeyboard();
 		dialog->show();
+	}
+}
+
+void StreamWindow::CantDisplayMessage(bool cant_display)
+{
+	if(!session || !cant_display)
+		return;
+	auto res = QMessageBox::question(this, tr("Can't Display Screen on the Console"), tr("Go to Home Screen on PlayStation?"),
+			QMessageBox::Yes | QMessageBox::Cancel);
+	switch(res)
+	{
+		case QMessageBox::Yes:
+			session->GoHome();
+			break;
+		default:
+			break;
 	}
 }
 
