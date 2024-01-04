@@ -6,6 +6,8 @@
 #include <string>
 #include <cstdint>
 
+#include "steamshortcutentry.h"
+
 namespace VDFStateMachine {
 
     enum class FieldType {
@@ -35,19 +37,19 @@ namespace VDFStateMachine {
     };
 
     namespace WAITING {
-        void handleState(uint8_t& value, ParseState& state, FieldType& type, std::vector<std::string>& listValue);
+        void handleState(uint8_t& value, ParseState& state, FieldType& type, QStringList& listValue);
     };
 
     namespace KEY {
-        void handleState(uint8_t& value, ParseState& state, FieldType& type, std::ostringstream& utf8String, std::string& key);
+        void handleState(uint8_t& value, ParseState& state, FieldType& type, std::ostringstream& utf8String, QString& key);
     }
 
     namespace VALUE {
         std::string delimit(const std::vector<std::string>& vec, char delimiter);
 
         void handleState(uint8_t& value, ParseState& state, FieldType& type, std::ostringstream& utf8String,
-            std::string& key, std::map<std::string, std::string>& entry, ListParseState& listState, std::vector<std::string>& listValue,
-            std::vector<char>& endingBuffer, std::vector<std::map<std::string, std::string>>& shortcuts);
+            QString& key, SteamShortcutEntry& entry, ListParseState& listState, QStringList& listValue,
+            std::vector<char>& endingBuffer, QVector<SteamShortcutEntry>& shortcuts);
     }
 
     namespace ENDING {

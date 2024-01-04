@@ -223,7 +223,7 @@ void RegistExecuteDialog::Success(RegisteredHost host)
 	settings->AddRegisteredHost(host);
 
 #if defined(__linux) || (defined(__APPLE__) && defined(CHIAKI_ENABLE_CLI))
-	int addToSteam = QMessageBox::question(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered! Would you like to add it to steam?").arg(host.GetServerNickname(), host.GetServerMAC().ToString()), QMessageBox::Yes, QMessageBox::No);
+	auto addToSteam = QMessageBox::question(this, tr("Console registered"), tr("The Console %1 with ID %2 has been successfully registered! Would you like to add it to steam?").arg(host.GetServerNickname(), host.GetServerMAC().ToString()), QMessageBox::Yes, QMessageBox::No);
 
 	if (addToSteam == QMessageBox::Yes) {
 		settings->AddNewHostToSteam(host);

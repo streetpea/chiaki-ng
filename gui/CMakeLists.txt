@@ -55,25 +55,38 @@ set(SOURCE_FILES
 	src/shortcutdialog.cpp
 	include/crc.h
 	src/crc.c
-	include/steamshortcutparser.h
-	src/steamshortcutparser.cpp
+	include/steamshortcutentry.h
+	src/steamshortcutentry.cpp
+	include/steamtools.h
+	src/steamtools.cpp
 	include/vdf_parser.hpp
 	include/vdfstatemachine.h
 	src/vdfstatemachine.cpp
-	include/sgdbenums.h
-	include/steamgriddbapi.h
-	src/steamgriddbapi.cpp
-	include/sgdbartworkwidget.h
-	src/sgdbartworkwidget.cpp
-	include/imageloader.h
-	src/imageloader.cpp
 	include/jsonrequester.h
 	src/jsonrequester.cpp)
 set(RESOURCE_FILES "")
 
-set(UI_FILES
-	ui/shortcutdialog.ui
-)
+set(UI_FILES ui/shortcutdialog.ui)
+
+if (CHIAKI_ENABLE_ARTWORK)
+	add_definitions(-DCHIAKI_ENABLE_ARTWORK)
+
+	set(SOURCE_FILES
+		${SOURCE_FILES}
+		include/sgdbenums.h
+		include/steamgriddbapi.h
+		src/steamgriddbapi.cpp
+		include/sgdbartworkwidget.h
+		src/sgdbartworkwidget.cpp
+		include/imageloader.h
+		src/imageloader.cpp
+		include/artworkdialog.h
+		src/artworkdialog.cpp)
+
+	set(UI_FILES
+		${UI_FILES}
+		ui/artworkdialog.ui)
+endif()
 
 qt5_wrap_ui(UI_HEADERS ${UI_FILES})
 

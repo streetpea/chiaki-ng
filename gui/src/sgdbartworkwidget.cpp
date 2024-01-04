@@ -8,6 +8,7 @@
 SGDBArtworkWidget::SGDBArtworkWidget(QWidget* parent, ChiakiLog* input_log, ArtworkType input_type, QLabel* display_label, QPushButton* upload_custom_button,
                                      QPushButton* prev_button, QPushButton* next_button, QComboBox* game_combo) {
     index = 0;
+    isLoading = true;
     type = input_type;
     log = input_log;
 
@@ -15,7 +16,7 @@ SGDBArtworkWidget::SGDBArtworkWidget(QWidget* parent, ChiakiLog* input_log, Artw
     uploadCustomButton = upload_custom_button;
     gameCombo = game_combo;
     rotateButtons = {{RotateDirection::PREV, prev_button}, {RotateDirection::NEXT, next_button}};
-    imageLoader = new ImageLoader(this, log, displayLabel);
+    imageLoader = new ImageLoader(this, log, displayLabel, isLoading);
 
     //Update the game dropdown for all artworks
     for (auto it = SteamGridDbConstants::gameIDs.constBegin(); it != SteamGridDbConstants::gameIDs.constEnd(); ++it) {
@@ -91,13 +92,14 @@ void SGDBArtworkWidget::UpdateImageList() {
     }
 }
 
-void SGDBArtworkWidget::LoadRemoteImage() const {
+void SGDBArtworkWidget::LoadRemoteImage() {
     displayLabel->clear();
     displayLabel->setText("Loading");
+    isLoading = true;
     QString url = artwork.at(index);
     imageLoader->loadImage(url);
 }
 
-QString SGDBArtworkWidget::getUrl() const {
-    return artwork.at(index);
+const QPixmap* SGDBArtworkWidget::getPixMap() {
+    return displayLabel->pixmap();
 }

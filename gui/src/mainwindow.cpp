@@ -362,10 +362,10 @@ void MainWindow::UpdateDisplayServers()
 	UpdateServerWidgets();
 }
 
-void MainWindow::OpenAddToSteamDialog(std::string nickname) {
+void MainWindow::OpenAddToSteamDialog(QString nickname) {
 	QList<DisplayServer>::iterator it;
 	for (it = display_servers.begin(); it != display_servers.end(); ++it) {
-		if (it->registered_host.GetServerNickname() == QString::fromStdString(nickname)) {
+		if (it->registered_host.GetServerNickname() == nickname) {
 			ShortcutDialog dialog(settings, &(*it), this);
 			dialog.exec();
 		}

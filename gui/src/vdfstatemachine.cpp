@@ -1,5 +1,6 @@
 #include "vdfstatemachine.h"
 
+#include <QVariant>
 #include <sstream>
 
 namespace VDFStateMachine {
@@ -14,7 +15,7 @@ namespace VDFStateMachine {
     };
 
     namespace WAITING {
-        void handleState(uint8_t& value, ParseState& state, FieldType& type, std::vector<std::string>& listValue) {
+        void handleState(uint8_t& value, ParseState& state, FieldType& type, QStringList& listValue) {
             if (value != 0x08) {
                 //Update the state
                 state = ParseState::KEY;
@@ -29,12 +30,12 @@ namespace VDFStateMachine {
     };
 
     namespace KEY {
-        void handleState(uint8_t& value, ParseState& state, FieldType& type, std::ostringstream& utf8String, std::string& key) {
+        void handleState(uint8_t& value, ParseState& state, FieldType& type, std::ostringstream& utf8String, QString& key) {
             if (value != 0x00) {
                 utf8String << static_cast<char>(value);
             } else {
                 //Set key and reset string
-                key = utf8String.str();
+                key = QString::fromStdString(utf8String.str());
                 utf8String.str("");
 
                 //Update the state
@@ -45,33 +46,15 @@ namespace VDFStateMachine {
     }
 
     namespace VALUE {
-        std::string delimit(const std::vector<std::string>& vec, char delimiter) {
-            std::stringstream result;
-
-            // Iterate through the vector
-            for (auto it = vec.begin(); it != vec.end(); ++it) {
-                // Append the current string to the result
-                result << *it;
-
-                // Add a comma if it's not the last element
-                if (std::next(it) != vec.end()) {
-                    result << delimiter;
-                }
-            }
-
-            // Convert the stringstream to a string and return
-            return result.str();
-        }
-
         void handleState(uint8_t& value, ParseState& state, FieldType& type, std::ostringstream& utf8String,
-            std::string& key, std::map<std::string, std::string>& entry, ListParseState& listState, std::vector<std::string>& listValue,
-            std::vector<char>& endingBuffer, std::vector<std::map<std::string, std::string>>& shortcuts) {
+            QString& key, SteamShortcutEntry& entry, ListParseState& listState, QStringList& listValue,
+            std::vector<char>& endingBuffer, QVector<SteamShortcutEntry>& shortcuts) {
                   switch(type) {
                 case FieldType::STRING:
                     if (value != 0x00) {
                         utf8String << static_cast<char>(value);
                     } else {
-                        entry[key] = utf8String.str();
+                        entry.setProperty(key.toStdString().c_str(), QString::fromStdString(utf8String.str()));
                         utf8String.str("");
 
                         //Update the state
@@ -79,14 +62,14 @@ namespace VDFStateMachine {
                     }
                     break;
                 case FieldType::BOOLEAN:
-                    if (value == 0x01) entry[key] = "true";
-                    if (value == 0x00) entry[key] = "false";
+                    if (value == 0x01) entry.setProperty(key.toStdString().c_str(), "true");
+                    if (value == 0x00) entry.setProperty(key.toStdString().c_str(), "false");
 
                     //Update the state
                     state = ParseState::ENDING;
                     break;
                 case FieldType::DATE:
-                    entry[key] = "";
+                    entry.setProperty(key.toStdString().c_str(), "");
 
                     //Update the state
                     state = ParseState::ENDING;
@@ -95,15 +78,15 @@ namespace VDFStateMachine {
                     if (listState == ListParseState::WAITING && value == 0x08 && endingBuffer.size() < 1) {
                         endingBuffer.emplace_back(value);
                     } else if (listState == ListParseState::WAITING && value == 0x08 && endingBuffer.size() == 1) {
-                        entry[key] = delimit(listValue, ',');
+                        entry.setProperty(key.toStdString().c_str(), listValue.join(','));
                         endingBuffer.clear();
                         //Update states
                         // Bit of a hack here but we know that tags is the only list and it's last off the block so we handle that here
                         listState = ListParseState::WAITING;
                         state = ParseState::APPID;
                         //Add this entry and make a new one
-                        shortcuts.emplace_back(entry);
-                        entry.clear();
+                        shortcuts.append(entry);
+                        entry = SteamShortcutEntry();
                     } else if (listState == ListParseState::WAITING && value != 0x08) {
                         listState = ListParseState::INDEX;
                     } else if (listState == ListParseState::INDEX && value == 0x00) {
@@ -112,7 +95,7 @@ namespace VDFStateMachine {
                     } else if (listState == ListParseState::VALUE && value != 0x00) {
                         utf8String << static_cast<char>(value);
                     } else if (listState == ListParseState::VALUE) {
-                        listValue.emplace_back(utf8String.str());
+                        listValue.append(QString::fromStdString(utf8String.str()));
                         listState = ListParseState::WAITING;
                         utf8String.str("");
                     }

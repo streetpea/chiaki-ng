@@ -1,10 +1,7 @@
 #include <QLabel>
 #include <imageloader.h>
 
-ImageLoader::ImageLoader(QObject* parent, ChiakiLog* input_log, QLabel* input_label) : QObject(parent), networkManager(new QNetworkAccessManager(this)) {
-    label = input_label;
-    log = input_log;
-
+ImageLoader::ImageLoader(QObject* parent, ChiakiLog* log, QLabel* label, bool& isLoading) : log(log), label(label), isLoading(isLoading), QObject(parent), networkManager(new QNetworkAccessManager(this)) {
     connect(networkManager, &QNetworkAccessManager::finished, this, &ImageLoader::onRequestFinished);
 }
 
@@ -24,6 +21,7 @@ void ImageLoader::onRequestFinished(QNetworkReply* reply) {
         pixmap.loadFromData(reply->readAll());
         label->setPixmap(pixmap);
         label->setText("");
+        isLoading = false;
     } else {
         CHIAKI_LOGE(log, "Failed to load image. Error: %s", reply->errorString().toStdString().c_str());
     }

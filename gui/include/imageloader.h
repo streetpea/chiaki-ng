@@ -14,7 +14,7 @@
 class ImageLoader : public QObject {
     Q_OBJECT
 public:
-    explicit ImageLoader(QObject* parent, ChiakiLog* log, QLabel* label);
+    explicit ImageLoader(QObject* parent, ChiakiLog* log, QLabel* label, bool& isLoading);
 
     void loadImage(const QString& url);
 
@@ -25,6 +25,7 @@ private:
     QNetworkAccessManager* networkManager;
     QLabel* label;
     ChiakiLog* log;
+    bool& isLoading;
 };
 
 #endif //IMAGELOADER_H

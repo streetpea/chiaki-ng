@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ArtworkDialog</class>
+ <widget class="QDialog" name="ArtworkDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>550</width>
+    <height>406</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Choose Artwork</string>
+  </property>
+  <widget class="QGroupBox" name="artwork_group_box">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>0</y>
+     <width>530</width>
+     <height>350</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Artwork</string>
+   </property>
+   <widget class="QTabWidget" name="artwork_tabs">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>490</width>
+      <height>300</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="landscapeTab">
+     <attribute name="title">
+      <string>Landscape</string>
+     </attribute>
+     <widget class="QLabel" name="landscape_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QWidget" name="landscape_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="landscape_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="landscape_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="landscape_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="landscape_label">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="landscape_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="landscape_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="landscape_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="landscape_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="portraitTab">
+     <attribute name="title">
+      <string>Portrait</string>
+     </attribute>
+     <widget class="QLabel" name="portrait_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QWidget" name="portrait_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="portrait_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="portrait_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="portrait_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="portrait_label">
+           <property name="maximumSize">
+            <size>
+             <width>94</width>
+             <height>140</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="portrait_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="portrait_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="portrait_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="portrait_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="heroTab">
+     <attribute name="title">
+      <string>Hero</string>
+     </attribute>
+     <widget class="QLabel" name="hero_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QWidget" name="hero_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="hero_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="hero_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="hero_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="hero_label">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="hero_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="hero_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="hero_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="hero_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="iconTab">
+     <attribute name="title">
+      <string>Icon</string>
+     </attribute>
+     <widget class="QLabel" name="icon_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QWidget" name="icon_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="icon_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="icon_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="icon_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="icon_label">
+           <property name="maximumSize">
+            <size>
+             <width>94</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="icon_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="icon_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="icon_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="icon_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="logoTab">
+     <attribute name="title">
+      <string>Logo</string>
+     </attribute>
+     <widget class="QLabel" name="logo_disclaimer">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>480</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Images are pulled from SteamGriddb.com</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QWidget" name="logo_verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>470</width>
+        <height>280</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="logo_verticalLayout">
+       <item>
+        <widget class="QComboBox" name="logo_game_combo"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="logo_horizontalLayout_2">
+         <item>
+          <widget class="QLabel" name="logo_label">
+           <property name="maximumSize">
+            <size>
+             <width>200</width>
+             <height>94</height>
+            </size>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="logo_horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="logo_prev_button">
+           <property name="text">
+            <string>Previous Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="logo_upload_button">
+           <property name="text">
+            <string>Upload Image</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="logo_next_button">
+           <property name="text">
+            <string>Next Image</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QWidget" name="horizontalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>360</y>
+     <width>531</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QPushButton" name="cancel_button">
+      <property name="text">
+       <string>Cancel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="ok_button">
+      <property name="text">
+       <string>OK</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

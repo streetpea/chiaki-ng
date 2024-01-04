@@ -1,29 +1,46 @@
 #include "../include/shortcutdialog.h"
 
+#include <array>
 #include <filesystem>
-#include <QComboBox>
 #include <fstream>
+#include <QComboBox>
 #include <qeventloop.h>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <qtextstream.h>
 #include <regex>
 #include <sstream>
-#include <array>
 #include <string>
-#include <steamshortcutparser.h>
-#include <QMessageBox>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
 
+#include <QStandardPaths>
+
 #include "imageloader.h"
-#include "steamgriddbapi.h"
+
+#ifdef CHIAKI_ENABLE_ARTWORK
+#include "artworkdialog.h"
+#endif
+
+QString controller_layout_workshop_id = "3049833406";
 
 ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget* parent) {
     setupUi(this);
-
     chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
-    Ui::ShortcutDialog::local_ssid_edit->setText(QString::fromStdString(getConnectedSSID()));
+
+    //Create steam tools
+    auto infoLambda = [this](const QString &infoMessage) {
+        CHIAKI_LOGI(&log, infoMessage.toStdString().c_str());
+    };
+
+    auto errorLambda = [this](const QString &errorMessage) {
+        CHIAKI_LOGE(&log, errorMessage.toStdString().c_str());
+    };
+    steamTools = new SteamTools(infoLambda, errorLambda);
+
+    //Prepopulate the SSID edit box
+    local_ssid_edit->setText(getConnectedSSID());
 
     //Allow External Access Checkbox
     connect(Ui::ShortcutDialog::allow_external_access_checkbox, &QCheckBox::stateChanged, this, &ShortcutDialog::ExternalChanged);
@@ -36,49 +53,51 @@ ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, 
     };
     for(const auto &p : mode_strings)
     {
-        Ui::ShortcutDialog::mode_combo_box->addItem(tr(p.second), p.first);
+        mode_combo_box->addItem(tr(p.second), p.first);
     }
 
-    //Widgets
-    artworkWidgets.insert(ArtworkType::LANDSCAPE,
-        new SGDBArtworkWidget(this, &log, ArtworkType::LANDSCAPE, landscape_label, landscape_upload_button, landscape_prev_button, landscape_next_button, landscape_game_combo));
-    artworkWidgets.insert(ArtworkType::PORTRAIT,
-        new SGDBArtworkWidget(this, &log, ArtworkType::PORTRAIT, portrait_label, portrait_upload_button, portrait_prev_button, portrait_next_button, portrait_game_combo));
-    artworkWidgets.insert(ArtworkType::HERO,
-        new SGDBArtworkWidget(this, &log, ArtworkType::HERO, hero_label, hero_upload_button, hero_prev_button, hero_next_button, hero_game_combo));
-    artworkWidgets.insert(ArtworkType::ICON,
-        new SGDBArtworkWidget(this, &log, ArtworkType::ICON, icon_label, icon_upload_button, icon_prev_button, icon_next_button, icon_game_combo));
-    artworkWidgets.insert(ArtworkType::LOGO,
-        new SGDBArtworkWidget(this, &log, ArtworkType::LOGO, logo_label, logo_upload_button, logo_prev_button, logo_next_button, logo_game_combo));
+    #ifdef CHIAKI_ENABLE_ARTWORK
+        //Artwork
+        choose_artwork_label->setVisible(true);
+        choose_artwork_button->setVisible(true);
+        connect(choose_artwork_button, &QPushButton::clicked, [this]() {
+            auto dialog = new ArtworkDialog(this);
+            connect(dialog, &ArtworkDialog::updateArtwork, this, &ShortcutDialog::updateArtwork);
+            dialog->exec();
+        });
+    #endif
 
     //Shortcut Button
     connect(Ui::ShortcutDialog::add_to_steam_button, &QPushButton::clicked, [=]() {
-        std::map<std::string, std::string> artwork;
-        artwork["landscape"] = artworkWidgets.value(ArtworkType::LANDSCAPE)->getUrl().toStdString();
-        artwork["portrait"] = artworkWidgets.value(ArtworkType::PORTRAIT)->getUrl().toStdString();
-        artwork["hero"] = artworkWidgets.value(ArtworkType::HERO)->getUrl().toStdString();
-        artwork["logo"] = artworkWidgets.value(ArtworkType::LOGO)->getUrl().toStdString();
-        artwork["icon"] = artworkWidgets.value(ArtworkType::ICON)->getUrl().toStdString();
-        CreateShortcut(server, artwork);
+        CreateShortcut(server);
     });
-
-    //QTimer::singleShot(0, this, &ShortcutDialog::dialogLoaded);
 }
 
+/**
+ * \brief Enable ot disable the SSID and DNS entries when external access is ticked/unticked
+ */
 void ShortcutDialog::ExternalChanged() {
     Ui::ShortcutDialog::external_dns_edit->setFocus();
     Ui::ShortcutDialog::external_dns_edit->setEnabled(Ui::ShortcutDialog::allow_external_access_checkbox->isChecked());
     Ui::ShortcutDialog::local_ssid_edit->setEnabled(Ui::ShortcutDialog::allow_external_access_checkbox->isChecked());
 }
 
-std::string ShortcutDialog::getExecutable() {
+/**
+ * \brief Get the path to the chiaki4deck executable for use in the automation script in the form of a QString.
+ * For Mac this uses _NSGetExecutablePath
+ * For Linux it checks if installed via flatpak and uses `flatpak run`
+ * if not, it uses readlink to check /proc/self/exe
+ *
+ * \return QString of the executable
+ */
+QString ShortcutDialog::getExecutable() {
 #if defined(__APPLE__)
     char buffer[PATH_MAX];
     uint32_t size = sizeof(buffer);
 
     if (_NSGetExecutablePath(buffer, &size) == -1) {
         // Buffer is not large enough, allocate a larger one
-        char* largerBuffer = new char[size];
+        auto largerBuffer = new char[size];
         if (_NSGetExecutablePath(largerBuffer, &size) == 0) {
             return largerBuffer;
         }
@@ -100,29 +119,43 @@ std::string ShortcutDialog::getExecutable() {
 
         if (len != -1) {
             buffer[len] = '\0';
-            return buffer;
+            return std::string(buffer);
         }
     }
 #endif
     return "";
 }
 
-void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map<std::string, std::string> artwork) {
-    //Create a map of variables for the template
-    std::map<std::string, std::string> paramMap;
+/**
+ * \brief Given a DisplayServer object, create an executable shell script based on
+ * templates from resources.qrc
+ *
+ * If Steam is found, this executable is created in the Chiaki config directory and added to steam
+ * If Steam is not found the user is given a choice of where to save the executable and it is NOT added to steam.
+ *
+ * \param displayServer The chosen Server item.
+ */
+void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer) {
+    //Get the Chiaki4Deck executable
+    QString executable = getExecutable();
 
-    paramMap["home_ssid"] = local_ssid_edit->text().toStdString();
-    paramMap["ps_console"] = displayServer->IsPS5() ? "5" : "4";
-    paramMap["wait_timeout"] = "35";
-    paramMap["home_addr"] = displayServer->GetHostAddr().toStdString();
-    paramMap["away_addr"] = external_dns_edit->text().toStdString();
-    paramMap["regist_key"] = QString::fromUtf8(displayServer->registered_host.GetRPRegistKey()).toStdString();
-    paramMap["login_passcode"] = passcode_edit->text().toStdString();
-    paramMap["mode"] = mode_combo_box->currentText().toStdString();
-    paramMap["server_nickname"] = displayServer->discovered ? displayServer->discovery_host.host_name.toStdString() : displayServer->registered_host.GetServerNickname().toStdString();
-    paramMap["executable"] = getExecutable();
+    //Create a map of variables for the template
+    QMap<QString, QString> paramMap;
+
+    paramMap.insert("home_ssid", local_ssid_edit->text()); //Entered by the user
+    paramMap.insert("ps_console", displayServer->IsPS5() ? "5" : "4"); //Determined from the DisplayServer object
+    paramMap.insert("wait_timeout", "35"); //Always 35
+    paramMap.insert("home_addr", displayServer->GetHostAddr()); //Determined from the DisplayServer object
+    paramMap.insert("away_addr", external_dns_edit->text()); //Entered by the User
+    paramMap.insert("regist_key", QString::fromUtf8(displayServer->registered_host.GetRPRegistKey())); //Determined from the DisplayServer object
+    paramMap.insert("login_passcode", passcode_edit->text()); //Entered by the User
+    paramMap.insert("mode", mode_combo_box->currentText()); //Selected by the User
+    paramMap.insert("server_nickname", displayServer->discovered ? displayServer->discovery_host.host_name : displayServer->registered_host.GetServerNickname()); //Determined from the DisplayServer object
+    paramMap.insert("executable", executable); //Fetched from ::getExecutable()
+
+    //Escape server nickname for script
     std::stringstream escapeCommandStream;
-    escapeCommandStream << "printf %q " << "\"" << paramMap["server_nickname"] << "\"";
+    escapeCommandStream << "printf %q " << "\"" << paramMap.value("server_nickname").toStdString() << "\"";
     const std::string escapeCommandStr = escapeCommandStream.str();
     const char* escapeCommand = escapeCommandStr.c_str();
     std::array<char, 128> buffer;
@@ -136,8 +169,8 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
     }
 
 
-    std::string fileText = compileTemplate("shortcut.tmpl", paramMap);
-
+    //Compile the shell script
+    QString fileText = compileTemplate("shortcut.tmpl", paramMap);
     if (allow_external_access_checkbox->isChecked()) {
         if (displayServer->IsPS5()) {
             fileText = fileText+compileTemplate("ps5_external.tmpl", paramMap);
@@ -149,73 +182,74 @@ void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer, std::map
         fileText = fileText+compileTemplate("local.tmpl", paramMap);
         fileText = fileText+compileTemplate("discover_wakeup.tmpl", paramMap);
     }
-
     fileText = fileText+compileTemplate("launch.tmpl", paramMap);
 
-    bool steamExists = SteamShortcutParser::steamExists();
-    std::string executable = getExecutable();
+    bool steamExists = steamTools->steamExists();
 
-    std::string filePath;
-    if (steamExists && executable.rfind("flatpak run io.github.streetpea.Chiaki4deck", 0) == 0) {
-        filePath.append(getenv("HOME"));
-        filePath.append("/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/");
-        filePath.append(paramMap["server_nickname"]);
-        filePath.append(".sh");
-        SteamShortcutParser::createDirectories(&log, filePath);
+    //If Steam exists, set the output file to AppConfigLocation, if not, ask the user where to save.
+    QString filePath;
+    if (steamExists) {
+        filePath = QString("%1/%2.sh")
+            .arg(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+            .arg(paramMap.value("server_nickname"));
     } else {
-        if (!steamExists) {
-            int createShortcut = QMessageBox::critical(nullptr, "Steam not found", QString::fromStdString("Steam not found! Save shortcut elsewhere?"), QMessageBox::Ok, QMessageBox::Cancel);
-            if (createShortcut == QMessageBox::Cancel) {
-                return;
-            }
+        int createShortcut = QMessageBox::critical(nullptr, "Steam not found", QString::fromStdString("Steam not found! Save shortcut elsewhere?"), QMessageBox::Ok, QMessageBox::Cancel);
+        if (createShortcut == QMessageBox::Cancel) {
+            return;
         }
-        filePath.append(QFileDialog::getSaveFileName(nullptr, "Save Shell Script", QDir::homePath() + QDir::separator() + paramMap["server_nickname"].c_str() + ".sh", "Shell Scripts (*.sh)").toStdString());
-    }
-
-    // Check if the user canceled the dialog
-    if (QString::fromStdString(filePath).isEmpty()) {
-        return;
+        filePath.append(QFileDialog::getSaveFileName(nullptr, "Save Shell Script", QDir::homePath() + QDir::separator() + paramMap.value("server_nickname") + ".sh", "Shell Scripts (*.sh)"));
+        // Check if the user canceled the dialog
+        if (filePath.isEmpty()) {
+            return;
+        }
     }
 
     // Open the file for writing
-    QFile outputFile(QString::fromStdString(filePath));
+    QFile outputFile(filePath);
     if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         // Write the string to the file
         QTextStream out(&outputFile);
-        out << QString::fromStdString(fileText);
+        out << fileText;
+
+        //Set permissions
+        outputFile.setPermissions(QFile::ExeOwner);
 
         // Close the file
         outputFile.close();
     }
 
-    // Construct the shell command to make the file executable
-    std::stringstream chmodCommandStream;
-    chmodCommandStream << "chmod +x " << "\"" << filePath << "\"";
-    const std::string chmodCommand = chmodCommandStream.str();
-
-
-    // Execute the shell command to make it executable
-    std::system(chmodCommand.c_str());
-
-    std::string steamBaseDir = SteamShortcutParser::getSteamBaseDir();
     if (steamExists) {
-        AddToSteam(displayServer, filePath, artwork);
-        QMessageBox::information(nullptr, "Success", QString::fromStdString("Added "+paramMap["server_nickname"]+" to Steam. Please restart Steam."), QMessageBox::Ok);
+        AddToSteam(displayServer, filePath);
+        QMessageBox::information(nullptr, "Success", QString("Added %1 to Steam. Please restart Steam.").arg(paramMap.value("server_nickname")), QMessageBox::Ok);
     } else {
-        QMessageBox::information(nullptr, "Success", QString::fromStdString("Saved shortcut to "+paramMap["server_nickname"]), QMessageBox::Ok);
+        QMessageBox::information(nullptr, "Success", QString("Saved shortcut to %1").arg(paramMap.value("server_nickname")), QMessageBox::Ok);
     }
     close();
 }
 
-std::string ShortcutDialog::compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap) {
+/**
+ *
+ * \brief Reads the contents of a specified template file, which contains
+ * placeholders in the form of "{{variableName}}". It then replaces these placeholders
+ * with corresponding values from the provided input map. The compiled template is
+ * returned as a QString.
+ *
+ * \param templateFile The name of the template file to be compiled.
+ * \param inputMap A QMap containing key-value pairs where keys represent variable names
+ *                 and values are the replacements for the corresponding placeholders.
+ *
+ * \return The compiled template as a QString. If an error occurs while opening the
+ *         template file, the error message is returned.
+ */
+QString ShortcutDialog::compileTemplate(const QString& templateFile, const QMap<QString, QString>& inputMap) {
     // Specify the resource path with the prefix
-    QString resourcePath = QString::fromStdString(":/templates/"+templateFile);
+    QString resourcePath = QString(":/templates/%1").arg(templateFile);
 
     // Open the resource file
     QFile file(resourcePath);
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return file.errorString().toStdString();
+        return file.errorString();
     }
 
     // Read the contents of the file into a QString
@@ -225,18 +259,21 @@ std::string ShortcutDialog::compileTemplate(const std::string& templateFile, con
     // Close the file
     file.close();
 
-    const std::regex variablePattern(R"(\{\{([A-Za-z_]+)\}\})");
+    QRegularExpression pattern(R"(\{\{([A-Za-z_]+)\}\})");
 
-    std::string result = fileContents.toStdString();
-    std::smatch match;
+    QString result = fileContents;
+    QRegularExpressionMatchIterator matchIterator = pattern.globalMatch(result);
 
-    while (std::regex_search(result, match, variablePattern)) {
-        if (match.size() == 2) {
-            const std::string& variableName = match[1].str();
+    //Loop through the string finding the first {variableName} and replacing it, keep going until there are no more matches
+    while (matchIterator.hasNext()) {
+        QRegularExpressionMatch match = matchIterator.next();
+
+        if (match.capturedTexts().size() == 2) {
+            const QString &variableName = match.captured(1);
             auto it = inputMap.find(variableName);
 
             if (it != inputMap.end()) {
-                result.replace(match.position(), match.length(), it->second);
+                result.replace(match.capturedStart(), match.capturedLength(), it.value());
             }
         }
     }
@@ -244,7 +281,13 @@ std::string ShortcutDialog::compileTemplate(const std::string& templateFile, con
     return result+"\n";
 }
 
-std::string ShortcutDialog::getConnectedSSID() {
+/**
+ * \brief Use system commands for each OS to get the current SSID for the first wlan as a QString
+ * If unknown OS is detected throw an error
+ *
+ * \return QString of the connected SSID
+ */
+QString ShortcutDialog::getConnectedSSID() {
     std::string command;
     #if defined(__APPLE__)
         command = "/System/Library/PrivateFrameworks/Apple80211.framework/Resources/airport -I | grep SSID | grep -v BSSID | awk -F: '{print $2}'";
@@ -265,7 +308,7 @@ std::string ShortcutDialog::getConnectedSSID() {
     }
 
     char buffer[128];
-    std::string result = "";
+    QString result = "";
 
     while (!feof(pipe)) {
         if (fgets(buffer, 128, pipe) != nullptr)
@@ -275,23 +318,44 @@ std::string ShortcutDialog::getConnectedSSID() {
     pclose(pipe);
 
     // Remove newline characters
-    result.erase(std::remove(result.begin(), result.end(), '\n'), result.end());
-    result.erase(std::remove(result.begin(), result.end(), '\r'), result.end());
+    result.remove(QChar('\n'));
+    result.remove(QChar('\r'));
 
     return result;
 }
 
-void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork) {
-    std::vector<std::map<std::string, std::string>> shortcuts = SteamShortcutParser::parseShortcuts(&log);
+#ifdef CHIAKI_ENABLE_ARTWORK
+/**
+ * \brief Update the artwork map with the response from the ArtworkDialog
+ * \param returnedArtwork Artwork returned from Artwork Dialog
+ */
+void ShortcutDialog::updateArtwork(QMap<QString, const QPixmap*> returnedArtwork) {
+    artwork = returnedArtwork;
+    choose_artwork_button->setText("Artwork Selected");
+}
+#endif
 
-    std::map<std::string, std::string> newShortcut = SteamShortcutParser::buildShortcutEntry(&log, server, filePath, artwork);
+/**
+ * \brief Given a DisplayServer object and a path to an executable, add this executable to Steam.
+ * First check if it already exists, if so, update this entry instead.
+ *
+ * Once added, update the Steam controller config for this record.
+ *
+ * \param server
+ * \param filePath
+ */
+void ShortcutDialog::AddToSteam(const DisplayServer* server, QString filePath) {
+    //Get the current shortcuts
+    QVector<SteamShortcutEntry> shortcuts = steamTools->parseShortcuts();
+
+    QString serverNickname = server->registered_host.GetServerNickname();
+
+    //Create a new shortcut entry
+    SteamShortcutEntry newShortcut = steamTools->buildShortcutEntry(serverNickname, filePath, artwork);
 
     bool found = false;
-    //Look to see if we need to update
     for (auto& map : shortcuts) {
-        // Check if the key exists and its value matches the valueToSearch
-        auto it = map.find("Exe");
-        if (it != map.end() && it->second == SteamShortcutParser::getValueFromMap(newShortcut, "Exe")) {
+        if (map.getExe() == newShortcut.getExe()) {
             // Replace the entire map with the new one
 
             CHIAKI_LOGI(&log, "Updating Steam entry");
@@ -303,9 +367,9 @@ void ShortcutDialog::AddToSteam(const DisplayServer* server, std::string filePat
 
     //If we didn't find it to update, let's add it to the end
     if (!found) {
-        CHIAKI_LOGI(&log, "Adding Steam entry");
-        shortcuts.emplace_back(SteamShortcutParser::buildShortcutEntry(&log, server, filePath, artwork));
+        CHIAKI_LOGI(&log, "Adding Steam entry %s", newShortcut.getExe().toStdString().c_str());
+        shortcuts.append(steamTools->buildShortcutEntry(serverNickname, filePath, artwork));
     }
-    SteamShortcutParser::updateShortcuts(&log, shortcuts);
-    SteamShortcutParser::updateControllerConfig(&log, newShortcut["AppName"]);
+    steamTools->updateShortcuts(shortcuts);
+    steamTools->updateControllerConfig(newShortcut.getAppName(), controller_layout_workshop_id);
 }

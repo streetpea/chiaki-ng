@@ -6,30 +6,32 @@
 #include "ui_shortcutdialog.h"
 #include "settings.h"
 #include "sgdbartworkwidget.h"
+#include "steamtools.h"
 
 class ShortcutDialog : public QDialog, private Ui::ShortcutDialog {
     Q_OBJECT
 
 private:
+    SteamTools* steamTools;
     const DisplayServer* server;
     ChiakiLog log;
-    QMap<ArtworkType, SGDBArtworkWidget*> artworkWidgets;
+    QMap<QString, const QPixmap*> artwork;
 
 private slots:
     void ExternalChanged();
+    void CreateShortcut(const DisplayServer* server);
+    #ifdef CHIAKI_ENABLE_ARTWORK
+        void updateArtwork(QMap<QString, const QPixmap*> artwork);
+    #endif
 
-    void CreateShortcut(const DisplayServer* server, std::map<std::string, std::string> artwork);
 
 public:
+
     ShortcutDialog(Settings* settings, const DisplayServer* server, QWidget* parent = nullptr);
-
-    std::string getExecutable();
-
-    std::string compileTemplate(const std::string& templateFile, const std::map<std::string, std::string>& inputMap);
-
-    std::string getConnectedSSID();
-
-    void AddToSteam(const DisplayServer* server, std::string filePath, std::map<std::string, std::string> artwork);
+    QString getExecutable();
+    QString compileTemplate(const QString& templateFile, const QMap<QString,QString>& inputMap);
+    QString getConnectedSSID();
+    void AddToSteam(const DisplayServer* server, QString filePath);
 };
 
 #endif //SHORTCUTDIALOG_H

@@ -379,7 +379,7 @@ void Settings::AddRegisteredHost(const RegisteredHost &host)
 }
 
 void Settings::AddNewHostToSteam(const RegisteredHost& host) {
-	emit OpenAddToSteamDialog(host.GetServerNickname().toStdString());
+	emit OpenAddToSteamDialog(host.GetServerNickname());
 }
 
 void Settings::RemoveRegisteredHost(const HostMAC &mac)

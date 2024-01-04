@@ -172,7 +172,7 @@ class Settings : public QObject
 
 	signals:
 		void RegisteredHostsUpdated();
-		void OpenAddToSteamDialog(std::string nickname);
+		void OpenAddToSteamDialog(QString nickname);
 		void ManualHostsUpdated();
 };
 

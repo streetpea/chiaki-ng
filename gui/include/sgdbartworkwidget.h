@@ -22,6 +22,7 @@ class SGDBArtworkWidget : public QObject {
         int index;
         QVector<QString> artwork;
         QString customImage;
+        bool isLoading;
 
         //Widgets
         QLabel *displayLabel;
@@ -31,13 +32,13 @@ class SGDBArtworkWidget : public QObject {
         ImageLoader *imageLoader;
         SteamGridDb *steamGridDb;
 
-        QString getUrl() const;
+    const QPixmap* getPixMap();
 
     public slots:
         void RotateImage(RotateDirection direction);
         void UpdateImageList();
         void LoadCustomImage();
-        void LoadRemoteImage() const;
+        void LoadRemoteImage();
 };
 
 
