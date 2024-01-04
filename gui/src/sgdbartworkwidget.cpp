@@ -104,5 +104,6 @@ void SGDBArtworkWidget::LoadRemoteImage() {
 }
 
 const QPixmap* SGDBArtworkWidget::getPixMap() {
-    return displayLabel->pixmap();
+    QPixmap* pixmap = new QPixmap(displayLabel->pixmap().copy());
+    return pixmap;
 }

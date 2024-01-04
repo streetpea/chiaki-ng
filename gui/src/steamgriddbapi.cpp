@@ -55,7 +55,7 @@ void SteamGridDb::requestArtwork(ChiakiLog* log, QString type, QString queryPara
         .arg(apiRoot)
         .arg(type)
         .arg(gameId)
-        .arg(QString(page))
+        .arg(QString::number(page))
         .arg(queryParams);
 
     QString bearerToken = JsonRequester::generateBearerAuthHeader(apiKey);
