@@ -81,8 +81,8 @@ bool QmlController::isSteamDeck() const
 
 void QmlController::sendKey(Qt::Key key)
 {
-    QKeyEvent *press = new QKeyEvent(QEvent::KeyPress, key, Qt::NoModifier);
-    QKeyEvent *release = new QKeyEvent(QEvent::KeyRelease, key, Qt::NoModifier);
-    QGuiApplication::postEvent(target, press);
-    QGuiApplication::postEvent(target, release);
+    QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+    QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+    QGuiApplication::sendEvent(target, &press);
+    QGuiApplication::sendEvent(target, &release);
 }
