@@ -94,8 +94,6 @@ modules:
 
   - name: ffmpeg
     cleanup:
-      - /include
-      - /lib/pkgconfig
       - /share/ffmpeg/examples
     config-opts:
       - --enable-shared
@@ -107,6 +105,11 @@ modules:
       - --disable-muxers
       - --enable-encoder=png
       - --enable-libdrm
+      - --enable-vulkan
+      - --enable-hwaccel=h264_vaapi
+      - --enable-hwaccel=hevc_vaapi
+      - --enable-hwaccel=h264_vulkan
+      - --enable-hwaccel=hevc_vulkan
     sources:
       - type: archive
         url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
