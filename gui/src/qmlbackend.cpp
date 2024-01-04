@@ -392,11 +392,8 @@ void QmlBackend::connectToHost(int index)
         return;
     }
 
-    // Need to wake console first
-    if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY) {
-        emit error(tr("Error"), tr("Console is in standby."));
+    if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && !sendWakeup(server))
         return;
-    }
 
     QString host = server.GetHostAddr();
     StreamSessionConnectInfo info(
@@ -494,15 +491,17 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
     return {};
 }
 
-void QmlBackend::sendWakeup(const DisplayServer &server)
+bool QmlBackend::sendWakeup(const DisplayServer &server)
 {
     if (!server.registered)
-        return;
+        return false;
     try {
         discovery_manager.SendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(),
                 chiaki_target_is_ps5(server.registered_host.GetTarget()));
+        return true;
     } catch (const Exception &e) {
         emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
+        return false;
     }
 }
 

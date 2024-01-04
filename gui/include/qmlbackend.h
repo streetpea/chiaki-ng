@@ -101,7 +101,7 @@ private:
     };
 
     DisplayServer displayServerAt(int index) const;
-    void sendWakeup(const DisplayServer &server);
+    bool sendWakeup(const DisplayServer &server);
     void updateControllers();
 
     Settings *settings = {};
