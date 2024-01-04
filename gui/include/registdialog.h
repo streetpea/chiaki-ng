@@ -32,6 +32,8 @@ class RegistDialog : public QDialog
 		QRadioButton *ps5_radio_button;
 		QLineEdit *psn_online_id_edit;
 		QLineEdit *psn_account_id_edit;
+		QPushButton *psn_account_id_button;
+
 		QLineEdit *pin_edit;
 		QDialogButtonBox *button_box;
 		QPushButton *register_button;
@@ -42,12 +44,14 @@ class RegistDialog : public QDialog
 
 	private slots:
 		void ValidateInput();
+		void GetAccountID(QWidget *parent);
 
 	public:
 		explicit RegistDialog(Settings *settings, const QString &host = QString(), QWidget *parent = nullptr);
 		~RegistDialog();
 
 		RegisteredHost GetRegisteredHost() { return registered_host; }
+		void updatePsnAccountID(std::string accountId);
 
 	public slots:
 		void accept() override;

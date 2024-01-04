@@ -2,7 +2,7 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Concurrent Multimedia OpenGL Svg Network)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui Concurrent Multimedia OpenGL Svg Network WebEngineWidgets)
 if(APPLE)
 	find_package(Qt5 REQUIRED COMPONENTS MacExtras)
 endif()
@@ -51,7 +51,7 @@ set(SOURCE_FILES
 	src/controllermanager.cpp
 	include/loginpindialog.h
 	src/loginpindialog.cpp
-  	include/shortcutdialog.h
+    include/shortcutdialog.h
 	src/shortcutdialog.cpp
 	include/crc.h
 	src/crc.c
@@ -62,6 +62,17 @@ set(SOURCE_FILES
 	include/vdf_parser.hpp
 	include/vdfstatemachine.h
 	src/vdfstatemachine.cpp
+	include/sgdbenums.h
+	include/steamgriddbapi.h
+	src/steamgriddbapi.cpp
+	include/sgdbartworkwidget.h
+	src/sgdbartworkwidget.cpp
+	include/imageloader.h
+	src/imageloader.cpp
+    include/psnaccountid.h
+	src/psnaccountid.cpp
+	include/psnlogindialog.h
+    src/psnlogindialog.cpp
 	include/jsonrequester.h
 	src/jsonrequester.cpp)
 set(RESOURCE_FILES "")
@@ -130,7 +141,7 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg)
+target_link_libraries(chiaki Qt5::Core Qt5::Widgets Qt5::Gui Qt5::Concurrent Qt5::Multimedia Qt5::OpenGL Qt5::Svg Qt5::WebEngineWidgets)
 target_link_libraries(chiaki SDL2::SDL2)
 if(APPLE)
 	target_link_libraries(chiaki Qt5::MacExtras)

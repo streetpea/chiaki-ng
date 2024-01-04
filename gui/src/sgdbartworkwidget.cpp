@@ -88,6 +88,9 @@ void SGDBArtworkWidget::UpdateImageList() {
         }
         LoadCustomImage();
     } else {
+        for (auto it = rotateButtons.constBegin(); it != rotateButtons.constEnd(); ++it) {
+            it.value()->setEnabled(true);
+        }
         steamGridDb->getArtwork(log, gameCombo->currentData().toString(), type, 0);
     }
 }

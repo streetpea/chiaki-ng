@@ -36,5 +36,5 @@ void chiaki_audio_header_set(ChiakiAudioHeader * audio_header, uint8_t channels,
 	audio_header->bits = bits;
 	audio_header->rate = rate;
 	audio_header->frame_size = frame_size;
-	audio_header->unknown = 0;
+	audio_header->unknown = 1;
 }
