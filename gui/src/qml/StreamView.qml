@@ -6,8 +6,25 @@ import QtQuick.Controls.Material
 import org.streetpea.chiaki4deck
 
 Item {
+    id: view
+
     property bool sessionError: false
     property bool sessionLoading: true
+    property list<Item> restoreFocusItems
+
+    function grabInput(item) {
+        Chiaki.window.grabInput();
+        restoreFocusItems.push(Window.window.activeFocusItem);
+        if (item)
+            item.forceActiveFocus();
+    }
+
+    function releaseInput() {
+        Chiaki.window.releaseInput();
+        let item = restoreFocusItems.pop();
+        if (item && item.visible)
+            item.forceActiveFocus();
+    }
 
     StackView.onActivating: Chiaki.window.keepVideo = true
     StackView.onDeactivated: Chiaki.window.keepVideo = false
@@ -45,7 +62,7 @@ Item {
                 }
                 font.pixelSize: 24
                 visible: text
-                onVisibleChanged: if (visible) forceActiveFocus()
+                onVisibleChanged: if (visible) view.grabInput(errorTitleLabel)
                 Keys.onReturnPressed: root.showMainView()
                 Keys.onEscapePressed: root.showMainView()
             }
@@ -75,10 +92,10 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
-                Chiaki.window.grabInput();
-                goToHomeButton.forceActiveFocus();
+                menuView.close();
+                view.grabInput(goToHomeButton);
             } else {
-                Chiaki.window.releaseInput();
+                view.releaseInput();
             }
         }
 
@@ -92,7 +109,7 @@ Item {
             Layout.alignment: Qt.AlignCenter
             Layout.preferredHeight: 60
             text: qsTr("Go to Home Screen")
-            Material.background: Material.accent
+            Material.background: activeFocus ? parent.Material.accent : undefined
             Material.roundedScale: Material.SmallScale
             onClicked: Chiaki.sessionGoHome()
             Keys.onReturnPressed: clicked()
@@ -125,6 +142,7 @@ Item {
 
     Item {
         id: menuView
+        property bool closing: false
         anchors {
             left: parent.left
             right: parent.right
@@ -135,22 +153,26 @@ Item {
         visible: opacity
         enabled: visible
         onVisibleChanged: {
-            if (visible) {
-                Chiaki.window.grabInput();
-                closeButton.forceActiveFocus();
-            } else {
-                Chiaki.window.releaseInput();
-            }
+            if (visible)
+                view.grabInput(closeButton);
+            closing = false;
         }
 
         Behavior on opacity { NumberAnimation { duration: 250 } }
 
         function toggle() {
-            opacity = visible ? 0.0 : 1.0;
+            if (visible)
+                close();
+            else
+                opacity = 1.0;
         }
 
         function close() {
+            if (!visible || closing)
+                return;
+            closing = true;
             opacity = 0.0;
+            view.releaseInput();
         }
 
         Canvas {
@@ -324,10 +346,9 @@ Item {
         padding: 30
         onAboutToShow: {
             closeAction = 0;
-            Chiaki.window.grabInput();
         }
         onClosed: {
-            Chiaki.window.releaseInput();
+            view.releaseInput();
             if (closeAction)
                 Chiaki.stopSession(closeAction == 1);
         }
@@ -360,11 +381,11 @@ Item {
                     text: qsTr("Sleep")
                     font.pixelSize: 24
                     Material.roundedScale: Material.SmallScale
-                    Material.background: activeFocus ? parent.Material.accent : parent.Material.background
+                    Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.right: noButton
                     Keys.onReturnPressed: clicked()
                     Keys.onEscapePressed: sessionStopDialog.close()
-                    onVisibleChanged: if (visible) forceActiveFocus()
+                    onVisibleChanged: if (visible) view.grabInput(sleepButton)
                     onClicked: {
                         sessionStopDialog.closeAction = 1;
                         sessionStopDialog.close();
@@ -379,7 +400,7 @@ Item {
                     text: qsTr("No")
                     font.pixelSize: 24
                     Material.roundedScale: Material.SmallScale
-                    Material.background: activeFocus ? parent.Material.accent : parent.Material.background
+                    Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.left: sleepButton
                     Keys.onReturnPressed: clicked()
                     Keys.onEscapePressed: sessionStopDialog.close()
@@ -402,13 +423,12 @@ Item {
         closePolicy: Popup.NoAutoClose
         standardButtons: Dialog.Ok | Dialog.Cancel
         onAboutToShow: {
-            Chiaki.window.grabInput();
             standardButton(Dialog.Ok).enabled = Qt.binding(function() {
                 return pinField.acceptableInput;
             });
-            pinField.forceActiveFocus();
+            view.grabInput(pinField);
         }
-        onClosed: Chiaki.window.releaseInput()
+        onClosed: view.releaseInput()
         onAccepted: Chiaki.enterPin(pinField.text)
         onRejected: Chiaki.stopSession(false)
         Material.roundedScale: Material.MediumScale
@@ -447,11 +467,14 @@ Item {
         }
 
         function onSessionPinDialogRequested() {
+            if (sessionPinDialog.opened)
+                return;
+            menuView.close();
             sessionPinDialog.open();
         }
 
         function onSessionStopDialogRequested() {
-            if (cantDisplayMessage.visible)
+            if (sessionStopDialog.opened)
                 return;
             menuView.close();
             sessionStopDialog.open();
@@ -474,7 +497,7 @@ Item {
         }
 
         function onMenuRequested() {
-            if (sessionPinDialog.opened || sessionStopDialog.opened || cantDisplayMessage.visible)
+            if (sessionPinDialog.opened || sessionStopDialog.opened)
                 return;
             menuView.toggle();
         }
