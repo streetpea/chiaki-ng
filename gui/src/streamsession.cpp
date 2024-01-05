@@ -343,7 +343,7 @@ StreamSession::~StreamSession()
 #endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	for(auto controller : controllers)
-		delete controller;
+		controller->Unref();
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
@@ -642,7 +642,7 @@ void StreamSession::UpdateGamepads()
 				haptics_sdeck++;
 			}
 #endif
-			delete controller;
+			controller->Unref();
 		}
 	}
 

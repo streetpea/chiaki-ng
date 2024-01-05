@@ -183,10 +183,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
-    qDeleteAll(controllers);
-    controllers.clear();
-    emit controllersChanged();
-
     StreamSessionConnectInfo info = connect_info;
     if (info.hw_decoder == "vulkan") {
         info.hw_device_ctx = window->vulkanHwDeviceCtx();
@@ -196,9 +192,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     try {
         session = new StreamSession(info, this);
-    } catch(const Exception &e) {
+    } catch (const Exception &e) {
         emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
-        updateControllers();
         return;
     }
 
@@ -225,15 +220,9 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
 
-        qDeleteAll(controllers);
-        controllers.clear();
-        emit controllersChanged();
-        connect(session, &QObject::destroyed, this, [this]() {
-            session = nullptr;
-            updateControllers();
-            emit sessionChanged(session);
-        });
         session->deleteLater();
+        session = nullptr;
+        emit sessionChanged(session);
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
@@ -247,8 +236,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         window->showFullScreen();
     else if (window->windowState() != Qt::WindowFullScreen)
         window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
-
-    updateControllers();
 
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
@@ -481,7 +468,7 @@ void QmlBackend::sendWakeup(const DisplayServer &server)
     try {
         discovery_manager.SendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(),
                 chiaki_target_is_ps5(server.registered_host.GetTarget()));
-    } catch(const Exception &e) {
+    } catch (const Exception &e) {
         emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
     }
 }
@@ -498,24 +485,14 @@ void QmlBackend::updateControllers()
         it = controllers.erase(it);
         changed = true;
     }
-    if (session) {
-        for (Controller *controller : session->GetControllers()) {
-            if (controllers.contains(controller->GetDeviceID()))
-                continue;
-            controllers[controller->GetDeviceID()] = new QmlController(controller, window, this);
-            changed = true;
-        }
-    } else {
-        for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
-            if (controllers.contains(id))
-                continue;
-            auto controller = ControllerManager::GetInstance()->OpenController(id);
-            if (!controller)
-                continue;
-            controllers[id] = new QmlController(controller, window, this);
-            controller->setParent(controllers[id]);
-            changed = true;
-        }
+    for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
+        if (controllers.contains(id))
+            continue;
+        auto controller = ControllerManager::GetInstance()->OpenController(id);
+        if (!controller)
+            continue;
+        controllers[id] = new QmlController(controller, window, this);
+        changed = true;
     }
     if (changed)
         emit controllersChanged();

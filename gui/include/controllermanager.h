@@ -73,6 +73,7 @@ class Controller : public QObject
 #endif
 #endif
 
+		int ref;
 		ControllerManager *manager;
 		int id;
 		ChiakiOrientationTracker orientation_tracker;
@@ -88,6 +89,9 @@ class Controller : public QObject
 
 	public:
 		~Controller();
+
+		void Ref();
+		void Unref();
 
 		bool IsConnected();
 		int GetDeviceID();
