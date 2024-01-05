@@ -109,26 +109,13 @@ CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder)
 		av_buffer_unref(&decoder->hw_device_ctx);
 }
 
-static int32_t frames_lost_inc(int32_t current, int32_t lost)
-{
-	int32_t ret = current;
-	if(lost <= 0)
-		return ret;
-	else if(lost == 1)
-		ret += 1;
-	else if(lost <= 3)
-		ret += lost * 2;
-	else if(lost <= 6)
-		ret += lost + 2;
-	return ret > 20 ? 20 : ret;
-}
-
 CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, void *user)
 {
 	ChiakiFfmpegDecoder *decoder = user;
 
 	chiaki_mutex_lock(&decoder->mutex);
-	decoder->frames_lost = frames_lost_inc(decoder->frames_lost, frames_lost);
+	if(frames_lost)
+		decoder->frames_lost = frames_lost > 1 ? 2 : 1;
 	AVPacket packet;
 	av_init_packet(&packet);
 	packet.data = buf;
@@ -222,8 +209,10 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 	}
 	if(frame && decoder->frames_lost)
 	{
-		decoder->frames_lost--;
+		if(frame->pict_type == AV_PICTURE_TYPE_I)
+			decoder->frames_lost = 0;
 		frame->decode_error_flags |= !!decoder->frames_lost;
+		decoder->frames_lost--;
 	}
 	chiaki_mutex_unlock(&decoder->mutex);
 
