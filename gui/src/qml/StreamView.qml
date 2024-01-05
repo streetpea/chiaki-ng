@@ -184,7 +184,12 @@ Item {
                 padding: 20
                 font.pixelSize: 50
                 down: activeFocus
-                onClicked: Chiaki.window.close()
+                onClicked: {
+                    if (Chiaki.session)
+                        Chiaki.window.close();
+                    else
+                        root.showMainView();
+                }
                 KeyNavigation.right: muteButton
                 Keys.onReturnPressed: clicked()
                 Keys.onEscapePressed: menuView.close()
@@ -196,6 +201,7 @@ Item {
                 text: qsTr("Mic")
                 padding: 20
                 checkable: true
+                enabled: Chiaki.session && Chiaki.session.connected
                 checked: Chiaki.session && !Chiaki.session.muted
                 onToggled: Chiaki.session.muted = !Chiaki.session.muted
                 KeyNavigation.left: closeButton
@@ -276,6 +282,7 @@ Item {
             }
             text: "Mbps"
             font.pixelSize: 18
+            visible: Chiaki.session
 
             Label {
                 anchors {
@@ -283,7 +290,7 @@ Item {
                     baseline: parent.baseline
                     rightMargin: 5
                 }
-                text: visible && Chiaki.session ? Chiaki.session.measuredBitrate.toFixed(1) : ""
+                text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
                 color: Material.accent
                 font.bold: true
                 font.pixelSize: 28
@@ -297,7 +304,13 @@ Item {
                 bottom: parent.bottom
                 margins: 50
             }
-            text: qsTr("Connected to <b>%1</b>").arg(Chiaki.session ? Chiaki.session.host : "")
+            text: {
+                if (!Chiaki.session)
+                    return "";
+                if (Chiaki.session.connected)
+                    return qsTr("Connected to <b>%1</b>").arg(Chiaki.session.host);
+                return qsTr("Connecting to <b>%1</b>").arg(Chiaki.session.host);
+            }
         }
     }
 
@@ -417,8 +430,12 @@ Item {
         target: Chiaki
 
         function onSessionChanged() {
-            if (!Chiaki.session)
-                closeTimer.start();
+            if (!Chiaki.session) {
+                if (errorTitleLabel.text)
+                    closeTimer.start();
+                else
+                    root.showMainView();
+            }
         }
 
         function onSessionError(title, text) {
@@ -457,8 +474,6 @@ Item {
         }
 
         function onMenuRequested() {
-            if (!Chiaki.window.hasVideo)
-                return;
             if (sessionPinDialog.opened || sessionStopDialog.opened || cantDisplayMessage.visible)
                 return;
             menuView.toggle();

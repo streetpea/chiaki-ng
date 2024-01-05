@@ -115,6 +115,7 @@ class StreamSession : public QObject
 
 	Q_OBJECT
 	Q_PROPERTY(QString host READ GetHost CONSTANT)
+	Q_PROPERTY(bool connected READ GetConnected NOTIFY ConnectedChanged)
 	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
 	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
@@ -225,6 +226,7 @@ class StreamSession : public QObject
 		void SetLoginPIN(const QString &pin);
 		void GoHome();
 		QString GetHost() { return host; }
+		bool GetConnected() { return connected; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
@@ -252,6 +254,7 @@ class StreamSession : public QObject
 #endif
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
+		void ConnectedChanged();
 		void MeasuredBitrateChanged();
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);

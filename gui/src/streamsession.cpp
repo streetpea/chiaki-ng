@@ -1213,6 +1213,7 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_CONNECTED:
 			connect_timer.invalidate();
 			connected = true;
+			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
 			if(!connected && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
@@ -1221,6 +1222,7 @@ void StreamSession::Event(ChiakiEvent *event)
 				return;
 			}
 			connected = false;
+			emit ConnectedChanged();
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
