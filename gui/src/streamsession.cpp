@@ -723,18 +723,26 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	spec.samples = audio_buffer_size / audio_out_sample_size;
 
 	SDL_AudioSpec obtained;
-	audio_out = SDL_OpenAudioDevice(audio_out_device_name.isEmpty() ? nullptr : qPrintable(audio_out_device_name), false, &spec, &obtained, false);
+	audio_out = SDL_OpenAudioDevice(audio_out_device_name.isEmpty() ? nullptr : qUtf8Printable(audio_out_device_name), false, &spec, &obtained, false);
 	if(!audio_out)
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Output Device: %s", SDL_GetError());
-		return;
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Output Device '%s': %s", qPrintable(audio_out_device_name), SDL_GetError());
+		if(audio_out_device_name.isEmpty())
+			return;
+		audio_out_device_name.clear();
+		audio_out = SDL_OpenAudioDevice(nullptr, false, &spec, &obtained, false);
+		if(!audio_out)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open default Audio Output Device: %s", SDL_GetError());
+			return;
+		}
 	}
 
 	audio_out_drain_queue = false;
 
 	SDL_PauseAudioDevice(audio_out, 0);
 
-	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %d Hz, buffer size %u",
+	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
 				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
 	allow_unmute = true;
 }
@@ -793,14 +801,22 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	spec.userdata = this;
 
 	SDL_AudioSpec obtained;
-	audio_in = SDL_OpenAudioDevice(audio_in_device_name.isEmpty() ? nullptr : qPrintable(audio_in_device_name), true, &spec, &obtained, false);
+	audio_in = SDL_OpenAudioDevice(audio_in_device_name.isEmpty() ? nullptr : qUtf8Printable(audio_in_device_name), true, &spec, &obtained, false);
 	if(!audio_in)
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Input Device: %s", SDL_GetError());
-		return;
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Microphone '%s': %s", qPrintable(audio_in_device_name), SDL_GetError());
+		if(audio_in_device_name.isEmpty())
+			return;
+		audio_in_device_name.clear();
+		audio_in = SDL_OpenAudioDevice(nullptr, true, &spec, &obtained, false);
+		if(!audio_in)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open default Microphone: %s", SDL_GetError());
+			return;
+		}
 	}
 
-	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone %s opened with %u channels @ %u Hz, buffer size %u",
+	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone '%s' opened with %u channels @ %u Hz, buffer size %u",
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
 }
 
