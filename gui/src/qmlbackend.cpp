@@ -203,9 +203,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             qCCritical(chiakiGui) << "Session has no FFmpeg decoder";
             return;
         }
-        AVFrame *frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false);
+        int32_t frames_lost;
+        AVFrame *frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false, &frames_lost);
         if (frame)
-            QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame));
+            QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
     });
 
     connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {
