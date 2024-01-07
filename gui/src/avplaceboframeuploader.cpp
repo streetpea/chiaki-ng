@@ -19,7 +19,8 @@ void AVPlaceboFrameUploader::UpdateFrameFromDecoder()
         return;
     }
 
-    AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false);
+    int32_t frames_lost;
+    AVFrame *next_frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false, &frames_lost);
     if(!next_frame)
         return;
 

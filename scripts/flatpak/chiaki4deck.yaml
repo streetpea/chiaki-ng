@@ -119,8 +119,6 @@ modules:
         url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
         sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
       - type: patch
-        path: 0001-hevc-Fix-duplicate-POC-in-sequence.patch
-      - type: patch
         path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
 
   - name: python3-google

@@ -452,7 +452,7 @@ Item {
         }
 
         function onCorruptedFramesChanged() {
-            if (Chiaki.window.corruptedFrames > 1)
+            if (Chiaki.window.corruptedFrames > 3)
                 networkIndicatorTimer.restart();
         }
 
