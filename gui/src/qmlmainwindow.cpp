@@ -679,22 +679,23 @@ void QmlMainWindow::render()
             .frame = current_frame,
             .tex = placebo_tex,
         };
-        if (!pl_map_avframe_ex(placebo_vulkan->gpu, &placebo_frame, &avparams))
+        if (!pl_map_avframe_ex(placebo_vulkan->gpu, &placebo_frame, &avparams)) {
             qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
-
-        pl_rect2df crop = placebo_frame.crop;
-        switch (video_mode) {
-        case VideoMode::Normal:
-            pl_rect2df_aspect_copy(&target_frame.crop, &crop, 0.0);
-            break;
-        case VideoMode::Stretch:
-            // Nothing to do, target.crop already covers the full image
-            break;
-        case VideoMode::Zoom:
-            pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
-            break;
+        } else {
+            pl_rect2df crop = placebo_frame.crop;
+            switch (video_mode) {
+            case VideoMode::Normal:
+                pl_rect2df_aspect_copy(&target_frame.crop, &crop, 0.0);
+                break;
+            case VideoMode::Stretch:
+                // Nothing to do, target.crop already covers the full image
+                break;
+            case VideoMode::Zoom:
+                pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
+                break;
+            }
+            pl_swapchain_colorspace_hint(placebo_swapchain, &placebo_frame.color);
         }
-        pl_swapchain_colorspace_hint(placebo_swapchain, &placebo_frame.color);
     }
 
     const struct pl_render_params *render_params;
@@ -709,7 +710,7 @@ void QmlMainWindow::render()
         render_params = &pl_render_high_quality_params;
         break;
     }
-    if (!pl_render_image(placebo_renderer, current_frame ? &placebo_frame : nullptr, &target_frame, render_params))
+    if (!pl_render_image(placebo_renderer, placebo_frame.num_planes ? &placebo_frame : nullptr, &target_frame, render_params))
         qCWarning(chiakiGui) << "Failed to render Placebo frame!";
 
     if (!pl_swapchain_submit_frame(placebo_swapchain))
