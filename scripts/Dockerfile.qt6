@@ -1,0 +1,51 @@
+FROM docker.io/stateoftheartio/qt6:6.6-gcc-aqt
+
+RUN sudo apt-get update
+RUN sudo apt-get install -y software-properties-common gpg wget
+RUN sudo add-apt-repository ppa:deadsnakes/ppa
+RUN sudo apt-get -y install \
+    git \
+    g++ \
+    ninja-build \
+    curl \
+    pkg-config \
+    unzip \
+    python3-pip \
+    libssl-dev \
+    libopus-dev  \
+    libgl1-mesa-dev \
+    nasm \
+    libudev-dev \
+    libva-dev \
+    fuse \
+    appstream \
+    file \
+    libevdev-dev \
+    libudev-dev \
+    libhidapi-dev \
+    libfftw3-dev \
+    libspeexdsp-dev \
+    libdrm-dev \
+    liblcms2-dev \
+    libvulkan-dev \
+    libxkbcommon-dev \
+    libpulse-dev
+
+RUN (curl -L https://apt.kitware.com/kitware-archive.sh | sudo bash) && sudo apt-get -y install cmake
+
+RUN wget https://github.com/KhronosGroup/Vulkan-Headers/archive/v1.3.275.tar.gz && \
+    tar xf v1.3.275.tar.gz && \
+    cd Vulkan-Headers-1.3.275 && \
+    cmake -Bbuild -GNinja -DCMAKE_INSTALL_PREFIX=/usr && \
+    sudo ninja -Cbuild install
+
+RUN wget https://github.com/KhronosGroup/glslang/archive/13.1.1.tar.gz && \
+    tar xf 13.1.1.tar.gz && \
+    cd glslang-13.1.1 && \
+    cmake -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DALLOW_EXTERNAL_SPIRV_TOOLS=ON -DBUILD_SHARED_LIBS=OFF && \
+    sudo ninja -Cbuild install
+
+RUN sudo pip3 install protobuf==3.19.5
+RUN sudo pip3 install meson==1.3.0
+
+CMD []

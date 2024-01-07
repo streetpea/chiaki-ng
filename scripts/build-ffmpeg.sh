@@ -9,8 +9,7 @@ ROOT="`pwd`"
 TAG=n6.1
 
 git clone https://git.ffmpeg.org/ffmpeg.git --depth 1 -b $TAG && cd ffmpeg || exit 1
-git apply ${SCRIPT_DIR}/flatpak/0001-hevc-Fix-duplicate-POC-in-sequence.patch || exit 1
 git apply ${SCRIPT_DIR}/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch || exit 1
-./configure --disable-all --enable-libdrm --enable-avcodec --enable-decoder=h264 --enable-decoder=hevc --enable-hwaccel=h264_vaapi --enable-hwaccel=hevc_vaapi --enable-hwaccel=h264_vulkan --enable-hwaccel=hevc_vulkan --prefix="$ROOT/ffmpeg-prefix" "$@" || exit 1
+./configure --disable-all --enable-static --enable-avformat --enable-libdrm --enable-avcodec --enable-decoder=h264 --enable-decoder=hevc --enable-hwaccel=h264_vaapi --enable-hwaccel=hevc_vaapi --enable-hwaccel=h264_vulkan --enable-hwaccel=hevc_vulkan --prefix=/usr "$@" || exit 1
 make -j4 || exit 1
 make install || exit 1
