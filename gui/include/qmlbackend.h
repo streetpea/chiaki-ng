@@ -102,7 +102,9 @@ private:
 
     DisplayServer displayServerAt(int index) const;
     bool sendWakeup(const DisplayServer &server);
+    bool sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5);
     void updateControllers();
+    void updateDiscoveryHosts();
 
     Settings *settings = {};
     QmlSettings *settings_qml = {};

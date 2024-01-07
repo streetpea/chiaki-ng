@@ -95,7 +95,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::hostsChanged);
+    connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     setDiscoveryEnabled(discoveryEnabled());
 
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
@@ -495,9 +495,13 @@ bool QmlBackend::sendWakeup(const DisplayServer &server)
 {
     if (!server.registered)
         return false;
+    return sendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(), server.IsPS5());
+}
+
+bool QmlBackend::sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5)
+{
     try {
-        discovery_manager.SendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(),
-                chiaki_target_is_ps5(server.registered_host.GetTarget()));
+        discovery_manager.SendWakeup(host, regist_key, ps5);
         return true;
     } catch (const Exception &e) {
         emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
@@ -528,4 +532,27 @@ void QmlBackend::updateControllers()
     }
     if (changed)
         emit controllersChanged();
+}
+
+void QmlBackend::updateDiscoveryHosts()
+{
+    if (session && session->IsConnecting()) {
+        // Wakeup console that we are currently connecting to
+        for (auto host : discovery_manager.GetHosts()) {
+            if (host.state != CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+                continue;
+            if (host.host_addr != session_info.host)
+                continue;
+            if (host.ps5 != chiaki_target_is_ps5(session_info.target))
+                continue;
+            if (!settings->GetRegisteredHostRegistered(host.GetHostMAC()))
+                continue;
+            auto registered = settings->GetRegisteredHost(host.GetHostMAC());
+            if (registered.GetRPRegistKey() == session_info.regist_key) {
+                sendWakeup(host.host_addr, registered.GetRPRegistKey(), host.ps5);
+                break;
+            }
+        }
+    }
+    emit hostsChanged();
 }

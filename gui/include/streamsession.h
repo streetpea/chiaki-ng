@@ -218,6 +218,7 @@ class StreamSession : public QObject
 		~StreamSession();
 
 		bool IsConnected()	{ return connected; }
+		bool IsConnecting()	{ return connect_timer.isValid(); }
 
 		void Start();
 		void Stop();
