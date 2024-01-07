@@ -13,8 +13,8 @@ add_library(sdeck
 
 target_include_directories(sdeck PUBLIC include)
 
-find_package(HIDAPI REQUIRED)
-target_link_libraries(sdeck HIDAPI::hidapi)
+find_package(HIDAPI REQUIRED COMPONENTS hidraw)
+target_link_libraries(sdeck HIDAPI::hidapi-hidraw)
 target_link_libraries(sdeck m)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
