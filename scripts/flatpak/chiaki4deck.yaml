@@ -24,6 +24,7 @@ finish-args:
   - --env=QML_IMPORT_PATH=/app/qml
   - --env=QML_DISABLE_DISK_CACHE=1
   - --talk-name=org.freedesktop.ScreenSaver
+  - --system-talk-name=org.freedesktop.login1
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host

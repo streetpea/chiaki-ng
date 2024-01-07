@@ -409,6 +409,8 @@ StreamSession::~StreamSession()
 
 void StreamSession::Start()
 {
+	if(!connect_timer.isValid())
+		connect_timer.start();
 	ChiakiErrorCode err = chiaki_session_start(&session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
@@ -1209,10 +1211,18 @@ void StreamSession::Event(ChiakiEvent *event)
 	switch(event->type)
 	{
 		case CHIAKI_EVENT_CONNECTED:
+			connect_timer.invalidate();
 			connected = true;
+			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
+			if(!connected && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
+			{
+				QTimer::singleShot(1000, this, &StreamSession::Start);
+				return;
+			}
 			connected = false;
+			emit ConnectedChanged();
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
