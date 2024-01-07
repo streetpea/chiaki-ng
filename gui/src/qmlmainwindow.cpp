@@ -735,11 +735,11 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
         return true;
     case Qt::Key_S:
         if (has_video)
-            video_mode = video_mode == VideoMode::Stretch ? VideoMode::Normal : VideoMode::Stretch;
+            setVideoMode(videoMode() == VideoMode::Stretch ? VideoMode::Normal : VideoMode::Stretch);
         return true;
     case Qt::Key_Z:
         if (has_video)
-            video_mode = video_mode == VideoMode::Zoom ? VideoMode::Normal : VideoMode::Zoom;
+            setVideoMode(videoMode() == VideoMode::Zoom ? VideoMode::Normal : VideoMode::Zoom);
         return true;
     case Qt::Key_M:
         if (session)
