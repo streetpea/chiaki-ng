@@ -40,6 +40,11 @@ class SettingsDialog : public QDialog
 		QCheckBox *pi_decoder_check_box;
 		QComboBox *hw_decoder_combo_box;
 		QComboBox *renderer_combo_box;
+
+		QListWidget *local_ssid_list;
+		QLineEdit *external_address_edit;
+		QPushButton *add_local_ssid_button;
+		QPushButton *remove_local_ssid_button;
 #if CHIAKI_GUI_ENABLE_PLACEBO
 		QComboBox *placebo_preset_combo_box;
 
@@ -79,6 +84,7 @@ class SettingsDialog : public QDialog
 		void HardwareDecodeEngineSelected();
 		void UpdateHardwareDecodeEngineComboBox();
 		void RendererSelected();
+		void ExternalAddressEdited();
 #if CHIAKI_GUI_ENABLE_PLACEBO
 		void PlaceboPresetSelected();
 #endif
@@ -87,6 +93,11 @@ class SettingsDialog : public QDialog
 		void UpdateRegisteredHostsButtons();
 		void RegisterNewHost();
 		void DeleteRegisteredHost();
+
+		void UpdateLocalSSIDs();
+		void UpdateLocalSSIDsButtons();
+		void AddLocalSSID();
+		void DeleteLocalSSID();
 
 	public:
 		SettingsDialog(Settings *settings, QWidget *parent = nullptr);

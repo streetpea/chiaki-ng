@@ -34,13 +34,14 @@ class DiscoveryManager : public QObject
 		ChiakiLog log;
 		ChiakiDiscoveryService service;
 		bool service_active;
+		bool queueResponses;
 		QList<DiscoveryHost> hosts;
 
 	private slots:
 		void DiscoveryServiceHosts(QList<DiscoveryHost> hosts);
 
 	public:
-		explicit DiscoveryManager(QObject *parent = nullptr);
+		explicit DiscoveryManager(QObject *parent = nullptr, bool queueResponses = true);
 		~DiscoveryManager();
 
 		void SetActive(bool active);

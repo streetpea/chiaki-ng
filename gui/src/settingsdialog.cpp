@@ -21,8 +21,10 @@
 #include <QCheckBox>
 #include <QLineEdit>
 #include <QtConcurrent>
+#include <QLabel>
 #include <QFutureWatcher>
 #include <QTabWidget>
+#include <QInputDialog>
 #if CHIAKI_GUI_ENABLE_SPEEX
 #include <QSlider>
 #include <QLabel>
@@ -31,6 +33,8 @@
 
 #include <chiaki/config.h>
 #include <chiaki/ffmpegdecoder.h>
+
+#include "autoconnecthelper.h"
 
 const char * const about_string =
 	"<h1>chiaki4deck</h1> by Street Pea, version " CHIAKI_VERSION
@@ -253,9 +257,11 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	});
 
 	// Stream Settings
+	auto other_top_section = new QHBoxLayout();
+	other_layout->addLayout(other_top_section);
 
 	auto stream_settings_group_box = new QGroupBox(tr("Stream Settings"));
-	other_layout->addWidget(stream_settings_group_box);
+	other_top_section->addWidget(stream_settings_group_box);
 
 	auto stream_settings_layout = new QFormLayout();
 	stream_settings_group_box->setLayout(stream_settings_layout);
@@ -330,8 +336,53 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 	audio_buffer_size_edit->setPlaceholderText(tr("Default (%1)").arg(settings->GetAudioBufferSizeDefault()));
 	connect(audio_buffer_size_edit, &QLineEdit::textEdited, this, &SettingsDialog::AudioBufferSizeEdited);
 
-	// Decode Settings
+#ifdef CHIAKI_ENABLE_CLI
+	// External Access Settings
+	auto external_settings_group_box = new QGroupBox(tr("External Access Settings"));
+	other_top_section->addWidget(external_settings_group_box);
 
+	auto external_settings_layout = new QHBoxLayout();
+	external_settings_group_box->setLayout(external_settings_layout);
+
+	auto external_settings_layout_left = new QVBoxLayout();
+	external_settings_layout->addLayout(external_settings_layout_left);
+
+	auto external_settings_layout_right = new QVBoxLayout();
+	external_settings_layout->addLayout(external_settings_layout_right);
+
+	auto local_ssid_label = new QLabel(tr("Local Network SSIDs"));
+	external_settings_layout_left->addWidget(local_ssid_label);
+
+	local_ssid_list = new QListWidget();
+	external_settings_layout_left->addWidget(local_ssid_list);
+
+	auto external_address_label = new QLabel(tr("Exterrnal Address"));
+	external_settings_layout_right->addWidget(external_address_label);
+
+	external_address_edit = new QLineEdit();
+	external_settings_layout_right->addWidget(external_address_edit);
+	external_address_edit->setText(settings->GetExternalAddress());
+	connect(external_address_edit, &QLineEdit::textEdited, this, &SettingsDialog::ExternalAddressEdited);
+
+	external_settings_layout_right->addStretch();
+
+	add_local_ssid_button = new QPushButton(tr("Add Local SSID"));
+	external_settings_layout_right->addWidget(add_local_ssid_button);
+
+	remove_local_ssid_button = new QPushButton(tr("Remove Local SSID"));
+	external_settings_layout_right->addWidget(remove_local_ssid_button);
+
+	UpdateLocalSSIDs();
+	UpdateLocalSSIDsButtons();
+
+	connect(settings, &Settings::LocalSSIDsUpdated, this, &SettingsDialog::UpdateLocalSSIDs);
+	connect(local_ssid_list, &QListWidget::itemSelectionChanged, this, &SettingsDialog::UpdateLocalSSIDsButtons);
+
+	connect(add_local_ssid_button, &QPushButton::clicked, this, &SettingsDialog::AddLocalSSID);
+	connect(remove_local_ssid_button, &QPushButton::clicked, this, &SettingsDialog::DeleteLocalSSID);
+#endif
+
+	// Decode Settings
 	auto decode_settings = new QGroupBox(tr("Decode Settings"));
 	other_layout->addWidget(decode_settings);
 
@@ -594,6 +645,10 @@ void SettingsDialog::RendererSelected()
 #endif
 }
 
+void SettingsDialog::ExternalAddressEdited() {
+	settings->SetExternalAddress(external_address_edit->text());
+}
+
 #if CHIAKI_GUI_ENABLE_PLACEBO
 void SettingsDialog::PlaceboPresetSelected()
 {
@@ -645,4 +700,44 @@ void SettingsDialog::DeleteRegisteredHost()
 		return;
 
 	settings->RemoveRegisteredHost(mac);
+}
+
+void SettingsDialog::UpdateLocalSSIDs() {
+	local_ssid_list->clear();
+	auto local_ssids = settings->GetLocalSSIDs();
+	for(const auto &local_ssid : local_ssids)
+	{
+		auto item = new QListWidgetItem(local_ssid);
+		local_ssid_list->addItem(item);
+	}
+}
+
+void SettingsDialog::UpdateLocalSSIDsButtons() {
+	remove_local_ssid_button->setEnabled(local_ssid_list->currentIndex().isValid());
+}
+
+void SettingsDialog::AddLocalSSID() {
+	QString placeholderText;
+	QString currentSSID = AutoConnectHelper::GetCurrentSSID();
+	auto local_ssids = settings->GetLocalSSIDs();
+	if (!local_ssids.contains(currentSSID)) {
+		placeholderText = currentSSID;
+	}
+	QString new_ssid = QInputDialog::getText(nullptr, "New Local SSID", "Name of Local SSID:", QLineEdit::Normal, placeholderText);
+	if (!new_ssid.isEmpty()) {
+		settings->AddLocalSSID(new_ssid);
+	}
+}
+
+void SettingsDialog::DeleteLocalSSID() {
+	auto item = local_ssid_list->currentItem();
+	if(!item)
+		return;
+
+	int r = QMessageBox::question(this, tr("Delete local SSID"),
+			tr("Are you sure you want to remove the local SSID: %1?").arg(item->text()));
+	if(r != QMessageBox::Yes)
+		return;
+
+	settings->RemoveLocalSSID(item->text());
 }

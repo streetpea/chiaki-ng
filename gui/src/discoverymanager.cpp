@@ -26,9 +26,9 @@ HostMAC DiscoveryHost::GetHostMAC() const
 	return HostMAC((uint8_t *)data.constData());
 }
 
-static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
+static void DiscoveryServiceHostsCallback(bool queueResponses, ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
 
-DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
+DiscoveryManager::DiscoveryManager(QObject *parent, bool queueResponses) : QObject(parent), queueResponses(queueResponses)
 {
 	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, nullptr);
 
@@ -50,6 +50,7 @@ void DiscoveryManager::SetActive(bool active)
 	if(active)
 	{
 		ChiakiDiscoveryServiceOptions options;
+		options.queueResponses = queueResponses;
 		options.ping_ms = PING_MS;
 		options.hosts_max = HOSTS_MAX;
 		options.host_drop_pings = DROP_PINGS;
@@ -114,13 +115,16 @@ void DiscoveryManager::DiscoveryServiceHosts(QList<DiscoveryHost> hosts)
 class DiscoveryManagerPrivate
 {
 	public:
-		static void DiscoveryServiceHosts(DiscoveryManager *discovery_manager, const QList<DiscoveryHost> &hosts)
-		{
-			QMetaObject::invokeMethod(discovery_manager, "DiscoveryServiceHosts", Qt::ConnectionType::QueuedConnection, Q_ARG(QList<DiscoveryHost>, hosts));
+		static void DiscoveryServiceHosts(bool queueResponses, DiscoveryManager *discovery_manager, const QList<DiscoveryHost> &hosts) {
+			if (queueResponses){
+				QMetaObject::invokeMethod(discovery_manager, "DiscoveryServiceHosts", Qt::ConnectionType::QueuedConnection, Q_ARG(QList<DiscoveryHost>, hosts));
+			} else {
+			 	discovery_manager->DiscoveryServiceHosts(hosts);
+			}
 		}
 };
 
-static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
+static void DiscoveryServiceHostsCallback(bool queueResponses, ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
 {
 	QList<DiscoveryHost> hosts_list;
 	hosts_list.reserve(hosts_count);
@@ -138,5 +142,5 @@ static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hos
 		hosts_list.append(o);
 	}
 
-	DiscoveryManagerPrivate::DiscoveryServiceHosts(reinterpret_cast<DiscoveryManager *>(user), hosts_list);
+	DiscoveryManagerPrivate::DiscoveryServiceHosts(queueResponses, reinterpret_cast<DiscoveryManager *>(user), hosts_list);
 }

@@ -52,7 +52,8 @@ set(SOURCE_FILES
 		include/psnaccountid.h
 		src/psnaccountid.cpp
 		include/jsonrequester.h
-		src/jsonrequester.cpp)
+		src/jsonrequester.cpp
+		include/autoconnecthelper.h)
 set(RESOURCE_FILES "")
 
 set(UI_FILES ui/shortcutdialog.ui)
