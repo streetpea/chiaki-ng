@@ -116,6 +116,7 @@ int real_main(int argc, char *argv[])
 	QStringList cmds;
 	cmds.append("stream");
 	cmds.append("list");
+	cmds.append("autoconnect");
 #ifdef CHIAKI_ENABLE_CLI
 	cmds.append(cli_commands.keys());
 #endif
@@ -235,6 +236,119 @@ int real_main(int argc, char *argv[])
 			}
 		}
 		
+		StreamSessionConnectInfo connect_info(
+				&settings,
+				target,
+				host,
+				regist_key,
+				morning,
+				initial_login_passcode,
+				parser.isSet(fullscreen_option),
+				parser.isSet(zoom_option),
+				parser.isSet(stretch_option));
+
+		return RunStream(app, connect_info);
+	}
+	if(args[0] == "autoconnect") {
+		QString host;
+		QByteArray morning;
+		QByteArray regist_key;
+		QString initial_login_passcode;
+		QString mac;
+		bool isPS5;
+		ChiakiTarget target = CHIAKI_TARGET_PS4_10;
+
+		if ((parser.isSet(stretch_option) && (parser.isSet(zoom_option) || parser.isSet(fullscreen_option))) || (parser.isSet(zoom_option) && parser.isSet(fullscreen_option)))
+		{
+			printf("Must choose between fullscreen, zoom or stretch option.");
+			return 1;
+		}
+		if(parser.value(passcode_option).isEmpty())
+		{
+			//Set to empty if it wasn't given by user.
+			initial_login_passcode = QString("");
+		}
+		else
+		{
+			initial_login_passcode = parser.value(passcode_option);
+			if(initial_login_passcode.length() != 4)
+			{
+				printf("Login passcode must be 4 digits. You entered %d digits)\n", initial_login_passcode.length());
+				return 1;
+			}
+		}
+
+		DiscoveryManager discovery_manager(nullptr, false);
+		discovery_manager.SetActive(true);
+
+		bool found = false;
+		for(const auto &temphost : settings.GetRegisteredHosts())
+		{
+			if(temphost.GetServerNickname() == args[1])
+			{
+				found = true;
+				morning = temphost.GetRPKey();
+				regist_key = temphost.GetRPRegistKey();
+				target = temphost.GetTarget();
+				mac = temphost.GetServerMAC().ToString();
+				break;
+			}
+		}
+		if(!found)
+		{
+			printf("No configuration found for '%s'\n", args[1].toLocal8Bit().constData());
+			return 1;
+		}
+
+		//We'll need to run discover to find the IP address. Let's check every second
+		int discovery_timeout = 45;
+
+		// Start the timer
+		QElapsedTimer timer;
+		timer.start();
+		printf("Looking for %s",mac.toStdString().c_str());
+		bool discovered = false;
+		while (!discovered && timer.elapsed() / 1000 < discovery_timeout) {
+			for(const auto &registered_host : discovery_manager.GetHosts()) {
+				if (registered_host.GetHostMAC().ToString() == mac) {
+					host = registered_host.host_addr;
+					isPS5 = registered_host.ps5;
+					discovered = true;
+					break;
+				}
+			}
+		}
+
+		if (!discovered) {
+			printf("Unable to find '%s' on current network\n", args[1].toLocal8Bit().constData());
+			return 1;
+		}
+
+		//Send the wakeup packet
+		discovery_manager.SendWakeup(host, regist_key, isPS5);
+		//Restart the discovery manager to clear our the hosts
+		discovery_manager.SetActive(false);
+		discovery_manager.SetActive(true);
+
+		//Wait for the console to respond to the discover again
+		timer.restart();
+		printf("Looking again for %s",mac.toStdString().c_str());
+		discovered = false;
+		while (!discovered && timer.elapsed() / 1000 < discovery_timeout) {
+			for(const auto &registered_host : discovery_manager.GetHosts()) {
+				if (registered_host.GetHostMAC().ToString() == mac) {
+					discovered = true;
+					break;
+				}
+			}
+		}
+
+		if (!discovered) {
+			printf("Console '%s' didn't wake up in time\n", args[1].toLocal8Bit().constData());
+			return 1;
+		}
+
+		//Start the stream
 		StreamSessionConnectInfo connect_info(
 				&settings,
 				target,

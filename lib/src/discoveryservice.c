@@ -287,5 +287,5 @@ static void discovery_service_report_state(ChiakiDiscoveryService *service)
 {
 	// service->state_mutex must be locked
 	if(service->options.cb)
-		service->options.cb(service->hosts, service->hosts_count, service->options.cb_user);
+		service->options.cb(service->options.queueResponses, service->hosts, service->hosts_count, service->options.cb_user);
 }
