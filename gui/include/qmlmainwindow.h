@@ -79,7 +79,7 @@ public:
     Q_INVOKABLE void releaseInput();
 
     void show();
-    void presentFrame(AVFrame *frame);
+    void presentFrame(AVFrame *frame, int32_t frames_lost);
 
     AVBufferRef *vulkanHwDeviceCtx();
     static QSurfaceFormat createSurfaceFormat();

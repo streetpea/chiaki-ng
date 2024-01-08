@@ -233,10 +233,13 @@ QSet<int> ControllerManager::GetAvailableControllers()
 
 Controller *ControllerManager::OpenController(int device_id)
 {
-	if(open_controllers.contains(device_id))
-		return nullptr;
-	auto controller = new Controller(device_id, this);
-	open_controllers[device_id] = controller;
+	Controller *controller = open_controllers.value(device_id);
+	if(!controller)
+	{
+		controller = new Controller(device_id, this);
+		open_controllers[device_id] = controller;
+	}
+	controller->Ref();
 	return controller;
 }
 
@@ -246,7 +249,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 }
 
 Controller::Controller(int device_id, ControllerManager *manager)
-: QObject(manager), is_dualsense(false), is_steamdeck(false)
+: QObject(manager), ref(0), is_dualsense(false), is_steamdeck(false)
 {
 	this->id = device_id;
 	this->manager = manager;
@@ -281,6 +284,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 
 Controller::~Controller()
 {
+	Q_ASSERT(ref == 0);
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(controller)
 	{
@@ -290,7 +294,6 @@ Controller::~Controller()
 		SDL_GameControllerClose(controller);
 	}
 #endif
-	manager->ControllerClosed(this);
 }
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -487,6 +490,20 @@ inline bool Controller::HandleTouchpadEvent(SDL_ControllerTouchpadEvent event)
 }
 #endif
 #endif
+
+void Controller::Ref()
+{
+	ref++;
+}
+
+void Controller::Unref()
+{
+	if(--ref == 0)
+	{
+		manager->ControllerClosed(this);
+		deleteLater();
+	}
+}
 
 bool Controller::IsConnected()
 {

@@ -10,6 +10,8 @@
 #include <QThread>
 #include <QJSValue>
 
+class SystemdInhibit;
+
 class QmlRegist : public QObject
 {
     Q_OBJECT
@@ -99,8 +101,10 @@ private:
     };
 
     DisplayServer displayServerAt(int index) const;
-    void sendWakeup(const DisplayServer &server);
+    bool sendWakeup(const DisplayServer &server);
+    bool sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5);
     void updateControllers();
+    void updateDiscoveryHosts();
 
     Settings *settings = {};
     QmlSettings *settings_qml = {};
@@ -110,4 +114,7 @@ private:
     DiscoveryManager discovery_manager;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;
+    StreamSessionConnectInfo session_info = {};
+    SystemdInhibit *sleep_inhibit = {};
+    bool resume_session = false;
 };

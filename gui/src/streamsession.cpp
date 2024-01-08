@@ -343,7 +343,7 @@ StreamSession::~StreamSession()
 #endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	for(auto controller : controllers)
-		delete controller;
+		controller->Unref();
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
@@ -409,6 +409,8 @@ StreamSession::~StreamSession()
 
 void StreamSession::Start()
 {
+	if(!connect_timer.isValid())
+		connect_timer.start();
 	ChiakiErrorCode err = chiaki_session_start(&session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
@@ -642,7 +644,7 @@ void StreamSession::UpdateGamepads()
 				haptics_sdeck++;
 			}
 #endif
-			delete controller;
+			controller->Unref();
 		}
 	}
 
@@ -723,18 +725,26 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	spec.samples = audio_buffer_size / audio_out_sample_size;
 
 	SDL_AudioSpec obtained;
-	audio_out = SDL_OpenAudioDevice(audio_out_device_name.isEmpty() ? nullptr : qPrintable(audio_out_device_name), false, &spec, &obtained, false);
+	audio_out = SDL_OpenAudioDevice(audio_out_device_name.isEmpty() ? nullptr : qUtf8Printable(audio_out_device_name), false, &spec, &obtained, false);
 	if(!audio_out)
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Output Device: %s", SDL_GetError());
-		return;
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Output Device '%s': %s", qPrintable(audio_out_device_name), SDL_GetError());
+		if(audio_out_device_name.isEmpty())
+			return;
+		audio_out_device_name.clear();
+		audio_out = SDL_OpenAudioDevice(nullptr, false, &spec, &obtained, false);
+		if(!audio_out)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open default Audio Output Device: %s", SDL_GetError());
+			return;
+		}
 	}
 
 	audio_out_drain_queue = false;
 
 	SDL_PauseAudioDevice(audio_out, 0);
 
-	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device %s opened with %u channels @ %d Hz, buffer size %u",
+	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
 				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
 	allow_unmute = true;
 }
@@ -793,14 +803,22 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	spec.userdata = this;
 
 	SDL_AudioSpec obtained;
-	audio_in = SDL_OpenAudioDevice(audio_in_device_name.isEmpty() ? nullptr : qPrintable(audio_in_device_name), true, &spec, &obtained, false);
+	audio_in = SDL_OpenAudioDevice(audio_in_device_name.isEmpty() ? nullptr : qUtf8Printable(audio_in_device_name), true, &spec, &obtained, false);
 	if(!audio_in)
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Audio Input Device: %s", SDL_GetError());
-		return;
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Microphone '%s': %s", qPrintable(audio_in_device_name), SDL_GetError());
+		if(audio_in_device_name.isEmpty())
+			return;
+		audio_in_device_name.clear();
+		audio_in = SDL_OpenAudioDevice(nullptr, true, &spec, &obtained, false);
+		if(!audio_in)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open default Microphone: %s", SDL_GetError());
+			return;
+		}
 	}
 
-	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone %s opened with %u channels @ %u Hz, buffer size %u",
+	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone '%s' opened with %u channels @ %u Hz, buffer size %u",
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
 }
 
@@ -1193,10 +1211,18 @@ void StreamSession::Event(ChiakiEvent *event)
 	switch(event->type)
 	{
 		case CHIAKI_EVENT_CONNECTED:
+			connect_timer.invalidate();
 			connected = true;
+			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
+			if(!connected && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
+			{
+				QTimer::singleShot(1000, this, &StreamSession::Start);
+				return;
+			}
 			connected = false;
+			emit ConnectedChanged();
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
