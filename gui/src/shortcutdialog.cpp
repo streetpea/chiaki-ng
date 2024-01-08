@@ -3,7 +3,6 @@
 #include <array>
 #include <filesystem>
 #include <fstream>
-#include <QComboBox>
 #include <qeventloop.h>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -105,21 +104,17 @@ QString ShortcutDialog::getExecutable() {
         return buffer;
     }
 #elif defined(__linux)
-    std::string chiakiFlatpakDir = "";
-
-    chiakiFlatpakDir.append(getenv("HOME"));
-    chiakiFlatpakDir.append("/.var/app/io.github.streetpea.Chiaki4deck");
-    //Installed via Flatpak
-    if (access(chiakiFlatpakDir.c_str(), 0) == 0) {
-        return "flatpak run io.github.streetpea.Chiaki4deck";
-    }
-    else {
+    //Check if we're a flatpak
+    const char* flatpakId = getenv("FLATPAK_ID");
+    if (flatpakId != nullptr) {
+        return QString("flatpak run %1").arg(flatpakId);
+    } else {
         char buffer[PATH_MAX];
         ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
 
         if (len != -1) {
             buffer[len] = '\0';
-            return std::string(buffer);
+            return QString::fromUtf8(buffer);
         }
     }
 #endif
