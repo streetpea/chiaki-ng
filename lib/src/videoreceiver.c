@@ -37,8 +37,82 @@ static bool have_ref_frame(ChiakiVideoReceiver *video_receiver, int32_t frame)
 	return false;
 }
 
-#define SLICE_TYPE_H265_P 1
-#define SLICE_TYPE_H265_I 2
+#define SLICE_TYPE_UNKNOWN 0
+#define SLICE_TYPE_I 1
+#define SLICE_TYPE_P 2
+
+static bool parse_slice_h264(ChiakiVideoReceiver *video_receiver, uint8_t *data, unsigned size, unsigned *slice_type, unsigned *ref_frame)
+{
+	struct vl_vlc vlc = {0};
+	vl_vlc_init(&vlc, data, size);
+	if(vl_vlc_peekbits(&vlc, 32) != 1)
+	{
+		CHIAKI_LOGW(video_receiver->log, "parse_slice_h264: No startcode found");
+		return false;
+	}
+	vl_vlc_eatbits(&vlc, 32);
+	vl_vlc_fillbits(&vlc);
+
+	vl_vlc_eatbits(&vlc, 1); // forbidden_zero_bit
+	vl_vlc_eatbits(&vlc, 2); // nal_ref_idc
+	unsigned nal_unit_type = vl_vlc_get_uimsbf(&vlc, 5);
+
+	if(nal_unit_type != 1 && nal_unit_type != 5)
+	{
+		CHIAKI_LOGW(video_receiver->log, "parse_slice_h264: Unexpected NAL unit type %u", nal_unit_type);
+		return false;
+	}
+
+	struct vl_rbsp rbsp;
+	vl_rbsp_init(&rbsp, &vlc, ~0);
+	vl_rbsp_ue(&rbsp); // first_mb_in_slice
+
+	switch(vl_rbsp_ue(&rbsp))
+	{
+		case 0:
+		case 5:
+			*slice_type = SLICE_TYPE_P;
+			break;
+		case 2:
+		case 7:
+			*slice_type = SLICE_TYPE_I;
+			break;
+		default:
+			*slice_type = SLICE_TYPE_UNKNOWN;
+			break;
+	}
+
+	if(nal_unit_type == 1)
+	{
+		*ref_frame = 0;
+		vl_rbsp_ue(&rbsp); // pic_parameter_set_id
+		vl_rbsp_u(&rbsp, 7); // frame_num FIXME: should be u(log2_max_frame_num_minus4 + 4)
+		if(vl_rbsp_u(&rbsp, 1)) // num_ref_idx_active_override_flag
+			if(vl_rbsp_u(&rbsp, 1)) // num_ref_idx_active_override_flag
+				vl_rbsp_ue(&rbsp); // num_ref_idx_l0_active_minus1
+		if(vl_rbsp_u(&rbsp, 1)) // ref_pic_list_modification_flag_l0
+		{
+			unsigned i = 0;
+			unsigned modification_of_pic_nums_idc = vl_rbsp_ue(&rbsp);
+			while(i++<3)
+			{
+				if(modification_of_pic_nums_idc == 0)
+					*ref_frame = vl_rbsp_ue(&rbsp); // abs_diff_pic_num_minus1
+				else if(modification_of_pic_nums_idc < 3)
+					vl_rbsp_ue(&rbsp); // abs_diff_pic_num_minus1 or long_term_pic_num
+				else if(modification_of_pic_nums_idc == 3)
+					return true;
+				else
+					break;
+				modification_of_pic_nums_idc = vl_rbsp_ue(&rbsp);
+			}
+			CHIAKI_LOGW(video_receiver->log, "parse_slice_h264: Failed to parse ref_pic_list_modification");
+			return false;
+		}
+	}
+
+	return true;
+}
 
 static bool parse_slice_h265(ChiakiVideoReceiver *video_receiver, uint8_t *data, unsigned size, unsigned *slice_type, unsigned *ref_frame)
 {
@@ -73,7 +147,18 @@ static bool parse_slice_h265(ChiakiVideoReceiver *video_receiver, uint8_t *data,
 	if(!first_slice_segment_in_pic_flag)
 		vl_rbsp_ue(&rbsp); // slice_segment_address
 
-	*slice_type = vl_rbsp_ue(&rbsp);
+	switch(vl_rbsp_ue(&rbsp))
+	{
+		case 1:
+			*slice_type = SLICE_TYPE_P;
+			break;
+		case 2:
+			*slice_type = SLICE_TYPE_I;
+			break;
+		default:
+			*slice_type = SLICE_TYPE_UNKNOWN;
+			break;
+	}
 
 	if(nal_unit_type == 1)
 	{
@@ -237,30 +322,32 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 
 	bool succ = flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED;
 
-	if(video_receiver->session->connect_info.video_profile.codec > CHIAKI_CODEC_H264)
+	bool parse_succ = false;
+	unsigned slice_type, ref_frame;
+	if(video_receiver->session->connect_info.video_profile.codec == CHIAKI_CODEC_H264)
+		parse_succ = parse_slice_h264(video_receiver, frame, frame_size, &slice_type, &ref_frame);
+	else
+		parse_succ = parse_slice_h265(video_receiver, frame, frame_size, &slice_type, &ref_frame);
+	if(parse_succ)
 	{
-		unsigned slice_type, ref_frame;
-		if(parse_slice_h265(video_receiver, frame, frame_size, &slice_type, &ref_frame))
+		if(slice_type == SLICE_TYPE_I)
 		{
-			if(slice_type == SLICE_TYPE_H265_I)
+			add_ref_frame(video_receiver, video_receiver->frame_index_cur);
+			CHIAKI_LOGV(video_receiver->log, "Added reference I frame %d", (int)video_receiver->frame_index_cur);
+		}
+		else if(slice_type == SLICE_TYPE_P)
+		{
+			int32_t ref_frame_index = video_receiver->frame_index_cur - ref_frame - 1;
+			if(ref_frame == 0xff || have_ref_frame(video_receiver, ref_frame_index))
 			{
 				add_ref_frame(video_receiver, video_receiver->frame_index_cur);
-				CHIAKI_LOGV(video_receiver->log, "Added reference I frame %d", (int)video_receiver->frame_index_cur);
+				CHIAKI_LOGV(video_receiver->log, "Added reference P frame %d", (int)video_receiver->frame_index_cur);
 			}
-			else if(slice_type == SLICE_TYPE_H265_P)
+			else
 			{
-				int32_t ref_frame_index = video_receiver->frame_index_cur - ref_frame - 1;
-				if(ref_frame == 0xff || have_ref_frame(video_receiver, ref_frame_index))
-				{
-					add_ref_frame(video_receiver, video_receiver->frame_index_cur);
-					CHIAKI_LOGV(video_receiver->log, "Added reference P frame %d", (int)video_receiver->frame_index_cur);
-				}
-				else
-				{
-					succ = false;
-					video_receiver->frames_lost++;
-					CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
-				}
+				succ = false;
+				video_receiver->frames_lost++;
+				CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
 			}
 		}
 	}
