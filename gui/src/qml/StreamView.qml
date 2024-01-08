@@ -55,6 +55,16 @@ Item {
             }
 
             Label {
+                anchors {
+                    top: spinner.bottom
+                    horizontalCenter: spinner.horizontalCenter
+                    topMargin: 30
+                }
+                text: qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                visible: sessionLoading
+            }
+
+            Label {
                 id: errorTitleLabel
                 anchors {
                     bottom: spinner.top
