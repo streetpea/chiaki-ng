@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 
 #ifdef __SWITCH__
 #include <switch.h>
@@ -237,7 +238,9 @@ static ChiakiErrorCode chiaki_cond_timedwait_abs(ChiakiCond *cond, ChiakiMutex *
 	}
 	return CHIAKI_ERR_SUCCESS;
 }
+#endif
 
+#if !defined(_WIN32)
 static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
 {
 	clock_gettime(CLOCK_MONOTONIC, timeout);
@@ -251,7 +254,7 @@ static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
 }
 #endif
 
-#if !__APPLE__
+//#if !__APPLE__
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void **retval, uint64_t timeout_ms)
 {
 #if _WIN32
@@ -263,7 +266,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void
 #else
 	struct timespec timeout;
 	set_timeout(&timeout, timeout_ms);
+#ifdef __APPLE__
+	//Mac doesn't contain the definition for pthread_clockjoin_np so we can join this way.
+	//you should NEVER use an arbitrary wait like this, but as there is no official mac distribution and this is only for
+	//local development we're going to ignore it.
+	int r = pthread_mach_thread_np(thread->thread);
+	sleep(2);
+#else
 	int r = pthread_clockjoin_np(thread->thread, retval, CLOCK_MONOTONIC, &timeout);
+#endif
 	if(r != 0)
 	{
 		if(r == ETIMEDOUT)
@@ -273,7 +284,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void
 #endif
 	return CHIAKI_ERR_SUCCESS;
 }
-#endif
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_timedwait(ChiakiCond *cond, ChiakiMutex *mutex, uint64_t timeout_ms)
 {

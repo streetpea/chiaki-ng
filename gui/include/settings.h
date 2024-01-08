@@ -60,11 +60,16 @@ class Settings : public QObject
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
+		QList<QString> local_ssids;
+
 		void LoadRegisteredHosts();
 		void SaveRegisteredHosts();
 
 		void LoadManualHosts();
 		void SaveManualHosts();
+
+		void LoadLocalSSIDs();
+		void SaveLocalSSIDs();
 
 	public:
 		explicit Settings(QObject *parent = nullptr);
@@ -168,9 +173,17 @@ class Settings : public QObject
 		QMap<int, Qt::Key> GetControllerMapping();
 		QMap<Qt::Key, int> GetControllerMappingForDecoding();
 
+		QList<QString> GetLocalSSIDs() const			{ return local_ssids; }
+		void AddLocalSSID(const QString &ssid);
+		void RemoveLocalSSID(const QString &ssid);
+
+		QString GetExternalAddress() const;
+		void SetExternalAddress(QString external_address);
+
 	signals:
 		void RegisteredHostsUpdated();
 		void ManualHostsUpdated();
+		void LocalSSIDsUpdated();
 };
 
 #endif // CHIAKI_SETTINGS_H

@@ -77,6 +77,7 @@ Settings::Settings(QObject *parent) : QObject(parent)
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
 	LoadManualHosts();
+	LoadLocalSSIDs();
 }
 
 uint32_t Settings::GetLogLevelMask()
@@ -369,6 +370,54 @@ void Settings::SaveRegisteredHosts()
 		i++;
 	}
 	settings.endArray();
+}
+
+void Settings::LoadLocalSSIDs() {
+	local_ssids.clear();
+
+	int count = settings.beginReadArray("local_ssids");
+	for(int i=0; i<count; i++)
+	{
+		settings.setArrayIndex(i);
+		local_ssids.append(settings.value("ssid").toString());
+	}
+	settings.endArray();
+}
+
+void Settings::SaveLocalSSIDs() {
+	settings.beginWriteArray("local_ssids");
+	int i=0;
+	for(const auto &ssid : local_ssids)
+	{
+		settings.setArrayIndex(i);
+		settings.setValue("ssid", ssid);
+		i++;
+	}
+	settings.endArray();
+}
+
+void Settings::AddLocalSSID(const QString& ssid) {
+	if(local_ssids.contains(ssid))
+		return;
+	local_ssids.append(ssid);
+	SaveLocalSSIDs();
+	emit LocalSSIDsUpdated();
+}
+
+void Settings::RemoveLocalSSID(const QString& ssid) {
+	if(!local_ssids.contains(ssid))
+		return;
+	local_ssids.removeAll(ssid);
+	SaveLocalSSIDs();
+	emit LocalSSIDsUpdated();
+}
+
+QString Settings::GetExternalAddress() const {
+	return settings.value("settings/external_address", "").toString();
+}
+
+void Settings::SetExternalAddress(QString external_address) {
+	settings.setValue("settings/external_address", external_address);
 }
 
 void Settings::AddRegisteredHost(const RegisteredHost &host)
