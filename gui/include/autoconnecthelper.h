@@ -5,6 +5,9 @@
 #include <mach-o/dyld.h>
 #endif
 #include "discoverymanager.h"
+#ifdef __linux
+#include <limits.h>
+#endif
 
 /**
  * \brief This is a helper namespace for the Autoconnect CLI command.

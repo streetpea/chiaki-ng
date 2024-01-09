@@ -187,30 +187,23 @@ void QmlMainWindow::show()
         showNormal();
 }
 
-void QmlMainWindow::presentFrame(AVFrame *frame)
+void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
 {
-    int corrupted_now = corrupted_frames;
-
     frame_mutex.lock();
-    if (frame->decode_error_flags) {
-        corrupted_now++;
-        qCDebug(chiakiGui) << "Dropping decode error frame";
-        av_frame_free(&frame);
-    } else if (next_frame) {
+    if (next_frame) {
         qCDebug(chiakiGui) << "Dropping rendering frame";
         av_frame_free(&next_frame);
     }
-    if (frame)
-        next_frame = frame;
+    next_frame = frame;
     frame_mutex.unlock();
 
-    if (corrupted_now == corrupted_frames)
-        corrupted_now = 0;
-
-    if (corrupted_now != corrupted_frames) {
-        corrupted_frames = corrupted_now;
+    int corrupted_old = corrupted_frames;
+    if (corrupted_frames)
+        corrupted_frames--;
+    if (frames_lost)
+        corrupted_frames = frames_lost;
+    if (corrupted_old != corrupted_frames)
         emit corruptedFramesChanged();
-    }
 
     if (!has_video) {
         has_video = true;

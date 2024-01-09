@@ -68,16 +68,6 @@ Item {
                 Material.roundedScale: Material.SmallScale
             }
         }
-
-        Label {
-            anchors.centerIn: parent
-            horizontalAlignment: Qt.AlignHCenter
-            verticalAlignment: Qt.AlignVCenter
-            textFormat: Text.RichText
-            text: "%1 &nbsp;<small>%2</small>".arg(Qt.application.name).arg(Qt.application.version)
-            font.bold: true
-            font.pixelSize: 26
-        }
     }
 
     ListView {
@@ -87,6 +77,7 @@ Item {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
+            bottomMargin: 50
         }
         clip: true
         model: Chiaki.hosts
@@ -234,10 +225,19 @@ Item {
         Material.background: Material.accent
     }
 
+    Label {
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            margins: 20
+        }
+        text: Qt.application.version
+    }
+
     Image {
         anchors.centerIn: parent
-        source: "qrc:/icons/chiaki.svg"
-        sourceSize: Qt.size(Math.min(parent.width, parent.height) / 2.5, Math.min(parent.width, parent.height) / 2.5)
+        source: "qrc:/icons/chiaki4deck.svg"
+        sourceSize: Qt.size(Math.min(parent.width, parent.height) / 2, Math.min(parent.width, parent.height) / 2)
         opacity: 0.2
     }
 }

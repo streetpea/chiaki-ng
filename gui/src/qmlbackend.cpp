@@ -4,6 +4,7 @@
 #include "streamsession.h"
 #include "controllermanager.h"
 #include "psnaccountid.h"
+#include "systemdinhibit.h"
 
 #include <QUrl>
 #include <QUrlQuery>
@@ -94,11 +95,38 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::hostsChanged);
+    connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     setDiscoveryEnabled(discoveryEnabled());
 
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
     updateControllers();
+
+    sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
+    connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
+        qCInfo(chiakiGui) << "About to sleep";
+        if (session) {
+            session->Stop();
+            resume_session = true;
+        }
+    });
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this]() {
+        qCInfo(chiakiGui) << "Resumed from sleep";
+        if (resume_session) {
+            qCInfo(chiakiGui) << "Resuming session...";
+            resume_session = false;
+            createSession({
+                session_info.settings,
+                session_info.target,
+                session_info.host,
+                session_info.regist_key,
+                session_info.morning,
+                session_info.initial_login_pin,
+                session_info.fullscreen,
+                session_info.zoom,
+                session_info.stretch,
+            });
+        }
+    });
 }
 
 QmlBackend::~QmlBackend()
@@ -183,22 +211,18 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
-    qDeleteAll(controllers);
-    controllers.clear();
-    emit controllersChanged();
 
-    StreamSessionConnectInfo info = connect_info;
-    if (info.hw_decoder == "vulkan") {
-        info.hw_device_ctx = window->vulkanHwDeviceCtx();
-        if (!info.hw_device_ctx)
-            info.hw_decoder.clear();
+    session_info = connect_info;
+    if (session_info.hw_decoder == "vulkan") {
+        session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
+        if (!session_info.hw_device_ctx)
+            session_info.hw_decoder.clear();
     }
 
     try {
-        session = new StreamSession(info, this);
-    } catch(const Exception &e) {
+        session = new StreamSession(session_info, this);
+    } catch (const Exception &e) {
         emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
-        updateControllers();
         return;
     }
 
@@ -208,9 +232,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             qCCritical(chiakiGui) << "Session has no FFmpeg decoder";
             return;
         }
-        AVFrame *frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false);
+        int32_t frames_lost;
+        AVFrame *frame = chiaki_ffmpeg_decoder_pull_frame(decoder, /*hw_download*/ false, &frames_lost);
         if (frame)
-            QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame));
+            QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
     });
 
     connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {
@@ -225,15 +250,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
 
-        qDeleteAll(controllers);
-        controllers.clear();
-        emit controllersChanged();
-        connect(session, &QObject::destroyed, this, [this]() {
-            session = nullptr;
-            updateControllers();
-            emit sessionChanged(session);
-        });
         session->deleteLater();
+        session = nullptr;
+        emit sessionChanged(session);
+
+        sleep_inhibit->release();
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
@@ -248,14 +269,14 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     else if (window->windowState() != Qt::WindowFullScreen)
         window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
 
-    updateControllers();
-
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
     chiaki_log_mutex.unlock();
 
     session->Start();
     emit sessionChanged(session);
+
+    sleep_inhibit->inhibit();
 }
 
 bool QmlBackend::closeRequested()
@@ -372,11 +393,8 @@ void QmlBackend::connectToHost(int index)
         return;
     }
 
-    // Need to wake console first
-    if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY) {
-        emit error(tr("Error"), tr("Console is in standby."));
+    if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && !sendWakeup(server))
         return;
-    }
 
     QString host = server.GetHostAddr();
     StreamSessionConnectInfo info(
@@ -474,15 +492,21 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
     return {};
 }
 
-void QmlBackend::sendWakeup(const DisplayServer &server)
+bool QmlBackend::sendWakeup(const DisplayServer &server)
 {
     if (!server.registered)
-        return;
+        return false;
+    return sendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(), server.IsPS5());
+}
+
+bool QmlBackend::sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5)
+{
     try {
-        discovery_manager.SendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(),
-                chiaki_target_is_ps5(server.registered_host.GetTarget()));
-    } catch(const Exception &e) {
+        discovery_manager.SendWakeup(host, regist_key, ps5);
+        return true;
+    } catch (const Exception &e) {
         emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
+        return false;
     }
 }
 
@@ -498,25 +522,38 @@ void QmlBackend::updateControllers()
         it = controllers.erase(it);
         changed = true;
     }
-    if (session) {
-        for (Controller *controller : session->GetControllers()) {
-            if (controllers.contains(controller->GetDeviceID()))
-                continue;
-            controllers[controller->GetDeviceID()] = new QmlController(controller, window, this);
-            changed = true;
-        }
-    } else {
-        for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
-            if (controllers.contains(id))
-                continue;
-            auto controller = ControllerManager::GetInstance()->OpenController(id);
-            if (!controller)
-                continue;
-            controllers[id] = new QmlController(controller, window, this);
-            controller->setParent(controllers[id]);
-            changed = true;
-        }
+    for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
+        if (controllers.contains(id))
+            continue;
+        auto controller = ControllerManager::GetInstance()->OpenController(id);
+        if (!controller)
+            continue;
+        controllers[id] = new QmlController(controller, window, this);
+        changed = true;
     }
     if (changed)
         emit controllersChanged();
+}
+
+void QmlBackend::updateDiscoveryHosts()
+{
+    if (session && session->IsConnecting()) {
+        // Wakeup console that we are currently connecting to
+        for (auto host : discovery_manager.GetHosts()) {
+            if (host.state != CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+                continue;
+            if (host.host_addr != session_info.host)
+                continue;
+            if (host.ps5 != chiaki_target_is_ps5(session_info.target))
+                continue;
+            if (!settings->GetRegisteredHostRegistered(host.GetHostMAC()))
+                continue;
+            auto registered = settings->GetRegisteredHost(host.GetHostMAC());
+            if (registered.GetRPRegistKey() == session_info.regist_key) {
+                sendWakeup(host.host_addr, registered.GetRPRegistKey(), host.ps5);
+                break;
+            }
+        }
+    }
+    emit hostsChanged();
 }
