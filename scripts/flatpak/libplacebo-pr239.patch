@@ -1,0 +1,21 @@
+From 9f9ee9e3e878ef84decc41b5880c9258500ac5e1 Mon Sep 17 00:00:00 2001
+From: David Rosca <nowrep@gmail.com>
+Date: Tue, 9 Jan 2024 13:38:08 +0100
+Subject: [PATCH] utils/libav: Don't fix sample depth for Vulkan frames
+
+---
+ src/include/libplacebo/utils/libav_internal.h | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/include/libplacebo/utils/libav_internal.h b/src/include/libplacebo/utils/libav_internal.h
+index b2711f3d..3ae8e645 100644
+--- a/src/include/libplacebo/utils/libav_internal.h
++++ b/src/include/libplacebo/utils/libav_internal.h
+@@ -1157,7 +1157,6 @@ static bool pl_map_avframe_vulkan(pl_gpu gpu, struct pl_frame *out,
+ 
+     out->acquire = pl_acquire_avframe;
+     out->release = pl_release_avframe;
+-    pl_fix_hwframe_sample_depth(out, frame);
+     return true;
+ }
+ 
