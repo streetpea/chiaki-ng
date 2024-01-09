@@ -38,7 +38,7 @@ namespace AutoConnectHelper {
             const char* appImagePath = getenv("APPIMAGE");
             if (flatpakId != nullptr) {
                 return QString("flatpak run %1").arg(flatpakId);
-            else if (appImagePath != nullptr) {
+            } else if (appImagePath != nullptr) {
                 return QString::fromStdString(appImagePath);
             } else {
                 char buffer[PATH_MAX];
