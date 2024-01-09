@@ -142,10 +142,12 @@ namespace AutoConnectHelper {
         if (local) {
             discovery_manager.SendWakeup(host, regist_key, isPS5);
         } else {
-            RunShellCommand(QString("wakeup -%1 -h %2 -r '%3' 2>/dev/null")
-            	.arg(isPS5 ? "5" : "4")
-            	.arg(host)
-            	.arg(regist_key));
+            QString regist_key_string =  QString::fromUtf8(regist_key.constData());
+            QString command = QString("wakeup -%1 -h %2 -r '%3' 2>/dev/null")
+                .arg(isPS5 ? "5" : "4")
+                .arg(host)
+                .arg(regist_key_string);
+            RunShellCommand(command);
         }
     }
 }
