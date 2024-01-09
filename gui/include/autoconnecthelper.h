@@ -34,12 +34,13 @@ namespace AutoConnectHelper {
             }
         #elif defined(__linux)
             //Check if we're a flatpak or appimage
-            const char* flatpakId = getenv("FLATPAK_ID");
-            const char* appImagePath = getenv("APPIMAGE");
-            if (flatpakId != nullptr) {
+            const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+            const QString flatpakId = env.value("FLATPAK_ID");
+            QString appImagePath = env.value("APPIMAGE");
+            if (!flatpakId.isEmpty()) {
                 return QString("flatpak run %1").arg(flatpakId);
-            else if (appImagePath != nullptr) {
-                return QString::fromStdString(appImagePath);
+            } else if (!appImagePath.isEmpty()) {
+                return appImagePath;
             } else {
                 char buffer[PATH_MAX];
                 ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);

@@ -27,7 +27,7 @@ class SteamTools : public QObject {
 
         bool steamExists();
         QVector<SteamShortcutEntry> parseShortcuts();
-        SteamShortcutEntry buildShortcutEntry(QString appName, QString filepath, QMap<QString, const QPixmap*> artwork);
+        SteamShortcutEntry buildShortcutEntry(const QString& appName, const QString& filepath, const QString& launchOptions, const QMap<QString, const QPixmap*>& artwork);
         void updateShortcuts(QVector<SteamShortcutEntry> shortcuts);
         void updateControllerConfig(QString appname, QString controllerConfigID);
 
