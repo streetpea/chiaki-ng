@@ -89,6 +89,7 @@ struct StreamSessionConnectInfo
 	int32_t echo_suppress_level;
 #endif
 
+	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
 			Settings *settings,
 			ChiakiTarget target,
@@ -114,6 +115,7 @@ class StreamSession : public QObject
 
 	Q_OBJECT
 	Q_PROPERTY(QString host READ GetHost CONSTANT)
+	Q_PROPERTY(bool connected READ GetConnected NOTIFY ConnectedChanged)
 	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
 	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
@@ -187,6 +189,7 @@ class StreamSession : public QObject
 		uint8_t *haptics_resampler_buf;
 		MicBuf mic_buf;
 		QMap<Qt::Key, int> key_map;
+		QElapsedTimer connect_timer;
 
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
@@ -215,6 +218,7 @@ class StreamSession : public QObject
 		~StreamSession();
 
 		bool IsConnected()	{ return connected; }
+		bool IsConnecting()	{ return connect_timer.isValid(); }
 
 		void Start();
 		void Stop();
@@ -223,6 +227,7 @@ class StreamSession : public QObject
 		void SetLoginPIN(const QString &pin);
 		void GoHome();
 		QString GetHost() { return host; }
+		bool GetConnected() { return connected; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
@@ -250,6 +255,7 @@ class StreamSession : public QObject
 #endif
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
+		void ConnectedChanged();
 		void MeasuredBitrateChanged();
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);

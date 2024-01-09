@@ -2,10 +2,108 @@
 
 #include <chiaki/videoreceiver.h>
 #include <chiaki/session.h>
+#include <chiaki/vl_rbsp.h>
 
 #include <string.h>
 
 static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *video_receiver);
+
+static void add_ref_frame(ChiakiVideoReceiver *video_receiver, int32_t frame)
+{
+	int oldest_index = -1;
+	int32_t oldest_frame = INT32_MAX;
+	for(int i=0; i<16; i++)
+	{
+		int32_t ref_frame = video_receiver->reference_frames[i];
+		if(ref_frame > 0 && (oldest_frame == INT32_MAX || chiaki_seq_num_16_lt((ChiakiSeqNum16)ref_frame, (ChiakiSeqNum16)oldest_frame)))
+		{
+			oldest_index = i;
+			oldest_frame = ref_frame;
+		}
+		if(ref_frame == -1)
+		{
+			video_receiver->reference_frames[i] = frame;
+			return;
+		}
+	}
+	video_receiver->reference_frames[oldest_index] = frame;
+}
+
+static bool have_ref_frame(ChiakiVideoReceiver *video_receiver, int32_t frame)
+{
+	for(int i=0; i<16; i++)
+		if(video_receiver->reference_frames[i] == frame)
+			return true;
+	return false;
+}
+
+#define SLICE_TYPE_H265_P 1
+#define SLICE_TYPE_H265_I 2
+
+static bool parse_slice_h265(ChiakiVideoReceiver *video_receiver, uint8_t *data, unsigned size, unsigned *slice_type, unsigned *ref_frame)
+{
+	struct vl_vlc vlc = {0};
+	vl_vlc_init(&vlc, data, size);
+	if(vl_vlc_peekbits(&vlc, 32) != 1)
+	{
+		CHIAKI_LOGW(video_receiver->log, "parse_slice_h265: No startcode found");
+		return false;
+	}
+	vl_vlc_eatbits(&vlc, 32);
+	vl_vlc_fillbits(&vlc);
+
+	vl_vlc_eatbits(&vlc, 1); // forbidden_zero_bit
+	unsigned nal_unit_type = vl_vlc_get_uimsbf(&vlc, 6);
+	vl_vlc_eatbits(&vlc, 6); // nuh_layer_id
+	vl_vlc_eatbits(&vlc, 3); // nuh_temporal_id_plus1
+
+	if(nal_unit_type != 1 && nal_unit_type != 20)
+	{
+		CHIAKI_LOGW(video_receiver->log, "parse_slice_h265: Unexpected NAL unit type %u", nal_unit_type);
+		return false;
+	}
+
+	struct vl_rbsp rbsp;
+	vl_rbsp_init(&rbsp, &vlc, ~0);
+	unsigned first_slice_segment_in_pic_flag = vl_rbsp_u(&rbsp, 1);
+	if(nal_unit_type == 20)
+		vl_rbsp_u(&rbsp, 1); // no_output_of_prior_pics_flag
+
+	vl_rbsp_ue(&rbsp); // slice_pic_parameter_set_id
+	if(!first_slice_segment_in_pic_flag)
+		vl_rbsp_ue(&rbsp); // slice_segment_address
+
+	*slice_type = vl_rbsp_ue(&rbsp);
+
+	if(nal_unit_type == 1)
+	{
+		*ref_frame = 0xff;
+		vl_rbsp_u(&rbsp, 4); // slice_pic_order_cnt_lsb FIXME: should be u(log2_max_pic_order_cnt_lsb_minus4 + 4)
+		if(!vl_rbsp_u(&rbsp, 1)) // short_term_ref_pic_set_sps_flag
+		{
+			unsigned num_negative_pics = vl_rbsp_ue(&rbsp);
+			if(num_negative_pics > 16)
+			{
+				CHIAKI_LOGW(video_receiver->log, "parse_slice_h265: Unexpected num_negative_pics %u", num_negative_pics);
+				return false;
+			}
+			vl_rbsp_ue(&rbsp); // num_positive_pics
+			for(unsigned i=0; i<num_negative_pics; i++)
+			{
+				vl_rbsp_ue(&rbsp); // delta_poc_s0_minus1[i]
+				if(vl_rbsp_u(&rbsp, 1)) // used_by_curr_pic_s0_flag[i]
+				{
+					*ref_frame = i;
+					break;
+				}
+			}
+		}
+		if(*ref_frame == 0xff)
+			CHIAKI_LOGV(video_receiver->log, "parse_slice_h265: No ref frame found");
+	}
+
+	return true;
+}
 
 CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats)
 {
@@ -22,11 +120,8 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 	chiaki_frame_processor_init(&video_receiver->frame_processor, video_receiver->log);
 	video_receiver->packet_stats = packet_stats;
 
-	video_receiver->old_frame = NULL;
-	video_receiver->old_frame_size = 0;
-	video_receiver->old_frame_allocd = 0;
-
 	video_receiver->frames_lost = 0;
+	memset(video_receiver->reference_frames, -1, sizeof(video_receiver->reference_frames));
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver)
@@ -34,7 +129,6 @@ CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receive
 	for(size_t i=0; i<video_receiver->profiles_count; i++)
 		free(video_receiver->profiles[i].header);
 	chiaki_frame_processor_fini(&video_receiver->frame_processor);
-	free(video_receiver->old_frame);
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_receiver, ChiakiVideoProfile *profiles, size_t profiles_count)
@@ -84,8 +178,6 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		CHIAKI_LOGI(video_receiver->log, "Switched to profile %d, resolution: %ux%u", video_receiver->profile_cur, profile->width, profile->height);
 		if(video_receiver->session->video_sample_cb)
 			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, 0, video_receiver->session->video_sample_cb_user);
-
-		video_receiver->old_frame_size = 0;
 	}
 
 	// next frame?
@@ -105,7 +197,6 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		{
 			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
 			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, frame_index - 1);
-			video_receiver->frames_lost = frame_index - next_frame_expected;
 		}
 
 		video_receiver->frame_index_cur = frame_index;
@@ -123,8 +214,6 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	}
 }
 
-#define FLUSH_CORRUPT_FRAMES
-
 static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *video_receiver)
 {
 	uint8_t *frame;
@@ -132,11 +221,16 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 	ChiakiFrameProcessorFlushResult flush_result = chiaki_frame_processor_flush(&video_receiver->frame_processor, &frame, &frame_size);
 
 	if(flush_result == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FAILED
-#ifndef FLUSH_CORRUPT_FRAMES
-		|| flush_result == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED
-#endif
-		)
+		|| flush_result == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED)
 	{
+		if (flush_result == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED)
+		{
+			ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)(video_receiver->frame_index_prev_complete + 1);
+			if(next_frame_expected != video_receiver->frame_index_cur)
+				stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
+			video_receiver->frames_lost = video_receiver->frame_index_cur - next_frame_expected + 1;
+			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
+		}
 		CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -145,25 +239,33 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 
 	if(video_receiver->session->connect_info.video_profile.codec > CHIAKI_CODEC_H264)
 	{
-		if(succ)
+		unsigned slice_type, ref_frame;
+		if(parse_slice_h265(video_receiver, frame, frame_size, &slice_type, &ref_frame))
 		{
-			if(video_receiver->old_frame_allocd < frame_size)
+			if(slice_type == SLICE_TYPE_H265_I)
 			{
-				free(video_receiver->old_frame);
-				video_receiver->old_frame_allocd = frame_size * 2;
-				video_receiver->old_frame = malloc(video_receiver->old_frame_allocd);
+				add_ref_frame(video_receiver, video_receiver->frame_index_cur);
+				CHIAKI_LOGV(video_receiver->log, "Added reference I frame %d", (int)video_receiver->frame_index_cur);
 			}
-			video_receiver->old_frame_size = frame_size;
-			memcpy(video_receiver->old_frame, frame, frame_size);
-		}
-		else if(video_receiver->old_frame_size)
-		{
-			frame = video_receiver->old_frame;
-			frame_size = video_receiver->old_frame_size;
+			else if(slice_type == SLICE_TYPE_H265_P)
+			{
+				int32_t ref_frame_index = video_receiver->frame_index_cur - ref_frame - 1;
+				if(ref_frame == 0xff || have_ref_frame(video_receiver, ref_frame_index))
+				{
+					add_ref_frame(video_receiver, video_receiver->frame_index_cur);
+					CHIAKI_LOGV(video_receiver->log, "Added reference P frame %d", (int)video_receiver->frame_index_cur);
+				}
+				else
+				{
+					succ = false;
+					video_receiver->frames_lost++;
+					CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
+				}
+			}
 		}
 	}
 
-	if(video_receiver->session->video_sample_cb)
+	if(succ && video_receiver->session->video_sample_cb)
 	{
 		bool cb_succ = video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->frames_lost, video_receiver->session->video_sample_cb_user);
 		video_receiver->frames_lost = 0;

@@ -12,6 +12,7 @@ class QmlController : public QObject
 
 public:
     QmlController(Controller *controller, QObject *target, QObject *parent = nullptr);
+    ~QmlController();
 
     bool isDualSense() const;
     bool isSteamDeck() const;

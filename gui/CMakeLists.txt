@@ -3,6 +3,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg)
+if(UNIX AND NOT APPLE)
+    find_package(Qt6 REQUIRED COMPONENTS DBus)
+endif()
 if(CHIAKI_ENABLE_QMLGUI)
 	find_package(Qt6 REQUIRED COMPONENTS Qml Quick)
 else()
@@ -83,17 +86,19 @@ endif()
 
 if(CHIAKI_ENABLE_QMLGUI)
 	list(APPEND SOURCE_FILES
-			src/qml/qml.qrc
-			include/qmlmainwindow.h
-			src/qmlmainwindow.cpp
-			include/qmlbackend.h
-			src/qmlbackend.cpp
-			include/qmlcontroller.h
-			src/qmlcontroller.cpp
-			include/qmlsettings.h
-			src/qmlsettings.cpp
-			include/qmlsvgprovider.h
-			src/qmlsvgprovider.cpp
+		src/qml/qml.qrc
+		include/qmlmainwindow.h
+		src/qmlmainwindow.cpp
+		include/qmlbackend.h
+		src/qmlbackend.cpp
+		include/qmlcontroller.h
+		src/qmlcontroller.cpp
+		include/qmlsettings.h
+		src/qmlsettings.cpp
+		include/qmlsvgprovider.h
+		src/qmlsvgprovider.cpp
+		include/systemdinhibit.h
+		src/systemdinhibit.cpp
 	)
 else()
 	list(APPEND SOURCE_FILES
@@ -180,6 +185,9 @@ endif()
 
 target_link_libraries(chiaki Qt::Core Qt::Gui Qt::Concurrent Qt::Svg)
 target_link_libraries(chiaki SDL2::SDL2)
+if(UNIX AND NOT APPLE)
+	target_link_libraries(chiaki Qt::DBus)
+endif()
 if(CHIAKI_ENABLE_SPEEX)
 	target_link_libraries(chiaki speexdsp)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SPEEX)
