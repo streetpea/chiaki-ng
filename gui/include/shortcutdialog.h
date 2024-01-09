@@ -10,6 +10,7 @@ class ShortcutDialog : public QDialog {
     Q_OBJECT
 
 private:
+    Settings *settings;
     QComboBox *mode_combo_box;
     QLineEdit *passcode_edit;
 #ifdef CHIAKI_ENABLE_ARTWORK

@@ -15,6 +15,7 @@
 #endif
 
 #include <QFormLayout>
+#include <QInputDialog>
 #include <QStandardPaths>
 #include <QtCore/qprocess.h>
 
@@ -27,7 +28,7 @@
 
 QString controller_layout_workshop_id = "3049833406";
 
-ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget* parent) {
+ShortcutDialog::ShortcutDialog(Settings *settings, const DisplayServer *server, QWidget* parent) : settings(settings) {
     chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, this);
 
     //Create steam tools
@@ -136,6 +137,24 @@ QString ShortcutDialog::getLaunchOptions(const DisplayServer* displayServer) {
  * \param displayServer The chosen Server item.
  */
 void ShortcutDialog::CreateShortcut(const DisplayServer* displayServer) {
+    //Check if we have any local SSIDs, without them, it won't work
+    QStringList local_ssids = settings->GetLocalSSIDs();
+    if (local_ssids.isEmpty()) {
+        int addLocalSSID = QMessageBox::critical(nullptr, "No Local SSID set", QString::fromStdString("You've not set any local SSIDs. Without these Chiaki will try to connect remotely. It's likely the remote address also isn't set. Add a local SSID now?"), QMessageBox::Yes, QMessageBox::No);
+        if (addLocalSSID == QMessageBox::Yes) {
+            QString currentSSID = AutoConnectHelper::GetCurrentSSID();
+            QString new_ssid = QInputDialog::getText(nullptr, "New Local SSID", "Name of Local SSID:", QLineEdit::Normal, currentSSID);
+            if (!new_ssid.isEmpty()) {
+                settings->AddLocalSSID(new_ssid);
+            } else {
+               int continueWithoutAdding = QMessageBox::critical(nullptr, "No Local SSID still not set", QString::fromStdString("You still don't have a local SSID, are you sure you want to continue?"), QMessageBox::Yes, QMessageBox::No);
+                if (continueWithoutAdding == QMessageBox::No) {
+                    return;
+                }
+            }
+        }
+    }
+
     bool steamExists = steamTools->steamExists();
 
     //If Steam not found, ask the user where to save.
