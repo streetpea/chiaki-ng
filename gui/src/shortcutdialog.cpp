@@ -103,17 +103,19 @@ QString ShortcutDialog::getExecutable() {
 }
 
 QString ShortcutDialog::getLaunchOptions(const DisplayServer* displayServer) {
-    QString launchOptions = QString("autoconnect %1").arg(displayServer->registered_host.GetServerNickname());
+    QString launchOptions;
     if (mode_combo_box->currentData() == CHIAKI_MODE_ZOOM) {
-        launchOptions.append(" --zoom");
+        launchOptions.append("--zoom");
     } else if (mode_combo_box->currentData() == CHIAKI_MODE_STRETCH) {
-        launchOptions.append(" --stretch");
+        launchOptions.append("--stretch");
     } else if (mode_combo_box->currentData() == CHIAKI_MODE_FULLSCREEN) {
-        launchOptions.append(" --fullscreen");
+        launchOptions.append("--fullscreen");
     }
     if (passcode_edit->text() != "") {
         launchOptions.append(" --passcode="+passcode_edit->text());
     }
+
+    launchOptions.append(QString(" autoconnect %1").arg(displayServer->registered_host.GetServerNickname()));
 
 #if defined(__linux)
     //Check for flatpak
