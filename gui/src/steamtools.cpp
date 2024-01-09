@@ -5,6 +5,7 @@
 #include <qtextstream.h>
 #include <sstream>
 #include <sys/stat.h>
+#include <QDir>
 
 #include "crc.h"
 #include "vdfstatemachine.h"
@@ -32,14 +33,15 @@ QString SteamTools::getSteamBaseDir() {
         steamBaseDir.append(getenv("HOME"));
         steamBaseDir.append("/Library/Application Support/Steam");
     #elif defined(__linux__)
-        std::string steamFlatpakDir = "";
+        QString steamFlatpakDir = getenv("HOME");
         steamBaseDir.append(getenv("HOME"));
 
-        steamFlatpakDir.append(getenv("HOME"));
         steamFlatpakDir.append("/.var/app/com.valvesoftware.Steam/data/Steam");
 
+        QDir steamBaseDirObj(steamFlatpakDir);
+
         // If flatpak Steam is installed
-        if (access(steamFlatpakDir.c_str(), 0) == 0) {
+        if (steamBaseDirObj.exists()) {
             steamBaseDir.append("/.var/app/com.valvesoftware.Steam/data/Steam");
         }
         else {
