@@ -5,7 +5,9 @@ import QtQuick.Controls.Material
 
 import org.streetpea.chiaki4deck
 
-Item {
+Pane {
+    padding: 0
+
     StackView.onActivated: forceActiveFocus()
     Keys.onUpPressed: hostsView.decrementCurrentIndex()
     Keys.onDownPressed: hostsView.incrementCurrentIndex()

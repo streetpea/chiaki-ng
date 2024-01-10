@@ -487,8 +487,6 @@ Item {
         function onHasVideoChanged() {
             if (Chiaki.window.hasVideo)
                 sessionLoading = false;
-            else
-                root.showMainView()
         }
 
         function onCorruptedFramesChanged() {
