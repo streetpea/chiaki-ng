@@ -18,7 +18,7 @@ public:
     bool isSteamDeck() const;
 
 private:
-    void sendKey(Qt::Key key);
+    void sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
 
     QObject *target = {};
     uint32_t old_buttons = 0;

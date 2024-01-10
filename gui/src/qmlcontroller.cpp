@@ -19,6 +19,12 @@ static QVector<QPair<uint32_t, Qt::Key>> key_map = {
     { CHIAKI_CONTROLLER_BUTTON_OPTIONS, Qt::Key_Menu },
 };
 
+static uint32_t escape_shortcut =
+    CHIAKI_CONTROLLER_BUTTON_L1 |
+    CHIAKI_CONTROLLER_BUTTON_R1 |
+    CHIAKI_CONTROLLER_BUTTON_L3 |
+    CHIAKI_CONTROLLER_BUTTON_R3;
+
 QmlController::QmlController(Controller *c, QObject *t, QObject *parent)
     : QObject(parent)
     , target(t)
@@ -60,6 +66,10 @@ QmlController::QmlController(Controller *c, QObject *t, QObject *parent)
                 repeat_running = 1;
             }
         }
+
+        if ((old_buttons & escape_shortcut) == escape_shortcut && (buttons & escape_shortcut) != escape_shortcut)
+            sendKey(Qt::Key_O, Qt::ControlModifier);
+
         old_buttons = buttons;
     });
 }
@@ -79,9 +89,9 @@ bool QmlController::isSteamDeck() const
     return controller->IsSteamDeck();
 }
 
-void QmlController::sendKey(Qt::Key key)
+void QmlController::sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
-    QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+    QKeyEvent press(QEvent::KeyPress, key, modifiers);
     QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
     QGuiApplication::sendEvent(target, &press);
     QGuiApplication::sendEvent(target, &release);
