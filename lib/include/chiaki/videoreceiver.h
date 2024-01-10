@@ -31,6 +31,7 @@ typedef struct chiaki_video_receiver_t
 
 	int32_t frames_lost;
 	int32_t reference_frames[16];
+	unsigned log2_max_frame_num;
 } ChiakiVideoReceiver;
 
 CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats);
