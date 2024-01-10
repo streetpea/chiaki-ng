@@ -2,6 +2,7 @@
 
 #include <discoverymanager.h>
 #include <exception.h>
+#include <settings.h>
 
 #include <cstring>
 
@@ -27,6 +28,7 @@ HostMAC DiscoveryHost::GetHostMAC() const
 }
 
 static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
+static void DiscoveryServiceHostsManualCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
 
 DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 {
@@ -39,6 +41,7 @@ DiscoveryManager::~DiscoveryManager()
 {
 	if(service_active)
 		chiaki_discovery_service_fini(&service);
+	qDeleteAll(manual_services);
 }
 
 void DiscoveryManager::SetActive(bool active)
@@ -49,7 +52,7 @@ void DiscoveryManager::SetActive(bool active)
 
 	if(active)
 	{
-		ChiakiDiscoveryServiceOptions options;
+		ChiakiDiscoveryServiceOptions options = {};
 		options.ping_ms = PING_MS;
 		options.hosts_max = HOSTS_MAX;
 		options.host_drop_pings = DROP_PINGS;
@@ -69,14 +72,27 @@ void DiscoveryManager::SetActive(bool active)
 			CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service");
 			return;
 		}
+
+		UpdateManualServices();
 	}
 	else
 	{
 		chiaki_discovery_service_fini(&service);
+		qDeleteAll(manual_services);
+		manual_services.clear();
+
 		hosts = {};
 		emit HostsUpdated();
 	}
 
+}
+
+void DiscoveryManager::SetSettings(Settings *settings)
+{
+	this->settings = settings;
+	connect(settings, &Settings::ManualHostsUpdated, this, &DiscoveryManager::UpdateManualServices);
+	connect(settings, &Settings::RegisteredHostsUpdated, this, &DiscoveryManager::UpdateManualServices);
+	UpdateManualServices();
 }
 
 void DiscoveryManager::SendWakeup(const QString &host, const QByteArray &regist_key, bool ps5)
@@ -105,10 +121,65 @@ void DiscoveryManager::SendWakeup(const QString &host, const QByteArray &regist_
 		throw Exception(QString("Failed to send Packet: %1").arg(chiaki_error_string(err)));
 }
 
+const QList<DiscoveryHost> DiscoveryManager::GetHosts() const
+{
+	QList<DiscoveryHost> ret = hosts;
+	QSet<QString> discovered_hosts;
+	for(auto host : std::as_const(ret))
+		discovered_hosts.insert(host.host_addr);
+	for(auto s : std::as_const(manual_services))
+		if(s->discovered && !discovered_hosts.contains(s->discovery_host.host_addr))
+			ret.append(s->discovery_host);
+	return ret;
+}
+
 void DiscoveryManager::DiscoveryServiceHosts(QList<DiscoveryHost> hosts)
 {
 	this->hosts = std::move(hosts);
 	emit HostsUpdated();
+}
+
+void DiscoveryManager::UpdateManualServices()
+{
+	if(!settings || !service_active)
+		return;
+
+	QSet<QString> hosts;
+	for(auto host : settings->GetManualHosts())
+		if(settings->GetRegisteredHostRegistered(host.GetMAC()))
+			hosts.insert(host.GetHost());
+
+	const auto keys = manual_services.keys();
+	for(auto key : keys)
+		if(!hosts.contains(key))
+			delete manual_services.take(key);
+
+	for(auto host : std::as_const(hosts))
+	{
+		if(manual_services.contains(host))
+			continue;
+
+		ManualService *s = new ManualService;
+		s->manager = this;
+		manual_services[host] = s;
+
+		ChiakiDiscoveryServiceOptions options = {};
+		options.ping_ms = PING_MS;
+		options.hosts_max = 1;
+		options.host_drop_pings = DROP_PINGS;
+		options.cb = DiscoveryServiceHostsManualCallback;
+		options.cb_user = s;
+
+		sockaddr_in addr = {};
+		addr.sin_family = AF_INET;
+		options.send_addr = reinterpret_cast<sockaddr *>(&addr);
+		options.send_addr_size = sizeof(addr);
+
+		QByteArray host_utf8 = host.toUtf8();
+		options.send_host = host_utf8.data();
+
+		chiaki_discovery_service_init(&s->service, &options, &log);
+	}
 }
 
 class DiscoveryManagerPrivate
@@ -118,9 +189,14 @@ class DiscoveryManagerPrivate
 		{
 			QMetaObject::invokeMethod(discovery_manager, "DiscoveryServiceHosts", Qt::ConnectionType::QueuedConnection, Q_ARG(QList<DiscoveryHost>, hosts));
 		}
+
+		static void DiscoveryServiceManualHost(DiscoveryManager *discovery_manager)
+		{
+			QMetaObject::invokeMethod(discovery_manager, &DiscoveryManager::HostsUpdated);
+		}
 };
 
-static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
+static QList<DiscoveryHost> CreateHostsList(ChiakiDiscoveryHost *hosts, size_t hosts_count)
 {
 	QList<DiscoveryHost> hosts_list;
 	hosts_list.reserve(hosts_count);
@@ -138,5 +214,19 @@ static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hos
 		hosts_list.append(o);
 	}
 
-	DiscoveryManagerPrivate::DiscoveryServiceHosts(reinterpret_cast<DiscoveryManager *>(user), hosts_list);
+	return hosts_list;
+}
+
+static void DiscoveryServiceHostsCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
+{
+	DiscoveryManagerPrivate::DiscoveryServiceHosts(reinterpret_cast<DiscoveryManager *>(user), CreateHostsList(hosts, hosts_count));
+}
+
+static void DiscoveryServiceHostsManualCallback(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user)
+{
+	ManualService *s = reinterpret_cast<ManualService *>(user);
+	s->discovered = hosts_count;
+	if(s->discovered)
+		s->discovery_host = CreateHostsList(hosts, hosts_count).at(0);
+	DiscoveryManagerPrivate::DiscoveryServiceManualHost(s->manager);
 }
