@@ -49,7 +49,7 @@ void DiscoveryManager::SetActive(bool active)
 
 	if(active)
 	{
-		ChiakiDiscoveryServiceOptions options;
+		ChiakiDiscoveryServiceOptions options = {};
 		options.ping_ms = PING_MS;
 		options.hosts_max = HOSTS_MAX;
 		options.host_drop_pings = DROP_PINGS;
