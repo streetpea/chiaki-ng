@@ -96,6 +96,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
+    discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(discoveryEnabled());
 
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);

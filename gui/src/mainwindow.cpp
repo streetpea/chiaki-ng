@@ -168,6 +168,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 
 	resize(800, 600);
 
+	discovery_manager.SetSettings(settings);
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::ManualHostsUpdated, this, &MainWindow::UpdateDisplayServers);
