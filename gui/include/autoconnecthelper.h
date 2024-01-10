@@ -107,8 +107,9 @@ namespace AutoConnectHelper {
         return result;
     }
 
-    static void CheckDiscover(const bool local, const DiscoveryManager& discovery_manager, QString& host, bool& needsWaking, bool& discovered, const QString& mac = "") {
+    static void CheckDiscover(const bool local, DiscoveryManager& discovery_manager, QString& host, bool& needsWaking, bool& discovered, const QString& mac = "") {
         if (local) {
+            discovery_manager.SetActive(true);
             for(const auto &registered_host : discovery_manager.GetHosts()) {
                 if (registered_host.GetHostMAC().ToString() == mac) {
                     host = registered_host.host_addr;
@@ -117,37 +118,29 @@ namespace AutoConnectHelper {
                     break;
                 }
             }
+            discovery_manager.SetActive(false);
         } else {
-            const QString discoverResponse = RunShellCommand(QString("discover --host=%1").arg(host));
-            discovered = discoverResponse.contains("ready") || discoverResponse.contains("standby");
-            needsWaking = !discoverResponse.contains("ready");
+            discovery_manager.discoverHostState(host);
+            ChiakiDiscoveryHostState state = discovery_manager.last_state;
+            discovered = state == CHIAKI_DISCOVERY_HOST_STATE_READY || state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY;
+            needsWaking = state != CHIAKI_DISCOVERY_HOST_STATE_READY;
         }
     }
 
-    static void CheckReady(const bool local, const DiscoveryManager& discovery_manager, const QString& host, bool& ready, const QString& mac = "") {
+    static void CheckReady(const bool local, DiscoveryManager& discovery_manager, const QString& host, bool& ready, const QString& mac = "") {
         if (local) {
+            discovery_manager.SetActive(true);
             for(const auto &registered_host : discovery_manager.GetHosts()) {
                 if (registered_host.GetHostMAC().ToString() == mac) {
                     ready = true;
                     break;
                 }
             }
+            discovery_manager.SetActive(false);
         } else {
-            const QString discoverResponse = RunShellCommand(QString("discover --host=%1").arg(host));
-            ready = discoverResponse.contains("ready");
-        }
-    }
-
-    static void SendWakeup(const bool local, DiscoveryManager& discovery_manager, const QString& host, const QByteArray& regist_key, const bool& isPS5) {
-        if (local) {
-            discovery_manager.SendWakeup(host, regist_key, isPS5);
-        } else {
-            QString regist_key_string =  QString::fromUtf8(regist_key.constData());
-            QString command = QString("wakeup -%1 -h %2 -r '%3' 2>/dev/null")
-                .arg(isPS5 ? "5" : "4")
-                .arg(host)
-                .arg(regist_key_string);
-            RunShellCommand(command);
+            discovery_manager.discoverHostState(host);
+            ChiakiDiscoveryHostState state = discovery_manager.last_state;
+            ready = state == CHIAKI_DISCOVERY_HOST_STATE_READY;
         }
     }
 }

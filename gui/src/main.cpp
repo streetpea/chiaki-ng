@@ -276,7 +276,6 @@ int real_main(int argc, char *argv[])
 
 		//Discovery manager, used for UDP discovery for local instances and waking both local and remote
 		DiscoveryManager discovery_manager(nullptr, false);
-		discovery_manager.SetActive(true);
 
 		//Check the arguments
 		if ((parser.isSet(stretch_option) && (parser.isSet(zoom_option) || parser.isSet(fullscreen_option))) || (parser.isSet(zoom_option) && parser.isSet(fullscreen_option)))
@@ -352,12 +351,8 @@ int real_main(int argc, char *argv[])
 
 		//Send the wakeup packet if necessary
 		if (needsWaking) {
-			AutoConnectHelper::SendWakeup(local, discovery_manager, host, regist_key, isPS5);
+			discovery_manager.SendWakeup(host, regist_key, isPS5);
 		}
-
-		//Restart the discovery manager to clear our the hosts
-		discovery_manager.SetActive(false);
-		discovery_manager.SetActive(true);
 
 		//Wait for the console to respond to the discover again
 		timer.restart();
