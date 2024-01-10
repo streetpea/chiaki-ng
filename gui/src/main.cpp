@@ -107,8 +107,6 @@ int real_main(int argc, char *argv[])
 	Application::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
 #endif
 
-	Settings settings;
-
 	QCommandLineParser parser;
 	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
 	parser.addHelpOption();
@@ -124,6 +122,9 @@ int real_main(int argc, char *argv[])
 	parser.addPositionalArgument("nickname", "Needed for stream command to get credentials for connecting. "
 			"Use 'list' to get the nickname.");
 	parser.addPositionalArgument("host", "Address to connect to (when using the stream command).");
+
+	QCommandLineOption profile_option("profile", "", "profile", "Configuration profile");
+	parser.addOption(profile_option);
 
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
@@ -148,6 +149,8 @@ int real_main(int argc, char *argv[])
 
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
+
+	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
 
 	if(args.length() == 0)
 		return RunMain(app, &settings);

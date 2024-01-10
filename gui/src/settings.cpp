@@ -2,6 +2,7 @@
 
 #include <settings.h>
 #include <QKeySequence>
+#include <QCoreApplication>
 
 #include <chiaki/config.h>
 
@@ -70,8 +71,10 @@ static void MigrateSettings(QSettings *settings)
 	}
 }
 
-Settings::Settings(QObject *parent) : QObject(parent)
+Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
+	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf))
 {
+	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
