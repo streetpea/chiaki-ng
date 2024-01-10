@@ -1,5 +1,4 @@
 import QtQuick
-import QtWebEngine
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -12,16 +11,30 @@ DialogView {
     buttonVisible: false
 
     Item {
-        WebEngineView {
+        Item {
             id: webView
+            property Item web
             anchors.fill: parent
-            url: Chiaki.psnLoginUrl()
-            profile: WebEngineProfile { offTheRecord: true }
-            onContextMenuRequested: (request) => request.accepted = true
-            onNavigationRequested: (request) => {
-                if (Chiaki.handlePsnLoginRedirect(request.url)) {
-                    request.action = WebEngineNavigationRequest.IgnoreRequest;
-                    overlay.opacity = 0.8;
+            Component.onCompleted: {
+                web = Qt.createQmlObject("
+                import QtWebEngine;
+                WebEngineView {
+                    profile: WebEngineProfile { offTheRecord: true }
+                    onContextMenuRequested: (request) => request.accepted = true
+                }", webView, "webView");
+                if (!web)
+                    return;
+                web.url = Chiaki.psnLoginUrl();
+                web.anchors.fill = webView;
+            }
+
+            Connections {
+                target: webView.web
+                function onNavigationRequested(request) {
+                    if (Chiaki.handlePsnLoginRedirect(request.url)) {
+                        request.action = WebEngineNavigationRequest.IgnoreRequest;
+                        overlay.opacity = 0.8;
+                    }
                 }
             }
         }
