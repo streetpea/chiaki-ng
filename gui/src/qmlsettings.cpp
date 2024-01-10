@@ -210,6 +210,17 @@ void QmlSettings::setVideoPreset(int preset)
     emit videoPresetChanged();
 }
 
+QString QmlSettings::autoConnectMac() const
+{
+    return settings->GetAutoConnectHost().GetServerMAC().ToString();
+}
+
+void QmlSettings::setAutoConnectMac(const QString &mac)
+{
+    settings->SetAutoConnectHost(QByteArray::fromHex(mac.toUtf8()));
+    emit autoConnectMacChanged();
+}
+
 QString QmlSettings::logDirectory() const
 {
     return GetLogBaseDir();

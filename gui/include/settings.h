@@ -117,6 +117,9 @@ class Settings : public QObject
 		void SetPlaceboPreset(PlaceboPreset preset);
 #endif
 
+		RegisteredHost GetAutoConnectHost() const;
+		void SetAutoConnectHost(const QByteArray &mac);
+
 		unsigned int GetAudioBufferSizeDefault() const;
 
 		/**

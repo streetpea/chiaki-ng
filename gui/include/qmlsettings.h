@@ -22,6 +22,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
+    Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
     Q_PROPERTY(QStringList availableDecoders READ availableDecoders CONSTANT)
     Q_PROPERTY(QStringList availableAudioInDevices READ availableAudioInDevices NOTIFY audioDevicesChanged)
@@ -83,6 +84,9 @@ public:
     int videoPreset() const;
     void setVideoPreset(int preset);
 
+    QString autoConnectMac() const;
+    void setAutoConnectMac(const QString &mac);
+
     QString logDirectory() const;
     QStringList availableDecoders() const;
     QStringList availableAudioOutDevices() const;
@@ -112,6 +116,7 @@ signals:
     void audioInDeviceChanged();
     void decoderChanged();
     void videoPresetChanged();
+    void autoConnectMacChanged();
     void audioDevicesChanged();
     void registeredHostsChanged();
 

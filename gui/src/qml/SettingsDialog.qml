@@ -466,13 +466,26 @@ DialogView {
                         bottom: parent.bottom
                         topMargin: 10
                     }
-                    width: 500
+                    width: 700
                     clip: true
                     model: Chiaki.settings.registeredHosts
                     delegate: ItemDelegate {
                         text: "%1 (%2, %3)".arg(modelData.mac).arg(modelData.ps5 ? "PS5" : "PS4").arg(modelData.name)
                         height: 80
                         width: parent ? parent.width : 0
+                        leftPadding: autoConnectButton.width + 40
+
+                        C.CheckBox {
+                            id: autoConnectButton
+                            anchors {
+                                left: parent.left
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 20
+                            }
+                            text: qsTr("Auto-Connect")
+                            checked: Chiaki.settings.autoConnectMac == modelData.mac
+                            onToggled: Chiaki.settings.autoConnectMac = checked ? modelData.mac : "";
+                        }
 
                         C.Button {
                             anchors {
@@ -484,6 +497,7 @@ DialogView {
                             text: qsTr("Delete")
                             onClicked: root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.settings.deleteRegisteredHost(index));
                             Material.roundedScale: Material.SmallScale
+                            Material.accent: Material.Red
                         }
                     }
                 }

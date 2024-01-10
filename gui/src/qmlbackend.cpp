@@ -101,6 +101,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
     updateControllers();
 
+    auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
+
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
         qCInfo(chiakiGui) << "About to sleep";
@@ -204,8 +206,18 @@ QVariantList QmlBackend::hosts() const
     return out;
 }
 
+bool QmlBackend::autoConnect() const
+{
+    return auto_connect_mac.GetValue();
+}
+
 void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 {
+    if (autoConnect()) {
+        auto_connect_mac = {};
+        emit autoConnectChanged();
+    }
+
     if (session) {
         qCWarning(chiakiGui) << "Another session is already active";
         return;
@@ -460,6 +472,12 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
     return true;
 }
 
+void QmlBackend::stopAutoConnect()
+{
+    auto_connect_mac = {};
+    emit autoConnectChanged();
+}
+
 QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
 {
     if (index < 0)
@@ -553,6 +571,15 @@ void QmlBackend::updateDiscoveryHosts()
                 sendWakeup(host.host_addr, registered.GetRPRegistKey(), host.ps5);
                 break;
             }
+        }
+    }
+    if (autoConnect()) {
+        const int hosts_count = discovery_manager.GetHosts().count();
+        for (int i = 0; i < hosts_count; ++i) {
+            if (discovery_manager.GetHosts().at(i).GetHostMAC() != auto_connect_mac)
+                continue;
+            connectToHost(i);
+            break;
         }
     }
     emit hostsChanged();

@@ -33,6 +33,7 @@ class HostMAC
 };
 
 static bool operator==(const HostMAC &a, const HostMAC &b)	{ return memcmp(a.GetMAC(), b.GetMAC(), 6) == 0; }
+static bool operator!=(const HostMAC &a, const HostMAC &b)	{ return !(a == b); }
 static bool operator<(const HostMAC &a, const HostMAC &b)	{ return a.GetValue() < b.GetValue(); }
 
 class RegisteredHost
