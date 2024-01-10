@@ -55,6 +55,8 @@ Item {
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
+        else if (Chiaki.autoConnect)
+            stack.replace(stack.get(0), autoConnectViewComponent, {}, StackView.Immediate);
     }
 
     Pane {
@@ -157,6 +159,11 @@ Item {
     Component {
         id: streamViewComponent
         StreamView { }
+    }
+
+    Component {
+        id: autoConnectViewComponent
+        AutoConnectView { }
     }
 
     Component {

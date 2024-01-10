@@ -239,6 +239,16 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 }
 #endif
 
+RegisteredHost Settings::GetAutoConnectHost() const
+{
+	const QByteArray mac = settings.value("settings/auto_connect_mac").toByteArray();
+	return GetRegisteredHost(mac.size() == 6 ? HostMAC((const uint8_t *)mac.constData()) : HostMAC());
+}
+
+void Settings::SetAutoConnectHost(const QByteArray &mac)
+{
+	settings.setValue("settings/auto_connect_mac", mac);
+}
 
 QString Settings::GetHardwareDecoder() const
 {

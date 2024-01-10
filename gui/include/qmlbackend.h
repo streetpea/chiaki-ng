@@ -41,6 +41,7 @@ class QmlBackend : public QObject
     Q_PROPERTY(QList<QmlController*> controllers READ qmlControllers NOTIFY controllersChanged)
     Q_PROPERTY(bool discoveryEnabled READ discoveryEnabled WRITE setDiscoveryEnabled NOTIFY discoveryEnabledChanged)
     Q_PROPERTY(QVariantList hosts READ hosts NOTIFY hostsChanged)
+    Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
 
 public:
     QmlBackend(Settings *settings, QmlMainWindow *window);
@@ -56,6 +57,8 @@ public:
 
     QVariantList hosts() const;
 
+    bool autoConnect() const;
+
     void createSession(const StreamSessionConnectInfo &connect_info);
 
     bool closeRequested();
@@ -70,12 +73,14 @@ public:
     Q_INVOKABLE void enterPin(const QString &pin);
     Q_INVOKABLE QUrl psnLoginUrl() const;
     Q_INVOKABLE bool handlePsnLoginRedirect(const QUrl &url);
+    Q_INVOKABLE void stopAutoConnect();
 
 signals:
     void sessionChanged(StreamSession *session);
     void controllersChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
+    void autoConnectChanged();
 
     void error(const QString &title, const QString &text);
     void sessionError(const QString &title, const QString &text);
@@ -117,4 +122,5 @@ private:
     StreamSessionConnectInfo session_info = {};
     SystemdInhibit *sleep_inhibit = {};
     bool resume_session = false;
+    HostMAC auto_connect_mac = {};
 };
