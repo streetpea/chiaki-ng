@@ -37,10 +37,14 @@ class DiscoveryManager : public QObject
 		bool queueResponses;
 		QList<DiscoveryHost> hosts;
 
+
+
 	private slots:
 		void DiscoveryServiceHosts(QList<DiscoveryHost> hosts);
 
 	public:
+		ChiakiDiscoveryHostState last_state;
+
 		explicit DiscoveryManager(QObject *parent = nullptr, bool queueResponses = true);
 		~DiscoveryManager();
 
@@ -49,6 +53,7 @@ class DiscoveryManager : public QObject
 		void SendWakeup(const QString &host, const QByteArray &regist_key, bool ps5);
 
 		const QList<DiscoveryHost> GetHosts() const { return hosts; }
+		void discoverHostState(QString addr);
 
 	signals:
 		void HostsUpdated();
