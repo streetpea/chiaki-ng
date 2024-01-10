@@ -67,7 +67,7 @@ class Settings : public QObject
 		void SaveManualHosts();
 
 	public:
-		explicit Settings(QObject *parent = nullptr);
+		explicit Settings(const QString &conf, QObject *parent = nullptr);
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
