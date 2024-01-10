@@ -97,7 +97,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
-    setDiscoveryEnabled(discoveryEnabled());
+    setDiscoveryEnabled(true);
 
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
     updateControllers();
@@ -164,7 +164,6 @@ bool QmlBackend::discoveryEnabled() const
 
 void QmlBackend::setDiscoveryEnabled(bool enabled)
 {
-    settings->SetDiscoveryEnabled(enabled);
     discovery_manager.SetActive(enabled);
     emit discoveryEnabledChanged();
 }
@@ -212,7 +211,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
-
     session_info = connect_info;
     if (session_info.hw_decoder == "vulkan") {
         session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
@@ -256,6 +254,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         emit sessionChanged(session);
 
         sleep_inhibit->release();
+        setDiscoveryEnabled(true);
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
@@ -263,6 +262,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             session->SetLoginPIN(connect_info.initial_login_pin);
         else
             emit sessionPinDialogRequested();
+    });
+
+    connect(session, &StreamSession::ConnectedChanged, this, [this]() {
+        if (session->IsConnected())
+            setDiscoveryEnabled(false);
     });
 
     if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
