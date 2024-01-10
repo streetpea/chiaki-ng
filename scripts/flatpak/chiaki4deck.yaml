@@ -51,6 +51,10 @@ modules:
         tag: v6.338.1
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+      - type: patch
+        path: libplacebo-pr238.patch
+      - type: patch
+        path: libplacebo-pr239.patch
     modules:
       - name: shaderc
         buildsystem: cmake-ninja
