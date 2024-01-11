@@ -165,6 +165,7 @@ void DiscoveryManager::UpdateManualServices()
 
 		ChiakiDiscoveryServiceOptions options = {};
 		options.ping_ms = PING_MS;
+		options.ping_initial_ms = PING_MS;
 		options.hosts_max = 1;
 		options.host_drop_pings = DROP_PINGS;
 		options.cb = DiscoveryServiceHostsManualCallback;
