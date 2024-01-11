@@ -127,12 +127,12 @@ static void *discovery_service_thread_func(void *user)
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto beach;
 
-	while(true)
+	err = chiaki_bool_pred_cond_timedwait(&service->stop_cond, service->options.ping_initial_ms);
+
+	while(err == CHIAKI_ERR_TIMEOUT)
 	{
-		err = chiaki_bool_pred_cond_timedwait(&service->stop_cond, service->options.ping_ms);
-		if(err != CHIAKI_ERR_TIMEOUT)
-			break;
 		discovery_service_ping(service);
+		err = chiaki_bool_pred_cond_timedwait(&service->stop_cond, service->options.ping_ms);
 	}
 
 	chiaki_discovery_thread_stop(&discovery_thread);
