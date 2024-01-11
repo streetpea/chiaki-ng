@@ -504,7 +504,7 @@ void QmlMainWindow::createSwapchain()
     VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceInfo.hinstance = GetModuleHandle(nullptr);
-    surfaceInfo.hwnd = static_cast<HWND>(winId());
+    surfaceInfo.hwnd = reinterpret_cast<HWND>(winId());
     err = vk_funcs.vkCreateWin32SurfaceKHR(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
 #endif
 

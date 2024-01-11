@@ -100,7 +100,7 @@ else()
 	endif()
 endif()
 
-if(CHIAKI_ENABLE_STEAMDECK_NATIVE)
+if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
 	list(APPEND SOURCE_FILES
 		include/sdinputcontext.h
 		src/sdinputcontext.cpp

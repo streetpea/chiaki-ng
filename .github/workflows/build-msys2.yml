@@ -1,0 +1,184 @@
+name: Build Chiaki4deck msys2 Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows_x64-msys2:
+    name: Build windows msys2 version
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Disable autocrlf
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: git
+          pacboy: >-
+            ca-certificates:p
+            cc:p
+            cmake:p
+            curl:p
+            ffmpeg:p
+            fftw:p
+            hidapi:p
+            lcms2:p
+            libplacebo:p
+            openssl:p
+            opus:p
+            nasm:p
+            ninja:p
+            ntldd:p
+            pkgconf:p
+            protobuf-c:p
+            python:p
+            python-pip:p
+            qt5-declarative:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
+            speexdsp:p
+            vulkan:p
+            
+      - name: Install python protobuf and zip
+        run: |
+          pip install protobuf
+          pacman -S zip --noconfirm
+
+      - name: Configure Chiaki4deck
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
+
+      - name: Build Chiaki4deck
+        run: |
+          cmake --build build --config Release --clean-first --target chiaki
+          
+      - name: Deploy qt6-base:p
+        run: |
+          mkdir Chiaki4deck-Win
+          cp build/gui/chiaki.exe Chiaki4deck-Win
+          cp /mingw64/bin/libcrypto-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libssl-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/SDL2.dll Chiaki4deck-Win/
+          cp /mingw64/bin/swresample-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/avcodec-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/avutil-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/avformat-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgcc_s_seh-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libopus-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libfftw3-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libplacebo-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libbluray-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libspeexdsp-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libstdc++-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libbz2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgme.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgnutls-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libiconv-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libmodplug-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libhidapi-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/librtmp-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libsrt.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libssh.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libxml2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/zlib1.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libaom.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libcairo-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libdav1d-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libglib-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgsm.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgobject-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/liblzma-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libintl-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libmp3lame-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libwinpthread-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libva.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libva_win32.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libvpl.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libopencore-amrnb-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libopenjp2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libopencore-amrwb-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/rav1e.dll Chiaki4deck-Win/
+          cp /mingw64/bin/librsvg-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/liblcms2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/dovi.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libspeex-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libshaderc_shared.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libtheoradec-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libSvtAv1Enc.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libtheoraenc-1.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libvorbis-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libspirv-cross-c-shared.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libvorbisenc-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libvpx-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libwebp-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libx265.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libwebpmux-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libx264-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/xvidcore.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libbrotlienc.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libbrotlidec.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libfreetype-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgmp-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libhogweed-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libnettle-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libidn2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpng*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libharfbuzz-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libmd4c.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libzstd.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libicuuc*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libb2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libdouble-conversion.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libicuin*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpcre2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libp11-kit-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libtasn1-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libunistring-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libfontconfig-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpixman-1-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libffi-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgdk_pixbuf-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpango-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libcairo-gobject-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgio-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpangocairo-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libogg-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libsharpyuv-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libsoxr.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libbrotlicommon.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libicudt*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgraphite*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libexpat*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libfribidi-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libthai-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgmodule-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpangoft2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpangowin32-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libgomp-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libdatrie-*.dll Chiaki4deck-Win/
+          /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release Chiaki4deck-Win/chiaki.exe
+          cp -R /mingw64/share/qt6/qml/QtQuick Chiaki4deck-Win/qml/
+          cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ Chiaki4deck-Win/qml/QtQml/
+          cp /mingw64/bin/Qt6QmlWorkerScript.dll Chiaki4deck-Win/
+          zip -r Chiaki4deck-Win.zip Chiaki4deck-Win/
+
+      - name: Upload Chiaki4deck Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Chiaki4deck-win_x64-MSYS2-Release
+          path: Chiaki4deck-Win.zip
+          if-no-files-found: error
+          retention-days: 1
+          
+

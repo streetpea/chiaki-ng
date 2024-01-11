@@ -6,6 +6,7 @@
 
 #include <QThread>
 #include <QTimer>
+#include <QDebug>
 #include <QGuiApplication>
 #include <QWindow>
 #include <stdio.h>
@@ -17,11 +18,10 @@
 #define PL_LIBAV_IMPLEMENTATION 0
 #include <libplacebo/utils/libav.h>
 
-#include <xcb/xcb.h>
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_xcb.h>
-#include <vulkan/vulkan_wayland.h>
 #include <qpa/qplatformnativeinterface.h>
+
+Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
 
 static inline QString GetShaderCacheFile()
 {
@@ -50,18 +50,23 @@ AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resoluti
     }
 
     const char *vk_exts[] = {
-        VK_KHR_SURFACE_EXTENSION_NAME,
         nullptr,
+        VK_KHR_SURFACE_EXTENSION_NAME,
     };
 
     QString platformName = QGuiApplication::platformName();
-    if (platformName.startsWith("wayland")) {
-        vk_exts[1] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
-    } else if (platformName.startsWith("xcb")) {
-        vk_exts[1] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
-    } else {
+#if defined(Q_OS_LINUX)
+    if (QGuiApplication::platformName().startsWith("wayland"))
+        vk_exts[0] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+    else if (QGuiApplication::platformName().startsWith("xcb"))
+        vk_exts[0] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+    else
         Q_UNREACHABLE();
-    }
+#elif defined(Q_OS_MACOS)
+    vk_exts[0] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
+#elif defined(Q_OS_WIN32)
+    vk_exts[0] = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+#endif
 
     const char *opt_extensions[] = {
         VK_EXT_HDR_METADATA_EXTENSION_NAME,
@@ -76,18 +81,61 @@ AVPlaceboWidget::AVPlaceboWidget(StreamSession *session, ResolutionMode resoluti
 
     struct pl_vk_inst_params vk_inst_params = {
         .extensions = vk_exts,
-        .num_extensions = 2,
+        .num_extensions = 1,
         .opt_extensions = opt_extensions,
         .num_opt_extensions = 1,
     };
     placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
 
+
+#define GET_PROC(name_) { \
+    vk_funcs.name_ = reinterpret_cast<decltype(vk_funcs.name_)>( \
+        placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, #name_)); \
+    if (!vk_funcs.name_) { \
+        qCCritical(chiakiGui) << "Failed to resolve" << #name_; \
+        return; \
+    } }
+    GET_PROC(vkGetDeviceProcAddr)
+#if defined(Q_OS_LINUX)
+    if (QGuiApplication::platformName().startsWith("wayland"))
+        GET_PROC(vkCreateWaylandSurfaceKHR)
+    else if (QGuiApplication::platformName().startsWith("xcb"))
+        GET_PROC(vkCreateXcbSurfaceKHR)
+#elif defined(Q_OS_MACOS)
+    GET_PROC(vkCreateMetalSurfaceEXT)
+#elif defined(Q_OS_WIN32)
+    GET_PROC(vkCreateWin32SurfaceKHR)
+#endif
+    GET_PROC(vkDestroySurfaceKHR)
+    GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
+#undef GET_PROC
+
+    const char *opt_dev_extensions[] = {
+        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME,
+    };
+
     struct pl_vulkan_params vulkan_params = {
         .instance = placebo_vk_inst->instance,
         .get_proc_addr = placebo_vk_inst->get_proc_addr,
         PL_VULKAN_DEFAULTS
+        .extra_queues = VK_QUEUE_VIDEO_DECODE_BIT_KHR,
+        .opt_extensions = opt_dev_extensions,
+        .num_opt_extensions = 4,
     };
     placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
+
+#define GET_PROC(name_) { \
+    vk_funcs.name_ = reinterpret_cast<decltype(vk_funcs.name_)>( \
+        vk_funcs.vkGetDeviceProcAddr(placebo_vulkan->device, #name_)); \
+    if (!vk_funcs.name_) { \
+        qCCritical(chiakiGui) << "Failed to resolve" << #name_; \
+        return; \
+    } }
+    GET_PROC(vkWaitSemaphores)
+#undef GET_PROC
 
     struct pl_cache_params cache_params = {
         .log = placebo_log,
@@ -290,31 +338,34 @@ void AVPlaceboWidget::RenderPlaceholderIcon()
 void AVPlaceboWidget::CreateSwapchain()
 {
     VkResult err;
+#if defined(Q_OS_LINUX)
     if (QGuiApplication::platformName().startsWith("wayland")) {
-        PFN_vkCreateWaylandSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateWaylandSurfaceKHR>(
-                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateWaylandSurfaceKHR"));
-
-        VkWaylandSurfaceCreateInfoKHR surfaceInfo;
-        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
+        VkWaylandSurfaceCreateInfoKHR surfaceInfo = {};
         surfaceInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
-        surfaceInfo.display = static_cast<struct wl_display*>(pni->nativeResourceForWindow("display", this));
-        surfaceInfo.surface = static_cast<struct wl_surface*>(pni->nativeResourceForWindow("surface", this));
-        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+        surfaceInfo.display = reinterpret_cast<struct wl_display*>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", this));
+        surfaceInfo.surface = reinterpret_cast<struct wl_surface*>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("surface", this));
+        err = vk_funcs.vkCreateWaylandSurfaceKHR(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
     } else if (QGuiApplication::platformName().startsWith("xcb")) {
-        PFN_vkCreateXcbSurfaceKHR createSurface = reinterpret_cast<PFN_vkCreateXcbSurfaceKHR>(
-                placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, "vkCreateXcbSurfaceKHR"));
-
-        VkXcbSurfaceCreateInfoKHR surfaceInfo;
-        memset(&surfaceInfo, 0, sizeof(surfaceInfo));
+        VkXcbSurfaceCreateInfoKHR surfaceInfo = {};
         surfaceInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-        QPlatformNativeInterface* pni = QGuiApplication::platformNativeInterface();
-        surfaceInfo.connection = static_cast<xcb_connection_t*>(pni->nativeResourceForWindow("connection", this));
+        surfaceInfo.connection = reinterpret_cast<xcb_connection_t*>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("connection", this));
         surfaceInfo.window = static_cast<xcb_window_t>(winId());
-        err = createSurface(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+        err = vk_funcs.vkCreateXcbSurfaceKHR(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
     } else {
         Q_UNREACHABLE();
     }
+#elif defined(Q_OS_MACOS)
+    VkMetalSurfaceCreateInfoEXT surfaceInfo = {};
+    surfaceInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+    surfaceInfo.pLayer = static_cast<const CAMetalLayer*>(reinterpret_cast<void*(*)(id, SEL)>(objc_msgSend)(reinterpret_cast<id>(winId()), sel_registerName("layer")));
+    err = vk_funcs.vkCreateMetalSurfaceEXT(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+#elif defined(Q_OS_WIN32)
+    VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
+    surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceInfo.hinstance = GetModuleHandle(nullptr);
+    surfaceInfo.hwnd = reinterpret_cast<HWND>(winId());
+    err = vk_funcs.vkCreateWin32SurfaceKHR(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
+#endif
 
     if (err != VK_SUCCESS)
         qFatal("Failed to create VkSurfaceKHR");

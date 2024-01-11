@@ -40,7 +40,7 @@ using Application = QApplication;
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 Q_DECLARE_METATYPE(ChiakiRegistEventType)
 
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+#if defined(CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE) && defined(Q_OS_LINUX)
 #include <QtPlugin>
 Q_IMPORT_PLUGIN(SDInputContextPlugin)
 #endif
@@ -76,6 +76,10 @@ int real_main(int argc, char *argv[])
 	Application::setDesktopFileName("chiaki4deck");
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
+#if defined(Q_OS_WIN)
+	QString import_path = QFileInfo(argv[0]).dir().absolutePath() + "/qml";
+	qputenv("QML_IMPORT_PATH", import_path.toUtf8());
+#endif
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos"))
 		qputenv("QT_IM_MODULE", "sdinput");
