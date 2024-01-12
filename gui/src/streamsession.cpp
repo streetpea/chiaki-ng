@@ -589,6 +589,12 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal heig
 				// Touching edges of screen is a touchpad click
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
 					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+				else if(touch_tracker.empty()) // Double tap is a touchpad click
+				{
+					if(double_tap_timer.isValid() && double_tap_timer.elapsed() < 500)
+						touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+					double_tap_timer.restart();
+				}
 				// Scale to PS TouchPad since that's what PS Console expects
 				float psx = norm_x * PS_TOUCHPAD_MAX_X;
 				float psy = norm_y * PS_TOUCHPAD_MAX_Y;
