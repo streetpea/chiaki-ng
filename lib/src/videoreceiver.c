@@ -494,7 +494,7 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		}
 		else if(slice_type == SLICE_TYPE_P)
 		{
-			int32_t ref_frame_index = video_receiver->frame_index_cur - ref_frame - 1;
+			ChiakiSeqNum16 ref_frame_index = video_receiver->frame_index_cur - ref_frame - 1;
 			if(ref_frame == 0xff || have_ref_frame(video_receiver, ref_frame_index))
 			{
 				add_ref_frame(video_receiver, video_receiver->frame_index_cur);
