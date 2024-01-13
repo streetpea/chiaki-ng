@@ -6,9 +6,6 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg)
 if(UNIX AND NOT APPLE)
     find_package(Qt6 REQUIRED COMPONENTS DBus)
 endif()
-if(APPLE)
-	find_package(Qt6 REQUIRED COMPONENTS MacExtras)
-endif()
 if(CHIAKI_ENABLE_QMLGUI)
 	find_package(Qt6 REQUIRED COMPONENTS Qml Quick)
 else()
@@ -147,12 +144,8 @@ target_link_libraries(chiaki SDL2::SDL2)
 if(UNIX AND NOT APPLE)
 	target_link_libraries(chiaki Qt::DBus)
 endif()
-if(APPLE)
-	target_link_libraries(chiaki Qt::MacExtras)
-	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QT_MACEXTRAS)
-endif()
 if(CHIAKI_ENABLE_SPEEX)
-  target_link_libraries(chiaki speexdsp)
+  target_link_libraries(chiaki PkgConfig::SpeexDSP)
   target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_SPEEX)
 endif()
 if(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER)
@@ -173,11 +166,11 @@ endif()
 set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"
-		MACOSX_BUNDLE_BUNDLE_NAME Chiaki
+		MACOSX_BUNDLE_BUNDLE_NAME Chiaki4deck
 		MACOSX_BUNDLE_BUNDLE_VERSION ${CHIAKI_VERSION}
 		MACOSX_BUNDLE_COPYRIGHT "thestr4ng3r (AGPLv3)"
-		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki.chiaki"
-		MACOSX_BUNDLE_ICON_FILE chiaki.icns
+		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki4deck.chiaki4deck"
+		MACOSX_BUNDLE_ICON_FILE chiaki4deck.icns
 		RESOURCE "${RESOURCE_FILES}")
 
 install(TARGETS chiaki

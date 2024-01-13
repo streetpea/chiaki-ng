@@ -21,6 +21,9 @@
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
 #include <QQuickGraphicsDevice>
+#if defined(Q_OS_MACOS)
+#include <objc/message.h>
+#endif
 
 Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
 
