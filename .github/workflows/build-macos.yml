@@ -1,0 +1,35 @@
+name: Build Chiaki4deck macOSX
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac_x64:
+    name: Build macOSX version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install protobuf
+        run: |
+          pip3 install --user protobuf
+
+      - name: Install brew dependencies
+        run: |
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo
+
+      - name: Configure Chiaki4deck
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="/usr/local/opt/@openssl@3;/usr/local/opt/qt@6"
+
+      - name: Build Chiaki4deck
+        run: |
+          export CPATH=/usr/local/opt/ffmpeg/include
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Deploy Chiaki4deck
+        run: |
+          cp -a build/gui/chiaki.app Chiaki4deck.app
+          /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -dmg

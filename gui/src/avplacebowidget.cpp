@@ -21,6 +21,10 @@
 #include <vulkan/vulkan.h>
 #include <qpa/qplatformnativeinterface.h>
 
+#if defined(Q_OS_MACOS)
+#include <objc/message.h>
+#endif
+
 Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
 
 static inline QString GetShaderCacheFile()
