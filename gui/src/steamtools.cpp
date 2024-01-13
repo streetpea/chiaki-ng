@@ -257,19 +257,20 @@ void SteamTools::saveArtwork(QString shortAppId, QMap<QString, const QPixmap*> a
 /**
  * \brief Create a SteamShortcutEntry for the given app with supplied path and artwork
  * \param appName The name of the shortcut to add
- * \param filepath The path to the Exe of the ap
+ * \param filepath The path to the Exe of the app
+ * \param launchOptions The launch options for the shortcut
  * \param artwork Map of Artwork Type -> Pixmap
  * \return A SteamShortcutEntry crafted from these input parameters
  */
-SteamShortcutEntry SteamTools::buildShortcutEntry(QString appName, QString filepath, QMap<QString, const QPixmap*> artwork) {
+SteamShortcutEntry SteamTools::buildShortcutEntry(const QString& appName, const QString& filepath, const QString& launchOptions, const QMap<QString, const QPixmap*>& artwork) {
 
     SteamShortcutEntry entry;
-    QString shortAppId = generateShortAppId("\"" + filepath + "\"", appName);
+    const QString shortAppId = generateShortAppId("\"" + filepath + "\"", appName);
     auto entryID = countStringOccurrencesInFile(errorFunction, shortcutFile, "appid");
     entryID++;
 
     //Handle Artwork
-    QMap<QString, QString> artworkLocations = {
+    const QMap<QString, QString> artworkLocations = {
         {"icon", "%1/userdata/%2/config/grid/%3_icon.png"},
         {"landscape", "%1/userdata/%2/config/grid/%3.png"},
         {"portrait", "%1/userdata/%2/config/grid/%3p.png"},
@@ -279,7 +280,7 @@ SteamShortcutEntry SteamTools::buildShortcutEntry(QString appName, QString filep
 
     saveArtwork(shortAppId, artwork, artworkLocations);
     if (artwork.contains("icon")) {
-        QString iconPath = artworkLocations.value("icon")
+        const QString iconPath = artworkLocations.value("icon")
                 .arg(steamBaseDir)
                 .arg(mostRecentUser)
                 .arg(shortAppId);
@@ -289,12 +290,12 @@ SteamShortcutEntry SteamTools::buildShortcutEntry(QString appName, QString filep
     entry.setProperty("appid", QString::number(entryID));
     entry.setProperty("AppName", appName);
     entry.setProperty("Exe", "\"" + filepath + "\"");
-    QFileInfo fileInfo(filepath);
-    QString directoryPath = fileInfo.absolutePath();
+    const QFileInfo fileInfo(filepath);
+    const QString directoryPath = fileInfo.absolutePath();
     entry.setProperty("StartDir", directoryPath);
 
     entry.setProperty("ShortcutPath", "");
-    entry.setProperty("LaunchOptions", "");
+    entry.setProperty("LaunchOptions", launchOptions);
     entry.setProperty("IsHidden", "");
     entry.setProperty("AllowDesktopConfig", "");
     entry.setProperty("AllowOverlay", "");

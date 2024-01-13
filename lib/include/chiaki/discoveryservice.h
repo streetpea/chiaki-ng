@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-typedef void (*ChiakiDiscoveryServiceCb)(ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
+typedef void (*ChiakiDiscoveryServiceCb)(bool queueResponses, ChiakiDiscoveryHost *hosts, size_t hosts_count, void *user);
 
 typedef struct chiaki_discovery_service_options_t
 {
@@ -21,6 +21,7 @@ typedef struct chiaki_discovery_service_options_t
 	size_t send_addr_size;
 	ChiakiDiscoveryServiceCb cb;
 	void *cb_user;
+	bool queueResponses;
 } ChiakiDiscoveryServiceOptions;
 
 typedef struct chiaki_discovery_service_host_discovery_info_t

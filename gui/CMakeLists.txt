@@ -55,10 +55,9 @@ set(SOURCE_FILES
 		include/psnaccountid.h
 		src/psnaccountid.cpp
 		include/jsonrequester.h
-		src/jsonrequester.cpp)
+		src/jsonrequester.cpp
+		include/autoconnecthelper.h)
 set(RESOURCE_FILES "")
-
-set(UI_FILES ui/shortcutdialog.ui)
 
 if (CHIAKI_ENABLE_ARTWORK)
 	add_definitions(-DCHIAKI_ENABLE_ARTWORK)
@@ -74,11 +73,11 @@ if (CHIAKI_ENABLE_ARTWORK)
 			include/artworkdialog.h
 			src/artworkdialog.cpp)
 
-	list(APPEND UI_FILES
-			ui/artworkdialog.ui)
+	set(UI_FILES ui/artworkdialog.ui)
+	qt6_wrap_ui(UI_HEADERS ${UI_FILES})
 endif()
 
-qt6_wrap_ui(UI_HEADERS ${UI_FILES})
+
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki.icns")

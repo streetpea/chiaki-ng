@@ -1,4 +1,10 @@
 
+#include <iostream>
+#include <sstream>
+#include <QtCore/qprocess.h>
+
+#include "autoconnecthelper.h"
+
 // ugly workaround because Windows does weird things and ENOTIME
 int real_main(int argc, char *argv[]);
 int main(int argc, char *argv[]) { return real_main(argc, argv); }
@@ -116,6 +122,7 @@ int real_main(int argc, char *argv[])
 	QStringList cmds;
 	cmds.append("stream");
 	cmds.append("list");
+	cmds.append("autoconnect");
 #ifdef CHIAKI_ENABLE_CLI
 	cmds.append(cli_commands.keys());
 #endif
@@ -201,7 +208,7 @@ int real_main(int argc, char *argv[])
 			{
 				printf("Given regist key is too long (expected size <=%llu, got %d)\n",
 					(unsigned long long)sizeof(ChiakiConnectInfo::regist_key),
-					regist_key.length());
+					static_cast<int>(regist_key.length()));
 				return 1;
 			}
 			regist_key += QByteArray(sizeof(ChiakiConnectInfo::regist_key) - regist_key.length(), 0);
@@ -210,7 +217,7 @@ int real_main(int argc, char *argv[])
 			{
 				printf("Given morning has invalid size (expected %llu, got %d)\n",
 					(unsigned long long)sizeof(ChiakiConnectInfo::morning),
-					morning.length());
+					static_cast<int>(morning.length()));
 				printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
 				return 1;
 			}
@@ -230,11 +237,136 @@ int real_main(int argc, char *argv[])
 			initial_login_passcode = parser.value(passcode_option);
 			if(initial_login_passcode.length() != 4)
 			{
-				printf("Login passcode must be 4 digits. You entered %d digits)\n", initial_login_passcode.length());
+				printf("Login passcode must be 4 digits. You entered %d digits)\n", static_cast<int>(initial_login_passcode.length()));
 				return 1;
 			}
 		}
 		
+		StreamSessionConnectInfo connect_info(
+				&settings,
+				target,
+				host,
+				regist_key,
+				morning,
+				initial_login_passcode,
+				parser.isSet(fullscreen_option),
+				parser.isSet(zoom_option),
+				parser.isSet(stretch_option));
+
+		return RunStream(app, connect_info);
+	}
+	if(args[0] == "autoconnect") {
+		//Timeouts for discovery and ready check
+		int discovery_timeout = 45;
+		int ready_timeout = 45;
+
+		//Stream settings
+		QString host;
+		QByteArray morning;
+		QByteArray regist_key;
+		QString initial_login_passcode;
+		QString mac;
+		bool isPS5;
+		ChiakiTarget target = CHIAKI_TARGET_PS4_10;
+
+		//Flags for how discovery is going
+		bool needsWaking = true;
+		bool discovered = false;
+		bool ready = false;
+
+		//Discovery manager, used for UDP discovery for local instances and waking both local and remote
+		DiscoveryManager discovery_manager(nullptr, false);
+
+		//Check the arguments
+		if ((parser.isSet(stretch_option) && (parser.isSet(zoom_option) || parser.isSet(fullscreen_option))) || (parser.isSet(zoom_option) && parser.isSet(fullscreen_option)))
+		{
+			printf("Must choose between fullscreen, zoom or stretch option.");
+			return 1;
+		}
+		if(parser.value(passcode_option).isEmpty())
+		{
+			//Set to empty if it wasn't given by user.
+			initial_login_passcode = QString("");
+		}
+		else
+		{
+			initial_login_passcode = parser.value(passcode_option);
+			if(initial_login_passcode.length() != 4)
+			{
+				printf("Login passcode must be 4 digits. You entered %d digits)\n", static_cast<int>(initial_login_passcode.length()));
+				return 1;
+			}
+		}
+
+		//Look for the host by nickname
+		bool found = false;
+		for(const auto &temphost : settings.GetRegisteredHosts())
+		{
+			if(temphost.GetServerNickname() == args[1])
+			{
+				found = true;
+				morning = temphost.GetRPKey();
+				regist_key = temphost.GetRPRegistKey();
+				target = temphost.GetTarget();
+				mac = temphost.GetServerMAC().ToString();
+				isPS5 = temphost.GetTarget() == CHIAKI_TARGET_PS5_UNKNOWN || temphost.GetTarget() == CHIAKI_TARGET_PS5_1;
+				break;
+			}
+		}
+		if(!found)
+		{
+			printf("No configuration found for '%s'\n", args[1].toLocal8Bit().constData());
+			return 1;
+		}
+
+
+		//Next thing is to determine if we're on one of our "local" SSIDs
+		QString currentSSID = AutoConnectHelper::GetCurrentSSID();
+		QList<QString> local_ssids = settings.GetLocalSSIDs();
+
+		bool local = true;
+		if (!local_ssids.contains(currentSSID)) {
+			local = false;
+			host = settings.GetExternalAddress();
+			//If we're not on a local SSID: we're going to have to use the CLI to launch, this won't work if the CLI is not active.
+			//The logic for external access is quite ugly as it involves calling chiaki again as a nested process.
+			#ifndef CHIAKI_ENABLE_CLI
+				printf("External access for autoconnect is not supported by this platform");
+				return 1;
+			#endif
+		}
+
+		//Check if the console is ready (for local we can also get the local IP address here).
+		QElapsedTimer timer;
+		timer.start();
+		while (!discovered && timer.elapsed() / 1000 < discovery_timeout) {
+			AutoConnectHelper::CheckDiscover(local, discovery_manager, host, needsWaking, discovered, mac);
+			if (!discovered) sleep(1);
+		}
+
+		if (!discovered) {
+			printf("Unable to find '%s' on current network\n", args[1].toLocal8Bit().constData());
+			return 1;
+		}
+
+		//Send the wakeup packet if necessary
+		if (needsWaking) {
+			discovery_manager.SendWakeup(host, regist_key, isPS5);
+		}
+
+		//Wait for the console to respond to the discover again
+		timer.restart();
+		while (!ready && timer.elapsed() / 1000 < ready_timeout) {
+			AutoConnectHelper::CheckReady(local, discovery_manager, host, ready, mac);
+			if (!ready) sleep(1);
+		}
+
+		if (!ready) {
+			printf("Console '%s' didn't wake up in time\n", args[1].toLocal8Bit().constData());
+			return 1;
+		}
+
+		//Start the stream
 		StreamSessionConnectInfo connect_info(
 				&settings,
 				target,

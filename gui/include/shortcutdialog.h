@@ -2,23 +2,28 @@
 #define SHORTCUTDIALOG_H
 #include <mainwindow.h>
 #include <qeventloop.h>
-#include <QNetworkReply>
-#include "ui_shortcutdialog.h"
 #include "settings.h"
 #include "sgdbartworkwidget.h"
 #include "steamtools.h"
 
-class ShortcutDialog : public QDialog, private Ui::ShortcutDialog {
+class ShortcutDialog : public QDialog {
     Q_OBJECT
 
 private:
+    Settings *settings;
+    QComboBox *mode_combo_box;
+    QLineEdit *passcode_edit;
+#ifdef CHIAKI_ENABLE_ARTWORK
+    QPushButton *choose_artwork_button;
+#endif
+    QPushButton *add_to_steam_button;
+
     SteamTools* steamTools;
     const DisplayServer* server;
     ChiakiLog log;
     QMap<QString, const QPixmap*> artwork;
 
 private slots:
-    void ExternalChanged();
     void CreateShortcut(const DisplayServer* server);
     #ifdef CHIAKI_ENABLE_ARTWORK
         void updateArtwork(QMap<QString, const QPixmap*> artwork);
@@ -29,9 +34,8 @@ public:
 
     ShortcutDialog(Settings* settings, const DisplayServer* server, QWidget* parent = nullptr);
     QString getExecutable();
-    QString compileTemplate(const QString& templateFile, const QMap<QString,QString>& inputMap);
-    QString getConnectedSSID();
-    void AddToSteam(const DisplayServer* server, QString filePath);
+    QString getLaunchOptions(const DisplayServer* displayServer);
+    void AddToSteam(const DisplayServer* server);
 };
 
 #endif //SHORTCUTDIALOG_H
