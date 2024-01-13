@@ -566,8 +566,8 @@ void QmlMainWindow::updateSwapchain()
 {
     Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
 
-    quick_item->setSize(size());
-    quick_window->resize(size());
+    quick_item->setSize(size() * devicePixelRatio());
+    quick_window->resize(size() * devicePixelRatio());
 
     QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::resizeSwapchain, this), Qt::BlockingQueuedConnection);
     quick_render->polishItems();
