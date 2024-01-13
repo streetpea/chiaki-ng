@@ -775,8 +775,11 @@ bool QmlMainWindow::event(QEvent *event)
             else if (event->type() == QEvent::MouseButtonRelease)
                 session->HandleMouseReleaseEvent(static_cast<QMouseEvent*>(event));
             return true;
+        } else {
+            auto e = static_cast<QMouseEvent*>(event);
+            QMouseEvent mouse(e->type(), e->position() * devicePixelRatio(), e->globalPosition() * devicePixelRatio(), e->button(), e->buttons(), e->modifiers());
+            QGuiApplication::sendEvent(quick_window, &mouse);
         }
-        QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::KeyPress:
         if (handleShortcut(static_cast<QKeyEvent*>(event)))
