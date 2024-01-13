@@ -39,3 +39,11 @@ jobs:
           cp /usr/local/share/vulkan/icd.d/MoltenVK_icd.json Chiaki4deck.app/Contents/Resources/vulkan/icd.d
           cp /usr/local/lib/libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
           /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib -dmg
+
+      - name: Upload Chiaki4deck Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Chiaki4deck-macos_intel-Release
+          path: Chiaki4deck.dmg
+          if-no-files-found: error
+          retention-days: 1
