@@ -14,11 +14,12 @@ jobs:
 
       - name: Install protobuf
         run: |
-          pip3 install --user protobuf
+          pip3 install --user protobuf setuptools
 
       - name: Install brew dependencies
         run: |
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo
+          brew update
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo molten-vk
 
       - name: Configure Chiaki4deck
         run: |
@@ -32,4 +33,9 @@ jobs:
       - name: Deploy Chiaki4deck
         run: |
           cp -a build/gui/chiaki.app Chiaki4deck.app
-          /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -dmg
+          /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib
+          mkdir -p Chiaki4deck.app/Contents/lib Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          cp /usr/local/lib/libMoltenVK.dylib Chiaki4deck.app/Contents/lib
+          cp /usr/local/share/vulkan/icd.d/MoltenVK_icd.json Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          cp /usr/local/lib/libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
+          /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib -dmg
