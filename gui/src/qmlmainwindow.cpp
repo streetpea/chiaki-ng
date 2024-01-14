@@ -285,17 +285,6 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     return vulkan_hw_dev_ctx;
 }
 
-QSurfaceFormat QmlMainWindow::createSurfaceFormat()
-{
-    QSurfaceFormat format;
-    format.setAlphaBufferSize(8);
-    format.setDepthBufferSize(0);
-    format.setStencilBufferSize(0);
-    format.setVersion(3, 2);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    return format;
-}
-
 void QmlMainWindow::init(Settings *settings)
 {
     setSurfaceType(QWindow::VulkanSurface);
