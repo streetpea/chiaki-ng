@@ -161,7 +161,7 @@ QList<QmlController*> QmlBackend::qmlControllers() const
 
 bool QmlBackend::discoveryEnabled() const
 {
-    return settings->GetDiscoveryEnabled();
+    return discovery_manager.GetActive();
 }
 
 void QmlBackend::setDiscoveryEnabled(bool enabled)
