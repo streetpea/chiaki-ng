@@ -66,6 +66,11 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
 {
     init(connect_info.settings);
     backend->createSession(connect_info);
+
+    connect(session, &StreamSession::ConnectedChanged, this, [this]() {
+        if (session->IsConnected())
+            connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
+    });
 }
 
 QmlMainWindow::~QmlMainWindow()
