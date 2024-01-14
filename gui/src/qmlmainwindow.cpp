@@ -101,9 +101,9 @@ QmlMainWindow::~QmlMainWindow()
     render_thread->wait();
     delete render_thread->parent();
 
-    delete quick_render;
     delete quick_item;
     delete quick_window;
+    delete quick_render;
     delete qml_engine;
     delete qt_vk_inst;
 
