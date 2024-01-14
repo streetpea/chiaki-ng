@@ -37,7 +37,7 @@ set(SOURCE_FILES
 set(RESOURCE_FILES "")
 
 if(APPLE)
-	list(APPEND RESOURCE_FILES "chiaki.icns")
+	list(APPEND RESOURCE_FILES "chiaki4deck.icns")
 endif()
 
 if(CHIAKI_ENABLE_QMLGUI)
