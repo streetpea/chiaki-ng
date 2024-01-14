@@ -194,6 +194,7 @@ void QmlMainWindow::show()
     QQmlComponent component(qml_engine, QUrl(QStringLiteral("qrc:/Main.qml")));
     if (!component.isReady()) {
         qCCritical(chiakiGui) << "Component not ready\n" << component.errors();
+        QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
 
@@ -202,6 +203,7 @@ void QmlMainWindow::show()
     quick_item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(props));
     if (!quick_item) {
         qCCritical(chiakiGui) << "Failed to create root item\n" << component.errors();
+        QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
 
