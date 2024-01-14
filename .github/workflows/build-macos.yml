@@ -38,6 +38,7 @@ jobs:
           cp /usr/local/lib/libMoltenVK.dylib Chiaki4deck.app/Contents/lib
           cp /usr/local/share/vulkan/icd.d/MoltenVK_icd.json Chiaki4deck.app/Contents/Resources/vulkan/icd.d
           cp /usr/local/lib/libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
+          cp -r /usr/local/lib/QtDBus.framework Chiaki4deck.app/Contents/Frameworks/
           /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib -dmg
 
       - name: Upload Chiaki4deck Artifact
