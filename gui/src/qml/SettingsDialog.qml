@@ -99,17 +99,6 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Verbose Logging:")
-                    }
-
-                    C.CheckBox {
-                        text: qsTr("Warning: Don't enable for regular use")
-                        checked: Chiaki.settings.logVerbose
-                        onToggled: Chiaki.settings.logVerbose = checked
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
                         text: qsTr("PS5 Features:")
                     }
 
@@ -139,6 +128,17 @@ DialogView {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
                         checked: Chiaki.settings.verticalDeck
                         onToggled: Chiaki.settings.verticalDeck = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Verbose Logging:")
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("Warning: Don't enable for regular use")
+                        checked: Chiaki.settings.logVerbose
+                        onToggled: Chiaki.settings.logVerbose = checked
                     }
 
                     Label {

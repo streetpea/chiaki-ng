@@ -5,7 +5,6 @@
 #include <QMutex>
 #include <QWindow>
 #include <QQuickWindow>
-#include <QSurfaceFormat>
 #include <QLoggingCategory>
 
 extern "C" {
@@ -82,7 +81,6 @@ public:
     void presentFrame(AVFrame *frame, int32_t frames_lost);
 
     AVBufferRef *vulkanHwDeviceCtx();
-    static QSurfaceFormat createSurfaceFormat();
 
 signals:
     void hasVideoChanged();

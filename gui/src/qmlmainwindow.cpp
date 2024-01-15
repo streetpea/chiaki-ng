@@ -55,6 +55,24 @@ static const char *shader_cache_path()
     return qPrintable(path);
 }
 
+class RenderControl : public QQuickRenderControl
+{
+public:
+    explicit RenderControl(QWindow *window)
+        : window(window)
+    {
+    }
+
+    QWindow *renderWindow(QPoint *offset) override
+    {
+        Q_UNUSED(offset);
+        return window;
+    }
+
+private:
+    QWindow *window = {};
+};
+
 QmlMainWindow::QmlMainWindow(Settings *settings)
     : QWindow()
 {
@@ -83,9 +101,9 @@ QmlMainWindow::~QmlMainWindow()
     render_thread->wait();
     delete render_thread->parent();
 
-    delete quick_render;
     delete quick_item;
     delete quick_window;
+    delete quick_render;
     delete qml_engine;
     delete qt_vk_inst;
 
@@ -176,6 +194,7 @@ void QmlMainWindow::show()
     QQmlComponent component(qml_engine, QUrl(QStringLiteral("qrc:/Main.qml")));
     if (!component.isReady()) {
         qCCritical(chiakiGui) << "Component not ready\n" << component.errors();
+        QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
 
@@ -184,6 +203,7 @@ void QmlMainWindow::show()
     quick_item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(props));
     if (!quick_item) {
         qCCritical(chiakiGui) << "Failed to create root item\n" << component.errors();
+        QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
 
@@ -263,17 +283,6 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     }
 
     return vulkan_hw_dev_ctx;
-}
-
-QSurfaceFormat QmlMainWindow::createSurfaceFormat()
-{
-    QSurfaceFormat format;
-    format.setAlphaBufferSize(8);
-    format.setDepthBufferSize(0);
-    format.setStencilBufferSize(0);
-    format.setVersion(3, 2);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    return format;
 }
 
 void QmlMainWindow::init(Settings *settings)
@@ -403,7 +412,7 @@ void QmlMainWindow::init(Settings *settings)
     if (!qt_vk_inst->create())
         qFatal("Failed to create QVulkanInstance");
 
-    quick_render = new QQuickRenderControl;
+    quick_render = new RenderControl(this);
 
     QQuickWindow::setDefaultAlphaBuffer(true);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
@@ -571,8 +580,8 @@ void QmlMainWindow::updateSwapchain()
 {
     Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
 
-    quick_item->setSize(size() * devicePixelRatio());
-    quick_window->resize(size() * devicePixelRatio());
+    quick_item->setSize(size());
+    quick_window->resize(size());
 
     QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::resizeSwapchain, this), Qt::BlockingQueuedConnection);
     quick_render->polishItems();
@@ -780,11 +789,8 @@ bool QmlMainWindow::event(QEvent *event)
             else if (event->type() == QEvent::MouseButtonRelease)
                 session->HandleMouseReleaseEvent(static_cast<QMouseEvent*>(event));
             return true;
-        } else {
-            auto e = static_cast<QMouseEvent*>(event);
-            QMouseEvent mouse(e->type(), e->position() * devicePixelRatio(), e->globalPosition() * devicePixelRatio(), e->button(), e->buttons(), e->modifiers());
-            QGuiApplication::sendEvent(quick_window, &mouse);
         }
+        QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::KeyPress:
         if (handleShortcut(static_cast<QKeyEvent*>(event)))
