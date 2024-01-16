@@ -159,20 +159,7 @@ hell:
 	return false;
 }
 
-static AVFrame *pull_from_hw(ChiakiFfmpegDecoder *decoder, AVFrame *hw_frame)
-{
-	AVFrame *sw_frame = av_frame_alloc();
-	if(av_hwframe_transfer_data(sw_frame, hw_frame, 0) < 0)
-	{
-		CHIAKI_LOGE(decoder->log, "Failed to transfer frame from hardware");
-		av_frame_unref(sw_frame);
-		sw_frame = NULL;
-	}
-	av_frame_unref(hw_frame);
-	return sw_frame;
-}
-
-CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, bool hw_download, int32_t *frames_lost)
+CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, int32_t *frames_lost)
 {
 	chiaki_mutex_lock(&decoder->mutex);
 	// always try to pull as much as possible and return only the very last frame
@@ -195,9 +182,7 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 		frame_last = frame;
 		frame = next_frame;
 		int r = avcodec_receive_frame(decoder->codec_context, frame);
-		if(!r)
-			frame = hw_download && decoder->hw_device_ctx ? pull_from_hw(decoder, frame) : frame;
-		else
+		if(r)
 		{
 			if(r != AVERROR(EAGAIN))
 				CHIAKI_LOGE(decoder->log, "Decoding with FFMPEG failed");
