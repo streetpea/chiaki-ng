@@ -19,7 +19,7 @@ struct chiaki_ffmpeg_decoder_t
 {
 	ChiakiLog *log;
 	ChiakiMutex mutex;
-	AVCodec *av_codec;
+	const AVCodec *av_codec;
 	AVCodecContext *codec_context;
 	enum AVPixelFormat hw_pix_fmt;
 	AVBufferRef *hw_device_ctx;
