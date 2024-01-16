@@ -740,16 +740,23 @@ void QmlMainWindow::render()
 
 bool QmlMainWindow::handleShortcut(QKeyEvent *event)
 {
+    if (event->modifiers() == Qt::NoModifier) {
+        switch (event->key()) {
+        case Qt::Key_F11:
+            if (windowState() != Qt::WindowFullScreen)
+                showFullScreen();
+            else
+                showNormal();
+            return true;
+        default:
+            break;
+        }
+    }
+
     if (!event->modifiers().testFlag(Qt::ControlModifier))
         return false;
 
     switch (event->key()) {
-    case Qt::Key_F11:
-        if (windowState() != Qt::WindowFullScreen)
-            showFullScreen();
-        else
-            showNormal();
-        return true;
     case Qt::Key_S:
         if (has_video)
             setVideoMode(videoMode() == VideoMode::Stretch ? VideoMode::Normal : VideoMode::Stretch);
