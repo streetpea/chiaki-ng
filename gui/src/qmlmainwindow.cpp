@@ -792,6 +792,14 @@ bool QmlMainWindow::event(QEvent *event)
         }
         QGuiApplication::sendEvent(quick_window, event);
         break;
+    case QEvent::MouseButtonDblClick:
+        if (session && !grab_input) {
+            if (windowState() != Qt::WindowFullScreen)
+                showFullScreen();
+            else
+                showNormal();
+        }
+        break;
     case QEvent::KeyPress:
         if (handleShortcut(static_cast<QKeyEvent*>(event)))
             return true;
