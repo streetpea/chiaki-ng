@@ -230,7 +230,13 @@ QStringList QmlSettings::availableDecoders() const
 {
     static QSet<QString> allowed = {
         "vulkan",
+#if defined(Q_OS_LINUX)
         "vaapi",
+#elif defined(Q_OS_MACOS)
+        "videotoolbox",
+#elif defined(Q_OS_WIN)
+        "d3d11va",
+#endif
     };
     QStringList out = {"none"};
     enum AVHWDeviceType hw_dev = AV_HWDEVICE_TYPE_NONE;
