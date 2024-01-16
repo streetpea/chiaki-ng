@@ -1,5 +1,9 @@
 # Completed (Done) Updates
 
+## Touch Friendly and Semi-Controller Navigable GUI
+
+QML based user interface that is better suited for handheld computers such as the Steam Deck and more user-friendly in general.
+
 ## HDR for Steam Deck OLED in game mode
 
 You can now use [HDR with your Steam Deck OLED](../setup/configuration.md#hdr-high-dynamic-range) thanks to [Johannes Baiter](https://github.com/jbaiter){target="_blank" rel="noopener"} and [David Rosca](https://github.com/nowrep){target="_blank" rel="noopener"} as well as many patient testers. In order to enable this, you must have:

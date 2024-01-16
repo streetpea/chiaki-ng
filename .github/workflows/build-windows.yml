@@ -34,9 +34,9 @@ jobs:
       - name: Setup ffmpeg
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.0-latest-win64-lgpl-shared-6.0.zip" -OutFile ".\ffmpeg-n6.0-latest-win64-lgpl-shared-6.0.zip"
-          Expand-Archive -LiteralPath "ffmpeg-n6.0-latest-win64-lgpl-shared-6.0.zip" -DestinationPath "."
-          Rename-Item "ffmpeg-n6.0-latest-win64-lgpl-shared-6.0" "ffmpeg"
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -OutFile ".\ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip"
+          Expand-Archive -LiteralPath "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -DestinationPath "."
+          Rename-Item "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1" "ffmpeg"
           Write-Output "${{ github.workspace }}\ffmpeg\bin" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Setup protoc
@@ -121,11 +121,12 @@ jobs:
       - name: Setup Qt
         uses: jurplel/install-qt-action@v2
         with:
-          version: '5.15.2'
+          aqtversion: '==3.1.*'
+          version: "6.6.1"
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          modules: 'qtmultimedia'
+          modules: 'qtwebengine qtpositioning qtwebchannel'
 
       - name: Configure & Build Opus
         run: |
@@ -178,11 +179,6 @@ jobs:
           cp "${{ github.workspace }}\hidapi-x64\hidapi.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\fftw\libfftw3-3.dll" Chiaki4deck-VC
           windeployqt.exe --no-translations Chiaki4deck-VC\chiaki.exe
-
-      - name: Remove qtaudio_windows.dll to fix choppy audio
-        working-directory: chiaki4deck
-        run: |
-          rm Chiaki4deck-VC\audio\qtaudio_windows.dll
 
       - name: Package Chiaki4deck
         working-directory: chiaki4deck

@@ -8,7 +8,6 @@
 #include "host.h"
 
 #include <QSettings>
-#include <QAudioDeviceInfo>
 
 enum class ControllerButtonExt
 {
@@ -68,7 +67,7 @@ class Settings : public QObject
 		void SaveManualHosts();
 
 	public:
-		explicit Settings(QObject *parent = nullptr);
+		explicit Settings(const QString &conf, QObject *parent = nullptr);
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
@@ -117,6 +116,9 @@ class Settings : public QObject
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
 #endif
+
+		RegisteredHost GetAutoConnectHost() const;
+		void SetAutoConnectHost(const QByteArray &mac);
 
 		unsigned int GetAudioBufferSizeDefault() const;
 

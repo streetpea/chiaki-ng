@@ -23,7 +23,9 @@ static void *congestion_control_thread_func(void *user)
 		chiaki_packet_stats_get(control->stats, true, &received, &lost);
 		ChiakiTakionCongestionPacket packet = { 0 };
 		packet.received = (uint16_t)received;
-		packet.lost = (uint16_t)lost;
+		// packet.lost = (uint16_t)lost;
+		// FIXME: Bitrate never recovers when reporting packet loss
+		packet.received += (uint16_t)lost;
 		CHIAKI_LOGV(control->takion->log, "Sending Congestion Control Packet, received: %u, lost: %u",
 			(unsigned int)packet.received, (unsigned int)packet.lost);
 		chiaki_takion_send_congestion(control->takion, &packet);

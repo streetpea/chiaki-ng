@@ -12,7 +12,11 @@
 #include <QScrollBar>
 #include <QMessageBox>
 #include <QCheckBox>
+#include <qeventloop.h>
 #include <QRadioButton>
+#include <regex>
+
+#include "psnlogindialog.h"
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
 
@@ -47,6 +51,7 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 		bool need_account_id = NeedAccountId();
 		psn_online_id_edit->setEnabled(!need_account_id);
 		psn_account_id_edit->setEnabled(need_account_id);
+		psn_account_id_button->setEnabled(need_account_id);
 	};
 
 	auto target_layout = new QVBoxLayout(nullptr);
@@ -66,8 +71,13 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 
 	psn_online_id_edit = new QLineEdit(this);
 	form_layout->addRow(tr("PSN Online-ID (username, case-sensitive):"), psn_online_id_edit);
+
 	psn_account_id_edit = new QLineEdit(this);
 	form_layout->addRow(tr("PSN Account-ID (base64):"), psn_account_id_edit);
+
+	psn_account_id_button = new QPushButton(this);
+	psn_account_id_button->setText("Get Account-ID");
+	form_layout->addRow(tr(""),psn_account_id_button);
 
 	ps5_radio_button->setChecked(true);
 
@@ -85,12 +95,24 @@ RegistDialog::RegistDialog(Settings *settings, const QString &host, QWidget *par
 
 	connect(host_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
 	connect(psn_online_id_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
+	connect(psn_account_id_button, &QPushButton::clicked, this, [=]() {
+		GetAccountID(parent);
+	});
 	connect(pin_edit, &QLineEdit::textChanged, this, &RegistDialog::ValidateInput);
 	ValidateInput();
 }
 
 RegistDialog::~RegistDialog()
 {
+}
+
+void RegistDialog::GetAccountID(QWidget *parent) {
+	PSNLoginDialog* window = new PSNLoginDialog(settings, this);
+	window->exec();
+}
+
+void RegistDialog::updatePsnAccountID(QString accountId) {
+	psn_account_id_edit->setText(accountId);
 }
 
 bool RegistDialog::NeedAccountId()

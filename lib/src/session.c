@@ -861,3 +861,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *sess
 {
 	return chiaki_ctrl_keyboard_accept(&session->ctrl);
 }
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_go_home(ChiakiSession *session)
+{
+	ChiakiErrorCode err;
+	err = ctrl_message_go_home(&session->ctrl);
+	return err;
+}

@@ -22,6 +22,20 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2023-1-15" version="1.6.0">
+      <description>
+        <p>This release brings a new user interface to Chiaki4deck including:</p>
+        <ul>
+          <li>New touch-friendly and semi-controller navigable GUI</li>
+          <li>Resume connection from sleep mode on Steam Deck.</li>
+          <li>Ability to login to PlayStation for account ID via GUI.</li>
+          <li>Fix Senkusha, lowering time for console connection and properly setting MTU</li>
+          <li>Audio Switch to SDL including fixing audio lag building over session</li>
+          <li>New Logo</li>
+          <li>Qt6 support</li>
+        </ul>
+      </description>
+    </release>
     <release date="2023-12-15" version="1.5.1">
       <description>
         <p>This release provides a workaround for the following gamescope bug:</p>

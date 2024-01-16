@@ -18,11 +18,25 @@
 #include <libplacebo/utils/frame_queue.h>
 #include <libplacebo/log.h>
 #include <libplacebo/cache.h>
+#include <QLoggingCategory>
+
+#include <vulkan/vulkan.h>
+#if defined(Q_OS_LINUX)
+#include <xcb/xcb.h>
+#include <vulkan/vulkan_xcb.h>
+#include <vulkan/vulkan_wayland.h>
+#elif defined(Q_OS_MACOS)
+#include <vulkan/vulkan_metal.h>
+#elif defined(Q_OS_WIN)
+#include <vulkan/vulkan_win32.h>
+#endif
 
 extern "C"
 {
     #include <libavcodec/avcodec.h>
 }
+
+Q_DECLARE_LOGGING_CATEGORY(chiakiGui);
 
 class StreamSession;
 class AVPlaceboFrameUploader;
@@ -41,7 +55,6 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         AVFrame *queued_frame = nullptr;
         bool stream_started = false;
-        bool first_frame_done = false;
 
         pl_cache placebo_cache;
         pl_render_params render_params;
@@ -54,6 +67,20 @@ class AVPlaceboWidget : public QWindow, public IAVWidget
 
         qint64 num_frames_total = 0;
         qint64 num_frames_dropped = 0;
+        struct {
+            PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
+#if defined(Q_OS_LINUX)
+            PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHR;
+            PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR;
+#elif defined(Q_OS_MACOS)
+            PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT;
+#elif defined(Q_OS_WIN32)
+            PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
+#endif
+            PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
+            PFN_vkWaitSemaphores vkWaitSemaphores;
+            PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
+        } vk_funcs;
 
     public:
         explicit AVPlaceboWidget(StreamSession *session, ResolutionMode resolution_mode, PlaceboPreset preset);

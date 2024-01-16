@@ -73,6 +73,7 @@ class Controller : public QObject
 #endif
 #endif
 
+		int ref;
 		ControllerManager *manager;
 		int id;
 		ChiakiOrientationTracker orientation_tracker;
@@ -89,6 +90,9 @@ class Controller : public QObject
 	public:
 		~Controller();
 
+		void Ref();
+		void Unref();
+
 		bool IsConnected();
 		int GetDeviceID();
 		QString GetName();
@@ -96,9 +100,7 @@ class Controller : public QObject
 		void SetRumble(uint8_t left, uint8_t right);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
 		bool IsDualSense();
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		bool IsSteamDeck();
-#endif
 
 	signals:
 		void StateChanged();

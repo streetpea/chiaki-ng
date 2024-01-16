@@ -3,14 +3,24 @@
 int real_main(int argc, char *argv[]);
 int main(int argc, char *argv[]) { return real_main(argc, argv); }
 
-#include <streamwindow.h>
-#include <mainwindow.h>
 #include <streamsession.h>
 #include <settings.h>
-#include <registdialog.h>
 #include <host.h>
-#include <avopenglwidget.h>
 #include <controllermanager.h>
+#include <discoverymanager.h>
+
+#ifdef CHIAKI_GUI_ENABLE_QML
+#include <qmlmainwindow.h>
+#include <QGuiApplication>
+using Application = QGuiApplication;
+#else
+#include <QApplication>
+#include <streamwindow.h>
+#include <mainwindow.h>
+#include <registdialog.h>
+#include <avopenglwidget.h>
+using Application = QApplication;
+#endif
 
 #ifdef CHIAKI_ENABLE_CLI
 #include <chiaki-cli.h>
@@ -23,14 +33,17 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <stdio.h>
 #include <string.h>
 
-#include <QApplication>
-#include <QAudioOutput>
-#include <QAudioFormat>
 #include <QCommandLineParser>
 #include <QMap>
 #include <QSurfaceFormat>
 
 Q_DECLARE_METATYPE(ChiakiLogLevel)
+Q_DECLARE_METATYPE(ChiakiRegistEventType)
+
+#if defined(CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE) && defined(Q_OS_LINUX)
+#include <QtPlugin>
+Q_IMPORT_PLUGIN(SDInputContextPlugin)
+#endif
 
 #ifdef CHIAKI_ENABLE_CLI
 struct CLICommand
@@ -44,8 +57,8 @@ static const QMap<QString, CLICommand> cli_commands = {
 };
 #endif
 
-int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info);
-int RunMain(QApplication &app, Settings *settings);
+int RunStream(Application &app, const StreamSessionConnectInfo &connect_info);
+int RunMain(Application &app, Settings *settings);
 
 int real_main(int argc, char *argv[])
 {
@@ -56,10 +69,21 @@ int real_main(int argc, char *argv[])
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();
 
-	QApplication::setOrganizationName("Chiaki");
-	QApplication::setApplicationName("Chiaki");
-	QApplication::setApplicationDisplayName("chiaki4deck");
-	QApplication::setDesktopFileName("chiaki4deck");
+	Application::setOrganizationName("Chiaki");
+	Application::setApplicationName("Chiaki");
+	Application::setApplicationVersion(CHIAKI_VERSION);
+	Application::setApplicationDisplayName("chiaki4deck");
+	Application::setDesktopFileName("chiaki4deck");
+
+	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
+#if defined(Q_OS_WIN)
+	QString import_path = QFileInfo(argv[0]).dir().absolutePath() + "/qml";
+	qputenv("QML_IMPORT_PATH", import_path.toUtf8());
+#endif
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	if (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos"))
+		qputenv("QT_IM_MODULE", "sdinput");
+#endif
 
 	ChiakiErrorCode err = chiaki_lib_init();
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -68,20 +92,24 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-	QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+	if(SDL_Init(SDL_INIT_AUDIO) < 0)
+	{
+		fprintf(stderr, "SDL Audio init failed: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	Application::setAttribute(Qt::AA_ShareOpenGLContexts);
+#ifndef CHIAKI_GUI_ENABLE_QML
 	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat());
-
-	QApplication app(argc, argv);
-
-#ifdef Q_OS_MACOS
-	QApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
-#else
-	QApplication::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
 #endif
 
-	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+	Application app(argc, argv);
 
-	Settings settings;
+#ifdef Q_OS_MACOS
+	Application::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+#else
+	Application::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
+#endif
 
 	QCommandLineParser parser;
 	parser.setOptionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsPositionalArguments);
@@ -98,6 +126,9 @@ int real_main(int argc, char *argv[])
 	parser.addPositionalArgument("nickname", "Needed for stream command to get credentials for connecting. "
 			"Use 'list' to get the nickname.");
 	parser.addPositionalArgument("host", "Address to connect to (when using the stream command).");
+
+	QCommandLineOption profile_option("profile", "", "profile", "Configuration profile");
+	parser.addOption(profile_option);
 
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
@@ -122,6 +153,8 @@ int real_main(int argc, char *argv[])
 
 	parser.process(app);
 	QStringList args = parser.positionalArguments();
+
+	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
 
 	if(args.length() == 0)
 		return RunMain(app, &settings);
@@ -247,16 +280,25 @@ int real_main(int argc, char *argv[])
 	}
 }
 
-int RunMain(QApplication &app, Settings *settings)
+int RunMain(Application &app, Settings *settings)
 {
+#ifdef CHIAKI_GUI_ENABLE_QML
+	QmlMainWindow main_window(settings);
+#else
 	MainWindow main_window(settings);
+#endif
 	main_window.show();
 	return app.exec();
 }
 
-int RunStream(QApplication &app, const StreamSessionConnectInfo &connect_info)
+int RunStream(Application &app, const StreamSessionConnectInfo &connect_info)
 {
+#ifdef CHIAKI_GUI_ENABLE_QML
+	QmlMainWindow main_window(connect_info);
+	main_window.show();
+#else
 	StreamWindow *window = new StreamWindow(connect_info);
 	app.setQuitOnLastWindowClosed(true);
+#endif
 	return app.exec();
 }

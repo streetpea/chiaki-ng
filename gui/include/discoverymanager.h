@@ -9,6 +9,7 @@
 
 #include <QObject>
 #include <QList>
+#include <QHash>
 
 struct DiscoveryHost
 {
@@ -24,6 +25,18 @@ struct DiscoveryHost
 
 Q_DECLARE_METATYPE(DiscoveryHost)
 
+struct ManualService
+{
+	~ManualService() { chiaki_discovery_service_fini(&service); }
+
+	class DiscoveryManager *manager;
+	bool discovered = false;
+	DiscoveryHost discovery_host;
+	ChiakiDiscoveryService service;
+};
+
+class Settings;
+
 class DiscoveryManager : public QObject
 {
 	Q_OBJECT
@@ -35,19 +48,24 @@ class DiscoveryManager : public QObject
 		ChiakiDiscoveryService service;
 		bool service_active;
 		QList<DiscoveryHost> hosts;
+		Settings *settings = {};
+		QHash<QString, ManualService*> manual_services;
 
 	private slots:
 		void DiscoveryServiceHosts(QList<DiscoveryHost> hosts);
+		void UpdateManualServices();
 
 	public:
 		explicit DiscoveryManager(QObject *parent = nullptr);
 		~DiscoveryManager();
 
 		void SetActive(bool active);
+		void SetSettings(Settings *settings);
 
 		void SendWakeup(const QString &host, const QByteArray &regist_key, bool ps5);
 
-		const QList<DiscoveryHost> GetHosts() const { return hosts; }
+		bool GetActive() const { return service_active; }
+		const QList<DiscoveryHost> GetHosts() const;
 
 	signals:
 		void HostsUpdated();

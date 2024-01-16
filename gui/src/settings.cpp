@@ -2,6 +2,7 @@
 
 #include <settings.h>
 #include <QKeySequence>
+#include <QCoreApplication>
 
 #include <chiaki/config.h>
 
@@ -70,8 +71,10 @@ static void MigrateSettings(QSettings *settings)
 	}
 }
 
-Settings::Settings(QObject *parent) : QObject(parent)
+Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
+	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf))
 {
+	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
@@ -149,9 +152,10 @@ ChiakiCodec Settings::GetCodec() const
 	auto codec = codecs.key(v, codec_default);
 
 	// Downgrade to non-HDR HEVC if renderer is not PlaceboVk
+#if !defined(CHIAKI_GUI_ENABLE_QML)
 	if (codec == ChiakiCodec::CHIAKI_CODEC_H265_HDR && GetRenderer() != Renderer::PlaceboVk)
 		codec = ChiakiCodec::CHIAKI_CODEC_H265;
-
+#endif
 	return codec;
 }
 
@@ -162,7 +166,7 @@ void Settings::SetCodec(ChiakiCodec codec)
 
 unsigned int Settings::GetAudioBufferSizeDefault() const
 {
-	return 19200;
+	return 5760;
 }
 
 unsigned int Settings::GetAudioBufferSizeRaw() const
@@ -239,6 +243,16 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 }
 #endif
 
+RegisteredHost Settings::GetAutoConnectHost() const
+{
+	const QByteArray mac = settings.value("settings/auto_connect_mac").toByteArray();
+	return GetRegisteredHost(mac.size() == 6 ? HostMAC((const uint8_t *)mac.constData()) : HostMAC());
+}
+
+void Settings::SetAutoConnectHost(const QByteArray &mac)
+{
+	settings.setValue("settings/auto_connect_mac", mac);
+}
 
 QString Settings::GetHardwareDecoder() const
 {
@@ -517,7 +531,7 @@ QMap<int, Qt::Key> Settings::GetControllerMapping()
 	{
 		auto button_name = GetChiakiControllerButtonName(chiaki_button).replace(' ', '_').toLower();
 		if(settings.contains("keymap/" + button_name))
-			result[static_cast<int>(chiaki_button)] = Qt::Key(QKeySequence(settings.value("keymap/" + button_name).toString())[0]);
+			result[static_cast<int>(chiaki_button)] = QKeySequence(settings.value("keymap/" + button_name).toString())[0].key();
 	}
 
 	return result;

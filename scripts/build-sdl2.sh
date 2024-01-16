@@ -20,7 +20,7 @@ cd "$DIR" || exit 1
 
 mkdir -p build && cd build || exit 1
 cmake \
-	-DCMAKE_INSTALL_PREFIX="$ROOT/sdl2-prefix" \
+	-DCMAKE_INSTALL_PREFIX="/usr" \
 	-DSDL_ATOMIC=OFF \
 	-DSDL_AUDIO=ON \
 	-DSDL_CPUINFO=ON \
@@ -42,4 +42,3 @@ cmake \
 
 make -j4
 make install
-

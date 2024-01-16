@@ -45,6 +45,9 @@ typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_RES = 0x24,
 	CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REQ = 0x25,
 	CTRL_MESSAGE_TYPE_ENABLE_DUALSENSE_FEATURES = 0x13,
+	CTRL_MESSAGE_TYPE_GO_HOME = 0x14,
+	CTRL_MESSAGE_TYPE_DISPLAYA = 0x1,
+	CTRL_MESSAGE_TYPE_DISPLAYB = 0x16,
 	CTRL_MESSAGE_TYPE_MIC_CONNECT = 0x30,
 	CTRL_MESSAGE_TYPE_MIC_TOGGLE = 0x36,
 	CTRL_MESSAGE_TYPE_DISPLAY_DEVICES = 0x910
@@ -98,6 +101,8 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_displaya(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_displayb(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
@@ -111,6 +116,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->login_pin_requested = false;
 	ctrl->login_pin = NULL;
 	ctrl->login_pin_size = 0;
+	ctrl->cant_displaya = false;
+	ctrl->cant_displayb = false;
 	ctrl->msg_queue = NULL;
 	ctrl->keyboard_text_counter = 0;
 
@@ -444,6 +451,19 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode ctrl_message_go_home(ChiakiCtrl *ctrl)
+{
+	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending go to home screen message");
+	uint8_t home[0x10] = {0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	ChiakiErrorCode err = ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_GO_HOME, home, 0x10);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Failed to go to home screen");
+		return err;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode ctrl_message_connect_microphone(ChiakiCtrl *ctrl)
 {
 	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending microphone connect message");
@@ -513,6 +533,12 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 			break;
 		case CTRL_MESSAGE_TYPE_KEYBOARD_CLOSE_REMOTE:
 			ctrl_message_received_keyboard_close(ctrl, payload, payload_size);
+			break;
+		case CTRL_MESSAGE_TYPE_DISPLAYA:
+			ctrl_message_received_displaya(ctrl, payload, payload_size);
+			break;
+		case CTRL_MESSAGE_TYPE_DISPLAYB:
+			ctrl_message_received_displayb(ctrl, payload, payload_size);
 			break;
       default:
 			CHIAKI_LOGW(ctrl->session->log, "Received Ctrl Message with unknown type %#x", msg_type);
@@ -625,6 +651,33 @@ static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *paylo
 	chiaki_cond_signal(&ctrl->session->state_cond);
 }
 
+static void ctrl_message_received_displaya(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	if(payload[0] == 0x1)
+		ctrl->cant_displaya = true;
+	else if (payload[0] == 0x0 && !ctrl->cant_displayb)
+	{
+		ctrl->cant_displaya = false;
+		CHIAKI_LOGI(ctrl->session->log, "Ctrl received message that the stream can now display.");
+		ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, false);
+	}
+}
+
+static void ctrl_message_received_displayb(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	if(ctrl->cant_displaya == true)
+	{
+		if(payload[0] == 0x00 && payload[1] == 0x00 && !ctrl->cant_displayb)
+		{
+			ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, true);
+			CHIAKI_LOGI(ctrl->session->log, "Ctrl received message that the stream can't display due to displaying some content that can't be streamed.");
+			ctrl->cant_displayb = true;
+		}
+	}
+	if(ctrl->cant_displayb && payload[0] == 0x01 && payload[1] == 0xff)
+		ctrl->cant_displayb = false;
+}
+
 static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
 	if(payload_size != 1)
@@ -724,6 +777,7 @@ typedef struct ctrl_response_t
 {
 	bool server_type_valid;
 	uint8_t rp_server_type[0x10];
+	bool rp_prohibit;
 	bool success;
 } CtrlResponse;
 
@@ -739,6 +793,7 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 
 	response->success = true;
 	response->server_type_valid = false;
+	response->rp_prohibit = false;
 	for(ChiakiHttpHeader *header=http_response->headers; header; header=header->next)
 	{
 		if(strcmp(header->key, "RP-Server-Type") == 0)
@@ -747,6 +802,8 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 			chiaki_base64_decode(header->value, strlen(header->value) + 1, response->rp_server_type, &server_type_size);
 			response->server_type_valid = server_type_size == sizeof(response->rp_server_type);
 		}
+		else if(strcmp(header->key, "RP-Prohibit") == 0)
+			response->rp_prohibit = atoi(header->value) == 1;
 	}
 }
 
@@ -1034,6 +1091,9 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	}
 	else
 		CHIAKI_LOGE(session->log, "No valid Server Type in ctrl response");
+
+	if(response.rp_prohibit)
+		ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, true);
 
 	ctrl->sock = sock;
 

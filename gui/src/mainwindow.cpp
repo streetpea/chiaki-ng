@@ -82,7 +82,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 	auto layout = new QVBoxLayout();
 	main_widget->setLayout(layout);
 	setCentralWidget(main_widget);
-	layout->setMargin(0);
+	layout->setContentsMargins(0, 0, 0, 0);
 
 	auto LoadIcon = [this](const QString &filename) {
 		return QIcon(new IconEngine(filename));
@@ -168,6 +168,7 @@ MainWindow::MainWindow(Settings *settings, QWidget *parent)
 
 	resize(800, 600);
 
+	discovery_manager.SetSettings(settings);
 	connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &MainWindow::UpdateDisplayServers);
 	connect(settings, &Settings::ManualHostsUpdated, this, &MainWindow::UpdateDisplayServers);
@@ -274,6 +275,7 @@ void MainWindow::ServerItemWidgetTriggered()
 	else
 	{
 		RegistDialog regist_dialog(settings, server.GetHostAddr(), this);
+
 		int r = regist_dialog.exec();
 		if(r == QDialog::Accepted && !server.discovered) // success
 		{

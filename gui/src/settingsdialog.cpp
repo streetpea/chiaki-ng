@@ -27,6 +27,7 @@
 #include <QSlider>
 #include <QLabel>
 #endif
+#include <SDL.h>
 
 #include <chiaki/config.h>
 #include <chiaki/ffmpegdecoder.h>
@@ -156,15 +157,19 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	// do this async because it's slow, assuming availableDevices() is thread-safe
 	auto audio_devices_future = QtConcurrent::run([]() {
-		return QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
+		QStringList out;
+		const int count = SDL_GetNumAudioDevices(false);
+		for(int i = 0; i < count; i++)
+			out.append(SDL_GetAudioDeviceName(i, false));
+		return out;
 	});
-	auto audio_devices_future_watcher = new QFutureWatcher<QList<QAudioDeviceInfo>>(this);
-	connect(audio_devices_future_watcher, &QFutureWatcher<QList<QAudioDeviceInfo>>::finished, this, [this, audio_devices_future_watcher, settings]() {
+	auto audio_devices_future_watcher = new QFutureWatcher<QStringList>(this);
+	connect(audio_devices_future_watcher, &QFutureWatcher<QStringList>::finished, this, [this, audio_devices_future_watcher, settings]() {
 		auto available_devices = audio_devices_future_watcher->result();
 		while(audio_device_combo_box->count() > 1) // remove all but "Auto"
 			audio_device_combo_box->removeItem(1);
-		for(QAudioDeviceInfo di : available_devices)
-			audio_device_combo_box->addItem(di.deviceName(), di.deviceName());
+		for(auto di : available_devices)
+			audio_device_combo_box->addItem(di, di);
 		int audio_out_device_index = audio_device_combo_box->findData(settings->GetAudioOutDevice());
 		audio_device_combo_box->setCurrentIndex(audio_out_device_index < 0 ? 0 : audio_out_device_index);
 	});
@@ -187,15 +192,19 @@ SettingsDialog::SettingsDialog(Settings *settings, QWidget *parent) : QDialog(pa
 
 	// do this async because it's slow, assuming availableDevices() is thread-safe
 	auto microphones_future = QtConcurrent::run([]() {
-		return QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+		QStringList out;
+		const int count = SDL_GetNumAudioDevices(true);
+		for(int i = 0; i < count; i++)
+			out.append(SDL_GetAudioDeviceName(i, true));
+		return out;
 	});
-	auto microphones_future_watcher = new QFutureWatcher<QList<QAudioDeviceInfo>>(this);
-	connect(microphones_future_watcher, &QFutureWatcher<QList<QAudioDeviceInfo>>::finished, this, [this, microphones_future_watcher, settings]() {
+	auto microphones_future_watcher = new QFutureWatcher<QStringList>(this);
+	connect(microphones_future_watcher, &QFutureWatcher<QStringList>::finished, this, [this, microphones_future_watcher, settings]() {
 		auto available_microphones = microphones_future_watcher->result();
 		while(microphone_combo_box->count() > 1) // remove all but "Auto"
 			microphone_combo_box->removeItem(1);
-		for(QAudioDeviceInfo di : available_microphones)
-			microphone_combo_box->addItem(di.deviceName(), di.deviceName());
+		for(auto di : available_microphones)
+			microphone_combo_box->addItem(di, di);
 		int audio_in_device_index = microphone_combo_box->findData(settings->GetAudioInDevice());
 		microphone_combo_box->setCurrentIndex(audio_in_device_index < 0 ? 0 : audio_in_device_index);
 	});

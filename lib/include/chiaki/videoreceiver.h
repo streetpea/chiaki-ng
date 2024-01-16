@@ -29,11 +29,9 @@ typedef struct chiaki_video_receiver_t
 	ChiakiFrameProcessor frame_processor;
 	ChiakiPacketStats *packet_stats;
 
-	uint8_t *old_frame;
-	size_t old_frame_size;
-	size_t old_frame_allocd;
-
 	int32_t frames_lost;
+	int32_t reference_frames[16];
+	unsigned log2_max_frame_num;
 } ChiakiVideoReceiver;
 
 CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats);

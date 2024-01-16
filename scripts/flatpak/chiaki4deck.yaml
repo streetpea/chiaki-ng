@@ -1,8 +1,10 @@
 app-id: re.chiaki.Chiaki4deck
 branch: chiaki4deck
 runtime: org.kde.Platform
-runtime-version: '5.15-23.08'
+runtime-version: '6.6'
 sdk: org.kde.Sdk
+base: io.qt.qtwebengine.BaseApp
+base-version: '6.6'
 command: chiaki
 rename-icon: chiaki4deck
 rename-desktop-file: chiaki4deck.desktop
@@ -18,11 +20,16 @@ finish-args:
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=RADV_PERFTEST=video_decode
+  - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
+  - --env=QML_IMPORT_PATH=/app/qml
+  - --env=QML_DISABLE_DISK_CACHE=1
   - --talk-name=org.freedesktop.ScreenSaver
+  - --system-talk-name=org.freedesktop.login1
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
-  
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
 modules:
   - name: protobuf-compilers
     sources:
@@ -42,6 +49,12 @@ modules:
       - type: git
         url: https://github.com/haasn/libplacebo
         tag: v6.338.1
+      - type: patch
+        path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+      - type: patch
+        path: libplacebo-pr238.patch
+      - type: patch
+        path: libplacebo-pr239.patch
     modules:
       - name: shaderc
         buildsystem: cmake-ninja
@@ -111,9 +124,9 @@ modules:
         url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
         sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
       - type: patch
-        path: 0001-hevc-Fix-duplicate-POC-in-sequence.patch
-      - type: patch
         path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
+      - type: patch
+        path: 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
 
   - name: python3-google
     buildsystem: simple
@@ -205,10 +218,9 @@ modules:
   - name: vulkanso
     buildsystem: simple
     build-commands:
-      - |
-        cp /usr/lib/x86_64-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
-        ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
-        ln -s libvulkan.so.1 /app/lib/libvulkan.so
+      - cp /usr/lib/x86_64-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
+      - ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
+      - ln -s libvulkan.so.1 /app/lib/libvulkan.so
 
   - name: chiaki4deck
     buildsystem: cmake-ninja
