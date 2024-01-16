@@ -245,8 +245,28 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
         int32_t frames_lost;
         AVFrame *frame = chiaki_ffmpeg_decoder_pull_frame(decoder, &frames_lost);
-        if (frame)
-            QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
+        if (!frame)
+            return;
+
+        static const QSet<int> zero_copy_formats = {
+            AV_PIX_FMT_VULKAN,
+#ifdef Q_OS_LINUX
+            AV_PIX_FMT_VAAPI,
+#endif
+        };
+        if (frame->hw_frames_ctx && !zero_copy_formats.contains(frame->format)) {
+            AVFrame *sw_frame = av_frame_alloc();
+            if (av_hwframe_transfer_data(sw_frame, frame, 0) < 0) {
+                qCWarning(chiakiGui) << "Failed to transfer frame from hardware";
+                av_frame_unref(frame);
+                av_frame_free(&sw_frame);
+                return;
+            }
+            av_frame_copy_props(sw_frame, frame);
+            av_frame_unref(frame);
+            frame = sw_frame;
+        }
+        QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
     });
 
     connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {
