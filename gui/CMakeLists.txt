@@ -2,13 +2,8 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg Qml Quick)
 find_package(Qt6 COMPONENTS DBus)
-if(CHIAKI_ENABLE_QMLGUI)
-	find_package(Qt6 REQUIRED COMPONENTS Qml Quick)
-else()
-    find_package(Qt6 REQUIRED COMPONENTS OpenGL Widgets OpenGLWidgets WebEngineWidgets)
-endif()
 
 if(WIN32)
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
@@ -33,66 +28,25 @@ set(SOURCE_FILES
 	include/psnaccountid.h
 	src/psnaccountid.cpp
 	include/jsonrequester.h
-	src/jsonrequester.cpp)
+	src/jsonrequester.cpp
+	src/qml/qml.qrc
+	include/qmlmainwindow.h
+	src/qmlmainwindow.cpp
+	include/qmlbackend.h
+	src/qmlbackend.cpp
+	include/qmlcontroller.h
+	src/qmlcontroller.cpp
+	include/qmlsettings.h
+	src/qmlsettings.cpp
+	include/qmlsvgprovider.h
+	src/qmlsvgprovider.cpp
+	include/systemdinhibit.h
+	src/systemdinhibit.cpp
+	)
 set(RESOURCE_FILES "")
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki4deck.icns")
-endif()
-
-if(CHIAKI_ENABLE_QMLGUI)
-	list(APPEND SOURCE_FILES
-		src/qml/qml.qrc
-		include/qmlmainwindow.h
-		src/qmlmainwindow.cpp
-		include/qmlbackend.h
-		src/qmlbackend.cpp
-		include/qmlcontroller.h
-		src/qmlcontroller.cpp
-		include/qmlsettings.h
-		src/qmlsettings.cpp
-		include/qmlsvgprovider.h
-		src/qmlsvgprovider.cpp
-		include/systemdinhibit.h
-		src/systemdinhibit.cpp
-	)
-else()
-	list(APPEND SOURCE_FILES
-		include/streamwindow.h
-		src/streamwindow.cpp
-		include/mainwindow.h
-		src/mainwindow.cpp
-		include/dynamicgridwidget.h
-		src/dynamicgridwidget.cpp
-		include/serveritemwidget.h
-		src/serveritemwidget.cpp
-		include/avopenglwidget.h
-		src/avopenglwidget.cpp
-		include/avopenglframeuploader.h
-		src/avopenglframeuploader.cpp
-		include/servericonwidget.h
-		src/servericonwidget.cpp
-		include/registdialog.h
-		src/registdialog.cpp
-		include/settingskeycapturedialog.h
-		src/settingskeycapturedialog.cpp
-		include/settingsdialog.h
-		src/settingsdialog.cpp
-		include/manualhostdialog.h
-		src/manualhostdialog.cpp
-		include/loginpindialog.h
-		src/loginpindialog.cpp
-		include/psnlogindialog.h
-		src/psnlogindialog.cpp
-	)
-	if (CHIAKI_ENABLE_PLACEBO)
-		list(APPEND SOURCE_FILES
-			include/avplacebowidget.h
-			src/avplacebowidget.cpp
-			include/avplaceboframeuploader.h
-			src/avplaceboframeuploader.cpp
-		)
-	endif()
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
@@ -108,28 +62,9 @@ add_executable(chiaki WIN32
 )
 target_include_directories(chiaki PRIVATE include)
 
-if(CHIAKI_ENABLE_QMLGUI)
-	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_QML)
-	target_link_libraries(chiaki Qt::Qml Qt::Quick)
-else()
-    target_link_libraries(chiaki Qt::OpenGL Qt::Widgets Qt::OpenGLWidgets Qt::WebEngineWidgets)
-endif()
-
-if(CHIAKI_ENABLE_PLACEBO OR CHIAKI_ENABLE_STEAMDECK_NATIVE)
-        if (NOT TARGET Qt::GuiPrivate)
-                message(FATAL_ERROR "Placebo renderer and Steam native require Qt::GuiPrivate, please install qt6-base-private-dev if you're on Ubuntu/Debian.")
-                return()
-        endif()
-	target_link_libraries(chiaki Qt::GuiPrivate)
-endif()
-
-if(CHIAKI_ENABLE_PLACEBO)
-	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_PLACEBO)
-	add_library(placebo-libav-impl src/libav_impl.c)
-	target_link_libraries(placebo-libav-impl PkgConfig::LIBPLACEBO avcodec avutil avformat)
-	target_link_libraries(chiaki placebo-libav-impl)
-	target_link_libraries(chiaki PkgConfig::LIBPLACEBO)
-endif()
+add_library(placebo-libav-impl src/libav_impl.c)
+target_link_libraries(placebo-libav-impl PkgConfig::LIBPLACEBO avcodec avutil avformat)
+target_link_libraries(chiaki PkgConfig::LIBPLACEBO placebo-libav-impl)
 
 target_link_libraries(chiaki chiaki-lib)
 if(CHIAKI_ENABLE_CLI)
@@ -137,7 +72,7 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki Qt::Core Qt::Gui Qt::Concurrent Qt::Svg)
+target_link_libraries(chiaki Qt::Core Qt::Gui Qt::GuiPrivate Qt::Concurrent Qt::Svg Qt::Qml Qt::Quick)
 if (${Qt6DBus_FOUND})
 	target_link_libraries(chiaki Qt::DBus)
 endif()

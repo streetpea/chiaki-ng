@@ -8,19 +8,8 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <host.h>
 #include <controllermanager.h>
 #include <discoverymanager.h>
-
-#ifdef CHIAKI_GUI_ENABLE_QML
 #include <qmlmainwindow.h>
 #include <QGuiApplication>
-using Application = QGuiApplication;
-#else
-#include <QApplication>
-#include <streamwindow.h>
-#include <mainwindow.h>
-#include <registdialog.h>
-#include <avopenglwidget.h>
-using Application = QApplication;
-#endif
 
 #ifdef CHIAKI_ENABLE_CLI
 #include <chiaki-cli.h>
@@ -57,8 +46,8 @@ static const QMap<QString, CLICommand> cli_commands = {
 };
 #endif
 
-int RunStream(Application &app, const StreamSessionConnectInfo &connect_info);
-int RunMain(Application &app, Settings *settings);
+int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info);
+int RunMain(QGuiApplication &app, Settings *settings);
 
 int real_main(int argc, char *argv[])
 {
@@ -69,11 +58,11 @@ int real_main(int argc, char *argv[])
 	qRegisterMetaType<ChiakiRegistEventType>();
 	qRegisterMetaType<ChiakiLogLevel>();
 
-	Application::setOrganizationName("Chiaki");
-	Application::setApplicationName("Chiaki");
-	Application::setApplicationVersion(CHIAKI_VERSION);
-	Application::setApplicationDisplayName("chiaki4deck");
-	Application::setDesktopFileName("chiaki4deck");
+	QGuiApplication::setOrganizationName("Chiaki");
+	QGuiApplication::setApplicationName("Chiaki");
+	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
+	QGuiApplication::setApplicationDisplayName("chiaki4deck");
+	QGuiApplication::setDesktopFileName("chiaki4deck");
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
@@ -98,17 +87,14 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-	Application::setAttribute(Qt::AA_ShareOpenGLContexts);
-#ifndef CHIAKI_GUI_ENABLE_QML
-	QSurfaceFormat::setDefaultFormat(AVOpenGLWidget::CreateSurfaceFormat());
-#endif
+	QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
-	Application app(argc, argv);
+	QGuiApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS
-	Application::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
 #else
-	Application::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
+	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
 #endif
 
 	QCommandLineParser parser;
@@ -280,25 +266,16 @@ int real_main(int argc, char *argv[])
 	}
 }
 
-int RunMain(Application &app, Settings *settings)
+int RunMain(QGuiApplication &app, Settings *settings)
 {
-#ifdef CHIAKI_GUI_ENABLE_QML
 	QmlMainWindow main_window(settings);
-#else
-	MainWindow main_window(settings);
-#endif
 	main_window.show();
 	return app.exec();
 }
 
-int RunStream(Application &app, const StreamSessionConnectInfo &connect_info)
+int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info)
 {
-#ifdef CHIAKI_GUI_ENABLE_QML
 	QmlMainWindow main_window(connect_info);
 	main_window.show();
-#else
-	StreamWindow *window = new StreamWindow(connect_info);
-	app.setQuitOnLastWindowClosed(true);
-#endif
 	return app.exec();
 }
