@@ -360,7 +360,7 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     info.broadcast = broadcast;
     info.pin = (uint32_t)pin.toULong();
     QByteArray psn_idb;
-    if (target != CHIAKI_TARGET_PS4_8) {
+    if (target == CHIAKI_TARGET_PS4_8) {
         psn_idb = psn_id.toUtf8();
         info.psn_online_id = psn_idb.constData();
     } else {
