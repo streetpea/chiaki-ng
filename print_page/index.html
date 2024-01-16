@@ -1319,6 +1319,17 @@
 </li>
 <li>
 <p>Get your PlayStation AccountID (This is needed to access your ps account)</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="setup-configuration-__tabbed_4_1" name="setup-configuration-__tabbed_4" type="radio" /><input id="setup-configuration-__tabbed_4_2" name="setup-configuration-__tabbed_4" type="radio" /><input id="setup-configuration-__tabbed_4_3" name="setup-configuration-__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_4_1">Using Gui (Linux and MacOS only)</label><label for="setup-configuration-__tabbed_4_2">Using konsole (Flatpak only)</label><label for="setup-configuration-__tabbed_4_3">Using public website</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Wait until step 5 below when you are registering your console, hit the <code>PSN Login</code> button and login to your PlayStation account on the window that opens.</p>
+<p><img alt="PSN Login" src="../setup/images/PSNLogin.png" /></p>
+</li>
+</ol>
+</div>
+<div class="tabbed-block">
 <ol>
 <li>
 <p>Run the flatpak with the <code>psn-account-id</code> command</p>
@@ -1332,17 +1343,31 @@
 <p>Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.</p>
 </li>
 </ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>Change your PSN privacy settings to allow anyone to find you in your search</li>
+<li>Go to <a href="https://psn.flipscreen.games/" rel="noopener" target="_blank">psn.flipscreen.games</a></li>
+<li>Enter your Account ID</li>
+<li>Copy your encoded id for Chiaki</li>
+</ol>
+</div>
+</div>
+</div>
 </li>
 <li>
 <p>Open <code>chiaki4deck</code> (click the Steam icon in the bottom left and search for it in the <code>Games</code> section via GUI or <code>flatpak run io.github.streetpea.Chiaki4deck</code> via <code>konsole</code>) and your PlayStation system should be automatically discovered.</p>
 <p><img alt="Unregistered PS5" src="../setup/images/UnregisteredPS5.png" /></p>
 <div class="admonition question">
 <p class="admonition-title">What if my PlayStation Console isn't Appearing?</p>
-<p>Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again.</p>
+<p>Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.</p>
 </div>
 </li>
 <li>
 <p>Register your PlayStation console</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="setup-configuration-__tabbed_5_1" name="setup-configuration-__tabbed_5" type="radio" /><input id="setup-configuration-__tabbed_5_2" name="setup-configuration-__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_5_1">Register Discovered Console (Recommended)</label><label for="setup-configuration-__tabbed_5_2">Manual Registration</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <ol>
 <li>
 <p>Double click on the blue box to bring up a registration window</p>
@@ -1352,11 +1377,11 @@
 <p>Choose your console type</p>
 </li>
 <li>
-<p>Enter your PSN Account-ID obtained in step 1 above.</p>
+<p>Enter your PSN Account-ID obtained in step 1 above (if not automatically copied).</p>
 </li>
 <li>
 <p>Get a registration code for remote play</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="setup-configuration-__tabbed_4_1" name="setup-configuration-__tabbed_4" type="radio" /><input id="setup-configuration-__tabbed_4_2" name="setup-configuration-__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_4_1">PS5</label><label for="setup-configuration-__tabbed_4_2">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="setup-configuration-__tabbed_6_1" name="setup-configuration-__tabbed_6" type="radio" /><input id="setup-configuration-__tabbed_6_2" name="setup-configuration-__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_6_1">PS5</label><label for="setup-configuration-__tabbed_6_2">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Go to <code>Settings -&gt; System -&gt; Remote Play -&gt; Link Device</code></p>
@@ -1374,6 +1399,62 @@
 <p>Click Register (will become available when all necessary fields are filled)</p>
 </li>
 </ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Click the gear icon in the top right to go to <code>Settings</code></p>
+</li>
+<li>
+<p>Click the <code>consoles</code> tab</p>
+</li>
+<li>
+<p>Click the blue <code>Register New</code> button to bring up a registration window</p>
+<p><img alt="Registration Window" src="../setup/images/AddPS5Manual.png" /></p>
+</li>
+<li>
+<p>Enter your PlayStation's ip address in the <code>Host</code> section replacing <code>255.255.255.255</code></p>
+<p>You can obtain your PlayStation's ip address by going in your PlayStation console's settings and going to:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="setup-configuration-__tabbed_7_1" name="setup-configuration-__tabbed_7" type="radio" /><input id="setup-configuration-__tabbed_7_2" name="setup-configuration-__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_7_1">PS5</label><label for="setup-configuration-__tabbed_7_2">PS4</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><code>System-&gt;System Software-&gt;Console Information</code> and looking at the IPV4 Address</p>
+</div>
+<div class="tabbed-block">
+<p><code>Network-&gt;View Connection Status</code> and looking at the IP Address.</p>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Choose your console type</p>
+</li>
+<li>
+<p>Enter your PSN Account-ID obtained in step 1 above (if not automatically copied).</p>
+</li>
+<li>
+<p>Get a registration code for remote play</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="setup-configuration-__tabbed_8_1" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_2" name="setup-configuration-__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_8_1">PS5</label><label for="setup-configuration-__tabbed_8_2">PS4</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; System -&gt; Remote Play -&gt; Link Device</code></p>
+</div>
+<div class="tabbed-block">
+<p>Go to <code>Settings -&gt; Remote Play -&gt; Add Device</code></p>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>Enter the code from your device in the <code>PIN</code> field</p>
+</li>
+<li>
+<p>Click Register (will become available when all necessary fields are filled)</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
 </li>
 <li>
 <p>You should see this upon successful registration</p>
@@ -1409,7 +1490,7 @@
 </li>
 <li>
 <p>Your PlayStation console should wake up and the box with the console icon should turn from orange to blue (<strong>State: ready</strong>).</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="setup-configuration-__tabbed_5_1" name="setup-configuration-__tabbed_5" type="radio" /><input id="setup-configuration-__tabbed_5_2" name="setup-configuration-__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_5_1">Your PlayStation has awoken from slumber! <img alt="🌞" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f31e.svg" title=":sun_with_face:" /></label><label for="setup-configuration-__tabbed_5_2">Your PlayStation hit the snooze button <img alt="💤" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f4a4.svg" title=":zzz:" /></label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="setup-configuration-__tabbed_9_1" name="setup-configuration-__tabbed_9" type="radio" /><input id="setup-configuration-__tabbed_9_2" name="setup-configuration-__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_9_1">Your PlayStation has awoken from slumber! <img alt="🌞" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f31e.svg" title=":sun_with_face:" /></label><label for="setup-configuration-__tabbed_9_2">Your PlayStation hit the snooze button <img alt="💤" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f4a4.svg" title=":zzz:" /></label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="admonition success">
@@ -1426,7 +1507,7 @@
 </li>
 <li>
 <p>Make sure that you have enabled turning on your PlayStation console from rest mode:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="setup-configuration-__tabbed_6_1" name="setup-configuration-__tabbed_6" type="radio" /><input id="setup-configuration-__tabbed_6_2" name="setup-configuration-__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_6_1">PS5</label><label for="setup-configuration-__tabbed_6_2">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="setup-configuration-__tabbed_10_1" name="setup-configuration-__tabbed_10" type="radio" /><input id="setup-configuration-__tabbed_10_2" name="setup-configuration-__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_10_1">PS5</label><label for="setup-configuration-__tabbed_10_2">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Go to <code>Settings -&gt; System -&gt; Power Saving -&gt; Features Available in Rest Mode</code> and turn on:</p>
@@ -1470,7 +1551,7 @@
 <p>Exit out of the window once you've tested the connection.</p>
 </li>
 </ol>
-<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="setup-configuration-__tabbed_7_1" name="setup-configuration-__tabbed_7" type="radio" /><input id="setup-configuration-__tabbed_7_2" name="setup-configuration-__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_7_1">It worked! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f604.svg" title=":smile:" /></label><label for="setup-configuration-__tabbed_7_2">It didn't work <img alt="😦" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f626.svg" title=":frowning:" /></label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="setup-configuration-__tabbed_11_1" name="setup-configuration-__tabbed_11" type="radio" /><input id="setup-configuration-__tabbed_11_2" name="setup-configuration-__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_11_1">It worked! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f604.svg" title=":smile:" /></label><label for="setup-configuration-__tabbed_11_2">It didn't work <img alt="😦" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f626.svg" title=":frowning:" /></label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="admonition success">
@@ -1511,37 +1592,11 @@
 <p>Adjust the settings to your preferences. </p>
 <ol>
 <li>
-<p>General Settings for Steam Deck</p>
+<p><strong>General Settings</strong> for Steam Deck</p>
 <p><img alt="General Settings" src="../setup/images/MainSettings.png" /></p>
-</li>
-<li>
-<p>Below are the Stream settings you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5/1080p</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
-</li>
-</ol>
-<div class="tabbed-set tabbed-alternate" data-tabs="8:3"><input checked="checked" id="setup-configuration-__tabbed_8_1" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_2" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_3" name="setup-configuration-__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_8_1">PS5/1080P HDR</label><label for="setup-configuration-__tabbed_8_2">PS5/1080P</label><label for="setup-configuration-__tabbed_8_3">PS4/720P</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<p>Stream output can be up to 1080p with <a href="#setup-configuration-hdr-high-dynamic-range">HDR</a>. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
-<p><img alt="1080p Settings" src="../setup/images/1080P_SettingsHDR.png" /></p>
-</div>
-<div class="tabbed-block">
-<p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
-<p><img alt="1080p Settings" src="../setup/images/1080P_Settings.png" /></p>
 <div class="admonition tip">
-<p class="admonition-title">Enabling Experimental PlayStation 5 Features</p>
+<p class="admonition-title">Enabling Experimental PlayStation 5 Features (PS5 Users Only)</p>
 <p>If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.</p>
-</div>
-<details class="question" open="open">
-<summary>Why 1080p if the Steam Deck is only 800p?</summary>
-<p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
-<p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
-</details>
-</div>
-<div class="tabbed-block">
-<p>For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup.</p>
-<p><img alt="720p Settings" src="../setup/images/720P_Settings.png" /></p>
-</div>
-</div>
 </div>
 <div class="admonition info">
 <p class="admonition-title">Use Buttons by Position Instead of by Label</p>
@@ -1555,6 +1610,36 @@
 <p class="admonition-title">Putting your PlayStation Console to Sleep Automatically</p>
 <p>For <code>Action on Disconnect</code>, choose <code>Ask</code> (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> (you will add this shortcut as part of you controller configuration in <a href="#setup-controlling" rel="noopener" target="_blank">controller section</a>). </p>
 <p>If you prefer, you can also use <code>Enter Sleep Mode</code> to automatically put your PlayStation console to sleep as soon as you close your session with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span></p>
+</div>
+</li>
+<li>
+<p><strong>Audio Settings</strong> for Steam Deck</p>
+<p><img alt="Audio Settings" src="../setup/images/AudioSettings.png" /></p>
+</li>
+<li>
+<p>Below are the <strong>Video Settings</strong> you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5/1080p</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
+</li>
+</ol>
+<div class="tabbed-set tabbed-alternate" data-tabs="12:3"><input checked="checked" id="setup-configuration-__tabbed_12_1" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_2" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_3" name="setup-configuration-__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_12_1">PS5/1080P HDR</label><label for="setup-configuration-__tabbed_12_2">PS5/1080P</label><label for="setup-configuration-__tabbed_12_3">PS4/720P</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Stream output can be up to 1080p with <a href="#setup-configuration-hdr-high-dynamic-range">HDR</a>. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
+<p><img alt="1080p Settings" src="../setup/images/1080P_SettingsHDR.png" /></p>
+</div>
+<div class="tabbed-block">
+<p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
+<p><img alt="1080p Settings" src="../setup/images/1080P_Settings.png" /></p>
+<details class="question" open="open">
+<summary>Why 1080p if the Steam Deck is only 800p?</summary>
+<p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
+<p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
+</details>
+</div>
+<div class="tabbed-block">
+<p>For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup.</p>
+<p><img alt="720p Settings" src="../setup/images/720P_Settings.png" /></p>
+</div>
+</div>
 </div>
 </li>
 </ol>
@@ -1630,6 +1715,7 @@
 <li>Death's Door</li>
 <li>Resident Evil 0</li>
 <li>The Last of Us Remastered</li>
+<li>Many More ...</li>
 </ul>
 </div>
 <h3 id="setup-configuration-troubleshooting-performance-issues">Troubleshooting Performance Issues<a class="headerlink" href="#setup-configuration-troubleshooting-performance-issues" title="Permanent link">&para;</a></h3>
@@ -1645,7 +1731,7 @@
 <p>To fix these issues, try the following:</p>
 <ol>
 <li>
-<p>If you are not using the settings listed in <a href="#setup-configuration-choosing-your-remote-play-settings">Choosing Your Remote Play Settings</a>, try with those settings and see if that fixes it for you.</p>
+<p>If you are not using the settings listed in <a href="#setup-configuration-choosing-your-remote-play-settings">Choosing Your Remote Play Settings</a>, try with those settings and see if that fixes it for you. The biggest of these is using a HW Decoder option for your system which should help significantly.</p>
 </li>
 <li>
 <p>Switch to <strong>720p</strong> from 1080p</p>
@@ -1662,10 +1748,6 @@
 <li>
 <p><strong>Turn off VSync</strong> or the equivalent in games that use it</p>
 <p>VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/<code>chiaki4deck</code>.</p>
-</li>
-<li>
-<p>Switch to H264 encoding</p>
-<p>Generally, H265 (a.k.a HEVC) results in better quality than H264. However, H264 can be more stable for some users, eliminating things like white flashes (this may result in drops in visual quality but a more stable connection). If you are having issues with white flashes, this is something to give a shot.</p>
 </li>
 <li>
 <p>Switch framerate to <strong>30fps</strong></p>
@@ -1759,13 +1841,41 @@
 </div>
 </div>
 <h2 id="setup-remoteconnection-test-connection">Test Connection<a class="headerlink" href="#setup-remoteconnection-test-connection" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="setup-remoteconnection-__tabbed_3_1" name="setup-remoteconnection-__tabbed_3" type="radio" /><input id="setup-remoteconnection-__tabbed_3_2" name="setup-remoteconnection-__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="setup-remoteconnection-__tabbed_3_1">Automation (recommended)</label><label for="setup-remoteconnection-__tabbed_3_2">GUI</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="setup-remoteconnection-__tabbed_3_1" name="setup-remoteconnection-__tabbed_3" type="radio" /><input id="setup-remoteconnection-__tabbed_3_2" name="setup-remoteconnection-__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="setup-remoteconnection-__tabbed_3_1">GUI</label><label for="setup-remoteconnection-__tabbed_3_2">Automation</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p>Add your remote IP in the automation script when going through the next (<a href="#setup-automation" rel="noopener" target="_blank">automation</a>) section. Once setup on your local network, try to launch the PlayStation when connected to a different network such as a mobile hotspot.</p>
+<ol>
+<li>
+<p>Add console to GUI using remote IP as a new manual connection</p>
+<ol>
+<li>
+<p>Click the plus icon in the main menu</p>
+<p><img alt="Add Remote IP" src="../setup/images/AddRemoteIP.png" /></p>
+</li>
+<li>
+<p>Create your remote connection</p>
+<p><img alt="Remote Registration" src="../setup/images/RegisterRemoteConsole.png" /></p>
+<ol>
+<li>
+<p>Enter your remote IP/DNS</p>
+</li>
+<li>
+<p>Choose the locally registered console you want to remotely connect to</p>
+</li>
+<li>
+<p>Click Add</p>
+</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>
+<p>Connect using this new connection</p>
+</li>
+</ol>
 </div>
 <div class="tabbed-block">
-<p>Add console to GUI using remote IP as a new connection and connect.</p>
+<p>Add your remote IP in the automation script when going through the next (<a href="#setup-automation" rel="noopener" target="_blank">automation</a>) section. Once setup on your local network, try to launch the PlayStation when connected to a different network such as a mobile hotspot.</p>
 </div>
 </div>
 </div>
@@ -2744,6 +2854,11 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-m">M</kbd></span></td>
 <td>The toggle microphone mute on and off button on the PlayStation controller.</td>
 </tr>
+<tr>
+<td><code>Stream Menu</code></td>
+<td><span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-o">O</kbd></span></td>
+<td>This brings up a stream menu which shows things like your current Mbps.</td>
+</tr>
 </tbody>
 </table>
 <div class="admonition tip">
@@ -3028,6 +3143,18 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-160">1.6.0<a class="headerlink" href="#updates-releases-160" title="Permanent link">&para;</a></h3>
+<p>Touch Friendly and semi-controller naviagble GUI</p>
+<ul>
+<li>New touch-friendly and semi-controller navigable GUI</li>
+<li>MacOS support and Windows libplacebo renderer support</li>
+<li>Resume connection from sleep mode on Steam Deck</li>
+<li>Ability to login to PlayStation for account ID via GUI</li>
+<li>Fix Senkusha, lowering time for console connection and properly setting MTU</li>
+<li>Audio Switch to SDL including fixing audio lag building over session</li>
+<li>New Logo</li>
+<li>Qt6 support</li>
+</ul>
 <h3 id="updates-releases-151">1.5.1<a class="headerlink" href="#updates-releases-151" title="Permanent link">&para;</a></h3>
 <p>Small patch release</p>
 <ul>
@@ -3232,6 +3359,8 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>Enabled Automated Launch</p>
 </li>
 </ol></section><section class="print-page" id="updates-done"><h1 id="updates-done-completed-done-updates">Completed (Done) Updates<a class="headerlink" href="#updates-done-completed-done-updates" title="Permanent link">&para;</a></h1>
+<h2 id="updates-done-touch-friendly-and-semi-controller-navigable-gui">Touch Friendly and Semi-Controller Navigable GUI<a class="headerlink" href="#updates-done-touch-friendly-and-semi-controller-navigable-gui" title="Permanent link">&para;</a></h2>
+<p>QML based user interface that is better suited for handheld computers such as the Steam Deck and more user-friendly in general.</p>
 <h2 id="updates-done-hdr-for-steam-deck-oled-in-game-mode">HDR for Steam Deck OLED in game mode<a class="headerlink" href="#updates-done-hdr-for-steam-deck-oled-in-game-mode" title="Permanent link">&para;</a></h2>
 <p>You can now use <a href="#setup-configuration-hdr-high-dynamic-range">HDR with your Steam Deck OLED</a> thanks to <a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a> and <a href="https://github.com/nowrep" rel="noopener" target="_blank">David Rosca</a> as well as many patient testers. In order to enable this, you must have:</p>
 <ol>
@@ -3364,9 +3493,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <p>now part of upstream Chiaki as of latest release&#160;<a class="footnote-backref" href="#updates-done-fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a><a class="footnote-backref" href="#updates-done-fnref2:3" title="Jump back to footnote 3 in the text">&#8617;</a><a class="footnote-backref" href="#updates-done-fnref3:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
 </li>
 </ol>
-</div></section><section class="print-page" id="updates-planned"><h1 id="updates-planned-future-updates-planned">Future Updates Planned<a class="headerlink" href="#updates-planned-future-updates-planned" title="Permanent link">&para;</a></h1>
-<h2 id="updates-planned-update-haptics-from-experimental">Update Haptics from Experimental<a class="headerlink" href="#updates-planned-update-haptics-from-experimental" title="Permanent link">&para;</a></h2>
-<p>After feedback and potential future improvements (if necessary), graduate haptics to a regular (default enabled) vs. experimental future.</p></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
+</div></section><section class="print-page" id="updates-planned"><h1 id="updates-planned-future-updates-planned">Future Updates Planned<a class="headerlink" href="#updates-planned-future-updates-planned" title="Permanent link">&para;</a></h1></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
                         <h1 class='nav-section-title' id='section-diy'>
                             DIY <a class='headerlink' href='#section-diy' title='Permanent link'>↵</a>
                         </h1>
