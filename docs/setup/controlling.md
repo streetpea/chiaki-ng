@@ -135,6 +135,7 @@ You can create your own controller profile by mapping the relevant buttons. The 
 | `Touchpad Click` | ++t++, mouse ++right-button++, tapping border (top, bottom, left or right 5%) of the touchscreen | These actions will all result in a touchpad click. For games that separate the touchpad into multiple regions, they work in conjunction with either the current mouse location (location of finger on Steam Deck trackpad) or current finger location (which edge of the touchscreen you tapped) to delineate which region you are using (most games just have one region for touchpad click though). |
 | `Touchpad Motion` | `Touchscreen touch`, mouse ++left-button++ ++plus++ Mouse Movement (i.e., `drag action` / mouse region touch). | Maps to the PlayStation touchpad (since that's what PlayStation games / the remote streaming console expect). This means that the "cursor" (if one is defined for the game like in *Chicory: A Colorful Tale*) moves according to your gestures but does not snap/follow your fingers' locations (i.e., it behaves like a touchpad as it should).|
 | `Toggle Mic Mute` | ++ctrl+m++ | The toggle microphone mute on and off button on the PlayStation controller. |
+| `Stream Menu` | ++ctrl+o++ | This brings up a stream menu which shows things like your current Mbps. |
 
 !!! Tip "Two Button Shortcuts"
 

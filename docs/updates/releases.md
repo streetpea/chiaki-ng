@@ -61,6 +61,19 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.0
+
+Touch Friendly and semi-controller naviagble GUI
+
+- New touch-friendly and semi-controller navigable GUI
+- MacOS support and Windows libplacebo renderer support
+- Resume connection from sleep mode on Steam Deck
+- Ability to login to PlayStation for account ID via GUI
+- Fix Senkusha, lowering time for console connection and properly setting MTU
+- Audio Switch to SDL including fixing audio lag building over session
+- New Logo
+- Qt6 support
+
 ### 1.5.1
 
 Small patch release

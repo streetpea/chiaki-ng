@@ -46,13 +46,29 @@ On a computer connected to your router such as your Steam Deck (make sure to dis
 
 ## Test Connection
 
-=== "Automation (recommended)"
-
-    Add your remote IP in the automation script when going through the next ([automation](automation.md){target="_blank" rel="noopener"}) section. Once setup on your local network, try to launch the PlayStation when connected to a different network such as a mobile hotspot.
-
 === "GUI"
 
-    Add console to GUI using remote IP as a new connection and connect.
+    1. Add console to GUI using remote IP as a new manual connection
+
+        1. Click the plus icon in the main menu
+
+            ![Add Remote IP](images/AddRemoteIP.png)
+
+        2. Create your remote connection
+
+            ![Remote Registration](images/RegisterRemoteConsole.png)
+
+            1. Enter your remote IP/DNS
+
+            2. Choose the locally registered console you want to remotely connect to
+
+            3. Click Add
+    
+    2. Connect using this new connection
+
+=== "Automation"
+
+    Add your remote IP in the automation script when going through the next ([automation](automation.md){target="_blank" rel="noopener"}) section. Once setup on your local network, try to launch the PlayStation when connected to a different network such as a mobile hotspot.
 
 !!! Question "If my connection stops working, what should I do?"
 

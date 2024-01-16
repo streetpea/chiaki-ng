@@ -152,9 +152,10 @@ ChiakiCodec Settings::GetCodec() const
 	auto codec = codecs.key(v, codec_default);
 
 	// Downgrade to non-HDR HEVC if renderer is not PlaceboVk
+#if !defined(CHIAKI_GUI_ENABLE_QML)
 	if (codec == ChiakiCodec::CHIAKI_CODEC_H265_HDR && GetRenderer() != Renderer::PlaceboVk)
 		codec = ChiakiCodec::CHIAKI_CODEC_H265;
-
+#endif
 	return codec;
 }
 
