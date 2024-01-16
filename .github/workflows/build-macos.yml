@@ -19,7 +19,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo molten-vk
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo
 
       - name: Configure Chiaki4deck
         run: |
@@ -35,11 +35,13 @@ jobs:
           cp -a build/gui/chiaki.app Chiaki4deck.app
           echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
           /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib
-          mkdir -p Chiaki4deck.app/Contents/lib Chiaki4deck.app/Contents/Resources/vulkan/icd.d
-          cp /usr/local/lib/libMoltenVK.dylib Chiaki4deck.app/Contents/lib
-          cp /usr/local/share/vulkan/icd.d/MoltenVK_icd.json Chiaki4deck.app/Contents/Resources/vulkan/icd.d
-          cp /usr/local/lib/libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
-          /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib -dmg
+          mkdir -p Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.6-rc2/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          cp MoltenVK/MoltenVK/dylib/macOS/* Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          /usr/local/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=/usr/local/lib
+          ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
+          ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
 
       - name: Upload Chiaki4deck Artifact
         uses: actions/upload-artifact@v3
