@@ -1,6 +1,6 @@
 #include "systemdinhibit.h"
 
-#ifdef QT_DBUS_LIB
+#if defined(QT_DBUS_LIB) && !defined(Q_OS_WIN)
 #include <fcntl.h>
 #include <unistd.h>
 #include <QDBusMessage>
@@ -17,7 +17,7 @@ SystemdInhibit::SystemdInhibit(const QString &who, const QString &why, const QSt
     , what(what)
     , mode(mode)
 {
-#ifdef QT_DBUS_LIB
+#if defined(QT_DBUS_LIB) && !defined(Q_OS_WIN)
     QDBusConnection::systemBus().connect(QStringLiteral("org.freedesktop.login1"),
                                          QStringLiteral("/org/freedesktop/login1"),
                                          QStringLiteral("org.freedesktop.login1.Manager"),
@@ -29,7 +29,7 @@ SystemdInhibit::SystemdInhibit(const QString &who, const QString &why, const QSt
 
 void SystemdInhibit::inhibit()
 {
-#ifdef QT_DBUS_LIB
+#if defined(QT_DBUS_LIB) && !defined(Q_OS_WIN)
     QDBusMessage call = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.login1"),
                                                        QStringLiteral("/org/freedesktop/login1"),
                                                        QStringLiteral("org.freedesktop.login1.Manager"),
@@ -63,7 +63,7 @@ void SystemdInhibit::login1PrepareForSleep(bool start)
 
 void SystemdInhibit::release()
 {
-#ifdef QT_DBUS_LIB
+#if defined(QT_DBUS_LIB) && !defined(Q_OS_WIN)
     if (fd >= 0)
         close(fd);
     fd = -1;
