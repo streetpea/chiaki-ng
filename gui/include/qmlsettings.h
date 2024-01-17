@@ -7,6 +7,7 @@ class QmlSettings : public QObject
     Q_OBJECT
     Q_PROPERTY(int resolution READ resolution WRITE setResolution NOTIFY resolutionChanged)
     Q_PROPERTY(int disconnectAction READ disconnectAction WRITE setDisconnectAction NOTIFY disconnectActionChanged)
+    Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
     Q_PROPERTY(bool dualSense READ dualSense WRITE setDualSense NOTIFY dualSenseChanged)
     Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
@@ -38,6 +39,9 @@ public:
 
     int disconnectAction() const;
     void setDisconnectAction(int action);
+
+    int suspendAction() const;
+    void setSuspendAction(int action);
 
     bool logVerbose() const;
     void setLogVerbose(bool verbose);
@@ -101,6 +105,7 @@ public:
 signals:
     void resolutionChanged();
     void disconnectActionChanged();
+    void suspendActionChanged();
     void logVerboseChanged();
     void dualSenseChanged();
     void buttonsByPositionChanged();

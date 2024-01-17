@@ -62,7 +62,6 @@ struct StreamSessionConnectInfo
 	Decoder decoder;
 	QString hw_decoder;
 	AVBufferRef *hw_device_ctx;
-	Renderer renderer;
 	QString audio_out_device;
 	QString audio_in_device;
 	uint32_t log_level_mask;
@@ -129,7 +128,7 @@ class StreamSession : public QObject
 		bool muted;
 		bool mic_connected;
 		bool allow_unmute;
-		bool input_blocked;
+		int input_block;
 		QString host;
 		double measured_bitrate = 0;
 		bool cant_display = false;
@@ -247,7 +246,7 @@ class StreamSession : public QObject
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
 		void ReadMic(const QByteArray &micdata);
 
-		void BlockInput(bool block) { input_blocked = block; SendFeedbackState(); }
+		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
 
 	signals:
 		void FfmpegFrameAvailable();

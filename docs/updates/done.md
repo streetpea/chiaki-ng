@@ -1,6 +1,6 @@
 # Completed (Done) Updates
 
-## Touch Friendly and Semi-Controller Navigable GUI
+## Touch Friendly and Controller Navigable GUI
 
 QML based user interface that is better suited for handheld computers such as the Steam Deck and more user-friendly in general.
 

@@ -740,16 +740,23 @@ void QmlMainWindow::render()
 
 bool QmlMainWindow::handleShortcut(QKeyEvent *event)
 {
+    if (event->modifiers() == Qt::NoModifier) {
+        switch (event->key()) {
+        case Qt::Key_F11:
+            if (windowState() != Qt::WindowFullScreen)
+                showFullScreen();
+            else
+                showNormal();
+            return true;
+        default:
+            break;
+        }
+    }
+
     if (!event->modifiers().testFlag(Qt::ControlModifier))
         return false;
 
     switch (event->key()) {
-    case Qt::Key_F11:
-        if (windowState() != Qt::WindowFullScreen)
-            showFullScreen();
-        else
-            showNormal();
-        return true;
     case Qt::Key_S:
         if (has_video)
             setVideoMode(videoMode() == VideoMode::Stretch ? VideoMode::Normal : VideoMode::Stretch);
@@ -792,6 +799,14 @@ bool QmlMainWindow::event(QEvent *event)
         }
         QGuiApplication::sendEvent(quick_window, event);
         break;
+    case QEvent::MouseButtonDblClick:
+        if (session && !grab_input) {
+            if (windowState() != Qt::WindowFullScreen)
+                showFullScreen();
+            else
+                showNormal();
+        }
+        break;
     case QEvent::KeyPress:
         if (handleShortcut(static_cast<QKeyEvent*>(event)))
             return true;
@@ -814,8 +829,10 @@ bool QmlMainWindow::event(QEvent *event)
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::Close:
-        if (!backend->closeRequested())
-            return false;
+        if (!backend->closeRequested()) {
+            event->ignore();
+            return true;
+        }
         break;
     default:
         break;
