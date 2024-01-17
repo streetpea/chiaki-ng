@@ -322,6 +322,24 @@ void Settings::SetDisconnectAction(DisconnectAction action)
 	settings.setValue("settings/disconnect_action", disconnect_action_values[action]);
 }
 
+static const QMap<SuspendAction, QString> suspend_action_values = {
+	{ SuspendAction::Sleep, "sleep" },
+	{ SuspendAction::Nothing, "nothing" },
+};
+
+static const SuspendAction suspend_action_default = SuspendAction::Nothing;
+
+SuspendAction Settings::GetSuspendAction()
+{
+	auto v = settings.value("settings/suspend_action", suspend_action_values[suspend_action_default]).toString();
+	return suspend_action_values.key(v, suspend_action_default);
+}
+
+void Settings::SetSuspendAction(SuspendAction action)
+{
+	settings.setValue("settings/suspend_action", suspend_action_values[action]);
+}
+
 void Settings::LoadRegisteredHosts()
 {
 	registered_hosts.clear();

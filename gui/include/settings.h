@@ -29,6 +29,12 @@ enum class DisconnectAction
 	Ask
 };
 
+enum class SuspendAction
+{
+	Nothing,
+	Sleep,
+};
+
 enum class Decoder
 {
 	Ffmpeg,
@@ -140,6 +146,9 @@ class Settings : public QObject
 
 		DisconnectAction GetDisconnectAction();
 		void SetDisconnectAction(DisconnectAction action);
+
+		SuspendAction GetSuspendAction();
+		void SetSuspendAction(SuspendAction action);
 
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);

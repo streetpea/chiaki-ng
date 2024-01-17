@@ -99,6 +99,18 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Action On Suspend:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Do Nothing"), qsTr("Enter Sleep Mode")]
+                        currentIndex: Chiaki.settings.suspendAction
+                        onActivated: index => Chiaki.settings.suspendAction = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("PS5 Features:")
                     }
 
@@ -171,7 +183,7 @@ DialogView {
                     anchors {
                         bottom: parent.bottom
                         horizontalCenter: parent.horizontalCenter
-                        bottomMargin: 50
+                        bottomMargin: 20
                     }
                     lastInFocusChain: true
                     implicitWidth: 200
