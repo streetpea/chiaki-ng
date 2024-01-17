@@ -829,8 +829,10 @@ bool QmlMainWindow::event(QEvent *event)
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::Close:
-        if (!backend->closeRequested())
-            return false;
+        if (!backend->closeRequested()) {
+            event->ignore();
+            return true;
+        }
         break;
     default:
         break;
