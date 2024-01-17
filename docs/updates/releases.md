@@ -61,11 +61,20 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.1
+
+Small patch release
+
+- Fixes console registration
+- Fixes fullscreen double-click and F11 shortcuts
+- Don't close main window when closing stream session on MacOS
+- Adds option to sleep PlayStation when sleeping Steam Deck
+
 ### 1.6.0
 
-Touch Friendly and semi-controller naviagble GUI
+Touch friendly and controller navigable GUI
 
-- New touch-friendly and semi-controller navigable GUI
+- New touch-friendly and controller navigable GUI
 - MacOS support and Windows libplacebo renderer support
 - Resume connection from sleep mode on Steam Deck
 - Ability to login to PlayStation for account ID via GUI

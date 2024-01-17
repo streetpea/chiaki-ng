@@ -22,11 +22,21 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
-    <release date="2023-1-15" version="1.6.0">
+    <release date="2024-1-17" version="1.6.1">
+      <description>
+        <p>This release provides the following bug fixes:</p>
+        <ul>
+          <li>Fixes console registration</li>
+          <li>Fixes fullscreen double-click and F11 shortcuts</li>
+          <li>Adds option to sleep PlayStation when sleeping Steam Deck</li>
+        </ul>
+      </description>
+    </release>
+    <release date="2024-1-15" version="1.6.0">
       <description>
         <p>This release brings a new user interface to Chiaki4deck including:</p>
         <ul>
-          <li>New touch-friendly and semi-controller navigable GUI</li>
+          <li>New touch-friendly and controller navigable GUI</li>
           <li>Resume connection from sleep mode on Steam Deck.</li>
           <li>Ability to login to PlayStation for account ID via GUI.</li>
           <li>Fix Senkusha, lowering time for console connection and properly setting MTU</li>
