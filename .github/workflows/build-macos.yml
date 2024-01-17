@@ -88,7 +88,9 @@ jobs:
           $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
           ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          codesign --force --deep --sign - Chiaki4deck.app
           hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
+          codesign --force --deep --sign - Chiaki4deck.dmg
 
       - name: Upload Chiaki4deck Artifact
         uses: actions/upload-artifact@v3
