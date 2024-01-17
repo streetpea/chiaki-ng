@@ -44,6 +44,17 @@ void QmlSettings::setDisconnectAction(int action)
     emit disconnectActionChanged();
 }
 
+int QmlSettings::suspendAction() const
+{
+    return static_cast<int>(settings->GetSuspendAction());
+}
+
+void QmlSettings::setSuspendAction(int action)
+{
+    settings->SetSuspendAction(static_cast<SuspendAction>(action));
+    emit suspendActionChanged();
+}
+
 bool QmlSettings::logVerbose() const
 {
     return settings->GetLogVerbose();

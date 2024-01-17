@@ -108,6 +108,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
         qCInfo(chiakiGui) << "About to sleep";
         if (session) {
+            if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
+                session->GoToBed();
             session->Stop();
             resume_session = true;
         }
