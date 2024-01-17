@@ -73,7 +73,7 @@ if(CHIAKI_ENABLE_CLI)
 endif()
 
 target_link_libraries(chiaki Qt::Core Qt::Gui Qt::GuiPrivate Qt::Concurrent Qt::Svg Qt::Qml Qt::Quick)
-if (${Qt6DBus_FOUND})
+if (${Qt6DBus_FOUND} AND NOT WIN32)
 	target_link_libraries(chiaki Qt::DBus)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_HAVE_DBUS)
 endif()
