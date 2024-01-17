@@ -19,7 +19,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
 
       - name: Configure Chiaki4deck
         run: |
@@ -39,6 +39,7 @@ jobs:
           wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.6-rc2/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
           cp MoltenVK/MoltenVK/dylib/macOS/* Chiaki4deck.app/Contents/Resources/vulkan/icd.d
           $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          cp -r /usr/local/Frameworks/QtDBus.framework Chiaki4deck.app/Contents/Frameworks/
           ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
           ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
           hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
@@ -46,7 +47,7 @@ jobs:
       - name: Upload Chiaki4deck Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Chiaki4deck-macos_intel-Release
+          name: Chiaki4deck-macos_x86_64-Release
           path: Chiaki4deck.dmg
           if-no-files-found: error
           retention-days: 1
@@ -66,7 +67,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo molten-vk
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
 
       - name: Configure Chiaki4deck
         run: |
@@ -86,6 +87,7 @@ jobs:
           wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.6-rc2/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
           cp MoltenVK/MoltenVK/dylib/macOS/* Chiaki4deck.app/Contents/Resources/vulkan/icd.d
           $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          cp -r /usr/local/Frameworks/QtDBus.framework Chiaki4deck.app/Contents/Frameworks/
           ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
           ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
           hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
