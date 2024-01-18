@@ -41,7 +41,7 @@ static bool runSteamUrl(const QString &url)
 
 void SDInputContext::showInputPanel()
 {
-    const QString url = QStringLiteral("steam://open/keyboard?Mode=1");
+    const QString url = QStringLiteral("steam://open/keyboard?Mode=0");
     if (runSteamUrl(url)) {
         is_visible = true;
         emitInputPanelVisibleChanged();
