@@ -132,9 +132,9 @@ bool QmlMainWindow::hasVideo() const
     return has_video;
 }
 
-int QmlMainWindow::corruptedFrames() const
+int QmlMainWindow::droppedFrames() const
 {
-    return corrupted_frames;
+    return dropped_frames;
 }
 
 bool QmlMainWindow::keepVideo() const
@@ -220,18 +220,13 @@ void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
     frame_mutex.lock();
     if (next_frame) {
         qCDebug(chiakiGui) << "Dropping rendering frame";
+        dropped_frames_current++;
         av_frame_free(&next_frame);
     }
     next_frame = frame;
     frame_mutex.unlock();
 
-    int corrupted_old = corrupted_frames;
-    if (corrupted_frames)
-        corrupted_frames--;
-    if (frames_lost)
-        corrupted_frames = frames_lost;
-    if (corrupted_old != corrupted_frames)
-        emit corruptedFramesChanged();
+    dropped_frames_current += frames_lost;
 
     if (!has_video) {
         has_video = true;
@@ -460,6 +455,17 @@ void QmlMainWindow::init(Settings *settings)
     connect(update_timer, &QTimer::timeout, this, &QmlMainWindow::update);
 
     QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::initialize);
+
+    QTimer *dropped_frames_timer = new QTimer(this);
+    dropped_frames_timer->setInterval(1000);
+    dropped_frames_timer->start();
+    connect(dropped_frames_timer, &QTimer::timeout, this, [this]() {
+        if (dropped_frames != dropped_frames_current) {
+            dropped_frames = dropped_frames_current;
+            emit droppedFramesChanged();
+        }
+        dropped_frames_current = 0;
+    });
 }
 
 void QmlMainWindow::update()
