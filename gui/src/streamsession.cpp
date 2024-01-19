@@ -322,6 +322,23 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	}
 	UpdateGamepads();
+
+	QTimer *packet_loss_timer = new QTimer(this);
+	packet_loss_timer->setInterval(200);
+	packet_loss_timer->start();
+	connect(packet_loss_timer, &QTimer::timeout, this, [this]() {
+		if(packet_loss_history.size() > 10)
+			packet_loss_history.takeFirst();
+		packet_loss_history.append(session.stream_connection.congestion_control.packet_loss);
+		double packet_loss = 0;
+		for(auto v : std::as_const(packet_loss_history))
+			packet_loss += v / packet_loss_history.size();
+		if(packet_loss != average_packet_loss)
+		{
+			average_packet_loss = packet_loss;
+			emit AveragePacketLossChanged();
+		}
+	});
 }
 
 StreamSession::~StreamSession()

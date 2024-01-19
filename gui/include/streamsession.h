@@ -116,6 +116,7 @@ class StreamSession : public QObject
 	Q_PROPERTY(QString host READ GetHost CONSTANT)
 	Q_PROPERTY(bool connected READ GetConnected NOTIFY ConnectedChanged)
 	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
+	Q_PROPERTY(double averagePacketLoss READ GetAveragePacketLoss NOTIFY AveragePacketLossChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
 	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
 
@@ -131,6 +132,8 @@ class StreamSession : public QObject
 		int input_block;
 		QString host;
 		double measured_bitrate = 0;
+		double average_packet_loss = 0;
+		QList<double> packet_loss_history;
 		bool cant_display = false;
 
 		QHash<int, Controller *> controllers;
@@ -229,6 +232,7 @@ class StreamSession : public QObject
 		QString GetHost() { return host; }
 		bool GetConnected() { return connected; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
+		double GetAveragePacketLoss()	{ return average_packet_loss; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		bool GetCantDisplay()	{ return cant_display; }
@@ -257,6 +261,7 @@ class StreamSession : public QObject
 		void LoginPINRequested(bool incorrect);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();
+		void AveragePacketLossChanged();
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);
 
