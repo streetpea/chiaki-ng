@@ -530,7 +530,7 @@ void QmlMainWindow::createSwapchain()
 
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
-        .present_mode = VK_PRESENT_MODE_MAILBOX_KHR,
+        .present_mode = VK_PRESENT_MODE_FIFO_KHR,
         .swapchain_depth = 1,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
