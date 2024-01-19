@@ -101,10 +101,9 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
 
 QmlMainWindow::~QmlMainWindow()
 {
-    QMetaObject::invokeMethod(quick_render, [this]() {
-        destroySwapchain();
-        quick_render->invalidate();
-    }, Qt::BlockingQueuedConnection);
+    Q_ASSERT(!placebo_swapchain);
+
+    QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
     render_thread->quit();
     render_thread->wait();
     delete render_thread->parent();
@@ -847,6 +846,7 @@ bool QmlMainWindow::event(QEvent *event)
             event->ignore();
             return true;
         }
+        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
         break;
     default:
         break;
