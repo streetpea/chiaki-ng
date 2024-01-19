@@ -85,6 +85,14 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     init(connect_info.settings);
     backend->createSession(connect_info);
 
+    if (connect_info.zoom)
+        setVideoMode(VideoMode::Zoom);
+    else if (connect_info.stretch)
+        setVideoMode(VideoMode::Stretch);
+
+    if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
+        showFullScreen();
+
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
             connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
