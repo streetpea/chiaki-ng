@@ -451,7 +451,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	if(video_receiver->frame_index_cur != video_receiver->frame_index_prev)
 	{
 		// if we already have enough for the whole frame, flush it already
-		if(chiaki_frame_processor_flush_possible(&video_receiver->frame_processor))
+		if(chiaki_frame_processor_flush_possible(&video_receiver->frame_processor) || packet->unit_index == packet->units_in_frame_total - 1)
 			chiaki_video_receiver_flush_frame(video_receiver);
 	}
 }
