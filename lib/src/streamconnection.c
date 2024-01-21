@@ -115,9 +115,10 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 
 	free(stream_connection->ecdh_secret);
-
+#if !defined(WIN32)
 	if (stream_connection->congestion_control.thread.thread)
 		chiaki_congestion_control_stop(&stream_connection->congestion_control);
+#endif
 
 	chiaki_packet_stats_fini(&stream_connection->packet_stats);
 
