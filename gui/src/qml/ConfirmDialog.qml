@@ -25,6 +25,12 @@ Dialog {
             restoreFocusItem.forceActiveFocus(Qt.TabFocus);
     }
 
+    Component.onCompleted: {
+        header.horizontalAlignment = Text.AlignHCenter;
+        // Qt 6.6: Workaround dialog background becoming immediately transparent during close animation
+        header.background = null;
+    }
+
     ColumnLayout {
         spacing: 20
 

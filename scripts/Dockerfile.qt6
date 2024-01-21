@@ -29,7 +29,10 @@ RUN sudo apt-get -y install \
     liblcms2-dev \
     libvulkan-dev \
     libxkbcommon-dev \
-    libpulse-dev
+    libasound2-dev
+
+RUN sudo pip3 install protobuf==3.19.5
+RUN sudo pip3 install meson==1.3.0
 
 RUN (curl -L https://apt.kitware.com/kitware-archive.sh | sudo bash) && sudo apt-get -y install cmake
 
@@ -45,7 +48,10 @@ RUN wget https://github.com/KhronosGroup/glslang/archive/13.1.1.tar.gz && \
     cmake -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DALLOW_EXTERNAL_SPIRV_TOOLS=ON -DBUILD_SHARED_LIBS=OFF && \
     sudo ninja -Cbuild install
 
-RUN sudo pip3 install protobuf==3.19.5
-RUN sudo pip3 install meson==1.3.0
+RUN wget https://gitlab.freedesktop.org/pipewire/pipewire/-/archive/0.3.44/pipewire-0.3.44.tar.gz && \
+    tar xf pipewire-0.3.44.tar.gz && \
+    cd pipewire-0.3.44 && \
+    meson setup --prefix=/usr -Ddbus=disabled -Dsession-managers=[] build && \
+    sudo ninja -Cbuild install
 
 CMD []

@@ -15,6 +15,7 @@ Pane {
     Keys.onReturnPressed: if (hostsView.currentItem) hostsView.currentItem.connectToHost()
     Keys.onYesPressed: if (hostsView.currentItem) hostsView.currentItem.wakeUpHost()
     Keys.onNoPressed: if (hostsView.currentItem) hostsView.currentItem.deleteHost()
+    Keys.onEscapePressed: root.showConfirmDialog(qsTr("Quit"), qsTr("Are you sure you want to quit?"), () => Qt.quit())
 
     ToolBar {
         id: toolBar
@@ -237,9 +238,19 @@ Pane {
     }
 
     Image {
+        id: logoImage
         anchors.centerIn: parent
         source: "qrc:/icons/chiaki4deck.svg"
         sourceSize: Qt.size(Math.min(parent.width, parent.height) / 2, Math.min(parent.width, parent.height) / 2)
-        opacity: 0.2
+
+        PropertyAnimation {
+            target: logoImage
+            property: "opacity"
+            from: 0.05
+            to: 0.20
+            duration: 1000
+            easing.type: Easing.OutCubic
+            running: true
+        }
     }
 }

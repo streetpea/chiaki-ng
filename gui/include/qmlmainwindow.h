@@ -5,7 +5,6 @@
 #include <QMutex>
 #include <QWindow>
 #include <QQuickWindow>
-#include <QSurfaceFormat>
 #include <QLoggingCategory>
 
 extern "C" {
@@ -39,7 +38,7 @@ class QmlMainWindow : public QWindow
 {
     Q_OBJECT
     Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
-    Q_PROPERTY(int corruptedFrames READ corruptedFrames NOTIFY corruptedFramesChanged)
+    Q_PROPERTY(int droppedFrames READ droppedFrames NOTIFY droppedFramesChanged)
     Q_PROPERTY(bool keepVideo READ keepVideo WRITE setKeepVideo NOTIFY keepVideoChanged)
     Q_PROPERTY(VideoMode videoMode READ videoMode WRITE setVideoMode NOTIFY videoModeChanged)
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
@@ -64,7 +63,7 @@ public:
     ~QmlMainWindow();
 
     bool hasVideo() const;
-    int corruptedFrames() const;
+    int droppedFrames() const;
 
     bool keepVideo() const;
     void setKeepVideo(bool keep);
@@ -82,11 +81,10 @@ public:
     void presentFrame(AVFrame *frame, int32_t frames_lost);
 
     AVBufferRef *vulkanHwDeviceCtx();
-    static QSurfaceFormat createSurfaceFormat();
 
 signals:
     void hasVideoChanged();
-    void corruptedFramesChanged();
+    void droppedFramesChanged();
     void keepVideoChanged();
     void videoModeChanged();
     void videoPresetChanged();
@@ -111,7 +109,8 @@ private:
     bool has_video = false;
     bool keep_video = false;
     int grab_input = 0;
-    int corrupted_frames = 0;
+    int dropped_frames = 0;
+    int dropped_frames_current = 0;
     VideoMode video_mode = VideoMode::Normal;
     VideoPreset video_preset = VideoPreset::HighQuality;
 

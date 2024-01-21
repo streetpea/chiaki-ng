@@ -24,6 +24,8 @@ static void *congestion_control_thread_func(void *user)
 		ChiakiTakionCongestionPacket packet = { 0 };
 		packet.received = (uint16_t)received;
 		packet.lost = (uint16_t)lost;
+		uint64_t total = received + lost;
+		control->packet_loss = total > 0 ? (double)lost / total : 0;
 		CHIAKI_LOGV(control->takion->log, "Sending Congestion Control Packet, received: %u, lost: %u",
 			(unsigned int)packet.received, (unsigned int)packet.lost);
 		chiaki_takion_send_congestion(control->takion, &packet);
@@ -37,6 +39,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionCo
 {
 	control->takion = takion;
 	control->stats = stats;
+	control->packet_loss = 0;
 
 	ChiakiErrorCode err = chiaki_bool_pred_cond_init(&control->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)

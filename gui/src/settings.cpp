@@ -150,11 +150,6 @@ ChiakiCodec Settings::GetCodec() const
 {
 	auto v = settings.value("settings/codec", codecs[codec_default]).toString();
 	auto codec = codecs.key(v, codec_default);
-
-	// Downgrade to non-HDR HEVC if renderer is not PlaceboVk
-	if (codec == ChiakiCodec::CHIAKI_CODEC_H265_HDR && GetRenderer() != Renderer::PlaceboVk)
-		codec = ChiakiCodec::CHIAKI_CODEC_H265;
-
 	return codec;
 }
 
@@ -195,35 +190,6 @@ void Settings::SetDecoder(Decoder decoder)
 	settings.setValue("settings/decoder", decoder_values[decoder]);
 }
 
-static const QMap<Renderer, QString> renderer_values = {
-	{ Renderer::OpenGL, "opengl" },
-#if CHIAKI_GUI_ENABLE_PLACEBO
-	{ Renderer::PlaceboVk, "placebo_vk" }
-#endif
-};
-
-#if CHIAKI_GUI_ENABLE_PLACEBO
-static const Renderer renderer_default = Renderer::PlaceboVk;
-#else
-static const Renderer renderer_default = Renderer::OpenGL;
-#endif
-
-Renderer Settings::GetRenderer() const
-{
-	auto v = settings.value("settings/renderer", renderer_values[renderer_default]).toString();
-#if  CHIAKI_GUI_ENABLE_PLACEBO
-	if (v == renderer_values[Renderer::PlaceboVk])
-		return Renderer::PlaceboVk;
-#endif
-	return Renderer::OpenGL;
-}
-
-void Settings::SetRenderer(Renderer renderer)
-{
-	settings.setValue("settings/renderer", renderer_values[renderer]);
-}
-
-#if CHIAKI_GUI_ENABLE_PLACEBO
 static const QMap<PlaceboPreset, QString> placebo_preset_values = {
 	{ PlaceboPreset::Fast, "fast" },
 	{ PlaceboPreset::Default, "default" },
@@ -240,7 +206,6 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 {
 	settings.setValue("settings/placebo_preset", placebo_preset_values[preset]);
 }
-#endif
 
 RegisteredHost Settings::GetAutoConnectHost() const
 {
@@ -355,6 +320,24 @@ DisconnectAction Settings::GetDisconnectAction()
 void Settings::SetDisconnectAction(DisconnectAction action)
 {
 	settings.setValue("settings/disconnect_action", disconnect_action_values[action]);
+}
+
+static const QMap<SuspendAction, QString> suspend_action_values = {
+	{ SuspendAction::Sleep, "sleep" },
+	{ SuspendAction::Nothing, "nothing" },
+};
+
+static const SuspendAction suspend_action_default = SuspendAction::Nothing;
+
+SuspendAction Settings::GetSuspendAction()
+{
+	auto v = settings.value("settings/suspend_action", suspend_action_values[suspend_action_default]).toString();
+	return suspend_action_values.key(v, suspend_action_default);
+}
+
+void Settings::SetSuspendAction(SuspendAction action)
+{
+	settings.setValue("settings/suspend_action", suspend_action_values[action]);
 }
 
 void Settings::LoadRegisteredHosts()

@@ -17,10 +17,18 @@ DialogView {
             anchors.fill: parent
             Component.onCompleted: {
                 web = Qt.createQmlObject("
-                import QtWebEngine;
+                import QtWebEngine
+                import org.streetpea.chiaki4deck
                 WebEngineView {
+                    signal redirectHandled()
                     profile: WebEngineProfile { offTheRecord: true }
                     onContextMenuRequested: (request) => request.accepted = true
+                    onNavigationRequested: (request) => {
+                        if (Chiaki.handlePsnLoginRedirect(request.url)) {
+                            request.action = WebEngineNavigationRequest.IgnoreRequest;
+                            redirectHandled();
+                        }
+                    }
                 }", webView, "webView");
                 if (!web)
                     return;
@@ -30,11 +38,8 @@ DialogView {
 
             Connections {
                 target: webView.web
-                function onNavigationRequested(request) {
-                    if (Chiaki.handlePsnLoginRedirect(request.url)) {
-                        request.action = WebEngineNavigationRequest.IgnoreRequest;
-                        overlay.opacity = 0.8;
-                    }
+                function onRedirectHandled() {
+                    overlay.opacity = 0.8;
                 }
             }
         }

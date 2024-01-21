@@ -99,13 +99,14 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Verbose Logging:")
+                        text: qsTr("Action On Suspend:")
                     }
 
-                    C.CheckBox {
-                        text: qsTr("Warning: Don't enable for regular use")
-                        checked: Chiaki.settings.logVerbose
-                        onToggled: Chiaki.settings.logVerbose = checked
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Do Nothing"), qsTr("Enter Sleep Mode")]
+                        currentIndex: Chiaki.settings.suspendAction
+                        onActivated: index => Chiaki.settings.suspendAction = index
                     }
 
                     Label {
@@ -143,6 +144,17 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Verbose Logging:")
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("Warning: Don't enable for regular use")
+                        checked: Chiaki.settings.logVerbose
+                        onToggled: Chiaki.settings.logVerbose = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Log Directory:")
                     }
 
@@ -171,7 +183,7 @@ DialogView {
                     anchors {
                         bottom: parent.bottom
                         horizontalCenter: parent.horizontalCenter
-                        bottomMargin: 50
+                        bottomMargin: 20
                     }
                     lastInFocusChain: true
                     implicitWidth: 200
@@ -251,7 +263,7 @@ DialogView {
                         }
                         function validate() {
                             var num = parseInt(text);
-                            return num >= 2000 && num <= 50000;
+                            return num >= 2000 && num <= 99999;
                         }
                     }
 

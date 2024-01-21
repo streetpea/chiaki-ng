@@ -117,7 +117,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	muted = true;
 	mic_connected = false;
 	allow_unmute = false;
-	input_blocked = false;
+	input_block = 0;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     haptics_sdeck = 0;
@@ -322,6 +322,23 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	}
 	UpdateGamepads();
+
+	QTimer *packet_loss_timer = new QTimer(this);
+	packet_loss_timer->setInterval(200);
+	packet_loss_timer->start();
+	connect(packet_loss_timer, &QTimer::timeout, this, [this]() {
+		if(packet_loss_history.size() > 10)
+			packet_loss_history.takeFirst();
+		packet_loss_history.append(session.stream_connection.congestion_control.packet_loss);
+		double packet_loss = 0;
+		for(auto v : std::as_const(packet_loss_history))
+			packet_loss += v / packet_loss_history.size();
+		if(packet_loss != average_packet_loss)
+		{
+			average_packet_loss = packet_loss;
+			emit AveragePacketLossChanged();
+		}
+	});
 }
 
 StreamSession::~StreamSession()
@@ -589,6 +606,12 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal heig
 				// Touching edges of screen is a touchpad click
 				if(norm_x <= 0.05 || norm_x >= 0.95 || norm_y <= 0.05 || norm_y >= 0.95)
 					touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+				else if(touch_tracker.empty()) // Double tap is a touchpad click
+				{
+					if(double_tap_timer.isValid() && double_tap_timer.elapsed() < 500)
+						touch_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+					double_tap_timer.restart();
+				}
 				// Scale to PS TouchPad since that's what PS Console expects
 				float psx = norm_x * PS_TOUCHPAD_MAX_X;
 				float psy = norm_y * PS_TOUCHPAD_MAX_Y;
@@ -686,13 +709,6 @@ void StreamSession::SendFeedbackState()
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
 
-	if(input_blocked)
-	{
-		chiaki_controller_state_set_idle(&keyboard_state);
-		chiaki_session_set_controller_state(&session, &state);
-		return;
-	}
-
 #if CHIAKI_GUI_ENABLE_SETSU
 	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
 	state = setsu_state;
@@ -709,6 +725,19 @@ void StreamSession::SendFeedbackState()
 #endif
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
+
+	if(input_block)
+	{
+		// Only unblock input after all buttons were released
+		if(input_block == 2 && !state.buttons)
+			input_block = 0;
+		else
+		{
+			chiaki_controller_state_set_idle(&state);
+			chiaki_controller_state_set_idle(&keyboard_state);
+		}
+	}
+
 	chiaki_session_set_controller_state(&session, &state);
 }
 

@@ -21,6 +21,9 @@
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
 #include <QQuickGraphicsDevice>
+#if defined(Q_OS_MACOS)
+#include <objc/message.h>
+#endif
 
 Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
 
@@ -52,6 +55,24 @@ static const char *shader_cache_path()
     return qPrintable(path);
 }
 
+class RenderControl : public QQuickRenderControl
+{
+public:
+    explicit RenderControl(QWindow *window)
+        : window(window)
+    {
+    }
+
+    QWindow *renderWindow(QPoint *offset) override
+    {
+        Q_UNUSED(offset);
+        return window;
+    }
+
+private:
+    QWindow *window = {};
+};
+
 QmlMainWindow::QmlMainWindow(Settings *settings)
     : QWindow()
 {
@@ -63,21 +84,33 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
 {
     init(connect_info.settings);
     backend->createSession(connect_info);
+
+    if (connect_info.zoom)
+        setVideoMode(VideoMode::Zoom);
+    else if (connect_info.stretch)
+        setVideoMode(VideoMode::Stretch);
+
+    if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
+        showFullScreen();
+
+    connect(session, &StreamSession::ConnectedChanged, this, [this]() {
+        if (session->IsConnected())
+            connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
+    });
 }
 
 QmlMainWindow::~QmlMainWindow()
 {
-    QMetaObject::invokeMethod(quick_render, [this]() {
-        destroySwapchain();
-        quick_render->invalidate();
-    }, Qt::BlockingQueuedConnection);
+    Q_ASSERT(!placebo_swapchain);
+
+    QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
     render_thread->quit();
     render_thread->wait();
     delete render_thread->parent();
 
-    delete quick_render;
     delete quick_item;
     delete quick_window;
+    delete quick_render;
     delete qml_engine;
     delete qt_vk_inst;
 
@@ -106,9 +139,9 @@ bool QmlMainWindow::hasVideo() const
     return has_video;
 }
 
-int QmlMainWindow::corruptedFrames() const
+int QmlMainWindow::droppedFrames() const
 {
-    return corrupted_frames;
+    return dropped_frames;
 }
 
 bool QmlMainWindow::keepVideo() const
@@ -168,6 +201,7 @@ void QmlMainWindow::show()
     QQmlComponent component(qml_engine, QUrl(QStringLiteral("qrc:/Main.qml")));
     if (!component.isReady()) {
         qCCritical(chiakiGui) << "Component not ready\n" << component.errors();
+        QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
 
@@ -176,6 +210,7 @@ void QmlMainWindow::show()
     quick_item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(props));
     if (!quick_item) {
         qCCritical(chiakiGui) << "Failed to create root item\n" << component.errors();
+        QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
 
@@ -192,18 +227,13 @@ void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
     frame_mutex.lock();
     if (next_frame) {
         qCDebug(chiakiGui) << "Dropping rendering frame";
+        dropped_frames_current++;
         av_frame_free(&next_frame);
     }
     next_frame = frame;
     frame_mutex.unlock();
 
-    int corrupted_old = corrupted_frames;
-    if (corrupted_frames)
-        corrupted_frames--;
-    if (frames_lost)
-        corrupted_frames = frames_lost;
-    if (corrupted_old != corrupted_frames)
-        emit corruptedFramesChanged();
+    dropped_frames_current += frames_lost;
 
     if (!has_video) {
         has_video = true;
@@ -255,17 +285,6 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     }
 
     return vulkan_hw_dev_ctx;
-}
-
-QSurfaceFormat QmlMainWindow::createSurfaceFormat()
-{
-    QSurfaceFormat format;
-    format.setAlphaBufferSize(8);
-    format.setDepthBufferSize(0);
-    format.setStencilBufferSize(0);
-    format.setVersion(3, 2);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    return format;
 }
 
 void QmlMainWindow::init(Settings *settings)
@@ -395,7 +414,7 @@ void QmlMainWindow::init(Settings *settings)
     if (!qt_vk_inst->create())
         qFatal("Failed to create QVulkanInstance");
 
-    quick_render = new QQuickRenderControl;
+    quick_render = new RenderControl(this);
 
     QQuickWindow::setDefaultAlphaBuffer(true);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
@@ -443,6 +462,17 @@ void QmlMainWindow::init(Settings *settings)
     connect(update_timer, &QTimer::timeout, this, &QmlMainWindow::update);
 
     QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::initialize);
+
+    QTimer *dropped_frames_timer = new QTimer(this);
+    dropped_frames_timer->setInterval(1000);
+    dropped_frames_timer->start();
+    connect(dropped_frames_timer, &QTimer::timeout, this, [this]() {
+        if (dropped_frames != dropped_frames_current) {
+            dropped_frames = dropped_frames_current;
+            emit droppedFramesChanged();
+        }
+        dropped_frames_current = 0;
+    });
 }
 
 void QmlMainWindow::update()
@@ -513,7 +543,7 @@ void QmlMainWindow::createSwapchain()
 
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
-        .present_mode = VK_PRESENT_MODE_MAILBOX_KHR,
+        .present_mode = VK_PRESENT_MODE_FIFO_KHR,
         .swapchain_depth = 1,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
@@ -723,16 +753,23 @@ void QmlMainWindow::render()
 
 bool QmlMainWindow::handleShortcut(QKeyEvent *event)
 {
+    if (event->modifiers() == Qt::NoModifier) {
+        switch (event->key()) {
+        case Qt::Key_F11:
+            if (windowState() != Qt::WindowFullScreen)
+                showFullScreen();
+            else
+                showNormal();
+            return true;
+        default:
+            break;
+        }
+    }
+
     if (!event->modifiers().testFlag(Qt::ControlModifier))
         return false;
 
     switch (event->key()) {
-    case Qt::Key_F11:
-        if (windowState() != Qt::WindowFullScreen)
-            showFullScreen();
-        else
-            showNormal();
-        return true;
     case Qt::Key_S:
         if (has_video)
             setVideoMode(videoMode() == VideoMode::Stretch ? VideoMode::Normal : VideoMode::Stretch);
@@ -775,6 +812,14 @@ bool QmlMainWindow::event(QEvent *event)
         }
         QGuiApplication::sendEvent(quick_window, event);
         break;
+    case QEvent::MouseButtonDblClick:
+        if (session && !grab_input) {
+            if (windowState() != Qt::WindowFullScreen)
+                showFullScreen();
+            else
+                showNormal();
+        }
+        break;
     case QEvent::KeyPress:
         if (handleShortcut(static_cast<QKeyEvent*>(event)))
             return true;
@@ -797,8 +842,11 @@ bool QmlMainWindow::event(QEvent *event)
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::Close:
-        if (!backend->closeRequested())
-            return false;
+        if (!backend->closeRequested()) {
+            event->ignore();
+            return true;
+        }
+        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
         break;
     default:
         break;

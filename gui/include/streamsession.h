@@ -62,7 +62,6 @@ struct StreamSessionConnectInfo
 	Decoder decoder;
 	QString hw_decoder;
 	AVBufferRef *hw_device_ctx;
-	Renderer renderer;
 	QString audio_out_device;
 	QString audio_in_device;
 	uint32_t log_level_mask;
@@ -117,6 +116,7 @@ class StreamSession : public QObject
 	Q_PROPERTY(QString host READ GetHost CONSTANT)
 	Q_PROPERTY(bool connected READ GetConnected NOTIFY ConnectedChanged)
 	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
+	Q_PROPERTY(double averagePacketLoss READ GetAveragePacketLoss NOTIFY AveragePacketLossChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
 	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
 
@@ -129,9 +129,11 @@ class StreamSession : public QObject
 		bool muted;
 		bool mic_connected;
 		bool allow_unmute;
-		bool input_blocked;
+		int input_block;
 		QString host;
 		double measured_bitrate = 0;
+		double average_packet_loss = 0;
+		QList<double> packet_loss_history;
 		bool cant_display = false;
 
 		QHash<int, Controller *> controllers;
@@ -164,6 +166,7 @@ class StreamSession : public QObject
 		ChiakiControllerState touch_state;
 		QMap<int, uint8_t> touch_tracker;
 		int8_t mouse_touch_id;
+		QElapsedTimer double_tap_timer;
 
 		ChiakiFfmpegDecoder *ffmpeg_decoder;
 		void TriggerFfmpegFrameAvailable();
@@ -229,6 +232,7 @@ class StreamSession : public QObject
 		QString GetHost() { return host; }
 		bool GetConnected() { return connected; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
+		double GetAveragePacketLoss()	{ return average_packet_loss; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		bool GetCantDisplay()	{ return cant_display; }
@@ -246,7 +250,7 @@ class StreamSession : public QObject
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
 		void ReadMic(const QByteArray &micdata);
 
-		void BlockInput(bool block) { input_blocked = block; SendFeedbackState(); }
+		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
 
 	signals:
 		void FfmpegFrameAvailable();
@@ -257,6 +261,7 @@ class StreamSession : public QObject
 		void LoginPINRequested(bool incorrect);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();
+		void AveragePacketLossChanged();
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);
 

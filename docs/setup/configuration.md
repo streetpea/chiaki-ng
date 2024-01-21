@@ -71,15 +71,30 @@
 
     3. Get your PlayStation AccountID (This is needed to access your ps account)
 
-        1. Run the flatpak with the `psn-account-id` command
+        === "Using Gui (Linux and MacOS only)"
 
-            ``` bash
-            flatpak run --command=psn-account-id io.github.streetpea.Chiaki4deck
-            ```
+            1. Wait until step 5 below when you are registering your console, hit the `PSN Login` button and login to your PlayStation account on the window that opens.
 
-        2. Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.
+                ![PSN Login](images/PSNLogin.png)
 
-        3. Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.
+        === "Using konsole (Flatpak only)"
+
+            1. Run the flatpak with the `psn-account-id` command
+
+                ``` bash
+                flatpak run --command=psn-account-id io.github.streetpea.Chiaki4deck
+                ```
+
+            2. Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.
+
+            3. Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.
+
+        === "Using public website"
+
+            1. Change your PSN privacy settings to allow anyone to find you in your search
+            2. Go to [psn.flipscreen.games](https://psn.flipscreen.games/){target="_blank" rel="noopener"}
+            3. Enter your Account ID
+            4. Copy your encoded id for Chiaki
 
     4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
 
@@ -87,31 +102,73 @@
 
         !!! Question "What if my PlayStation Console isn't Appearing?"
         
-            Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again.
+            Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.
 
     5. Register your PlayStation console
 
-        1. Double click on the blue box to bring up a registration window
+        === "Register Discovered Console (Recommended)"
 
-            ![Registration Window](images/AddPS5Regular.png)
+            1. Double click on the blue box to bring up a registration window
 
-        2. Choose your console type
+                ![Registration Window](images/AddPS5Regular.png)
 
-        3. Enter your PSN Account-ID obtained in step 1 above.
+            2. Choose your console type
 
-        4. Get a registration code for remote play
+            3. Enter your PSN Account-ID obtained in step 1 above (if not automatically copied).
 
-            === "PS5"
+            4. Get a registration code for remote play
 
-                Go to `Settings -> System -> Remote Play -> Link Device`
+                === "PS5"
 
-            === "PS4"
+                    Go to `Settings -> System -> Remote Play -> Link Device`
 
-                Go to `Settings -> Remote Play -> Add Device`
+                === "PS4"
 
-        5. Enter the code from your device in the `PIN` field
+                    Go to `Settings -> Remote Play -> Add Device`
 
-        6. Click Register (will become available when all necessary fields are filled)
+            5. Enter the code from your device in the `PIN` field
+
+            6. Click Register (will become available when all necessary fields are filled)
+
+        === "Manual Registration"
+
+            1. Click the gear icon in the top right to go to `Settings`
+
+            2. Click the `consoles` tab
+
+            3. Click the blue `Register New` button to bring up a registration window
+
+                ![Registration Window](images/AddPS5Manual.png)
+
+            4. Enter your PlayStation's ip address in the `Host` section replacing `255.255.255.255`
+
+                You can obtain your PlayStation's ip address by going in your PlayStation console's settings and going to:
+
+                === "PS5"
+
+                    `System->System Software->Console Information` and looking at the IPV4 Address
+
+                === "PS4"
+
+                    `Network->View Connection Status` and looking at the IP Address.
+
+            5. Choose your console type
+
+            6. Enter your PSN Account-ID obtained in step 1 above (if not automatically copied).
+
+            7. Get a registration code for remote play
+
+                === "PS5"
+
+                    Go to `Settings -> System -> Remote Play -> Link Device`
+
+                === "PS4"
+
+                    Go to `Settings -> Remote Play -> Add Device`
+
+            8. Enter the code from your device in the `PIN` field
+
+            9. Click Register (will become available when all necessary fields are filled)
 
     6. You should see this upon successful registration
 
@@ -204,11 +261,33 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
 2. Adjust the settings to your preferences. 
 
-    1. General Settings for Steam Deck
+    1. **General Settings** for Steam Deck
 
         ![General Settings](images/MainSettings.png)
+
+        !!! Tip "Enabling Experimental PlayStation 5 Features (PS5 Users Only)"
+
+            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+
+        !!! Info "Use Buttons by Position Instead of by Label"
+
+            This enables the option to use the face buttons of your controller by position (i.e., NSEW) as opposed to by their label (i.e., ABXY). This enables you to use a Nintendo-style controller and still be able to use the buttons in the same positions as on a PlayStation controller instead of the swapped Nintendo controller positions.
+
+        !!! Info "Use Steam Deck in Vertical Orientation"
+
+            For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).
+
+        !!! Tip "Putting your PlayStation Console to Sleep Automatically"
+
+            For `Action on Disconnect`, choose `Ask` (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
+            
+            If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
+
+    2. **Audio Settings** for Steam Deck
+
+        ![Audio Settings](images/AudioSettings.png)
     
-    2. Below are the Stream settings you'll want to try first with your PlayStation console (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+    3. Below are the **Video Settings** you'll want to try first with your PlayStation console (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
 
     === "PS5/1080P HDR"
 
@@ -222,10 +301,6 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
         ![1080p Settings](images/1080P_Settings.png)
 
-        !!! Tip "Enabling Experimental PlayStation 5 Features"
-
-            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
-
         ???+ Question "Why 1080p if the Steam Deck is only 800p?"
 
             Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
@@ -237,20 +312,6 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
         For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup.
 
         ![720p Settings](images/720P_Settings.png)
-
-    !!! Info "Use Buttons by Position Instead of by Label"
-
-        This enables the option to use the face buttons of your controller by position (i.e., NSEW) as opposed to by their label (i.e., ABXY). This enables you to use a Nintendo-style controller and still be able to use the buttons in the same positions as on a PlayStation controller instead of the swapped Nintendo controller positions.
-
-    !!! Info "Use Steam Deck in Vertical Orientation"
-
-        For Steam Deck, this enables the option to use the Steam Deck in vertical orientation in games that assume a horizontal controller for motion controls. Since most PlayStation games assume a horizontal facing controller, (even though data is sent for using the controller in any orientation) most games only work if the Steam Deck is horizontal (like you would hold a DualSense/DualShock 4 controller). This option enables you to play those games in vertical mode by allowing you to use roll instead of yaw and having a vertical orientation correspond to a horizontal facing controller. Some games, such as Astro's playroom use the orientation values and enable you to use the controller in various different positions (i.e. this option isn't needed for using the controller in vertical orientation for that small subset of games).
-
-    !!! Tip "Putting your PlayStation Console to Sleep Automatically"
-
-        For `Action on Disconnect`, choose `Ask` (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
-        
-        If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
 
 ### HDR (High Dynamic Range)
 
@@ -320,6 +381,7 @@ Ultimately, the performance will depend on the capability of your wireless route
     - Death's Door
     - Resident Evil 0
     - The Last of Us Remastered
+    - Many More ...
 
 ### Troubleshooting Performance Issues
 
@@ -332,7 +394,7 @@ Ultimately, the performance will depend on the capability of your wireless route
 
 To fix these issues, try the following:
 
-1. If you are not using the settings listed in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), try with those settings and see if that fixes it for you.
+1. If you are not using the settings listed in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), try with those settings and see if that fixes it for you. The biggest of these is using a HW Decoder option for your system which should help significantly.
 
 2. Switch to **720p** from 1080p
 
@@ -350,11 +412,7 @@ To fix these issues, try the following:
     
     VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/`chiaki4deck`.
 
-6. Switch to H264 encoding
-
-    Generally, H265 (a.k.a HEVC) results in better quality than H264. However, H264 can be more stable for some users, eliminating things like white flashes (this may result in drops in visual quality but a more stable connection). If you are having issues with white flashes, this is something to give a shot.
-
-7. Switch framerate to **30fps**
+6. Switch framerate to **30fps**
 
     **30fps** requires less bandwidth than **60fps**. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems). I put this last because it is the biggest performance downgrade and most of the time you don't need to do this. However, switching to 30fps / 720p at the default settings is the most surefire way to fix connection issues and a last resort if the methods with virtually no downsides don't do the trick.
 

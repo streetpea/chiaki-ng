@@ -34,6 +34,22 @@ Rectangle {
         Behavior on opacity { NumberAnimation { duration: 250 } }
     }
 
+    Item {
+        anchors {
+            top: parent.verticalCenter
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+
+        BusyIndicator {
+            id: spinner
+            anchors.centerIn: parent
+            width: 70
+            height: width
+        }
+    }
+
     Timer {
         interval: 1500
         running: true

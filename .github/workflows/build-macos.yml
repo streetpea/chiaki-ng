@@ -1,0 +1,101 @@
+name: Build Chiaki4deck macOSX
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac_x64:
+    name: Build macOSX x86_64 version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install protobuf
+        run: |
+          pip3 install --user protobuf setuptools
+
+      - name: Install brew dependencies
+        run: |
+          brew update
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
+
+      - name: Configure Chiaki4deck
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/@openssl@3;$(brew --prefix)/opt/qt@6"
+
+      - name: Build Chiaki4deck
+        run: |
+          export CPATH=$(brew --prefix)/opt/ffmpeg/include
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Deploy Chiaki4deck
+        run: |
+          cp -a build/gui/chiaki.app Chiaki4deck.app
+          echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          mkdir -p Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.6-rc2/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          cp MoltenVK/MoltenVK/dylib/macOS/* Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
+          ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
+
+      - name: Upload Chiaki4deck Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Chiaki4deck-macos_x86_64-Release
+          path: Chiaki4deck.dmg
+          if-no-files-found: error
+          retention-days: 1
+
+  build-mac_arm64:
+    name: Build macOSX arm64 version
+    runs-on: flyci-macos-large-latest-m1
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install protobuf
+        run: |
+          pip3 install --user protobuf setuptools
+
+      - name: Install brew dependencies
+        run: |
+          brew update
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
+
+      - name: Configure Chiaki4deck
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/@openssl@3;$(brew --prefix)/opt/qt@6"
+
+      - name: Build Chiaki4deck
+        run: |
+          export CPATH=$(brew --prefix)/opt/ffmpeg/include
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Deploy Chiaki4deck
+        run: |
+          cp -a build/gui/chiaki.app Chiaki4deck.app
+          echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          mkdir -p Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.6-rc2/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          cp MoltenVK/MoltenVK/dylib/macOS/* Chiaki4deck.app/Contents/Resources/vulkan/icd.d
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
+          ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          codesign --force --deep --sign - Chiaki4deck.app
+          hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
+          codesign --force --deep --sign - Chiaki4deck.dmg
+
+      - name: Upload Chiaki4deck Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Chiaki4deck-macos_arm64-Release
+          path: Chiaki4deck.dmg
+          if-no-files-found: error
+          retention-days: 1

@@ -44,6 +44,17 @@ void QmlSettings::setDisconnectAction(int action)
     emit disconnectActionChanged();
 }
 
+int QmlSettings::suspendAction() const
+{
+    return static_cast<int>(settings->GetSuspendAction());
+}
+
+void QmlSettings::setSuspendAction(int action)
+{
+    settings->SetSuspendAction(static_cast<SuspendAction>(action));
+    emit suspendActionChanged();
+}
+
 bool QmlSettings::logVerbose() const
 {
     return settings->GetLogVerbose();
@@ -230,7 +241,13 @@ QStringList QmlSettings::availableDecoders() const
 {
     static QSet<QString> allowed = {
         "vulkan",
+#if defined(Q_OS_LINUX)
         "vaapi",
+#elif defined(Q_OS_MACOS)
+        "videotoolbox",
+#elif defined(Q_OS_WIN)
+        "d3d11va",
+#endif
     };
     QStringList out = {"none"};
     enum AVHWDeviceType hw_dev = AV_HWDEVICE_TYPE_NONE;
