@@ -29,8 +29,10 @@ finish-args:
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
+
 cleanup-commands:
   - /app/cleanup-BaseApp.sh
+
 modules:
   - name: protobuf-compilers
     sources:
@@ -75,8 +77,8 @@ modules:
         sources:
           - type: git
             url: https://github.com/google/shaderc.git
-            tag: v2023.7
-            commit: 3882b16417077aa8eaa7b5775920e7ba4b8a224d
+            tag: v2023.8
+            commit: e6edd6d48fa5bdd9d176794c6810fae7f8e938e1
             x-checker-data:
               type: git
               tag-pattern: ^v(\d{4}\.\d{1,2})$
@@ -95,13 +97,13 @@ modules:
             dest: third_party/spirv-headers
           - type: git
             url: https://github.com/KhronosGroup/glslang.git
-            tag: 13.1.1
-            commit: 36d08c0d940cf307a23928299ef52c7970d8cee6
+            tag: 14.0.0
+            commit: a91631b260cba3f22858d6c6827511e636c2458a
             dest: third_party/glslang
             x-checker-data:
               type: git
               tag-pattern: ^(\d{1,2}\.\d{1,2}\.\d{1,4})$
-              
+
   - name: ffmpeg
     cleanup:
       - /bin/ffmpeg
@@ -253,7 +255,7 @@ modules:
   - name: vulkanso
     buildsystem: simple
     build-commands:
-      - cp /usr/lib/x86_64-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
+      - cp /usr/lib/$(uname -m)-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
       - ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
       - ln -s libvulkan.so.1 /app/lib/libvulkan.so
 
