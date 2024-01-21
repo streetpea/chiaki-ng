@@ -61,6 +61,18 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.2
+
+Small patch release
+
+- Fixes framepacing regression introduced in 1.6.0
+- Dualsense haptics now work again on Linux
+- Corrects stretch and zoom when using stream command
+- Stop stream freezing on close on Windows
+- Stop stream crashing on close on Windows
+- Report corrupted frames earlier resulting in less frames dropped when a corrupted frame occurs
+- Fix mac arm build not opening and reporting as damaged due to not being signed (was also backported to 1.6.1)
+
 ### 1.6.1
 
 Small patch release
