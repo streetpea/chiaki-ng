@@ -260,14 +260,8 @@ vl_vlc_search_byte(struct vl_vlc *vlc, unsigned num_bits, uint8_t value)
 static inline void
 vl_vlc_removebits(struct vl_vlc *vlc, unsigned pos, unsigned num_bits)
 {
-#if defined(_MSC_VER)
-   /* MSVC Compiler defines unsigned long as 4 bytes so use explicit 64 bits mask */
    uint64_t lo = (vlc->buffer & (UINT64_MAX >> (pos + num_bits))) << num_bits;
    uint64_t hi = (vlc->buffer & (UINT64_MAX << (64 - pos)));
-#else
-   uint64_t lo = (vlc->buffer & (~0UL >> (pos + num_bits))) << num_bits;
-   uint64_t hi = (vlc->buffer & (~0UL << (64 - pos)));
-#endif
    vlc->buffer = lo | hi;
    vlc->invalid_bits += num_bits;
 }

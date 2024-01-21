@@ -341,7 +341,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const
 {
 	int r = send(takion->sock, buf, buf_size, 0);
 	if(r < 0)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to send raw: %s", strerror(errno));
 		return CHIAKI_ERR_NETWORK;
+	}
 	return CHIAKI_ERR_SUCCESS;
 }
 
