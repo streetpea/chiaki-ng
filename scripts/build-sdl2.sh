@@ -37,8 +37,15 @@ cmake \
 	-DSDL_THREADS=ON \
 	-DSDL_TIMERS=OFF \
 	-DSDL_VIDEO=OFF \
-	-DSDL_PIPEWIRE=ON \
+	-DSDL_OSS=OFF \
+	-DSDL_ALSA=OFF \
+	-DSDL_JACK=OFF \
+	-DSDL_ESD=OFF \
+	-DSDL_NAS=OFF \
+	-DSDL_SNDIO=OFF \
+	-DSDL_ARTS=OFF \
 	-DSDL_PULSEAUDIO=OFF \
+	-DSDL_PIPEWIRE=ON \
 	..
 # SDL_THREADS is not needed, but it doesn't compile without
 

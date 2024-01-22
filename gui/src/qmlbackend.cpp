@@ -303,9 +303,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             setDiscoveryEnabled(false);
     });
 
-    if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
-        window->showFullScreen();
-    else if (window->windowState() != Qt::WindowFullScreen)
+    if (window->windowState() != Qt::WindowFullScreen)
         window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
 
     chiaki_log_mutex.lock();

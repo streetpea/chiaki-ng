@@ -22,6 +22,17 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-1-21" version="1.6.2">
+      <description>
+        <p>This release provides the following bug fixes:</p>
+        <ul>
+          <li>Fixes framepacing regression introduced in 1.6.0</li>
+          <li>Dualsense haptics now work again</li>
+          <li>Corrects stretch and zoom when using stream command</li>
+          <li>Report corrupted frames earlier resulting in less frames dropped when a corrupted frame occurs</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-1-17" version="1.6.1">
       <description>
         <p>This release provides the following bug fixes:</p>

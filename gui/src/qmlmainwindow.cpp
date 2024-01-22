@@ -85,6 +85,14 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     init(connect_info.settings);
     backend->createSession(connect_info);
 
+    if (connect_info.zoom)
+        setVideoMode(VideoMode::Zoom);
+    else if (connect_info.stretch)
+        setVideoMode(VideoMode::Stretch);
+
+    if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
+        showFullScreen();
+
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
             connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
@@ -93,10 +101,9 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
 
 QmlMainWindow::~QmlMainWindow()
 {
-    QMetaObject::invokeMethod(quick_render, [this]() {
-        destroySwapchain();
-        quick_render->invalidate();
-    }, Qt::BlockingQueuedConnection);
+    Q_ASSERT(!placebo_swapchain);
+
+    QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
     render_thread->quit();
     render_thread->wait();
     delete render_thread->parent();
@@ -132,9 +139,9 @@ bool QmlMainWindow::hasVideo() const
     return has_video;
 }
 
-int QmlMainWindow::corruptedFrames() const
+int QmlMainWindow::droppedFrames() const
 {
-    return corrupted_frames;
+    return dropped_frames;
 }
 
 bool QmlMainWindow::keepVideo() const
@@ -220,18 +227,13 @@ void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
     frame_mutex.lock();
     if (next_frame) {
         qCDebug(chiakiGui) << "Dropping rendering frame";
+        dropped_frames_current++;
         av_frame_free(&next_frame);
     }
     next_frame = frame;
     frame_mutex.unlock();
 
-    int corrupted_old = corrupted_frames;
-    if (corrupted_frames)
-        corrupted_frames--;
-    if (frames_lost)
-        corrupted_frames = frames_lost;
-    if (corrupted_old != corrupted_frames)
-        emit corruptedFramesChanged();
+    dropped_frames_current += frames_lost;
 
     if (!has_video) {
         has_video = true;
@@ -460,6 +462,17 @@ void QmlMainWindow::init(Settings *settings)
     connect(update_timer, &QTimer::timeout, this, &QmlMainWindow::update);
 
     QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::initialize);
+
+    QTimer *dropped_frames_timer = new QTimer(this);
+    dropped_frames_timer->setInterval(1000);
+    dropped_frames_timer->start();
+    connect(dropped_frames_timer, &QTimer::timeout, this, [this]() {
+        if (dropped_frames != dropped_frames_current) {
+            dropped_frames = dropped_frames_current;
+            emit droppedFramesChanged();
+        }
+        dropped_frames_current = 0;
+    });
 }
 
 void QmlMainWindow::update()
@@ -530,7 +543,7 @@ void QmlMainWindow::createSwapchain()
 
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
-        .present_mode = VK_PRESENT_MODE_MAILBOX_KHR,
+        .present_mode = VK_PRESENT_MODE_FIFO_KHR,
         .swapchain_depth = 1,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
@@ -833,6 +846,7 @@ bool QmlMainWindow::event(QEvent *event)
             event->ignore();
             return true;
         }
+        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
         break;
     default:
         break;
