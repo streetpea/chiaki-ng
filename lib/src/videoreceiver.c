@@ -10,23 +10,20 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 
 static void add_ref_frame(ChiakiVideoReceiver *video_receiver, int32_t frame)
 {
-	int oldest_index = -1;
-	int32_t oldest_frame = INT32_MAX;
-	for(int i=0; i<16; i++)
+	if(video_receiver->reference_frames[0] != -1)
 	{
-		int32_t ref_frame = video_receiver->reference_frames[i];
-		if(ref_frame > 0 && (oldest_frame == INT32_MAX || chiaki_seq_num_16_lt((ChiakiSeqNum16)ref_frame, (ChiakiSeqNum16)oldest_frame)))
-		{
-			oldest_index = i;
-			oldest_frame = ref_frame;
-		}
-		if(ref_frame == -1)
+		memmove(&video_receiver->reference_frames[1], &video_receiver->reference_frames[0], sizeof(int32_t) * 15);
+		video_receiver->reference_frames[0] = frame;
+		return;
+	}
+	for(int i=15; i>=0; i--)
+	{
+		if(video_receiver->reference_frames[i] == -1)
 		{
 			video_receiver->reference_frames[i] = frame;
 			return;
 		}
 	}
-	video_receiver->reference_frames[oldest_index] = frame;
 }
 
 static bool have_ref_frame(ChiakiVideoReceiver *video_receiver, int32_t frame)
@@ -486,20 +483,10 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		parse_succ = parse_slice_h265(video_receiver, frame, frame_size, &slice_type, &ref_frame);
 	if(parse_succ)
 	{
-		if(slice_type == SLICE_TYPE_I)
-		{
-			add_ref_frame(video_receiver, video_receiver->frame_index_cur);
-			CHIAKI_LOGV(video_receiver->log, "Added reference I frame %d", (int)video_receiver->frame_index_cur);
-		}
-		else if(slice_type == SLICE_TYPE_P)
+		if(slice_type == SLICE_TYPE_P)
 		{
 			ChiakiSeqNum16 ref_frame_index = video_receiver->frame_index_cur - ref_frame - 1;
-			if(ref_frame == 0xff || have_ref_frame(video_receiver, ref_frame_index))
-			{
-				add_ref_frame(video_receiver, video_receiver->frame_index_cur);
-				CHIAKI_LOGV(video_receiver->log, "Added reference P frame %d", (int)video_receiver->frame_index_cur);
-			}
-			else
+			if(ref_frame != 0xff && !have_ref_frame(video_receiver, ref_frame_index))
 			{
 				succ = false;
 				video_receiver->frames_lost++;
@@ -516,6 +503,11 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		{
 			succ = false;
 			CHIAKI_LOGW(video_receiver->log, "Video callback did not process frame successfully.");
+		}
+		else
+		{
+			add_ref_frame(video_receiver, video_receiver->frame_index_cur);
+			CHIAKI_LOGV(video_receiver->log, "Added reference %c frame %d", slice_type == SLICE_TYPE_I ? 'I' : 'P', (int)video_receiver->frame_index_cur);
 		}
 	}
 
