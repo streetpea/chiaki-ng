@@ -568,6 +568,28 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 #endif
 }
 
+void Controller::SetDualsenseMic(bool on)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!is_dualsense || !controller)
+		return;
+	DS5EffectsState_t state;
+	SDL_zero(state);
+	state.ucEnableBits2 |= 0x01 /* mic light */ | 0x02 /* mic */;
+	if(on)
+	{
+		state.ucMicLightMode = 0x01;
+		state.ucAudioMuteBits = 0x08;
+	}
+	else
+	{
+		state.ucMicLightMode = 0x00;
+		state.ucAudioMuteBits = 0x00;
+	}
+	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
+#endif
+}
+
 bool Controller::IsDualSense()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER

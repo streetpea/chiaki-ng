@@ -471,6 +471,10 @@ void StreamSession::ToggleMute()
 		muted = false;
 	else
 		muted = true;
+	QMetaObject::invokeMethod(this, [this]() {
+		for(auto controller : controllers)
+			controller->SetDualsenseMic(muted);
+	});
 	if(audio_in)
 		SDL_PauseAudioDevice(audio_in, muted);
 	emit MutedChanged();
@@ -688,6 +692,7 @@ void StreamSession::UpdateGamepads()
 			controllers[controller_id] = controller;
 			if (controller->IsDualSense())
 			{
+				controller->SetDualsenseMic(muted);
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
