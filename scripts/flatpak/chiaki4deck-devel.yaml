@@ -24,8 +24,11 @@ finish-args:
   - --env=PKG_CONFIG_PATH=/app/lib/pkgconfig
   - --env=QML_IMPORT_PATH=/app/qml
   - --env=QML_DISABLE_DISK_CACHE=1
+  - --env=SDL_AUDIODRIVER=pipewire
   - --talk-name=org.freedesktop.ScreenSaver
+  - --system-talk-name=org.freedesktop.login1
   - --filesystem=xdg-run/pipewire-0
+  - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
   
 modules:
@@ -46,6 +49,10 @@ modules:
         tag: v6.338.1
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+      - type: patch
+        path: libplacebo-pr238.patch
+      - type: patch
+        path: libplacebo-pr239.patch
     modules:
       - name: shaderc
         buildsystem: cmake-ninja
@@ -65,8 +72,8 @@ modules:
         sources:
           - type: git
             url: https://github.com/google/shaderc.git
-            tag: v2023.7
-            commit: 3882b16417077aa8eaa7b5775920e7ba4b8a224d
+            tag: v2023.8
+            commit: e6edd6d48fa5bdd9d176794c6810fae7f8e938e1
             x-checker-data:
               type: git
               tag-pattern: ^v(\d{4}\.\d{1,2})$
@@ -85,8 +92,8 @@ modules:
             dest: third_party/spirv-headers
           - type: git
             url: https://github.com/KhronosGroup/glslang.git
-            tag: 13.1.1
-            commit: 36d08c0d940cf307a23928299ef52c7970d8cee6
+            tag: 14.0.0
+            commit: a91631b260cba3f22858d6c6827511e636c2458a
             dest: third_party/glslang
             x-checker-data:
               type: git
@@ -115,9 +122,9 @@ modules:
         url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
         sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
       - type: patch
-        path: 0001-hevc-Fix-duplicate-POC-in-sequence.patch
-      - type: patch
         path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
+      - type: patch
+        path: 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
 
   - name: python3-google
     buildsystem: simple
@@ -142,6 +149,40 @@ modules:
       - type: file
         url: https://files.pythonhosted.org/packages/ba/dd/f8a01b146bf45ac12a829bbc599e6590aa6a6849ace7d28c42d77041d6ab/protobuf-4.21.12.tar.gz
         sha256: 7cd532c4566d0e6feafecc1059d04c7915aec8e182d1cf7adee8b24ef1e2e6ab
+
+  - name: libpipewire
+    buildsystem: meson
+    config-opts:
+      - -Dexamples=disabled
+      - -Daudiotestsrc=disabled
+      - -Djack=disabled
+      - -Droc=disabled
+      - -Dvideotestsrc=disabled
+      - -Dvolume=disabled
+      - -Dvulkan=disabled
+      - -Ddocs=disabled
+      - -Dman=disabled
+      - -Dbluez5-codec-ldac=disabled
+      - -Dbluez5-codec-aptx=disabled
+      - -Dlibcamera=disabled
+      - -Dpipewire-v4l2=disabled
+      - -Dlibcanberra=disabled
+      - -Dbluez5-codec-lc3=disabled
+      - -Dbluez5-codec-lc3plus=disabled
+      - -Dlv2=disabled
+      - -Dsystemd=disabled
+      - -Dsdl2=disabled
+      - -Dsession-managers=[]
+      - -Dudevrulesdir=$(pkg-config --variable=udevdir udev)/rules.d
+    cleanup:
+      - /etc
+      - /bin
+      - /include
+      - /lib/pkgconfig
+    sources:
+      - type: git
+        url: https://gitlab.freedesktop.org/pipewire/pipewire.git
+        tag: 0.3.62
 
   - name: SDL2
     config-opts:
@@ -202,6 +243,13 @@ modules:
       url: https://gitlab.xiph.org/xiph/speexdsp.git
       tag: SpeexDSP-1.2.1
 
+  - name: vulkanso
+    buildsystem: simple
+    build-commands:
+      - cp /usr/lib/$(uname -m)-linux-gnu/libvulkan.so.1.* /app/lib/libvulkan.so.1.x
+      - ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
+      - ln -s libvulkan.so.1 /app/lib/libvulkan.so
+
   - name: chiaki4deck
     buildsystem: cmake-ninja
     builddir: true
@@ -211,3 +259,4 @@ modules:
         branch: main
     post-install:
       - "install -Dm755 ../scripts/psn-account-id.py /app/bin/psn-account-id"
+      - "install -Dm755 ../scripts/vulkan-gamescope-layers/VkLayer_FROG_gamescope_wsi.x86_64.json /app/share/vulkan/implicit_layer.d/VkLayer_FROG_gamescope_wsi.x86_64.json"
