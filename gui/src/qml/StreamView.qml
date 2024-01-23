@@ -355,7 +355,7 @@ Item {
                 Label {
                     text: qsTr("packet loss")
                     font.pixelSize: 15
-                    opacity: Chiaki.session?.averagePacketLoss ? 1.0 : 0.0
+                    opacity: parent.visible && Chiaki.session?.averagePacketLoss ? 1.0 : 0.0
                     visible: opacity
 
                     Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -377,7 +377,7 @@ Item {
                     Layout.leftMargin: droppedFramesLabel.width + 6
                     text: qsTr("dropped frames")
                     font.pixelSize: 15
-                    opacity: Chiaki.window.droppedFrames ? 1.0 : 0.0
+                    opacity: parent.visible && Chiaki.window.droppedFrames ? 1.0 : 0.0
                     visible: opacity
 
                     Behavior on opacity { NumberAnimation { duration: 250 } }
