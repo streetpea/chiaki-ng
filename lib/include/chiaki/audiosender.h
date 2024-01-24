@@ -24,6 +24,8 @@ typedef struct chiaki_audio_sender_t
 	uint16_t buf_size_per_unit;
 	uint16_t buf_stride_per_unit;
 	uint8_t *frame_buf;
+	uint8_t *framea;
+	uint8_t *frameb;
 	size_t frame_buf_size;
 	uint8_t *filled_packet_buf;
 	ChiakiSeqNum16 frame_index;
