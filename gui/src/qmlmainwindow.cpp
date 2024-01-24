@@ -473,6 +473,19 @@ void QmlMainWindow::init(Settings *settings)
         }
         dropped_frames_current = 0;
     });
+
+    switch (settings->GetPlaceboPreset()) {
+    case PlaceboPreset::Fast:
+        setVideoPreset(VideoPreset::Fast);
+        break;
+    case PlaceboPreset::Default:
+        setVideoPreset(VideoPreset::Default);
+        break;
+    case PlaceboPreset::HighQuality:
+    default:
+        setVideoPreset(VideoPreset::HighQuality);
+        break;
+    }
 }
 
 void QmlMainWindow::update()
