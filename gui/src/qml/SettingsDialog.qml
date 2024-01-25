@@ -300,9 +300,16 @@ DialogView {
                     C.ComboBox {
                         Layout.preferredWidth: 400
                         lastInFocusChain: true
-                        model: [qsTr("Default"), qsTr("Fast"), qsTr("High Quality")]
+                        model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality")]
                         currentIndex: Chiaki.settings.videoPreset
-                        onActivated: (index) => Chiaki.settings.videoPreset = index
+                        onActivated: (index) => {
+                            Chiaki.settings.videoPreset = index;
+                            switch (index) {
+                            case 0: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Fast; break;
+                            case 1: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default; break;
+                            case 2: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality; break;
+                            }
+                        }
                     }
                 }
             }
