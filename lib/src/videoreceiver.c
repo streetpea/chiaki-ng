@@ -106,7 +106,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		ChiakiVideoProfile *profile = video_receiver->profiles + video_receiver->profile_cur;
 		CHIAKI_LOGI(video_receiver->log, "Switched to profile %d, resolution: %ux%u", video_receiver->profile_cur, profile->width, profile->height);
 		if(video_receiver->session->video_sample_cb)
-			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, 0, video_receiver->session->video_sample_cb_user);
+			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, 0, false, video_receiver->session->video_sample_cb_user);
 		if(!chiaki_bitstream_header(&video_receiver->bitstream, profile->header, profile->header_sz))
 			CHIAKI_LOGE(video_receiver->log, "Failed to parse video header");
 	}
@@ -166,6 +166,7 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 	}
 
 	bool succ = flush_result != CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED;
+	bool recovered = false;
 
 	ChiakiBitstreamSlice slice;
 	if(chiaki_bitstream_slice(&video_receiver->bitstream, frame, frame_size, &slice))
@@ -175,16 +176,32 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 			ChiakiSeqNum16 ref_frame_index = video_receiver->frame_index_cur - slice.reference_frame - 1;
 			if(slice.reference_frame != 0xff && !have_ref_frame(video_receiver, ref_frame_index))
 			{
-				succ = false;
-				video_receiver->frames_lost++;
-				CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
+				for(unsigned i=slice.reference_frame+1; i<16; i++)
+				{
+					ChiakiSeqNum16 ref_frame_index_new = video_receiver->frame_index_cur - i - 1;
+					if(have_ref_frame(video_receiver, ref_frame_index_new))
+					{
+						if(chiaki_bitstream_slice_set_reference_frame(&video_receiver->bitstream, frame, frame_size, i))
+						{
+							recovered = true;
+							CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d -> changed to %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur, (int)ref_frame_index_new);
+						}
+						break;
+					}
+				}
+				if(!recovered)
+				{
+					succ = false;
+					video_receiver->frames_lost++;
+					CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
+				}
 			}
 		}
 	}
 
 	if(succ && video_receiver->session->video_sample_cb)
 	{
-		bool cb_succ = video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->frames_lost, video_receiver->session->video_sample_cb_user);
+		bool cb_succ = video_receiver->session->video_sample_cb(frame, frame_size, video_receiver->frames_lost, recovered, video_receiver->session->video_sample_cb_user);
 		video_receiver->frames_lost = 0;
 		if(!cb_succ)
 		{
