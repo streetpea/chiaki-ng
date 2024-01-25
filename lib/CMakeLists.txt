@@ -38,7 +38,8 @@ set(HEADER_FILES
 		include/chiaki/regist.h
 		include/chiaki/opusdecoder.h
 		include/chiaki/opusencoder.h
-		include/chiaki/orientation.h)
+		include/chiaki/orientation.h
+		include/chiaki/bitstream.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -79,7 +80,8 @@ set(SOURCE_FILES
 		src/regist.c
 		src/opusdecoder.c
 		src/opusencoder.c
-		src/orientation.c)
+		src/orientation.c
+		src/bitstream.c)
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND HEADER_FILES include/chiaki/ffmpegdecoder.h)
