@@ -49,6 +49,7 @@ typedef struct chiaki_bitstream_slice_t
 
 CHIAKI_EXPORT bool chiaki_bitstream_header(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiCodec codec);
 CHIAKI_EXPORT bool chiaki_bitstream_slice(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiBitstreamSlice *slice);
+CHIAKI_EXPORT bool chiaki_bitstream_slice_set_reference_frame(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, unsigned reference_frame);
 
 #ifdef __cplusplus
 }

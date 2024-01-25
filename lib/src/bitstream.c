@@ -299,6 +299,78 @@ static bool slice_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 	return true;
 }
 
+static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, unsigned reference_frame)
+{
+	struct vl_vlc vlc = {0};
+	vl_vlc_init(&vlc, data, size);
+	if(!skip_startcode(&vlc))
+	{
+		CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: No startcode found");
+		return false;
+	}
+
+	vl_vlc_eatbits(&vlc, 1); // forbidden_zero_bit
+	unsigned nal_unit_type = vl_vlc_get_uimsbf(&vlc, 6);
+	vl_vlc_eatbits(&vlc, 6); // nuh_layer_id
+	vl_vlc_eatbits(&vlc, 3); // nuh_temporal_id_plus1
+
+	if(nal_unit_type != 1)
+	{
+		CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: Unexpected NAL unit type %u", nal_unit_type);
+		return false;
+	}
+
+	struct vl_rbsp rbsp;
+	vl_rbsp_init(&rbsp, &vlc, ~0);
+	unsigned first_slice_segment_in_pic_flag = vl_rbsp_u(&rbsp, 1);
+	if(nal_unit_type == 20)
+		vl_rbsp_u(&rbsp, 1); // no_output_of_prior_pics_flag
+
+	vl_rbsp_ue(&rbsp); // slice_pic_parameter_set_id
+	if(!first_slice_segment_in_pic_flag)
+		vl_rbsp_ue(&rbsp); // slice_segment_address
+
+	if(vl_rbsp_ue(&rbsp) != 1)
+	{
+		CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: Not P slice");
+		return false;
+	}
+
+	vl_rbsp_u(&rbsp, bitstream->h265.sps.log2_max_pic_order_cnt_lsb_minus4 + 4); // slice_pic_order_cnt_lsb
+	if(!vl_rbsp_u(&rbsp, 1)) // short_term_ref_pic_set_sps_flag
+	{
+		unsigned num_negative_pics = vl_rbsp_ue(&rbsp);
+		if(num_negative_pics > 16)
+		{
+			CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: Unexpected num_negative_pics %u", num_negative_pics);
+			return false;
+		}
+		vl_rbsp_ue(&rbsp); // num_positive_pics
+		for(unsigned i=0; i<num_negative_pics; i++)
+		{
+			vl_rbsp_ue(&rbsp); // delta_poc_s0_minus1[i]
+			uint32_t *d = (uint32_t*)rbsp.nal.data;
+			uint64_t hi = ntohl(d[-2]);
+			uint64_t lo = ntohl(d[-1]);
+			uint64_t buffer = lo | (hi << 32);
+			uint64_t mask = (uint64_t)1 << (64 - 1 - (64 - (32 - rbsp.nal.invalid_bits)));
+			if (i == reference_frame)
+				buffer |= mask; // set 1
+			else
+				buffer &= ~mask; // set 0
+			hi = htonl(buffer >> 32);
+			lo = htonl(buffer & 0xffffffff);
+			d[-2] = hi;
+			d[-1] = lo;
+			if (i == reference_frame)
+				return true;
+			vl_rbsp_u(&rbsp, 1); // used_by_curr_pic_s0_flag[i]
+		}
+	}
+
+	return false;
+}
+
 bool chiaki_bitstream_header(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiCodec codec)
 {
 	memset(bitstream, 0, sizeof(*bitstream));
@@ -315,4 +387,12 @@ bool chiaki_bitstream_slice(ChiakiBitstream *bitstream, uint8_t *data, unsigned 
 		return slice_h264(bitstream, data, size, slice);
 	else
 		return slice_h265(bitstream, data, size, slice);
+}
+
+bool chiaki_bitstream_slice_set_reference_frame(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, unsigned reference_frame)
+{
+	if(bitstream->codec == CHIAKI_CODEC_H264)
+		return false;
+	else
+		return slice_set_reference_frame_h265(bitstream, data, size, reference_frame);
 }
