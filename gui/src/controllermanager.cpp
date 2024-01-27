@@ -590,6 +590,15 @@ void Controller::SetDualsenseMic(bool on)
 #endif
 }
 
+void Controller::SetHapticRumble(uint16_t left, uint16_t right, int ms)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	SDL_GameControllerRumble(controller, left, right, ms);
+#endif
+}
+
 bool Controller::IsDualSense()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER

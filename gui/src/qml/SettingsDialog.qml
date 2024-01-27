@@ -115,7 +115,7 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        text: qsTr("DualSense and Steam Deck haptics and adaptive triggers")
+                        text: qsTr("Haptics + adaptive triggers (DS), Haptics (SD), PS5 Rumble (others)")
                         checked: Chiaki.settings.dualSense
                         onToggled: Chiaki.settings.dualSense = checked
                     }

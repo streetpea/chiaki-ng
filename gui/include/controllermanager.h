@@ -100,6 +100,7 @@ class Controller : public QObject
 		void SetRumble(uint8_t left, uint8_t right);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
 		void SetDualsenseMic(bool on);
+		void SetHapticRumble(uint16_t left, uint16_t right, int ms);
 		bool IsDualSense();
 		bool IsSteamDeck();
 
