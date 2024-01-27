@@ -50,6 +50,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 
 	video_receiver->frames_lost = 0;
 	memset(video_receiver->reference_frames, -1, sizeof(video_receiver->reference_frames));
+	chiaki_bitstream_init(&video_receiver->bitstream, video_receiver->log, video_receiver->session->connect_info.video_profile.codec);
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver)
@@ -106,7 +107,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		CHIAKI_LOGI(video_receiver->log, "Switched to profile %d, resolution: %ux%u", video_receiver->profile_cur, profile->width, profile->height);
 		if(video_receiver->session->video_sample_cb)
 			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, 0, video_receiver->session->video_sample_cb_user);
-		if(!chiaki_bitstream_header(&video_receiver->bitstream, profile->header, profile->header_sz, video_receiver->session->connect_info.video_profile.codec))
+		if(!chiaki_bitstream_header(&video_receiver->bitstream, profile->header, profile->header_sz))
 			CHIAKI_LOGE(video_receiver->log, "Failed to parse video header");
 	}
 
