@@ -16,7 +16,7 @@ Forward the ports for your console on your router following [this port forwardin
 
     | Port | Connection Type |
     | ---- | --------------- |
-    | 9295 | TCP             |
+    | 9295 | TCP & UDP       |
     | 9296 | UDP             |
     | 9297 | UDP             |
     | 9302 | UDP             |
