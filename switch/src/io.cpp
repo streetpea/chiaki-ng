@@ -76,7 +76,9 @@ void main()
 }
 )glsl";
 
-static const char *shader_frag_glsl;
+static const int MAX_FRAME_COUNT = 3;
+int current_frame = 0;
+int next_frame = 0;
 
 static const float vert_pos[] = {
 	0.0f, 0.0f,
@@ -238,27 +240,23 @@ send_packet:
 	if (enableHWAccl) {
 		r = avcodec_receive_frame(this->codec_context, this->tmp_frame);
 		if (r == 0) {
-			AVFrame *tmp_gpu_frame;
-			tmp_gpu_frame = av_frame_alloc();
-			if (av_hwframe_transfer_data(tmp_gpu_frame, this->tmp_frame, 0) < 0) {
+			if (av_hwframe_transfer_data(this->frames[next_frame], this->tmp_frame, 0) < 0) {
 				CHIAKI_LOGI(this->log, "transfer error");
 			}
-			if (av_frame_copy_props(tmp_gpu_frame, this->tmp_frame) < 0) {
+			if (av_frame_copy_props(this->frames[next_frame], this->tmp_frame) < 0) {
 				CHIAKI_LOGI(this->log, "copy error");
 			}
-			this->mtx.lock();
-			av_frame_free(&this->frame);
-			this->frame = tmp_gpu_frame;
 		}
 	} else {
-		this->mtx.lock();
-		r = avcodec_receive_frame(this->codec_context, this->frame);
+		r = avcodec_receive_frame(this->codec_context, this->frames[next_frame]);
 	}
 
-	this->mtx.unlock();
-
-	if(r != 0)
+	if(r != 0) {
 		CHIAKI_LOGE(this->log, "Failed to pull frame");
+	} else {
+		current_frame = next_frame;
+		next_frame = (next_frame + 1) % MAX_FRAME_COUNT;
+	}
 
 	av_packet_unref(&packet);
 	return true;
@@ -344,9 +342,24 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 
 	this->screen_width = screen_width;
 	this->screen_height = screen_height;
-	this->frame = av_frame_alloc();
-	this->frame->width = screen_width;
-	this->frame->height = screen_height;
+	this->frames = (AVFrame**)malloc(MAX_FRAME_COUNT * sizeof(AVFrame*));
+	for (int i = 0; i < MAX_FRAME_COUNT; i++) {
+			frames[i] = av_frame_alloc();
+			if (frames[i] == NULL) {
+					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame");
+					return -1;
+			}
+
+			frames[i]->format = AV_PIX_FMT_NV12;
+			frames[i]->width  = screen_width;
+			frames[i]->height = screen_height;
+
+			int err = av_frame_get_buffer(frames[i], 256);
+			if (err < 0) {
+					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
+					return -1;
+			}
+	}
   this->tmp_frame = av_frame_alloc();
 
 	if(!InitOpenGl())
@@ -364,8 +377,11 @@ bool IO::FreeVideo()
 			av_buffer_unref(&this->hw_device_ctx);
 	}
 
-	if(this->frame)
-		av_frame_free(&this->frame);
+	for (int i = 0; i < MAX_FRAME_COUNT; i++) {
+		if(this->frames[i])
+			av_frame_free(&this->frames[i]);
+	}
+
 	if(this->tmp_frame)
 		av_frame_free(&this->tmp_frame);
 
@@ -771,7 +787,7 @@ bool IO::InitAVCodec(bool is_PS5)
 	}
 
 	if (enableHWAccl) {
-		if(av_hwdevice_ctx_create(&this->hw_device_ctx, AV_HWDEVICE_TYPE_TX1, NULL, NULL, 0) < 0) {
+		if(av_hwdevice_ctx_create(&this->hw_device_ctx, AV_HWDEVICE_TYPE_NVTEGRA, NULL, NULL, 0) < 0) {
 			throw Exception("Failed to enable hardware encoding");
 		}
 		this->codec_context->hw_device_ctx = av_buffer_ref(this->hw_device_ctx);
@@ -958,7 +974,6 @@ inline void IO::SetOpenGlYUVPixels(AVFrame *frame)
 		{2, 2, 1}  // V
 	};
 
-	this->mtx.lock();
 	for(int i = 0; i < PLANES_COUNT; i++)
 	{
 		int width = frame->width / planes[i][0];
@@ -997,7 +1012,6 @@ inline void IO::SetOpenGlYUVPixels(AVFrame *frame)
 		D(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	}
-	this->mtx.unlock();
 	glFinish();
 }
 inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
@@ -1010,13 +1024,14 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 			{ 2, 2, 2, GL_RG8, GL_RG }
 	};
 
-	this->mtx.lock();
 	for(int i = 0; i < 2; i++)
 	{
 		int width = frame->width / planes[i][0];
 		int height = frame->height / planes[i][1];
 		int size = width * height * planes[i][2];
 		uint8_t *buf;
+
+		int offset1 = width * planes[i][2];
 
 		D(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbo[i]));
 		D(glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW));
@@ -1040,16 +1055,15 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 		{
 			// UV
 			for(int l = 0; l < height; l++)
-				memcpy(buf + width * l * planes[i][2],
+				memcpy(buf + offset1 * l,
 					frame->data[i] + frame->linesize[i] * l,
-					width * planes[i][2]);
+					offset1);
 		}
 		D(glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER));
 		D(glBindTexture(GL_TEXTURE_2D, tex[i]));
 		D(glTexImage2D(GL_TEXTURE_2D, 0, planes[i][3], width, height, 0, planes[i][4], GL_UNSIGNED_BYTE, nullptr));
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	}
-	this->mtx.unlock();
 	glFinish();
 }
 
@@ -1058,10 +1072,10 @@ inline void IO::OpenGlDraw()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (enableHWAccl) {
-		SetOpenGlNV12Pixels(this->frame);
+		SetOpenGlNV12Pixels(this->frames[current_frame]);
 	} else {
 		// send to OpenGl
-		SetOpenGlYUVPixels(this->frame);
+		SetOpenGlYUVPixels(this->frames[current_frame]);
 	}
 
 	//avcodec_flush_buffers(this->codec_context);

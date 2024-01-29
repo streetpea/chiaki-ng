@@ -8,7 +8,7 @@ BASE_URL="https://github.com/xfangfang/wiliwili/releases/download/v0.1.0/"
 
 PKGS=(
     "switch-dav1d-1.2.1-1-any.pkg.tar.zst"
-    "switch-ffmpeg-6.1-2-any.pkg.tar.zst"
+    "switch-ffmpeg-6.1-5-any.pkg.tar.zst"
 )
 for PKG in "${PKGS[@]}"; do
     [ -f "${PKG}" ] || curl -LO ${BASE_URL}${PKG}
