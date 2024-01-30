@@ -66,6 +66,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_stop(ChiakiCongestionCon
 	err = chiaki_thread_join(&control->thread, NULL);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
+	control->thread.thread = NULL;
 
 	return chiaki_bool_pred_cond_fini(&control->stop_cond);
 }

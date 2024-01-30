@@ -775,6 +775,8 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 			return;
 		}
 	}
+	if(audio_out_device_name.isEmpty())
+		audio_out_device_name = "Auto";
 
 	audio_out_drain_queue = false;
 
@@ -853,6 +855,9 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 			return;
 		}
 	}
+
+	if(audio_in_device_name.isEmpty())
+		audio_in_device_name = "Auto";
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone '%s' opened with %u channels @ %u Hz, buffer size %u",
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
