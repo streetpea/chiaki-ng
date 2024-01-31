@@ -241,6 +241,8 @@ QStringList QmlSettings::availableDecoders() const
 {
     static QSet<QString> allowed = {
         "vulkan",
+        "cuda",
+        "qsv",
 #if defined(Q_OS_LINUX)
         "vaapi",
 #elif defined(Q_OS_MACOS)
