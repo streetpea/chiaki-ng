@@ -653,19 +653,6 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 	// stream_connection->state_mutex is expected to be locked by the caller of this function
 	stream_connection->state_finished = true;
 	chiaki_cond_signal(&stream_connection->state_cond);
-	err = stream_connection_send_controller_connection(stream_connection);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send controller connection");
-		goto error;
-	}
-
-	err = stream_connection_enable_microphone(stream_connection);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to enable microphone input");
-		goto error;
-	}
 	return;
 error:
 	stream_connection->state_failed = true;
@@ -777,6 +764,20 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 	// TODO: do some checks?
 
 	stream_connection_send_streaminfo_ack(stream_connection);
+	
+	ChiakiErrorCode err = stream_connection_send_controller_connection(stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send controller connection");
+		goto error;
+	}
+
+	err = stream_connection_enable_microphone(stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to enable microphone input");
+		goto error;
+	}
 
 	// stream_connection->state_mutex is expected to be locked by the caller of this function
 	stream_connection->state_finished = true;
