@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "common.h"
+#include "log.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,6 +14,7 @@ extern "C" {
 
 typedef struct chiaki_bitstream_t
 {
+	ChiakiLog *log;
 	ChiakiCodec codec;
 	union
 	{
@@ -47,7 +49,8 @@ typedef struct chiaki_bitstream_slice_t
 	unsigned reference_frame;
 } ChiakiBitstreamSlice;
 
-CHIAKI_EXPORT bool chiaki_bitstream_header(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiCodec codec);
+CHIAKI_EXPORT void chiaki_bitstream_init(ChiakiBitstream *bitstream, ChiakiLog *log, ChiakiCodec codec);
+CHIAKI_EXPORT bool chiaki_bitstream_header(ChiakiBitstream *bitstream, uint8_t *data, unsigned size);
 CHIAKI_EXPORT bool chiaki_bitstream_slice(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiBitstreamSlice *slice);
 CHIAKI_EXPORT bool chiaki_bitstream_slice_set_reference_frame(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, unsigned reference_frame);
 

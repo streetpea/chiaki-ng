@@ -25,6 +25,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->frame_available_cb_user = frame_available_cb_user;
 	decoder->hdr_enabled = codec == CHIAKI_CODEC_H265_HDR;
 	decoder->frames_lost = 0;
+	decoder->frame_recovered = false;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -109,12 +110,13 @@ CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder)
 		av_buffer_unref(&decoder->hw_device_ctx);
 }
 
-CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, void *user)
+CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)
 {
 	ChiakiFfmpegDecoder *decoder = user;
 
 	chiaki_mutex_lock(&decoder->mutex);
 	decoder->frames_lost += frames_lost;
+	decoder->frame_recovered = frame_recovered;
 	AVPacket *packet = av_packet_alloc();
 	packet->data = buf;
 	packet->size = buf_size;
@@ -193,6 +195,11 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 		}
 	}
 	*frames_lost = decoder->frames_lost;
+	if(frame && decoder->frame_recovered)
+	{
+		decoder->frame_recovered = false;
+		frame->decode_error_flags |= 1;
+	}
 	decoder->frames_lost = 0;
 	chiaki_mutex_unlock(&decoder->mutex);
 

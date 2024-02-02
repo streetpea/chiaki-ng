@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <chiaki/bitstream.h>
-#include <chiaki/log.h>
 
 #include <string.h>
 
@@ -30,7 +29,7 @@ static bool header_h264(ChiakiBitstream *bitstream, uint8_t *data, unsigned size
 	vl_vlc_init(&vlc, data, size);
 	if(!skip_startcode(&vlc))
 	{
-		CHIAKI_LOGW(NULL, "parse_sps_h264: No startcode found");
+		CHIAKI_LOGW(bitstream->log, "parse_sps_h264: No startcode found");
 		return false;
 	}
 
@@ -40,7 +39,7 @@ static bool header_h264(ChiakiBitstream *bitstream, uint8_t *data, unsigned size
 
 	if(nal_unit_type != 7)
 	{
-		CHIAKI_LOGW(NULL, "parse_sps_h264: Unexpected NAL unit type %u", nal_unit_type);
+		CHIAKI_LOGW(bitstream->log, "parse_sps_h264: Unexpected NAL unit type %u", nal_unit_type);
 		return false;
 	}
 
@@ -75,7 +74,7 @@ static bool header_h264(ChiakiBitstream *bitstream, uint8_t *data, unsigned size
 	bitstream->h264.sps.log2_max_frame_num_minus4 = vl_rbsp_ue(&rbsp);
 	if(bitstream->h264.sps.log2_max_frame_num_minus4 > 12)
 	{
-		CHIAKI_LOGW(NULL, "parse_sps_h264: Unexpected log2_max_frame_num_minus4 value %u", bitstream->h264.sps.log2_max_frame_num_minus4);
+		CHIAKI_LOGW(bitstream->log, "parse_sps_h264: Unexpected log2_max_frame_num_minus4 value %u", bitstream->h264.sps.log2_max_frame_num_minus4);
 		return false;
 	}
 
@@ -89,7 +88,7 @@ static bool header_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size
 sps_start:
 	if(!skip_startcode(&vlc))
 	{
-		CHIAKI_LOGW(NULL, "parse_sps_h265: No startcode found");
+		CHIAKI_LOGW(bitstream->log, "parse_sps_h265: No startcode found");
 		return false;
 	}
 
@@ -103,7 +102,7 @@ sps_start:
 
 	if(nal_unit_type != 33)
 	{
-		CHIAKI_LOGW(NULL, "parse_sps_h265: Unexpected NAL unit type %u", nal_unit_type);
+		CHIAKI_LOGW(bitstream->log, "parse_sps_h265: Unexpected NAL unit type %u", nal_unit_type);
 		return false;
 	}
 
@@ -147,7 +146,7 @@ sps_start:
 	bitstream->h265.sps.log2_max_pic_order_cnt_lsb_minus4 = vl_rbsp_ue(&rbsp);
 	if(bitstream->h265.sps.log2_max_pic_order_cnt_lsb_minus4 > 12)
 	{
-		CHIAKI_LOGW(NULL, "parse_sps_h265: Unexpected log2_max_pic_order_cnt_lsb_minus4 value %u", bitstream->h265.sps.log2_max_pic_order_cnt_lsb_minus4);
+		CHIAKI_LOGW(bitstream->log, "parse_sps_h265: Unexpected log2_max_pic_order_cnt_lsb_minus4 value %u", bitstream->h265.sps.log2_max_pic_order_cnt_lsb_minus4);
 		return false;
 	}
 
@@ -160,7 +159,7 @@ static bool slice_h264(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 	vl_vlc_init(&vlc, data, size);
 	if(!skip_startcode(&vlc))
 	{
-		CHIAKI_LOGW(NULL, "parse_slice_h264: No startcode found");
+		CHIAKI_LOGW(bitstream->log, "parse_slice_h264: No startcode found");
 		return false;
 	}
 
@@ -170,7 +169,7 @@ static bool slice_h264(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 
 	if(nal_unit_type != 1 && nal_unit_type != 5)
 	{
-		CHIAKI_LOGW(NULL, "parse_slice_h264: Unexpected NAL unit type %u", nal_unit_type);
+		CHIAKI_LOGW(bitstream->log, "parse_slice_h264: Unexpected NAL unit type %u", nal_unit_type);
 		return false;
 	}
 
@@ -217,7 +216,7 @@ static bool slice_h264(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 					break;
 				modification_of_pic_nums_idc = vl_rbsp_ue(&rbsp);
 			}
-			CHIAKI_LOGW(NULL, "parse_slice_h264: Failed to parse ref_pic_list_modification");
+			CHIAKI_LOGW(bitstream->log, "parse_slice_h264: Failed to parse ref_pic_list_modification");
 			return false;
 		}
 	}
@@ -229,9 +228,10 @@ static bool slice_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 {
 	struct vl_vlc vlc = {0};
 	vl_vlc_init(&vlc, data, size);
+
 	if(!skip_startcode(&vlc))
 	{
-		CHIAKI_LOGW(NULL, "parse_slice_h265: No startcode found");
+		CHIAKI_LOGW(bitstream->log, "parse_slice_h265: No startcode found");
 		return false;
 	}
 
@@ -242,7 +242,7 @@ static bool slice_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 
 	if(nal_unit_type != 1 && nal_unit_type != 20)
 	{
-		CHIAKI_LOGW(NULL, "parse_slice_h265: Unexpected NAL unit type %u", nal_unit_type);
+		CHIAKI_LOGW(bitstream->log, "parse_slice_h265: Unexpected NAL unit type %u", nal_unit_type);
 		return false;
 	}
 
@@ -278,7 +278,7 @@ static bool slice_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 			unsigned num_negative_pics = vl_rbsp_ue(&rbsp);
 			if(num_negative_pics > 16)
 			{
-				CHIAKI_LOGW(NULL, "parse_slice_h265: Unexpected num_negative_pics %u", num_negative_pics);
+				CHIAKI_LOGW(bitstream->log, "parse_slice_h265: Unexpected num_negative_pics %u", num_negative_pics);
 				return false;
 			}
 			vl_rbsp_ue(&rbsp); // num_positive_pics
@@ -293,7 +293,7 @@ static bool slice_h265(ChiakiBitstream *bitstream, uint8_t *data, unsigned size,
 			}
 		}
 		if(slice->reference_frame == 0xff)
-			CHIAKI_LOGV(NULL, "parse_slice_h265: No ref frame found");
+			CHIAKI_LOGV(bitstream->log, "parse_slice_h265: No ref frame found");
 	}
 
 	return true;
@@ -305,7 +305,7 @@ static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *
 	vl_vlc_init(&vlc, data, size);
 	if(!skip_startcode(&vlc))
 	{
-		CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: No startcode found");
+		CHIAKI_LOGW(bitstream->log, "slice_set_reference_frame_h265: No startcode found");
 		return false;
 	}
 
@@ -316,7 +316,7 @@ static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *
 
 	if(nal_unit_type != 1)
 	{
-		CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: Unexpected NAL unit type %u", nal_unit_type);
+		CHIAKI_LOGW(bitstream->log, "slice_set_reference_frame_h265: Unexpected NAL unit type %u", nal_unit_type);
 		return false;
 	}
 
@@ -332,7 +332,7 @@ static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *
 
 	if(vl_rbsp_ue(&rbsp) != 1)
 	{
-		CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: Not P slice");
+		CHIAKI_LOGW(bitstream->log, "slice_set_reference_frame_h265: Not P slice");
 		return false;
 	}
 
@@ -342,7 +342,7 @@ static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *
 		unsigned num_negative_pics = vl_rbsp_ue(&rbsp);
 		if(num_negative_pics > 16)
 		{
-			CHIAKI_LOGW(NULL, "slice_set_reference_frame_h265: Unexpected num_negative_pics %u", num_negative_pics);
+			CHIAKI_LOGW(bitstream->log, "slice_set_reference_frame_h265: Unexpected num_negative_pics %u", num_negative_pics);
 			return false;
 		}
 		vl_rbsp_ue(&rbsp); // num_positive_pics
@@ -371,14 +371,24 @@ static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *
 	return false;
 }
 
-bool chiaki_bitstream_header(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiCodec codec)
+void chiaki_bitstream_init(ChiakiBitstream *bitstream, ChiakiLog *log, ChiakiCodec codec)
 {
-	memset(bitstream, 0, sizeof(*bitstream));
+	bitstream->log = log;
 	bitstream->codec = codec;
+}
+
+bool chiaki_bitstream_header(ChiakiBitstream *bitstream, uint8_t *data, unsigned size)
+{
 	if(bitstream->codec == CHIAKI_CODEC_H264)
+	{
+		memset(&bitstream->h264, 0, sizeof(bitstream->h264));
 		return header_h264(bitstream, data, size);
+	}
 	else
+	{
+		memset(&bitstream->h265, 0, sizeof(bitstream->h265));
 		return header_h265(bitstream, data, size);
+	}
 }
 
 bool chiaki_bitstream_slice(ChiakiBitstream *bitstream, uint8_t *data, unsigned size, ChiakiBitstreamSlice *slice)

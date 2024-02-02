@@ -124,14 +124,15 @@ private:
     pl_vulkan placebo_vulkan = {};
     pl_swapchain placebo_swapchain = {};
     pl_renderer placebo_renderer = {};
-    pl_tex placebo_tex[4] = {{}, {}, {}, {}};
+    std::array<pl_tex, 8> placebo_tex{};
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     int vk_decode_queue_index = -1;
     QSize swapchain_size;
     QMutex frame_mutex;
     QThread *render_thread = {};
-    AVFrame *current_frame = {};
-    AVFrame *next_frame = {};
+    AVFrame *av_frame = {};
+    pl_frame current_frame = {};
+    pl_frame previous_frame = {};
     std::atomic<bool> render_scheduled = {false};
 
     QVulkanInstance *qt_vk_inst = {};
