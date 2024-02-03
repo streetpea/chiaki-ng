@@ -22,6 +22,20 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-2-2" version="1.6.3">
+      <description>
+        <p>This release provides the following bug fixes:</p>
+        <ul>
+          <li>Trade-off minor image artifacts for smoother stream</li>
+          <li>Fix race condition causing remote play on console has crashed</li>
+          <li>Fix issue where dropped packets results in losing mic connection</li>
+          <li>Correctly set render preset</li>
+          <li>Set Dualsense microphone and LED to match microphone mute status</li>
+          <li>Add alternate option of using flipscreen.games to query PSN Login</li>
+          <li>Correctly replace old reference frames and update bitstream parsing</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-1-21" version="1.6.2">
       <description>
         <p>This release provides the following bug fixes:</p>
