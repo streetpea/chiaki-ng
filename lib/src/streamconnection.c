@@ -115,10 +115,8 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 
 	free(stream_connection->ecdh_secret);
-#if !defined(WIN32)
 	if (stream_connection->congestion_control.thread.thread)
 		chiaki_congestion_control_stop(&stream_connection->congestion_control);
-#endif
 
 	chiaki_packet_stats_fini(&stream_connection->packet_stats);
 
@@ -655,19 +653,6 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 	// stream_connection->state_mutex is expected to be locked by the caller of this function
 	stream_connection->state_finished = true;
 	chiaki_cond_signal(&stream_connection->state_cond);
-	err = stream_connection_send_controller_connection(stream_connection);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send controller connection");
-		goto error;
-	}
-
-	err = stream_connection_enable_microphone(stream_connection);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to enable microphone input");
-		goto error;
-	}
 	return;
 error:
 	stream_connection->state_failed = true;
@@ -779,6 +764,20 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 	// TODO: do some checks?
 
 	stream_connection_send_streaminfo_ack(stream_connection);
+	
+	ChiakiErrorCode err = stream_connection_send_controller_connection(stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to send controller connection");
+		goto error;
+	}
+
+	err = stream_connection_enable_microphone(stream_connection);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection failed to enable microphone input");
+		goto error;
+	}
 
 	// stream_connection->state_mutex is expected to be locked by the caller of this function
 	stream_connection->state_finished = true;

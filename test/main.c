@@ -11,6 +11,7 @@ extern MunitTest tests_gkcrypt[];
 extern MunitTest tests_takion[];
 extern MunitTest tests_fec[];
 extern MunitTest tests_regist[];
+extern MunitTest tests_bitstream[];
 
 static MunitSuite suites[] = {
 	{
@@ -72,6 +73,13 @@ static MunitSuite suites[] = {
 	{
 		"/regist",
 		tests_regist,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+	{
+		"/bitstream",
+		tests_bitstream,
 		NULL,
 		1,
 		MUNIT_SUITE_OPTION_NONE

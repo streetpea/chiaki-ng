@@ -3,8 +3,6 @@ branch: chiaki4deck
 runtime: org.kde.Platform
 runtime-version: '6.6'
 sdk: org.kde.Sdk
-base: io.qt.qtwebengine.BaseApp
-base-version: '6.6'
 command: chiaki
 rename-icon: chiaki4deck
 rename-desktop-file: chiaki4deck.desktop
@@ -20,8 +18,6 @@ finish-args:
   - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=RADV_PERFTEST=video_decode
-  - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
-  - --env=QML_IMPORT_PATH=/app/qml
   - --env=QML_DISABLE_DISK_CACHE=1
   - --env=SDL_AUDIODRIVER=pipewire
   - --talk-name=org.freedesktop.ScreenSaver
@@ -51,13 +47,9 @@ modules:
     sources:
       - type: git
         url: https://github.com/haasn/libplacebo
-        tag: v6.338.1
+        commit: c320f61e601caef2be081ce61138e5d51c1be21d
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
-      - type: patch
-        path: libplacebo-pr238.patch
-      - type: patch
-        path: libplacebo-pr239.patch
     modules:
       - name: shaderc
         buildsystem: cmake-ninja

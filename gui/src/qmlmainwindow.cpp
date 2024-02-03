@@ -116,11 +116,14 @@ QmlMainWindow::~QmlMainWindow()
 
     av_buffer_unref(&vulkan_hw_dev_ctx);
 
+    pl_unmap_avframe(placebo_vulkan->gpu, &current_frame);
+    pl_unmap_avframe(placebo_vulkan->gpu, &previous_frame);
+
     pl_tex_destroy(placebo_vulkan->gpu, &quick_tex);
     pl_vulkan_sem_destroy(placebo_vulkan->gpu, &quick_sem);
 
-    for (int i = 0; i < 4; i++)
-        pl_tex_destroy(placebo_vulkan->gpu, &placebo_tex[i]);
+    for (auto tex : placebo_tex)
+        pl_tex_destroy(placebo_vulkan->gpu, &tex);
 
     FILE *file = fopen(shader_cache_path(), "wb");
     if (file) {
@@ -225,12 +228,12 @@ void QmlMainWindow::show()
 void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
 {
     frame_mutex.lock();
-    if (next_frame) {
+    if (av_frame) {
         qCDebug(chiakiGui) << "Dropping rendering frame";
         dropped_frames_current++;
-        av_frame_free(&next_frame);
+        av_frame_free(&av_frame);
     }
-    next_frame = frame;
+    av_frame = frame;
     frame_mutex.unlock();
 
     dropped_frames_current += frames_lost;
@@ -473,6 +476,19 @@ void QmlMainWindow::init(Settings *settings)
         }
         dropped_frames_current = 0;
     });
+
+    switch (settings->GetPlaceboPreset()) {
+    case PlaceboPreset::Fast:
+        setVideoPreset(VideoPreset::Fast);
+        break;
+    case PlaceboPreset::Default:
+        setVideoPreset(VideoPreset::Default);
+        break;
+    case PlaceboPreset::HighQuality:
+    default:
+        setVideoPreset(VideoPreset::HighQuality);
+        break;
+    }
 }
 
 void QmlMainWindow::update()
@@ -666,12 +682,31 @@ void QmlMainWindow::render()
     if (!placebo_swapchain)
         return;
 
+    AVFrame *frame = nullptr;
+    pl_tex *tex = &placebo_tex[0];
+
     frame_mutex.lock();
-    if (next_frame || (!has_video && !keep_video)) {
-        av_frame_free(&current_frame);
-        std::swap(current_frame, next_frame);
+    if (av_frame || (!has_video && !keep_video)) {
+        pl_unmap_avframe(placebo_vulkan->gpu, &previous_frame);
+        if (av_frame && av_frame->decode_error_flags) {
+            std::swap(previous_frame, current_frame);
+            if (previous_frame.planes[0].texture == *tex)
+                tex = &placebo_tex[4];
+        }
+        pl_unmap_avframe(placebo_vulkan->gpu, &current_frame);
+        std::swap(frame, av_frame);
     }
     frame_mutex.unlock();
+
+    if (frame) {
+        struct pl_avframe_params avparams = {
+            .frame = frame,
+            .tex = tex,
+        };
+        if (!pl_map_avframe_ex(placebo_vulkan->gpu, &current_frame, &avparams))
+            qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
+        av_frame_free(&frame);
+    }
 
     struct pl_swapchain_frame sw_frame = {};
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
@@ -703,31 +738,6 @@ void QmlMainWindow::render()
     target_frame.overlays = &overlay;
     target_frame.num_overlays = 1;
 
-    struct pl_frame placebo_frame = {};
-    if (current_frame) {
-        struct pl_avframe_params avparams = {
-            .frame = current_frame,
-            .tex = placebo_tex,
-        };
-        if (!pl_map_avframe_ex(placebo_vulkan->gpu, &placebo_frame, &avparams)) {
-            qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
-        } else {
-            pl_rect2df crop = placebo_frame.crop;
-            switch (video_mode) {
-            case VideoMode::Normal:
-                pl_rect2df_aspect_copy(&target_frame.crop, &crop, 0.0);
-                break;
-            case VideoMode::Stretch:
-                // Nothing to do, target.crop already covers the full image
-                break;
-            case VideoMode::Zoom:
-                pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
-                break;
-            }
-            pl_swapchain_colorspace_hint(placebo_swapchain, &placebo_frame.color);
-        }
-    }
-
     const struct pl_render_params *render_params;
     switch (video_preset) {
     case VideoPreset::Fast:
@@ -740,15 +750,48 @@ void QmlMainWindow::render()
         render_params = &pl_render_high_quality_params;
         break;
     }
-    if (!pl_render_image(placebo_renderer, placebo_frame.num_planes ? &placebo_frame : nullptr, &target_frame, render_params))
-        qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+
+    if (current_frame.num_planes) {
+        pl_rect2df crop = current_frame.crop;
+        switch (video_mode) {
+        case VideoMode::Normal:
+            pl_rect2df_aspect_copy(&target_frame.crop, &crop, 0.0);
+            break;
+        case VideoMode::Stretch:
+            // Nothing to do, target.crop already covers the full image
+            break;
+        case VideoMode::Zoom:
+            pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
+            break;
+        }
+        pl_swapchain_colorspace_hint(placebo_swapchain, &current_frame.color);
+    }
+
+    if (current_frame.num_planes && previous_frame.num_planes) {
+        const struct pl_frame *frames[] = { &previous_frame, &current_frame, };
+        const uint64_t sig = QDateTime::currentMSecsSinceEpoch();
+        const uint64_t signatures[] = { sig, sig + 1 };
+        const float timestamps[] = { -0.5, 0.5 };
+        struct pl_frame_mix frame_mix = {
+            .num_frames = 2,
+            .frames = frames,
+            .signatures = signatures,
+            .timestamps = timestamps,
+            .vsync_duration = 1.0,
+        };
+        struct pl_render_params params = *render_params;
+        params.frame_mixer = pl_find_filter_config("linear", PL_FILTER_FRAME_MIXING);
+        if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
+            qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+    } else {
+        if (!pl_render_image(placebo_renderer, current_frame.num_planes ? &current_frame : nullptr, &target_frame, render_params))
+            qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+    }
 
     if (!pl_swapchain_submit_frame(placebo_swapchain))
         qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
 
     pl_swapchain_swap_buffers(placebo_swapchain);
-
-    pl_unmap_avframe(placebo_vulkan->gpu, &placebo_frame);
 }
 
 bool QmlMainWindow::handleShortcut(QKeyEvent *event)

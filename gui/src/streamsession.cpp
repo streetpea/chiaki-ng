@@ -117,6 +117,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	muted = true;
 	mic_connected = false;
 	allow_unmute = false;
+	rumbleHaptics = false;
 	input_block = 0;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -320,6 +321,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		if(sdeck)
 			QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
 #endif
+		rumbleHaptics = true;
 	}
 	UpdateGamepads();
 
@@ -471,6 +473,10 @@ void StreamSession::ToggleMute()
 		muted = false;
 	else
 		muted = true;
+	QMetaObject::invokeMethod(this, [this]() {
+		for(auto controller : controllers)
+			controller->SetDualsenseMic(muted);
+	});
 	if(audio_in)
 		SDL_PauseAudioDevice(audio_in, muted);
 	emit MutedChanged();
@@ -688,6 +694,7 @@ void StreamSession::UpdateGamepads()
 			controllers[controller_id] = controller;
 			if (controller->IsDualSense())
 			{
+				controller->SetDualsenseMic(muted);
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
@@ -768,6 +775,8 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 			return;
 		}
 	}
+	if(audio_out_device_name.isEmpty())
+		audio_out_device_name = "Auto";
 
 	audio_out_drain_queue = false;
 
@@ -846,6 +855,9 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 			return;
 		}
 	}
+
+	if(audio_in_device_name.isEmpty())
+		audio_in_device_name = "Auto";
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone '%s' opened with %u channels @ %u Hz, buffer size %u",
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
@@ -1197,6 +1209,31 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 			packetr.haptic_packet[i] = amplituder;
 		}
 		emit SdeckHapticPushed(packetl, packetr);
+		return;
+	}
+	else if(rumbleHaptics && haptics_output == 0)
+	{
+
+		int16_t amplitudel = 0, amplituder = 0;
+		int32_t suml = 0, sumr = 0;
+		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples
+
+		size_t buf_count = buf_size / sample_size;
+		for (size_t i = 0; i < buf_count; i++){
+			size_t cur = i * sample_size;
+
+			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
+			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
+			suml += amplitudel;
+			sumr += amplituder;
+		}
+		uint16_t left = 0, right = 0;
+		left = suml / buf_count;
+		right = sumr / buf_count;
+			QMetaObject::invokeMethod(this, [this, left, right]() {
+			for(auto controller : controllers)
+							controller->SetHapticRumble(left, right, 10);
+			});
 		return;
 	}
 #endif

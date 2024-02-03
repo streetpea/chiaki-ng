@@ -29,31 +29,41 @@ jobs:
             cc:p
             cmake:p
             curl:p
+            fast_float:p
             ffmpeg:p
             fftw:p
             hidapi:p
             lcms2:p
-            libplacebo:p
-            openssl:p
-            opus:p
+            libdovi:p
+            meson:p
             nasm:p
             ninja:p
-            ntldd:p
+            openssl:p
+            opus:p
             pkgconf:p
             protobuf-c:p
             python:p
+            python-glad:p
+            python-jinja:p
             python-pip:p
             qt5-declarative:p
             qt6-base:p
             qt6-declarative:p
             qt6-svg:p
+            shaderc:p
             speexdsp:p
+            spirv-cross:p
             vulkan:p
+            vulkan-headers:p
             
       - name: Install python protobuf and zip
         run: |
           pip install protobuf
-          pacman -S zip --noconfirm
+          pacman -S zip git --noconfirm
+
+      - name: Build libbplacebo
+        run: |
+          scripts/build-libplacebo.sh
 
       - name: Configure Chiaki4deck
         run: |

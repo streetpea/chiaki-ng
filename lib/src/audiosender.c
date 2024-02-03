@@ -13,6 +13,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_init(ChiakiAudioSender *audio_
     audio_sender->frame_index = 0;
     audio_sender->buf_size_per_unit = 40;
     audio_sender->buf_stride_per_unit = ((audio_sender->buf_size_per_unit + 0xf) / 0x10) * 0x10;
+    audio_sender->framea = NULL;
+    audio_sender->frameb = NULL;
     audio_sender->frame_buf_size = 3 * audio_sender->buf_size_per_unit;
     audio_sender->frame_buf = malloc(audio_sender->frame_buf_size);
     audio_sender->filled_packet_buf = malloc(audio_sender->frame_buf_size + 20);
@@ -31,6 +33,10 @@ CHIAKI_EXPORT void chiaki_audio_sender_fini(ChiakiAudioSender *audio_sender)
 #endif
     free(audio_sender->frame_buf);
     free(audio_sender->filled_packet_buf);
+    if(audio_sender->framea)
+        free(audio_sender->framea);
+    if(audio_sender->frameb)
+        free(audio_sender->frameb);
     chiaki_mutex_fini(&audio_sender->mutex);
 }
 
@@ -44,8 +50,6 @@ CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender
     uint16_t packet_index = htons(audio_sender->frame_index);
     uint16_t frame_index = htons(audio_sender->frame_index + 1);
     uint32_t unit_index = 0;
-    uint32_t units_in_frame_source = 1;
-    uint32_t units_in_frame_fec_real = 2;
     uint32_t units_in_frame_total = 3;
     uint32_t units_in_frame_fec_raw = 10273;
     uint32_t units_number = htonl((units_in_frame_fec_raw & 0xffff) | (((units_in_frame_total - 1) & 0xff) << 0x10) | ((unit_index & 0xff) << 0x18));
@@ -58,16 +62,24 @@ CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender
     if(is_ps5)
         ps5_packet = 1;
 
+    if(!audio_sender->frameb)
+    {
+        audio_sender->frameb = malloc(audio_sender->buf_size_per_unit);
+        memcpy(audio_sender->frameb, opus_sender, opus_sender_size);
+        return;
+    }
+    if(!audio_sender->framea)
+    {
+        audio_sender->framea = malloc(audio_sender->buf_size_per_unit);
+        memcpy(audio_sender->framea, opus_sender, opus_sender_size);
+        return;
+    }
+    memcpy(audio_sender->frame_buf, audio_sender->frameb, audio_sender->buf_size_per_unit);
+    memcpy(audio_sender->frame_buf + audio_sender->buf_size_per_unit, audio_sender->framea, audio_sender->buf_size_per_unit);
+    memcpy(audio_sender->frame_buf + 2 * audio_sender->buf_size_per_unit, opus_sender, opus_sender_size);
     memcpy(audio_sender->frame_buf, opus_sender, opus_sender_size);
-    ChiakiErrorCode err = chiaki_fec_encode(audio_sender->frame_buf,
-			    audio_sender->buf_size_per_unit, audio_sender->buf_stride_per_unit,
-			    units_in_frame_source, units_in_frame_fec_real);
-
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		err = CHIAKI_ERR_FEC_FAILED;
-		CHIAKI_LOGE(audio_sender->log, "FEC encoding failed");
-	}
+    memcpy(audio_sender->framea, opus_sender, opus_sender_size);
+    memcpy(audio_sender->frameb, audio_sender->framea, audio_sender->buf_size_per_unit);
 
     uint32_t filled_packet_size = audio_sender->frame_buf_size + 19 + ps5_packet;
 

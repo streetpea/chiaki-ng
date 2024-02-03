@@ -61,6 +61,20 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.3
+
+Small patch release
+
+- Trade-off minor image artifacts for smoother stream
+- Fix race condition causing remote play on console has crashed
+- Fix issue where dropped packets results in losing mic connection
+- Correctly set render preset
+- Set Dualsense microphone and LED to match microphone mute status
+- Enable game mode in MacOS
+- Fix congestion control stop on Windows and log Auto audio output when chosen
+- Add alternate option of using flipscreen.games to query PSN Login
+- Correctly replace old reference frames and update bitstream parsing
+
 ### 1.6.2
 
 Small patch release
