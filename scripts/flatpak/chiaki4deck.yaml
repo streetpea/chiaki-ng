@@ -47,13 +47,9 @@ modules:
     sources:
       - type: git
         url: https://github.com/haasn/libplacebo
-        tag: v6.338.1
+        commit: c320f61e601caef2be081ce61138e5d51c1be21d
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
-      - type: patch
-        path: libplacebo-pr238.patch
-      - type: patch
-        path: libplacebo-pr239.patch
     modules:
       - name: shaderc
         buildsystem: cmake-ninja
