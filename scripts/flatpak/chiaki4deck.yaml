@@ -15,7 +15,6 @@ finish-args:
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
-  - --own-name=org.kde.*
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=RADV_PERFTEST=video_decode
   - --env=QML_DISABLE_DISK_CACHE=1
@@ -25,9 +24,6 @@ finish-args:
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
-
-cleanup-commands:
-  - /app/cleanup-BaseApp.sh
 
 modules:
   - name: protobuf-compilers
