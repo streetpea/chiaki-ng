@@ -70,6 +70,7 @@ Small patch release
 - Fix issue where dropped packets results in losing mic connection
 - Correctly set render preset
 - Set Dualsense microphone and LED to match microphone mute status
+- Add PS5 Rumble for controllers other than DualSense and Steam Deck (which have native haptics support)
 - Enable game mode in MacOS
 - Fix congestion control stop on Windows and log Auto audio output when chosen
 - Add alternate option of using flipscreen.games to query PSN Login
