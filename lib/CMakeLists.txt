@@ -124,6 +124,14 @@ target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
+find_package(json-c REQUIRED)
+target_include_directories(chiaki-lib PRIVATE ${json-c_INCLUDE_DIRS})
+target_link_libraries(chiaki-lib json-c::json-c)
+
+find_package(MINIUPNPC REQUIRED)
+target_include_directories(chiaki-lib PRIVATE ${MINIUPNP_INCLUDE_DIR})
+target_link_libraries(chiaki-lib ${MINIUPNP_LIBRARY})
+
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)
 		target_link_libraries(chiaki-lib mbedtls mbedx509 mbedcrypto)
@@ -142,6 +150,11 @@ else()
 	target_link_libraries(chiaki-lib OpenSSL::Crypto)
 endif()
 
+if (CHIAKI_USE_SYSTEM_CURL)
+	target_link_libraries(chiaki-lib CURL::libcurl_shared)
+else()
+	target_link_libraries(chiaki-lib CURL::libcurl_static)
+endif()
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
 
@@ -156,3 +169,6 @@ endif()
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
 endif()
+
+add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch.c)
+target_link_libraries(holepunch-test chiaki-lib)

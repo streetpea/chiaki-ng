@@ -54,3 +54,18 @@ if(NOT CHIAKI_USE_SYSTEM_JERASURE)
 
 	add_library(Jerasure::Jerasure ALIAS jerasure)
 endif()
+
+if(NOT CHIAKI_USE_SYSTEM_CURL)
+	##################
+	# libcurl (with experimental WebSocket support enabled)
+	##################
+
+	set(BUILD_EXE OFF)
+	set(BUILD_SHARED_LIBS OFF)
+	set(BUILD_STATIC_LIBS ON)
+	set(CURL_DISABLE_INSTALL ON)
+	set(HTTP_ONLY ON)
+	set(ENABLE_WEBSOCKETS ON)
+	add_subdirectory(curl)
+	# Exported library is CURL::libcurl_static
+endif()
