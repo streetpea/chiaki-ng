@@ -127,7 +127,7 @@ if(CHIAKI_LIB_ENABLE_MBEDTLS)
 endif()
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
-	find_package(FFMPEG COMPONENTS avcodec avutil)
+	find_package(FFMPEG COMPONENTS avcodec avutil avformat)
 	if(FFMPEG_FOUND)
 		set(CHIAKI_ENABLE_FFMPEG_DECODER ON)
 	else()

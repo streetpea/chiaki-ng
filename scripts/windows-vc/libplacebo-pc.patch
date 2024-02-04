@@ -1,0 +1,12 @@
+diff --git a/deps/lib/pkgconfig/libplacebo.pc b/deps/lib/pkgconfig/libplacebo.pc
+index 9d7e7ee..f95b069 100644
+--- a/deps/lib/pkgconfig/libplacebo.pc
++++ b/deps/lib/pkgconfig/libplacebo.pc
+@@ -18,6 +18,6 @@ Name: libplacebo
+ Description: Reusable library for GPU-accelerated video/image rendering
+ Version: 7.342.0
+ Requires.private: shaderc >= 2019.1, spirv-cross-c-shared >= 0.29.0, vulkan, lcms2 >= 2.9
+-Libs: -L${libdir} -lplacebo
++Libs: -L${libdir} -llibplacebo
+ Libs.private: -lshlwapi -lversion
+ Cflags: -I${includedir}
