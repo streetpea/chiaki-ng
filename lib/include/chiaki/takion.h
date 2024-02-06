@@ -165,6 +165,8 @@ typedef struct chiaki_takion_t
 	ChiakiKeyState key_state;
 
 	bool enable_dualsense;
+
+	ChiakiTakionConnectInfo connect_info;
 } ChiakiTakion;
 
 

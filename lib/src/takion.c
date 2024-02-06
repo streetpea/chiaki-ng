@@ -171,6 +171,7 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, TakionMessagePayloadInitAck *payload);
 static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion);
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size);
+static ChiakiErrorCode chiaki_takion_create_socket(ChiakiTakion *takion);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info)
 {
@@ -204,6 +205,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->cb = info->cb;
 	takion->cb_user = info->cb_user;
 	takion->a_rwnd = TAKION_A_RWND;
+	takion->connect_info = *info;
+	takion->connect_info.sa = malloc(info->sa_len);
+	if(!takion->connect_info.sa)
+	{
+		ret = CHIAKI_ERR_MEMORY;
+		goto error_sa;
+	}
+	memcpy(takion->connect_info.sa, info->sa, info->sa_len);
 
 	takion->tag_local = chiaki_random_32(); // 0x4823
 	takion->seq_num_local = takion->tag_local;
@@ -227,61 +236,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_seq_num_local_mutex;
 	}
 
-	takion->sock = socket(info->sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
-	if(CHIAKI_SOCKET_IS_INVALID(takion->sock))
+	err = chiaki_takion_create_socket(takion);
+	if (err == CHIAKI_ERR_UNINITIALIZED)
 	{
-		CHIAKI_LOGE(takion->log, "Takion failed to create socket");
 		ret = CHIAKI_ERR_NETWORK;
 		goto error_pipe;
 	}
-
-	const int rcvbuf_val = takion->a_rwnd;
-	int r = setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const void *)&rcvbuf_val, sizeof(rcvbuf_val));
-	if(r < 0)
+	if (err == CHIAKI_ERR_NETWORK)
 	{
-		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt SO_RCVBUF: %s", strerror(errno));
-		ret = CHIAKI_ERR_NETWORK;
-		goto error_sock;
-	}
-
-	if(info->ip_dontfrag)
-	{
-#if defined(_WIN32)
-		const DWORD dontfragment_val = 1;
-		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
-#elif defined(__FreeBSD__) || defined(__SWITCH__)
-		const int dontfrag_val = 1;
-		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const void *)&dontfrag_val, sizeof(dontfrag_val));
-#elif defined(IP_PMTUDISC_DO)
-		const int mtu_discover_val = IP_PMTUDISC_DO;
-		r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *)&mtu_discover_val, sizeof(mtu_discover_val));
-#else
-		// macOS and OpenBSD
-		CHIAKI_LOGW(takion->log, "Don't fragment is not supported on this platform, MTU values may be incorrect.");
-#define NO_DONTFRAG
-#endif
-
-#ifndef NO_DONTFRAG
-		if(r < 0)
-		{
-			CHIAKI_LOGE(takion->log, "Takion failed to setsockopt IP_MTU_DISCOVER: %s", strerror(errno));
-			ret = CHIAKI_ERR_NETWORK;
-			goto error_sock;
-		}
-		CHIAKI_LOGI(takion->log, "Takion enabled Don't Fragment Bit");
-#endif
-	}
-
-	r = connect(takion->sock, info->sa, info->sa_len);
-	if(r < 0)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to connect: %s", strerror(errno));
 		ret = CHIAKI_ERR_NETWORK;
 		goto error_sock;
 	}
 
 	err = chiaki_thread_create(&takion->thread, takion_thread_func, takion);
-	if(r != CHIAKI_ERR_SUCCESS)
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		ret = err;
 		goto error_sock;
@@ -299,6 +267,8 @@ error_seq_num_local_mutex:
 	chiaki_mutex_fini(&takion->seq_num_local_mutex);
 error_gkcrypt_local_mutex:
 	chiaki_mutex_fini(&takion->gkcrypt_local_mutex);
+error_sa:
+	free(takion->connect_info.sa);
 	return ret;
 }
 
@@ -309,6 +279,7 @@ CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion)
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
 	chiaki_mutex_fini(&takion->seq_num_local_mutex);
 	chiaki_mutex_fini(&takion->gkcrypt_local_mutex);
+	free(takion->connect_info.sa);
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_crypt_advance_key_pos(ChiakiTakion *takion, size_t data_size, uint64_t *key_pos)
@@ -343,6 +314,60 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_raw(ChiakiTakion *takion, const
 	if(r < 0)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to send raw: %s", strerror(errno));
+		return CHIAKI_ERR_NETWORK;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
+static ChiakiErrorCode chiaki_takion_create_socket(ChiakiTakion *takion)
+{
+
+	takion->sock = socket(takion->connect_info.sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
+	if(CHIAKI_SOCKET_IS_INVALID(takion->sock))
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to create socket: %s", strerror(errno));
+		return CHIAKI_ERR_UNINITIALIZED;
+	}
+
+	const int rcvbuf_val = takion->a_rwnd;
+	int r = setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const void *)&rcvbuf_val, sizeof(rcvbuf_val));
+	if(r < 0)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to setsockopt SO_RCVBUF: %s", strerror(errno));
+		return CHIAKI_ERR_NETWORK;
+	}
+
+	if(takion->connect_info.ip_dontfrag)
+	{
+#if defined(_WIN32)
+		const DWORD dontfragment_val = 1;
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
+#elif defined(__FreeBSD__) || defined(__SWITCH__)
+		const int dontfrag_val = 1;
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const void *)&dontfrag_val, sizeof(dontfrag_val));
+#elif defined(IP_PMTUDISC_DO)
+		const int mtu_discover_val = IP_PMTUDISC_DO;
+		r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *)&mtu_discover_val, sizeof(mtu_discover_val));
+#else
+		// macOS and OpenBSD
+		CHIAKI_LOGW(takion->log, "Don't fragment is not supported on this platform, MTU values may be incorrect.");
+#define NO_DONTFRAG
+#endif
+
+#ifndef NO_DONTFRAG
+		if(r < 0)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to setsockopt IP_MTU_DISCOVER: %s", strerror(errno));
+			return CHIAKI_ERR_NETWORK;
+		}
+		CHIAKI_LOGI(takion->log, "Takion enabled Don't Fragment Bit");
+#endif
+	}
+
+	r = connect(takion->sock, takion->connect_info.sa, takion->connect_info.sa_len);
+	if(r < 0)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to connect: %s", strerror(errno));
 		return CHIAKI_ERR_NETWORK;
 	}
 	return CHIAKI_ERR_SUCCESS;
@@ -825,7 +850,18 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 	if(received_sz <= 0)
 	{
 		if(received_sz < 0)
+		{
 			CHIAKI_LOGE(takion->log, "Takion recv failed: %s", strerror(errno));
+			if(errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+				return CHIAKI_ERR_NETWORK;
+			if (CHIAKI_SOCKET_CLOSE(takion->sock) == -1)
+				CHIAKI_LOGE(takion->log, "Takion socket close failed: %s", strerror(errno));
+			ChiakiErrorCode err= chiaki_takion_create_socket(takion);
+			if(err == CHIAKI_ERR_SUCCESS)
+				CHIAKI_LOGI(takion->log, "Takion reconnected socket");
+			else
+				CHIAKI_LOGE(takion->log, "Failed to reconnect socket");
+		}
 		else
 			CHIAKI_LOGE(takion->log, "Takion recv returned 0");
 		return CHIAKI_ERR_NETWORK;
