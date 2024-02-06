@@ -47,6 +47,8 @@ set(RESOURCE_FILES "")
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki4deck.icns")
+elseif(WIN32)
+	list(APPEND RESOURCE_FILES "chiaki4deck.rc")
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
