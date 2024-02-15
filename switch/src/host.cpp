@@ -156,6 +156,10 @@ int Host::InitSession(IO *user)
 	{
 		throw Exception("Failed to initiate libav codec");
 	}
+	if(!user->InitVideo(chiaki_connect_info.video_profile.width, chiaki_connect_info.video_profile.height, 1280, 720))
+	{
+		throw Exception("Failed to initiate video");
+	}
 
 	memcpy(chiaki_connect_info.regist_key, this->rp_regist_key, sizeof(chiaki_connect_info.regist_key));
 	memcpy(chiaki_connect_info.morning, this->rp_key, sizeof(chiaki_connect_info.morning));

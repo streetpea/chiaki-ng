@@ -285,10 +285,10 @@ bool MainApplication::Load()
 
 	// init chiaki gl after borealis
 	// let borealis manage the main screen/window
-	if(!io->InitVideo(0, 0, SCREEN_W, SCREEN_H))
-	{
-		brls::Logger::error("Failed to initiate Video");
-	}
+	// if(!io->InitVideo(0, 0, SCREEN_W, SCREEN_H))
+	// {
+	// 	brls::Logger::error("Failed to initiate Video");
+	// }
 
 	brls::Logger::info("Load sdl/hid controller");
 	if(!io->InitController())
@@ -374,31 +374,37 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	ChiakiVideoResolutionPreset resolution_preset = this->settings->GetVideoResolution(host);
 	switch(resolution_preset)
 	{
-		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
 			value = 0;
 			break;
-		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
 			value = 1;
 			break;
-		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
 			value = 2;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+			value = 3;
 			break;
 	}
 
 	brls::SelectListItem *resolution = new brls::SelectListItem(
-		"Resolution", { "720p", "540p", "360p" }, value);
+		"Resolution", { "1080p (PS5 and PS4 Pro only)", "720p", "540p", "360p" }, value);
 
 	auto resolution_cb = [this, host](int result) {
 		ChiakiVideoResolutionPreset value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 		switch(result)
 		{
 			case 0:
-				value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+				value = CHIAKI_VIDEO_RESOLUTION_PRESET_1080p;
 				break;
 			case 1:
-				value = CHIAKI_VIDEO_RESOLUTION_PRESET_540p;
+				value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 				break;
 			case 2:
+				value = CHIAKI_VIDEO_RESOLUTION_PRESET_540p;
+				break;
+			case 3:
 				value = CHIAKI_VIDEO_RESOLUTION_PRESET_360p;
 				break;
 		}

@@ -349,15 +349,23 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame");
 					return -1;
 			}
-
 			frames[i]->format = AV_PIX_FMT_NV12;
-			frames[i]->width  = screen_width;
-			frames[i]->height = screen_height;
+			frames[i]->width  = video_width;
+			frames[i]->height = video_height;
 
-			int err = av_frame_get_buffer(frames[i], 256);
-			if (err < 0) {
-					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
-					return -1;
+			if (video_height == 720) {
+				int err = av_frame_get_buffer(frames[i], 256);
+				if (err < 0) {
+						CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
+						return -1;
+				}
+				for (int j = 0; j < 2; j++) {
+					uintptr_t ptr = (uintptr_t)frames[i]->data[j];
+					uintptr_t dst = (((ptr)+(256)-1)&~((256)-1));
+					uintptr_t gap = dst - ptr;
+					frames[i]->data[j] += gap;
+				}
+				CHIAKI_LOGE(this->log, "FFmpeg: allocated address: %d %d, linesize 0: %d", (uintptr_t)frames[i]->data[0], (uintptr_t)frames[i]->data[1], frames[i]->linesize[0]);
 			}
 	}
   this->tmp_frame = av_frame_alloc();
@@ -377,9 +385,11 @@ bool IO::FreeVideo()
 			av_buffer_unref(&this->hw_device_ctx);
 	}
 
-	for (int i = 0; i < MAX_FRAME_COUNT; i++) {
-		if(this->frames[i])
-			av_frame_free(&this->frames[i]);
+	if (this->frames != NULL) {
+		for (int i = 0; i < MAX_FRAME_COUNT; i++) {
+			if(this->frames[i])
+				av_frame_free(&this->frames[i]);
+		}
 	}
 
 	if(this->tmp_frame)
@@ -898,7 +908,6 @@ bool IO::InitOpenGlTX1Textures()
 
 	D(glCullFace(GL_BACK));
 	D(glEnable(GL_CULL_FACE));
-	D(glClearColor(0.5, 0.5, 0.5, 1.0));
 	return true;
 }
 
@@ -1046,7 +1055,7 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 			continue;
 		}
 
-		if(frame->linesize[i] == width)
+		if(i == 0)
 		{
 			// Y
 			memcpy(buf, frame->data[i], size);
