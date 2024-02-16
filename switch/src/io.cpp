@@ -354,20 +354,18 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 			frames[i]->width  = video_width;
 			frames[i]->height = video_height;
 
-			if (video_height == 720) {
-				int err = av_frame_get_buffer(frames[i], 256);
-				if (err < 0) {
-						CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
-						return -1;
-				}
-				for (int j = 0; j < 2; j++) {
-					uintptr_t ptr = (uintptr_t)frames[i]->data[j];
-					uintptr_t dst = (((ptr)+(256)-1)&~((256)-1));
-					uintptr_t gap = dst - ptr;
-					frames[i]->data[j] += gap;
-				}
-				CHIAKI_LOGE(this->log, "FFmpeg: allocated address: %d %d, linesize 0: %d", (uintptr_t)frames[i]->data[0], (uintptr_t)frames[i]->data[1], frames[i]->linesize[0]);
+			int err = av_frame_get_buffer(frames[i], 256);
+			if (err < 0) {
+					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
+					return -1;
 			}
+			for (int j = 0; j < 2; j++) {
+				uintptr_t ptr = (uintptr_t)frames[i]->data[j];
+				uintptr_t dst = (((ptr)+(256)-1)&~((256)-1));
+				uintptr_t gap = dst - ptr;
+				frames[i]->data[j] += gap;
+			}
+			CHIAKI_LOGE(this->log, "FFmpeg: allocated address: %d %d, linesize 0: %d", (uintptr_t)frames[i]->data[0], (uintptr_t)frames[i]->data[1], frames[i]->linesize[0]);
 	}
   this->tmp_frame = av_frame_alloc();
 
@@ -1039,9 +1037,11 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 
 	for (int i = 0; i < 2; i++) {
 		glActiveTexture(GL_TEXTURE0 + i);
+		int real_width = frame->linesize[i] / planes[i][0];
 		int width = frame->width / planes[i][0];
 		int height = frame->height / planes[i][1];
 		D(glBindTexture(GL_TEXTURE_2D, tex[i]));
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, real_width);
 		if (isFirst) {
 			D(glTexImage2D(GL_TEXTURE_2D, 0, planes[i][3], width, height, 0, planes[i][4], GL_UNSIGNED_BYTE, frame->data[i]));
 		} else {
