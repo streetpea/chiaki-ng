@@ -2,6 +2,7 @@
 
 #include "io.h"
 #include "settings.h"
+#include <chrono>
 
 // https://github.com/torvalds/linux/blob/41ba50b0572e90ed3d24fe4def54567e9050bc47/drivers/hid/hid-sony.c#L2742
 #define DS4_TRACKPAD_MAX_X 1920
@@ -76,7 +77,6 @@ void main()
 }
 )glsl";
 
-static const int MAX_FRAME_COUNT = 3;
 int current_frame = 0;
 int next_frame = 0;
 
@@ -88,6 +88,9 @@ static const float vert_pos[] = {
 
 IO *IO::instance = nullptr;
 bool enableHWAccl = true;
+
+GLint m_texture_uniform[2];
+bool isFirst = true;
 
 IO *IO::GetInstance()
 {
@@ -203,14 +206,13 @@ bool IO::VideoCB(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_
 {
 	// callback function to decode video buffer
 
-	AVPacket packet;
-	av_init_packet(&packet);
-	packet.data = buf;
-	packet.size = buf_size;
+	AVPacket* packet = av_packet_alloc();
+	packet->data = buf;
+	packet->size = buf_size;
 
 send_packet:
 	// Push
-	int r = avcodec_send_packet(this->codec_context, &packet);
+	int r = avcodec_send_packet(this->codec_context, packet);
 	if(r != 0)
 	{
 		if(r == AVERROR(EAGAIN))
@@ -221,7 +223,7 @@ send_packet:
 			if(r != 0)
 			{
 				CHIAKI_LOGE(this->log, "Failed to pull frame");
-				av_packet_unref(&packet);
+				av_packet_free(&packet);
 				return false;
 			}
 			goto send_packet;
@@ -231,7 +233,7 @@ send_packet:
 			char errbuf[128];
 			av_make_error_string(errbuf, sizeof(errbuf), r);
 			CHIAKI_LOGE(this->log, "Failed to push frame: %s", errbuf);
-			av_packet_unref(&packet);
+			av_packet_free(&packet);
 			return false;
 		}
 	}
@@ -258,7 +260,7 @@ send_packet:
 		next_frame = (next_frame + 1) % MAX_FRAME_COUNT;
 	}
 
-	av_packet_unref(&packet);
+	av_packet_free(&packet);
 	return true;
 }
 
@@ -342,7 +344,6 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 
 	this->screen_width = screen_width;
 	this->screen_height = screen_height;
-	this->frames = (AVFrame**)malloc(MAX_FRAME_COUNT * sizeof(AVFrame*));
 	for (int i = 0; i < MAX_FRAME_COUNT; i++) {
 			frames[i] = av_frame_alloc();
 			if (frames[i] == NULL) {
@@ -391,6 +392,7 @@ bool IO::FreeVideo()
 				av_frame_free(&this->frames[i]);
 		}
 	}
+	isFirst = true;
 
 	if(this->tmp_frame)
 		av_frame_free(&this->tmp_frame);
@@ -892,8 +894,10 @@ bool IO::InitOpenGlTX1Textures()
 	D(glUseProgram(this->prog));
 	// bind only as many planes as we need
 	const char *plane_names[] = {"plane1", "plane2", "plane3"};
-	for(int i = 0; i < 2; i++)
-		D(glUniform1i(glGetUniformLocation(this->prog, plane_names[i]), i));
+	for(int i = 0; i < 2; i++) {
+		m_texture_uniform[i] = glGetUniformLocation(this->prog, plane_names[i]);
+		D(glUniform1i(m_texture_uniform[i], i));
+	}
 
 	D(glGenVertexArrays(1, &this->vao));
 	D(glBindVertexArray(this->vao));
@@ -1033,51 +1037,28 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 			{ 2, 2, 2, GL_RG8, GL_RG }
 	};
 
-	for(int i = 0; i < 2; i++)
-	{
+	for (int i = 0; i < 2; i++) {
+		glActiveTexture(GL_TEXTURE0 + i);
 		int width = frame->width / planes[i][0];
 		int height = frame->height / planes[i][1];
-		int size = width * height * planes[i][2];
-		uint8_t *buf;
-
-		int offset1 = width * planes[i][2];
-
-		D(glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbo[i]));
-		D(glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW));
-		D(buf = reinterpret_cast<uint8_t *>(glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
-		if(!buf)
-		{
-			GLint data;
-			D(glGetBufferParameteriv(GL_PIXEL_UNPACK_BUFFER, GL_BUFFER_SIZE, &data));
-			CHIAKI_LOGE(this->log, "AVOpenGLFrame failed to map PBO");
-			CHIAKI_LOGE(this->log, "Info buf == %p. size %d frame %d * %d, divs %d, %d, pbo %d GL_BUFFER_SIZE %x",
-				buf, size, frame->width, frame->height, planes[i][0], planes[i][1], pbo[i], data);
-			continue;
-		}
-
-		if(i == 0)
-		{
-			// Y
-			memcpy(buf, frame->data[i], size);
-		}
-		else
-		{
-			// UV
-			for(int l = 0; l < height; l++)
-				memcpy(buf + offset1 * l,
-					frame->data[i] + frame->linesize[i] * l,
-					offset1);
-		}
-		D(glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER));
 		D(glBindTexture(GL_TEXTURE_2D, tex[i]));
-		D(glTexImage2D(GL_TEXTURE_2D, 0, planes[i][3], width, height, 0, planes[i][4], GL_UNSIGNED_BYTE, nullptr));
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		if (isFirst) {
+			D(glTexImage2D(GL_TEXTURE_2D, 0, planes[i][3], width, height, 0, planes[i][4], GL_UNSIGNED_BYTE, frame->data[i]));
+		} else {
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width,
+											height, planes[i][4], GL_UNSIGNED_BYTE, frame->data[i]);
+		}
+		glUniform1i(m_texture_uniform[i], i);
+		D(glBindTexture(GL_TEXTURE_2D, 0));
 	}
+
+	isFirst = false;
 	glFinish();
 }
 
 inline void IO::OpenGlDraw()
 {
+	// auto start = std::chrono::high_resolution_clock::now();
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (enableHWAccl) {
@@ -1086,6 +1067,8 @@ inline void IO::OpenGlDraw()
 		// send to OpenGl
 		SetOpenGlYUVPixels(this->frames[current_frame]);
 	}
+
+	// auto stop1 = std::chrono::high_resolution_clock::now();
 
 	//avcodec_flush_buffers(this->codec_context);
 	D(glBindVertexArray(this->vao));
@@ -1099,6 +1082,13 @@ inline void IO::OpenGlDraw()
 	D(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
 	D(glBindVertexArray(0));
 	D(glFinish());
+
+	// auto stop2 = std::chrono::high_resolution_clock::now();
+
+	// CHIAKI_LOGI(this->log, "render time: %d %d, %d",
+	// 	std::chrono::duration_cast<std::chrono::microseconds>(stop1 - start),
+	// 	std::chrono::duration_cast<std::chrono::microseconds>(stop2 - stop1),
+	// 	isFirst);
 }
 
 bool IO::InitController()
