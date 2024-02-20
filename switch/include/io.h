@@ -58,11 +58,13 @@ class IO
 		IO();
 		static IO * instance;
 	private:
-		static const int MAX_FRAME_COUNT = 3;
 		ChiakiLog *log;
 		int video_width;
 		int video_height;
 		bool quit = false;
+		static const int MAX_FRAME_COUNT = 3;
+		static const int MAX_NV12_PLANE_COUNT = 2;
+		GLint m_texture_uniform[MAX_NV12_PLANE_COUNT];
 		// opengl reader writer
 		std::mutex mtx;
 		// default nintendo switch res
@@ -72,6 +74,7 @@ class IO
 		const AVCodec *codec;
 		AVCodecContext *codec_context;
 		AVFrame *frames[MAX_FRAME_COUNT];
+		uintptr_t origin_ptr[MAX_FRAME_COUNT][MAX_NV12_PLANE_COUNT];
 		AVFrame *tmp_frame;
 		SDL_AudioDeviceID sdl_audio_device_id = 0;
 		SDL_Event sdl_event;
@@ -111,6 +114,7 @@ class IO
 		static IO * GetInstance();
 
 		~IO();
+		bool isFirst = true;
 		void SetMesaConfig();
 		bool VideoCB(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user);
 		void InitAudioCB(unsigned int channels, unsigned int rate);

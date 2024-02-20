@@ -2,7 +2,6 @@
 
 #include "io.h"
 #include "settings.h"
-#include <chrono>
 
 // https://github.com/torvalds/linux/blob/41ba50b0572e90ed3d24fe4def54567e9050bc47/drivers/hid/hid-sony.c#L2742
 #define DS4_TRACKPAD_MAX_X 1920
@@ -88,9 +87,6 @@ static const float vert_pos[] = {
 
 IO *IO::instance = nullptr;
 bool enableHWAccl = true;
-
-GLint m_texture_uniform[2];
-bool isFirst = true;
 
 IO *IO::GetInstance()
 {
@@ -359,8 +355,10 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
 					return -1;
 			}
-			for (int j = 0; j < 2; j++) {
+			for (int j = 0; j < MAX_NV12_PLANE_COUNT; j++) {
 				uintptr_t ptr = (uintptr_t)frames[i]->data[j];
+				// store origin address for releasing
+				origin_ptr[i][j] = ptr;
 				uintptr_t dst = (((ptr)+(256)-1)&~((256)-1));
 				uintptr_t gap = dst - ptr;
 				frames[i]->data[j] += gap;
@@ -386,11 +384,15 @@ bool IO::FreeVideo()
 
 	if (this->frames != NULL) {
 		for (int i = 0; i < MAX_FRAME_COUNT; i++) {
-			if(this->frames[i])
+			if(this->frames[i]) {
+				for (int j = 0; j < MAX_NV12_PLANE_COUNT; j++) {
+					// resume origin pointer address
+					this->frames[i]->data[j] = (uint8_t*) origin_ptr[i][j];
+				}
 				av_frame_free(&this->frames[i]);
+			}
 		}
 	}
-	isFirst = true;
 
 	if(this->tmp_frame)
 		av_frame_free(&this->tmp_frame);
@@ -808,6 +810,7 @@ bool IO::InitAVCodec(bool is_PS5)
 bool IO::InitOpenGl()
 {
 	CHIAKI_LOGI(this->log, "loading OpenGL");
+	isFirst = true;
 
 	if(!InitOpenGlShader())
 		return false;
@@ -879,7 +882,7 @@ bool IO::InitOpenGlTX1Textures()
 	D(glGenTextures(2, this->tex));
 	D(glGenBuffers(2, this->pbo));
 	uint8_t uv_default[] = {0x7f, 0x7f};
-	for(int i = 0; i < 2; i++)
+	for(int i = 0; i < MAX_NV12_PLANE_COUNT; i++)
 	{
 		D(glBindTexture(GL_TEXTURE_2D, this->tex[i]));
 		D(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
@@ -892,7 +895,7 @@ bool IO::InitOpenGlTX1Textures()
 	D(glUseProgram(this->prog));
 	// bind only as many planes as we need
 	const char *plane_names[] = {"plane1", "plane2", "plane3"};
-	for(int i = 0; i < 2; i++) {
+	for(int i = 0; i < MAX_NV12_PLANE_COUNT; i++) {
 		m_texture_uniform[i] = glGetUniformLocation(this->prog, plane_names[i]);
 		D(glUniform1i(m_texture_uniform[i], i));
 	}
@@ -1035,7 +1038,7 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 			{ 2, 2, 2, GL_RG8, GL_RG }
 	};
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < MAX_NV12_PLANE_COUNT; i++) {
 		glActiveTexture(GL_TEXTURE0 + i);
 		int real_width = frame->linesize[i] / planes[i][0];
 		int width = frame->width / planes[i][0];
@@ -1058,7 +1061,6 @@ inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
 
 inline void IO::OpenGlDraw()
 {
-	// auto start = std::chrono::high_resolution_clock::now();
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (enableHWAccl) {
@@ -1067,8 +1069,6 @@ inline void IO::OpenGlDraw()
 		// send to OpenGl
 		SetOpenGlYUVPixels(this->frames[current_frame]);
 	}
-
-	// auto stop1 = std::chrono::high_resolution_clock::now();
 
 	//avcodec_flush_buffers(this->codec_context);
 	D(glBindVertexArray(this->vao));
@@ -1082,13 +1082,6 @@ inline void IO::OpenGlDraw()
 	D(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
 	D(glBindVertexArray(0));
 	D(glFinish());
-
-	// auto stop2 = std::chrono::high_resolution_clock::now();
-
-	// CHIAKI_LOGI(this->log, "render time: %d %d, %d",
-	// 	std::chrono::duration_cast<std::chrono::microseconds>(stop1 - start),
-	// 	std::chrono::duration_cast<std::chrono::microseconds>(stop2 - stop1),
-	// 	isFirst);
 }
 
 bool IO::InitController()
