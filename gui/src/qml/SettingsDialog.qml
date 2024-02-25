@@ -294,6 +294,18 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Window Type:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Selected Resolution"), qsTr("Fullscreen"), qsTr("Zoom"), qsTr("Stretch")]
+                        currentIndex: Chiaki.settings.windowType
+                        onActivated: (index) => Chiaki.settings.windowType = index;
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Render Preset:")
                     }
 

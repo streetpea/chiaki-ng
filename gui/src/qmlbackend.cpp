@@ -433,6 +433,24 @@ void QmlBackend::connectToHost(int index)
     if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && !sendWakeup(server))
         return;
 
+    bool fullscreen = false, zoom = false, stretch = false;
+    switch (settings->GetWindowType()) {
+    case WindowType::SelectedResolution:
+        break;
+    case WindowType::Fullscreen:
+        fullscreen = true;
+        break;
+    case WindowType::Zoom:
+        zoom = true;
+        break;
+    case WindowType::Stretch:
+        stretch = true;
+        break;
+    default:
+        break;
+    }
+    emit windowTypeUpdated(settings->GetWindowType());
+
     QString host = server.GetHostAddr();
     StreamSessionConnectInfo info(
             settings,
@@ -441,9 +459,9 @@ void QmlBackend::connectToHost(int index)
             server.registered_host.GetRPRegistKey(),
             server.registered_host.GetRPKey(),
             {},
-            false,
-            false,
-            false);
+            fullscreen,
+            zoom,
+            stretch);
     createSession(info);
 }
 

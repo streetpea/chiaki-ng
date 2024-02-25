@@ -61,6 +61,7 @@ public:
     QmlMainWindow(Settings *settings);
     QmlMainWindow(const StreamSessionConnectInfo &connect_info);
     ~QmlMainWindow();
+    void updateWindowType(WindowType type);
 
     bool hasVideo() const;
     int droppedFrames() const;

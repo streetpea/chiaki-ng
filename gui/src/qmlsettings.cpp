@@ -210,6 +210,17 @@ void QmlSettings::setDecoder(const QString &decoder)
     emit decoderChanged();
 }
 
+int QmlSettings::windowType() const
+{
+    return static_cast<int>(settings->GetWindowType());
+}
+
+void QmlSettings::setWindowType(int type)
+{
+    settings->SetWindowType(static_cast<WindowType>(type));
+    emit windowTypeChanged();
+}
+
 int QmlSettings::videoPreset() const
 {
     return static_cast<int>(settings->GetPlaceboPreset());

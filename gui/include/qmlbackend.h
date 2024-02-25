@@ -81,6 +81,7 @@ signals:
     void discoveryEnabledChanged();
     void hostsChanged();
     void autoConnectChanged();
+    void windowTypeUpdated(WindowType type);
 
     void error(const QString &title, const QString &text);
     void sessionError(const QString &title, const QString &text);
