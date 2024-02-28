@@ -358,6 +358,15 @@ void QmlBackend::wakeUpHost(int index)
     sendWakeup(server);
 }
 
+void QmlBackend::setConsolePin(int index, QString console_pin)
+{
+    auto server = displayServerAt(index);
+    if (!server.valid)
+        return;
+    server.registered_host.SetConsolePin(server.registered_host, console_pin);
+    settings->AddRegisteredHost(server.registered_host);
+}
+
 void QmlBackend::addManualHost(int index, const QString &address)
 {
     HostMAC hmac;
@@ -371,7 +380,7 @@ void QmlBackend::addManualHost(int index, const QString &address)
     settings->SetManualHost(host);
 }
 
-bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const QString &pin, bool broadcast, int target, const QJSValue &callback)
+bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback)
 {
     ChiakiRegistInfo info = {};
     QByteArray hostb = host.toUtf8();
@@ -379,6 +388,7 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     info.target = static_cast<ChiakiTarget>(target);
     info.broadcast = broadcast;
     info.pin = (uint32_t)pin.toULong();
+    info.console_pin = (uint32_t)cpin.toULong();
     QByteArray psn_idb;
     if (target == CHIAKI_TARGET_PS4_8) {
         psn_idb = psn_id.toUtf8();
@@ -411,9 +421,6 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
             cb.call({QString(), true, true});
 
         settings->AddRegisteredHost(host);
-        ManualHost manual_host = regist_dialog_server.manual_host;
-        manual_host.Register(host);
-        settings->SetManualHost(manual_host);
     });
     return true;
 }
@@ -458,7 +465,7 @@ void QmlBackend::connectToHost(int index)
             host,
             server.registered_host.GetRPRegistKey(),
             server.registered_host.GetRPKey(),
-            {},
+            server.registered_host.GetConsolePin(),
             fullscreen,
             zoom,
             stretch);

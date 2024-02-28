@@ -52,6 +52,10 @@ Item {
         stack.push(settingsDialogComponent);
     }
 
+    function showConsolePinDialog(consoleIndex) {
+        stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
+    }
+
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
@@ -174,6 +178,11 @@ Item {
     Component {
         id: settingsDialogComponent
         SettingsDialog { }
+    }
+
+    Component {
+        id: consolePinDialogComponent
+        ConsolePinDialog { }
     }
 
     Component {

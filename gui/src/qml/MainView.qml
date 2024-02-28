@@ -16,6 +16,16 @@ Pane {
     Keys.onYesPressed: if (hostsView.currentItem) hostsView.currentItem.wakeUpHost()
     Keys.onNoPressed: if (hostsView.currentItem) hostsView.currentItem.deleteHost()
     Keys.onEscapePressed: root.showConfirmDialog(qsTr("Quit"), qsTr("Are you sure you want to quit?"), () => Qt.quit())
+    Keys.onPressed: (event) => {
+        if (event.modifiers)
+            return;
+        switch (event.key) {
+        case Qt.Key_PageUp:
+            if (hostsView.currentItem) hostsView.currentItem.setConsolePin();
+            event.accepted = true;
+            break;
+        }
+    }
 
     ToolBar {
         id: toolBar
@@ -102,6 +112,10 @@ Pane {
             function deleteHost() {
                 if (!modelData.discovered)
                     root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
+            }
+
+            function setConsolePin() {
+                root.showConsolePinDialog(index);
             }
 
             RowLayout {
@@ -206,10 +220,35 @@ Pane {
                             visible: delegate.highlighted
                         }
                     }
-                }
-            }
+
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        text: qsTr("Update Console Pin")
+                        flat: true
+                        padding: 20
+                        leftPadding: delegate.highlighted ? 50 : undefined
+                        visible: modelData.registered
+                        focusPolicy: Qt.NoFocus
+                        onClicked: delegate.setConsolePin()
+                        Material.roundedScale: Material.SmallScale
+
+                        Image {
+                            anchors {
+                                left: parent.left
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 12
+                            }
+                            width: 28
+                            height: 28
+                            sourceSize: Qt.size(width, height)
+                            source: "qrc:/icons/l1.svg"
+                            visible: delegate.highlighted
+                        }
+                    }
+                } 
+            } 
         }
-    }
+    }     
 
     RoundButton {
         anchors {

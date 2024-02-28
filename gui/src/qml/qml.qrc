@@ -9,6 +9,7 @@
     <file>ManualHostDialog.qml</file>
     <file>RegistDialog.qml</file>
     <file>SettingsDialog.qml</file>
+    <file>ConsolePinDialog.qml</file>
     <file>PSNLoginDialog.qml</file>
     <file>AutoConnectView.qml</file>
     <file>controls/Button.qml</file>

@@ -11,5 +11,6 @@
     <file>console-ps5.svg</file>
     <file>buttons-ps.svg</file>
     <file>buttons-deck.svg</file>
+    <file>l1.svg</file>
   </qresource>
 </RCC>

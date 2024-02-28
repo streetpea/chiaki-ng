@@ -11,14 +11,14 @@ DialogView {
     property alias host: hostField.text
     title: qsTr("Register Console")
     buttonText: qsTr("✓ Register")
-    buttonEnabled: hostField.text.trim() && pin.acceptableInput && (!onlineId.visible || onlineId.text.trim()) && (!accountId.visible || accountId.text.trim())
+    buttonEnabled: hostField.text.trim() && pin.acceptableInput && cpin.acceptableInput && (!onlineId.visible || onlineId.text.trim()) && (!accountId.visible || accountId.text.trim())
     StackView.onActivated: {
         if (host == "255.255.255.255")
             broadcast.checked = true;
     }
     onAccepted: {
         let psnId = onlineId.visible ? onlineId.text.trim() : accountId.text.trim();
-        let registerOk = Chiaki.registerHost(hostField.text.trim(), psnId, pin.text.trim(), broadcast.checked, consoleButtons.checkedButton.target, function(msg, ok, done) {
+        let registerOk = Chiaki.registerHost(hostField.text.trim(), psnId, pin.text.trim(), cpin.text.trim(), broadcast.checked, consoleButtons.checkedButton.target, function(msg, ok, done) {
             if (!done)
                 logArea.text += msg + "\n";
             else
@@ -96,12 +96,23 @@ DialogView {
 
             Label {
                 Layout.alignment: Qt.AlignRight
-                text: qsTr("PIN:")
+                text: qsTr("Remote Play PIN:")
             }
 
             C.TextField {
                 id: pin
                 validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
+                Layout.preferredWidth: 400
+            }
+
+            Label {
+                Layout.alignment: Qt.AlignRight
+                text: qsTr("Console Pin [Optional]")
+            }
+
+            C.TextField {
+                id: cpin
+                validator: RegularExpressionValidator { regularExpression: /^$|[0-9]{4}/ }
                 Layout.preferredWidth: 400
             }
 
