@@ -97,7 +97,7 @@ Pane {
         delegate: ItemDelegate {
             id: delegate
             width: parent ? parent.width : 0
-            height: 150
+            height: 180
             highlighted: ListView.isCurrentItem
             onClicked: connectToHost()
 
