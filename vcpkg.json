@@ -1,0 +1,16 @@
+{
+    "name": "chiaki4deck",
+    "version": "1.6.3",
+    "dependencies": [
+      "pkgconf",
+      "sdl2",
+      "protobuf",
+      "openssl",
+      "hidapi",
+      "opus",
+      "fftw3",
+      "lcms",
+      "speexdsp",
+      "vulkan"
+    ]
+  }
