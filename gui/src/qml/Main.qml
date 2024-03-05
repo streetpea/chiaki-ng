@@ -56,6 +56,10 @@ Item {
         stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
     }
 
+    function showSteamShortcutDialog() {
+        stack.push(steamShortcutDialogComponent)
+    }
+
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
@@ -183,6 +187,11 @@ Item {
     Component {
         id: consolePinDialogComponent
         ConsolePinDialog { }
+    }
+
+    Component {
+        id: steamShortcutDialogComponent
+        SteamShortcutDialog { }
     }
 
     Component {

@@ -6,9 +6,15 @@
 #include "psnaccountid.h"
 #include "systemdinhibit.h"
 
+#if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
+#include "steamtools.h"
+#endif
+
 #include <QUrl>
 #include <QUrlQuery>
 #include <QGuiApplication>
+#include <QPixmap>
+#include <QProcessEnvironment>
 
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
@@ -634,3 +640,99 @@ void QmlBackend::updateDiscoveryHosts()
     }
     emit hostsChanged();
 }
+
+#if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
+QString QmlBackend::getExecutable() {
+#if defined(Q_OS_LINUX)
+    //Check for flatpak
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    QString flatpakId = env.value("FLATPAK_ID");
+    QString appImagePath = env.value("APPIMAGE");
+    if (!flatpakId.isEmpty()) {
+        return QString("flatpak");
+    }
+    if (!appImagePath.isEmpty())
+        return appImagePath;
+#endif
+    return QCoreApplication::applicationFilePath();
+}
+
+void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback)
+{
+    QJSValue cb = callback;
+    QString controller_layout_workshop_id = "3049833406";
+    QMap<QString, const QPixmap*> artwork;
+    auto landscape = QPixmap(":/icons/steam_landscape.png");
+    auto portrait = QPixmap(":/icons/steam_portrait.png");
+    auto hero = QPixmap(":/icons/steam_hero.png");
+    auto icon = QPixmap(":/icons/steam_icon.png");
+    auto logo = QPixmap(":/icons/steam_logo.png");
+    artwork.insert("landscape", &landscape);
+    artwork.insert("portrait", &portrait);
+    artwork.insert("hero", &hero);
+    artwork.insert("icon", &icon);
+    artwork.insert("logo", &logo);
+    
+    auto infoLambda = [this, callback](const QString &infoMessage) {
+        QJSValue icb = callback;
+        if (icb.isCallable())
+            icb.call({infoMessage, true, false});
+    };
+
+    auto errorLambda = [this, callback](const QString &errorMessage) {
+        QJSValue icb = callback;
+        if (icb.isCallable())
+            icb.call({errorMessage, false, true});
+    };
+    SteamTools* steam_tools = new SteamTools(infoLambda, errorLambda);
+    bool steamExists = steam_tools->steamExists();
+    if(!steamExists)
+    {
+        if (cb.isCallable())
+            cb.call({QString("[E] Steam does not exist, cannot create Steam Shortcut"), false, true});
+        return;
+    }
+
+    QString executable = getExecutable();
+    if(executable == "flatpak")
+    {
+        const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        QString flatpakId = env.value("FLATPAK_ID");
+        launchOptions.prepend(QString("run %1 ").arg(flatpakId));
+    }
+    SteamShortcutEntry newShortcut = steam_tools->buildShortcutEntry(shortcutName, executable, launchOptions, artwork);
+
+    QVector<SteamShortcutEntry> shortcuts = steam_tools->parseShortcuts();
+    bool found = false;
+    for (auto& map : shortcuts) {
+        if (map.getExe() == newShortcut.getExe() && map.getLaunchOptions() == newShortcut.getLaunchOptions()) {
+            // Replace the entire map with the new one
+            
+            if (cb.isCallable())
+                cb.call({QString("[I] Updating Steam entry"), true, false});
+            map = newShortcut;
+            found = true;
+            break;  // Stop iterating once a match is found
+        }
+    }
+
+   //If we didn't find it to update, let's add it to the end
+    if (!found) {
+        if (cb.isCallable())
+            cb.call({QString("[I] Adding Steam entry ") + QString(newShortcut.getAppName().toStdString().c_str()), false, true});
+        shortcuts.append(newShortcut);
+    }
+    steam_tools->updateShortcuts(shortcuts);
+    steam_tools->updateControllerConfig(newShortcut.getAppName(), controller_layout_workshop_id);
+    if (!found)
+    {
+        if (cb.isCallable())
+            cb.call({QString("[I] Added Steam entry: ") + QString(newShortcut.getAppName().toStdString().c_str()), true, true});
+    }
+    else
+    {
+        if (cb.isCallable())
+            cb.call({QString("[I] Updated Steam entry: ") + QString(newShortcut.getAppName().toStdString().c_str()), true, true});
+    }
+}
+#endif
