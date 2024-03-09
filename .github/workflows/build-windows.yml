@@ -15,6 +15,7 @@ jobs:
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
+      libplacebo_tag: 311a59507f6a0465aaac9b783af65bf349755360
 
     defaults:
       run:
@@ -110,6 +111,7 @@ jobs:
         run: |
           git clone --recursive https://github.com/haasn/libplacebo.git
           cd libplacebo
+          git checkout ${{ env.libplacebo_tag }}
           meson setup `
           --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
           --native-file ../meson.ini `
