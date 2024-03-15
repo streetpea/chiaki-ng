@@ -427,6 +427,12 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
             cb.call({QString(), true, true});
 
         settings->AddRegisteredHost(host);
+        if(regist_dialog_server.discovered == false)
+        {
+            ManualHost manual_host = regist_dialog_server.manual_host;
+            manual_host.Register(host);
+            settings->SetManualHost(manual_host);
+        }
     });
     return true;
 }
