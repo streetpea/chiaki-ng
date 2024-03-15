@@ -277,6 +277,16 @@ void Settings::SetAudioBufferSize(unsigned int size)
 	settings.setValue("settings/audio_buffer_size", size);
 }
 
+unsigned int Settings::GetWifiDroppedNotif() const
+{
+	return settings.value("settings/wifi_dropped_notif_percent", 3).toUInt();
+}
+
+void Settings::SetWifiDroppedNotif(unsigned int percent)
+{
+	settings.setValue("settings/wifi_dropped_notif_percent", percent);
+}
+
 #if CHIAKI_GUI_ENABLE_SPEEX
 
 bool Settings::GetSpeechProcessingEnabled() const

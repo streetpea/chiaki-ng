@@ -31,6 +31,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QStringList availableAudioOutDevices READ availableAudioOutDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
     Q_PROPERTY(QVariantList controllerMapping READ controllerMapping CONSTANT)
+    Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
 
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
@@ -95,6 +96,9 @@ public:
     QString autoConnectMac() const;
     void setAutoConnectMac(const QString &mac);
 
+    uint wifiDroppedNotif() const;
+    void setWifiDroppedNotif(uint percent);
+
     QString logDirectory() const;
     QStringList availableDecoders() const;
     QStringList availableAudioOutDevices() const;
@@ -123,6 +127,7 @@ signals:
     void audioBufferSizeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
+    void wifiDroppedNotifChanged();
     void decoderChanged();
     void windowTypeChanged();
     void videoPresetChanged();

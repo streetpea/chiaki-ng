@@ -146,7 +146,7 @@ Item {
 
         Timer {
             id: networkIndicatorTimer
-            running: Chiaki.session?.averagePacketLoss > 0.03
+            running: Chiaki.session?.averagePacketLoss > (Chiaki.settings.wifiDroppedNotif * 0.01)
             interval: 400
         }
     }

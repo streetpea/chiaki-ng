@@ -47,7 +47,7 @@ DialogView {
             }
 
             TabButton {
-                text: qsTr("Audio")
+                text: qsTr("Audio/Wifi")
                 focusPolicy: Qt.NoFocus
             }
 
@@ -311,7 +311,6 @@ DialogView {
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        lastInFocusChain: true
                         model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality")]
                         currentIndex: Chiaki.settings.videoPreset
                         onActivated: (index) => {
@@ -327,7 +326,7 @@ DialogView {
             }
 
             Item {
-                // Audio
+                // Audio and Wifi
                 GridLayout {
                     anchors {
                         top: parent.top
@@ -439,7 +438,6 @@ DialogView {
 
                     C.Slider {
                         Layout.preferredWidth: 250
-                        lastInFocusChain: true
                         from: 0
                         to: 60
                         stepSize: 1
@@ -454,6 +452,30 @@ DialogView {
                                 leftMargin: 10
                             }
                             text: qsTr("%1 dB").arg(parent.value)
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Wifi Instability Notification Triggers")
+                    }
+
+                    C.Slider {
+                        Layout.preferredWidth: 250
+                        lastInFocusChain: true
+                        from: 0
+                        to: 100
+                        stepSize: 1
+                        value: Chiaki.settings.wifiDroppedNotif
+                        onMoved: Chiaki.settings.wifiDroppedNotif = value
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
+                            }
+                            text: qsTr("%1 % dropped packets").arg(parent.value)
                         }
                     }
                 }

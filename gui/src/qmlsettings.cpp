@@ -243,6 +243,17 @@ void QmlSettings::setAutoConnectMac(const QString &mac)
     emit autoConnectMacChanged();
 }
 
+uint QmlSettings::wifiDroppedNotif() const
+{
+    return settings->GetWifiDroppedNotif();
+}
+
+void QmlSettings::setWifiDroppedNotif(const uint percent)
+{
+    settings->SetWifiDroppedNotif(percent);
+    emit wifiDroppedNotifChanged();
+}
+
 QString QmlSettings::logDirectory() const
 {
     return GetLogBaseDir();

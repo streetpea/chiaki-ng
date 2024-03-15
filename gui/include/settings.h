@@ -142,6 +142,9 @@ class Settings : public QObject
 		QString GetAudioInDevice() const;
 		void SetAudioInDevice(QString device_name);
 
+		uint GetWifiDroppedNotif() const;
+		void SetWifiDroppedNotif(uint percent);
+
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool GetSpeechProcessingEnabled() const;
 		int GetNoiseSuppressLevel() const;
