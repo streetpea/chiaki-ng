@@ -177,6 +177,9 @@ jobs:
           cp /mingw64/bin/libpangowin32-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libgomp-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libdatrie-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libjxl*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libzvbi-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libhwy*.dll Chiaki4deck-Win/
           /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release Chiaki4deck-Win/chiaki.exe
           cp -R /mingw64/share/qt6/qml/QtQuick Chiaki4deck-Win/qml/
           cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ Chiaki4deck-Win/qml/QtQml/
