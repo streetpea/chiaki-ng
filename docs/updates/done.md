@@ -26,6 +26,10 @@ Added gyro support for Steam Deck via a native interface since SDL2 doesn't supp
 
 You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.
 
+## Added Steam Shortcut Creation Button
+
+Added ability to create a Steam shortcut with the name of your choice and Chiaki4deck artwork and the Steam Deck controller profile from the main menu. This makes setup even easier on Steam Deck.
+
 ## [Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
 
 Haptics enabled for PlayStation 5 thanks to [Johannes Baiter](https://github.com/jbaiter){target="_blank" rel="noopener"}. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.[^2].
@@ -99,29 +103,9 @@ Cleanly quits Chiaki, respecting the user's configuration option of either askin
 
     Now, if you hit a back button (or other button) mapped to ++ctrl+q++ on your Steam Deck, your remote play session will shut down cleanly and put your console to sleep automatically if you so choose. This means you no longer have to manually put your console to sleep via a menu or the power button on the PlayStation console itself.
 
-## Enabled Automated Launch 
+## Enabled Automated Launch and Auto-connect
 
-This provides the following:
-
-1. Skips the need to visit the configuration screen and use the Steam Deck's touchscreen each time. 
-
-2. Only 1 window is open during game streaming instead of 2, eliminating the flashing issue that would occur during accidental window switching by the Steam Deck's `Game Mode`
-
-3. Gives default game mode option to launch in fullscreen, stretch or zoomed mode.
-
-4. Passes login passcode automatically instead of manually typing it in each time.
-
-    !!! Note "If you have to enter a passcode (4 digit pin) every time you boot up your PlayStation to play, you have a login passcode. If not, this doesn't affect you."
-    
-        If you choose to not use the automation for whatever reason and have a PlayStation Login Passcode, you will need to do the following **every time** you launch `chiaki4deck` and login:
-            
-        1. Wait for the login passcode dialog box to appear.
-        
-        2. Use attached keyboard or Hit `STEAM` + ++x++ to bring up the on-screen Steam Deck virtual keyboard.
-
-        3. Enter you passcode using the keyboard (either via touch or controller navigation) to login to your PlayStation console (use ++enter++ / R2 to submit the passcode). 
-
-I have added a helper script to generate a `Chiaki-launcher.sh` script as well as provided complete instructions in the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}.
+This skips the need to visit the configuration screen each time. Use auto-connect if you have one console to choose from and this will work out of the box. Otherwise, you can create an automation script to do this for you. I have added a helper script to generate a `Chiaki-launcher.sh` script as well as provided complete instructions in the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}.
 
 ## Enabled Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak
 
