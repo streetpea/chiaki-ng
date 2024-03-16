@@ -129,20 +129,6 @@ endif()
 
 if(CHIAKI_ENABLE_STEAM_SHORTCUT)
 	message(STATUS "Steam shortcut enabled")
-	include(FetchContent)
-
-	FetchContent_Declare(
-			cpp-steam-tools
-			GIT_REPOSITORY https://github.com/nikorag/cpp-steam-tools.git
-			GIT_TAG main #this can be any tag, revision or branch
-	)
-	FetchContent_GetProperties(cpp-steam-tools)
-
-	if(NOT cpp-steam-tools_POPULATED)
-		message(STATUS "Fetching cpp-steam-tools...")
-		FetchContent_Populate(cpp-steam-tools)
-		add_subdirectory(${cpp-steam-tools_SOURCE_DIR} ${cpp-steam-tools_BINARY_DIR})
-	endif()
 else()
 	message(STATUS "Steam shortcut disabled")
 endif()
