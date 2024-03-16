@@ -1108,7 +1108,8 @@
 <li>Chiaki Authors (including but not limited to Florian Märkl)</li>
 <li>Reddit users and others who have helped me in my personal Chiaki journey such as u/mintcu7000 with his getting started guide on Reddit</li>
 <li>Egoistically for the RGB update patch</li>
-<li>Florian Grill for his gracious help with adding mic support</li>
+<li>Florian Grill for his gracious help with reverse engineering the PlayStation remote play protocols</li>
+<li>SageLevi and Superwormy for creating Chiaki4deck artwork</li>
 </ul>
 </li>
 <li>
@@ -1613,8 +1614,8 @@
 </div>
 </li>
 <li>
-<p><strong>Audio Settings</strong> for Steam Deck</p>
-<p><img alt="Audio Settings" src="../setup/images/AudioSettings.png" /></p>
+<p><strong>Audio/WiFi Settings</strong> for Steam Deck</p>
+<p><img alt="Audio/Wifi Settings" src="../setup/images/AudioSettings.png" /></p>
 </li>
 <li>
 <p>Below are the <strong>Video Settings</strong> you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5/1080p</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
@@ -1675,6 +1676,9 @@
 <p>You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; Adjust HDR</code>. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via <a href="https://github.com/arshiatn" rel="noopener" target="_blank">arshiatn</a>) for an 1000 nits display you want to use 15-15-0 for the HDR settings. To set this in the <code>Adjust HDR set</code> move 15 steps (15 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 15 steps from the beginning for the 2<sup>nd</sup> test screen and 0 steps from the beginning on the last test screen. </p>
 <p>Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.</p>
 </div>
+<h3 id="setup-configuration-auto-connect">Auto Connect<a class="headerlink" href="#setup-configuration-auto-connect" title="Permanent link">&para;</a></h3>
+<p>If you have one console you want to connect to remotely or locally you can use the auto-connect feature to launch it automatically on launch. If you have multiple consoles to launch into you can instead use the <a href="#setup-automation">automation section</a>.</p>
+<p><img alt="Auto-Connect Settings" src="../setup/images/AutoConnect.png" /></p>
 <h2 id="setup-configuration-performance-of-chiakichiaki4deck">Performance of Chiaki/<code>chiaki4deck</code><a class="headerlink" href="#setup-configuration-performance-of-chiakichiaki4deck" title="Permanent link">&para;</a></h2>
 <h3 id="setup-configuration-my-experience">My Experience<a class="headerlink" href="#setup-configuration-my-experience" title="Permanent link">&para;</a></h3>
 <p>Ultimately, the performance will depend on the capability of your wireless router and which system (<span class="arithmatex">\(PS5 &gt; PS4 Pro &gt; PS4\)</span>) you are using. Here are some notes from my experience using <code>chiaki4deck</code> on my Steam Deck with a PS5 console and a relatively good (<span class="arithmatex">\(450 Mbps\)</span> for <span class="arithmatex">\(2.4GHz\)</span> / <span class="arithmatex">\(1,300 Mbps\)</span> for <span class="arithmatex">\(5GHz\)</span>) wireless router.</p>
@@ -1883,10 +1887,9 @@
 <p class="admonition-title">If my connection stops working, what should I do?</p>
 <p>If the connection stops working please make sure that the IP address for your router hasn't changed by checking it again via one of the methods above or a different one to make sure it's the same. If it has changed, you will need to update to the new IP address of your router.</p>
 </div></section><section class="print-page" id="setup-automation"><h1 id="setup-automation-automating-chiaki4deck-launch">Automating <code>chiaki4deck</code> Launch<a class="headerlink" href="#setup-automation-automating-chiaki4deck-launch" title="Permanent link">&para;</a></h1>
-<p>Now that you have <code>chiaki4deck</code> configured, it's time to make it wake up your PlayStation and connect to it automatically. </p>
-<div class="admonition info">
-<p class="admonition-title">So Why Should I Care?</p>
-<p>This is especially convenient for the Steam Deck's <code>Game Mode</code> where an automated launch eliminates both the need to tap furiously at your touchscreen to launch the application and the glitches that would arise (flashes on your screen) when it would switch between the 2 open Chiaki windows (since only 1 window is opened with the automated launch). It also gives a default game mode option to launch in fullscreen, stretch or zoomed mode, making it <a href="#updates-done-3-view-modes-for-non-standard-screen-sizes" rel="noopener" target="_blank">easier to use the 3 games modes</a>. Finally, it allows for passing your login passcode automatically instead of manually typing in each time (for those of you with a login passcode set on your PlayStation console).</p>
+<div class="admonition tip">
+<p class="admonition-title">Use the Auto Connect Feature Instead if it Meets Your Needs</p>
+<p>Now that you have <code>chiaki4deck</code> configured, it's time to make it wake up your PlayStation and connect to it automatically. Note: If you only have 1 console please try the <a href="#setup-configuration-auto-connect">autoconnect feature</a>. Otherwise, proceed with this guide to setup a script to automatically launch your different systems.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Sleep Mode Required</p>
@@ -2479,6 +2482,39 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 </div>
 </li>
 </ol></section><section class="print-page" id="setup-steaming"><h1 id="setup-steaming-adding-chiaki4deck-to-steam">Adding Chiaki4Deck to Steam<a class="headerlink" href="#setup-steaming-adding-chiaki4deck-to-steam" title="Permanent link">&para;</a></h1>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="setup-steaming-__tabbed_1_1" name="setup-steaming-__tabbed_1" type="radio" /><input id="setup-steaming-__tabbed_1_2" name="setup-steaming-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-steaming-__tabbed_1_1">Automatic Process for Auto-connect or Standard Launch</label><label for="setup-steaming-__tabbed_1_2">Manual Process for Automation Script</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Choose <code>Add Create Steam Shortcut from Main Menu</code></p>
+<p><img alt="Choose Create Steam Shortcut" src="../setup/images/AddSteamShortcut.png" /></p>
+</li>
+<li>
+<p>Fill in name for Steam Shortcut and optional launch options</p>
+<ol>
+<li>
+<p>Fill in name for Steam Shortcut and optional launch options</p>
+<div class="admonition note">
+<p class="admonition-title">Launch Options</p>
+<p>In most cases, you can leave this blank. One scenario where you would fill this out is if you have multiple users on the same Steam Deck. In this case you can use <code>--profile user1</code> for one shortcut and <code>--profile user2</code> for another.</p>
+</div>
+</li>
+<li>
+<p>Create Steam Shortcut by hitting <code>Create</code> button</p>
+</li>
+</ol>
+<p><img alt="Fill in Steam Shortcut" src="../setup/images/SteamShortcutMenu.png" /></p>
+</li>
+</ol>
+<div class="admonition success">
+<p class="admonition-title"><img alt="🎮" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f3ae.svg" title=":video_game:" /> Game (Mode) Time!</p>
+<p>You have successfully added <code>chiaki4deck</code> to Steam with pictures and (if on Steam Deck) set the <code>chiaki4deck+ mic</code> Steam Deck controller shortcut. <img alt="🎆" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f386.svg" title=":fireworks:" /></p>
+<p>You can now close any open applications and or terminals (forcing them to close if necessary) and then switch to <strong>Game Mode</strong> by clicking on the <code>Return to Gaming Mode</code> desktop icon.</p>
+<p><img alt="Go to Game Mode" src="../setup/images/ReturnToGamingMode.png" /></p>
+</div>
+</div>
+<div class="tabbed-block">
 <div class="admonition info">
 <p class="admonition-title">Another Non-Steam Game</p>
 <p>This is the same process as with other non-Steam games, tailored to the <code>chiaki4deck</code> script and images.</p>
@@ -2486,7 +2522,7 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <ol>
 <li>
 <p>Open the <code>Add a Non-Steam Game</code> prompt</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="setup-steaming-__tabbed_1_1" name="setup-steaming-__tabbed_1" type="radio" /><input id="setup-steaming-__tabbed_1_2" name="setup-steaming-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-steaming-__tabbed_1_1">Via user interface / application (GUI)</label><label for="setup-steaming-__tabbed_1_2">Via <code>konsole</code></label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="setup-steaming-__tabbed_2_1" name="setup-steaming-__tabbed_2" type="radio" /><input id="setup-steaming-__tabbed_2_2" name="setup-steaming-__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="setup-steaming-__tabbed_2_1">Via user interface / application (GUI)</label><label for="setup-steaming-__tabbed_2_2">Via <code>konsole</code></label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <ol>
@@ -2672,7 +2708,14 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <p>You have successfully added <code>chiaki4deck</code> to Steam with pictures. <img alt="🎆" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f386.svg" title=":fireworks:" /></p>
 <p>You can now close any open applications and or terminals (forcing them to close if necessary) and then switch to <strong>Game Mode</strong> by clicking on the <code>Return to Gaming Mode</code> desktop icon.</p>
 <p><img alt="Go to Game Mode" src="../setup/images/ReturnToGamingMode.png" /></p>
+</div>
+</div>
+</div>
 </div></section><section class="print-page" id="setup-controlling"><h1 id="setup-controlling-configuring-steam-deck-controller-profile">Configuring Steam Deck Controller Profile<a class="headerlink" href="#setup-controlling-configuring-steam-deck-controller-profile" title="Permanent link">&para;</a></h1>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you created the Steam Shortcut through the menu, it automatically adds the correct chiaki4deck+ mic controller profile for you on Steam Deck.</p>
+</div>
 <p>Get all of the shortcuts mapped to Steam Deck controls. Start by going to the <code>chiaki4deck</code> game menu and selecting the controller layout to configure controller options.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="setup-controlling-__tabbed_1_1" name="setup-controlling-__tabbed_1" type="radio" /><input id="setup-controlling-__tabbed_1_2" name="setup-controlling-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-controlling-__tabbed_1_1">Game Mode</label><label for="setup-controlling-__tabbed_1_2">Desktop Mode</label></div>
 <div class="tabbed-content">
@@ -3143,6 +3186,15 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-164">1.6.4<a class="headerlink" href="#updates-releases-164" title="Permanent link">&para;</a></h3>
+<p>Enables creating steam shortcut with default controller profile from menu</p>
+<ul>
+<li>Adds create Steam Shortcut option for Linux and Mac</li>
+<li>Allow setting console pin for console in settings</li>
+<li>Add window type option in settings (fullscreen, stretch, zoom)</li>
+<li>Fix issue causing extra blank ip manual console added when registering non-manual console</li>
+<li>Add option to adjust when Wifi connection symbol appears based on % of dropped packets in 200ms interval</li>
+</ul>
 <h3 id="updates-releases-163">1.6.3<a class="headerlink" href="#updates-releases-163" title="Permanent link">&para;</a></h3>
 <p>Small patch release</p>
 <ul>
@@ -3413,6 +3465,8 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>Added gyro support for Steam Deck via a native interface since SDL2 doesn't support Steam Deck gyro due to Steam's virtual gamepads not providing gyro.</p>
 <h2 id="updates-done-enabled-mic-support">Enabled Mic Support<a class="headerlink" href="#updates-done-enabled-mic-support" title="Permanent link">&para;</a></h2>
 <p>You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.</p>
+<h2 id="updates-done-added-steam-shortcut-creation-button">Added Steam Shortcut Creation Button<a class="headerlink" href="#updates-done-added-steam-shortcut-creation-button" title="Permanent link">&para;</a></h2>
+<p>Added ability to create a Steam shortcut with the name of your choice and Chiaki4deck artwork and the Steam Deck controller profile from the main menu. This makes setup even easier on Steam Deck.</p>
 <h2 id="updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">[Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
 <p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#updates-done-fn:2">2</a></sup>.</p>
 <p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
@@ -3478,38 +3532,8 @@ Since these features are experimental, you need to opt-in via a checkbox in the 
 <p class="admonition-title">What does this do for me?</p>
 <p>Now, if you hit a back button (or other button) mapped to <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> on your Steam Deck, your remote play session will shut down cleanly and put your console to sleep automatically if you so choose. This means you no longer have to manually put your console to sleep via a menu or the power button on the PlayStation console itself.</p>
 </div>
-<h2 id="updates-done-enabled-automated-launch">Enabled Automated Launch<a class="headerlink" href="#updates-done-enabled-automated-launch" title="Permanent link">&para;</a></h2>
-<p>This provides the following:</p>
-<ol>
-<li>
-<p>Skips the need to visit the configuration screen and use the Steam Deck's touchscreen each time. </p>
-</li>
-<li>
-<p>Only 1 window is open during game streaming instead of 2, eliminating the flashing issue that would occur during accidental window switching by the Steam Deck's <code>Game Mode</code></p>
-</li>
-<li>
-<p>Gives default game mode option to launch in fullscreen, stretch or zoomed mode.</p>
-</li>
-<li>
-<p>Passes login passcode automatically instead of manually typing it in each time.</p>
-<div class="admonition note">
-<p class="admonition-title">If you have to enter a passcode (4 digit pin) every time you boot up your PlayStation to play, you have a login passcode. If not, this doesn't affect you.</p>
-<p>If you choose to not use the automation for whatever reason and have a PlayStation Login Passcode, you will need to do the following <strong>every time</strong> you launch <code>chiaki4deck</code> and login:</p>
-<ol>
-<li>
-<p>Wait for the login passcode dialog box to appear.</p>
-</li>
-<li>
-<p>Use attached keyboard or Hit <code>STEAM</code> + <span class="keys"><kbd class="key-x">X</kbd></span> to bring up the on-screen Steam Deck virtual keyboard.</p>
-</li>
-<li>
-<p>Enter you passcode using the keyboard (either via touch or controller navigation) to login to your PlayStation console (use <span class="keys"><kbd class="key-enter">Enter</kbd></span> / R2 to submit the passcode). </p>
-</li>
-</ol>
-</div>
-</li>
-</ol>
-<p>I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="#setup-automation" rel="noopener" target="_blank">Automation section</a>.</p>
+<h2 id="updates-done-enabled-automated-launch-and-auto-connect">Enabled Automated Launch and Auto-connect<a class="headerlink" href="#updates-done-enabled-automated-launch-and-auto-connect" title="Permanent link">&para;</a></h2>
+<p>This skips the need to visit the configuration screen each time. Use auto-connect if you have one console to choose from and this will work out of the box. Otherwise, you can create an automation script to do this for you. I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="#setup-automation" rel="noopener" target="_blank">Automation section</a>.</p>
 <h2 id="updates-done-enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak">Enabled Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak<a class="headerlink" href="#updates-done-enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak" title="Permanent link">&para;</a></h2>
 <p>This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See <a href="#setup-controlling-using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck" rel="noopener" target="_blank">Using a DualSense and/or DualShock4 Controller with <code>chiaki4deck</code></a> to set it up for yourself.<sup id="fnref3:3"><a class="footnote-ref" href="#updates-done-fn:3">3</a></sup>
 The DualSense/DualShock 4 touchpad and gyro controls work with the binary version of Chiaki but don't work with the official flatpak version. Luckily for you, they now work with the <code>chiaki4deck</code> flatpak! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f604.svg" title=":smile:" /></p>

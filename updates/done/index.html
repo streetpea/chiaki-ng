@@ -653,6 +653,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#added-steam-shortcut-creation-button" class="md-nav__link">
+    Added Steam Shortcut Creation Button
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" class="md-nav__link">
     [Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
   </a>
@@ -681,8 +688,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#enabled-automated-launch" class="md-nav__link">
-    Enabled Automated Launch
+  <a href="#enabled-automated-launch-and-auto-connect" class="md-nav__link">
+    Enabled Automated Launch and Auto-connect
   </a>
   
 </li>
@@ -887,6 +894,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#added-steam-shortcut-creation-button" class="md-nav__link">
+    Added Steam Shortcut Creation Button
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" class="md-nav__link">
     [Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
   </a>
@@ -915,8 +929,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#enabled-automated-launch" class="md-nav__link">
-    Enabled Automated Launch
+  <a href="#enabled-automated-launch-and-auto-connect" class="md-nav__link">
+    Enabled Automated Launch and Auto-connect
   </a>
   
 </li>
@@ -981,6 +995,8 @@
 <p>Added gyro support for Steam Deck via a native interface since SDL2 doesn't support Steam Deck gyro due to Steam's virtual gamepads not providing gyro.</p>
 <h2 id="enabled-mic-support">Enabled Mic Support<a class="headerlink" href="#enabled-mic-support" title="Permanent link">&para;</a></h2>
 <p>You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.</p>
+<h2 id="added-steam-shortcut-creation-button">Added Steam Shortcut Creation Button<a class="headerlink" href="#added-steam-shortcut-creation-button" title="Permanent link">&para;</a></h2>
+<p>Added ability to create a Steam shortcut with the name of your choice and Chiaki4deck artwork and the Steam Deck controller profile from the main menu. This makes setup even easier on Steam Deck.</p>
 <h2 id="experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">[Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
 <p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="../../setup/controlling/#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup>.</p>
 <p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
@@ -1046,38 +1062,8 @@ Since these features are experimental, you need to opt-in via a checkbox in the 
 <p class="admonition-title">What does this do for me?</p>
 <p>Now, if you hit a back button (or other button) mapped to <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-q">Q</kbd></span> on your Steam Deck, your remote play session will shut down cleanly and put your console to sleep automatically if you so choose. This means you no longer have to manually put your console to sleep via a menu or the power button on the PlayStation console itself.</p>
 </div>
-<h2 id="enabled-automated-launch">Enabled Automated Launch<a class="headerlink" href="#enabled-automated-launch" title="Permanent link">&para;</a></h2>
-<p>This provides the following:</p>
-<ol>
-<li>
-<p>Skips the need to visit the configuration screen and use the Steam Deck's touchscreen each time. </p>
-</li>
-<li>
-<p>Only 1 window is open during game streaming instead of 2, eliminating the flashing issue that would occur during accidental window switching by the Steam Deck's <code>Game Mode</code></p>
-</li>
-<li>
-<p>Gives default game mode option to launch in fullscreen, stretch or zoomed mode.</p>
-</li>
-<li>
-<p>Passes login passcode automatically instead of manually typing it in each time.</p>
-<div class="admonition note">
-<p class="admonition-title">If you have to enter a passcode (4 digit pin) every time you boot up your PlayStation to play, you have a login passcode. If not, this doesn't affect you.</p>
-<p>If you choose to not use the automation for whatever reason and have a PlayStation Login Passcode, you will need to do the following <strong>every time</strong> you launch <code>chiaki4deck</code> and login:</p>
-<ol>
-<li>
-<p>Wait for the login passcode dialog box to appear.</p>
-</li>
-<li>
-<p>Use attached keyboard or Hit <code>STEAM</code> + <span class="keys"><kbd class="key-x">X</kbd></span> to bring up the on-screen Steam Deck virtual keyboard.</p>
-</li>
-<li>
-<p>Enter you passcode using the keyboard (either via touch or controller navigation) to login to your PlayStation console (use <span class="keys"><kbd class="key-enter">Enter</kbd></span> / R2 to submit the passcode). </p>
-</li>
-</ol>
-</div>
-</li>
-</ol>
-<p>I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="../../setup/automation/" rel="noopener" target="_blank">Automation section</a>.</p>
+<h2 id="enabled-automated-launch-and-auto-connect">Enabled Automated Launch and Auto-connect<a class="headerlink" href="#enabled-automated-launch-and-auto-connect" title="Permanent link">&para;</a></h2>
+<p>This skips the need to visit the configuration screen each time. Use auto-connect if you have one console to choose from and this will work out of the box. Otherwise, you can create an automation script to do this for you. I have added a helper script to generate a <code>Chiaki-launcher.sh</code> script as well as provided complete instructions in the <a href="../../setup/automation/" rel="noopener" target="_blank">Automation section</a>.</p>
 <h2 id="enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak">Enabled Touchpad and Gyro Controls with DualSense/DualShock 4 Controller for Flatpak<a class="headerlink" href="#enabled-touchpad-and-gyro-controls-with-dualsensedualshock-4-controller-for-flatpak" title="Permanent link">&para;</a></h2>
 <p>This makes it as easy as possible for Steam Deck users to use touchpad and gyro support with their DualSense or DualShock 4 controller. See <a href="../../setup/controlling/#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck" rel="noopener" target="_blank">Using a DualSense and/or DualShock4 Controller with <code>chiaki4deck</code></a> to set it up for yourself.<sup id="fnref3:3"><a class="footnote-ref" href="#fn:3">3</a></sup>
 The DualSense/DualShock 4 touchpad and gyro controls work with the binary version of Chiaki but don't work with the official flatpak version. Luckily for you, they now work with the <code>chiaki4deck</code> flatpak! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f604.svg" title=":smile:" /></p>
