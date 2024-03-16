@@ -16,3 +16,6 @@
 [submodule "switch/borealis"]
 	path = switch/borealis
 	url = https://git.sr.ht/~thestr4ng3r/borealis
+[submodule "third-party/cpp-steam-tools"]
+	path = third-party/cpp-steam-tools
+	url = https://github.com/nikorag/cpp-steam-tools.git

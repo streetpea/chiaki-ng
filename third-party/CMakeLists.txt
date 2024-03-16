@@ -54,3 +54,7 @@ if(NOT CHIAKI_USE_SYSTEM_JERASURE)
 
 	add_library(Jerasure::Jerasure ALIAS jerasure)
 endif()
+
+if(CHIAKI_ENABLE_STEAM_SHORTCUT)
+	add_subdirectory(cpp-steam-tools)
+endif()
