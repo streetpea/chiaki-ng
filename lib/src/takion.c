@@ -1211,6 +1211,14 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 
+	if(message[0xd] == TAKION_CHUNK_TYPE_INIT_ACK)
+	{
+		CHIAKI_LOGI(takion->log, "Received second init ack, looking for cookie ack in next message");
+		err = takion_recv(takion, message, &received_size, TAKION_EXPECT_TIMEOUT_MS);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+	}
+
 	if(received_size < sizeof(message))
 	{
 		CHIAKI_LOGE(takion->log, "Takion received packet of size %#x while expecting cookie ack packet of exactly %#x", received_size, sizeof(message));

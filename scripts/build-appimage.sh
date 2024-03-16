@@ -41,7 +41,7 @@ chmod +x linuxdeploy-x86_64.AppImage
 curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
 chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
 
-export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/gcc_64/lib:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/gcc_64/lib:$(pwd)/../build_appimage/_deps/cpp-steam-tools-build:$LD_LIBRARY_PATH"
 export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
 
 ./linuxdeploy-x86_64.AppImage \

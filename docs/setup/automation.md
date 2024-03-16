@@ -1,11 +1,8 @@
 # Automating `chiaki4deck` Launch
 
-Now that you have `chiaki4deck` configured, it's time to make it wake up your PlayStation and connect to it automatically. 
+!!!Tip "Use the Auto Connect Feature Instead if it Meets Your Needs"
 
-!!! Info "So Why Should I Care?"
-
-    This is especially convenient for the Steam Deck's `Game Mode` where an automated launch eliminates both the need to tap furiously at your touchscreen to launch the application and the glitches that would arise (flashes on your screen) when it would switch between the 2 open Chiaki windows (since only 1 window is opened with the automated launch). It also gives a default game mode option to launch in fullscreen, stretch or zoomed mode, making it [easier to use the 3 games modes](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"}. Finally, it allows for passing your login passcode automatically instead of manually typing in each time (for those of you with a login passcode set on your PlayStation console).
-
+    Now that you have `chiaki4deck` configured, it's time to make it wake up your PlayStation and connect to it automatically. Note: If you only have 1 console please try the [autoconnect feature](configuration.md#auto-connect). Otherwise, proceed with this guide to setup a script to automatically launch your different systems.
 
 !!! Warning "Sleep Mode Required"
 

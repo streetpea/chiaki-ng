@@ -11,5 +11,12 @@
     <file>console-ps5.svg</file>
     <file>buttons-ps.svg</file>
     <file>buttons-deck.svg</file>
+    <file>l1.svg</file>
+    <file>r1.svg</file>
+    <file>steam_hero.png</file>
+    <file>steam_icon.png</file>
+    <file>steam_landscape.png</file>
+    <file>steam_logo.png</file>
+    <file>steam_portrait.png</file>
   </qresource>
 </RCC>

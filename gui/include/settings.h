@@ -47,6 +47,13 @@ enum class PlaceboPreset {
 	HighQuality
 };
 
+enum class WindowType {
+	SelectedResolution,
+	Fullscreen,
+	Zoom,
+	Stretch
+};
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -107,6 +114,9 @@ class Settings : public QObject
 		QString GetHardwareDecoder() const;
 		void SetHardwareDecoder(const QString &hw_decoder);
 
+		WindowType GetWindowType() const;
+		void SetWindowType(WindowType type);
+
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
 
@@ -131,6 +141,9 @@ class Settings : public QObject
 
 		QString GetAudioInDevice() const;
 		void SetAudioInDevice(QString device_name);
+
+		uint GetWifiDroppedNotif() const;
+		void SetWifiDroppedNotif(uint percent);
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool GetSpeechProcessingEnabled() const;

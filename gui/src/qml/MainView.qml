@@ -16,6 +16,20 @@ Pane {
     Keys.onYesPressed: if (hostsView.currentItem) hostsView.currentItem.wakeUpHost()
     Keys.onNoPressed: if (hostsView.currentItem) hostsView.currentItem.deleteHost()
     Keys.onEscapePressed: root.showConfirmDialog(qsTr("Quit"), qsTr("Are you sure you want to quit?"), () => Qt.quit())
+    Keys.onPressed: (event) => {
+        if (event.modifiers)
+            return;
+        switch (event.key) {
+        case Qt.Key_PageUp:
+            if (hostsView.currentItem) hostsView.currentItem.setConsolePin();
+            event.accepted = true;
+            break;
+        case Qt.Key_PageDown:
+            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog();
+            event.accepted = true;
+            break;
+        }
+    }
 
     ToolBar {
         id: toolBar
@@ -45,6 +59,18 @@ Pane {
             }
 
             Item { Layout.fillWidth: true }
+
+            Button {
+                Layout.fillHeight: true
+                Layout.preferredWidth: 400
+                flat: true
+                text: "Create Steam Shortcut"
+                icon.source: "qrc:/icons/r1.svg"
+                focusPolicy: Qt.NoFocus
+                onClicked: root.showSteamShortcutDialog()
+                Material.roundedScale: Material.SmallScale
+                visible: typeof Chiaki.createSteamShortcut === "function"
+            }
 
             Button {
                 Layout.fillHeight: true
@@ -87,7 +113,7 @@ Pane {
         delegate: ItemDelegate {
             id: delegate
             width: parent ? parent.width : 0
-            height: 150
+            height: 180
             highlighted: ListView.isCurrentItem
             onClicked: connectToHost()
 
@@ -102,6 +128,10 @@ Pane {
             function deleteHost() {
                 if (!modelData.discovered)
                     root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
+            }
+
+            function setConsolePin() {
+                root.showConsolePinDialog(index);
             }
 
             RowLayout {
@@ -206,10 +236,35 @@ Pane {
                             visible: delegate.highlighted
                         }
                     }
-                }
-            }
+
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        text: qsTr("Update Console Pin")
+                        flat: true
+                        padding: 20
+                        leftPadding: delegate.highlighted ? 50 : undefined
+                        visible: modelData.registered
+                        focusPolicy: Qt.NoFocus
+                        onClicked: delegate.setConsolePin()
+                        Material.roundedScale: Material.SmallScale
+
+                        Image {
+                            anchors {
+                                left: parent.left
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 12
+                            }
+                            width: 28
+                            height: 28
+                            sourceSize: Qt.size(width, height)
+                            source: "qrc:/icons/l1.svg"
+                            visible: delegate.highlighted
+                        }
+                    }
+                } 
+            } 
         }
-    }
+    }     
 
     RoundButton {
         anchors {

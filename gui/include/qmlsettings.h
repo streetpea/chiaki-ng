@@ -22,6 +22,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
+    Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
@@ -30,6 +31,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QStringList availableAudioOutDevices READ availableAudioOutDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
     Q_PROPERTY(QVariantList controllerMapping READ controllerMapping CONSTANT)
+    Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
 
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
@@ -85,11 +87,17 @@ public:
     QString decoder() const;
     void setDecoder(const QString &decoder);
 
+    int windowType() const;
+    void setWindowType(int type);
+
     int videoPreset() const;
     void setVideoPreset(int preset);
 
     QString autoConnectMac() const;
     void setAutoConnectMac(const QString &mac);
+
+    uint wifiDroppedNotif() const;
+    void setWifiDroppedNotif(uint percent);
 
     QString logDirectory() const;
     QStringList availableDecoders() const;
@@ -119,7 +127,9 @@ signals:
     void audioBufferSizeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
+    void wifiDroppedNotifChanged();
     void decoderChanged();
+    void windowTypeChanged();
     void videoPresetChanged();
     void autoConnectMacChanged();
     void audioDevicesChanged();

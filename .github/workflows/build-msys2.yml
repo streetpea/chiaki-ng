@@ -67,7 +67,7 @@ jobs:
 
       - name: Configure Chiaki4deck
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF
 
       - name: Build Chiaki4deck
         run: |

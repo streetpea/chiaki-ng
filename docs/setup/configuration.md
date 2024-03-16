@@ -283,9 +283,9 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
             
             If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
 
-    2. **Audio Settings** for Steam Deck
+    2. **Audio/WiFi Settings** for Steam Deck
 
-        ![Audio Settings](images/AudioSettings.png)
+        ![Audio/Wifi Settings](images/AudioSettings.png)
     
     3. Below are the **Video Settings** you'll want to try first with your PlayStation console (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
 
@@ -338,6 +338,12 @@ HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For
     You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> Adjust HDR`. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via [arshiatn](https://github.com/arshiatn){target="_blank" rel="noopener"}) for an 1000 nits display you want to use 15-15-0 for the HDR settings. To set this in the `Adjust HDR set` move 15 steps (15 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 15 steps from the beginning for the 2nd test screen and 0 steps from the beginning on the last test screen. 
     
     Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.
+
+### Auto Connect
+
+If you have one console you want to connect to remotely or locally you can use the auto-connect feature to launch it automatically on launch. If you have multiple consoles to launch into you can instead use the [automation section](automation.md).
+
+![Auto-Connect Settings](images/AutoConnect.png)
 
 ## Performance of Chiaki/`chiaki4deck`
 

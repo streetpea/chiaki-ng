@@ -137,6 +137,27 @@ QmlMainWindow::~QmlMainWindow()
     pl_log_destroy(&placebo_log);
 }
 
+void QmlMainWindow::updateWindowType(WindowType type)
+{
+    switch (type) {
+    case WindowType::SelectedResolution:
+        break;
+    case WindowType::Fullscreen:
+        showFullScreen();
+        break;
+    case WindowType::Zoom:
+        showFullScreen();
+        setVideoMode(VideoMode::Zoom);
+        break;
+    case WindowType::Stretch:
+        showFullScreen();
+        setVideoMode(VideoMode::Stretch);
+        break;
+    default:
+        break;
+    }
+}
+
 bool QmlMainWindow::hasVideo() const
 {
     return has_video;
@@ -443,6 +464,7 @@ void QmlMainWindow::init(Settings *settings)
             emit hasVideoChanged();
         }
     });
+    connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
 
     render_thread = new QThread;
     render_thread->setObjectName("render");

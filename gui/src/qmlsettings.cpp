@@ -210,6 +210,17 @@ void QmlSettings::setDecoder(const QString &decoder)
     emit decoderChanged();
 }
 
+int QmlSettings::windowType() const
+{
+    return static_cast<int>(settings->GetWindowType());
+}
+
+void QmlSettings::setWindowType(int type)
+{
+    settings->SetWindowType(static_cast<WindowType>(type));
+    emit windowTypeChanged();
+}
+
 int QmlSettings::videoPreset() const
 {
     return static_cast<int>(settings->GetPlaceboPreset());
@@ -230,6 +241,17 @@ void QmlSettings::setAutoConnectMac(const QString &mac)
 {
     settings->SetAutoConnectHost(QByteArray::fromHex(mac.toUtf8()));
     emit autoConnectMacChanged();
+}
+
+uint QmlSettings::wifiDroppedNotif() const
+{
+    return settings->GetWifiDroppedNotif();
+}
+
+void QmlSettings::setWifiDroppedNotif(const uint percent)
+{
+    settings->SetWifiDroppedNotif(percent);
+    emit wifiDroppedNotifChanged();
 }
 
 QString QmlSettings::logDirectory() const

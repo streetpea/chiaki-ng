@@ -1,5 +1,8 @@
 # Configuring Steam Deck Controller Profile
 
+!!! Tip
+    If you created the Steam Shortcut through the menu, it automatically adds the correct chiaki4deck+ mic controller profile for you on Steam Deck.
+
 Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `chiaki4deck` game menu and selecting the controller layout to configure controller options.
 
 === "Game Mode"

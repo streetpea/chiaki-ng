@@ -61,6 +61,16 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.4
+
+Enables creating steam shortcut with default controller profile from menu
+
+- Adds create Steam Shortcut option for Linux and Mac
+- Allow setting console pin for console in settings
+- Add window type option in settings (fullscreen, stretch, zoom)
+- Fix issue causing extra blank ip manual console added when registering non-manual console
+- Add option to adjust when Wifi connection symbol appears based on % of dropped packets in 200ms interval
+
 ### 1.6.3
 
 Small patch release

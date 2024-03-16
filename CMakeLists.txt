@@ -30,12 +30,13 @@ option(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT "Fetch Mbed TLS instead of using syst
 option(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT "Use OpenSSL as CMake external project" OFF)
 option(CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER "Use SDL Gamecontroller for Input" ON)
 option(CHIAKI_CLI_ARGP_STANDALONE "Search for standalone argp lib for CLI" OFF)
+option(CHIAKI_ENABLE_STEAM_SHORTCUT "Add ability to create Steam shortcut" ON)
 tri_option(CHIAKI_USE_SYSTEM_JERASURE "Use system-provided jerasure instead of submodule" AUTO)
 tri_option(CHIAKI_USE_SYSTEM_NANOPB "Use system-provided nanopb instead of submodule" AUTO)
 
 set(CHIAKI_VERSION_MAJOR 1)
 set(CHIAKI_VERSION_MINOR 6)
-set(CHIAKI_VERSION_PATCH 3)
+set(CHIAKI_VERSION_PATCH 4)
 set(CHIAKI_VERSION ${CHIAKI_VERSION_MAJOR}.${CHIAKI_VERSION_MINOR}.${CHIAKI_VERSION_PATCH})
 
 set(CPACK_PACKAGE_NAME "chiaki4deck")
@@ -126,8 +127,28 @@ if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	endif()
 endif()
 
+if(CHIAKI_ENABLE_STEAM_SHORTCUT)
+	message(STATUS "Steam shortcut enabled")
+	include(FetchContent)
+
+	FetchContent_Declare(
+			cpp-steam-tools
+			GIT_REPOSITORY https://github.com/nikorag/cpp-steam-tools.git
+			GIT_TAG main #this can be any tag, revision or branch
+	)
+	FetchContent_GetProperties(cpp-steam-tools)
+
+	if(NOT cpp-steam-tools_POPULATED)
+		message(STATUS "Fetching cpp-steam-tools...")
+		FetchContent_Populate(cpp-steam-tools)
+		add_subdirectory(${cpp-steam-tools_SOURCE_DIR} ${cpp-steam-tools_BINARY_DIR})
+	endif()
+else()
+	message(STATUS "Steam shortcut disabled")
+endif()
+
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
-	find_package(FFMPEG COMPONENTS avcodec avutil)
+	find_package(FFMPEG COMPONENTS avcodec avutil avformat)
 	if(FFMPEG_FOUND)
 		set(CHIAKI_ENABLE_FFMPEG_DECODER ON)
 	else()
