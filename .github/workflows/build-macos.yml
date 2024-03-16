@@ -12,14 +12,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install protobuf
-        run: |
-          pip3 install --user protobuf setuptools
-
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools
 
       - name: Configure Chiaki4deck
         run: |
@@ -59,14 +55,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install protobuf
-        run: |
-          pip3 install --user protobuf setuptools
-
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools
 
       - name: Configure Chiaki4deck
         run: |
