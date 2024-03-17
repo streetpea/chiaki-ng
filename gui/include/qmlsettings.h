@@ -10,6 +10,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
     Q_PROPERTY(bool dualSense READ dualSense WRITE setDualSense NOTIFY dualSenseChanged)
+    Q_PROPERTY(bool steamDeckHaptics READ steamDeckHaptics WRITE setSteamDeckHaptics NOTIFY steamDeckHapticsChanged)
     Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
     Q_PROPERTY(bool verticalDeck READ verticalDeck WRITE setVerticalDeck NOTIFY verticalDeckChanged)
     Q_PROPERTY(bool speechProcessing READ speechProcessing WRITE setSpeechProcessing NOTIFY speechProcessingChanged)
@@ -50,6 +51,9 @@ public:
 
     bool dualSense() const;
     void setDualSense(bool dualSense);
+
+    bool steamDeckHaptics() const;
+    void setSteamDeckHaptics(bool steamDeckHaptics);
 
     bool buttonsByPosition() const;
     void setButtonsByPosition(bool buttonsByPosition);
@@ -118,6 +122,7 @@ signals:
     void dualSenseChanged();
     void buttonsByPositionChanged();
     void verticalDeckChanged();
+    void steamDeckHapticsChanged();
     void speechProcessingChanged();
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();

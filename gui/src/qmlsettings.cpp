@@ -78,6 +78,18 @@ void QmlSettings::setDualSense(bool dualSense)
     emit dualSenseChanged();
 }
 
+bool QmlSettings::steamDeckHaptics() const
+{
+    return settings->GetSteamDeckHapticsEnabled();
+}
+
+void QmlSettings::setSteamDeckHaptics(bool steamDeckHaptics)
+{
+    settings->SetSteamDeckHapticsEnabled(steamDeckHaptics);
+    emit steamDeckHapticsChanged();
+}
+
+
 bool QmlSettings::buttonsByPosition() const
 {
     return settings->GetButtonsByPosition();

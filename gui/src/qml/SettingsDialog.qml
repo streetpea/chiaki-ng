@@ -115,9 +115,20 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        text: qsTr("Haptics + adaptive triggers (DS), Haptics (SD), PS5 Rumble (others)")
+                        text: qsTr("Haptics + adaptive triggers (DS), PS5 Rumble (others)")
                         checked: Chiaki.settings.dualSense
                         onToggled: Chiaki.settings.dualSense = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Steam Deck Haptics")
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("True haptics for SteamDeck, better quality but noisier")
+                        checked: Chiaki.settings.steamDeckHaptics
+                        onToggled: Chiaki.settings.steamDeckHaptics = checked
                     }
 
                     Label {

@@ -67,6 +67,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
+	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
@@ -243,6 +244,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		haptics_sink.frame_cb = HapticsFrameCb;
 		chiaki_session_set_haptics_sink(&session, &haptics_sink);
 	}
+	if (connect_info.enable_steamdeck_haptics)
+		enable_steamdeck_haptics = true;
+	else
+		enable_steamdeck_haptics = false;
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(pi_decoder)
@@ -1049,6 +1054,8 @@ void StreamSession::ConnectHaptics()
 void StreamSession::ConnectSdeckHaptics()
 {
 	haptics_sdeck++;
+	if(!enable_steamdeck_haptics)
+		return;
 	sdeck_last_haptic = chiaki_time_now_monotonic_ms();
 	const int num_channels = 2; // Left and right haptics
 	const uint32_t samples_per_packet = 120 * sizeof(uint8_t) / (2.0 * sizeof(int16_t));
@@ -1186,7 +1193,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	if(sdeck && haptics_sdeck > 0)
+	if(sdeck && haptics_sdeck > 0 && enable_steamdeck_haptics)
 	{
 		if(buf_size != 120)
 		{
@@ -1232,7 +1239,11 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		right = sumr / buf_count;
 			QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
-							controller->SetHapticRumble(left, right, 10);
+			{
+				if(haptics_sdeck < 1 && controller->IsSteamDeck())
+					continue;
+				controller->SetHapticRumble(left, right, 10);
+			}
 			});
 		return;
 	}

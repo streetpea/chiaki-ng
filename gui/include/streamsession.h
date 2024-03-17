@@ -78,6 +78,7 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
+	bool enable_steamdeck_haptics;
 	bool buttons_by_pos;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
@@ -157,6 +158,7 @@ class StreamSession : public QObject
 		int sdeck_queue_segment;
 		uint64_t sdeck_last_haptic;
 		bool sdeck_skipl, sdeck_skipr;
+		bool enable_steamdeck_haptics;
 		ChiakiOrientationTracker sdeck_orient_tracker;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;

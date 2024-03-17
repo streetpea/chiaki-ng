@@ -30,12 +30,13 @@ You can now attach a microphone and use it to chat online or use in games. There
 
 Added ability to create a Steam shortcut with the name of your choice and Chiaki4deck artwork and the Steam Deck controller profile from the main menu. This makes setup even easier on Steam Deck.
 
-## [Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
+## Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense
 
 Haptics enabled for PlayStation 5 thanks to [Johannes Baiter](https://github.com/jbaiter){target="_blank" rel="noopener"}. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.[^2].
 
-I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
-Since these features are experimental, you need to opt-in via a checkbox in the GUI.
+I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added.
+
+You can also use rumble haptics for controllers without integrated haptics or the Steam Deck if the noise of its haptics bothers you.
 
 ## Updated RGB Mapping
 
