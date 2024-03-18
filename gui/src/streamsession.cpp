@@ -67,9 +67,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
-	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -244,11 +244,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		haptics_sink.frame_cb = HapticsFrameCb;
 		chiaki_session_set_haptics_sink(&session, &haptics_sink);
 	}
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if (connect_info.enable_steamdeck_haptics)
 		enable_steamdeck_haptics = true;
 	else
 		enable_steamdeck_haptics = false;
-
+#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(pi_decoder)
 		chiaki_session_set_video_sample_cb(&session, chiaki_pi_decoder_video_sample_cb, pi_decoder);
@@ -1019,7 +1020,10 @@ void StreamSession::ConnectHaptics()
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring additional controllers.");
 		return;
 	}
-
+#ifdef Q_OS_MACOS
+	// Haptics don't work on MacOS with coreaudio
+	return;
+#endif
 	SDL_AudioSpec want, have;
 	SDL_zero(want);
 	want.freq = 48000;
@@ -1218,7 +1222,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		emit SdeckHapticPushed(packetl, packetr);
 		return;
 	}
-	else if(rumbleHaptics && haptics_output == 0)
+#endif
+	if(rumbleHaptics && haptics_output == 0)
 	{
 
 		int16_t amplitudel = 0, amplituder = 0;
@@ -1237,17 +1242,18 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		uint16_t left = 0, right = 0;
 		left = suml / buf_count;
 		right = sumr / buf_count;
-			QMetaObject::invokeMethod(this, [this, left, right]() {
+		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
 			{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 				if(haptics_sdeck < 1 && controller->IsSteamDeck())
 					continue;
+#endif
 				controller->SetHapticRumble(left, right, 10);
 			}
-			});
+		});
 		return;
 	}
-#endif
 	if(haptics_output == 0)
 		return;
 	SDL_AudioCVT cvt;

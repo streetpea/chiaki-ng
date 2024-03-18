@@ -78,6 +78,7 @@ void QmlSettings::setDualSense(bool dualSense)
     emit dualSenseChanged();
 }
 
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 bool QmlSettings::steamDeckHaptics() const
 {
     return settings->GetSteamDeckHapticsEnabled();
@@ -88,7 +89,7 @@ void QmlSettings::setSteamDeckHaptics(bool steamDeckHaptics)
     settings->SetSteamDeckHapticsEnabled(steamDeckHaptics);
     emit steamDeckHapticsChanged();
 }
-
+#endif
 
 bool QmlSettings::buttonsByPosition() const
 {

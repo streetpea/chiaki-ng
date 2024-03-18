@@ -78,10 +78,10 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
-	bool enable_steamdeck_haptics;
 	bool buttons_by_pos;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
+	bool enable_steamdeck_haptics;
 # endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	bool speech_processing_enabled;

@@ -90,8 +90,10 @@ class Settings : public QObject
 		bool GetVerticalDeckEnabled() const       { return settings.value("settings/gyro_inverted", false).toBool(); }
 		void SetVerticalDeckEnabled(bool enabled) { settings.setValue("settings/gyro_inverted", enabled); }
 
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		bool GetSteamDeckHapticsEnabled() const   { return settings.value("settings/steamdeck_haptics", false).toBool(); }
 		void SetSteamDeckHapticsEnabled(bool enabled) { settings.setValue("settings/steamdeck_haptics", enabled); }
+#endif
 
 		bool GetAutomaticConnect() const         { return settings.value("settings/automatic_connect", false).toBool(); }
 		void SetAutomaticConnect(bool autoconnect)    { settings.setValue("settings/automatic_connect", autoconnect); }

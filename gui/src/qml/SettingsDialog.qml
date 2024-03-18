@@ -123,12 +123,14 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Haptics")
+                        visible: typeof Chiaki.settings.steamDeckHaptics === "function"
                     }
 
                     C.CheckBox {
                         text: qsTr("True haptics for SteamDeck, better quality but noisier")
                         checked: Chiaki.settings.steamDeckHaptics
                         onToggled: Chiaki.settings.steamDeckHaptics = checked
+                        visible: typeof Chiaki.settings.steamDeckHaptics === "function"
                     }
 
                     Label {
@@ -145,12 +147,14 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Vertical:")
+                        visible: typeof Chiaki.settings.verticalDeck === "function"
                     }
 
                     C.CheckBox {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
                         checked: Chiaki.settings.verticalDeck
                         onToggled: Chiaki.settings.verticalDeck = checked
+                        visible: typeof Chiaki.settings.verticalDeck === "function"
                     }
 
                     Label {
