@@ -423,6 +423,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Speech Processing:")
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     C.CheckBox {
@@ -430,12 +431,13 @@ DialogView {
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Noise To Suppress:")
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
 
                     C.Slider {
@@ -443,7 +445,7 @@ DialogView {
                         from: 0
                         to: 60
                         stepSize: 1
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                         value: Chiaki.settings.noiseSuppressLevel
                         onMoved: Chiaki.settings.noiseSuppressLevel = value
 
@@ -460,7 +462,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Echo To Suppress:")
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
 
                     C.Slider {
@@ -469,7 +471,7 @@ DialogView {
                         to: 60
                         stepSize: 1
                         value: Chiaki.settings.echoSuppressLevel
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                         onMoved: Chiaki.settings.echoSuppressLevel = value
 
                         Label {

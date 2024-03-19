@@ -124,6 +124,7 @@ void QmlSettings::setStartMicUnmuted(bool startMicUnmuted)
     emit startMicUnmutedChanged();
 }
 
+#if CHIAKI_GUI_ENABLE_SPEEX
 bool QmlSettings::speechProcessing() const
 {
     return settings->GetSpeechProcessingEnabled();
@@ -156,6 +157,7 @@ void QmlSettings::setEchoSuppressLevel(int level)
     settings->SetEchoSuppressLevel(level);
     emit echoSuppressLevelChanged();
 }
+#endif
 
 int QmlSettings::fps() const
 {

@@ -16,9 +16,11 @@ class QmlSettings : public QObject
 #endif
     Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
     Q_PROPERTY(bool startMicUnmuted READ startMicUnmuted WRITE setStartMicUnmuted NOTIFY startMicUnmutedChanged)
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     Q_PROPERTY(bool speechProcessing READ speechProcessing WRITE setSpeechProcessing NOTIFY speechProcessingChanged)
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
+#endif
     Q_PROPERTY(int fps READ fps WRITE setFps NOTIFY fpsChanged)
     Q_PROPERTY(int bitrate READ bitrate WRITE setBitrate NOTIFY bitrateChanged)
     Q_PROPERTY(int codec READ codec WRITE setCodec NOTIFY codecChanged)
@@ -69,6 +71,7 @@ public:
     bool startMicUnmuted() const;
     void setStartMicUnmuted(bool startMicUnmuted);
 
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     bool speechProcessing() const;
     void setSpeechProcessing(bool processing);
 
@@ -77,6 +80,7 @@ public:
 
     int echoSuppressLevel() const;
     void setEchoSuppressLevel(int level);
+#endif
 
     int fps() const;
     void setFps(int fps);
@@ -134,9 +138,11 @@ signals:
     void verticalDeckChanged();
     void steamDeckHapticsChanged();
 #endif
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     void speechProcessingChanged();
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();
+#endif
     void fpsChanged();
     void bitrateChanged();
     void codecChanged();
