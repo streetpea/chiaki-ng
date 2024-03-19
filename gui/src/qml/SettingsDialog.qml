@@ -196,9 +196,10 @@ DialogView {
                 C.Button {
                     id: aboutButton
                     anchors {
-                        bottom: parent.bottom
-                        horizontalCenter: parent.horizontalCenter
-                        bottomMargin: 20
+                        right: parent.right
+                        rightMargin: 100
+                        top: parent.top
+                        topMargin: 50
                     }
                     lastInFocusChain: true
                     implicitWidth: 200
