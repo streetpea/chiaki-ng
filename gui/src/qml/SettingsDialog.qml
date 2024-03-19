@@ -668,6 +668,7 @@ DialogView {
             title: qsTr("Key Capture")
             modal: true
             standardButtons: Dialog.Close
+            closePolicy: Popup.CloseOnPressOutside
             onOpened: keyLabel.forceActiveFocus()
             onClosed: dialog.forceActiveFocus()
             Material.roundedScale: Material.MediumScale
