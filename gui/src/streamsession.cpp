@@ -68,6 +68,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
+	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
@@ -153,7 +154,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
-
+	start_mic_unmuted = connect_info.start_mic_unmuted;
 	audio_out_device_name = connect_info.audio_out_device;
 	audio_in_device_name = connect_info.audio_in_device;
 
@@ -756,6 +757,9 @@ void StreamSession::SendFeedbackState()
 
 void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 {
+	allow_unmute = true;
+	if(start_mic_unmuted)
+		ToggleMute();
 	if(audio_out)
 		SDL_CloseAudioDevice(audio_out);
 
@@ -790,7 +794,6 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
 				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
-	allow_unmute = true;
 }
 
 void StreamSession::InitMic(unsigned int channels, unsigned int rate)

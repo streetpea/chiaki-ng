@@ -89,6 +89,17 @@ void QmlSettings::setSteamDeckHaptics(bool steamDeckHaptics)
     settings->SetSteamDeckHapticsEnabled(steamDeckHaptics);
     emit steamDeckHapticsChanged();
 }
+
+bool QmlSettings::verticalDeck() const
+{
+    return settings->GetVerticalDeckEnabled();
+}
+
+void QmlSettings::setVerticalDeck(bool vertical)
+{
+    settings->SetVerticalDeckEnabled(vertical);
+    emit verticalDeckChanged();
+}
 #endif
 
 bool QmlSettings::buttonsByPosition() const
@@ -102,15 +113,15 @@ void QmlSettings::setButtonsByPosition(bool buttonsByPosition)
     emit buttonsByPositionChanged();
 }
 
-bool QmlSettings::verticalDeck() const
+bool QmlSettings::startMicUnmuted() const
 {
-    return settings->GetVerticalDeckEnabled();
+    return settings->GetStartMicUnmuted();
 }
 
-void QmlSettings::setVerticalDeck(bool vertical)
+void QmlSettings::setStartMicUnmuted(bool startMicUnmuted)
 {
-    settings->SetVerticalDeckEnabled(vertical);
-    emit verticalDeckChanged();
+    settings->SetStartMicUnmuted(startMicUnmuted);
+    emit startMicUnmutedChanged();
 }
 
 bool QmlSettings::speechProcessing() const

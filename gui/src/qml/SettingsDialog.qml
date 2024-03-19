@@ -123,14 +123,14 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Haptics")
-                        visible: typeof Chiaki.settings.steamDeckHaptics !== "undefined"
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
                     C.CheckBox {
                         text: qsTr("True haptics for SteamDeck, better quality but noisier")
                         checked: Chiaki.settings.steamDeckHaptics
                         onToggled: Chiaki.settings.steamDeckHaptics = checked
-                        visible: typeof Chiaki.settings.steamDeckHaptics !== "undefined"
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
                     Label {
@@ -407,6 +407,17 @@ DialogView {
                             var num = parseInt(text);
                             return num >= 1920 && num <= 19200;
                         }
+                    }
+
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Start Mic Unmuted")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.startMicUnmuted
+                        onToggled: Chiaki.settings.startMicUnmuted = checked
                     }
 
                     Label {

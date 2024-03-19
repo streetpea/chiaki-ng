@@ -87,10 +87,13 @@ class Settings : public QObject
 		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
 		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
 
+		bool GetStartMicUnmuted() const          { return settings.value("settings/start_mic_unmuted", false).toBool(); }
+		void SetStartMicUnmuted(bool unmuted) { return settings.setValue("settings/start_mic_unmuted", unmuted); }
+
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		bool GetVerticalDeckEnabled() const       { return settings.value("settings/gyro_inverted", false).toBool(); }
 		void SetVerticalDeckEnabled(bool enabled) { settings.setValue("settings/gyro_inverted", enabled); }
 
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		bool GetSteamDeckHapticsEnabled() const   { return settings.value("settings/steamdeck_haptics", false).toBool(); }
 		void SetSteamDeckHapticsEnabled(bool enabled) { settings.setValue("settings/steamdeck_haptics", enabled); }
 #endif

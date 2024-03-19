@@ -79,6 +79,7 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool buttons_by_pos;
+	bool start_mic_unmuted;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
 	bool enable_steamdeck_haptics;
@@ -170,6 +171,7 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		QElapsedTimer double_tap_timer;
 		bool rumbleHaptics;
+		bool start_mic_unmuted;
 
 		ChiakiFfmpegDecoder *ffmpeg_decoder;
 		void TriggerFfmpegFrameAvailable();

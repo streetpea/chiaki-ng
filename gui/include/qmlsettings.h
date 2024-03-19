@@ -15,6 +15,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(bool verticalDeck READ verticalDeck WRITE setVerticalDeck NOTIFY verticalDeckChanged)
 #endif
     Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
+    Q_PROPERTY(bool startMicUnmuted READ startMicUnmuted WRITE setStartMicUnmuted NOTIFY startMicUnmutedChanged)
     Q_PROPERTY(bool speechProcessing READ speechProcessing WRITE setSpeechProcessing NOTIFY speechProcessingChanged)
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
@@ -57,13 +58,16 @@ public:
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     bool steamDeckHaptics() const;
     void setSteamDeckHaptics(bool steamDeckHaptics);
+
+    bool verticalDeck() const;
+    void setVerticalDeck(bool vertical);
 #endif
 
     bool buttonsByPosition() const;
     void setButtonsByPosition(bool buttonsByPosition);
 
-    bool verticalDeck() const;
-    void setVerticalDeck(bool vertical);
+    bool startMicUnmuted() const;
+    void setStartMicUnmuted(bool startMicUnmuted);
 
     bool speechProcessing() const;
     void setSpeechProcessing(bool processing);
@@ -125,8 +129,11 @@ signals:
     void logVerboseChanged();
     void dualSenseChanged();
     void buttonsByPositionChanged();
+    void startMicUnmutedChanged();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     void verticalDeckChanged();
     void steamDeckHapticsChanged();
+#endif
     void speechProcessingChanged();
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();
