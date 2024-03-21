@@ -61,6 +61,15 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.5
+
+Graduate DualSense features from experimental status
+
+- Provides quiet haptic rumble for Steam Deck (default) in addition to optional noisy haptics
+- Adds haptic rumble for MacOS
+- Allow escape key to be selected for key mappings in Settings
+- Add option to start the stream with the mic unmuted
+
 ### 1.6.4
 
 Enables creating steam shortcut with default controller profile from menu
