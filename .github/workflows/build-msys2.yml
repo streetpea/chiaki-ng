@@ -67,7 +67,7 @@ jobs:
 
       - name: Configure Chiaki4deck
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
 
       - name: Build Chiaki4deck
         run: |
@@ -77,6 +77,7 @@ jobs:
         run: |
           mkdir Chiaki4deck-Win
           cp build/gui/chiaki.exe Chiaki4deck-Win
+          cp build/third-party/cpp-steam-tools/libcpp-steam-tools.dll Chiaki4deck-Win/
           cp /mingw64/bin/libcrypto-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libssl-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/SDL2.dll Chiaki4deck-Win/

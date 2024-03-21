@@ -69,6 +69,7 @@ Graduate DualSense features from experimental status
 - Adds haptic rumble for MacOS
 - Allow escape key to be selected for key mappings in Settings
 - Add option to start the stream with the mic unmuted
+- Add Steam Shortcut now also available on Windows
 
 ### 1.6.4
 
