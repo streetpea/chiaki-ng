@@ -2945,7 +2945,7 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <p class="admonition-title">Don't turn off gyro entirely, use <code>As mouse</code></p>
 <p>You need to use <code>As mouse</code> instead of just turning off gyro altogether in Steam Input because turning off gyro altogether will pause gyro input and result in native gyro not working. This means games that have gyro in them for actions such as the flashlight in Last of Us or the paintbrush in Concrete Genie won't work properly. Using <code>As mouse</code> means only gyro set in the game itself will result in an action (since mouse movement by itself isn't mapped to anything in chiaki4deck) so it has the same effect of turning off gyro for games that don't use it for a required in-game control.</p>
 </div>
-<h3 id="setup-controlling-haptics-and-adaptive-triggers-experimental">Haptics and Adaptive Triggers [Experimental]<a class="headerlink" href="#setup-controlling-haptics-and-adaptive-triggers-experimental" title="Permanent link">&para;</a></h3>
+<h3 id="setup-controlling-haptics-and-adaptive-triggers">Haptics and Adaptive Triggers<a class="headerlink" href="#setup-controlling-haptics-and-adaptive-triggers" title="Permanent link">&para;</a></h3>
 <p>PlayStation 5 haptics are mapped for both the DualSense controller (usb connection required) and the Steam Deck controller and adaptive triggers are mapped for the DualSense controller (usb or bluetooth). These need to be explicitly enabled by checking the PS5 features box in the GUI as shown in the picture below:</p>
 <p><img alt="Enable PlayStation 5 Features" src="../updates/images/EnablePlayStation5Features.png" /></p>
 <p>If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">here</a>.
@@ -3186,6 +3186,14 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-165">1.6.5<a class="headerlink" href="#updates-releases-165" title="Permanent link">&para;</a></h3>
+<p>Graduate DualSense features from experimental status</p>
+<ul>
+<li>Provides quiet haptic rumble for Steam Deck (default) in addition to optional noisy haptics</li>
+<li>Adds haptic rumble for MacOS</li>
+<li>Allow escape key to be selected for key mappings in Settings</li>
+<li>Add option to start the stream with the mic unmuted</li>
+</ul>
 <h3 id="updates-releases-164">1.6.4<a class="headerlink" href="#updates-releases-164" title="Permanent link">&para;</a></h3>
 <p>Enables creating steam shortcut with default controller profile from menu</p>
 <ul>
@@ -3467,10 +3475,10 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>You can now attach a microphone and use it to chat online or use in games. There is also noise suppression and echo cancelling for the mic you can configure in the chiaki4deck settings.</p>
 <h2 id="updates-done-added-steam-shortcut-creation-button">Added Steam Shortcut Creation Button<a class="headerlink" href="#updates-done-added-steam-shortcut-creation-button" title="Permanent link">&para;</a></h2>
 <p>Added ability to create a Steam shortcut with the name of your choice and Chiaki4deck artwork and the Steam Deck controller profile from the main menu. This makes setup even easier on Steam Deck.</p>
-<h2 id="updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">[Experimental] Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#updates-done-experimental-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
+<h2 id="updates-done-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense">Enabled Haptics for Steam Deck and DualSense controller + adaptive Triggers for DualSense<a class="headerlink" href="#updates-done-enabled-haptics-for-steam-deck-and-dualsense-controller-adaptive-triggers-for-dualsense" title="Permanent link">&para;</a></h2>
 <p>Haptics enabled for PlayStation 5 thanks to <a href="https://github.com/jbaiter" rel="noopener" target="_blank">Johannes Baiter</a>. You can use a USB connected DualSense for haptics and adaptive triggers or a bluetooth connected DualSense for just adaptive triggers. To use these features for the DualSense in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki4deck-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.<sup id="fnref:2"><a class="footnote-ref" href="#updates-done-fn:2">2</a></sup>.</p>
-<p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added. 
-Since these features are experimental, you need to opt-in via a checkbox in the GUI.</p>
+<p>I have also added the capability to play the haptics via the Steam Deck controller using the native interface I added.</p>
+<p>You can also use rumble haptics for controllers without integrated haptics or the Steam Deck if the noise of its haptics bothers you.</p>
 <h2 id="updates-done-updated-rgb-mapping">Updated RGB Mapping<a class="headerlink" href="#updates-done-updated-rgb-mapping" title="Permanent link">&para;</a></h2>
 <p>RGB mapping update thanks to <a href="https://github.com/Egoistically" rel="noopener" target="_blank">Egoistically</a> via a <a href="https://github.com/Egoistically/chiaki" rel="noopener" target="_blank">Chiaki fork</a> which is of course copy-left under the <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener" target="_blank">GNU Affero General Public License version 3</a> as are all of the other <code>chiaki4deck</code> changes. I added the patches to <code>chiaki4deck</code> and it results in a more accurate picture. Joni Bimbashi updated the initial mapping to work with HW acceleration. Below is a <strong>BEFORE</strong> and <strong>AFTER</strong> from Ghost of Tsushima.</p>
 <div class="admonition example">
