@@ -115,9 +115,22 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        text: qsTr("Haptics + adaptive triggers (DS), Haptics (SD), PS5 Rumble (others)")
+                        text: qsTr("Haptics + adaptive triggers (DS), PS5 Rumble (others)")
                         checked: Chiaki.settings.dualSense
                         onToggled: Chiaki.settings.dualSense = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Steam Deck Haptics")
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("True haptics for SteamDeck, better quality but noisier")
+                        checked: Chiaki.settings.steamDeckHaptics
+                        onToggled: Chiaki.settings.steamDeckHaptics = checked
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
                     Label {
@@ -134,12 +147,14 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Vertical:")
+                        visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
 
                     C.CheckBox {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
                         checked: Chiaki.settings.verticalDeck
                         onToggled: Chiaki.settings.verticalDeck = checked
+                        visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
 
                     Label {
@@ -181,9 +196,10 @@ DialogView {
                 C.Button {
                     id: aboutButton
                     anchors {
-                        bottom: parent.bottom
-                        horizontalCenter: parent.horizontalCenter
-                        bottomMargin: 20
+                        right: parent.right
+                        rightMargin: 100
+                        top: parent.top
+                        topMargin: 50
                     }
                     lastInFocusChain: true
                     implicitWidth: 200
@@ -393,9 +409,21 @@ DialogView {
                         }
                     }
 
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Start Mic Unmuted")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.startMicUnmuted
+                        onToggled: Chiaki.settings.startMicUnmuted = checked
+                    }
+
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Speech Processing:")
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     C.CheckBox {
@@ -403,12 +431,13 @@ DialogView {
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Noise To Suppress:")
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
 
                     C.Slider {
@@ -416,7 +445,7 @@ DialogView {
                         from: 0
                         to: 60
                         stepSize: 1
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                         value: Chiaki.settings.noiseSuppressLevel
                         onMoved: Chiaki.settings.noiseSuppressLevel = value
 
@@ -433,7 +462,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Echo To Suppress:")
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
 
                     C.Slider {
@@ -442,7 +471,7 @@ DialogView {
                         to: 60
                         stepSize: 1
                         value: Chiaki.settings.echoSuppressLevel
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                         onMoved: Chiaki.settings.echoSuppressLevel = value
 
                         Label {
@@ -652,6 +681,7 @@ DialogView {
             title: qsTr("Key Capture")
             modal: true
             standardButtons: Dialog.Close
+            closePolicy: Popup.CloseOnPressOutside
             onOpened: keyLabel.forceActiveFocus()
             onClosed: dialog.forceActiveFocus()
             Material.roundedScale: Material.MediumScale

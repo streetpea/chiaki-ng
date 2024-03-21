@@ -79,8 +79,10 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool buttons_by_pos;
+	bool start_mic_unmuted;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
+	bool enable_steamdeck_haptics;
 # endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	bool speech_processing_enabled;
@@ -157,6 +159,7 @@ class StreamSession : public QObject
 		int sdeck_queue_segment;
 		uint64_t sdeck_last_haptic;
 		bool sdeck_skipl, sdeck_skipr;
+		bool enable_steamdeck_haptics;
 		ChiakiOrientationTracker sdeck_orient_tracker;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
@@ -168,6 +171,7 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		QElapsedTimer double_tap_timer;
 		bool rumbleHaptics;
+		bool start_mic_unmuted;
 
 		ChiakiFfmpegDecoder *ffmpeg_decoder;
 		void TriggerFfmpegFrameAvailable();

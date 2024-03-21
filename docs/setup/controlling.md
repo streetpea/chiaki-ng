@@ -178,7 +178,7 @@ Additionally, you can use gyro controls for camera options with any game by mapp
 !!! Warning "Don't turn off gyro entirely, use `As mouse`"
     You need to use `As mouse` instead of just turning off gyro altogether in Steam Input because turning off gyro altogether will pause gyro input and result in native gyro not working. This means games that have gyro in them for actions such as the flashlight in Last of Us or the paintbrush in Concrete Genie won't work properly. Using `As mouse` means only gyro set in the game itself will result in an action (since mouse movement by itself isn't mapped to anything in chiaki4deck) so it has the same effect of turning off gyro for games that don't use it for a required in-game control.
 
-### Haptics and Adaptive Triggers [Experimental]
+### Haptics and Adaptive Triggers
 
 PlayStation 5 haptics are mapped for both the DualSense controller (usb connection required) and the Steam Deck controller and adaptive triggers are mapped for the DualSense controller (usb or bluetooth). These need to be explicitly enabled by checking the PS5 features box in the GUI as shown in the picture below:
 

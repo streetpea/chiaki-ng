@@ -291,7 +291,7 @@ void Settings::SetWifiDroppedNotif(unsigned int percent)
 
 bool Settings::GetSpeechProcessingEnabled() const
 {
-	return settings.value("settings/enable_speech_processing", true).toBool();
+	return settings.value("settings/enable_speech_processing", false).toBool();
 }
 
 int Settings::GetNoiseSuppressLevel() const

@@ -42,7 +42,8 @@ Please submit general issues to the [chiaki4deck GitHub](https://github.com/stre
     - Chiaki Authors (including but not limited to Florian Märkl)
     - Reddit users and others who have helped me in my personal Chiaki journey such as u/mintcu7000 with his getting started guide on Reddit
     - Egoistically for the RGB update patch
-    - Florian Grill for his gracious help with adding mic support
+    - Florian Grill for his gracious help with reverse engineering the PlayStation remote play protocols
+    - SageLevi and Superwormy for creating Chiaki4deck artwork
 
 * Thanks to the following open-source projects for inspiration around Steam Deck gyro and haptics:
     - [Steam Controller Singer](https://github.com/Roboron3042/SteamControllerSinger){target="_blank" rel="noopener"}

@@ -15,7 +15,7 @@ jobs:
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
-      libplacebo_tag: 311a59507f6a0465aaac9b783af65bf349755360
+      libplacebo_tag: 5c1e6da21f108a27b11fad97fd491ddee06ede3c
 
     defaults:
       run:
@@ -41,7 +41,7 @@ jobs:
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
         with:
-          version: 17
+          version: 18
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -64,7 +64,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           aqtversion: '==3.1.*'
-          version: "6.6.1"
+          version: "6.6.2"
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
@@ -111,7 +111,7 @@ jobs:
         run: |
           git clone --recursive https://github.com/haasn/libplacebo.git
           cd libplacebo
-          git checkout ${{ env.libplacebo_tag }}
+          git checkout --recurse-submodules ${{ env.libplacebo_tag }}
           meson setup `
           --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
           --native-file ../meson.ini `

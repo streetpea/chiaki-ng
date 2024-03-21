@@ -10,11 +10,17 @@ class QmlSettings : public QObject
     Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
     Q_PROPERTY(bool dualSense READ dualSense WRITE setDualSense NOTIFY dualSenseChanged)
-    Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    Q_PROPERTY(bool steamDeckHaptics READ steamDeckHaptics WRITE setSteamDeckHaptics NOTIFY steamDeckHapticsChanged)
     Q_PROPERTY(bool verticalDeck READ verticalDeck WRITE setVerticalDeck NOTIFY verticalDeckChanged)
+#endif
+    Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
+    Q_PROPERTY(bool startMicUnmuted READ startMicUnmuted WRITE setStartMicUnmuted NOTIFY startMicUnmutedChanged)
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     Q_PROPERTY(bool speechProcessing READ speechProcessing WRITE setSpeechProcessing NOTIFY speechProcessingChanged)
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
+#endif
     Q_PROPERTY(int fps READ fps WRITE setFps NOTIFY fpsChanged)
     Q_PROPERTY(int bitrate READ bitrate WRITE setBitrate NOTIFY bitrateChanged)
     Q_PROPERTY(int codec READ codec WRITE setCodec NOTIFY codecChanged)
@@ -51,12 +57,21 @@ public:
     bool dualSense() const;
     void setDualSense(bool dualSense);
 
-    bool buttonsByPosition() const;
-    void setButtonsByPosition(bool buttonsByPosition);
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    bool steamDeckHaptics() const;
+    void setSteamDeckHaptics(bool steamDeckHaptics);
 
     bool verticalDeck() const;
     void setVerticalDeck(bool vertical);
+#endif
 
+    bool buttonsByPosition() const;
+    void setButtonsByPosition(bool buttonsByPosition);
+
+    bool startMicUnmuted() const;
+    void setStartMicUnmuted(bool startMicUnmuted);
+
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     bool speechProcessing() const;
     void setSpeechProcessing(bool processing);
 
@@ -65,6 +80,7 @@ public:
 
     int echoSuppressLevel() const;
     void setEchoSuppressLevel(int level);
+#endif
 
     int fps() const;
     void setFps(int fps);
@@ -117,10 +133,16 @@ signals:
     void logVerboseChanged();
     void dualSenseChanged();
     void buttonsByPositionChanged();
+    void startMicUnmutedChanged();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     void verticalDeckChanged();
+    void steamDeckHapticsChanged();
+#endif
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     void speechProcessingChanged();
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();
+#endif
     void fpsChanged();
     void bitrateChanged();
     void codecChanged();

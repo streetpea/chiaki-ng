@@ -68,7 +68,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
+	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -152,7 +154,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
-
+	start_mic_unmuted = connect_info.start_mic_unmuted;
 	audio_out_device_name = connect_info.audio_out_device;
 	audio_in_device_name = connect_info.audio_in_device;
 
@@ -243,7 +245,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		haptics_sink.frame_cb = HapticsFrameCb;
 		chiaki_session_set_haptics_sink(&session, &haptics_sink);
 	}
-
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	if (connect_info.enable_steamdeck_haptics)
+		enable_steamdeck_haptics = true;
+	else
+		enable_steamdeck_haptics = false;
+#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(pi_decoder)
 		chiaki_session_set_video_sample_cb(&session, chiaki_pi_decoder_video_sample_cb, pi_decoder);
@@ -750,6 +757,9 @@ void StreamSession::SendFeedbackState()
 
 void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 {
+	allow_unmute = true;
+	if(start_mic_unmuted)
+		ToggleMute();
 	if(audio_out)
 		SDL_CloseAudioDevice(audio_out);
 
@@ -784,7 +794,6 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
 				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
-	allow_unmute = true;
 }
 
 void StreamSession::InitMic(unsigned int channels, unsigned int rate)
@@ -1014,7 +1023,10 @@ void StreamSession::ConnectHaptics()
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring additional controllers.");
 		return;
 	}
-
+#ifdef Q_OS_MACOS
+	// Haptics don't work on MacOS with coreaudio
+	return;
+#endif
 	SDL_AudioSpec want, have;
 	SDL_zero(want);
 	want.freq = 48000;
@@ -1049,6 +1061,8 @@ void StreamSession::ConnectHaptics()
 void StreamSession::ConnectSdeckHaptics()
 {
 	haptics_sdeck++;
+	if(!enable_steamdeck_haptics)
+		return;
 	sdeck_last_haptic = chiaki_time_now_monotonic_ms();
 	const int num_channels = 2; // Left and right haptics
 	const uint32_t samples_per_packet = 120 * sizeof(uint8_t) / (2.0 * sizeof(int16_t));
@@ -1186,7 +1200,7 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	if(sdeck && haptics_sdeck > 0)
+	if(sdeck && haptics_sdeck > 0 && enable_steamdeck_haptics)
 	{
 		if(buf_size != 120)
 		{
@@ -1211,7 +1225,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		emit SdeckHapticPushed(packetl, packetr);
 		return;
 	}
-	else if(rumbleHaptics && haptics_output == 0)
+#endif
+	if(rumbleHaptics && haptics_output == 0)
 	{
 
 		int16_t amplitudel = 0, amplituder = 0;
@@ -1230,13 +1245,18 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		uint16_t left = 0, right = 0;
 		left = suml / buf_count;
 		right = sumr / buf_count;
-			QMetaObject::invokeMethod(this, [this, left, right]() {
+		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
-							controller->SetHapticRumble(left, right, 10);
-			});
+			{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+				if(haptics_sdeck < 1 && controller->IsSteamDeck())
+					continue;
+#endif
+				controller->SetHapticRumble(left, right, 10);
+			}
+		});
 		return;
 	}
-#endif
 	if(haptics_output == 0)
 		return;
 	SDL_AudioCVT cvt;
