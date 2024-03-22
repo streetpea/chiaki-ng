@@ -1252,7 +1252,10 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 				if(haptics_sdeck < 1 && controller->IsSteamDeck())
 					continue;
 #endif
-				controller->SetHapticRumble(left, right, 10);
+				if(left > right)
+					controller->SetHapticRumble(left, left, 10);
+				else
+					controller->SetHapticRumble(right, right, 10);
 			}
 		});
 		return;
