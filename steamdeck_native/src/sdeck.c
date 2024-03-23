@@ -26,6 +26,9 @@
 #define FUZZ_FILTER_PREV_WEIGHT 0.75f
 #define FUZZ_FILTER_PREV_WEIGHT2x 0.6f
 #define STEAM_DECK_GYRO_DEADZONE 24.0f
+// amount of cycles of 0 motion data to wait before sending enable motion message
+// time = cycles * 4ms (i.e., 1000 * 4ms = 4000 ms = 4s)
+#define STEAM_DECK_MOTION_COOLDOWN 1000
 #define STEAM_DECK_HAPTIC_COMMAND 0x8f
 #define STEAM_DECK_HAPTIC_LENGTH 0x07
 #define STEAM_DECK_HAPTIC_INTENSITY 0.38f
@@ -81,7 +84,7 @@ SDeck *sdeck_new()
 	}
 	memset(&sdeck->prev_motion, 0, sizeof(SDeckMotion));
 	sdeck->motion_dirty = false;
-	sdeck->gyro = 1000;
+	sdeck->gyro = STEAM_DECK_MOTION_COOLDOWN;
 	sdeck->freqfinder = NULL;
 	return sdeck;
 }
@@ -565,7 +568,7 @@ void sdeck_read(SDeck *sdeck, SDeckEventCb cb, void *user)
 			if(sdeck->gyro <= 0)
 			{
 				if(enable_gyro(sdeck) == 0)
-					sdeck->gyro = 1000;
+					sdeck->gyro = STEAM_DECK_MOTION_COOLDOWN;
 				generate_event(sdeck, SDECK_EVENT_GYRO_ENABLE, cb, user);
 			}
 		}
