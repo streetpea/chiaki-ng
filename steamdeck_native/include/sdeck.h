@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct sdeck_t SDeck;
 //typedef struct freq_t FreqFinder;
@@ -80,7 +81,9 @@ typedef struct SDHaptic
 // since that functionality is already provided w/ QT/SDL
 typedef enum {
 	/* Event will have motion set (accel, gyro + orientation) */
-	SDECK_EVENT_MOTION
+	SDECK_EVENT_MOTION,
+    /* Event will have no data */
+    SDECK_EVENT_GYRO_ENABLE
 } SDeckEventType;
 
 typedef struct sdeck_motion_t
@@ -94,7 +97,10 @@ typedef struct sdeck_motion_t
 typedef struct sdeck_event_t
 {
 	SDeckEventType type;
-    SDeckMotion motion;
+    union {
+        SDeckMotion motion;
+        bool enabled;
+    };
 } SDeckEvent;
 
 typedef void (*SDeckEventCb)(SDeckEvent *event, void *user);

@@ -1380,6 +1380,12 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 				sdeck_orient_dirty = true;
 			}
 			break;
+		case SDECK_EVENT_GYRO_ENABLE:
+			if(event->enabled)
+				CHIAKI_LOGI(GetChiakiLog(), "Gyro enabled for Steam Deck");
+			else
+				CHIAKI_LOGE(GetChiakiLog(), "Gyro could not be enabled for Steam Deck");
+			break;
 	}
 }
 #endif
