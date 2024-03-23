@@ -558,7 +558,7 @@ void sdeck_read(SDeck *sdeck, SDeckEventCb cb, void *user)
 	// apply deadzone filter to gyro to reduce jitter when still
 	if (data_to_read)
 	{
-		if(sdc.accel_x == 0 && sdc.accel_y == 0 && sdc.accel_z == 0 && sdc.orient_w == 0 && sdc.orient_y == 0 && 
+		if(sdc.accel_x == 0 && sdc.accel_y == 0 && sdc.accel_z == 0 && sdc.orient_w == 0 && sdc.orient_x == 0 && sdc.orient_y == 0 && 
 			sdc.orient_z == 0 && sdc.gyro_x == 0 && sdc.gyro_y == 0 && sdc.gyro_z == 0)
 		{
 			sdeck->gyro--;
