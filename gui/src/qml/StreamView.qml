@@ -263,10 +263,12 @@ Item {
                 Keys.onEscapePressed: menuView.close()
             }
 
-            C.Slider {
+            Slider {
                 id: zoomFactor
+                orientation: Qt.Vertical
                 from: 0
                 to: 4
+                Layout.preferredHeight: 100
                 stepSize: 0.01
                 visible: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
                 value: Chiaki.window.ZoomFactor
@@ -277,9 +279,16 @@ Item {
                 Label {
                     anchors {
                         top: parent.bottom
+                        horizontalCenter: parent.horizontalCenter
                         leftMargin: 10
                     }
-                    text: qsTr("%1").arg(parent.value)
+                    text: {
+                        if(parent.value === 0)
+                            qsTr("No Black Bars")
+                        else
+                            qsTr("%1 x").arg(parent.value + 1)
+                    }
+
                 }
             }
 
