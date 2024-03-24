@@ -207,6 +207,16 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 	settings.setValue("settings/placebo_preset", placebo_preset_values[preset]);
 }
 
+float Settings::GetZoomFactor() const
+{
+	return settings.value("settings/zoom_factor", 0).toFloat();
+}
+
+void Settings::SetZoomFactor(float factor)
+{
+	settings.setValue("settings/zoom_factor", factor);
+}
+
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
 	{ WindowType::Fullscreen, "Fullscreen" },

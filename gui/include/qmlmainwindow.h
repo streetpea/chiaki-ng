@@ -41,6 +41,7 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(int droppedFrames READ droppedFrames NOTIFY droppedFramesChanged)
     Q_PROPERTY(bool keepVideo READ keepVideo WRITE setKeepVideo NOTIFY keepVideoChanged)
     Q_PROPERTY(VideoMode videoMode READ videoMode WRITE setVideoMode NOTIFY videoModeChanged)
+    Q_PROPERTY(float ZoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY zoomFactorChanged)
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
 
 public:
@@ -72,6 +73,9 @@ public:
     VideoMode videoMode() const;
     void setVideoMode(VideoMode mode);
 
+    float zoomFactor() const;
+    void setZoomFactor(float factor);
+
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
 
@@ -88,6 +92,7 @@ signals:
     void droppedFramesChanged();
     void keepVideoChanged();
     void videoModeChanged();
+    void zoomFactorChanged();
     void videoPresetChanged();
     void menuRequested();
 
@@ -113,6 +118,7 @@ private:
     int dropped_frames = 0;
     int dropped_frames_current = 0;
     VideoMode video_mode = VideoMode::Normal;
+    float zoom_factor = 0;
     VideoPreset video_preset = VideoPreset::HighQuality;
 
     QmlBackend *backend = {};

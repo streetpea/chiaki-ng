@@ -5,6 +5,8 @@ import QtQuick.Controls.Material
 
 import org.streetpea.chiaki4deck
 
+import "controls" as C
+
 Item {
     id: view
 
@@ -251,9 +253,34 @@ Item {
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Zoom
                 KeyNavigation.left: muteButton
-                KeyNavigation.right: stretchButton
+                KeyNavigation.right: {
+                    if(Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom)
+                        zoomFactor
+                    else
+                        stretchButton
+                }
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
+            }
+
+            C.Slider {
+                id: zoomFactor
+                from: 0
+                to: 4
+                stepSize: 0.01
+                visible: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
+                value: Chiaki.window.ZoomFactor
+                onMoved: {
+                    Chiaki.window.ZoomFactor = value
+                    Chiaki.settings.sZoomFactor = value
+                }
+                Label {
+                    anchors {
+                        top: parent.bottom
+                        leftMargin: 10
+                    }
+                    text: qsTr("%1").arg(parent.value)
+                }
             }
 
             ToolSeparator {
@@ -269,7 +296,12 @@ Item {
                 checkable: true
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Stretch
-                KeyNavigation.left: zoomButton
+                KeyNavigation.left: {
+                    if(Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom)
+                        zoomFactor
+                    else
+                        zoomButton
+                }
                 KeyNavigation.right: defaultButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
