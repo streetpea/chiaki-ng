@@ -1279,7 +1279,10 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 				if(haptics_sdeck < 1 && controller->IsSteamDeck())
 					continue;
 #endif
-				controller->SetHapticRumble(left, right, 10);
+				if(left > right)
+					controller->SetHapticRumble(left, left, 10);
+				else
+					controller->SetHapticRumble(right, right, 10);
 			}
 		});
 		return;
@@ -1403,6 +1406,12 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 					chiaki_time_now_monotonic_us());
 				sdeck_orient_dirty = true;
 			}
+			break;
+		case SDECK_EVENT_GYRO_ENABLE:
+			if(event->enabled)
+				CHIAKI_LOGI(GetChiakiLog(), "Gyro enabled for Steam Deck");
+			else
+				CHIAKI_LOGE(GetChiakiLog(), "Gyro could not be enabled for Steam Deck");
 			break;
 	}
 }

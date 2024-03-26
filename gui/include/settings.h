@@ -128,6 +128,9 @@ class Settings : public QObject
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
 
+		float GetZoomFactor() const;
+		void SetZoomFactor(float factor);
+
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);
 

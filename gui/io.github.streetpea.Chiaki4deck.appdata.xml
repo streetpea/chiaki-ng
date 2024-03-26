@@ -22,6 +22,16 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-3-20" version="1.6.5">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Provides quiet haptic rumble for Steam Deck (default) in addition to optional noisy haptics</li>
+          <li>Allow escape key to be selected for key mappings in Settings</li>
+          <li>Add option to start the stream with the mic unmuted</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-3-15" version="1.6.4">
       <description>
         <p>This release provides the following improvements:</p>
