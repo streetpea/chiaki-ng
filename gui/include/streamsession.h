@@ -130,6 +130,9 @@ class StreamSession : public QObject
 		bool connected;
 		bool muted;
 		bool mic_connected;
+#ifdef Q_OS_MACOS
+		bool mic_authorization;
+#endif
 		bool allow_unmute;
 		int input_block;
 		QString host;
@@ -202,6 +205,9 @@ class StreamSession : public QObject
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
+#ifdef Q_OS_MACOS
+		void SetMicAuthorization(bool authorized);
+#endif
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
 #endif

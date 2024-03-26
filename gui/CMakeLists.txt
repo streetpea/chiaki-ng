@@ -2,6 +2,11 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+
+if(APPLE)
+	enable_language(OBJCXX)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg Qml Quick)
 find_package(Qt6 COMPONENTS DBus)
 
@@ -58,6 +63,13 @@ if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
 	)
 endif()
 
+if(APPLE)
+	list(APPEND SOURCE_FILES
+		include/macMicPermission.h
+		src/macMicPermission.m
+	)
+endif()
+
 add_executable(chiaki WIN32
 		${RESOURCE_FILES}
 		${SOURCE_FILES}
@@ -101,6 +113,9 @@ if(CHIAKI_ENABLE_STEAM_SHORTCUT)
 endif()
 if(NOT CHIAKI_ENABLE_FFMPEG_DECODER)
 	message(FATAL_ERROR "Chiaki GUI requires CHIAKI_ENABLE_FFMPEG_DECODER=ON")
+endif()
+if(APPLE)
+	target_link_libraries(chiaki "-framework AVFoundation")
 endif()
 
 set_target_properties(chiaki PROPERTIES

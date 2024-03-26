@@ -3,6 +3,9 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
+#ifdef Q_OS_MACOS
+#include <macMicPermission.h>
+#endif
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
@@ -83,6 +86,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
+#ifdef Q_OS_MACOS
+static void MacMicRequestCb(bool authorized, void *user);
+#endif
 static void CantDisplayCb(void *user, bool cant_display);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -118,6 +124,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connected = false;
 	muted = true;
 	mic_connected = false;
+#ifdef Q_OS_MACOS
+	mic_authorization = false;
+#endif
 	allow_unmute = false;
 	rumbleHaptics = false;
 	input_block = 0;
@@ -461,6 +470,13 @@ void StreamSession::ToggleMute()
 		return;
 	if(!mic_connected)
 	{
+#ifdef Q_OS_MACOS
+		if(!mic_authorization)
+		{
+			macMicPermission(MacMicRequestCb, this);
+			return;
+		}
+#endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 		if(speech_processing_enabled)
 		{
@@ -1197,6 +1213,17 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 	SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size);
 }
 
+#ifdef Q_OS_MACOS
+void StreamSession::SetMicAuthorization(bool authorized)
+{
+	mic_authorization = authorized;
+	if(mic_authorization)
+		ToggleMute();
+	else
+		CHIAKI_LOGE(GetChiakiLog(), "You have denied mic access. Please manually enable mic access in your System Preferences.");
+}
+#endif
+
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -1519,6 +1546,9 @@ class StreamSessionPrivate
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
+#ifdef Q_OS_MACOS
+		static void SetMicAuthorization(StreamSession *session, bool authorized)                 { session->SetMicAuthorization(authorized); }
+#endif
 		static void CantDisplayMessage(StreamSession *session, bool cant_display)	{session->CantDisplayMessage(cant_display); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -1541,6 +1571,14 @@ static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushAudioFrame(session, buf, samples_count);
 }
+
+#ifdef Q_OS_MACOS
+static void MacMicRequestCb(bool authorized, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::SetMicAuthorization(session, authorized);
+}
+#endif
 
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
 {
