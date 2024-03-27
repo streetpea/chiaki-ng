@@ -8,7 +8,7 @@ void macMicPermission(MacMicPermissionCb cb, void *user) {
     {
         case AVAuthorizationStatusAuthorized:
         {
-            cb(true, user);
+            cb(AUTHORIZED, user);
             break;
         }
         case AVAuthorizationStatusNotDetermined:
@@ -17,23 +17,23 @@ void macMicPermission(MacMicPermissionCb cb, void *user) {
             // explicitly prompt them for approval.
             [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio completionHandler:^(BOOL granted) {
                 if (granted) {
-                    cb(true, user);
+                    cb(AUTHORIZED, user);
                 }
                 else
-                   cb(false, user);
+                   cb(DENIED, user);
             }];
             break;
         }
         case AVAuthorizationStatusDenied:
         {
             // The user has previously denied access.
-            cb(false, user);
+            cb(DENIED, user);
             break;
         }
         case AVAuthorizationStatusRestricted:
         {
             // The user can't grant access due to restrictions.
-            cb(false, user);
+            cb(RESTRICTED, user);
             break;
         }
     }

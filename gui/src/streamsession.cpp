@@ -3,9 +3,6 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
-#ifdef Q_OS_MACOS
-#include <macMicPermission.h>
-#endif
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
@@ -87,7 +84,7 @@ static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
 #ifdef Q_OS_MACOS
-static void MacMicRequestCb(bool authorized, void *user);
+static void MacMicRequestCb(Authorization authorization, void *user);
 #endif
 static void CantDisplayCb(void *user, bool cant_display);
 static void EventCb(ChiakiEvent *event, void *user);
@@ -1214,13 +1211,21 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 }
 
 #ifdef Q_OS_MACOS
-void StreamSession::SetMicAuthorization(bool authorized)
+void StreamSession::SetMicAuthorization(Authorization authorization)
 {
-	mic_authorization = authorized;
-	if(mic_authorization)
-		ToggleMute();
-	else
-		CHIAKI_LOGE(GetChiakiLog(), "You have denied mic access. Please manually enable mic access in your System Preferences.");
+	switch(authorization)
+	{
+		case AUTHORIZED:
+			mic_authorization = true;
+			ToggleMute();
+			break;
+		case DENIED:
+			CHIAKI_LOGE(GetChiakiLog(), "You have denied mic access. Please manually enable mic access in your System Preferences.");
+			break;
+		case RESTRICTED:
+			CHIAKI_LOGE(GetChiakiLog(), "Access to the microphone is restricted. Please change your parental controls to allow enabling mic access if desired.");
+			break;
+	}
 }
 #endif
 
@@ -1556,7 +1561,7 @@ class StreamSessionPrivate
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
 #ifdef Q_OS_MACOS
-		static void SetMicAuthorization(StreamSession *session, bool authorized)                 { session->SetMicAuthorization(authorized); }
+		static void SetMicAuthorization(StreamSession *session, Authorization authorization)                 { session->SetMicAuthorization(authorization); }
 #endif
 		static void CantDisplayMessage(StreamSession *session, bool cant_display)	{session->CantDisplayMessage(cant_display); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
@@ -1582,10 +1587,10 @@ static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
 }
 
 #ifdef Q_OS_MACOS
-static void MacMicRequestCb(bool authorized, void *user)
+static void MacMicRequestCb(Authorization authorization, void *user)
 {
 	auto session = reinterpret_cast<StreamSession *>(user);
-	StreamSessionPrivate::SetMicAuthorization(session, authorized);
+	StreamSessionPrivate::SetMicAuthorization(session, authorization);
 }
 #endif
 
