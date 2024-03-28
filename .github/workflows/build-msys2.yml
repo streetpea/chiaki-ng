@@ -126,7 +126,7 @@ jobs:
           cp /mingw64/bin/libspeex-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libshaderc_shared.dll Chiaki4deck-Win/
           cp /mingw64/bin/libtheoradec-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libSvtAv1Enc.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libSvtAv1Enc*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libtheoraenc-1.dll Chiaki4deck-Win/
           cp /mingw64/bin/libvorbis-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libspirv-cross-c-shared.dll Chiaki4deck-Win/
