@@ -136,11 +136,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 	static const int transitions_r[] = { 1, 1, 3, 1 };
 	static const int transitions_n[] = { 0, 2, 0, 4 };
 
-	*received_size = 0;
-	while(true)
-	{
-		if(stop_pipe)
-		{
+	while(*received_size == 0 || nl_state != 4) {
+		if (stop_pipe) {
 			ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, sock, false, timeout_ms);
 			if(err != CHIAKI_ERR_SUCCESS)
 				return err;
