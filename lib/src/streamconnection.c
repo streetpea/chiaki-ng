@@ -888,9 +888,35 @@ static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	buf_size = stream.bytes_written;
-	err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf, buf_size, NULL);
-
+	int32_t total_size = stream.bytes_written;
+	uint32_t mtu = (session->mtu_in < session->mtu_out) ? session->mtu_in : session->mtu_out;
+	// Take into account overhead of network
+	mtu -= 50;
+	uint32_t buf_pos = 0;
+	bool first = true;
+	while((mtu < total_size + 26) || (mtu < total_size + 25 && !first))
+	{
+		if(first)
+		{
+			buf_size = mtu - 26;
+			err = chiaki_takion_send_message_data(&stream_connection->takion, 0, 1, buf + buf_pos, buf_size, NULL);
+			first = false;
+		}
+		else
+		{
+			buf_size = mtu - 25;
+			err = chiaki_takion_send_message_data_cont(&stream_connection->takion, 0, 1, buf + buf_pos, buf_size, NULL);
+		}
+		buf_pos += buf_size;
+		total_size -= buf_size;
+	}
+	if(total_size > 0)
+	{
+		if(first)
+		  err = chiaki_takion_send_message_data(&stream_connection->takion, 1, 1, buf + buf_pos, total_size, NULL);
+		else
+		  err = chiaki_takion_send_message_data_cont(&stream_connection->takion, 1, 1, buf + buf_pos, total_size, NULL);
+	}
 	return err;
 }
 
