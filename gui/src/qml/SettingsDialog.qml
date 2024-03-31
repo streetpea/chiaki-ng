@@ -122,7 +122,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Steam Deck Haptics")
+                        text: qsTr("Steam Deck Haptics:")
                         visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
@@ -412,7 +412,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Start Mic Unmuted")
+                        text: qsTr("Start Mic Unmuted:")
                     }
 
                     C.CheckBox {
@@ -486,7 +486,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Wifi Instability Notification Triggers")
+                        text: qsTr("Wifi Instability Notification Triggers:")
                     }
 
                     C.Slider {

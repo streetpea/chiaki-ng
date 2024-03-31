@@ -105,6 +105,12 @@ ManualHost::ManualHost(int id, const ManualHost &o)
 {
 }
 
+void ManualHost::SetHost(const QString &hostadd)
+{
+	host = hostadd;
+}
+
+
 void ManualHost::SaveToSettings(QSettings *settings) const
 {
 	settings->setValue("id", id);
