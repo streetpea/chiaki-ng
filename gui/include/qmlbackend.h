@@ -66,7 +66,7 @@ public:
     Q_INVOKABLE void deleteHost(int index);
     Q_INVOKABLE void wakeUpHost(int index);
     Q_INVOKABLE void addManualHost(int index, const QString &address);
-    Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, bool broadcast, int target, const QJSValue &callback);
+    Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback);
     Q_INVOKABLE void connectToHost(int index);
     Q_INVOKABLE void stopSession(bool sleep);
     Q_INVOKABLE void sessionGoHome();
@@ -74,6 +74,10 @@ public:
     Q_INVOKABLE QUrl psnLoginUrl() const;
     Q_INVOKABLE bool handlePsnLoginRedirect(const QUrl &url);
     Q_INVOKABLE void stopAutoConnect();
+    Q_INVOKABLE void setConsolePin(int index, QString console_pin);
+#if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
+Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
+#endif
 
 signals:
     void sessionChanged(StreamSession *session);
@@ -81,6 +85,7 @@ signals:
     void discoveryEnabledChanged();
     void hostsChanged();
     void autoConnectChanged();
+    void windowTypeUpdated(WindowType type);
 
     void error(const QString &title, const QString &text);
     void sessionError(const QString &title, const QString &text);
@@ -110,6 +115,7 @@ private:
     bool sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5);
     void updateControllers();
     void updateDiscoveryHosts();
+    QString getExecutable();
 
     Settings *settings = {};
     QmlSettings *settings_qml = {};

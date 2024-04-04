@@ -1,5 +1,8 @@
 # Configuring Steam Deck Controller Profile
 
+!!! Tip
+    If you created the Steam Shortcut through the menu, it automatically adds the correct chiaki4deck+ mic controller profile for you on Steam Deck.
+
 Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `chiaki4deck` game menu and selecting the controller layout to configure controller options.
 
 === "Game Mode"
@@ -114,9 +117,8 @@ I have also mapped gyro controls `As joystick`. Whenever you touch the right joy
 
 !!! Info "Native Gyro for Steam Deck"
 
-    Gyro is also directly mapped under the hood for the Steam Deck controller. Thus, when you play a game that has native gyro controls, those will work without needing to do anything in your control mapping via Steam Input. When you are playing a game with native gyro support, you may want to change the gyro mapping from `As joystick` to `As mouse` so that gyro only maps to gyro in the game (i.e., you don't move the camera while trying to move a paintbrush using native gyro).
-    !!! Warning "Don't turn off gyro entirely, use `As mouse`"
-        You need to use `As mouse` instead of just turning off gyro altogether in Steam Input because turning off gyro altogether will pause gyro input and result in native gyro not working. This means games that have gyro in them for actions such as the flashlight in Last of Us or the paintbrush in Concrete Genie won't work properly. Using `As mouse` means only gyro set in the game itself will result in an action (since mouse movement by itself isn't mapped to anything in chiaki4deck) so it has the same effect of turning off gyro for games that don't use it for a required in-game control.
+    Gyro is also directly mapped under the hood for the Steam Deck controller. Thus, when you play a game that has native gyro controls, those will work without needing to do anything in your control mapping via Steam Input. When you are playing a game with native gyro support, you may want to change the gyro mapping from `As joystick` to `None` so that gyro only maps to gyro in the game (i.e., you don't move the camera while trying to move a paintbrush using native gyro).
+
     Of course, you could leave the right stick mapping on (so that it maps to both gyro and right joystick), if that is truly what you want.
 
 ## Creating your Own Controller Profile
@@ -171,11 +173,9 @@ Gryo directly maps for games that support it (i.e., Concrete genie, Astro's Play
 - DualSense, DualShock4 or other controller with gyro + accelerometer supported by SDL
     - disable Steam Input for the controller following [Using a DualSense and/or DualShock4 Controller with `chiaki4deck`](#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck) below
 
-Additionally, you can use gyro controls for camera options with any game by mapping gyro `As joystick` and adding a condition for when it's used (i.e., `On` with a condition of `right joystick touch`) in the gyro settings for `chiaki4deck`. I have done this in the [default `chiaki4deck` control setting](#default-chiaki4deck-layout-mapping-full-view) and you can do it in your custom control scheme. However, when playing games that have native gyro support (such as Concrete Genie or The Last of Us) you will most likely want to change the gyro mapping from `As joystick` to `As mouse` so that gyro only maps to gyro in the game (i.e., you don't make your camera move when you're trying to shake your flashlight, etc.).
-!!! Warning "Don't turn off gyro entirely, use `As mouse`"
-    You need to use `As mouse` instead of just turning off gyro altogether in Steam Input because turning off gyro altogether will pause gyro input and result in native gyro not working. This means games that have gyro in them for actions such as the flashlight in Last of Us or the paintbrush in Concrete Genie won't work properly. Using `As mouse` means only gyro set in the game itself will result in an action (since mouse movement by itself isn't mapped to anything in chiaki4deck) so it has the same effect of turning off gyro for games that don't use it for a required in-game control.
+Additionally, you can use gyro controls for camera options with any game by mapping gyro `As joystick` and adding a condition for when it's used (i.e., `On` with a condition of `right joystick touch`) in the gyro settings for `chiaki4deck`. I have done this in the [default `chiaki4deck` control setting](#default-chiaki4deck-layout-mapping-full-view) and you can do it in your custom control scheme. However, when playing games that have native gyro support (such as Concrete Genie or The Last of Us) you will most likely want to change the gyro mapping from `As joystick` to `None` so that gyro only maps to gyro in the game (i.e., you don't make your camera move when you're trying to shake your flashlight, etc.).
 
-### Haptics and Adaptive Triggers [Experimental]
+### Haptics and Adaptive Triggers
 
 PlayStation 5 haptics are mapped for both the DualSense controller (usb connection required) and the Steam Deck controller and adaptive triggers are mapped for the DualSense controller (usb or bluetooth). These need to be explicitly enabled by checking the PS5 features box in the GUI as shown in the picture below:
 

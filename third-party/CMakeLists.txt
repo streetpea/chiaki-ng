@@ -69,3 +69,7 @@ if(NOT CHIAKI_USE_SYSTEM_CURL)
 	add_subdirectory(curl)
 	# Exported library is CURL::libcurl_static
 endif()
+
+if(CHIAKI_ENABLE_STEAM_SHORTCUT)
+	add_subdirectory(cpp-steam-tools)
+endif()

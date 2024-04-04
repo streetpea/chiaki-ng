@@ -10,11 +10,17 @@ class QmlSettings : public QObject
     Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
     Q_PROPERTY(bool dualSense READ dualSense WRITE setDualSense NOTIFY dualSenseChanged)
-    Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    Q_PROPERTY(bool steamDeckHaptics READ steamDeckHaptics WRITE setSteamDeckHaptics NOTIFY steamDeckHapticsChanged)
     Q_PROPERTY(bool verticalDeck READ verticalDeck WRITE setVerticalDeck NOTIFY verticalDeckChanged)
+#endif
+    Q_PROPERTY(bool buttonsByPosition READ buttonsByPosition WRITE setButtonsByPosition NOTIFY buttonsByPositionChanged)
+    Q_PROPERTY(bool startMicUnmuted READ startMicUnmuted WRITE setStartMicUnmuted NOTIFY startMicUnmutedChanged)
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     Q_PROPERTY(bool speechProcessing READ speechProcessing WRITE setSpeechProcessing NOTIFY speechProcessingChanged)
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
+#endif
     Q_PROPERTY(int fps READ fps WRITE setFps NOTIFY fpsChanged)
     Q_PROPERTY(int bitrate READ bitrate WRITE setBitrate NOTIFY bitrateChanged)
     Q_PROPERTY(int codec READ codec WRITE setCodec NOTIFY codecChanged)
@@ -22,7 +28,9 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
+    Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
+    Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
     Q_PROPERTY(QStringList availableDecoders READ availableDecoders CONSTANT)
@@ -30,6 +38,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QStringList availableAudioOutDevices READ availableAudioOutDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
     Q_PROPERTY(QVariantList controllerMapping READ controllerMapping CONSTANT)
+    Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
 
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
@@ -49,12 +58,21 @@ public:
     bool dualSense() const;
     void setDualSense(bool dualSense);
 
-    bool buttonsByPosition() const;
-    void setButtonsByPosition(bool buttonsByPosition);
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    bool steamDeckHaptics() const;
+    void setSteamDeckHaptics(bool steamDeckHaptics);
 
     bool verticalDeck() const;
     void setVerticalDeck(bool vertical);
+#endif
 
+    bool buttonsByPosition() const;
+    void setButtonsByPosition(bool buttonsByPosition);
+
+    bool startMicUnmuted() const;
+    void setStartMicUnmuted(bool startMicUnmuted);
+
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     bool speechProcessing() const;
     void setSpeechProcessing(bool processing);
 
@@ -63,6 +81,7 @@ public:
 
     int echoSuppressLevel() const;
     void setEchoSuppressLevel(int level);
+#endif
 
     int fps() const;
     void setFps(int fps);
@@ -85,11 +104,20 @@ public:
     QString decoder() const;
     void setDecoder(const QString &decoder);
 
+    int windowType() const;
+    void setWindowType(int type);
+
+    float sZoomFactor() const;
+    void setSZoomFactor(float factor);
+
     int videoPreset() const;
     void setVideoPreset(int preset);
 
     QString autoConnectMac() const;
     void setAutoConnectMac(const QString &mac);
+
+    uint wifiDroppedNotif() const;
+    void setWifiDroppedNotif(uint percent);
 
     QString logDirectory() const;
     QStringList availableDecoders() const;
@@ -109,17 +137,26 @@ signals:
     void logVerboseChanged();
     void dualSenseChanged();
     void buttonsByPositionChanged();
+    void startMicUnmutedChanged();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     void verticalDeckChanged();
+    void steamDeckHapticsChanged();
+#endif
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
     void speechProcessingChanged();
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();
+#endif
     void fpsChanged();
     void bitrateChanged();
     void codecChanged();
     void audioBufferSizeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
+    void wifiDroppedNotifChanged();
     void decoderChanged();
+    void windowTypeChanged();
+    void sZoomFactorChanged();
     void videoPresetChanged();
     void autoConnectMacChanged();
     void audioDevicesChanged();

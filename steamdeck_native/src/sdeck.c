@@ -3,7 +3,6 @@
 #include <wchar.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <hidapi.h>
 #include <math.h>
 #include <unistd.h>
@@ -27,6 +26,9 @@
 #define FUZZ_FILTER_PREV_WEIGHT 0.75f
 #define FUZZ_FILTER_PREV_WEIGHT2x 0.6f
 #define STEAM_DECK_GYRO_DEADZONE 24.0f
+// amount of cycles of 0 motion data to wait before sending enable motion message
+// time = cycles * 4ms (i.e., 1000 * 4ms = 4000 ms = 4s)
+#define STEAM_DECK_MOTION_COOLDOWN 1000
 #define STEAM_DECK_HAPTIC_COMMAND 0x8f
 #define STEAM_DECK_HAPTIC_LENGTH 0x07
 #define STEAM_DECK_HAPTIC_INTENSITY 0.38f
@@ -46,6 +48,7 @@ struct sdeck_t
 	// Steam Deck only one device and doesn't hotplug (you're either using i)
 	hid_device *hiddev;
 	SDeckMotion prev_motion;
+	int gyro;
 	bool motion_dirty;
 	FreqFinder *freqfinder;
 };
@@ -81,6 +84,7 @@ SDeck *sdeck_new()
 	}
 	memset(&sdeck->prev_motion, 0, sizeof(SDeckMotion));
 	sdeck->motion_dirty = false;
+	sdeck->gyro = STEAM_DECK_MOTION_COOLDOWN;
 	sdeck->freqfinder = NULL;
 	return sdeck;
 }
@@ -412,7 +416,7 @@ int send_haptic(SDeck *sdeck, uint8_t position, uint16_t period_high, uint16_t p
 	res = hid_write(handle, haptic, 65);
 	if (res < 0)
 	{
-		SDECK_LOG("Unable to write()/2: %ls\n", hid_error(handle));
+		SDECK_LOG("Unable to write() haptic: %ls\n", hid_error(handle));
 		return -1;
 	}
 	return 0;
@@ -451,6 +455,23 @@ int sdeck_haptic_ratio(SDeck *sdeck, uint8_t position, double frequency, uint32_
 	}
 	// return interval played
 	return period * 2 * repeat;
+}
+
+int enable_gyro(SDeck *sdeck)
+{
+	hid_device *handle = sdeck->hiddev;
+	unsigned char enable[65] = {0x00, 0x87, 0x0f, 0x30, 0x18, 0x00, 0x07, 0x07, 0x00, 0x08, 0x07, 0x00, 0x31, 0x02, 0x00, 0x18, 0x00
+    , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	int res = 0;
+	res = hid_write(handle, enable, 65);
+	if (res < 0)
+	{
+		SDECK_LOG("Unable to write() enable gyro: %ls\n", hid_error(handle));
+		return -1;
+	}
+	return 0;
 }
 
 // input fuzz filter like the one used in kernel input system
@@ -540,24 +561,38 @@ void sdeck_read(SDeck *sdeck, SDeckEventCb cb, void *user)
 	// apply deadzone filter to gyro to reduce jitter when still
 	if (data_to_read)
 	{
-		float accel_x = sdc.accel_x;
-		float accel_y = sdc.accel_y;
-		float accel_z = sdc.accel_z;
-		movemult_accel(&accel_x, ACCEL_MOVESPEED_MULT);
-		movemult_accel(&accel_y, ACCEL_MOVESPEED_MULT);
-		movemult_accel(&accel_z, ACCEL_MOVESPEED_MULT);
-		fuzz(accel_x, &sdeck->prev_motion.accel_x, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(accel_y, &sdeck->prev_motion.accel_y, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(accel_z, &sdeck->prev_motion.accel_z, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(sdc.orient_w, &sdeck->prev_motion.orient_w, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(sdc.orient_x, &sdeck->prev_motion.orient_x, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(sdc.orient_y, &sdeck->prev_motion.orient_y, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		fuzz(sdc.orient_z, &sdeck->prev_motion.orient_z, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
-		deadzone(sdc.gyro_x, &sdeck->prev_motion.gyro_x, STEAM_DECK_GYRO_DEADZONE, &sdeck->motion_dirty);
-		deadzone(sdc.gyro_y, &sdeck->prev_motion.gyro_y, STEAM_DECK_GYRO_DEADZONE, &sdeck->motion_dirty);
-		deadzone(sdc.gyro_z, &sdeck->prev_motion.gyro_z, STEAM_DECK_GYRO_DEADZONE, &sdeck->motion_dirty);
-		// send events for data we want to send (currently just motion data)
-		generate_event(sdeck, SDECK_EVENT_MOTION, cb, user);
+		if(sdc.accel_x == 0 && sdc.accel_y == 0 && sdc.accel_z == 0 && sdc.orient_w == 0 && sdc.orient_x == 0 && sdc.orient_y == 0 && 
+			sdc.orient_z == 0 && sdc.gyro_x == 0 && sdc.gyro_y == 0 && sdc.gyro_z == 0)
+		{
+			sdeck->gyro--;
+			if(sdeck->gyro <= 0)
+			{
+				if(enable_gyro(sdeck) == 0)
+					sdeck->gyro = STEAM_DECK_MOTION_COOLDOWN;
+				generate_event(sdeck, SDECK_EVENT_GYRO_ENABLE, cb, user);
+			}
+		}
+		else
+		{
+			float accel_x = sdc.accel_x;
+			float accel_y = sdc.accel_y;
+			float accel_z = sdc.accel_z;
+			movemult_accel(&accel_x, ACCEL_MOVESPEED_MULT);
+			movemult_accel(&accel_y, ACCEL_MOVESPEED_MULT);
+			movemult_accel(&accel_z, ACCEL_MOVESPEED_MULT);
+			fuzz(accel_x, &sdeck->prev_motion.accel_x, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			fuzz(accel_y, &sdeck->prev_motion.accel_y, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			fuzz(accel_z, &sdeck->prev_motion.accel_z, STEAM_DECK_ACCEL_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			fuzz(sdc.orient_w, &sdeck->prev_motion.orient_w, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			fuzz(sdc.orient_x, &sdeck->prev_motion.orient_x, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			fuzz(sdc.orient_y, &sdeck->prev_motion.orient_y, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			fuzz(sdc.orient_z, &sdeck->prev_motion.orient_z, STEAM_DECK_ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x, &sdeck->motion_dirty);
+			deadzone(sdc.gyro_x, &sdeck->prev_motion.gyro_x, STEAM_DECK_GYRO_DEADZONE, &sdeck->motion_dirty);
+			deadzone(sdc.gyro_y, &sdeck->prev_motion.gyro_y, STEAM_DECK_GYRO_DEADZONE, &sdeck->motion_dirty);
+			deadzone(sdc.gyro_z, &sdeck->prev_motion.gyro_z, STEAM_DECK_GYRO_DEADZONE, &sdeck->motion_dirty);
+			// send events for data we want to send (currently just motion data)
+			generate_event(sdeck, SDECK_EVENT_MOTION, cb, user);
+		}
 	}
 }
 
@@ -598,6 +633,16 @@ void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *us
 		}
 		sdeck->motion_dirty = false;
 	}
+	if (type == SDECK_EVENT_GYRO_ENABLE)
+	{
+		BEGIN_EVENT(SDECK_EVENT_GYRO_ENABLE);
+			if(sdeck->gyro > 0)
+				event.enabled = true;
+			else
+				event.enabled = false;
+		SEND_EVENT();
+	}
+
 #undef BEGIN_EVENT
 #undef SEND_EVENT
 }

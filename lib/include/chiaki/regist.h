@@ -33,6 +33,7 @@ typedef struct chiaki_regist_info_t
 	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
 
 	uint32_t pin;
+	uint32_t console_pin;
 } ChiakiRegistInfo;
 
 typedef struct chiaki_registered_host_t
@@ -47,6 +48,7 @@ typedef struct chiaki_registered_host_t
 	char rp_regist_key[CHIAKI_SESSION_AUTH_SIZE]; // must be completely filled (pad with \0)
 	uint32_t rp_key_type;
 	uint8_t rp_key[0x10];
+	uint32_t console_pin;
 } ChiakiRegisteredHost;
 
 typedef enum chiaki_regist_event_type_t {

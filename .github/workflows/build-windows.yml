@@ -1,4 +1,3 @@
-# Adpated from nlz242/chiaki-qt6
 name: Build Chiaki4deck Windows (VC)
 
 on:
@@ -7,108 +6,50 @@ on:
 jobs:
   build-win_x64:
     name: Build Chiaki4deck win_x64 (VC)
-    runs-on: windows-2022
+    runs-on: windows-latest
+    env:
+      CC: clang-cl.exe
+      CXX: clang-cl.exe
+      VULKAN_SDK: C:\VulkanSDK\
+      triplet: x64-windows
+      vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
+      VCPKG_INSTALLED_DIR: ./vcpkg_installed/
+      dep_folder: deps
+      libplacebo_tag: 5c1e6da21f108a27b11fad97fd491ddee06ede3c
 
     defaults:
       run:
         shell: powershell
 
     steps:
-      - name: Clean Workspace Action
-        uses: yumis-coconudge/clean-workspace-action@v1.0.5
-
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-          path: 'chiaki4deck'
 
-      - name: Setup NASM
+      - name: Setup Vulkan
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/win64/nasm-2.15.05-win64.zip" -OutFile ".\nasm-2.15.05-win64.zip"
-          Expand-Archive -LiteralPath "nasm-2.15.05-win64.zip" -DestinationPath "."
-          Rename-Item "nasm-2.15.05" "nasm"
-          Write-Output "${{ github.workspace }}\nasm" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
+          echo Version $ver
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
+          echo Downloaded
+          .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
 
-      - name: Setup ffmpeg
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -OutFile ".\ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip"
-          Expand-Archive -LiteralPath "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -DestinationPath "."
-          Rename-Item "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1" "ffmpeg"
-          Write-Output "${{ github.workspace }}\ffmpeg\bin" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Set up Ninja
+        run: choco install ninja
 
-      - name: Setup protoc
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip" -OutFile ".\protobuf.zip"
-          Expand-Archive -LiteralPath ".\protobuf.zip" -DestinationPath ".\protobuf"
-          Write-Output "${{ github.workspace }}\protobuf\bin" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Setup nanopb
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://jpa.kapsi.fi/nanopb/download/nanopb-0.4.6-windows-x86.zip" -OutFile ".\nanopb-0.4.6-windows-x86.zip"
-          Expand-Archive -LiteralPath "nanopb-0.4.6-windows-x86.zip" -DestinationPath "."
-          Rename-Item "nanopb-0.4.6-windows-x86" "nanopb"
-          
-      - name: Setup OpenSSL
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-1.1.1s.zip" -OutFile ".\openssl-1.1.1s.zip"
-          Expand-Archive -LiteralPath "openssl-1.1.1s.zip" -DestinationPath "."
-          Rename-Item "openssl-1.1" "openssl"
-          Write-Output "${{ github.workspace }}\openssl" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Setup Hidapi
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/libusb/hidapi/releases/download/hidapi-0.14.0/hidapi-win.zip" -OutFile ".\hidapi-win.zip"
-          Expand-Archive -LiteralPath "hidapi-win.zip" -DestinationPath "."
-          Rename-Item "x64" "hidapi-x64"
-          Write-Output "${{ github.workspace }}\hidapi-x64" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Setup fftw3
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://fftw.org/pub/fftw/fftw-3.3.5-dll64.zip" -OutFile ".\fftw-3.3.5-dll64.zip"
-          Expand-Archive -LiteralPath "fftw-3.3.5-dll64.zip" -DestinationPath "./fftw"
-          Write-Output "${{ github.workspace }}\fftw" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: 18
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: "x86_64"
-          toolset: "14"
-
-      - name: fftw libs
-        run: |
-          cd ${{ github.workspace }}\fftw
-          lib /def:libfftw3-3.def
-
-      - name: Setup SDL2
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://www.libsdl.org/release/SDL2-devel-2.28.4-VC.zip" -OutFile ".\SDL2-devel-2.28.4-VC.zip"
-          Expand-Archive -LiteralPath "SDL2-devel-2.28.4-VC.zip" -DestinationPath "."
-          Rename-Item "SDL2-2.28.4" "SDL2"
-          Write-Output "SDL2_DIR=${{ github.workspace }}\SDL2" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          Set-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'set(TARGET_NAME SDL2::SDL2)'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'add_library(${TARGET_NAME} SHARED IMPORTED)'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'set_target_properties(${TARGET_NAME} PROPERTIES'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    IMPORTED_LOCATION "${SDL2_LIBDIR}/${CMAKE_SHARED_LIBRARY_PREFIX}SDL2${CMAKE_SHARED_LIBRARY_SUFFIX}"'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    INTERFACE_INCLUDE_DIRECTORIES "$ENV{SDL2_DIR}/include"'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    INTERFACE_LINK_LIBRARIES "$ENV{SDL2_DIR}/lib/x64/SDL2.lib;$ENV{SDL2_DIR}/lib/x64/SDL2main.lib"'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value '    IMPORTED_LINK_INTERFACE_LANGUAGES "C"'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value ')'
-          Add-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake" -Value 'set_target_properties(SDL2::SDL2 PROPERTIES IMPORTED_IMPLIB "$ENV{SDL2_DIR}/lib/x64/SDL2.lib")'
-          Get-Content -Path "${{ github.workspace }}\SDL2\sdl2-config.cmake"
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.11"
           architecture: "x64"
 
       - name: Install pip dependencies
@@ -116,72 +57,122 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade setuptools wheel
           python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          python3 -m pip install --user --upgrade meson
           python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
       - name: Setup Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           aqtversion: '==3.1.*'
-          version: "6.6.1"
+          version: "6.6.2"
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
           modules: 'qtwebengine qtpositioning qtwebchannel'
 
-      - name: Configure & Build Opus
+      - name: Setup ffmpeg
         run: |
-          git clone https://github.com/xiph/opus.git -b v1.4
-          cd opus
-          mkdir build
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -OutFile ".\ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip"
+          Expand-Archive -LiteralPath "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -DestinationPath "."
+          Rename-Item "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1" "${{ env.dep_folder }}"
+
+      - name: Build SPIRV-Cross
+        run: |
+          git clone https://github.com/KhronosGroup/SPIRV-Cross.git
+          cd SPIRV-Cross
           cmake `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\${{ env.dep_folder }}" `
+          -DSPIRV_CROSS_SHARED=ON `
           -S . `
           -B build `
-          -G "Visual Studio 17 2022" -A x64 `
-          -DCMAKE_C_COMPILER=cl `
-          -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\opus-prefix"
+          -G Ninja
           cmake --build build --config Release
           cmake --install build
 
+      - name: Setup shaderc
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $url = ((Invoke-WebRequest -UseBasicParsing -Uri "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2019_release.html").Content | Select-String -Pattern 'url=(.*)"').Matches.Groups[1].Value
+          Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile .\shaderc.zip
+          Expand-Archive -LiteralPath "shaderc.zip" -DestinationPath "."
+          cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
+          rm "./install" -r -force
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
+          runVcpkgInstall: true
+          vcpkgJsonGlob: "vcpkg.json"
+
+      - name: Build libplacebo
+        run: |
+          git clone --recursive https://github.com/haasn/libplacebo.git
+          cd libplacebo
+          git checkout --recurse-submodules ${{ env.libplacebo_tag }}
+          meson setup `
+          --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
+          --native-file ../meson.ini `
+          "--pkg-config-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\lib\pkgconfig','${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\share\pkgconfig','${{ github.workspace }}\${{ env.dep_folder }}\lib\pkgconfig']" `
+          "--cmake-prefix-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}', '${{ env.VULKAN_SDK }}', '${{ github.workspace }}\${{ env.dep_folder }}']" `
+          -Dc_args="/I ${{ env.VULKAN_SDK }}Include" `
+          -Dcpp_args="/I ${{ env.VULKAN_SDK }}Include" `
+          -Dc_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
+          -Dcpp_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
+          -Ddemos=false `
+          ./build
+          ninja -C./build
+          ninja -C./build install
+
+      - name: Apply Patches
+        run: |
+          git apply --ignore-whitespace --verbose --directory=third-party/gf-complete/ scripts/windows-vc/gf-complete.patch
+          git apply --ignore-whitespace --verbose scripts/windows-vc/libplacebo-pc.patch
+
       - name: Configure Chiaki4deck
-        working-directory: chiaki4deck
         run: |
           cmake `
           -S . `
           -B build `
-          -G "Visual Studio 17 2022" -A x64 `
-          -DCMAKE_C_COMPILER=cl `
-          -DCMAKE_C_FLAGS="-we4013" `
+          -G Ninja `
+          -DCMAKE_TOOLCHAIN_FILE:STRING="vcpkg/scripts/buildsystems/vcpkg.cmake" `
           -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE `
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo  `
+          -DCMAKE_BUILD_TYPE=Release `
           -DCHIAKI_ENABLE_CLI=OFF `
+          -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF `
           -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON `
           -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF `
           -DPYTHON_EXECUTABLE="${{ env.pythonLocation }}\python.exe" `
-          -DCMAKE_PREFIX_PATH="${{ github.workspace }}\nanopb;${{ github.workspace }}\ffmpeg;${{ github.workspace }}\opus-prefix;${{ github.workspace }}\openssl\x64;${{ github.workspace }}\SDL2;${{ github.workspace }}\hidapi-x64;${{ github.workspace }}\fftw;${{ env.Qt5_Dir }}"
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}\${{ env.dep_folder }};${{ env.VULKAN_SDK }}"
 
       - name: Build Chiaki4deck
-        working-directory: chiaki4deck
         run: |
           cmake --build build --config Release --clean-first --target chiaki
 
       - name: Prepare Qt deployment package
-        working-directory: chiaki4deck
         run: |
           mkdir Chiaki4deck-VC
-          cp build\gui\Release\chiaki.exe Chiaki4deck-VC
-          cp "${{ github.workspace }}\openssl\x64\bin\libcrypto-1_1-x64.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\openssl\x64\bin\libssl-1_1-x64.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\SDL2\lib\x64\SDL2.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\ffmpeg\bin\swresample-4.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\ffmpeg\bin\avcodec-60.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\ffmpeg\bin\avutil-58.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\hidapi-x64\hidapi.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\fftw\libfftw3-3.dll" Chiaki4deck-VC
-          windeployqt.exe --no-translations Chiaki4deck-VC\chiaki.exe
+          cp build\gui\chiaki.exe Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\fftw3.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\opus.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libspeexdsp.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" Chiaki4deck-VC
+          windeployqt.exe --no-translations --qmldir=gui/src/qml/ Chiaki4deck-VC\chiaki.exe
 
       - name: Package Chiaki4deck
-        working-directory: chiaki4deck
         run: |
           $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
           $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
@@ -192,7 +183,7 @@ jobs:
           echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Upload Chiaki4deck Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Chiaki4deck-win_x64-VC-Release
           path: ${{ env.RELEASE_PACKAGE_PATH }}

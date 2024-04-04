@@ -470,6 +470,53 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 	return err;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data_cont(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size, ChiakiSeqNum32 *seq_num)
+{
+	// TODO: can we make this more memory-efficient?
+	// TODO: split packet if necessary?
+
+	uint64_t key_pos;
+	ChiakiErrorCode err = chiaki_takion_crypt_advance_key_pos(takion, buf_size, &key_pos);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+
+	size_t packet_size = 1 + TAKION_MESSAGE_HEADER_SIZE + 8 + buf_size;
+	uint8_t *packet_buf = malloc(packet_size);
+	if(!packet_buf)
+		return CHIAKI_ERR_MEMORY;
+	packet_buf[0] = TAKION_PACKET_TYPE_CONTROL;
+
+	takion_write_message_header(packet_buf + 1, takion->tag_remote, key_pos, TAKION_CHUNK_TYPE_DATA, chunk_flags, 8 + buf_size);
+
+	uint8_t *msg_payload = packet_buf + 1 + TAKION_MESSAGE_HEADER_SIZE;
+
+	err = chiaki_mutex_lock(&takion->seq_num_local_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	ChiakiSeqNum32 seq_num_val = takion->seq_num_local++;
+	chiaki_mutex_unlock(&takion->seq_num_local_mutex);
+
+	*((chiaki_unaligned_uint32_t *)(msg_payload + 0)) = htonl(seq_num_val);
+	*((chiaki_unaligned_uint16_t *)(msg_payload + 4)) = htons(channel);
+	*((chiaki_unaligned_uint16_t *)(msg_payload + 6)) = 0;
+	memcpy(msg_payload + 8, buf, buf_size);
+
+	err = chiaki_takion_send(takion, packet_buf, packet_size, key_pos); // will alter packet_buf with gmac
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(takion->log, "Takion failed to send data packet: %s", chiaki_error_string(err));
+		free(packet_buf);
+		return err;
+	}
+
+	chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num_val, packet_buf, packet_size);
+
+	if(seq_num)
+		*seq_num = seq_num_val;
+
+	return err;
+}
+
 static ChiakiErrorCode chiaki_takion_send_message_data_ack(ChiakiTakion *takion, uint32_t seq_num)
 {
 	uint8_t buf[1 + TAKION_MESSAGE_HEADER_SIZE + 0xc];
@@ -1043,7 +1090,7 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 {
 	if(buf_size != 0xc)
 	{
-		CHIAKI_LOGE(takion->log, "Takion received data ack with size %#x != %#x", buf_size, 0xa);
+		CHIAKI_LOGE(takion->log, "Takion received data ack with size %#x != %#x", buf_size, 0xc);
 		return;
 	}
 
@@ -1210,6 +1257,14 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 	ChiakiErrorCode err = takion_recv(takion, message, &received_size, TAKION_EXPECT_TIMEOUT_MS);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
+
+	if(message[0xd] == TAKION_CHUNK_TYPE_INIT_ACK)
+	{
+		CHIAKI_LOGI(takion->log, "Received second init ack, looking for cookie ack in next message");
+		err = takion_recv(takion, message, &received_size, TAKION_EXPECT_TIMEOUT_MS);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+	}
 
 	if(received_size < sizeof(message))
 	{

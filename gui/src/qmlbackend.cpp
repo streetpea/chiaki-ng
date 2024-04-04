@@ -6,9 +6,15 @@
 #include "psnaccountid.h"
 #include "systemdinhibit.h"
 
+#if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
+#include "steamtools.h"
+#endif
+
 #include <QUrl>
 #include <QUrlQuery>
 #include <QGuiApplication>
+#include <QPixmap>
+#include <QProcessEnvironment>
 
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
@@ -358,6 +364,15 @@ void QmlBackend::wakeUpHost(int index)
     sendWakeup(server);
 }
 
+void QmlBackend::setConsolePin(int index, QString console_pin)
+{
+    auto server = displayServerAt(index);
+    if (!server.valid)
+        return;
+    server.registered_host.SetConsolePin(server.registered_host, console_pin);
+    settings->AddRegisteredHost(server.registered_host);
+}
+
 void QmlBackend::addManualHost(int index, const QString &address)
 {
     HostMAC hmac;
@@ -371,7 +386,7 @@ void QmlBackend::addManualHost(int index, const QString &address)
     settings->SetManualHost(host);
 }
 
-bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const QString &pin, bool broadcast, int target, const QJSValue &callback)
+bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback)
 {
     ChiakiRegistInfo info = {};
     QByteArray hostb = host.toUtf8();
@@ -379,6 +394,7 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     info.target = static_cast<ChiakiTarget>(target);
     info.broadcast = broadcast;
     info.pin = (uint32_t)pin.toULong();
+    info.console_pin = (uint32_t)cpin.toULong();
     QByteArray psn_idb;
     if (target == CHIAKI_TARGET_PS4_8) {
         psn_idb = psn_id.toUtf8();
@@ -405,15 +421,20 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
 
         regist_dialog_server = {};
     });
-    connect(regist, &QmlRegist::success, this, [this, callback](RegisteredHost host) {
+    connect(regist, &QmlRegist::success, this, [this, host, callback](RegisteredHost rhost) {
         QJSValue cb = callback;
         if (cb.isCallable())
             cb.call({QString(), true, true});
 
-        settings->AddRegisteredHost(host);
-        ManualHost manual_host = regist_dialog_server.manual_host;
-        manual_host.Register(host);
-        settings->SetManualHost(manual_host);
+        settings->AddRegisteredHost(rhost);
+        if(regist_dialog_server.discovered == false)
+        {
+            ManualHost manual_host = regist_dialog_server.manual_host;
+            if(manual_host.GetHost().isEmpty())
+                manual_host.SetHost(host);
+            manual_host.Register(rhost);
+            settings->SetManualHost(manual_host);
+        }
     });
     return true;
 }
@@ -433,6 +454,24 @@ void QmlBackend::connectToHost(int index)
     if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && !sendWakeup(server))
         return;
 
+    bool fullscreen = false, zoom = false, stretch = false;
+    switch (settings->GetWindowType()) {
+    case WindowType::SelectedResolution:
+        break;
+    case WindowType::Fullscreen:
+        fullscreen = true;
+        break;
+    case WindowType::Zoom:
+        zoom = true;
+        break;
+    case WindowType::Stretch:
+        stretch = true;
+        break;
+    default:
+        break;
+    }
+    emit windowTypeUpdated(settings->GetWindowType());
+
     QString host = server.GetHostAddr();
     StreamSessionConnectInfo info(
             settings,
@@ -440,10 +479,10 @@ void QmlBackend::connectToHost(int index)
             host,
             server.registered_host.GetRPRegistKey(),
             server.registered_host.GetRPKey(),
-            {},
-            false,
-            false,
-            false);
+            server.registered_host.GetConsolePin(),
+            fullscreen,
+            zoom,
+            stretch);
     createSession(info);
 }
 
@@ -609,3 +648,99 @@ void QmlBackend::updateDiscoveryHosts()
     }
     emit hostsChanged();
 }
+
+#if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
+QString QmlBackend::getExecutable() {
+#if defined(Q_OS_LINUX)
+    //Check for flatpak
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    QString flatpakId = env.value("FLATPAK_ID");
+    QString appImagePath = env.value("APPIMAGE");
+    if (!flatpakId.isEmpty()) {
+        return QString("flatpak");
+    }
+    if (!appImagePath.isEmpty())
+        return appImagePath;
+#endif
+    return QCoreApplication::applicationFilePath();
+}
+
+void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback)
+{
+    QJSValue cb = callback;
+    QString controller_layout_workshop_id = "3049833406";
+    QMap<QString, const QPixmap*> artwork;
+    auto landscape = QPixmap(":/icons/steam_landscape.png");
+    auto portrait = QPixmap(":/icons/steam_portrait.png");
+    auto hero = QPixmap(":/icons/steam_hero.png");
+    auto icon = QPixmap(":/icons/steam_icon.png");
+    auto logo = QPixmap(":/icons/steam_logo.png");
+    artwork.insert("landscape", &landscape);
+    artwork.insert("portrait", &portrait);
+    artwork.insert("hero", &hero);
+    artwork.insert("icon", &icon);
+    artwork.insert("logo", &logo);
+    
+    auto infoLambda = [this, callback](const QString &infoMessage) {
+        QJSValue icb = callback;
+        if (icb.isCallable())
+            icb.call({infoMessage, true, false});
+    };
+
+    auto errorLambda = [this, callback](const QString &errorMessage) {
+        QJSValue icb = callback;
+        if (icb.isCallable())
+            icb.call({errorMessage, false, true});
+    };
+    SteamTools* steam_tools = new SteamTools(infoLambda, errorLambda);
+    bool steamExists = steam_tools->steamExists();
+    if(!steamExists)
+    {
+        if (cb.isCallable())
+            cb.call({QString("[E] Steam does not exist, cannot create Steam Shortcut"), false, true});
+        return;
+    }
+
+    QString executable = getExecutable();
+    if(executable == "flatpak")
+    {
+        const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        QString flatpakId = env.value("FLATPAK_ID");
+        launchOptions.prepend(QString("run %1 ").arg(flatpakId));
+    }
+    SteamShortcutEntry newShortcut = steam_tools->buildShortcutEntry(shortcutName, executable, launchOptions, artwork);
+
+    QVector<SteamShortcutEntry> shortcuts = steam_tools->parseShortcuts();
+    bool found = false;
+    for (auto& map : shortcuts) {
+        if (map.getExe() == newShortcut.getExe() && map.getLaunchOptions() == newShortcut.getLaunchOptions()) {
+            // Replace the entire map with the new one
+            
+            if (cb.isCallable())
+                cb.call({QString("[I] Updating Steam entry"), true, false});
+            map = newShortcut;
+            found = true;
+            break;  // Stop iterating once a match is found
+        }
+    }
+
+   //If we didn't find it to update, let's add it to the end
+    if (!found) {
+        if (cb.isCallable())
+            cb.call({QString("[I] Adding Steam entry ") + QString(newShortcut.getAppName().toStdString().c_str()), false, true});
+        shortcuts.append(newShortcut);
+    }
+    steam_tools->updateShortcuts(shortcuts);
+    steam_tools->updateControllerConfig(newShortcut.getAppName(), controller_layout_workshop_id);
+    if (!found)
+    {
+        if (cb.isCallable())
+            cb.call({QString("[I] Added Steam entry: ") + QString(newShortcut.getAppName().toStdString().c_str()), true, true});
+    }
+    else
+    {
+        if (cb.isCallable())
+            cb.call({QString("[I] Updated Steam entry: ") + QString(newShortcut.getAppName().toStdString().c_str()), true, true});
+    }
+}
+#endif

@@ -78,15 +78,16 @@ void QmlSettings::setDualSense(bool dualSense)
     emit dualSenseChanged();
 }
 
-bool QmlSettings::buttonsByPosition() const
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+bool QmlSettings::steamDeckHaptics() const
 {
-    return settings->GetButtonsByPosition();
+    return settings->GetSteamDeckHapticsEnabled();
 }
 
-void QmlSettings::setButtonsByPosition(bool buttonsByPosition)
+void QmlSettings::setSteamDeckHaptics(bool steamDeckHaptics)
 {
-    settings->SetButtonsByPosition(buttonsByPosition);
-    emit buttonsByPositionChanged();
+    settings->SetSteamDeckHapticsEnabled(steamDeckHaptics);
+    emit steamDeckHapticsChanged();
 }
 
 bool QmlSettings::verticalDeck() const
@@ -99,7 +100,31 @@ void QmlSettings::setVerticalDeck(bool vertical)
     settings->SetVerticalDeckEnabled(vertical);
     emit verticalDeckChanged();
 }
+#endif
 
+bool QmlSettings::buttonsByPosition() const
+{
+    return settings->GetButtonsByPosition();
+}
+
+void QmlSettings::setButtonsByPosition(bool buttonsByPosition)
+{
+    settings->SetButtonsByPosition(buttonsByPosition);
+    emit buttonsByPositionChanged();
+}
+
+bool QmlSettings::startMicUnmuted() const
+{
+    return settings->GetStartMicUnmuted();
+}
+
+void QmlSettings::setStartMicUnmuted(bool startMicUnmuted)
+{
+    settings->SetStartMicUnmuted(startMicUnmuted);
+    emit startMicUnmutedChanged();
+}
+
+#if CHIAKI_GUI_ENABLE_SPEEX
 bool QmlSettings::speechProcessing() const
 {
     return settings->GetSpeechProcessingEnabled();
@@ -132,6 +157,7 @@ void QmlSettings::setEchoSuppressLevel(int level)
     settings->SetEchoSuppressLevel(level);
     emit echoSuppressLevelChanged();
 }
+#endif
 
 int QmlSettings::fps() const
 {
@@ -210,6 +236,28 @@ void QmlSettings::setDecoder(const QString &decoder)
     emit decoderChanged();
 }
 
+int QmlSettings::windowType() const
+{
+    return static_cast<int>(settings->GetWindowType());
+}
+
+void QmlSettings::setWindowType(int type)
+{
+    settings->SetWindowType(static_cast<WindowType>(type));
+    emit windowTypeChanged();
+}
+
+float QmlSettings::sZoomFactor() const
+{
+    return settings->GetZoomFactor();
+}
+
+void QmlSettings::setSZoomFactor(float factor)
+{
+    settings->SetZoomFactor(factor);
+    emit sZoomFactorChanged();
+}
+
 int QmlSettings::videoPreset() const
 {
     return static_cast<int>(settings->GetPlaceboPreset());
@@ -230,6 +278,17 @@ void QmlSettings::setAutoConnectMac(const QString &mac)
 {
     settings->SetAutoConnectHost(QByteArray::fromHex(mac.toUtf8()));
     emit autoConnectMacChanged();
+}
+
+uint QmlSettings::wifiDroppedNotif() const
+{
+    return settings->GetWifiDroppedNotif();
+}
+
+void QmlSettings::setWifiDroppedNotif(const uint percent)
+{
+    settings->SetWifiDroppedNotif(percent);
+    emit wifiDroppedNotifChanged();
 }
 
 QString QmlSettings::logDirectory() const

@@ -68,7 +68,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = settings->GetDualSenseEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
+	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -81,6 +83,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
 static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user);
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user);
+#ifdef Q_OS_MACOS
+static void MacMicRequestCb(Authorization authorization, void *user);
+#endif
 static void CantDisplayCb(void *user, bool cant_display);
 static void EventCb(ChiakiEvent *event, void *user);
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -116,6 +121,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connected = false;
 	muted = true;
 	mic_connected = false;
+#ifdef Q_OS_MACOS
+	mic_authorization = false;
+#endif
 	allow_unmute = false;
 	rumbleHaptics = false;
 	input_block = 0;
@@ -152,7 +160,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
-
+	start_mic_unmuted = connect_info.start_mic_unmuted;
 	audio_out_device_name = connect_info.audio_out_device;
 	audio_in_device_name = connect_info.audio_in_device;
 
@@ -243,7 +251,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		haptics_sink.frame_cb = HapticsFrameCb;
 		chiaki_session_set_haptics_sink(&session, &haptics_sink);
 	}
-
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	if (connect_info.enable_steamdeck_haptics)
+		enable_steamdeck_haptics = true;
+	else
+		enable_steamdeck_haptics = false;
+#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(pi_decoder)
 		chiaki_session_set_video_sample_cb(&session, chiaki_pi_decoder_video_sample_cb, pi_decoder);
@@ -454,6 +467,13 @@ void StreamSession::ToggleMute()
 		return;
 	if(!mic_connected)
 	{
+#ifdef Q_OS_MACOS
+		if(!mic_authorization)
+		{
+			macMicPermission(MacMicRequestCb, this);
+			return;
+		}
+#endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 		if(speech_processing_enabled)
 		{
@@ -750,6 +770,9 @@ void StreamSession::SendFeedbackState()
 
 void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 {
+	allow_unmute = true;
+	if(start_mic_unmuted)
+		ToggleMute();
 	if(audio_out)
 		SDL_CloseAudioDevice(audio_out);
 
@@ -784,7 +807,6 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
 				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
-	allow_unmute = true;
 }
 
 void StreamSession::InitMic(unsigned int channels, unsigned int rate)
@@ -1014,7 +1036,10 @@ void StreamSession::ConnectHaptics()
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring additional controllers.");
 		return;
 	}
-
+#ifdef Q_OS_MACOS
+	// Haptics don't work on MacOS with coreaudio
+	return;
+#endif
 	SDL_AudioSpec want, have;
 	SDL_zero(want);
 	want.freq = 48000;
@@ -1049,6 +1074,8 @@ void StreamSession::ConnectHaptics()
 void StreamSession::ConnectSdeckHaptics()
 {
 	haptics_sdeck++;
+	if(!enable_steamdeck_haptics)
+		return;
 	sdeck_last_haptic = chiaki_time_now_monotonic_ms();
 	const int num_channels = 2; // Left and right haptics
 	const uint32_t samples_per_packet = 120 * sizeof(uint8_t) / (2.0 * sizeof(int16_t));
@@ -1183,10 +1210,29 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 	SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size);
 }
 
+#ifdef Q_OS_MACOS
+void StreamSession::SetMicAuthorization(Authorization authorization)
+{
+	switch(authorization)
+	{
+		case AUTHORIZED:
+			mic_authorization = true;
+			ToggleMute();
+			break;
+		case DENIED:
+			CHIAKI_LOGE(GetChiakiLog(), "You have denied mic access. Please manually enable mic access in your System Preferences.");
+			break;
+		case RESTRICTED:
+			CHIAKI_LOGE(GetChiakiLog(), "Access to the microphone is restricted. Please change your parental controls to allow enabling mic access if desired.");
+			break;
+	}
+}
+#endif
+
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	if(sdeck && haptics_sdeck > 0)
+	if(sdeck && haptics_sdeck > 0 && enable_steamdeck_haptics)
 	{
 		if(buf_size != 120)
 		{
@@ -1211,7 +1257,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		emit SdeckHapticPushed(packetl, packetr);
 		return;
 	}
-	else if(rumbleHaptics && haptics_output == 0)
+#endif
+	if(rumbleHaptics && haptics_output == 0)
 	{
 
 		int16_t amplitudel = 0, amplituder = 0;
@@ -1230,13 +1277,21 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		uint16_t left = 0, right = 0;
 		left = suml / buf_count;
 		right = sumr / buf_count;
-			QMetaObject::invokeMethod(this, [this, left, right]() {
+		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
-							controller->SetHapticRumble(left, right, 10);
-			});
+			{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+				if(haptics_sdeck < 1 && controller->IsSteamDeck())
+					continue;
+#endif
+				if(left > right)
+					controller->SetHapticRumble(left, left, 10);
+				else
+					controller->SetHapticRumble(right, right, 10);
+			}
+		});
 		return;
 	}
-#endif
 	if(haptics_output == 0)
 		return;
 	SDL_AudioCVT cvt;
@@ -1356,6 +1411,12 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 					chiaki_time_now_monotonic_us());
 				sdeck_orient_dirty = true;
 			}
+			break;
+		case SDECK_EVENT_GYRO_ENABLE:
+			if(event->enabled)
+				CHIAKI_LOGI(GetChiakiLog(), "Gyro enabled for Steam Deck");
+			else
+				CHIAKI_LOGE(GetChiakiLog(), "Gyro could not be enabled for Steam Deck");
 			break;
 	}
 }
@@ -1499,6 +1560,9 @@ class StreamSessionPrivate
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
 		static void PushHapticsFrame(StreamSession *session, uint8_t *buf, size_t buf_size)	{ session->PushHapticsFrame(buf, buf_size); }
+#ifdef Q_OS_MACOS
+		static void SetMicAuthorization(StreamSession *session, Authorization authorization)                 { session->SetMicAuthorization(authorization); }
+#endif
 		static void CantDisplayMessage(StreamSession *session, bool cant_display)	{session->CantDisplayMessage(cant_display); }
 		static void Event(StreamSession *session, ChiakiEvent *event)							{ session->Event(event); }
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -1521,6 +1585,14 @@ static void AudioFrameCb(int16_t *buf, size_t samples_count, void *user)
 	auto session = reinterpret_cast<StreamSession *>(user);
 	StreamSessionPrivate::PushAudioFrame(session, buf, samples_count);
 }
+
+#ifdef Q_OS_MACOS
+static void MacMicRequestCb(Authorization authorization, void *user)
+{
+	auto session = reinterpret_cast<StreamSession *>(user);
+	StreamSessionPrivate::SetMicAuthorization(session, authorization);
+}
+#endif
 
 static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
 {

@@ -2,6 +2,11 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+
+if(APPLE)
+	enable_language(OBJCXX)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg Qml Quick)
 find_package(Qt6 COMPONENTS DBus)
 
@@ -47,12 +52,21 @@ set(RESOURCE_FILES "")
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaki4deck.icns")
+elseif(WIN32)
+	list(APPEND RESOURCE_FILES "chiaki4deck.rc")
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
 	list(APPEND SOURCE_FILES
 		include/sdinputcontext.h
 		src/sdinputcontext.cpp
+	)
+endif()
+
+if(APPLE)
+	list(APPEND SOURCE_FILES
+		include/macMicPermission.h
+		src/macMicPermission.m
 	)
 endif()
 
@@ -63,7 +77,7 @@ add_executable(chiaki WIN32
 target_include_directories(chiaki PRIVATE include)
 
 add_library(placebo-libav-impl src/libav_impl.c)
-target_link_libraries(placebo-libav-impl PkgConfig::LIBPLACEBO avcodec avutil avformat)
+target_link_libraries(placebo-libav-impl PkgConfig::LIBPLACEBO FFMPEG::avcodec FFMPEG::avutil FFMPEG::avformat)
 target_link_libraries(chiaki PkgConfig::LIBPLACEBO placebo-libav-impl)
 
 target_link_libraries(chiaki chiaki-lib)
@@ -93,8 +107,15 @@ if(CHIAKI_ENABLE_STEAMDECK_NATIVE)
 	target_link_libraries(chiaki sdeck)
 	target_compile_definitions(chiaki PRIVATE QT_STATICPLUGIN CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE)
 endif()
+if(CHIAKI_ENABLE_STEAM_SHORTCUT)
+	target_link_libraries(chiaki cpp-steam-tools)
+	target_compile_definitions(chiaki PRIVATE CHIAKI_GUI_ENABLE_STEAM_SHORTCUT)
+endif()
 if(NOT CHIAKI_ENABLE_FFMPEG_DECODER)
 	message(FATAL_ERROR "Chiaki GUI requires CHIAKI_ENABLE_FFMPEG_DECODER=ON")
+endif()
+if(APPLE)
+	target_link_libraries(chiaki "-framework AVFoundation")
 endif()
 
 set_target_properties(chiaki PROPERTIES

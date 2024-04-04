@@ -47,7 +47,7 @@ DialogView {
             }
 
             TabButton {
-                text: qsTr("Audio")
+                text: qsTr("Audio/Wifi")
                 focusPolicy: Qt.NoFocus
             }
 
@@ -115,9 +115,22 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        text: qsTr("Haptics + adaptive triggers (DS), Haptics (SD), PS5 Rumble (others)")
+                        text: qsTr("Haptics + adaptive triggers (DS), PS5 Rumble (others)")
                         checked: Chiaki.settings.dualSense
                         onToggled: Chiaki.settings.dualSense = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Steam Deck Haptics:")
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("True haptics for SteamDeck, better quality but noisier")
+                        checked: Chiaki.settings.steamDeckHaptics
+                        onToggled: Chiaki.settings.steamDeckHaptics = checked
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
                     Label {
@@ -134,12 +147,14 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Vertical:")
+                        visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
 
                     C.CheckBox {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
                         checked: Chiaki.settings.verticalDeck
                         onToggled: Chiaki.settings.verticalDeck = checked
+                        visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
 
                     Label {
@@ -181,9 +196,10 @@ DialogView {
                 C.Button {
                     id: aboutButton
                     anchors {
-                        bottom: parent.bottom
-                        horizontalCenter: parent.horizontalCenter
-                        bottomMargin: 20
+                        right: parent.right
+                        rightMargin: 100
+                        top: parent.top
+                        topMargin: 50
                     }
                     lastInFocusChain: true
                     implicitWidth: 200
@@ -294,12 +310,23 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Window Type:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Selected Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
+                        currentIndex: Chiaki.settings.windowType
+                        onActivated: (index) => Chiaki.settings.windowType = index;
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Render Preset:")
                     }
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        lastInFocusChain: true
                         model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality")]
                         currentIndex: Chiaki.settings.videoPreset
                         onActivated: (index) => {
@@ -315,7 +342,7 @@ DialogView {
             }
 
             Item {
-                // Audio
+                // Audio and Wifi
                 GridLayout {
                     anchors {
                         top: parent.top
@@ -382,9 +409,21 @@ DialogView {
                         }
                     }
 
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Start Mic Unmuted:")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.startMicUnmuted
+                        onToggled: Chiaki.settings.startMicUnmuted = checked
+                    }
+
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Speech Processing:")
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     C.CheckBox {
@@ -392,12 +431,13 @@ DialogView {
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Noise To Suppress:")
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
 
                     C.Slider {
@@ -405,7 +445,7 @@ DialogView {
                         from: 0
                         to: 60
                         stepSize: 1
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                         value: Chiaki.settings.noiseSuppressLevel
                         onMoved: Chiaki.settings.noiseSuppressLevel = value
 
@@ -422,17 +462,16 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Echo To Suppress:")
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
 
                     C.Slider {
                         Layout.preferredWidth: 250
-                        lastInFocusChain: true
                         from: 0
                         to: 60
                         stepSize: 1
                         value: Chiaki.settings.echoSuppressLevel
-                        visible: Chiaki.settings.speechProcessing
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                         onMoved: Chiaki.settings.echoSuppressLevel = value
 
                         Label {
@@ -442,6 +481,30 @@ DialogView {
                                 leftMargin: 10
                             }
                             text: qsTr("%1 dB").arg(parent.value)
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Wifi Instability Notification Triggers:")
+                    }
+
+                    C.Slider {
+                        Layout.preferredWidth: 250
+                        lastInFocusChain: true
+                        from: 0
+                        to: 100
+                        stepSize: 1
+                        value: Chiaki.settings.wifiDroppedNotif
+                        onMoved: Chiaki.settings.wifiDroppedNotif = value
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
+                            }
+                            text: qsTr("%1 % dropped packets").arg(parent.value)
                         }
                     }
                 }
@@ -618,6 +681,7 @@ DialogView {
             title: qsTr("Key Capture")
             modal: true
             standardButtons: Dialog.Close
+            closePolicy: Popup.CloseOnPressOutside
             onOpened: keyLabel.forceActiveFocus()
             onClosed: dialog.forceActiveFocus()
             Material.roundedScale: Material.MediumScale

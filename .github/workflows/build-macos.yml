@@ -19,7 +19,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget || true
 
       - name: Configure Chiaki4deck
         run: |
@@ -41,7 +41,9 @@ jobs:
           $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
           ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - Chiaki4deck.app
           hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - Chiaki4deck.dmg
 
       - name: Upload Chiaki4deck Artifact
         uses: actions/upload-artifact@v3
@@ -59,14 +61,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install protobuf
-        run: |
-          pip3 install --user protobuf setuptools
-
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools
 
       - name: Configure Chiaki4deck
         run: |
@@ -88,9 +86,9 @@ jobs:
           $(brew --prefix)/opt/qt@6/bin/macdeployqt Chiaki4deck.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           ln -s libvulkan.1.dylib Chiaki4deck.app/Contents/Frameworks/vulkan
           ln -s ../../../../../../../Frameworks Chiaki4deck.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
-          codesign --force --deep --sign - Chiaki4deck.app
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - Chiaki4deck.app
           hdiutil create -srcfolder Chiaki4deck.app Chiaki4deck.dmg
-          codesign --force --deep --sign - Chiaki4deck.dmg
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - Chiaki4deck.dmg
 
       - name: Upload Chiaki4deck Artifact
         uses: actions/upload-artifact@v3

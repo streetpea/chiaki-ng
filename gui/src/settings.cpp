@@ -207,6 +207,34 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 	settings.setValue("settings/placebo_preset", placebo_preset_values[preset]);
 }
 
+float Settings::GetZoomFactor() const
+{
+	return settings.value("settings/zoom_factor", 0).toFloat();
+}
+
+void Settings::SetZoomFactor(float factor)
+{
+	settings.setValue("settings/zoom_factor", factor);
+}
+
+static const QMap<WindowType, QString> window_type_values = {
+	{ WindowType::SelectedResolution, "Selected Resolution" },
+	{ WindowType::Fullscreen, "Fullscreen" },
+	{ WindowType::Zoom, "Zoom" },
+	{ WindowType::Stretch, "Stretch" }
+};
+
+WindowType Settings::GetWindowType() const
+{
+	auto v = settings.value("settings/window_type", window_type_values[WindowType::SelectedResolution]).toString();
+	return window_type_values.key(v, WindowType::SelectedResolution);
+}
+
+void Settings::SetWindowType(WindowType type)
+{
+	settings.setValue("settings/window_type", window_type_values[type]);
+}
+
 RegisteredHost Settings::GetAutoConnectHost() const
 {
 	const QByteArray mac = settings.value("settings/auto_connect_mac").toByteArray();
@@ -259,11 +287,21 @@ void Settings::SetAudioBufferSize(unsigned int size)
 	settings.setValue("settings/audio_buffer_size", size);
 }
 
+unsigned int Settings::GetWifiDroppedNotif() const
+{
+	return settings.value("settings/wifi_dropped_notif_percent", 3).toUInt();
+}
+
+void Settings::SetWifiDroppedNotif(unsigned int percent)
+{
+	settings.setValue("settings/wifi_dropped_notif_percent", percent);
+}
+
 #if CHIAKI_GUI_ENABLE_SPEEX
 
 bool Settings::GetSpeechProcessingEnabled() const
 {
-	return settings.value("settings/enable_speech_processing", true).toBool();
+	return settings.value("settings/enable_speech_processing", false).toBool();
 }
 
 int Settings::GetNoiseSuppressLevel() const

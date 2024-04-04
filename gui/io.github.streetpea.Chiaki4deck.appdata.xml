@@ -22,6 +22,28 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-3-20" version="1.6.5">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Provides quiet haptic rumble for Steam Deck (default) in addition to optional noisy haptics</li>
+          <li>Allow escape key to be selected for key mappings in Settings</li>
+          <li>Add option to start the stream with the mic unmuted</li>
+        </ul>
+      </description>
+    </release>
+    <release date="2024-3-15" version="1.6.4">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Adds create Steam Shortcut option for Linux and Mac</li>
+          <li>Allow setting console pin for console in settings</li>
+          <li>Add window type option in settings (fullscreen, stretch, zoom)</li>
+          <li>Fix issue causing extra blank ip manual console added when registering non-manual console</li>
+          <li>Add option to adjust when Wifi connection symbol appears based on % of dropped packets in 200ms interval</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-2-2" version="1.6.3">
       <description>
         <p>This release provides the following bug fixes:</p>

@@ -77,6 +77,7 @@ jobs:
         run: |
           mkdir Chiaki4deck-Win
           cp build/gui/chiaki.exe Chiaki4deck-Win
+          cp build/third-party/cpp-steam-tools/libcpp-steam-tools.dll Chiaki4deck-Win/
           cp /mingw64/bin/libcrypto-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libssl-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/SDL2.dll Chiaki4deck-Win/
@@ -125,7 +126,7 @@ jobs:
           cp /mingw64/bin/libspeex-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libshaderc_shared.dll Chiaki4deck-Win/
           cp /mingw64/bin/libtheoradec-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libSvtAv1Enc.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libSvtAv1Enc*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libtheoraenc-1.dll Chiaki4deck-Win/
           cp /mingw64/bin/libvorbis-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libspirv-cross-c-shared.dll Chiaki4deck-Win/
@@ -177,6 +178,9 @@ jobs:
           cp /mingw64/bin/libpangowin32-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libgomp-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libdatrie-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libjxl*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libzvbi-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libhwy*.dll Chiaki4deck-Win/
           /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release Chiaki4deck-Win/chiaki.exe
           cp -R /mingw64/share/qt6/qml/QtQuick Chiaki4deck-Win/qml/
           cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ Chiaki4deck-Win/qml/QtQml/

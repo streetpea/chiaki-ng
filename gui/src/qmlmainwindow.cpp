@@ -137,6 +137,27 @@ QmlMainWindow::~QmlMainWindow()
     pl_log_destroy(&placebo_log);
 }
 
+void QmlMainWindow::updateWindowType(WindowType type)
+{
+    switch (type) {
+    case WindowType::SelectedResolution:
+        break;
+    case WindowType::Fullscreen:
+        showFullScreen();
+        break;
+    case WindowType::Zoom:
+        showFullScreen();
+        setVideoMode(VideoMode::Zoom);
+        break;
+    case WindowType::Stretch:
+        showFullScreen();
+        setVideoMode(VideoMode::Stretch);
+        break;
+    default:
+        break;
+    }
+}
+
 bool QmlMainWindow::hasVideo() const
 {
     return has_video;
@@ -186,6 +207,17 @@ void QmlMainWindow::setVideoMode(VideoMode mode)
 {
     video_mode = mode;
     emit videoModeChanged();
+}
+
+float QmlMainWindow::zoomFactor() const
+{
+    return zoom_factor;
+}
+
+void QmlMainWindow::setZoomFactor(float factor)
+{
+    zoom_factor = factor;
+    emit zoomFactorChanged();
 }
 
 QmlMainWindow::VideoPreset QmlMainWindow::videoPreset() const
@@ -443,6 +475,7 @@ void QmlMainWindow::init(Settings *settings)
             emit hasVideoChanged();
         }
     });
+    connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
 
     render_thread = new QThread;
     render_thread->setObjectName("render");
@@ -489,6 +522,7 @@ void QmlMainWindow::init(Settings *settings)
         setVideoPreset(VideoPreset::HighQuality);
         break;
     }
+    setZoomFactor(settings->GetZoomFactor());
 }
 
 void QmlMainWindow::update()
@@ -761,7 +795,15 @@ void QmlMainWindow::render()
             // Nothing to do, target.crop already covers the full image
             break;
         case VideoMode::Zoom:
-            pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
+            if(zoom_factor == 0)
+                pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
+            else
+            {
+                const float z = powf(2.0f, zoom_factor);
+                const float sx = z * fabsf(pl_rect_w(crop)) / pl_rect_w(target_frame.crop);
+                const float sy = z * fabsf(pl_rect_h(crop)) / pl_rect_h(target_frame.crop);
+                pl_rect2df_stretch(&target_frame.crop, sx, sy);
+            }
             break;
         }
         pl_swapchain_colorspace_hint(placebo_swapchain, &current_frame.color);

@@ -5,6 +5,8 @@ import QtQuick.Controls.Material
 
 import org.streetpea.chiaki4deck
 
+import "controls" as C
+
 Item {
     id: view
 
@@ -146,7 +148,7 @@ Item {
 
         Timer {
             id: networkIndicatorTimer
-            running: Chiaki.session?.averagePacketLoss > 0.03
+            running: Chiaki.session?.averagePacketLoss > (Chiaki.settings.wifiDroppedNotif * 0.01)
             interval: 400
         }
     }
@@ -251,9 +253,43 @@ Item {
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Zoom
                 KeyNavigation.left: muteButton
-                KeyNavigation.right: stretchButton
+                KeyNavigation.right: {
+                    if(Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom)
+                        zoomFactor
+                    else
+                        stretchButton
+                }
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
+            }
+
+            Slider {
+                id: zoomFactor
+                orientation: Qt.Vertical
+                from: 0
+                to: 4
+                Layout.preferredHeight: 100
+                stepSize: 0.01
+                visible: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
+                value: Chiaki.window.ZoomFactor
+                onMoved: {
+                    Chiaki.window.ZoomFactor = value
+                    Chiaki.settings.sZoomFactor = value
+                }
+                Label {
+                    anchors {
+                        top: parent.bottom
+                        horizontalCenter: parent.horizontalCenter
+                        leftMargin: 10
+                    }
+                    text: {
+                        if(parent.value === 0)
+                            qsTr("No Black Bars")
+                        else
+                            qsTr("%1 x").arg(parent.value + 1)
+                    }
+
+                }
             }
 
             ToolSeparator {
@@ -269,7 +305,12 @@ Item {
                 checkable: true
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Stretch
-                KeyNavigation.left: zoomButton
+                KeyNavigation.left: {
+                    if(Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom)
+                        zoomFactor
+                    else
+                        zoomButton
+                }
                 KeyNavigation.right: defaultButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
