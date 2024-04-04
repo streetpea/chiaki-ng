@@ -265,7 +265,7 @@ typedef struct connection_request_t
     Candidate *candidates;
     size_t num_candidates;
     uint8_t default_route_mac_addr[6];
-    uint8_t local_hashed_id[16];
+    uint8_t local_hashed_id[20];
 } ConnectionRequest;
 
 typedef struct session_message_t
@@ -1164,7 +1164,7 @@ static void* websocket_thread_func(void *user) {
         if (expecting_pong && now - last_ping_sent > 5L * SECOND_NS)
         {
             CHIAKI_LOGE(session->log, "websocket_thread_func: Did not receive PONG in time.");
-            goto cleanup;
+            goto cleanup_json;
         }
 
         if (now - last_ping_sent > 5L * SECOND_NS)
@@ -1173,7 +1173,7 @@ static void* websocket_thread_func(void *user) {
             if (res != CURLE_OK)
             {
                 CHIAKI_LOGE(session->log, "websocket_thread_func: Sending WebSocket PING failed with CURL error %d.", res);
-                goto cleanup;
+                goto cleanup_json;
             }
             CHIAKI_LOGD(session->log, "websocket_thread_func: PING.");
             last_ping_sent = now;
@@ -1189,14 +1189,14 @@ static void* websocket_thread_func(void *user) {
                 if (select(sockfd + 1, &fds, NULL, NULL, &timeout) == -1)
                 {
                     CHIAKI_LOGE(session->log, "websocket_thread_func: Select failed.");
-                    goto cleanup;
+                    goto cleanup_json;
                 }
                 else
                     continue;
             } else
             {
                 CHIAKI_LOGE(session->log, "websocket_thread_func: Receiving WebSocket frame failed with CURL error %d", res);
-                goto cleanup;
+                goto cleanup_json;
             }
         }
 
@@ -1213,14 +1213,14 @@ static void* websocket_thread_func(void *user) {
             if (res != CURLE_OK)
             {
                 CHIAKI_LOGE(session->log, "websocket_thread_func: Sending WebSocket PONG failed with CURL error %d", res);
-                goto cleanup;
+                goto cleanup_json;
             }
             CHIAKI_LOGD(session->log, "websocket_thread_func: Sent PONG.");
         }
         if (meta->flags & CURLWS_CLOSE)
         {
             CHIAKI_LOGE(session->log, "websocket_thread_func: WebSocket closed");
-            goto cleanup;
+            goto cleanup_json;
         }
         if (meta->flags & CURLWS_TEXT || meta->flags & CURLWS_BINARY)
         {
@@ -1286,9 +1286,10 @@ static void* websocket_thread_func(void *user) {
         }
     }
 
+cleanup_json:
+    json_tokener_free(tok);
 cleanup:
     curl_easy_cleanup(curl);
-    json_tokener_free(tok);
 
     return NULL;
 }
