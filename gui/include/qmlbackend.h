@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QThread>
 #include <QJSValue>
+#include <QUrl>
 
 class SystemdInhibit;
 
@@ -54,6 +55,7 @@ public:
 
     bool discoveryEnabled() const;
     void setDiscoveryEnabled(bool enabled);
+    void refreshAuth();
 
     QVariantList hosts() const;
 
@@ -75,6 +77,8 @@ public:
     Q_INVOKABLE bool handlePsnLoginRedirect(const QUrl &url);
     Q_INVOKABLE void stopAutoConnect();
     Q_INVOKABLE void setConsolePin(int index, QString console_pin);
+    Q_INVOKABLE void openPsnLink();
+    Q_INVOKABLE void initPsnAuth(const QUrl &url, const QJSValue &callback);
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
 #endif

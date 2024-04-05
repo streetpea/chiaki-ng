@@ -53,7 +53,7 @@ void JsonRequester::onRequestFinished(QNetworkReply* reply) {
 
         emit requestFinished(url, jsonDocument);
     } else {
-        emit requestError(url, reply->error());
+        emit requestError(url, reply->errorString());
     }
 
     reply->deleteLater();

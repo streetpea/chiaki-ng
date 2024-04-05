@@ -60,6 +60,7 @@ class Settings : public QObject
 
 	private:
 		QSettings settings;
+		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
 		QMap<int, ManualHost> manual_hosts;
@@ -155,6 +156,17 @@ class Settings : public QObject
 
 		uint GetWifiDroppedNotif() const;
 		void SetWifiDroppedNotif(uint percent);
+
+		QString GetPsnAuthToken() const;
+		void SetPsnAuthToken(QString auth_token);
+
+		QString GetPsnRefreshToken() const;
+		void SetPsnRefreshToken(QString refresh_token);
+
+		QString GetPsnAuthTokenExpiry() const;
+		void SetPsnAuthTokenExpiry(QString expiry_date);
+
+		QString GetTimeFormat() const     { return time_format; }
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool GetSpeechProcessingEnabled() const;

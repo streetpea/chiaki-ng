@@ -35,6 +35,6 @@ void PSNAccountID::handUserIDResponse(const QString& url, const QJsonDocument& j
     emit AccountIDResponse(byte_representation.toBase64());
 }
 
-void PSNAccountID::handleErrorResponse(const QString& url, const QNetworkReply::NetworkError& error) {
+void PSNAccountID::handleErrorResponse(const QString& url, const QString& error) {
     emit AccountIDError(url, error);
 }

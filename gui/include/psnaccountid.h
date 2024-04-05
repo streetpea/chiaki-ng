@@ -33,7 +33,7 @@ public:
 
 signals:
     void AccountIDResponse(QString accountId);
-    void AccountIDError(const QString& url, const QNetworkReply::NetworkError& error);
+    void AccountIDError(const QString& url, const QString& error);
 
 private:
     QString basicAuthHeader;
@@ -53,7 +53,7 @@ private slots:
 
     void handUserIDResponse(const QString& url, const QJsonDocument& jsonDocument);
 
-    void handleErrorResponse(const QString& url, const QNetworkReply::NetworkError& error);
+    void handleErrorResponse(const QString& url, const QString& error);
 };
 
 #endif //PSNACCOUNTID_H

@@ -60,6 +60,11 @@ DialogView {
                 text: qsTr("Keys")
                 focusPolicy: Qt.NoFocus
             }
+
+            TabButton {
+                text: qsTr("PSN")
+                focusPolicy: Qt.NoFocus
+            }
         }
 
         StackLayout {
@@ -623,6 +628,49 @@ DialogView {
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            Item {
+                // PSN Remote Connection Setup
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 50
+                    }
+                    columns: 3
+                    rowSpacing: 10
+                    columnSpacing: 10
+
+                    C.Button {
+                        id: openPsnLogin
+                        firstInFocusChain: true
+                        text: qsTr("Login to PSN")
+                        onClicked: {
+                            Chiaki.openPsnLink()
+                            showPSNTokenDialog()
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry
+                    }
+
+                    C.Button {
+                        id: resetPsnTokens
+                        topPadding: 26
+                        leftPadding: 30
+                        rightPadding: 30
+                        bottomPadding: 26
+                        firstInFocusChain: true
+                        text: qsTr("Clear PSN Token")
+                        onClicked: {
+                            Chiaki.settings.psnRefreshToken = ""
+                            Chiaki.settings.psnAuthToken = ""
+                            Chiaki.settings.psnAuthTokenExpiry = ""
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry
                     }
                 }
             }

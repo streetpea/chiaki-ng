@@ -12,6 +12,7 @@
     <file>SettingsDialog.qml</file>
     <file>ConsolePinDialog.qml</file>
     <file>PSNLoginDialog.qml</file>
+    <file>PSNTokenDialog.qml</file>
     <file>AutoConnectView.qml</file>
     <file>controls/Button.qml</file>
     <file>controls/CheckBox.qml</file>

@@ -60,6 +60,10 @@ Item {
         stack.push(steamShortcutDialogComponent)
     }
 
+    function showPSNTokenDialog() {
+        stack.push(psnTokenDialogComponent)
+    }
+
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
@@ -192,6 +196,11 @@ Item {
     Component {
         id: steamShortcutDialogComponent
         SteamShortcutDialog { }
+    }
+
+    Component {
+        id: psnTokenDialogComponent
+        PSNTokenDialog { }
     }
 
     Component {

@@ -4,17 +4,18 @@
 #include "streamsession.h"
 #include "controllermanager.h"
 #include "psnaccountid.h"
+#include "psntoken.h"
 #include "systemdinhibit.h"
-
+#include "chiaki/remote/holepunch.h"
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 #include "steamtools.h"
 #endif
 
-#include <QUrl>
 #include <QUrlQuery>
 #include <QGuiApplication>
 #include <QPixmap>
 #include <QProcessEnvironment>
+#include <QDesktopServices>
 
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
@@ -744,3 +745,51 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
     }
 }
 #endif
+
+void QmlBackend::openPsnLink()
+{
+    size_t duid_size = 48;
+    char duid[duid_size];
+    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
+    QDesktopServices::openUrl(QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&"));
+}
+
+void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
+{
+    QJSValue cb = callback;
+    if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
+    {
+        if (cb.isCallable())
+            cb.call({QString("[E] Invalid URL: Please make sure you have copy and pasted the URL correctly."), false, true});
+        return;
+    }
+    const QString code = QUrlQuery(url).queryItemValue("code");
+    if (code.isEmpty())
+    {
+        if (cb.isCallable())
+            cb.call({QString("[E] Invalid code from redirect url."), false, true});
+        return;
+    }
+    PSNToken *psnToken = new PSNToken(settings, this);
+    connect(psnToken, &PSNToken::PSNTokenError, this, [cb](const QString &error) {
+        if (cb.isCallable())
+            cb.call({error, false, true});
+    });
+    connect(psnToken, &PSNToken::PSNTokenSuccess, this, [cb]() {
+        if (cb.isCallable())
+            cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
+    });
+    psnToken->InitPsnToken(code);
+}
+
+void QmlBackend::refreshAuth()
+{
+    PSNToken *psnToken = new PSNToken(settings, this);
+    connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!";
+    });
+    connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+        qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+    });
+    psnToken->RefreshPsnToken();
+}

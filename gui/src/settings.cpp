@@ -72,6 +72,7 @@ static void MigrateSettings(QSettings *settings)
 }
 
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
+	time_format("yyyy-MM-dd  HH:mm:ss"),
 	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf))
 {
 	settings.setFallbacksEnabled(false);
@@ -329,6 +330,36 @@ void Settings::SetEchoSuppressLevel(int reduceby)
 	settings.setValue("settings/echo_suppress_level", reduceby);
 }
 #endif
+
+QString Settings::GetPsnAuthToken() const
+{
+	return settings.value("settings/psn_auth_token").toString();
+}
+
+void Settings::SetPsnAuthToken(QString auth_token)
+{
+	settings.setValue("settings/psn_auth_token", auth_token);
+}
+
+QString Settings::GetPsnRefreshToken() const
+{
+	return settings.value("settings/psn_refresh_token").toString();
+}
+
+void Settings::SetPsnRefreshToken(QString refresh_token)
+{
+	settings.setValue("settings/psn_refresh_token", refresh_token);
+}
+
+QString Settings::GetPsnAuthTokenExpiry() const
+{
+	return settings.value("settings/psn_auth_token_expiry").toString();
+}
+
+void Settings::SetPsnAuthTokenExpiry(QString expiry_date)
+{
+	settings.setValue("settings/psn_auth_token_expiry", expiry_date);
+}
 
 ChiakiConnectVideoProfile Settings::GetVideoProfile()
 {
