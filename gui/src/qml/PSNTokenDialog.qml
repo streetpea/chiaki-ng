@@ -8,6 +8,7 @@ import org.streetpea.chiaki4deck
 import "controls" as C
 
 DialogView {
+    property var psnurl
     title: qsTr("Setup Automatic PSN Remote Connection")
     buttonText: qsTr("✓ Setup")
     buttonEnabled: url.text.trim()
@@ -26,22 +27,6 @@ DialogView {
 
     Item {
         GridLayout {
-            Keys.onPressed: (event) => {
-                switch (event.key) {
-                case Qt.Key_Right:     
-                    let item = nextItemInFocusChain(false);
-                    if (item)
-                        item.forceActiveFocus(Qt.TabFocusReason);
-                    event.accepted = true;
-                    break;
-                case Qt.Key_Left:
-                    item = nextItemInFocusChain();
-                    if (item)
-                        item.forceActiveFocus(Qt.TabFocusReason);
-                    event.accepted = true;
-                    break;
-                }
-            }
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
@@ -52,12 +37,46 @@ DialogView {
             columnSpacing: 20
 
             Label {
+                text: qsTr("Open Web Browser with following link")
+                visible: psnurl
+            }
+
+            TextField {
+                id: openurl
+                text: psnurl
+                visible: psnurl
+                KeyNavigation.right: copyurl
+                Layout.preferredWidth: 400
+                C.Button {
+                    id: copyUrl
+                    text: qsTr("Click to Copy URL")
+                    anchors {
+                        left: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 10
+                    }
+                    onClicked: {
+                        openurl.selectAll()
+                        openurl.copy()
+                    }
+                    KeyNavigation.up: openurl
+                    KeyNavigation.left: openurl
+                    KeyNavigation.down: url
+                    KeyNavigation.right: url
+                }
+            }
+
+            Label {
                 text: qsTr("Redirect URL from Web Browser")
             }
 
             TextField {
                 id: url
-
+                Layout.preferredWidth: 400
+                KeyNavigation.right: pasteUrl
+                KeyNavigation.left: copyurl
+                KeyNavigation.up: copyurl
+                KeyNavigation.down: pasteUrl
                 C.Button {
                     id: pasteUrl
                     text: qsTr("Click to Paste URL")
@@ -67,6 +86,8 @@ DialogView {
                         leftMargin: 10
                     }
                     onClicked: url.paste()
+                    KeyNavigation.left: url
+                    lastInFocusChain: true
                 }
             }
         }

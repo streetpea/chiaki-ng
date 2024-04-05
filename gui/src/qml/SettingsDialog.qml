@@ -649,8 +649,7 @@ DialogView {
                         firstInFocusChain: true
                         text: qsTr("Login to PSN")
                         onClicked: {
-                            Chiaki.openPsnLink()
-                            showPSNTokenDialog()
+                            showPSNTokenDialog(Chiaki.openPsnLink())
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry

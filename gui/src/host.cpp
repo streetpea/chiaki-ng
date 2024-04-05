@@ -130,3 +130,10 @@ ManualHost ManualHost::LoadFromSettings(QSettings *settings)
 		r.registered_mac = HostMAC((const uint8_t *)registered_mac.constData());
 	return r;
 }
+
+PsnHost::PsnHost(const QString &duid, const QString &name, bool ps5)
+	: duid(duid),
+	name(name),
+	ps5(ps5)
+{
+}

@@ -158,10 +158,19 @@ Pane {
                         let t = "";
                         if (modelData.name)
                             t += modelData.name + "\n";
-                        t += qsTr("Address: %1").arg(modelData.address);
+                        if (modelData.address)
+                            t += qsTr("Address: %1").arg(modelData.address);
+                        if (modelData.duid)
+                            t += qsTr("Device uid: %1").arg(modelData.duid);
                         if (modelData.mac)
                             t += "\n" + qsTr("ID: %1 (%2)").arg(modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
-                        t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
+                        if (modelData.duid)
+                        {
+                            t += qsTr("Device uid: %1").arg(modelData.duid);
+                            t += "\n" + qsTr("Automatic Connection via PSN)
+                        }
+                        else
+                            t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
                         return t;
                     }
                 }
@@ -194,7 +203,7 @@ Pane {
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
                         focusPolicy: Qt.NoFocus
-                        visible: !modelData.discovered
+                        visible: !modelData.discovered && !modelData.duid
                         onClicked: delegate.deleteHost()
                         Material.roundedScale: Material.SmallScale
 

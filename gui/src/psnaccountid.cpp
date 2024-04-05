@@ -4,7 +4,10 @@
 #include <QObject>
 #include "jsonrequester.h"
 
-PSNAccountID::PSNAccountID(QObject* parent) {
+PSNAccountID::PSNAccountID(Settings *settings, QObject *parent)
+    : QObject(parent)
+    , settings(settings)
+{
     basicAuthHeader = JsonRequester::generateBasicAuthHeader(PSNAuth::CLIENT_ID, PSNAuth::CLIENT_SECRET);
 }
 
@@ -19,6 +22,12 @@ void PSNAccountID::GetPsnAccountId(QString redirectCode) {
 void PSNAccountID::handleAccessTokenResponse(const QString& url, const QJsonDocument& jsonDocument) {
     QJsonObject object = jsonDocument.object();
     QString access_token = object.value("access_token").toString();
+    QString refresh_token = object.value("refresh_token").toString();
+    QDateTime expiry = QDateTime::currentDateTime();
+    QString access_token_expiry = expiry.addSecs(object.value("expires_in").toString().toInt()).toString(settings->GetTimeFormat());
+    settings->SetPsnAuthToken(access_token);
+    settings->SetPsnRefreshToken(refresh_token);
+    settings->SetPsnAuthTokenExpiry(access_token_expiry);
 
     QString accountInfoUrl = QString("%1/%2").arg(PSNAuth::TOKEN_URL).arg(access_token);
     JsonRequester* requester = new JsonRequester(this);

@@ -102,6 +102,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
+    connect(this, &QmlBackend::psnTokenChanged, this, &QmlBackend::updatePsnHosts);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
@@ -139,6 +140,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             });
         }
     });
+    updatePsnHosts();
 }
 
 QmlBackend::~QmlBackend()
@@ -187,6 +189,7 @@ QVariantList QmlBackend::hosts() const
         m["discovered"] = true;
         m["manual"] = false;
         m["name"] = host.host_name;
+        m["duid"] = "";
         m["address"] = host.host_addr;
         m["ps5"] = host.ps5;
         m["mac"] = host.GetHostMAC().ToString();
@@ -201,6 +204,7 @@ QVariantList QmlBackend::hosts() const
         m["discovered"] = false;
         m["manual"] = true;
         m["name"] = host.GetHost();
+        m["duid"] = "";
         m["address"] = host.GetHost();
         m["registered"] = false;
         if (host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC())) {
@@ -210,6 +214,17 @@ QVariantList QmlBackend::hosts() const
             m["ps5"] = chiaki_target_is_ps5(registered.GetTarget());
             m["mac"] = registered.GetServerMAC().ToString();
         }
+        out.append(m);
+    }
+    for (const auto &host : std::as_const(psn_hosts)) {
+        QVariantMap m;
+        m["discovered"] = false;
+        m["manual"] = false;
+        m["name"] = host.GetName();
+        m["duid"] = host.GetDuid();
+        m["address"] = "";
+        m["registered"] = false;
+        m["ps5"] = host.IsPS5();
         out.append(m);
     }
     return out;
@@ -528,12 +543,16 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
         emit psnLoginAccountIdDone({});
         return false;
     }
-    PSNAccountID *psnId = new PSNAccountID(this);
+    PSNAccountID *psnId = new PSNAccountID(settings, this);
     connect(psnId, &PSNAccountID::AccountIDResponse, this, [this, psnId](const QString &accountId) {
         psnId->deleteLater();
         emit psnLoginAccountIdDone(accountId);
     });
+    connect(psnId, &PSNAccountID::AccountIDError, [this](const QString &error) {
+        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+    });
     psnId->GetPsnAccountId(code);
+    emit psnTokenChanged();
     return true;
 }
 
@@ -746,12 +765,16 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 }
 #endif
 
-void QmlBackend::openPsnLink()
+QString QmlBackend::openPsnLink()
 {
     size_t duid_size = 48;
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
-    QDesktopServices::openUrl(QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&"));
+    QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
+    if(QDesktopServices::openUrl(url))
+        return QString();
+    else
+        return QString(url.toEncoded());
 }
 
 void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
@@ -786,10 +809,78 @@ void QmlBackend::refreshAuth()
 {
     PSNToken *psnToken = new PSNToken(settings, this);
     connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!";
+        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
     });
     connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
         qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
     });
     psnToken->RefreshPsnToken();
+    emit psnTokenChanged();
+}
+
+void QmlBackend::updatePsnHosts()
+{
+    refreshPsnToken();
+    QString psn_token = settings->GetPsnAuthToken();
+    if(psn_token.isEmpty())
+        return;
+
+    ChiakiHolepunchDeviceInfo *device_info_ps5;
+    size_t num_devices_ps5;
+    ChiakiHolepunchDeviceInfo *device_info_ps4;
+    size_t num_devices_ps4;
+    ChiakiLog backend_log;
+    chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
+    ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
+    if (err != CHIAKI_ERR_SUCCESS)
+    {
+        qCWarning(chiakiGui) << "Failed to get PS5 devices";
+        return;
+    }
+    err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
+    if (err != CHIAKI_ERR_SUCCESS)
+    {
+        qCWarning(chiakiGui) << "Failed to get PS4 devices";
+        return;
+    }
+    for (size_t i = 0; i < num_devices_ps5; i++)
+    {
+        ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
+        // skip devices that don't have remote play enabled
+        if(!dev.remoteplay_enabled)
+            continue;
+        QByteArray duid_bytes = reinterpret_cast<char*>(dev.device_uid);
+        QString duid = QString(duid_bytes.toHex());
+        QString name = QString(dev.device_name);
+        bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
+        PsnHost psn_host(duid, name, ps5);
+	    if(!psn_hosts.contains(duid))
+		    psn_hosts.insert(duid, psn_host);
+    }
+    for (size_t i = 0; i < num_devices_ps4; i++)
+    {
+        ChiakiHolepunchDeviceInfo dev = device_info_ps4[i];
+        if(!dev.remoteplay_enabled)
+            continue;
+        QByteArray duid_bytes = reinterpret_cast<char*>(dev.device_uid);
+        QString duid = QString(duid_bytes.toHex());
+        QString name = QString(dev.device_name);
+        bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
+        PsnHost psn_host(duid, name, ps5);
+	    if(!psn_hosts.contains(duid))
+		    psn_hosts.insert(duid, psn_host);
+    }
+    emit hostsChanged();
+}
+
+void QmlBackend::refreshPsnToken()
+{
+    QString expiry_s = settings->GetPsnAuthTokenExpiry();
+    QString refresh = settings->GetPsnRefreshToken();
+    if(expiry_s.isEmpty() || refresh.isEmpty())
+        return;
+    QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
+    QDateTime now = QDateTime::currentDateTime().addSecs(60);
+    if (now >= expiry)
+        refreshAuth();
 }

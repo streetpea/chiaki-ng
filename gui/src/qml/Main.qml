@@ -60,8 +60,8 @@ Item {
         stack.push(steamShortcutDialogComponent)
     }
 
-    function showPSNTokenDialog() {
-        stack.push(psnTokenDialogComponent)
+    function showPSNTokenDialog(psnurl) {
+        stack.push(psnTokenDialogComponent, {psnurl: psnurl});
     }
 
     Component.onCompleted: {

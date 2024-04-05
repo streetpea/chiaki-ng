@@ -39,7 +39,9 @@ set(HEADER_FILES
 		include/chiaki/opusdecoder.h
 		include/chiaki/opusencoder.h
 		include/chiaki/orientation.h
-		include/chiaki/bitstream.h)
+		include/chiaki/bitstream.h
+		include/chiaki/remote/holepunch.h
+		src/remote/stun.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -81,7 +83,8 @@ set(SOURCE_FILES
 		src/opusdecoder.c
 		src/opusencoder.c
 		src/orientation.c
-		src/bitstream.c)
+		src/bitstream.c
+		src/remote/holepunch.c)
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND HEADER_FILES include/chiaki/ffmpegdecoder.h)
@@ -170,5 +173,5 @@ if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
 endif()
 
-add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch.c)
-target_link_libraries(holepunch-test chiaki-lib)
+# add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch-test.c)
+# target_link_libraries(holepunch-test chiaki-lib)

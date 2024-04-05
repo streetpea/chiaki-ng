@@ -77,7 +77,7 @@ public:
     Q_INVOKABLE bool handlePsnLoginRedirect(const QUrl &url);
     Q_INVOKABLE void stopAutoConnect();
     Q_INVOKABLE void setConsolePin(int index, QString console_pin);
-    Q_INVOKABLE void openPsnLink();
+    Q_INVOKABLE QString openPsnLink();
     Q_INVOKABLE void initPsnAuth(const QUrl &url, const QJSValue &callback);
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
@@ -88,6 +88,7 @@ signals:
     void controllersChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
+    void psnTokenChanged();
     void autoConnectChanged();
     void windowTypeUpdated(WindowType type);
 
@@ -119,6 +120,8 @@ private:
     bool sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5);
     void updateControllers();
     void updateDiscoveryHosts();
+    void updatePsnHosts();
+    void refreshPsnToken();
     QString getExecutable();
 
     Settings *settings = {};
@@ -133,4 +136,5 @@ private:
     SystemdInhibit *sleep_inhibit = {};
     bool resume_session = false;
     HostMAC auto_connect_mac = {};
+    QMap<QString, PsnHost> psn_hosts;
 };

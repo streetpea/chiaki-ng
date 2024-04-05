@@ -101,25 +101,7 @@ CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* 
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_generate_client_device_uid(
-    char *out, size_t *out_size)
-{
-    if (*out_size < CHIAKI_DUID_STR_SIZE)
-    {
-        return CHIAKI_ERR_BUF_TOO_SMALL;
-    }
-    uint8_t random_bytes[16];
-    ChiakiErrorCode err = chiaki_random_bytes_crypt(random_bytes, sizeof(random_bytes));
-    if (err != CHIAKI_ERR_SUCCESS)
-        return err;
-
-    *out_size += sprintf(out, "%s", DUID_PREFIX);
-    for (int i = 0; i < sizeof(random_bytes); i++)
-    {
-        *out_size += sprintf(out + strlen(out), "%02x", random_bytes[i]);
-    }
-
-    return CHIAKI_ERR_SUCCESS;
-}
+    char *out, size_t *out_size);
 
 /**
  * Initialize a holepunching session.

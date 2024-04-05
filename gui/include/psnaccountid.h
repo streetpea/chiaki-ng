@@ -4,6 +4,9 @@
 
 #ifndef PSNACCOUNTID_H
 #define PSNACCOUNTID_H
+
+#include "settings.h"
+
 #include <ostream>
 #include <QNetworkReply>
 #include <qobject.h>
@@ -25,7 +28,7 @@ class PSNAccountID : public QObject {
     Q_OBJECT
 
 public:
-    explicit PSNAccountID(QObject* parent = nullptr);
+    PSNAccountID(Settings *settings, QObject *parent = nullptr);
 
 
     void GetPsnAccountId(QString redirectCode);
@@ -37,6 +40,7 @@ signals:
 
 private:
     QString basicAuthHeader;
+    Settings *settings = {};
 
     static QByteArray to_bytes(long number, int num_bytes) {
         std::vector<unsigned char> result(num_bytes);
