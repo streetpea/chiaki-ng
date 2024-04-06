@@ -23,102 +23,14 @@
 #include <chiaki/random.h>
 #include <chiaki/sock.h>
 
-#include "../utils.h"
-#include "stun.h"
-
-#define UUIDV4_STR_LEN 37
-typedef enum notification_type_t
-{
-    NOTIFICATION_TYPE_UNKNOWN = 0,
-    // psn:sessionManager:sys:remotePlaySession:created
-    NOTIFICATION_TYPE_SESSION_CREATED = 1 << 0,
-    // psn:sessionManager:sys:rps:members:created
-    NOTIFICATION_TYPE_MEMBER_CREATED = 1 << 1,
-    // psn:sessionManager:sys:rps:members:deleted
-    NOTIFICATION_TYPE_MEMBER_DELETED = 1 << 2,
-    // psn:sessionManager:sys:rps:customData1:updated
-    NOTIFICATION_TYPE_CUSTOM_DATA1_UPDATED = 1 << 3,
-    // psn:sessionManager:sys:rps:sessionMessage:created
-    NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED = 1 << 4
-} NotificationType;
-
-typedef struct notification_queue_t
-{
-    struct notification_queue_t *previous;
-
-    NotificationType type;
-    json_object* json;
-    char* json_buf;
-    size_t json_buf_size;
-} Notification;
-
-typedef enum session_state_t
-{
-    SESSION_STATE_INIT = 0,
-    SESSION_STATE_WS_OPEN = 1 << 0,
-    SESSION_STATE_CREATED = 1 << 1,
-    SESSION_STATE_STARTED = 1 << 2,
-    SESSION_STATE_CLIENT_JOINED = 1 << 3,
-    SESSION_STATE_DATA_SENT = 1 << 4,
-    SESSION_STATE_CONSOLE_JOINED = 1 << 5,
-    SESSION_STATE_CUSTOMDATA1_RECEIVED = 1 << 6,
-    SESSION_STATE_CTRL_OFFER_RECEIVED = 1 << 7,
-    SESSION_STATE_CTRL_OFFER_SENT = 1 << 8,
-    SESSION_STATE_CTRL_CONSOLE_ACCEPTED = 1 << 9,
-    SESSION_STATE_CTRL_CLIENT_ACCEPTED = 1 << 10,
-    SESSION_STATE_CTRL_ESTABLISHED = 1 << 11,
-    SESSION_STATE_DATA_OFFER_RECEIVED = 1 << 12,
-    SESSION_STATE_DATA_OFFER_SENT = 1 << 13,
-    SESSION_STATE_DATA_CONSOLE_ACCEPTED = 1 << 14,
-    SESSION_STATE_DATA_CLIENT_ACCEPTED = 1 << 15,
-    SESSION_STATE_DATA_ESTABLISHED = 1 << 16
-} SessionState;
-
-typedef struct session_t
-{
-    // TODO: Clean this up, how much of this stuff do we really need?
-    char* oauth_header;
-    uint8_t console_uid[32];
-    ChiakiHolepunchConsoleType console_type;
-
-    chiaki_socket_t sock;
-
-    uint64_t account_id;
-    char session_id[UUIDV4_STR_LEN];
-    char pushctx_id[UUIDV4_STR_LEN];
-
-    uint16_t sid_local;
-    uint16_t sid_console;
-    uint8_t hashed_id_local[20];
-    uint8_t hashed_id_console[20];
-
-    uint8_t data1[16];
-    uint8_t data2[16];
-    uint8_t custom_data1[16];
-
-    CURLSH* curl_share;
-
-    char* ws_fqdn;
-    ChiakiThread ws_thread;
-    Notification* ws_notification_queue;
-    bool ws_thread_should_stop;
-
-    ChiakiStopPipe notif_pipe;
-    ChiakiMutex notif_mutex;
-    ChiakiCond notif_cond;
-
-    SessionState state;
-    ChiakiMutex state_mutex;
-    ChiakiCond state_cond;
-
-    char* client_addr_static;
-    char* client_addr_local;
-    chiaki_socket_t client_sock;
-    chiaki_socket_t ctrl_sock;
-    chiaki_socket_t data_sock;
-
-    ChiakiLog *log;
-} Session;
+static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t max_len) {
+    if (len > max_len * 2) {
+        len = max_len * 2;
+    }
+    for (size_t i = 0; i < len; i++) {
+        snprintf(hex_str + i * 2, 3, "%02x", bytes[i]);
+    }
+}
 // ================================================================================================
 // ================================================================================================
 // ================================================================================================
@@ -216,7 +128,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Session *session = chiaki_holepunch_session_init(oauth_token, &log);
+    ChiakiHolepunchSession session = chiaki_holepunch_session_init(oauth_token, &log);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to initialize session\n");

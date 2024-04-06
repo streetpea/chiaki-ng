@@ -167,8 +167,8 @@ Pane {
                         if (modelData.duid)
                         {
                             t += qsTr("Device uid: %1").arg(modelData.duid);
-                            t += "\n" + qsTr("Automatic Connection via PSN)
-                        }
+                            t += "\n" + qsTr("Automatic Connection via PSN");
+                        } 
                         else
                             t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
                         return t;

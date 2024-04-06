@@ -173,5 +173,5 @@ if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
 endif()
 
-# add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch-test.c)
-# target_link_libraries(holepunch-test chiaki-lib)
+add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch-test.c)
+target_link_libraries(holepunch-test chiaki-lib)

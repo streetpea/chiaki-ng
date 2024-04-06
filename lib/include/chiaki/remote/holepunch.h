@@ -39,7 +39,7 @@ extern "C" {
 
 #define DUID_PREFIX "0000000700410080"
 
-const size_t CHIAKI_DUID_STR_SIZE = 33;
+#define CHIAKI_DUID_STR_SIZE 33
 
 /** Handle to holepunching session state */
 typedef struct session_t* ChiakiHolepunchSession;
