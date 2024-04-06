@@ -422,12 +422,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON does not contain \"duid\" field");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         } else if (!json_object_is_type(duid, json_type_string))
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON \"duid\" field is not a string");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         }
         hex_to_bytes(json_object_get_string(duid), device->device_uid, sizeof(device->device_uid));
 
@@ -436,12 +436,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON does not contain \"device\" field");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         } else if (!json_object_is_type(device_json, json_type_object))
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON \"device\" field is not an object");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         }
 
         json_object *enabled_features;
@@ -449,12 +449,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON does not contain \"enabledFeatures\" field");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         } else if (!json_object_is_type(enabled_features, json_type_array))
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON \"enabledFeatures\" field is not an array");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         }
         device->remoteplay_enabled = false;
         size_t num_enabled_features = json_object_array_length(enabled_features);
@@ -473,23 +473,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON does not contain \"name\" field");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         } else if (!json_object_is_type(device_name, json_type_string))
         {
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: JSON \"name\" field is not a string");
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup;
+            goto cleanup_devices;
         }
         strncpy(device->device_name, json_object_get_string(device_name), sizeof(device->device_name));
     }
 
+cleanup_devices:
+if (err != CHIAKI_ERR_SUCCESS)
+    chiaki_holepunch_free_device_list(*devices);
 cleanup_json:
     json_object_put(json);
     json_tokener_free(tok);
-
 cleanup:
-    if (err != CHIAKI_ERR_SUCCESS)
-        chiaki_holepunch_free_device_list(*devices);
     free(oauth_header);
     free(response_data.data);
     curl_easy_cleanup(curl);
@@ -831,9 +831,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         .action = SESSION_MESSAGE_ACTION_RESULT,
         .req_id = console_offer_msg->req_id,
         .error = 0,
-        .conn_request = NULL,
+        .conn_request = calloc(1, sizeof(ConnectionRequest)),
     };
+    ack_msg.conn_request->num_candidates = 0;
     http_send_session_message(session, &ack_msg);
+    free(ack_msg.conn_request);
 
     // Send our own OFFER
     const int our_offer_req_id = 1;
@@ -905,9 +907,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
                 .action = SESSION_MESSAGE_ACTION_RESULT,
                 .req_id = msg->req_id,
                 .error = 0,
-                .conn_request = NULL,
+                .conn_request = calloc(1, sizeof(ConnectionRequest)),
             };
+            ack_msg.conn_request->num_candidates = 0;
             http_send_session_message(session, &ack_msg);
+            free(ack_msg.conn_request);
         }
         log_session_state(session);
 
@@ -1291,9 +1295,11 @@ static void* websocket_thread_func(void *user) {
                         .action = SESSION_MESSAGE_ACTION_RESULT,
                         .req_id = msg->req_id,
                         .error = 0,
-                        .conn_request = NULL,
+                        .conn_request = calloc(1, sizeof(ConnectionRequest)),
                     };
+                    ack_msg.conn_request->num_candidates = 0;
                     http_send_session_message(session, &ack_msg);
+                    free(ack_msg.conn_request);
                 }
                 session_message_free(msg);
             }

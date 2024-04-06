@@ -131,9 +131,9 @@ find_package(json-c REQUIRED)
 target_include_directories(chiaki-lib PRIVATE ${json-c_INCLUDE_DIRS})
 target_link_libraries(chiaki-lib json-c::json-c)
 
-find_package(MINIUPNPC REQUIRED)
-target_include_directories(chiaki-lib PRIVATE ${MINIUPNP_INCLUDE_DIR})
-target_link_libraries(chiaki-lib ${MINIUPNP_LIBRARY})
+find_package(PkgConfig REQUIRED)
+pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
+target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)

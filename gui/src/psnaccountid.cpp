@@ -1,9 +1,8 @@
 #include "psnaccountid.h"
+#include "jsonrequester.h"
 
 #include <qjsonobject.h>
 #include <QObject>
-#include "jsonrequester.h"
-
 PSNAccountID::PSNAccountID(Settings *settings, QObject *parent)
     : QObject(parent)
     , settings(settings)
@@ -12,7 +11,7 @@ PSNAccountID::PSNAccountID(Settings *settings, QObject *parent)
 }
 
 void PSNAccountID::GetPsnAccountId(QString redirectCode) {
-    QString body = QString("grant_type=authorization_code&code=%1&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&").arg(redirectCode);
+    QString body = QString("grant_type=authorization_code&code=%1&scope=psn:clientapp referenceDataService:countryConfig.read pushNotification:webSocket.desktop.connect sessionManager:remotePlaySession.system.update&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&").arg(redirectCode);
     JsonRequester* requester = new JsonRequester(this);
     connect(requester, &JsonRequester::requestFinished, this, &PSNAccountID::handleAccessTokenResponse);
     connect(requester, &JsonRequester::requestError, this, &PSNAccountID::handleErrorResponse);
@@ -23,8 +22,10 @@ void PSNAccountID::handleAccessTokenResponse(const QString& url, const QJsonDocu
     QJsonObject object = jsonDocument.object();
     QString access_token = object.value("access_token").toString();
     QString refresh_token = object.value("refresh_token").toString();
-    QDateTime expiry = QDateTime::currentDateTime();
-    QString access_token_expiry = expiry.addSecs(object.value("expires_in").toString().toInt()).toString(settings->GetTimeFormat());
+    QDateTime currentTime = QDateTime::currentDateTime();
+    auto secondsLeft = object.value("expires_in").toInt();
+    QDateTime expiry = currentTime.addSecs(secondsLeft);
+    QString access_token_expiry = expiry.toString(settings->GetTimeFormat());
     settings->SetPsnAuthToken(access_token);
     settings->SetPsnRefreshToken(refresh_token);
     settings->SetPsnAuthTokenExpiry(access_token_expiry);

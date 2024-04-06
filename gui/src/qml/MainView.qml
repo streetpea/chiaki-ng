@@ -160,8 +160,6 @@ Pane {
                             t += modelData.name + "\n";
                         if (modelData.address)
                             t += qsTr("Address: %1").arg(modelData.address);
-                        if (modelData.duid)
-                            t += qsTr("Device uid: %1").arg(modelData.duid);
                         if (modelData.mac)
                             t += "\n" + qsTr("ID: %1 (%2)").arg(modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
                         if (modelData.duid)

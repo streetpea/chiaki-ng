@@ -15,7 +15,7 @@ class PSNToken : public QObject {
 public:
     PSNToken(Settings *settings, QObject* parent = nullptr);
     void InitPsnToken(QString redirectCode);
-    void RefreshPsnToken();
+    void RefreshPsnToken(QString refreshToken);
 
 signals:
     void PSNTokenSuccess();

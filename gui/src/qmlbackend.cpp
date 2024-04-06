@@ -102,7 +102,6 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(this, &QmlBackend::psnTokenChanged, this, &QmlBackend::updatePsnHosts);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
@@ -140,7 +139,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             });
         }
     });
-    updatePsnHosts();
+    refreshPsnToken();
 }
 
 QmlBackend::~QmlBackend()
@@ -529,7 +528,10 @@ void QmlBackend::enterPin(const QString &pin)
 
 QUrl QmlBackend::psnLoginUrl() const
 {
-    return QUrl(PSNAuth::LOGIN_URL);
+    size_t duid_size = 48;
+    char duid[duid_size];
+    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
+    return QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
 }
 
 bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
@@ -548,6 +550,7 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
         psnId->deleteLater();
         emit psnLoginAccountIdDone(accountId);
     });
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
     connect(psnId, &PSNAccountID::AccountIDError, [this](const QString &error) {
         qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
     });
@@ -802,7 +805,9 @@ void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
         if (cb.isCallable())
             cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
     });
+    connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
     psnToken->InitPsnToken(code);
+    emit psnTokenChanged();
 }
 
 void QmlBackend::refreshAuth()
@@ -814,13 +819,13 @@ void QmlBackend::refreshAuth()
     connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
         qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
     });
-    psnToken->RefreshPsnToken();
-    emit psnTokenChanged();
+    connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
+    QString refresh_token = settings->GetPsnRefreshToken();
+    psnToken->RefreshPsnToken(refresh_token);
 }
 
 void QmlBackend::updatePsnHosts()
 {
-    refreshPsnToken();
     QString psn_token = settings->GetPsnAuthToken();
     if(psn_token.isEmpty())
         return;
@@ -849,7 +854,7 @@ void QmlBackend::updatePsnHosts()
         // skip devices that don't have remote play enabled
         if(!dev.remoteplay_enabled)
             continue;
-        QByteArray duid_bytes = reinterpret_cast<char*>(dev.device_uid);
+        QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
@@ -862,7 +867,7 @@ void QmlBackend::updatePsnHosts()
         ChiakiHolepunchDeviceInfo dev = device_info_ps4[i];
         if(!dev.remoteplay_enabled)
             continue;
-        QByteArray duid_bytes = reinterpret_cast<char*>(dev.device_uid);
+        QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
@@ -883,4 +888,6 @@ void QmlBackend::refreshPsnToken()
     QDateTime now = QDateTime::currentDateTime().addSecs(60);
     if (now >= expiry)
         refreshAuth();
+    else
+        updatePsnHosts();
 }
