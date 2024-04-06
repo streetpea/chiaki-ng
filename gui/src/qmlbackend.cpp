@@ -885,7 +885,8 @@ void QmlBackend::refreshPsnToken()
     if(expiry_s.isEmpty() || refresh.isEmpty())
         return;
     QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
-    QDateTime now = QDateTime::currentDateTime().addSecs(60);
+    // give 10 minute buffer
+    QDateTime now = QDateTime::currentDateTime().addSecs(600);
     if (now >= expiry)
         refreshAuth();
     else

@@ -27,6 +27,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <assert.h>
+#include <ifaddrs.h>
 
 #include <curl/curl.h>
 #include <json-c/json_object.h>
@@ -293,7 +294,7 @@ static ChiakiErrorCode http_create_session(Session *session);
 static ChiakiErrorCode http_start_session(Session *session);
 static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *msg);
 static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_console_candidate, char *out, size_t out_len);
-static bool upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info);
+static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info);
 static bool get_client_addr_remote_upnp(UPNPGatewayInfo *gw_info, char *out);
 static bool upnp_add_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external, char* ip_local);
 static bool upnp_delete_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_external);
@@ -1402,6 +1403,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     Candidate *candidate_local = &msg.conn_request->candidates[0];
     candidate_local->type = CANDIDATE_TYPE_LOCAL;
     get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
+    CHIAKI_LOGI(session->log, "Local address %s", candidate_local->addr);
     memcpy(candidate_local->addr_mapped, "0.0.0.0", 8);
     candidate_local->port = local_port;
     candidate_local->port_mapped = 0;
@@ -1409,15 +1411,17 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     bool have_addr = false;
     Candidate *candidate_remote = &msg.conn_request->candidates[1];
     candidate_remote->type = CANDIDATE_TYPE_STATIC;
-    UPNPGatewayInfo *upnp_gw;
-    err = upnp_get_gateway_info(session->log, upnp_gw);
+    UPNPGatewayInfo upnp_gw;
+    upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
+    upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
+    err = upnp_get_gateway_info(session->log, &upnp_gw);
     if (err == CHIAKI_ERR_SUCCESS) {
         struct addrinfo *gw_addr;
-        getaddrinfo(upnp_gw->lan_ip, NULL, NULL, &gw_addr);
+        getaddrinfo(&upnp_gw.lan_ip, NULL, NULL, &gw_addr);
         get_mac_addr(gw_addr, msg.conn_request->default_route_mac_addr);
 
-        have_addr = get_client_addr_remote_upnp(upnp_gw, candidate_remote->addr);
-        upnp_add_udp_port_mapping(upnp_gw, local_port, local_port, "Chiaki UDP holepunch");
+        have_addr = get_client_addr_remote_upnp(&upnp_gw, candidate_remote->addr);
+        upnp_add_udp_port_mapping(&upnp_gw, local_port, local_port, "Chiaki UDP holepunch");
     }
     if (!have_addr) {
         have_addr = get_client_addr_remote_stun(session->log, candidate_remote->addr);
@@ -1428,6 +1432,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         close(session->client_sock);
         goto cleanup;
     }
+    CHIAKI_LOGI(session->log, "Session address %s", candidate_remote->addr);
     memcpy(candidate_remote->addr_mapped, "0.0.0.0", 8);
     candidate_remote->port = local_port;
     candidate_remote->port_mapped = 0;
@@ -1441,8 +1446,9 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
 
 cleanup:
     free(msg.conn_request->candidates);
-    free(msg.conn_request->candidates);
     free(msg.conn_request);
+    free(upnp_gw.data);
+    free(upnp_gw.urls);
 
     return err;
 }
@@ -1735,6 +1741,8 @@ cleanup:
 static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_console_candidate, char *out, size_t out_len)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+    struct ifaddrs *local_addrs, *current_addr;
+    void *in_addr;
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof hints);
@@ -1743,6 +1751,41 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
 
     struct addrinfo *res;
     int status;
+
+    if(getifaddrs(&local_addrs) != 0)
+    {
+        CHIAKI_LOGE(session->log, "Couldn't get local address");
+        return CHIAKI_ERR_NETWORK;
+    }
+    for (current_addr = local_addrs; current_addr != NULL; current_addr = current_addr->ifa_next)
+    {
+        if (current_addr->ifa_addr == NULL)
+            continue;
+        if (!(current_addr->ifa_flags & IFF_UP))
+            continue;
+        if (0 != (current_addr->ifa_flags & IFF_LOOPBACK))
+            continue;
+        switch (current_addr->ifa_addr->sa_family)
+        {
+            case AF_INET:
+                struct sockaddr_in *res4 = (struct sockaddr_in *)current_addr->ifa_addr;
+                in_addr = &res4->sin_addr;
+
+            case AF_INET6:
+                struct sockaddr_in6 *res6 = (struct sockaddr_in6 *)current_addr->ifa_addr;
+                in_addr = &res6->sin6_addr;
+
+            default:
+                continue;
+        }
+        if (!inet_ntop(current_addr->ifa_addr->sa_family, in_addr, local_console_candidate->addr, sizeof(local_console_candidate->addr)))
+        {
+            CHIAKI_LOGE(session->log, "%s: inet_ntop failed with error: %s\n", current_addr->ifa_name, strerror(errno));
+            continue;
+        }
+        break;
+    }
+    CHIAKI_LOGI(session->log, "Local addr candidate, %s", current_addr->ifa_addr);
     if ((status = getaddrinfo(local_console_candidate->addr, NULL, &hints, &res)) != 0) {
         CHIAKI_LOGE(session->log, "get_client_addr_local: getaddrinfo failed: %s.", gai_strerror(status));
         return CHIAKI_ERR_NETWORK;
@@ -1785,27 +1828,27 @@ cleanup:
  * @param[out] info Pointer to the UPNPGatewayInfo structure to store the retrieved information.
  * @return true if the gateway information was successfully retrieved, false otherwise.
  */
-static bool upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info)
+static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info)
 {
-    bool success = true;
-    int err = 0;
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+    int success = 0;
     struct UPNPDev *devlist = upnpDiscover(
-        2000 /** ms, delay*/, NULL, NULL, 0, 0, 2, &err);
+        2000 /** ms, delay*/, NULL, NULL, 0, 0, 2, &success);
     if (devlist == NULL || err != UPNPDISCOVER_SUCCESS) {
         CHIAKI_LOGI(log, "Failed to UPnP-capable devices on network: err=%d", err);
-        return false;
+        return CHIAKI_ERR_NETWORK;
     }
 
-    err = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip));
-    if (err != 1) {
+    success = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip));
+    if (success != 1) {
         CHIAKI_LOGI(log, "Failed to discover internet gateway via UPnP: err=%d", err);
-        success = false;
+        err = CHIAKI_ERR_NETWORK;
         goto cleanup;
     }
 
 cleanup:
     freeUPNPDevlist(devlist);
-    return success;
+    return err;
 }
 
 /**

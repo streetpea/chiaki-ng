@@ -189,7 +189,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         }
 
         bool xored = attr_type == STUN_ATTRIB_XOR_MAPPED_ADDRESS;
-        uint8_t family = binding_resp[response_pos + 4];
+        uint8_t family = binding_resp[response_pos + 5];
         if (family == STUN_MAPPED_ADDR_FAMILY_IPV4) {
             if (xored) {
                 uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (STUN_MAGIC_COOKIE >> 16);
