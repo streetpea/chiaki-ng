@@ -1770,10 +1770,12 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
             case AF_INET:
                 struct sockaddr_in *res4 = (struct sockaddr_in *)current_addr->ifa_addr;
                 in_addr = &res4->sin_addr;
+                break;
 
             case AF_INET6:
                 struct sockaddr_in6 *res6 = (struct sockaddr_in6 *)current_addr->ifa_addr;
                 in_addr = &res6->sin6_addr;
+                break;
 
             default:
                 continue;
@@ -1785,7 +1787,6 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
         }
         break;
     }
-    CHIAKI_LOGI(session->log, "Local addr candidate, %s", current_addr->ifa_addr);
     if ((status = getaddrinfo(local_console_candidate->addr, NULL, &hints, &res)) != 0) {
         CHIAKI_LOGE(session->log, "get_client_addr_local: getaddrinfo failed: %s.", gai_strerror(status));
         return CHIAKI_ERR_NETWORK;
