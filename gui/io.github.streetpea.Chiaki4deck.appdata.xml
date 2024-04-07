@@ -22,6 +22,20 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-4-06" version="1.6.6">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Enable using mtu as low as 576</li>
+          <li>Enable gyro on Steam Deck automatically (can now set gyro to none in Steam Settings and still use native gyro)</li>
+          <li>Adjust haptic rumble to work better with rumble motors</li>
+          <li>Add variable zoom (accessible via Stream Menu)</li>
+          <li>Fix issues with address when registering manual consoles</li>
+          <li>Update steam shortcut creation to cover additional edge cases</li>
+          <li>Add option to reset key mappings to default in Settings</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-3-20" version="1.6.5">
       <description>
         <p>This release provides the following improvements:</p>

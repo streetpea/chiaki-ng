@@ -601,7 +601,11 @@ DialogView {
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 10
-
+                    Button {
+                        focusPolicy: Qt.NoFocus
+                        text: "Reset All Keys"
+                        onClicked: Chiaki.settings.clearKeyMapping()
+                    }
                     Repeater {
                         model: Chiaki.settings.controllerMapping
 

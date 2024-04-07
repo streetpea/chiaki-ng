@@ -61,6 +61,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install protobuf
+        run: |
+          pip3 install --user protobuf --break-system-packages
       - name: Install brew dependencies
         run: |
           brew update

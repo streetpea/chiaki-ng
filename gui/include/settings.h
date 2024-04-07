@@ -167,6 +167,7 @@ class Settings : public QObject
 		void SetPsnAuthTokenExpiry(QString expiry_date);
 
 		QString GetTimeFormat() const     { return time_format; }
+		void ClearKeyMapping();
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool GetSpeechProcessingEnabled() const;

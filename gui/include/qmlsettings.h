@@ -37,7 +37,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QStringList availableAudioInDevices READ availableAudioInDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QStringList availableAudioOutDevices READ availableAudioOutDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
-    Q_PROPERTY(QVariantList controllerMapping READ controllerMapping CONSTANT)
+    Q_PROPERTY(QVariantList controllerMapping READ controllerMapping NOTIFY controllerMappingChanged)
     Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
     Q_PROPERTY(QString psnRefreshToken READ psnRefreshToken WRITE setPsnRefreshToken NOTIFY psnRefreshTokenChanged)
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
@@ -143,6 +143,7 @@ public:
     Q_INVOKABLE void deleteRegisteredHost(int index);
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
+    Q_INVOKABLE void clearKeyMapping();
 
 signals:
     void resolutionChanged();
@@ -178,6 +179,7 @@ signals:
     void psnAuthTokenChanged();
     void psnRefreshTokenChanged();
     void psnAuthTokenExpiryChanged();
+    void controllerMappingChanged();
 
 private:
     Settings *settings = {};
