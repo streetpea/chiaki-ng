@@ -213,6 +213,7 @@ Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation co
 | `L1`             | `L1`                    |
 | `L2`             | `L2`                    |
 | `L3`             | `L3` (left-stick click) |
+| `stream menu`    | `L1+R1+L3+R3`           |
 
 ## Using a DualSense and/or DualShock4 Controller with `chiaki4deck`
 

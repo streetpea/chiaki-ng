@@ -61,6 +61,20 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.6.6
+
+Lowers required mtu from 1435 to 576
+
+- Enable using mtu as low as 576
+- Enable gyro on Steam Deck automatically (can now set gyro to none in Steam Settings and still use native gyro)
+- Adjust haptic rumble to work better with rumble motors
+- Add variable zoom (accessible via Stream Menu)
+- Enable mic support on MacOS (now on all platforms)
+- Fix issues with address when registering manual consoles
+- Update steam shortcut creation to cover additional edge cases
+- Add option to reset key mappings to default in Settings
+- Add Steam shortcut option to Windows build
+
 ### 1.6.5
 
 Graduate DualSense features from experimental status
