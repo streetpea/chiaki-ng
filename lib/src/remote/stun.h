@@ -126,7 +126,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     *(int*)(&binding_req[4]) = htonl(STUN_MAGIC_COOKIE);
     chiaki_random_bytes_crypt(&binding_req[8], STUN_TRANSACTION_ID_LENGTH);
 
-    uint8_t* transaction_id = &binding_req[8];
+    //uint8_t* transaction_id = &binding_req[8];
 
     ssize_t sent = sendto(sock, binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
     if (sent != sizeof(binding_req)) {
@@ -175,7 +175,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         return false;
     }
 
-    uint16_t response_attrs_length = ntohs(*(uint16_t*)(&binding_resp[2]));
+    //uint16_t response_attrs_length = ntohs(*(uint16_t*)(&binding_resp[2]));
     uint16_t response_pos = STUN_HEADER_SIZE;
     while (response_pos < received)
     {
