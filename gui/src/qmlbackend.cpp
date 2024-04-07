@@ -421,16 +421,18 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
 
         regist_dialog_server = {};
     });
-    connect(regist, &QmlRegist::success, this, [this, callback](RegisteredHost host) {
+    connect(regist, &QmlRegist::success, this, [this, host, callback](RegisteredHost rhost) {
         QJSValue cb = callback;
         if (cb.isCallable())
             cb.call({QString(), true, true});
 
-        settings->AddRegisteredHost(host);
+        settings->AddRegisteredHost(rhost);
         if(regist_dialog_server.discovered == false)
         {
             ManualHost manual_host = regist_dialog_server.manual_host;
-            manual_host.Register(host);
+            if(manual_host.GetHost().isEmpty())
+                manual_host.SetHost(host);
+            manual_host.Register(rhost);
             settings->SetManualHost(manual_host);
         }
     });

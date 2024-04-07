@@ -122,7 +122,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Steam Deck Haptics")
+                        text: qsTr("Steam Deck Haptics:")
                         visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
@@ -315,7 +315,7 @@ DialogView {
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        model: [qsTr("Selected Resolution"), qsTr("Fullscreen"), qsTr("Zoom"), qsTr("Stretch")]
+                        model: [qsTr("Selected Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
                         currentIndex: Chiaki.settings.windowType
                         onActivated: (index) => Chiaki.settings.windowType = index;
                     }
@@ -412,7 +412,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Start Mic Unmuted")
+                        text: qsTr("Start Mic Unmuted:")
                     }
 
                     C.CheckBox {
@@ -486,7 +486,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Wifi Instability Notification Triggers")
+                        text: qsTr("Wifi Instability Notification Triggers:")
                     }
 
                     C.Slider {
@@ -596,7 +596,11 @@ DialogView {
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 10
-
+                    Button {
+                        focusPolicy: Qt.NoFocus
+                        text: "Reset All Keys"
+                        onClicked: Chiaki.settings.clearKeyMapping()
+                    }
                     Repeater {
                         model: Chiaki.settings.controllerMapping
 

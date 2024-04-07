@@ -11,7 +11,7 @@ DialogView {
     buttonText: qsTr("✓ Add")
     buttonEnabled: hostField.text.trim()
     onAccepted: {
-        Chiaki.addManualHost(consoleCombo.model[consoleCombo.currentIndex].index, hostField.text);
+        Chiaki.addManualHost(consoleCombo.model[consoleCombo.currentIndex].index, hostField.text.trim());
         close();
     }
 

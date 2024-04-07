@@ -30,13 +30,14 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
+    Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
     Q_PROPERTY(QStringList availableDecoders READ availableDecoders CONSTANT)
     Q_PROPERTY(QStringList availableAudioInDevices READ availableAudioInDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QStringList availableAudioOutDevices READ availableAudioOutDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
-    Q_PROPERTY(QVariantList controllerMapping READ controllerMapping CONSTANT)
+    Q_PROPERTY(QVariantList controllerMapping READ controllerMapping NOTIFY controllerMappingChanged)
     Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
 
 public:
@@ -106,6 +107,9 @@ public:
     int windowType() const;
     void setWindowType(int type);
 
+    float sZoomFactor() const;
+    void setSZoomFactor(float factor);
+
     int videoPreset() const;
     void setVideoPreset(int preset);
 
@@ -125,6 +129,7 @@ public:
     Q_INVOKABLE void deleteRegisteredHost(int index);
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
+    Q_INVOKABLE void clearKeyMapping();
 
 signals:
     void resolutionChanged();
@@ -152,10 +157,12 @@ signals:
     void wifiDroppedNotifChanged();
     void decoderChanged();
     void windowTypeChanged();
+    void sZoomFactorChanged();
     void videoPresetChanged();
     void autoConnectMacChanged();
     void audioDevicesChanged();
     void registeredHostsChanged();
+    void controllerMappingChanged();
 
 private:
     Settings *settings = {};

@@ -20,6 +20,10 @@
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 #include <sdeck.h>
 #endif
+// Using Q_OS_MACOS instead of __APPLE__ doesn't work for the necessary enums to be included
+#ifdef __APPLE__
+#include <macMicPermission.h>
+#endif
 
 #include "exception.h"
 #include "sessionlog.h"
@@ -130,6 +134,9 @@ class StreamSession : public QObject
 		bool connected;
 		bool muted;
 		bool mic_connected;
+#ifdef Q_OS_MACOS
+		bool mic_authorization;
+#endif
 		bool allow_unmute;
 		int input_block;
 		QString host;
@@ -202,6 +209,9 @@ class StreamSession : public QObject
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
+#ifdef Q_OS_MACOS
+		void SetMicAuthorization(Authorization authorization);
+#endif
 #if CHIAKI_GUI_ENABLE_SETSU
 		void HandleSetsuEvent(SetsuEvent *event);
 #endif

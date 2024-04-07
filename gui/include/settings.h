@@ -128,6 +128,9 @@ class Settings : public QObject
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
 
+		float GetZoomFactor() const;
+		void SetZoomFactor(float factor);
+
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);
 
@@ -152,6 +155,8 @@ class Settings : public QObject
 
 		uint GetWifiDroppedNotif() const;
 		void SetWifiDroppedNotif(uint percent);
+
+		void ClearKeyMapping();
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool GetSpeechProcessingEnabled() const;

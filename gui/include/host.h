@@ -80,6 +80,7 @@ class ManualHost
 		ManualHost();
 		ManualHost(int id, const QString &host, bool registered, const HostMAC &registered_mac);
 		ManualHost(int id, const ManualHost &o);
+		void SetHost(const QString &hostadd);
 
 		int GetID() const 			{ return id; }
 		QString GetHost() const 	{ return host; }

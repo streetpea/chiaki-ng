@@ -247,6 +247,17 @@ void QmlSettings::setWindowType(int type)
     emit windowTypeChanged();
 }
 
+float QmlSettings::sZoomFactor() const
+{
+    return settings->GetZoomFactor();
+}
+
+void QmlSettings::setSZoomFactor(float factor)
+{
+    settings->SetZoomFactor(factor);
+    emit sZoomFactorChanged();
+}
+
 int QmlSettings::videoPreset() const
 {
     return static_cast<int>(settings->GetPlaceboPreset());
@@ -283,6 +294,12 @@ void QmlSettings::setWifiDroppedNotif(const uint percent)
 QString QmlSettings::logDirectory() const
 {
     return GetLogBaseDir();
+}
+
+void QmlSettings::clearKeyMapping()
+{
+    settings->ClearKeyMapping();
+    emit controllerMappingChanged();
 }
 
 QStringList QmlSettings::availableDecoders() const
