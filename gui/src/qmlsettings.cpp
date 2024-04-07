@@ -296,6 +296,12 @@ QString QmlSettings::logDirectory() const
     return GetLogBaseDir();
 }
 
+void QmlSettings::clearKeyMapping()
+{
+    settings->ClearKeyMapping();
+    emit controllerMappingChanged();
+}
+
 QStringList QmlSettings::availableDecoders() const
 {
     static QSet<QString> allowed = {

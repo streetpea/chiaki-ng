@@ -557,6 +557,49 @@ QMap<int, Qt::Key> Settings::GetControllerMapping()
 	return result;
 }
 
+void Settings::ClearKeyMapping()
+{
+	// Initialize with default values
+	QMap<int, Qt::Key> result =
+	{
+		{CHIAKI_CONTROLLER_BUTTON_CROSS     , Qt::Key::Key_Return},
+		{CHIAKI_CONTROLLER_BUTTON_MOON      , Qt::Key::Key_Backspace},
+		{CHIAKI_CONTROLLER_BUTTON_BOX       , Qt::Key::Key_Backslash},
+		{CHIAKI_CONTROLLER_BUTTON_PYRAMID   , Qt::Key::Key_C},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT , Qt::Key::Key_Left},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT, Qt::Key::Key_Right},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_UP   , Qt::Key::Key_Up},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN , Qt::Key::Key_Down},
+		{CHIAKI_CONTROLLER_BUTTON_L1        , Qt::Key::Key_2},
+		{CHIAKI_CONTROLLER_BUTTON_R1        , Qt::Key::Key_3},
+		{CHIAKI_CONTROLLER_BUTTON_L3        , Qt::Key::Key_5},
+		{CHIAKI_CONTROLLER_BUTTON_R3        , Qt::Key::Key_6},
+		{CHIAKI_CONTROLLER_BUTTON_OPTIONS   , Qt::Key::Key_O},
+		{CHIAKI_CONTROLLER_BUTTON_SHARE     , Qt::Key::Key_F},
+		{CHIAKI_CONTROLLER_BUTTON_TOUCHPAD  , Qt::Key::Key_T},
+		{CHIAKI_CONTROLLER_BUTTON_PS        , Qt::Key::Key_Escape},
+		{CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 , Qt::Key::Key_1},
+		{CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 , Qt::Key::Key_4},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_UP)   , Qt::Key::Key_BracketRight},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X_DOWN) , Qt::Key::Key_BracketLeft},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_UP)   , Qt::Key::Key_Insert},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_DOWN) , Qt::Key::Key_Delete},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP)  , Qt::Key::Key_Equal},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN), Qt::Key::Key_Minus},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP)  , Qt::Key::Key_PageUp},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN), Qt::Key::Key_PageDown}
+	};
+
+	// Then fill in from settings
+	auto chiaki_buttons = result.keys();
+	for(auto chiaki_button : chiaki_buttons)
+	{
+		auto button_name = GetChiakiControllerButtonName(chiaki_button).replace(' ', '_').toLower();
+		if(settings.contains("keymap/" + button_name))
+			settings.remove("keymap/" + button_name);
+	}
+}
+
 QMap<Qt::Key, int> Settings::GetControllerMappingForDecoding()
 {
 	auto map = GetControllerMapping();
