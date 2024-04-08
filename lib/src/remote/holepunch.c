@@ -191,7 +191,6 @@ typedef struct session_t
     uint16_t sid_console;
     uint8_t hashed_id_local[20];
     uint8_t hashed_id_console[20];
-    uint8_t skey[16];
 
     uint8_t data1[16];
     uint8_t data2[16];
@@ -813,7 +812,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
     ConnectionRequest *console_req = console_offer_msg->conn_request;
     memcpy(session->hashed_id_console, console_req->local_hashed_id, sizeof(session->hashed_id_console));
-    memcpy(session->skey, console_req->skey, sizeof(session->skey));
     session->sid_console = console_req->sid;
 
     chiaki_mutex_lock(&session->state_mutex);
@@ -1399,8 +1397,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     };
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->nat_type = 2;
+    memset(msg.conn_request->skey, 0, sizeof(msg.conn_request->skey));
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
-    memcpy(msg.conn_request->skey, session->skey, sizeof(session->skey));
     msg.conn_request->num_candidates = 2;
     msg.conn_request->candidates = calloc(2, sizeof(Candidate));
 
@@ -1697,7 +1695,7 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
         payload_str, session->account_id, console_uid_str,
         session->console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4 ? "PS4" : "PS5"
     );
-
+    CHIAKI_LOGI("Message to send: %s", msg_buf);
     CURL *curl = curl_easy_init();
 
     struct curl_slist *headers = NULL;
@@ -1730,7 +1728,6 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
         }
         goto cleanup;
     }
-
 
 cleanup:
     return err;
@@ -2622,13 +2619,15 @@ static ChiakiErrorCode session_message_serialize(
     chiaki_base64_encode(
         message->conn_request->local_hashed_id, sizeof(message->conn_request->local_hashed_id),
         localhashedid_str, sizeof(localhashedid_str));
-
+    char skey_str[25] = {0};
+    chiaki_base64_encode (
+        message->conn_request->skey, sizeof(message->conn_request->skey), skey_str, sizeof(skey_str));
     char *connreq_json = calloc(
         1, sizeof(session_connrequest_fmt) * 2 + localpeeraddr_len + candidates_len);
     size_t connreq_len = snprintf(
         connreq_json, sizeof(connreq_json), session_connrequest_fmt,
         message->conn_request->sid, message->conn_request->peer_sid,
-        message->conn_request->skey, message->conn_request->nat_type,
+        skey_str, message->conn_request->nat_type,
         candidates_json, message->conn_request->default_route_mac_addr,
         localpeeraddr_json, localhashedid_str);
 
@@ -2688,10 +2687,20 @@ static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
     CHIAKI_LOGI(log, "-----------------CONNECTION REQUEST---------------------");
     CHIAKI_LOGI(log, "sid: %lu", req->sid);
     CHIAKI_LOGI(log, "peer_sid: %lu", req->peer_sid);
-    CHIAKI_LOGI(log, "skey: %s", req->skey);
+    char skey[25];
+    ChiakiErrorCode err = chiaki_base64_encode(req->skey, sizeof(req->skey), skey, sizeof(skey));
+    if(err != CHIAKI_ERR_SUCCESS)
+    {
+        char hex[32];
+        bytes_to_hex(req->skey, sizeof(req->skey), hex, sizeof(hex));
+        CHIAKI_LOGE(log, "Error with base64 encoding of string %s", hex);
+    }
+    CHIAKI_LOGI(log, "skey: %s", skey);
     CHIAKI_LOGI(log, "nat type %u", req->nat_type);
     CHIAKI_LOGI(log, "default_route_mac_addr %s", req->default_route_mac_addr);
-    CHIAKI_LOGI(log, "local hashed id %s", req->local_hashed_id);
+    char local_hashed_id[29];
+    chiaki_base64_encode(req->local_hashed_id, sizeof(req->local_hashed_id), local_hashed_id, sizeof(local_hashed_id));
+    CHIAKI_LOGI(log, "local hashed id %s", local_hashed_id);
     for(size_t i = 0; i < req->num_candidates; i++)
     {
         Candidate *candidate = &req->candidates[i];

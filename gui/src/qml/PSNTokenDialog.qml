@@ -45,7 +45,7 @@ DialogView {
                 id: openurl
                 text: psnurl
                 visible: psnurl
-                KeyNavigation.right: copyurl
+                KeyNavigation.right: copyUrl
                 Layout.preferredWidth: 400
                 C.Button {
                     id: copyUrl
@@ -74,8 +74,8 @@ DialogView {
                 id: url
                 Layout.preferredWidth: 400
                 KeyNavigation.right: pasteUrl
-                KeyNavigation.left: copyurl
-                KeyNavigation.up: copyurl
+                KeyNavigation.left: copyUrl
+                KeyNavigation.up: copyUrl
                 KeyNavigation.down: pasteUrl
                 C.Button {
                     id: pasteUrl
