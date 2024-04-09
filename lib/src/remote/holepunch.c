@@ -192,6 +192,7 @@ typedef struct session_t
     uint8_t hashed_id_local[20];
     uint8_t hashed_id_console[20];
     size_t local_req_id;
+    uint8_t local_mac_addr[6];
 
     uint8_t data1[16];
     uint8_t data2[16];
@@ -1418,6 +1419,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     {
         CHIAKI_LOGE(session->log, "Couldn't get local mac address!");
     }
+    else
+        memcpy(session->local_mac_addr, msg.conn_request->default_route_mac_addr, sizeof(session->local_mac_addr));
     if (!have_addr) {
         have_addr = get_client_addr_remote_stun(session->log, candidate_remote->addr);
     }
@@ -1458,6 +1461,8 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
     };
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
+    memcpy(msg.conn_request->default_route_mac_addr, session->local_mac_addr, sizeof(session->local_mac_addr));
+    memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->local_mac_addr));
     msg.conn_request->nat_type = selected_candidate->type == CANDIDATE_TYPE_LOCAL ? 0 : 2;
     msg.conn_request->num_candidates = 1;
     msg.conn_request->candidates = calloc(1, sizeof(Candidate));
