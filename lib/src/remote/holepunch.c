@@ -290,7 +290,7 @@ static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t
 static void random_uuidv4(char* out);
 static void *websocket_thread_func(void *user);
 static NotificationType parse_notification_type(ChiakiLog *log, json_object* json);
-static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate);
+static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidate);
 static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *selected_candidate);
 static ChiakiErrorCode http_create_session(Session *session);
 static ChiakiErrorCode http_start_session(Session *session);
@@ -305,7 +305,7 @@ static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
 static ChiakiErrorCode check_candidates(
-    Session *session, Candidate *candidate, size_t num_candidates, chiaki_socket_t *out,
+    Session *session, Candidate *local_candidate, Candidate *candidate, size_t num_candidates, chiaki_socket_t *out,
     uint16_t *out_port, Candidate **out_candidate);
 
 static json_object* session_message_get_payload(ChiakiLog *log, json_object *session_message);
@@ -845,7 +845,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
 
     // Send our own OFFER
     const int our_offer_req_id = session->local_req_id++;
-    send_offer(session, our_offer_req_id, console_candidate_local);
+    Candidate *local_candidate = calloc(1, sizeof(Candidate));
+    send_offer(session, our_offer_req_id, console_candidate_local, local_candidate);
 
     // Wait for ACK of OFFER, ignore other OFFERs, simply ACK them
     err = wait_for_session_message_ack(
@@ -869,7 +870,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     {
         print_candidate(session->log, &console_req->candidates[i]);
     }
-    err = check_candidates(session, console_req->candidates, console_req->num_candidates, &sock, &local_port, &selected_candidate);
+    err = check_candidates(session, local_candidate, console_req->candidates, console_req->num_candidates, &sock, &local_port, &selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(
@@ -912,6 +913,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
 
 cleanup:
     session_message_free(console_offer_msg);
+    free(local_candidate);
 
     return err;
 }
@@ -1356,7 +1358,7 @@ static NotificationType parse_notification_type(
  * @param session The Session instance.
  * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
  */
-static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate)
+static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidate)
 {
     // Create listening socket that the console can reach us on
     session->client_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -1371,6 +1373,14 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     client_addr.sin_addr.s_addr = INADDR_ANY;
     client_addr.sin_port = 0;
     socklen_t client_addr_len = sizeof(client_addr);
+    const int enable = 1;
+#if defined(SO_REUSEPORT)
+        if (setsockopt(session->client_sock, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+            CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error %s", strerror(errno));
+#else
+        if (setsockopt(session->client_sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+            CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error %s", strerror(errno));
+#endif
     bind(session->client_sock, (struct sockaddr*)&client_addr, client_addr_len);
     if (getsockname(session->client_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
     {
@@ -1440,6 +1450,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
         close(session->client_sock);
     }
+    memcpy(local_candidate, candidate_local, sizeof(Candidate));
 
 cleanup:
     free(msg.conn_request->candidates);
@@ -1945,7 +1956,7 @@ static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr)
 }
 
 static ChiakiErrorCode check_candidates(
-    Session *session, Candidate *candidates, size_t num_candidates, chiaki_socket_t *out,
+    Session *session, Candidate* local_candidate, Candidate *candidates, size_t num_candidates, chiaki_socket_t *out,
     uint16_t *out_port, Candidate **out_candidate)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
@@ -1953,14 +1964,12 @@ static ChiakiErrorCode check_candidates(
     // Set up request buffer
     uint32_t request_id = chiaki_random_32();
     uint8_t request_buf[88] = {0};
-    *(uint32_t*)&request_buf[0x00] = ntohl(MSG_TYPE_REQ);
+    *(uint32_t*)&request_buf[0x00] = htonl(MSG_TYPE_REQ);
     memcpy(&request_buf[0x04], session->hashed_id_local, sizeof(session->hashed_id_local));
     memcpy(&request_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
-    *(uint16_t*)&request_buf[0x44] = ntohs(session->sid_local);
-    *(uint16_t*)&request_buf[0x46] = ntohs(session->sid_console);
-    *(uint32_t*)&request_buf[0x48] = ntohl(request_id);
-    // TODO: Encode IP address (?? which one ??)
-    // TODO: Encode local port
+    *(uint16_t*)&request_buf[0x44] = htons(session->sid_local);
+    *(uint16_t*)&request_buf[0x46] = htons(session->sid_console);
+    *(uint32_t*)&request_buf[0x48] = htonl(request_id);
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -1970,9 +1979,25 @@ static ChiakiErrorCode check_candidates(
     fd_set fds;
     FD_ZERO(&fds);
     bool failed = true;
+    char service_remote[6];
+    char service_local[6];
+    sprintf(service_local, "%d", local_candidate->port);
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    struct addrinfo *addr_local, *addr_remote;
+
+    if (getaddrinfo(local_candidate->addr, service_local, &hints, &addr_local) != 0)
+    {
+        CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error %s", local_candidate->addr, local_candidate->port, strerror(errno));
+        return CHIAKI_ERR_UNKNOWN;
+    }
+
     for (int i=0; i < num_candidates; i++)
     {
-        print_candidate(session->log, &candidates[i]);
+        Candidate *candidate = &candidates[i];
+        print_candidate(session->log, candidate);
         chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, 0);
         if (sock < 0)
         {
@@ -1982,28 +2007,38 @@ static ChiakiErrorCode check_candidates(
         sockets[i] = sock;
         FD_SET(sock, &fds);
 
-        Candidate *candidate = &candidates[i];
-        // Get addrinfo from string address
-        struct addrinfo hints;
-        memset(&hints, 0, sizeof(hints));
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_DGRAM;
-        struct addrinfo *addr;
-        char service[6];
-        sprintf(service, "%d", candidate->port);
-        if (getaddrinfo(candidate->addr, service, &hints, &addr) != 0)
+        sprintf(service_remote, "%d", candidates[i].port);
+
+        const int enable = 1;
+#if defined(SO_REUSEPORT)
+        if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+            CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error %s", strerror(errno));
+#else
+        if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+            CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error %s", strerror(errno));
+#endif
+        if (bind(sock, addr_local->ai_addr, addr_local->ai_addrlen) < 0)
+        {
+            CHIAKI_LOGE(session->log, "check_candidate: Binding socket failed for local address: %s and port %d: with error %s", local_candidate->addr, local_candidate->port, strerror(errno));
+            err = CHIAKI_ERR_NETWORK;
+            freeaddrinfo(addr_remote);
+                continue;
+        }
+        memset(service_remote, 0, sizeof(service_remote));
+        sprintf(service_remote, "%d", local_candidate->port);
+        if (getaddrinfo(candidate->addr, service_remote, &hints, &addr_remote) != 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error %s", candidate->addr, candidate->port, strerror(errno));
             err = CHIAKI_ERR_UNKNOWN;
             if(i < num_candidates - 1)
                 continue;
         }
-
-        if (bind(sock, addr->ai_addr, addr->ai_addrlen) < 0)
+        CHIAKI_LOGI(session->log, "Remote port is %u", ntohs(((struct sockaddr_in *)(addr_remote->ai_addr))->sin_port));
+        if (connect(sock, addr_remote->ai_addr, addr_remote->ai_addrlen) < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Binding socket failed for %s:%d with error %s", candidate->addr, candidate->port, strerror(errno));
+            CHIAKI_LOGE(session->log, "check_candidate: Connecting socket failed for %s:%d with error %s", candidate->addr, candidate->port, strerror(errno));
             err = CHIAKI_ERR_NETWORK;
-            freeaddrinfo(addr);
+            freeaddrinfo(addr_remote);
                 continue;
         }
 
@@ -2011,14 +2046,15 @@ static ChiakiErrorCode check_candidates(
         {
             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: %s", candidate->addr, candidate->port, strerror(errno));
             err = CHIAKI_ERR_NETWORK;
-            freeaddrinfo(addr);
+            freeaddrinfo(addr_remote);
                 continue;
         }
         failed = false;
-        freeaddrinfo(addr);
+        freeaddrinfo(addr_remote);
     }
-        if(failed)
-            goto cleanup_sockets;
+    freeaddrinfo(addr_local);
+    if(failed)
+        goto cleanup_sockets;
 
     // Wait for responses
     uint8_t response_buf[88];
@@ -2083,7 +2119,7 @@ static ChiakiErrorCode check_candidates(
         ssize_t response_len = recvfrom(candidate_sock, response_buf, sizeof(response_buf), 0, &response_addr, &response_addr_len);
         if (response_len < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed", candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", candidate->addr, candidate->port, strerror(errno));
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         }
@@ -2119,6 +2155,8 @@ static ChiakiErrorCode check_candidates(
         memset(response_buf, 0, sizeof(response_buf));
         memset(&response_addr, 0, sizeof(response_addr));
         response_addr_len = sizeof(response_addr);
+        CHIAKI_LOGI(session->log, "Selected Candidate");
+        print_candidate(session->log, selected_candidate);
     }
 
     *out = selected_sock;
@@ -2133,6 +2171,7 @@ static ChiakiErrorCode check_candidates(
     }
     *out_port = ntohs(addr_in.sin_port);
     *out_candidate = selected_candidate;
+    err = CHIAKI_ERR_SUCCESS;
 
 cleanup_sockets:
     for (int i=0; i < num_candidates; i++)
