@@ -1462,7 +1462,7 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
     memcpy(msg.conn_request->default_route_mac_addr, session->local_mac_addr, sizeof(session->local_mac_addr));
-    memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->local_mac_addr));
+    memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->nat_type = selected_candidate->type == CANDIDATE_TYPE_LOCAL ? 0 : 2;
     msg.conn_request->num_candidates = 1;
     msg.conn_request->candidates = calloc(1, sizeof(Candidate));
