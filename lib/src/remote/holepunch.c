@@ -1964,12 +1964,12 @@ static ChiakiErrorCode check_candidates(
     // Set up request buffer
     uint32_t request_id = chiaki_random_32();
     uint8_t request_buf[88] = {0};
-    *(uint32_t*)&request_buf[0x00] = htonl(MSG_TYPE_REQ);
+    *(uint32_t*)&request_buf[0x00] = ntohl(MSG_TYPE_REQ);
     memcpy(&request_buf[0x04], session->hashed_id_local, sizeof(session->hashed_id_local));
     memcpy(&request_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
-    *(uint16_t*)&request_buf[0x44] = htons(session->sid_local);
-    *(uint16_t*)&request_buf[0x46] = htons(session->sid_console);
-    *(uint32_t*)&request_buf[0x48] = htonl(request_id);
+    *(uint16_t*)&request_buf[0x44] = ntohs(session->sid_local);
+    *(uint16_t*)&request_buf[0x46] = ntohs(session->sid_console);
+    *(uint32_t*)&request_buf[0x48] = ntohl(request_id);
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -2024,8 +2024,7 @@ static ChiakiErrorCode check_candidates(
             freeaddrinfo(addr_remote);
                 continue;
         }
-        memset(service_remote, 0, sizeof(service_remote));
-        sprintf(service_remote, "%d", local_candidate->port);
+
         if (getaddrinfo(candidate->addr, service_remote, &hints, &addr_remote) != 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error %s", candidate->addr, candidate->port, strerror(errno));
@@ -2033,7 +2032,7 @@ static ChiakiErrorCode check_candidates(
             if(i < num_candidates - 1)
                 continue;
         }
-        CHIAKI_LOGI(session->log, "Remote port is %u", ntohs(((struct sockaddr_in *)(addr_remote->ai_addr))->sin_port));
+
         if (connect(sock, addr_remote->ai_addr, addr_remote->ai_addrlen) < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Connecting socket failed for %s:%d with error %s", candidate->addr, candidate->port, strerror(errno));
