@@ -525,7 +525,7 @@ void QmlBackend::connectToHost(int index)
     }
     emit windowTypeUpdated(settings->GetWindowType());
 
-    if(!server.duid.isEmpty())
+    if(server.duid.isEmpty())
     {
         QString host = server.GetHostAddr();
         StreamSessionConnectInfo info(
@@ -543,14 +543,10 @@ void QmlBackend::connectToHost(int index)
     }
     else
     {
-        ChiakiTarget target;
-        if(server.psn_host.IsPS5())
-            target = CHIAKI_TARGET_PS5_1;
-        else
-            target = CHIAKI_TARGET_PS4_9;
+        qCWarning(chiakiGui) << "Is Ps5" << server.psn_host.IsPS5();
         StreamSessionConnectInfo info(
                 settings,
-                target,
+                server.psn_host.GetTarget(),
                 QString(),
                 QByteArray(),
                 QByteArray(),
@@ -688,17 +684,22 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
         DisplayServer server;
         QMapIterator<QString, PsnHost> i(psn_hosts);
         size_t j = 0;
-        while (i.hasNext() && j != index)
+        while (i.hasNext())
         {
             i.next();
+            if(j == index)
+            {
+                server.valid = true;
+                server.discovered = false;
+                server.registered = false;
+                server.psn_host = i.value();
+                server.duid = i.key();
+                qCInfo(chiakiGui) << "server duid" << server.duid;
+                return server;
+            }
             j++;
         }
-        server.valid = true;
-        server.discovered = false;
-        server.registered = false;
-        server.psn_host = i.value();
-        server.duid = i.key();
-        return server;
+        return {};
     }
     return {};
 }

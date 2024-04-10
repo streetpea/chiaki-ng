@@ -144,3 +144,17 @@ PsnHost::PsnHost(const QString &duid, const QString &name, bool ps5)
 	ps5(ps5)
 {
 }
+
+ChiakiTarget PsnHost::GetTarget() const
+{
+	if(ps5)
+	{
+		ChiakiTarget target = CHIAKI_TARGET_PS5_1;
+		return target;
+	}
+	else
+	{
+		ChiakiTarget target = CHIAKI_TARGET_PS4_10;
+		return target;
+	}
+}

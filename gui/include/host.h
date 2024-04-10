@@ -107,6 +107,7 @@ class PsnHost
 		QString GetDuid() const          { return duid; }
 		QString GetName() const          { return name; }
 		bool IsPS5() const               { return ps5;  }
+		ChiakiTarget GetTarget() const;
 
 };
 

@@ -7,12 +7,13 @@
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
 #include <chiaki/remote/holepunch.h>
+#include <chiaki/session.h>
+#include <chiaki/time.h>
+#include "../../lib/src/utils.h"
 
 #include <QKeyEvent>
 
 #include <cstring>
-#include <chiaki/session.h>
-#include <chiaki/time.h>
 
 #define SETSU_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
@@ -208,14 +209,16 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		chiaki_connect_info.video_profile.codec = CHIAKI_CODEC_H264;
 	}
 #endif
+	if(connect_info.duid.isEmpty())
+	{
+		if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
+			throw ChiakiException("RegistKey invalid");
+		memcpy(chiaki_connect_info.regist_key, connect_info.regist_key.constData(), sizeof(chiaki_connect_info.regist_key));
 
-	if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
-		throw ChiakiException("RegistKey invalid");
-	memcpy(chiaki_connect_info.regist_key, connect_info.regist_key.constData(), sizeof(chiaki_connect_info.regist_key));
-
-	if(connect_info.morning.size() != sizeof(chiaki_connect_info.morning))
-		throw ChiakiException("Morning invalid");
-	memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
+		if(connect_info.morning.size() != sizeof(chiaki_connect_info.morning))
+			throw ChiakiException("Morning invalid");
+		memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
+	}
 
 	if(chiaki_connect_info.ps5)
 	{
@@ -1564,12 +1567,23 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Created session");
-	const uint8_t *duid_bytes = reinterpret_cast<const unsigned uint8_t*>(duid.toUtf8().constData());
+	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
+	size_t duid_len = duid.size();
+	size_t duid_bytes_len = duid_len / 2;
+	size_t duid_bytes_lenr;
+	uint8_t duid_bytes[duid_bytes_len];
+	parse_hex(duid_bytes, &duid_bytes_lenr, duid.toUtf8().constData(), duid_len);
+	if(duid_bytes_len != duid_bytes_lenr)
+	{
+		CHIAKI_LOGE(log, "Couldn't convert duid string to bytes got size mismatch");
+		return CHIAKI_ERR_INVALID_DATA;
+	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
 	err = chiaki_holepunch_session_start(session, duid_bytes, console_type);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
+		chiaki_holepunch_session_fini(session);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Started session");
@@ -1580,6 +1594,7 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
+		chiaki_holepunch_session_fini(session);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
@@ -1588,10 +1603,12 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for data connection.");
+		chiaki_holepunch_session_fini(session);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for data connection!");
 	CHIAKI_LOGI(log, ">> Successfully punched holes for all neccessary connections!");
+	chiaki_holepunch_session_fini(session);
 	return err;
 }
 

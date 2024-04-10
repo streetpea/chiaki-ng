@@ -22,15 +22,8 @@
 #include <chiaki/base64.h>
 #include <chiaki/random.h>
 #include <chiaki/sock.h>
+#include "../utils.h"
 
-static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t max_len) {
-    if (len > max_len * 2) {
-        len = max_len * 2;
-    }
-    for (size_t i = 0; i < len; i++) {
-        snprintf(hex_str + i * 2, 3, "%02x", bytes[i]);
-    }
-}
 // ================================================================================================
 // ================================================================================================
 // ================================================================================================
@@ -90,7 +83,7 @@ int main(int argc, char **argv)
     {
         ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
         char duid_str[sizeof(dev.device_uid) * 2 + 1];
-        bytes_to_hex(dev.device_uid, sizeof(dev.device_uid), duid_str, sizeof(duid_str));
+        format_hex(duid_str, sizeof(duid_str), dev.device_uid, sizeof(dev.device_uid));
         printf(
             "%s %s (%s) rp_enabled=%s\n",
             dev.type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? "PS5" : "PS4",
@@ -100,7 +93,7 @@ int main(int argc, char **argv)
     {
         ChiakiHolepunchDeviceInfo dev = device_info_ps4[i];
         char duid_str[sizeof(dev.device_uid) * 2 + 1];
-        bytes_to_hex(dev.device_uid, sizeof(dev.device_uid), duid_str, sizeof(duid_str));
+        format_hex(duid_str, sizeof(duid_str), dev.device_uid, sizeof(dev.device_uid));
         printf(
             "%s %s (%s) rp_enabled=%s\n",
             dev.type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? "PS5" : "PS4",
@@ -148,6 +141,7 @@ int main(int argc, char **argv)
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to start session\n");
+        chiaki_holepunch_session_fini(session);
         return -1;
     }
     printf(">> Started session\n");
@@ -158,6 +152,7 @@ int main(int argc, char **argv)
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to punch hole for control connection.\n");
+        chiaki_holepunch_session_fini(session);
         return -1;
     }
     printf(">> Punched hole for control connection!\n");
@@ -166,6 +161,7 @@ int main(int argc, char **argv)
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to punch hole for data connection.\n");
+        chiaki_holepunch_session_fini(session);
         return -1;
     }
     printf(">> Punched hole for data connection!\n");
@@ -175,6 +171,7 @@ int main(int argc, char **argv)
 cleanup:
     chiaki_holepunch_free_device_list(device_info_ps5);
     chiaki_holepunch_free_device_list(device_info_ps4);
+    chiaki_holepunch_session_fini(session);
 
     return 0;
 }

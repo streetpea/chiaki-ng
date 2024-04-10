@@ -323,7 +323,7 @@ static ChiakiErrorCode wait_for_session_message(
 static ChiakiErrorCode wait_for_session_message_ack(
     Session *session, int req_id, uint64_t timeout_ms);
 static ChiakiErrorCode session_message_parse(
-    ChiakiLog *log, json_object *message_json, SessionMessage **out);
+    ChiakiLog *log, ChiakiMutex *notif_mutex, json_object *message_json, SessionMessage **out);
 static ChiakiErrorCode session_message_serialize(
     Session *session, SessionMessage *message, char **out, size_t *out_len);
 static ChiakiErrorCode session_message_free(SessionMessage *message);
@@ -619,12 +619,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Timed out waiting for session creation notifications.");
-            break;
+            goto cleanup_thread;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Failed to wait for session creation notifications.");
-            break;
+            goto cleanup_thread;
         }
 
         chiaki_mutex_lock(&session->state_mutex);
@@ -642,7 +642,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
             err = CHIAKI_ERR_UNKNOWN;
-            break;
+            goto cleanup_thread;
         }
         log_session_state(session);
         finished = (session->state & SESSION_STATE_CREATED) &&
@@ -650,13 +650,28 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         chiaki_mutex_unlock(&session->state_mutex);
         clear_notification(session, notif);
     }
-    return CHIAKI_ERR_SUCCESS;
+    return err;
 
 cleanup_thread:
     session->ws_thread_should_stop = true;
     chiaki_thread_join(&session->ws_thread, NULL);
 cleanup_curlsh:
     curl_share_cleanup(session->curl_share);
+    if (session->oauth_header)
+        free(session->oauth_header);
+    if (session->ws_fqdn)
+        free(session->ws_fqdn);
+    if (session->ws_notification_queue)
+    {
+        chiaki_mutex_lock(&session->notif_mutex);
+        notification_queue_free(session->ws_notification_queue);
+        chiaki_mutex_unlock(&session->notif_mutex);
+    }
+    chiaki_stop_pipe_fini(&session->notif_pipe);
+    chiaki_mutex_fini(&session->notif_mutex);
+    chiaki_cond_fini(&session->notif_cond);
+    chiaki_mutex_fini(&session->state_mutex);
+    chiaki_cond_fini(&session->state_cond);
     return err;
 }
 
@@ -699,12 +714,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Timed out waiting for session start notifications.");
-            break;
+            return CHIAKI_ERR_UNKNOWN;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Failed to wait for session start notifications.");
-            break;
+            return CHIAKI_ERR_UNKNOWN;
         }
 
         assert(notif != NULL);
@@ -780,7 +795,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         log_session_state(session);
         chiaki_mutex_unlock(&session->state_mutex);
     }
-    return CHIAKI_ERR_SUCCESS;
+    return err;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* session, ChiakiHolepunchPortType port_type, chiaki_socket_t *out_sock)
@@ -912,7 +927,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         log_session_state(session);
 
 cleanup:
+    chiaki_mutex_lock(&session->notif_mutex);
     session_message_free(console_offer_msg);
+    chiaki_mutex_unlock(&session->notif_mutex);
     free(local_candidate);
 
     return err;
@@ -921,14 +938,20 @@ cleanup:
 CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 {
     // TODO: Send delete request for session to PSN
+    session->ws_thread_should_stop = true;
+    chiaki_thread_join(&session->ws_thread, NULL);
     if (session->oauth_header)
         free(session->oauth_header);
     if (session->curl_share)
         curl_share_cleanup(session->curl_share);
     if (session->ws_fqdn)
         free(session->ws_fqdn);
-    if (session->ws_notification_queue)
-        notification_queue_free(session->ws_notification_queue);
+    // if (session->ws_notification_queue)
+    // {
+    //     chiaki_mutex_lock(&session->notif_mutex);
+    //     notification_queue_free(session->ws_notification_queue);
+    //     chiaki_mutex_unlock(&session->notif_mutex);
+    // }
     chiaki_stop_pipe_fini(&session->notif_pipe);
     chiaki_mutex_fini(&session->notif_mutex);
     chiaki_cond_fini(&session->notif_cond);
@@ -1278,7 +1301,7 @@ static void* websocket_thread_func(void *user) {
             {
                 SessionMessage *msg;
                 json_object *payload = session_message_get_payload(session->log, notif->json);
-                err = session_message_parse(session->log, payload, &msg);
+                err = session_message_parse(session->log, &session->notif_mutex, payload, &msg);
                 json_object_put(payload);
                 if (err != CHIAKI_ERR_SUCCESS)
                 {
@@ -1297,7 +1320,9 @@ static void* websocket_thread_func(void *user) {
                     http_send_session_message(session, &ack_msg);
                     free(ack_msg.conn_request);
                 }
+                chiaki_mutex_lock(&session->notif_mutex);
                 session_message_free(msg);
+                chiaki_mutex_unlock(&session->notif_mutex);
             }
 
 
@@ -1969,7 +1994,7 @@ static ChiakiErrorCode check_candidates(
     memcpy(&request_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
     *(uint16_t*)&request_buf[0x44] = htons(session->sid_local);
     *(uint16_t*)&request_buf[0x46] = htons(session->sid_console);
-    *(uint32_t*)&request_buf[0x48] = htons(request_id);
+    *(uint32_t*)&request_buf[0x4b] = htonl(request_id);
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -1987,6 +2012,9 @@ static ChiakiErrorCode check_candidates(
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     struct addrinfo *addr_local, *addr_remote;
+    size_t followup_len = 0;
+    uint8_t followup_req[88] = {0};
+    uint8_t zero_bytes[88] = {0};
 
     if (getaddrinfo(local_candidate->addr, service_local, &hints, &addr_local) != 0)
     {
@@ -2115,7 +2143,7 @@ static ChiakiErrorCode check_candidates(
         }
 
         CHIAKI_LOGD(session->log, "check_candidate: Receiving data from %s:%d", candidate->addr, candidate->port);
-        ssize_t response_len = recvfrom(candidate_sock, response_buf, sizeof(response_buf), 0, &response_addr, &response_addr_len);
+        size_t response_len = recvfrom(candidate_sock, response_buf, sizeof(response_buf), 0, &response_addr, &response_addr_len);
         if (response_len < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", candidate->addr, candidate->port, strerror(errno));
@@ -2128,18 +2156,23 @@ static ChiakiErrorCode check_candidates(
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         }
-        uint32_t msg_type = ntohl(*(uint32_t*)&response_buf[0]);
-        if (msg_type != MSG_TYPE_RESP)
+        uint32_t msg_type = htonl(*(uint32_t*)(response_buf));
+        if(msg_type == MSG_TYPE_REQ)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %d from %s:%d", msg_type, candidate->addr, candidate->port);
+            memcpy(followup_req, response_buf, sizeof(response_buf));
+            followup_len = response_len;
+        }
+        else if (msg_type != MSG_TYPE_RESP)
+        {
+            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, candidate->addr, candidate->port);
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
         // TODO: More validation of localHashedIds, sids and the weird data at 0x4C?
-        uint32_t resp_id = ntohl(*(uint32_t*)&response_buf[0x48]);
+        uint32_t resp_id = ntohl(*(uint32_t*)(response_buf + 0x48));
         if (resp_id != request_id)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %d from %s:%d", resp_id, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %lu from %s:%d", resp_id, candidate->addr, candidate->port);
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
@@ -2157,8 +2190,65 @@ static ChiakiErrorCode check_candidates(
         CHIAKI_LOGI(session->log, "Selected Candidate");
         print_candidate(session->log, selected_candidate);
     }
-
     *out = selected_sock;
+    // Close non-chosen sockets
+    for (int i=0; i < num_candidates; i++)
+    {
+        if (sockets[i] != *out && sockets[i] >= 0)
+            close(sockets[i]);
+    }
+    // If haven't received request yet wait for request on sock
+    if(memcmp(followup_req, zero_bytes, sizeof(zero_bytes)) == 0)
+    {
+        while (true)
+        {
+            chiaki_socket_t maxfd = -1;
+            for (int i=0; i < num_candidates; i++)
+            {
+                if (sockets[i] > maxfd)
+                    maxfd = sockets[i];
+            }
+            maxfd = maxfd + 1;
+            int ret = select(maxfd, &fds, NULL, NULL, &tv);
+            if (ret < 0)
+            {
+                CHIAKI_LOGE(session->log, "check_candidate: Select failed");
+                return CHIAKI_ERR_UNKNOWN;
+            } else if (ret == 0)
+            {
+                // Didn't get request from candidate within timeout, terminate with error
+                CHIAKI_LOGE(session->log, "check_candidate: Timed out waiting for selected candidate's request");
+                return CHIAKI_ERR_TIMEOUT;
+            }
+        }
+        followup_len = recvfrom(selected_sock, followup_req, sizeof(followup_req), 0, &response_addr, &response_addr_len);
+    }
+    if (followup_len != sizeof(followup_req))
+    {
+        CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
+        return CHIAKI_ERR_NETWORK;
+    }
+    uint32_t msg_type = htonl(*(uint32_t*)(followup_req));
+    if (msg_type != MSG_TYPE_RESP)
+    {
+        CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected type %lu from %s:%d", msg_type, selected_candidate->addr, selected_candidate->port);
+        return CHIAKI_ERR_UNKNOWN;
+    }
+
+    // Send our response to request
+    uint8_t confirm_buf[88] = {0};
+    *(uint32_t*)&confirm_buf[0] = htonl(MSG_TYPE_RESP);
+    memcpy(&confirm_buf[0x4], session->hashed_id_local, sizeof(session->hashed_id_local));
+    memcpy(&confirm_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
+    *(uint16_t*)&confirm_buf[0x44] = htons(session->sid_local);
+    *(uint16_t*)&confirm_buf[0x46] = htons(session->sid_console);
+    memcpy(&confirm_buf[0x4b], &followup_req[0x4b], 5);
+
+    if (send(selected_sock, confirm_buf, sizeof(confirm_buf), 0) < 0)
+    {
+        CHIAKI_LOGE(session->log, "check_candidate: Sending confirmation failed for %s:%d with error: %s", selected_candidate->addr, selected_candidate->port, strerror(errno));
+        return CHIAKI_ERR_NETWORK;
+    }
 
     struct sockaddr_in addr_in;
     socklen_t addr_in_len = sizeof(addr_in);
@@ -2170,7 +2260,7 @@ static ChiakiErrorCode check_candidates(
     }
     *out_port = ntohs(addr_in.sin_port);
     *out_candidate = selected_candidate;
-    err = CHIAKI_ERR_SUCCESS;
+    return CHIAKI_ERR_SUCCESS;
 
 cleanup_sockets:
     for (int i=0; i < num_candidates; i++)
@@ -2432,7 +2522,7 @@ static ChiakiErrorCode wait_for_session_message(
             return err;
         }
         json_object *payload = session_message_get_payload(session->log, notif->json);
-        err = session_message_parse(session->log, payload, &msg);
+        err = session_message_parse(session->log, &session->notif_mutex, payload, &msg);
         json_object_put(payload);
         if (err != CHIAKI_ERR_SUCCESS)
         {
@@ -2486,7 +2576,7 @@ static ChiakiErrorCode wait_for_session_message_ack(
 }
 
 static ChiakiErrorCode session_message_parse(
-    ChiakiLog *log, json_object *message_json, SessionMessage **out)
+    ChiakiLog *log, ChiakiMutex *notif_mutex, json_object *message_json, SessionMessage **out)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     SessionMessage *msg = calloc(1, sizeof(SessionMessage));
@@ -2647,7 +2737,9 @@ invalid_schema:
 cleanup:
     if (msg != NULL && err != CHIAKI_ERR_SUCCESS)
     {
+        chiaki_mutex_lock(notif_mutex);
         session_message_free(msg);
+        chiaki_mutex_unlock(notif_mutex);
         msg = NULL;
     }
     return err;
@@ -2710,9 +2802,13 @@ static ChiakiErrorCode session_message_serialize(
     char *connreq_json = calloc(
         1, connreq_json_len);
     char mac_addr[18] = {0};
+    uint8_t zero_bytes[6] = {0};
     uint8_t *mac = message->conn_request->default_route_mac_addr;
-    snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
-         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    if(!(strcmp((const char*)(mac), (const char*)(zero_bytes)) == 0))
+    {
+        snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    }
     size_t connreq_len = snprintf(
         connreq_json, connreq_json_len, session_connrequest_fmt,
         message->conn_request->sid, message->conn_request->peer_sid,
