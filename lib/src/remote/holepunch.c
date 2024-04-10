@@ -1964,12 +1964,12 @@ static ChiakiErrorCode check_candidates(
     // Set up request buffer
     uint32_t request_id = chiaki_random_32();
     uint8_t request_buf[88] = {0};
-    *(uint32_t*)&request_buf[0x00] = ntohl(MSG_TYPE_REQ);
+    *(uint32_t*)&request_buf[0x00] = htonl(MSG_TYPE_REQ);
     memcpy(&request_buf[0x04], session->hashed_id_local, sizeof(session->hashed_id_local));
     memcpy(&request_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
-    *(uint16_t*)&request_buf[0x44] = ntohs(session->sid_local);
-    *(uint16_t*)&request_buf[0x46] = ntohs(session->sid_console);
-    *(uint32_t*)&request_buf[0x48] = ntohl(request_id);
+    *(uint16_t*)&request_buf[0x44] = htons(session->sid_local);
+    *(uint16_t*)&request_buf[0x46] = htons(session->sid_console);
+    *(uint32_t*)&request_buf[0x48] = htons(request_id);
 
 
     // Set up sockets for candidates and send a request over each of them
