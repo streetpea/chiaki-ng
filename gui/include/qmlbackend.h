@@ -107,6 +107,8 @@ private:
         ManualHost manual_host;
         bool discovered;
 
+        PsnHost psn_host;
+        QString duid;
         RegisteredHost registered_host;
         bool registered;
 

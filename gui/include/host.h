@@ -101,6 +101,7 @@ class PsnHost
 		bool ps5;
 
 	public:
+		PsnHost();
 		PsnHost(const QString &duid, const QString &name, bool ps5);
 
 		QString GetDuid() const          { return duid; }

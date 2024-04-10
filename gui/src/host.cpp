@@ -131,6 +131,13 @@ ManualHost ManualHost::LoadFromSettings(QSettings *settings)
 	return r;
 }
 
+PsnHost::PsnHost()
+{
+	duid = QString();
+	name = QString();
+	ps5 = false;
+}
+
 PsnHost::PsnHost(const QString &duid, const QString &name, bool ps5)
 	: duid(duid),
 	name(name),

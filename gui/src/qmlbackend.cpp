@@ -121,22 +121,60 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             resume_session = true;
         }
     });
-    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this]() {
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this, settings]() {
         qCInfo(chiakiGui) << "Resumed from sleep";
         if (resume_session) {
             qCInfo(chiakiGui) << "Resuming session...";
-            resume_session = false;
-            createSession({
-                session_info.settings,
-                session_info.target,
-                session_info.host,
-                session_info.regist_key,
-                session_info.morning,
-                session_info.initial_login_pin,
-                session_info.fullscreen,
-                session_info.zoom,
-                session_info.stretch,
-            });
+            QString expiry_s = settings->GetPsnAuthTokenExpiry();
+            QString refresh = settings->GetPsnRefreshToken();
+            if(expiry_s.isEmpty() || refresh.isEmpty())
+                return;
+            QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
+            // give 1 minute buffer
+            QDateTime now = QDateTime::currentDateTime().addSecs(60);
+            if(!session_info.duid.isEmpty() && now > expiry)
+            {
+                PSNToken *psnToken = new PSNToken(settings, this);
+                connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+                    qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+                });
+                connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+                    qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+                });
+                connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
+                    resume_session = false;
+                    createSession({
+                        session_info.settings,
+                        session_info.target,
+                        session_info.host,
+                        session_info.regist_key,
+                        session_info.morning,
+                        session_info.initial_login_pin,
+                        session_info.duid,
+                        session_info.fullscreen,
+                        session_info.zoom,
+                        session_info.stretch,
+                    });
+                });
+                QString refresh_token = settings->GetPsnRefreshToken();
+                psnToken->RefreshPsnToken(refresh_token);
+            }
+            else
+            {
+                resume_session = false;
+                createSession({
+                    session_info.settings,
+                    session_info.target,
+                    session_info.host,
+                    session_info.regist_key,
+                    session_info.morning,
+                    session_info.initial_login_pin,
+                    session_info.duid,
+                    session_info.fullscreen,
+                    session_info.zoom,
+                    session_info.stretch,
+                });
+            }
         }
     });
     refreshPsnToken();
@@ -460,7 +498,7 @@ void QmlBackend::connectToHost(int index)
     if (!server.valid)
         return;
 
-    if (!server.registered) {
+    if (!server.registered && server.duid.isEmpty()) {
         regist_dialog_server = server;
         emit registDialogRequested(server.GetHostAddr(), server.IsPS5());
         return;
@@ -487,18 +525,66 @@ void QmlBackend::connectToHost(int index)
     }
     emit windowTypeUpdated(settings->GetWindowType());
 
-    QString host = server.GetHostAddr();
-    StreamSessionConnectInfo info(
-            settings,
-            server.registered_host.GetTarget(),
-            host,
-            server.registered_host.GetRPRegistKey(),
-            server.registered_host.GetRPKey(),
-            server.registered_host.GetConsolePin(),
-            fullscreen,
-            zoom,
-            stretch);
-    createSession(info);
+    if(!server.duid.isEmpty())
+    {
+        QString host = server.GetHostAddr();
+        StreamSessionConnectInfo info(
+                settings,
+                server.registered_host.GetTarget(),
+                host,
+                server.registered_host.GetRPRegistKey(),
+                server.registered_host.GetRPKey(),
+                server.registered_host.GetConsolePin(),
+                server.duid,
+                fullscreen,
+                zoom,
+                stretch);
+        createSession(info);
+    }
+    else
+    {
+        ChiakiTarget target;
+        if(server.psn_host.IsPS5())
+            target = CHIAKI_TARGET_PS5_1;
+        else
+            target = CHIAKI_TARGET_PS4_9;
+        StreamSessionConnectInfo info(
+                settings,
+                target,
+                QString(),
+                QByteArray(),
+                QByteArray(),
+                QString(),
+                server.duid,
+                fullscreen,
+                zoom,
+                stretch);
+
+        QString expiry_s = settings->GetPsnAuthTokenExpiry();
+        QString refresh = settings->GetPsnRefreshToken();
+        if(expiry_s.isEmpty() || refresh.isEmpty())
+            return;
+        QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
+        // give 1 minute buffer
+        QDateTime now = QDateTime::currentDateTime().addSecs(60);
+        if(now > expiry)
+        {
+            PSNToken *psnToken = new PSNToken(settings, this);
+            connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+                qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+            });
+            connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+                qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+            });
+            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
+                createSession(info);
+            });
+            QString refresh_token = settings->GetPsnRefreshToken();
+            psnToken->RefreshPsnToken(refresh_token);
+        }
+        else
+            createSession(info);
+    }
 }
 
 void QmlBackend::stopSession(bool sleep)
@@ -576,6 +662,7 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
         server.discovered = true;
         server.discovery_host = discovered.at(index);
         server.registered = settings->GetRegisteredHostRegistered(server.discovery_host.GetHostMAC());
+        server.duid = QString();
         if (server.registered)
             server.registered_host = settings->GetRegisteredHost(server.discovery_host.GetHostMAC());
         return server;
@@ -588,10 +675,29 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
         server.discovered = false;
         server.manual_host = manual.at(index);
         server.registered = false;
+        server.duid = QString();
         if (server.manual_host.GetRegistered() && settings->GetRegisteredHostRegistered(server.manual_host.GetMAC())) {
             server.registered = true;
             server.registered_host = settings->GetRegisteredHost(server.manual_host.GetMAC());
         }
+        return server;
+    }
+    index -= manual.size();
+    if (index < psn_hosts.count())
+    {
+        DisplayServer server;
+        QMapIterator<QString, PsnHost> i(psn_hosts);
+        size_t j = 0;
+        while (i.hasNext() && j != index)
+        {
+            i.next();
+            j++;
+        }
+        server.valid = true;
+        server.discovered = false;
+        server.registered = false;
+        server.psn_host = i.value();
+        server.duid = i.key();
         return server;
     }
     return {};
@@ -885,8 +991,8 @@ void QmlBackend::refreshPsnToken()
     if(expiry_s.isEmpty() || refresh.isEmpty())
         return;
     QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
-    // give 10 minute buffer
-    QDateTime now = QDateTime::currentDateTime().addSecs(600);
+    // give 1 minute buffer
+    QDateTime now = QDateTime::currentDateTime().addSecs(60);
     if (now >= expiry)
         refreshAuth();
     else

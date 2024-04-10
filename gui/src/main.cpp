@@ -235,6 +235,7 @@ int real_main(int argc, char *argv[])
 				regist_key,
 				morning,
 				initial_login_passcode,
+				QString(),
 				parser.isSet(fullscreen_option),
 				parser.isSet(zoom_option),
 				parser.isSet(stretch_option));

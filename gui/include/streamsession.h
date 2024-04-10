@@ -93,6 +93,8 @@ struct StreamSessionConnectInfo
 	int32_t noise_suppress_level;
 	int32_t echo_suppress_level;
 #endif
+	QString duid;
+	QString psn_token;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
@@ -102,6 +104,7 @@ struct StreamSessionConnectInfo
 			QByteArray regist_key,
 			QByteArray morning,
 			QString initial_login_pin,
+			QString duid,
 			bool fullscreen,
 			bool zoom,
 			bool stretch);
@@ -209,6 +212,7 @@ class StreamSession : public QObject
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
+		ChiakiErrorCode InitiatePsnConnection(QString duid, QString psn_token, bool ps5);
 #ifdef Q_OS_MACOS
 		void SetMicAuthorization(Authorization authorization);
 #endif
