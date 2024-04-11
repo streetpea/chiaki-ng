@@ -40,8 +40,7 @@ set(HEADER_FILES
 		include/chiaki/opusencoder.h
 		include/chiaki/orientation.h
 		include/chiaki/bitstream.h
-		include/chiaki/remote/holepunch.h
-		src/remote/stun.h)
+		include/chiaki/remote/holepunch.h)
 
 set(SOURCE_FILES
 		src/common.c

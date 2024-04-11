@@ -111,7 +111,7 @@ static bool state_finished_cond_check(void *user)
 	return senkusha->state_finished || senkusha->should_stop;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint32_t *mtu_in, uint32_t *mtu_out, uint64_t *rtt_us)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint32_t *mtu_in, uint32_t *mtu_out, uint64_t *rtt_us, chiaki_socket_t *socket)
 {
 	ChiakiSession *session = senkusha->session;
 	ChiakiErrorCode err;
@@ -155,7 +155,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 	senkusha->state_finished = false;
 	senkusha->state_failed = false;
 
-	err = chiaki_takion_connect(&senkusha->takion, &takion_info);
+	err = chiaki_takion_connect(&senkusha->takion, &takion_info, socket);
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

@@ -30,8 +30,16 @@
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
 
+typedef struct session_args_t
+{
+	ChiakiSession *session;
+	chiaki_socket_t *ctrl_sock;
+	chiaki_socket_t *data_sock;
+
+} SessionArgs;
+
 static void *session_thread_func(void *arg);
-static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out);
+static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out, chiaki_socket_t *sock);
 
 const char *chiaki_rp_application_reason_string(uint32_t reason)
 {
@@ -258,9 +266,13 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	freeaddrinfo(session->connect_info.host_addrinfos);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session, chiaki_socket_t *ctrl_sock, chiaki_socket_t *data_sock)
 {
-	ChiakiErrorCode err = chiaki_thread_create(&session->session_thread, session_thread_func, session);
+	SessionArgs args;
+	args.session = session;
+	args.ctrl_sock = ctrl_sock;
+	args.data_sock = data_sock;
+	ChiakiErrorCode err = chiaki_thread_create(&session->session_thread, session_thread_func, &args);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
 	chiaki_thread_set_name(&session->session_thread, "Chiaki Session");
@@ -353,7 +365,11 @@ static bool session_check_state_pred_pin(void *user)
 
 static void *session_thread_func(void *arg)
 {
-	ChiakiSession *session = arg;
+	SessionArgs *args = (SessionArgs *)arg;
+	ChiakiSession *session = args->session;
+	chiaki_socket_t *ctrl_sock = args->ctrl_sock;
+	chiaki_socket_t *data_sock = args->data_sock;
+
 
 	chiaki_mutex_lock(&session->state_mutex);
 
@@ -373,13 +389,13 @@ static void *session_thread_func(void *arg)
 	CHIAKI_LOGI(session->log, "Starting session request for %s", session->connect_info.ps5 ? "PS5" : "PS4");
 
 	ChiakiTarget server_target = CHIAKI_TARGET_PS4_UNKNOWN;
-	ChiakiErrorCode err = session_thread_request_session(session, &server_target);
+	ChiakiErrorCode err = session_thread_request_session(session, &server_target, ctrl_sock);
 
 	if(err == CHIAKI_ERR_VERSION_MISMATCH && !chiaki_target_is_unknown(server_target))
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session with Server's RP-Version");
 		session->target = server_target;
-		err = session_thread_request_session(session, &server_target);
+		err = session_thread_request_session(session, &server_target, ctrl_sock);
 	}
 	else if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
@@ -388,7 +404,7 @@ static void *session_thread_func(void *arg)
 	{
 		CHIAKI_LOGI(session->log, "Attempting to re-request session even harder with Server's RP-Version!!!");
 		session->target = server_target;
-		err = session_thread_request_session(session, NULL);
+		err = session_thread_request_session(session, NULL, ctrl_sock);
 	}
 	else if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
@@ -405,7 +421,7 @@ static void *session_thread_func(void *arg)
 
 	CHIAKI_LOGI(session->log, "Starting ctrl");
 
-	err = chiaki_ctrl_start(&session->ctrl);
+	err = chiaki_ctrl_start(&session->ctrl, ctrl_sock);
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
@@ -471,7 +487,7 @@ ctrl_failed:
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit_ctrl);
 
-	err = chiaki_senkusha_run(&senkusha, &session->mtu_in, &session->mtu_out, &session->rtt_us);
+	err = chiaki_senkusha_run(&senkusha, &session->mtu_in, &session->mtu_out, &session->rtt_us, data_sock);
 	chiaki_senkusha_fini(&senkusha);
 
 	if(err == CHIAKI_ERR_SUCCESS)
@@ -502,7 +518,7 @@ ctrl_failed:
 	}
 
 	chiaki_mutex_unlock(&session->state_mutex);
-	err = chiaki_stream_connection_run(&session->stream_connection);
+	err = chiaki_stream_connection_run(&session->stream_connection, data_sock);
 	chiaki_mutex_lock(&session->state_mutex);
 	if(err == CHIAKI_ERR_DISCONNECTED)
 	{
@@ -578,84 +594,93 @@ static void parse_session_response(SessionResponse *response, ChiakiHttpResponse
 /**
  * @param target_out if NULL, version mismatch means to fail the entire session, otherwise report the target here
  */
-static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out)
+static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out, chiaki_socket_t *sock)
 {
 	chiaki_socket_t session_sock = CHIAKI_INVALID_SOCKET;
-	for(struct addrinfo *ai=session->connect_info.host_addrinfos; ai; ai=ai->ai_next)
+	if(CHIAKI_SOCKET_IS_INVALID(*sock))
 	{
-		//if(ai->ai_protocol != IPPROTO_TCP)
-		//	continue;
-
-		struct sockaddr *sa = malloc(ai->ai_addrlen);
-		if(!sa)
-			continue;
-		memcpy(sa, ai->ai_addr, ai->ai_addrlen);
-
-		if(sa->sa_family != AF_INET && sa->sa_family != AF_INET6)
+		for(struct addrinfo *ai=session->connect_info.host_addrinfos; ai; ai=ai->ai_next)
 		{
+			//if(ai->ai_protocol != IPPROTO_TCP)
+			//	continue;
+
+			struct sockaddr *sa = malloc(ai->ai_addrlen);
+			if(!sa)
+				continue;
+			memcpy(sa, ai->ai_addr, ai->ai_addrlen);
+
+			if(sa->sa_family != AF_INET && sa->sa_family != AF_INET6)
+			{
+				free(sa);
+				continue;
+			}
+
+			set_port(sa, htons(SESSION_PORT));
+
+			// TODO: this can block, make cancelable somehow
+			int r = getnameinfo(sa, (socklen_t)ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, NI_NUMERICHOST);
+			if(r != 0)
+			{
+				CHIAKI_LOGE(session->log, "getnameinfo failed with %s, filling the hostname with fallback", gai_strerror(r));
+				memcpy(session->connect_info.hostname, "unknown", 8);
+			}
+
+			CHIAKI_LOGI(session->log, "Trying to request session from %s:%d", session->connect_info.hostname, SESSION_PORT);
+
+			session_sock = socket(ai->ai_family, SOCK_STREAM, 0);
+			if(CHIAKI_SOCKET_IS_INVALID(session_sock))
+			{
+	#ifdef _WIN32
+				CHIAKI_LOGE(session->log, "Failed to create socket to request session");
+	#else
+				CHIAKI_LOGE(session->log, "Failed to create socket to request session: %s", strerror(errno));
+	#endif
+				free(sa);
+				continue;
+			}
+
+			ChiakiErrorCode err = chiaki_socket_set_nonblock(session_sock, true);
+			if(err != CHIAKI_ERR_SUCCESS)
+				CHIAKI_LOGE(session->log, "Failed to set session socket to non-blocking: %s", chiaki_error_string(err));
+
+			chiaki_mutex_unlock(&session->state_mutex);
+			err = chiaki_stop_pipe_connect(&session->stop_pipe, session_sock, sa, ai->ai_addrlen);
+			chiaki_mutex_lock(&session->state_mutex);
+			if(err == CHIAKI_ERR_CANCELED)
+			{
+				CHIAKI_LOGI(session->log, "Session stopped while connecting for session request");
+				session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
+				CHIAKI_SOCKET_CLOSE(session_sock);
+				session_sock = -1;
+				free(sa);
+				break;
+			}
+			else if(err != CHIAKI_ERR_SUCCESS)
+			{
+				CHIAKI_LOGE(session->log, "Session request connect failed: %s", chiaki_error_string(err));
+				if(err == CHIAKI_ERR_CONNECTION_REFUSED)
+					session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
+				else
+					session->quit_reason = CHIAKI_QUIT_REASON_NONE;
+				CHIAKI_SOCKET_CLOSE(session_sock);
+				session_sock = -1;
+				free(sa);
+				continue;
+			}
+
 			free(sa);
-			continue;
+
+			session->connect_info.host_addrinfo_selected = ai;
+			break;
 		}
-
-		set_port(sa, htons(SESSION_PORT));
-
-		// TODO: this can block, make cancelable somehow
-		int r = getnameinfo(sa, (socklen_t)ai->ai_addrlen, session->connect_info.hostname, sizeof(session->connect_info.hostname), NULL, 0, NI_NUMERICHOST);
-		if(r != 0)
-		{
-			CHIAKI_LOGE(session->log, "getnameinfo failed with %s, filling the hostname with fallback", gai_strerror(r));
-			memcpy(session->connect_info.hostname, "unknown", 8);
-		}
-
-		CHIAKI_LOGI(session->log, "Trying to request session from %s:%d", session->connect_info.hostname, SESSION_PORT);
-
-		session_sock = socket(ai->ai_family, SOCK_STREAM, 0);
-		if(CHIAKI_SOCKET_IS_INVALID(session_sock))
-		{
-#ifdef _WIN32
-			CHIAKI_LOGE(session->log, "Failed to create socket to request session");
-#else
-			CHIAKI_LOGE(session->log, "Failed to create socket to request session: %s", strerror(errno));
-#endif
-			free(sa);
-			continue;
-		}
-
+	}
+	else
+	{
+		session_sock = *sock;
 		ChiakiErrorCode err = chiaki_socket_set_nonblock(session_sock, true);
 		if(err != CHIAKI_ERR_SUCCESS)
 			CHIAKI_LOGE(session->log, "Failed to set session socket to non-blocking: %s", chiaki_error_string(err));
-
-		chiaki_mutex_unlock(&session->state_mutex);
-		err = chiaki_stop_pipe_connect(&session->stop_pipe, session_sock, sa, ai->ai_addrlen);
-		chiaki_mutex_lock(&session->state_mutex);
-		if(err == CHIAKI_ERR_CANCELED)
-		{
-			CHIAKI_LOGI(session->log, "Session stopped while connecting for session request");
-			session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
-			CHIAKI_SOCKET_CLOSE(session_sock);
-			session_sock = -1;
-			free(sa);
-			break;
-		}
-		else if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Session request connect failed: %s", chiaki_error_string(err));
-			if(err == CHIAKI_ERR_CONNECTION_REFUSED)
-				session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
-			else
-				session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-			CHIAKI_SOCKET_CLOSE(session_sock);
-			session_sock = -1;
-			free(sa);
-			continue;
-		}
-
-		free(sa);
-
-		session->connect_info.host_addrinfo_selected = ai;
-		break;
 	}
-
 	if(CHIAKI_SOCKET_IS_INVALID(session_sock))
 	{
 		CHIAKI_LOGE(session->log, "Session request connect failed eventually.");
@@ -664,7 +689,8 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		return CHIAKI_ERR_NETWORK;
 	}
 
-	CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_PORT);
+	if(CHIAKI_SOCKET_IS_INVALID(*sock))
+		CHIAKI_LOGI(session->log, "Connected to %s:%d", session->connect_info.hostname, SESSION_PORT);
 
 	static const char session_request_fmt[] =
 			"GET %s HTTP/1.1\r\n"
@@ -824,7 +850,8 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	}
 
 	chiaki_http_response_fini(&http_response);
-	CHIAKI_SOCKET_CLOSE(session_sock);
+	if(CHIAKI_SOCKET_IS_INVALID(*sock))
+		CHIAKI_SOCKET_CLOSE(session_sock);
 	return r;
 }
 

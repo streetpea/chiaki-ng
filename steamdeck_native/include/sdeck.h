@@ -11,7 +11,6 @@ extern "C" {
 #include <stdbool.h>
 
 typedef struct sdeck_t SDeck;
-//typedef struct freq_t FreqFinder;
 
 double * hann_init(int N);
 void hann_apply(double *data, double *han, int N);

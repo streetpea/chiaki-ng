@@ -168,7 +168,7 @@ typedef struct chiaki_takion_t
 } ChiakiTakion;
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info, chiaki_socket_t *sock);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 
 /**

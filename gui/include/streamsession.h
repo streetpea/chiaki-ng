@@ -173,6 +173,7 @@ class StreamSession : public QObject
 		ChiakiOrientationTracker sdeck_orient_tracker;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
+		chiaki_socket_t ctrl_sock, data_sock;
 #endif
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;

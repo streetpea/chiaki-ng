@@ -115,6 +115,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
 	haptics_sdeck(0),
+	ctrl_sock(-1),
+	data_sock(-1),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	echo_resampler_buf(nullptr),
@@ -456,7 +458,7 @@ void StreamSession::Start()
 {
 	if(!connect_timer.isValid())
 		connect_timer.start();
-	ChiakiErrorCode err = chiaki_session_start(&session);
+	ChiakiErrorCode err = chiaki_session_start(&session, &ctrl_sock, &data_sock);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_session_fini(&session);
@@ -1588,8 +1590,6 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 	}
 	CHIAKI_LOGI(log, ">> Started session");
 
-	chiaki_socket_t ctrl_sock = -1;
-	chiaki_socket_t data_sock = -1;
 	err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL, &ctrl_sock);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{

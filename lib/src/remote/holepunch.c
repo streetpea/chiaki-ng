@@ -1386,7 +1386,7 @@ static NotificationType parse_notification_type(
 static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidate)
 {
     // Create listening socket that the console can reach us on
-    session->client_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    session->client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (session->client_sock < 0)
     {
         CHIAKI_LOGE(session->log, "send_offer: Creating socket failed");
@@ -2027,7 +2027,7 @@ static ChiakiErrorCode check_candidates(
     {
         Candidate *candidate = &candidates[i];
         print_candidate(session->log, candidate);
-        chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, 0);
+        chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (sock < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Creating socket failed");
@@ -2166,6 +2166,7 @@ static ChiakiErrorCode check_candidates(
         else if (msg_type != MSG_TYPE_RESP)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, candidate->addr, candidate->port);
+            chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
@@ -2173,6 +2174,7 @@ static ChiakiErrorCode check_candidates(
         if(memcmp(response_buf + 0x4b, request_id, sizeof(request_id)) != 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %lu from %s:%d", request_id, candidate->addr, candidate->port);
+            chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
@@ -2197,6 +2199,8 @@ static ChiakiErrorCode check_candidates(
         if (sockets[i] != *out && sockets[i] >= 0)
             close(sockets[i]);
     }
+    if (session->client_sock >= 0)
+        close(session->client_sock);
     // If haven't received request yet wait for request on sock
     if(memcmp(followup_req, zero_bytes, sizeof(zero_bytes)) == 0)
     {
@@ -2232,6 +2236,7 @@ static ChiakiErrorCode check_candidates(
     if (msg_type != MSG_TYPE_RESP)
     {
         CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected type %lu from %s:%d", msg_type, selected_candidate->addr, selected_candidate->port);
+        chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, followup_req, 88);
         return CHIAKI_ERR_UNKNOWN;
     }
 
@@ -2281,6 +2286,8 @@ cleanup_sockets:
         if (sockets[i] != *out && sockets[i] >= 0)
             close(sockets[i]);
     }
+    if (session->client_sock >= 0)
+        close(session->client_sock);
 
     return err;
 }

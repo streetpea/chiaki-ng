@@ -59,7 +59,7 @@ typedef struct chiaki_ctrl_t
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, chiaki_socket_t *sock);
 CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT void chiaki_ctrl_fini(ChiakiCtrl *ctrl);

@@ -132,7 +132,7 @@ static bool state_finished_cond_check(void *user)
 	return stream_connection->state_finished || stream_connection->should_stop || stream_connection->remote_disconnected;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnection *stream_connection)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnection *stream_connection, chiaki_socket_t *socket)
 {
 	ChiakiSession *session = stream_connection->session;
 	ChiakiErrorCode err;
@@ -190,7 +190,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	stream_connection->state = STATE_TAKION_CONNECT;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
-	err = chiaki_takion_connect(&stream_connection->takion, &takion_info);
+	err = chiaki_takion_connect(&stream_connection->takion, &takion_info, socket);
 	free(takion_info.sa);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
