@@ -1987,14 +1987,15 @@ static ChiakiErrorCode check_candidates(
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
     // Set up request buffer
-    uint32_t request_id = chiaki_random_32();
+    uint8_t request_id[5];
+    chiaki_random_bytes_crypt(request_id, sizeof(request_id));
     uint8_t request_buf[88] = {0};
     *(uint32_t*)&request_buf[0x00] = htonl(MSG_TYPE_REQ);
     memcpy(&request_buf[0x04], session->hashed_id_local, sizeof(session->hashed_id_local));
     memcpy(&request_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
     *(uint16_t*)&request_buf[0x44] = htons(session->sid_local);
     *(uint16_t*)&request_buf[0x46] = htons(session->sid_console);
-    *(uint32_t*)&request_buf[0x4b] = htonl(request_id);
+    memcpy(&request_buf[0x4b], request_id, sizeof(request_id));
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -2156,7 +2157,7 @@ static ChiakiErrorCode check_candidates(
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         }
-        uint32_t msg_type = htonl(*(uint32_t*)(response_buf));
+        uint32_t msg_type = ntohl(*(uint32_t*)(response_buf));
         if(msg_type == MSG_TYPE_REQ)
         {
             memcpy(followup_req, response_buf, sizeof(response_buf));
@@ -2168,11 +2169,10 @@ static ChiakiErrorCode check_candidates(
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
-        // TODO: More validation of localHashedIds, sids and the weird data at 0x4C?
-        uint32_t resp_id = ntohl(*(uint32_t*)(response_buf + 0x48));
-        if (resp_id != request_id)
+        // TODO: More validation of localHashedIds, sids and the weird data at 0x4b?
+        if(memcmp(response_buf + 0x4b, request_id, sizeof(request_id)) != 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %lu from %s:%d", resp_id, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %lu from %s:%d", request_id, candidate->addr, candidate->port);
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
@@ -2228,7 +2228,7 @@ static ChiakiErrorCode check_candidates(
         CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
         return CHIAKI_ERR_NETWORK;
     }
-    uint32_t msg_type = htonl(*(uint32_t*)(followup_req));
+    uint32_t msg_type = ntohl(*(uint32_t*)(followup_req));
     if (msg_type != MSG_TYPE_RESP)
     {
         CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected type %lu from %s:%d", msg_type, selected_candidate->addr, selected_candidate->port);
@@ -2243,6 +2243,19 @@ static ChiakiErrorCode check_candidates(
     *(uint16_t*)&confirm_buf[0x44] = htons(session->sid_local);
     *(uint16_t*)&confirm_buf[0x46] = htons(session->sid_console);
     memcpy(&confirm_buf[0x4b], &followup_req[0x4b], 5);
+    uint8_t console_addr[16];
+    char *search_ptr = strchr(selected_candidate->addr, ',');
+    *(uint16_t*)&confirm_buf[0x51] = htons(session->sid_local);
+    *(uint16_t*)&confirm_buf[0x53] = htons(session->sid_console);
+    *(uint16_t*)&confirm_buf[0x55] = htons(session->sid_local);
+    if(search_ptr)
+        inet_pton(AF_INET, selected_candidate->addr, console_addr);
+    else
+        inet_pton(AF_INET6, selected_candidate->addr, console_addr);
+    xor_bytes(&confirm_buf[0x51], console_addr, 4);
+    uint8_t local_port[2];
+    *(uint16_t*)&local_port = htons(local_candidate->port);
+    xor_bytes(&confirm_buf[0x55], local_port, 2);
 
     if (send(selected_sock, confirm_buf, sizeof(confirm_buf), 0) < 0)
     {

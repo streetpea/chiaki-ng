@@ -10,6 +10,7 @@
 #include <QThread>
 #include <QJSValue>
 #include <QUrl>
+#include <QFutureWatcher>
 
 class SystemdInhibit;
 
@@ -61,6 +62,8 @@ public:
 
     bool autoConnect() const;
 
+    void psnConnector();
+
     void createSession(const StreamSessionConnectInfo &connect_info);
 
     bool closeRequested();
@@ -85,6 +88,8 @@ Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions
 
 signals:
     void sessionChanged(StreamSession *session);
+    void psnConnect();
+    void psnConnectDone();
     void controllersChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
@@ -139,4 +144,5 @@ private:
     bool resume_session = false;
     HostMAC auto_connect_mac = {};
     QMap<QString, PsnHost> psn_hosts;
+    QFutureWatcher<void> watcher;
 };

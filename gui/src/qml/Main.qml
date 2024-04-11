@@ -32,6 +32,10 @@ Item {
         stack.replace(stack.get(0), streamViewComponent);
     }
 
+    function showPsnView() {
+        stack.replace(stack.get(0), psnViewComponent, {}, StackView.Immediate)
+    }
+
     function showManualHostDialog() {
         stack.push(manualHostDialogComponent);
     }
@@ -152,6 +156,17 @@ Item {
                 root.showStreamView();
         }
 
+        function onPsnConnect() {
+            root.showPsnView();
+        }
+
+        function onPsnConnectDone() {
+            if (Chiaki.session)
+                root.showStreamView();
+            else
+                root.showMainView();
+        }
+
         function onError(title, text) {
             errorTitleLabel.text = title;
             errorTextLabel.text = text;
@@ -176,6 +191,11 @@ Item {
     Component {
         id: autoConnectViewComponent
         AutoConnectView { }
+    }
+
+    Component {
+        id: psnViewComponent
+        PsnView {}
     }
 
     Component {
