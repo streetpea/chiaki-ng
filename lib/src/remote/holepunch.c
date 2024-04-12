@@ -2575,6 +2575,7 @@ static ChiakiErrorCode wait_for_session_message(
         if (!(msg->action & types))
         {
             CHIAKI_LOGV(session->log, "Ignoring session message with action %d", msg->action);
+            clear_notification(session, notif);
             continue;
         }
         finished = true;
@@ -2969,7 +2970,7 @@ static void dequeueNq(NotificationQueue *nq)
     if(nq->front == NULL)
         nq->rear = NULL;
 
-    json_object_put(notif->json);
+    //json_object_put(notif->json);
     notif->json = NULL;
     free(notif->json_buf);
     notif->json_buf = NULL;
