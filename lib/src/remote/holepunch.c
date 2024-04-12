@@ -963,19 +963,13 @@ void notification_queue_free(Notification* queue)
     Notification* previous;
     while (queue != NULL)
     {
-        if(queue->previous)
-            previous = queue->previous;
-        else 
-            previous = NULL;
+        previous = queue->previous;
         json_object_put(queue->json);
         queue->json = NULL;
         free(queue->json_buf);
         queue->json_buf = NULL;
         free(queue);
-        if(previous)
-            queue = previous;
-        else
-            queue = NULL;
+        queue = previous;
     }
 }
 
@@ -1195,10 +1189,8 @@ static void* websocket_thread_func(void *user) {
     // Need to send a ping every 5secs
     struct timeval timeout = { .tv_sec = WEBSOCKET_PING_INTERVAL_SEC, .tv_usec = 0 };
     struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
     uint64_t now = 0;
     uint64_t last_ping_sent = 0;
-    last_ping_sent = ts.tv_sec * SECOND_NS + ts.tv_nsec;
 
     json_tokener *tok = json_tokener_new();
 
@@ -1429,7 +1421,9 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         .error = 0,
         .conn_request = malloc(sizeof(ConnectionRequest)),
     };
+
     msg.conn_request->sid = session->sid_local;
+    msg.conn_request->peer_sid = session->sid_console;
     msg.conn_request->nat_type = 2;
     memset(msg.conn_request->skey, 0, sizeof(msg.conn_request->skey));
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
