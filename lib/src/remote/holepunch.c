@@ -2200,7 +2200,8 @@ static ChiakiErrorCode check_candidates(
         memset(response_buf, 0, sizeof(response_buf));
         memset(&response_addr, 0, sizeof(response_addr));
         response_addr_len = sizeof(response_addr);
-        CHIAKI_LOGI(session->log, "Selected Candidate");
+        CHIAKI_LOGV(session->log, "Selected Candidate");
+        print_candidate(session->log, selected_candidate);
     }
     *out = selected_sock;
     // Close non-chosen sockets
