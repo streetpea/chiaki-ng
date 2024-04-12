@@ -2474,9 +2474,9 @@ static ChiakiErrorCode wait_for_notification(
     clock_gettime(CLOCK_MONOTONIC, &ts);
     uint64_t waiting_since = ts.tv_sec * SECOND_NS + ts.tv_nsec;
     uint64_t now = waiting_since;
+    Notification *last_known = NULL;
 
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
-    Notification *last_known = NULL;
     chiaki_mutex_lock(&session->notif_mutex);
     while (true) {
         while (session->ws_notification_queue->rear == last_known)
@@ -2502,7 +2502,6 @@ static ChiakiErrorCode wait_for_notification(
         Notification *notif = session->ws_notification_queue->front;
         while (notif != NULL && notif != last_known)
         {
-            dequeueNq(session->ws_notification_queue);
             if (notif->type & types)
             {
                 CHIAKI_LOGD(session->log, "wait_for_notification: Found notification of type %d", notif->type);
@@ -2511,7 +2510,7 @@ static ChiakiErrorCode wait_for_notification(
                 goto cleanup;
             }
             last_known = notif;
-            notif = session->ws_notification_queue->front;
+            notif = notif->next;
         }
     }
 
@@ -2529,7 +2528,11 @@ static ChiakiErrorCode clear_notification(
     while (nq->rear != NULL)
     {
         if(nq->front == notification)
+        {
             found = true;
+            dequeueNq(nq);
+            break;
+        }
         dequeueNq(nq);
     }
     chiaki_mutex_unlock(&session->notif_mutex);
