@@ -295,7 +295,7 @@ static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t
 static void random_uuidv4(char* out);
 static void *websocket_thread_func(void *user);
 static NotificationType parse_notification_type(ChiakiLog *log, json_object* json);
-static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidate);
+static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidates);
 static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *selected_candidate);
 static ChiakiErrorCode http_create_session(Session *session);
 static ChiakiErrorCode http_start_session(Session *session);
@@ -310,7 +310,7 @@ static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
 static ChiakiErrorCode check_candidates(
-    Session *session, Candidate *local_candidate, Candidate *candidate, size_t num_candidates, chiaki_socket_t *out,
+    Session *session, Candidate *local_candidates, Candidate *candidate, size_t num_candidates, chiaki_socket_t *out,
     uint16_t *out_port, Candidate **out_candidate);
 
 static json_object* session_message_get_payload(ChiakiLog *log, json_object *session_message);
@@ -557,7 +557,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->data_sock = -1;
     session->sock = -1;
     session->sid_console = 0;
-    session->local_req_id = 0;
+    session->local_req_id = 1;
 
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&session->notif_mutex, false);
@@ -868,9 +868,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     free(ack_msg.conn_request);
 
     // Send our own OFFER
-    const int our_offer_req_id = session->local_req_id++;
-    Candidate *local_candidate = calloc(1, sizeof(Candidate));
-    send_offer(session, our_offer_req_id, console_candidate_local, local_candidate);
+    const int our_offer_req_id = session->local_req_id;
+    session->local_req_id++;
+    Candidate *local_candidates = calloc(2, sizeof(Candidate));
+    send_offer(session, our_offer_req_id, console_candidate_local, local_candidates);
 
     // Wait for ACK of OFFER, ignore other OFFERs, simply ACK them
     err = wait_for_session_message_ack(
@@ -894,7 +895,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     {
         print_candidate(session->log, &console_req->candidates[i]);
     }
-    err = check_candidates(session, local_candidate, console_req->candidates, console_req->num_candidates, &sock, &local_port, &selected_candidate);
+    err = check_candidates(session, local_candidates, console_req->candidates, console_req->num_candidates, &sock, &local_port, &selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(
@@ -905,12 +906,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
 
     *out_sock = sock;
 
-    err = send_accept(session, session->local_req_id++, selected_candidate);
+    err = send_accept(session, session->local_req_id, selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to send ACCEPT message.");
         goto cleanup;
     }
+    session->local_req_id++;
 
     // bool finished = false;
     SessionMessage *msg = NULL;
@@ -939,7 +941,7 @@ cleanup:
     chiaki_mutex_lock(&session->notif_mutex);
     session_message_free(console_offer_msg);
     chiaki_mutex_unlock(&session->notif_mutex);
-    free(local_candidate);
+    free(local_candidates);
 
     return err;
 }
@@ -1381,7 +1383,7 @@ static NotificationType parse_notification_type(
  * @param session The Session instance.
  * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
  */
-static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidate)
+static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidates)
 {
     // Create listening socket that the console can reach us on
     session->client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -1475,7 +1477,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
         close(session->client_sock);
     }
-    memcpy(local_candidate, candidate_local, sizeof(Candidate));
+    memcpy(&local_candidates[0], candidate_local, sizeof(Candidate));
+    memcpy(&local_candidates[1], candidate_remote, sizeof(Candidate));
 
 cleanup:
     free(msg.conn_request->candidates);
@@ -1981,7 +1984,7 @@ static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr)
 }
 
 static ChiakiErrorCode check_candidates(
-    Session *session, Candidate* local_candidate, Candidate *candidates, size_t num_candidates, chiaki_socket_t *out,
+    Session *session, Candidate* local_candidates, Candidate *candidates, size_t num_candidates, chiaki_socket_t *out,
     uint16_t *out_port, Candidate **out_candidate)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
@@ -1996,6 +1999,9 @@ static ChiakiErrorCode check_candidates(
     *(uint16_t*)&request_buf[0x44] = htons(session->sid_local);
     *(uint16_t*)&request_buf[0x46] = htons(session->sid_console);
     memcpy(&request_buf[0x4b], request_id, sizeof(request_id));
+
+    Candidate *local_candidate = &local_candidates[0];
+    Candidate *remote_candidate = &local_candidates[1];
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -2304,6 +2310,16 @@ static ChiakiErrorCode check_candidates(
         CHIAKI_LOGE(session->log, "check_candidate: getsockname failed");
         err = CHIAKI_ERR_NETWORK;
         goto cleanup_sockets;
+    }
+    if(selected_candidate->type == CANDIDATE_TYPE_STATIC)
+    {
+        memcpy(selected_candidate->addr_mapped, remote_candidate->addr, sizeof(remote_candidate->addr));
+        selected_candidate->port_mapped = remote_candidate->port;
+    }
+    else
+    {
+        memcpy(selected_candidate->addr_mapped, local_candidate->addr, sizeof(local_candidate->addr));
+        selected_candidate->port_mapped = local_candidate->port;
     }
     *out_port = ntohs(addr_in.sin_port);
     *out_candidate = selected_candidate;
