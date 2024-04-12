@@ -945,12 +945,12 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
         curl_share_cleanup(session->curl_share);
     if (session->ws_fqdn)
         free(session->ws_fqdn);
-    // if (session->ws_notification_queue)
-    // {
-    //     chiaki_mutex_lock(&session->notif_mutex);
-    //     notification_queue_free(session->ws_notification_queue);
-    //     chiaki_mutex_unlock(&session->notif_mutex);
-    // }
+    if (session->ws_notification_queue)
+    {
+        chiaki_mutex_lock(&session->notif_mutex);
+        notification_queue_free(session->ws_notification_queue);
+        chiaki_mutex_unlock(&session->notif_mutex);
+    }
     chiaki_stop_pipe_fini(&session->notif_pipe);
     chiaki_mutex_fini(&session->notif_mutex);
     chiaki_cond_fini(&session->notif_cond);
@@ -963,13 +963,19 @@ void notification_queue_free(Notification* queue)
     Notification* previous;
     while (queue != NULL)
     {
-        previous = queue->previous;
+        if(queue->previous)
+            previous = queue->previous;
+        else 
+            previous = NULL;
         json_object_put(queue->json);
         queue->json = NULL;
         free(queue->json_buf);
         queue->json_buf = NULL;
         free(queue);
-        queue = previous;
+        if(previous)
+            queue = previous;
+        else
+            queue = NULL;
     }
 }
 
@@ -1189,8 +1195,10 @@ static void* websocket_thread_func(void *user) {
     // Need to send a ping every 5secs
     struct timeval timeout = { .tv_sec = WEBSOCKET_PING_INTERVAL_SEC, .tv_usec = 0 };
     struct timespec ts;
-    uint64_t now;
-    uint64_t last_ping_sent;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    uint64_t now = 0;
+    uint64_t last_ping_sent = 0;
+    last_ping_sent = ts.tv_sec * SECOND_NS + ts.tv_nsec;
 
     json_tokener *tok = json_tokener_new();
 
@@ -2012,7 +2020,7 @@ static ChiakiErrorCode check_candidates(
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     struct addrinfo *addr_local, *addr_remote;
-    size_t followup_len = 0;
+    ssize_t followup_len = 0;
     uint8_t followup_req[88] = {0};
     uint8_t zero_bytes[88] = {0};
 
@@ -2144,12 +2152,11 @@ static ChiakiErrorCode check_candidates(
         }
 
         CHIAKI_LOGD(session->log, "check_candidate: Receiving data from %s:%d", candidate->addr, candidate->port);
-        size_t response_len = recvfrom(candidate_sock, response_buf, sizeof(response_buf), 0, &response_addr, &response_addr_len);
+        ssize_t response_len = recvfrom(candidate_sock, response_buf, sizeof(response_buf), 0, &response_addr, &response_addr_len);
         if (response_len < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", candidate->addr, candidate->port, strerror(errno));
-            err = CHIAKI_ERR_NETWORK;
-            goto cleanup_sockets;
+            continue;
         }
         if (response_len != sizeof(response_buf))
         {
@@ -2240,6 +2247,17 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
                 return CHIAKI_ERR_NETWORK;
+            }
+            if (followup_len < 0)
+            {
+                CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", selected_candidate->addr, selected_candidate->port, strerror(errno));
+                continue;
+            }
+            if (followup_len != sizeof(followup_req))
+            {
+                CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected size %ld from %s:%d with error ", followup_len, selected_candidate->addr, selected_candidate->port);
+                err = CHIAKI_ERR_NETWORK;
+                goto cleanup_sockets;
             }
             uint32_t msg_type = ntohl(*(uint32_t*)(followup_req));
             if(msg_type == MSG_TYPE_RESP)
@@ -2847,7 +2865,7 @@ static ChiakiErrorCode session_message_serialize(
         snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
-    size_t connreq_len = snprintf(
+    ssize_t connreq_len = snprintf(
         connreq_json, connreq_json_len, session_connrequest_fmt,
         message->conn_request->sid, message->conn_request->peer_sid,
         skey_str, message->conn_request->nat_type,
@@ -2873,9 +2891,9 @@ static ChiakiErrorCode session_message_serialize(
             action_str = "UNKNOWN";
             break;
     }
-    size_t serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
+    ssize_t serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
     char *serialized_msg = calloc(1, serialized_msg_len);
-    size_t msg_len = snprintf(
+    ssize_t msg_len = snprintf(
         serialized_msg, serialized_msg_len, session_message_fmt,
         action_str, message->req_id, message->error, connreq_json);
 
