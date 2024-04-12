@@ -543,6 +543,11 @@ void QmlBackend::connectToHost(int index)
     }
     else
     {
+        if(watcher.isRunning())
+        {
+            qCWarning(chiakiGui) << "Previous psn connection is still running";
+            return;
+        }
         resume_session = false;
         StreamSessionConnectInfo info(
                 settings,
@@ -695,7 +700,6 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
                 server.registered = false;
                 server.psn_host = i.value();
                 server.duid = i.key();
-                qCInfo(chiakiGui) << "server duid" << server.duid;
                 return server;
             }
             j++;
