@@ -141,15 +141,21 @@ typedef enum notification_type_t
     NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED = 1 << 4
 } NotificationType;
 
-typedef struct notification_queue_t
+typedef struct notification_t
 {
-    struct notification_queue_t *previous;
+    struct notification_t *next;
 
     NotificationType type;
     json_object* json;
     char* json_buf;
     size_t json_buf_size;
 } Notification;
+
+typedef struct notification_queue_t
+{
+    Notification *front, *rear;
+
+} NotificationQueue;
 
 typedef enum session_state_t
 {
@@ -201,7 +207,7 @@ typedef struct session_t
 
     char* ws_fqdn;
     ChiakiThread ws_thread;
-    Notification* ws_notification_queue;
+    NotificationQueue* ws_notification_queue;
     bool ws_thread_should_stop;
 
     ChiakiStopPipe notif_pipe;
@@ -314,7 +320,11 @@ static ChiakiErrorCode wait_for_notification(
     uint16_t types, uint64_t timeout_ms);
 static ChiakiErrorCode clear_notification(
     Session *session, Notification *notification);
-static void notification_queue_free(Notification* queue);
+static void notification_queue_free(NotificationQueue* queue);
+static NotificationQueue *createNq();
+static void dequeueNq(NotificationQueue *nq);
+static void enqueueNq(NotificationQueue *nq, Notification *notif);
+static Notification* newNotification(NotificationType type, json_object *json, char* json_buf, size_t json_buf_size);
 
 static ChiakiErrorCode wait_for_session_message(
     Session *session, SessionMessage** out,
@@ -322,7 +332,7 @@ static ChiakiErrorCode wait_for_session_message(
 static ChiakiErrorCode wait_for_session_message_ack(
     Session *session, int req_id, uint64_t timeout_ms);
 static ChiakiErrorCode session_message_parse(
-    ChiakiLog *log, ChiakiMutex *notif_mutex, json_object *message_json, SessionMessage **out);
+    ChiakiLog *log, json_object *message_json, SessionMessage **out);
 static ChiakiErrorCode session_message_serialize(
     Session *session, SessionMessage *message, char **out, size_t *out_len);
 static ChiakiErrorCode session_message_free(SessionMessage *message);
@@ -534,7 +544,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->log = log;
 
     session->ws_fqdn = NULL;
-    session->ws_notification_queue = NULL;
+    session->ws_notification_queue = createNq();
     session->ws_thread_should_stop = false;
     session->client_addr_static = NULL;
     session->client_addr_local = NULL;
@@ -958,18 +968,11 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     chiaki_cond_fini(&session->state_cond);
 }
 
-void notification_queue_free(Notification* queue)
+void notification_queue_free(NotificationQueue *nq)
 {
-    Notification* previous;
-    while (queue != NULL)
+    while(nq->front != NULL)
     {
-        previous = queue->previous;
-        json_object_put(queue->json);
-        queue->json = NULL;
-        free(queue->json_buf);
-        queue->json_buf = NULL;
-        free(queue);
-        queue = previous;
+        dequeueNq(nq);
     }
 }
 
@@ -1277,13 +1280,12 @@ static void* websocket_thread_func(void *user) {
             }
             CHIAKI_LOGV(session->log, json_object_to_json_string_ext(json, JSON_C_TO_STRING_PRETTY));
 
-            Notification *notif = malloc(sizeof(Notification));
-            notif->previous = session->ws_notification_queue;
-            notif->json = json;
-            notif->json_buf = malloc(rlen);
-            memcpy(notif->json_buf, buf, rlen);
-            notif->json_buf_size = rlen;
-            notif->type = parse_notification_type(session->log, json);
+            NotificationType type = parse_notification_type(session->log, json);
+            char *json_buf = malloc(rlen);
+            memcpy(json_buf, buf, rlen);
+            size_t json_buf_size = rlen;
+            CHIAKI_LOGI(session->log, "Received notification of type %d", type);
+            Notification *notif = newNotification(type, json, json_buf, json_buf_size);
 
             // Automatically ACK OFFER session messages if we're not currently explicitly
             // waiting on offers
@@ -1299,8 +1301,9 @@ static void* websocket_thread_func(void *user) {
             if (should_ack_offers && notif->type == NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED)
             {
                 SessionMessage *msg;
-                json_object *payload = session_message_get_payload(session->log, notif->json);
-                err = session_message_parse(session->log, &session->notif_mutex, payload, &msg);
+                msg->notification = notif;
+                json_object *payload = session_message_get_payload(session->log, json);
+                err = session_message_parse(session->log, payload, &msg);
                 json_object_put(payload);
                 if (err != CHIAKI_ERR_SUCCESS)
                 {
@@ -1319,15 +1322,11 @@ static void* websocket_thread_func(void *user) {
                     http_send_session_message(session, &ack_msg);
                     free(ack_msg.conn_request);
                 }
-                chiaki_mutex_lock(&session->notif_mutex);
                 session_message_free(msg);
-                chiaki_mutex_unlock(&session->notif_mutex);
             }
-
-
             ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->notif_mutex);
             assert(mutex_err == CHIAKI_ERR_SUCCESS);
-            session->ws_notification_queue = notif;
+            enqueueNq(session->ws_notification_queue, notif);
             chiaki_cond_signal(&session->notif_cond);
             chiaki_mutex_unlock(&session->notif_mutex);
         }
@@ -2480,9 +2479,11 @@ static ChiakiErrorCode wait_for_notification(
     Notification *last_known = NULL;
     chiaki_mutex_lock(&session->notif_mutex);
     while (true) {
-        while (session->ws_notification_queue == last_known)
+        while (session->ws_notification_queue->rear == last_known)
         {
-            CHIAKI_LOGD(session->log, "wait_for_notification: Waiting for notifications...");
+            CHIAKI_LOGD(session->log, "wait_for_notification: Waiting for notifications of type %d", types);
+            if(session->ws_notification_queue->rear)
+                CHIAKI_LOGD(session->log, "last notification is of type %d", session->ws_notification_queue->rear->type);
             err = chiaki_cond_timedwait(&session->notif_cond, &session->notif_mutex, timeout_ms);
             if (err == CHIAKI_ERR_TIMEOUT)
             {
@@ -2498,9 +2499,10 @@ static ChiakiErrorCode wait_for_notification(
             assert(err == CHIAKI_ERR_SUCCESS);
         }
 
-        Notification *notif = session->ws_notification_queue;
+        Notification *notif = session->ws_notification_queue->front;
         while (notif != NULL && notif != last_known)
         {
+            dequeueNq(session->ws_notification_queue);
             if (notif->type & types)
             {
                 CHIAKI_LOGD(session->log, "wait_for_notification: Found notification of type %d", notif->type);
@@ -2509,7 +2511,7 @@ static ChiakiErrorCode wait_for_notification(
                 goto cleanup;
             }
             last_known = notif;
-            notif = notif->previous;
+            notif = session->ws_notification_queue->front;
         }
     }
 
@@ -2522,25 +2524,13 @@ static ChiakiErrorCode clear_notification(
     Session *session, Notification *notification)
 {
     bool found = false;
-    Notification *notif = session->ws_notification_queue;
-    Notification *last = NULL;
+    NotificationQueue *nq = session->ws_notification_queue;
     chiaki_mutex_lock(&session->notif_mutex);
-    while (notif != NULL)
+    while (nq->rear != NULL)
     {
-        if (notif == notification)
-        {
-            if (last != NULL)
-                last->previous = notif->previous;
-            else
-                session->ws_notification_queue = notif->previous;
-
-            notif->previous = NULL;
-            notification_queue_free(notif);
+        if(nq->front == notification)
             found = true;
-            break;
-        }
-        last = notif;
-        notif = notif->previous;
+        dequeueNq(nq);
     }
     chiaki_mutex_unlock(&session->notif_mutex);
     if (found)
@@ -2572,7 +2562,7 @@ static ChiakiErrorCode wait_for_session_message(
             return err;
         }
         json_object *payload = session_message_get_payload(session->log, notif->json);
-        err = session_message_parse(session->log, &session->notif_mutex, payload, &msg);
+        err = session_message_parse(session->log, payload, &msg);
         json_object_put(payload);
         if (err != CHIAKI_ERR_SUCCESS)
         {
@@ -2626,7 +2616,7 @@ static ChiakiErrorCode wait_for_session_message_ack(
 }
 
 static ChiakiErrorCode session_message_parse(
-    ChiakiLog *log, ChiakiMutex *notif_mutex, json_object *message_json, SessionMessage **out)
+    ChiakiLog *log, json_object *message_json, SessionMessage **out)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     SessionMessage *msg = calloc(1, sizeof(SessionMessage));
@@ -2787,9 +2777,7 @@ invalid_schema:
 cleanup:
     if (msg != NULL && err != CHIAKI_ERR_SUCCESS)
     {
-        chiaki_mutex_lock(notif_mutex);
         session_message_free(msg);
-        chiaki_mutex_unlock(notif_mutex);
         msg = NULL;
     }
     return err;
@@ -2913,8 +2901,7 @@ static ChiakiErrorCode session_message_free(SessionMessage *message)
     }
     if (message->notification != NULL)
     {
-        message->notification->previous = NULL;
-        notification_queue_free(message->notification);
+        free(message->notification);
     }
     free(message);
     return err;
@@ -2957,4 +2944,53 @@ static void print_candidate(ChiakiLog *log, Candidate *candidate)
     CHIAKI_LOGV(log, "Mapped Address: %s", candidate->addr_mapped);
     CHIAKI_LOGV(log, "Port: %u", candidate->port);
     CHIAKI_LOGV(log, "Mapped Port: %u", candidate->port_mapped);
+}
+
+static NotificationQueue *createNq()
+{
+    NotificationQueue *nq = (NotificationQueue*)malloc(sizeof(NotificationQueue));
+    nq->front = nq->rear = NULL;
+    return nq;
+}
+
+
+static void dequeueNq(NotificationQueue *nq)
+{
+    if(nq->front == NULL)
+        return;
+
+    Notification *notif = nq->front;
+
+    nq->front = nq->front->next;
+
+    if(nq->front == NULL)
+        nq->rear = NULL;
+
+    json_object_put(notif->json);
+    notif->json = NULL;
+    free(notif->json_buf);
+    notif->json_buf = NULL;
+    free(notif);
+}
+
+static void enqueueNq(NotificationQueue *nq, Notification*notif)
+{
+    if(nq->rear == NULL)
+    {
+        nq->front = nq->rear = notif;
+        return;
+    }
+    nq->rear->next = notif;
+    nq->rear = notif;
+}
+
+static Notification* newNotification(NotificationType type, json_object *json, char* json_buf, size_t json_buf_size)
+{
+    Notification *notif = (Notification *)malloc(sizeof(Notification));
+    notif->type = type;
+    notif->json = json;
+    notif->json_buf = json_buf;
+    notif->json_buf_size = json_buf_size;
+    notif->next = NULL;
+    return notif;
 }
