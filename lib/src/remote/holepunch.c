@@ -33,7 +33,6 @@
 #include <json-c/json_object.h>
 #include <json-c/json_tokener.h>
 #include <json-c/json_pointer.h>
-// TODO: Make UPnP optional
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 
@@ -55,8 +54,8 @@
 #define WEBSOCKET_MAX_FRAME_SIZE 64 * 1024
 #define SESSION_CREATION_TIMEOUT_SEC 30
 #define SESSION_START_TIMEOUT_SEC 30
-#define MSG_TYPE_REQ 6
-#define MSG_TYPE_RESP 7
+#define MSG_TYPE_REQ 100663296
+#define MSG_TYPE_RESP 117440512
 
 static const char oauth_header_fmt[] = "Authorization: Bearer %s";
 
@@ -1442,10 +1441,10 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
     upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
     err = upnp_get_gateway_info(session->log, &upnp_gw);
+    err = CHIAKI_ERR_NETWORK;
     if (err == CHIAKI_ERR_SUCCESS) {
         memcpy(candidate_local->addr, upnp_gw.lan_ip, sizeof(upnp_gw.lan_ip));
         have_addr = get_client_addr_remote_upnp(&upnp_gw, candidate_remote->addr);
-        upnp_add_udp_port_mapping(&upnp_gw, local_port, local_port, "Chiaki UDP holepunch");
     }
     else {
         get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
@@ -2102,6 +2101,7 @@ static ChiakiErrorCode check_candidates(
     tv.tv_usec = 0;
 
     chiaki_socket_t selected_sock = -1;
+    chiaki_socket_t used_sock = -1;
     Candidate *selected_candidate = NULL;
 
     while (true)
@@ -2157,11 +2157,22 @@ static ChiakiErrorCode check_candidates(
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         }
-        uint32_t msg_type = ntohl(*(uint32_t*)(response_buf));
+        uint32_t msg_type = ntohl(*((uint32_t*)(response_buf)));
         if(msg_type == MSG_TYPE_REQ)
         {
-            memcpy(followup_req, response_buf, sizeof(response_buf));
-            followup_len = response_len;
+            if(selected_candidate)
+            {
+                if(candidate_sock == selected_sock)
+                {
+                    used_sock = selected_sock;
+                    memcpy(followup_req, response_buf, sizeof(response_buf));
+                }
+                else
+                    CHIAKI_LOGI(session->log, "Received message request, ignoring....");
+            }
+            else
+                CHIAKI_LOGI(session->log, "Received message request, ignoring....");
+            continue;
         }
         else if (msg_type != MSG_TYPE_RESP)
         {
@@ -2190,7 +2201,6 @@ static ChiakiErrorCode check_candidates(
         memset(&response_addr, 0, sizeof(response_addr));
         response_addr_len = sizeof(response_addr);
         CHIAKI_LOGI(session->log, "Selected Candidate");
-        print_candidate(session->log, selected_candidate);
     }
     *out = selected_sock;
     // Close non-chosen sockets
@@ -2201,8 +2211,8 @@ static ChiakiErrorCode check_candidates(
     }
     if (session->client_sock >= 0)
         close(session->client_sock);
-    // If haven't received request yet wait for request on sock
-    if(memcmp(followup_req, zero_bytes, sizeof(zero_bytes)) == 0)
+    // If haven't received request for selected candidate yet wait for request on sock
+    if((memcmp(followup_req, zero_bytes, sizeof(followup_req)) == 0) || selected_sock != used_sock)
     {
         while (true)
         {
@@ -2224,20 +2234,27 @@ static ChiakiErrorCode check_candidates(
                 CHIAKI_LOGE(session->log, "check_candidate: Timed out waiting for selected candidate's request");
                 return CHIAKI_ERR_TIMEOUT;
             }
+            followup_len = recvfrom(selected_sock, followup_req, sizeof(followup_req), 0, &response_addr, &response_addr_len);
+            if (followup_len != sizeof(followup_req))
+            {
+                CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
+                return CHIAKI_ERR_NETWORK;
+            }
+            uint32_t msg_type = ntohl(*(uint32_t*)(followup_req));
+            if(msg_type == MSG_TYPE_RESP)
+            {
+                CHIAKI_LOGI(session->log, "Received an extra response, ignoring....");
+                continue;
+            }
+            else if(msg_type != MSG_TYPE_REQ)
+            {
+                CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, selected_candidate->addr, selected_candidate->port);
+                chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
+                err = CHIAKI_ERR_UNKNOWN;
+                goto cleanup_sockets;
+            }
+            break;
         }
-        followup_len = recvfrom(selected_sock, followup_req, sizeof(followup_req), 0, &response_addr, &response_addr_len);
-    }
-    if (followup_len != sizeof(followup_req))
-    {
-        CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
-        return CHIAKI_ERR_NETWORK;
-    }
-    uint32_t msg_type = ntohl(*(uint32_t*)(followup_req));
-    if (msg_type != MSG_TYPE_RESP)
-    {
-        CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected type %lu from %s:%d", msg_type, selected_candidate->addr, selected_candidate->port);
-        chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, followup_req, 88);
-        return CHIAKI_ERR_UNKNOWN;
     }
 
     // Send our response to request

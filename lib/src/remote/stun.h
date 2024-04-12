@@ -195,11 +195,11 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
                 uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (STUN_MAGIC_COOKIE >> 16);
                 *port = ntohs(xored_port);
                 uint32_t xored_addr = *(uint32_t*)(&binding_resp[response_pos + 8]) ^ STUN_MAGIC_COOKIE;
-                uint32_t addr = ntohl(xored_addr);
+                uint32_t addr = xored_addr;
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             } else {
                 *port = *(uint16_t*)(&binding_resp[response_pos + 6]);
-                uint32_t addr = ntohl(*(uint32_t*)(&binding_resp[response_pos + 8]));
+                uint32_t addr = *(uint32_t*)(&binding_resp[response_pos + 8]);
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             }
         } else if (family == STUN_MAPPED_ADDR_FAMILY_IPV6) {
