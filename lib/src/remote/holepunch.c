@@ -949,7 +949,17 @@ cleanup:
 
 CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 {
-    // TODO: Send delete request for session to PSN
+    // ACK the message
+    SessionMessage terminate_msg = {
+        .action = SESSION_MESSAGE_ACTION_TERMINATE,
+        .req_id = session->local_req_id,
+        .error = 0,
+        .conn_request = calloc(1, sizeof(ConnectionRequest)),
+        .notification = NULL,
+    };
+    terminate_msg.conn_request->num_candidates = 0;
+    http_send_session_message(session, &terminate_msg);
+    free(terminate_msg.conn_request);
     session->ws_thread_should_stop = true;
     chiaki_thread_join(&session->ws_thread, NULL);
     if (session->oauth_header)
@@ -2005,7 +2015,7 @@ static ChiakiErrorCode check_candidates(
     memcpy(&request_buf[0x4b], request_id, sizeof(request_id));
 
     Candidate *local_candidate = &local_candidates[0];
-    Candidate *remote_candidate = &local_candidates[1];
+    // Candidate *remote_candidate = &local_candidates[1];
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -2315,16 +2325,9 @@ static ChiakiErrorCode check_candidates(
         err = CHIAKI_ERR_NETWORK;
         goto cleanup_sockets;
     }
-    if(selected_candidate->type == CANDIDATE_TYPE_STATIC)
-    {
-        memcpy(selected_candidate->addr_mapped, remote_candidate->addr, sizeof(remote_candidate->addr));
-        selected_candidate->port_mapped = remote_candidate->port;
-    }
-    else
-    {
-        memcpy(selected_candidate->addr_mapped, local_candidate->addr, sizeof(local_candidate->addr));
-        selected_candidate->port_mapped = local_candidate->port;
-    }
+    memcpy(selected_candidate->addr_mapped, local_candidate->addr, sizeof(local_candidate->addr));
+    selected_candidate->port_mapped = local_candidate->port;
+
     *out_port = ntohs(addr_in.sin_port);
     *out_candidate = selected_candidate;
     return CHIAKI_ERR_SUCCESS;
