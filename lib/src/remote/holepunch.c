@@ -299,7 +299,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
 static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *selected_candidate);
 static ChiakiErrorCode http_create_session(Session *session);
 static ChiakiErrorCode http_start_session(Session *session);
-static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *msg);
+static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *msg, bool short_msg);
 static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_console_candidate, char *out, size_t out_len);
 static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info);
 static bool get_client_addr_remote_upnp(UPNPGatewayInfo *gw_info, char *out);
@@ -334,6 +334,8 @@ static ChiakiErrorCode wait_for_session_message_ack(
 static ChiakiErrorCode session_message_parse(
     ChiakiLog *log, json_object *message_json, SessionMessage **out);
 static ChiakiErrorCode session_message_serialize(
+    Session *session, SessionMessage *message, char **out, size_t *out_len);
+static ChiakiErrorCode short_message_serialize(
     Session *session, SessionMessage *message, char **out, size_t *out_len);
 static ChiakiErrorCode session_message_free(SessionMessage *message);
 static void print_session_request(ChiakiLog *log, ConnectionRequest *req);
@@ -842,7 +844,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     session->sid_console = console_req->sid;
 
     chiaki_mutex_lock(&session->state_mutex);
-    session->state |= SESSION_STATE_CTRL_OFFER_RECEIVED;
+    if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
+        session->state |= SESSION_STATE_CTRL_OFFER_RECEIVED;
+    else
+        session->state |= SESSION_STATE_DATA_OFFER_RECEIVED;
     chiaki_mutex_unlock(&session->state_mutex);
 
     Candidate *console_candidate_local;
@@ -861,12 +866,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         .action = SESSION_MESSAGE_ACTION_RESULT,
         .req_id = console_offer_msg->req_id,
         .error = 0,
-        .conn_request = calloc(1, sizeof(ConnectionRequest)),
+        .conn_request = NULL,
         .notification = NULL,
     };
-    ack_msg.conn_request->num_candidates = 0;
-    http_send_session_message(session, &ack_msg);
-    free(ack_msg.conn_request);
+    http_send_session_message(session, &ack_msg, true);
 
     // Send our own OFFER
     const int our_offer_req_id = session->local_req_id;
@@ -932,8 +935,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         if (msg->action == SESSION_MESSAGE_ACTION_ACCEPT)
         {
             chiaki_mutex_lock(&session->state_mutex);
-            session->state |= SESSION_STATE_CTRL_ESTABLISHED;
-            CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
+            if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
+            {
+                session->state |= SESSION_STATE_CTRL_ESTABLISHED;
+                CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
+            }
+            else
+            {
+                session->state |= SESSION_STATE_DATA_ESTABLISHED;
+                CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Data connection established.");
+            }
             chiaki_mutex_unlock(&session->state_mutex);
         }
         log_session_state(session);
@@ -954,12 +965,10 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
         .action = SESSION_MESSAGE_ACTION_TERMINATE,
         .req_id = session->local_req_id,
         .error = 0,
-        .conn_request = calloc(1, sizeof(ConnectionRequest)),
+        .conn_request = NULL,
         .notification = NULL,
     };
-    terminate_msg.conn_request->num_candidates = 0;
-    http_send_session_message(session, &terminate_msg);
-    free(terminate_msg.conn_request);
+    http_send_session_message(session, &terminate_msg, true);
     session->ws_thread_should_stop = true;
     chiaki_thread_join(&session->ws_thread, NULL);
     if (session->oauth_header)
@@ -1322,19 +1331,16 @@ static void* websocket_thread_func(void *user) {
                     CHIAKI_LOGE(session->log, "websocket_thread_func: Failed to parse session message for ACKing.");
                     continue;
                 }
-                msg->notification = notif;
                 if (msg->action == SESSION_MESSAGE_ACTION_OFFER)
                 {
                     SessionMessage ack_msg = {
                         .action = SESSION_MESSAGE_ACTION_RESULT,
                         .req_id = msg->req_id,
                         .error = 0,
-                        .conn_request = calloc(1, sizeof(ConnectionRequest)),
+                        .conn_request = NULL,
                         .notification = NULL,
                     };
-                    ack_msg.conn_request->num_candidates = 0;
-                    http_send_session_message(session, &ack_msg);
-                    free(ack_msg.conn_request);
+                    http_send_session_message(session, &ack_msg, true);
                 }
                 session_message_free(msg);
             }
@@ -1484,7 +1490,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     candidate_remote->port = local_port;
     candidate_remote->port_mapped = 0;
     print_session_request(session->log, msg.conn_request);
-    err = http_send_session_message(session, &msg);
+    err = http_send_session_message(session, &msg, false);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
@@ -1514,14 +1520,12 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
     };
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
-    memcpy(msg.conn_request->default_route_mac_addr, session->local_mac_addr, sizeof(session->local_mac_addr));
-    memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->nat_type = selected_candidate->type == CANDIDATE_TYPE_LOCAL ? 0 : 2;
     msg.conn_request->num_candidates = 1;
     msg.conn_request->candidates = calloc(1, sizeof(Candidate));
     memcpy(&msg.conn_request->candidates[0], selected_candidate, sizeof(Candidate));
 
-    ChiakiErrorCode err = http_send_session_message(session, &msg);
+    ChiakiErrorCode err = http_send_session_message(session, &msg, false);
     free(msg.conn_request->candidates);
     free(msg.conn_request);
     return err;
@@ -1719,7 +1723,7 @@ cleanup:
  * @param message The session message to send, will be addressed to the console defined in the session
  * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
 */
-static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *message)
+static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *message, bool short_msg)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
@@ -1736,7 +1740,10 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
 
     char *payload_str = NULL;
     size_t payload_len = 0;
-    session_message_serialize(session, message, &payload_str, &payload_len);
+    if(short_msg)
+        short_message_serialize(session, message, &payload_str, &payload_len);
+    else
+        session_message_serialize(session, message, &payload_str, &payload_len);
     CHIAKI_LOGI(session->log, "Payload length: %lu", payload_len);
     char msg_buf[sizeof(session_message_envelope_fmt) * 2 + payload_len];
     snprintf(
@@ -1769,7 +1776,6 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "http_send_session_message: Sending session message failed with HTTP code %ld.", http_code);
             CHIAKI_LOGD(session->log, "Request Body: %s.", msg_buf);
-            CHIAKI_LOGD(session->log, "Response Body: %s.", response_data.data);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
             CHIAKI_LOGE(session->log, "http_send_session_message: Sending session message failed with CURL error %d.", res);
@@ -2015,7 +2021,7 @@ static ChiakiErrorCode check_candidates(
     memcpy(&request_buf[0x4b], request_id, sizeof(request_id));
 
     Candidate *local_candidate = &local_candidates[0];
-    // Candidate *remote_candidate = &local_candidates[1];
+    Candidate *remote_candidate = &local_candidates[1];
 
 
     // Set up sockets for candidates and send a request over each of them
@@ -2232,6 +2238,7 @@ static ChiakiErrorCode check_candidates(
     }
     if (session->client_sock >= 0)
         close(session->client_sock);
+    size_t select_failed = 0;
     // If haven't received request for selected candidate yet wait for request on sock
     if((memcmp(followup_req, zero_bytes, sizeof(followup_req)) == 0) || selected_sock != used_sock)
     {
@@ -2247,8 +2254,16 @@ static ChiakiErrorCode check_candidates(
             int ret = select(maxfd, &fds, NULL, NULL, &tv);
             if (ret < 0)
             {
-                CHIAKI_LOGE(session->log, "check_candidate: Select failed");
-                return CHIAKI_ERR_UNKNOWN;
+                if(select_failed < 50)
+                {
+                    CHIAKI_LOGE(session->log, "check_candidate: Select failed");
+                    select_failed++;
+                    continue;
+                }
+                else
+                {
+                    return CHIAKI_ERR_NETWORK;
+                }
             } else if (ret == 0)
             {
                 // Didn't get request from candidate within timeout, terminate with error
@@ -2325,8 +2340,17 @@ static ChiakiErrorCode check_candidates(
         err = CHIAKI_ERR_NETWORK;
         goto cleanup_sockets;
     }
-    memcpy(selected_candidate->addr_mapped, local_candidate->addr, sizeof(local_candidate->addr));
-    selected_candidate->port_mapped = local_candidate->port;
+    memset(selected_candidate->addr_mapped, 0, sizeof(selected_candidate->addr_mapped));
+    if(selected_candidate->type == CANDIDATE_TYPE_LOCAL)
+    {
+        memcpy(selected_candidate->addr_mapped, local_candidate->addr, sizeof(local_candidate->addr));
+        selected_candidate->port_mapped = local_candidate->port;
+    }
+    else
+    {
+        memcpy(selected_candidate->addr_mapped, remote_candidate->addr, sizeof(remote_candidate->addr));
+        selected_candidate->port_mapped = remote_candidate->port;
+    }
 
     *out_port = ntohs(addr_in.sin_port);
     *out_candidate = selected_candidate;
@@ -2461,12 +2485,23 @@ static json_object* session_message_get_payload(ChiakiLog *log, json_object *ses
         char fixed_json[strlen(json) + 3]; // {} + \0
         memset(fixed_json, 0, sizeof(fixed_json));
         strncpy(fixed_json, json, prefix_len);
-        fixed_json[prefix_len + 1] = '{';
-        fixed_json[prefix_len + 2] = '}';
+        fixed_json[prefix_len] = '{';
+        fixed_json[prefix_len + 1] = '}';
         strncpy(fixed_json + prefix_len + 2, peeraddr_end, suffix_len);
 
         message_json = json_tokener_parse(fixed_json);
+        if(message_json == NULL)
+        {
+            CHIAKI_LOGE(log, "Couldn't parse the following fixed json: %s", fixed_json);
+            CHIAKI_LOGE(log, json_object_to_json_string_ext(payload_json, JSON_C_TO_STRING_PRETTY));
+        }
     }
+        // check if parse fails
+        if(message_json == NULL)
+        {
+            CHIAKI_LOGE(log, "Couldn't parse the following json: %s", json);
+            CHIAKI_LOGE(log, json_object_to_json_string_ext(payload_json, JSON_C_TO_STRING_PRETTY));
+        }
 
     return message_json;
 }
@@ -2668,19 +2703,28 @@ static ChiakiErrorCode session_message_parse(
     json_object *reqid_json = NULL;
     json_object_object_get_ex(message_json, "reqId", &reqid_json);
     if (reqid_json == NULL || !json_object_is_type(reqid_json, json_type_int))
+    {
+        CHIAKI_LOGE(log, "Coudln't parse reqid field from message json.");
         goto invalid_schema;
+    }
     msg->req_id = json_object_get_int(reqid_json);
 
     json_object *error_json = NULL;
     json_object_object_get_ex(message_json, "error", &error_json);
     if (error_json == NULL || !json_object_is_type(error_json, json_type_int))
+    {
+        CHIAKI_LOGE(log, "Coudln't parse error field from message json.");
         goto invalid_schema;
+    }
     msg->error = json_object_get_int(error_json);
 
     json_object *conn_request_json = NULL;
     json_object_object_get_ex(message_json, "connRequest", &conn_request_json);
     if (conn_request_json == NULL || !json_object_is_type(conn_request_json, json_type_object))
+    {
+        CHIAKI_LOGE(log, "Coudln't parse connRequest field from message json.");
         goto invalid_schema;
+    }
     if (json_object_object_length(conn_request_json) > 0)
     {
         msg->conn_request = calloc(1, sizeof(ConnectionRequest));
@@ -2688,17 +2732,26 @@ static ChiakiErrorCode session_message_parse(
         json_object *obj;
         json_object_object_get_ex(conn_request_json, "sid", &obj);
         if (obj == NULL || !json_object_is_type(obj, json_type_int))
+        {
+            CHIAKI_LOGE(log, "Coudln't parse sid field from connection request json.");
             goto invalid_schema;
+        }
         msg->conn_request->sid = json_object_get_int(obj);
 
         json_object_object_get_ex(conn_request_json, "peerSid", &obj);
         if (obj == NULL || !json_object_is_type(obj, json_type_int))
+        {
+            CHIAKI_LOGE(log, "Coudln't parse peer sid field from connection request json.");
             goto invalid_schema;
+        }
         msg->conn_request->peer_sid = json_object_get_int(obj);
 
         json_object_object_get_ex(conn_request_json, "skey", &obj);
         if (obj == NULL || !json_object_is_type(obj, json_type_string))
+        {
+            CHIAKI_LOGE(log, "Coudln't parse skey field from connection request json.");
             goto invalid_schema;
+        }
         const char *skey_str = json_object_get_string(obj);
         size_t skey_len = strlen(skey_str);
         err = chiaki_base64_decode(skey_str, strlen(skey_str), msg->conn_request->skey, &skey_len);
@@ -2715,7 +2768,10 @@ static ChiakiErrorCode session_message_parse(
 
         json_object_object_get_ex(conn_request_json, "defaultRouteMacAddr", &obj);
         if (obj == NULL || !json_object_is_type(obj, json_type_string))
+        {
+            CHIAKI_LOGE(log, "Coudln't parse defaultRouteMacAddr field from connection request json.");
             goto invalid_schema;
+        }
         const char *mac_str = json_object_get_string(obj);
         if (strlen(mac_str) == 17)
         {
@@ -2735,7 +2791,10 @@ static ChiakiErrorCode session_message_parse(
 
         json_object_object_get_ex(conn_request_json, "localHashedId", &obj);
         if (obj == NULL || !json_object_is_type(obj, json_type_string))
+        {
+            CHIAKI_LOGE(log, "Coudln't parse localHashedId field from connection request json.");
             goto invalid_schema;
+        }
         const char *local_hashed_id_str = json_object_get_string(obj);
         size_t local_hashed_id_len = sizeof(msg->conn_request->local_hashed_id);
         err = chiaki_base64_decode(
@@ -2749,7 +2808,10 @@ static ChiakiErrorCode session_message_parse(
 
         json_object_object_get_ex(conn_request_json, "candidate", &obj);
         if (obj == NULL || !json_object_is_type(obj, json_type_array))
+        {
+            CHIAKI_LOGE(log, "Coudln't parse candidate field from connection request json.");
             goto invalid_schema;
+        }
         size_t num_candidates = json_object_array_length(obj);
         msg->conn_request->num_candidates = num_candidates;
         msg->conn_request->candidates = calloc(num_candidates, sizeof(Candidate));
@@ -2761,35 +2823,53 @@ static ChiakiErrorCode session_message_parse(
             json_object *jobj = NULL;
             json_object_object_get_ex(candidate_json, "type", &jobj);
             if (jobj == NULL || !json_object_is_type(jobj, json_type_string))
+            {
+                CHIAKI_LOGE(log, "Coudln't parse type field from candidate json.");
                 goto invalid_schema;
+            }
             const char *type_str = json_object_get_string(jobj);
             if (strcmp(type_str, "LOCAL") == 0)
                 candidate.type = CANDIDATE_TYPE_LOCAL;
             else if (strcmp(type_str, "STATIC") == 0)
                 candidate.type = CANDIDATE_TYPE_STATIC;
             else
+            {
+                CHIAKI_LOGE(log, "Type field wasn't LOCAL or STATIC.");
                 goto invalid_schema;
+            }
 
             json_object_object_get_ex(candidate_json, "addr", &jobj);
             if (jobj == NULL || !json_object_is_type(jobj, json_type_string))
+            {
+                CHIAKI_LOGE(log, "Coudln't parse addr field from candidate json.");
                 goto invalid_schema;
+            }
             const char *addr_str = json_object_get_string(jobj);
             strncpy(candidate.addr, addr_str, sizeof(candidate.addr));
 
             json_object_object_get_ex(candidate_json, "mappedAddr", &jobj);
             if (jobj == NULL || !json_object_is_type(jobj, json_type_string))
+            {
+                CHIAKI_LOGE(log, "Coudln't parse mappedAddr field from candidate json.");
                 goto invalid_schema;
+            }
             const char *mapped_addr_str = json_object_get_string(jobj);
             strncpy(candidate.addr_mapped, mapped_addr_str, sizeof(candidate.addr_mapped));
 
             json_object_object_get_ex(candidate_json, "port", &jobj);
             if (jobj == NULL || !json_object_is_type(jobj, json_type_int))
+            {
+                CHIAKI_LOGE(log, "Coudln't parse port field from candidate json.");
                 goto invalid_schema;
+            }
             candidate.port = json_object_get_int(jobj);
 
             json_object_object_get_ex(candidate_json, "mappedPort", &jobj);
             if (jobj == NULL || !json_object_is_type(jobj, json_type_int))
+            {
+                CHIAKI_LOGE(log, "Coudln't parse mapped port field from candidate json.");
                 goto invalid_schema;
+            }
             candidate.port_mapped = json_object_get_int(jobj);
             memcpy(&msg->conn_request->candidates[i], &candidate, sizeof(Candidate));
         }
@@ -2858,9 +2938,15 @@ static ChiakiErrorCode session_message_serialize(
     CHIAKI_LOGI(session->log, "Number of candidates %d, Candidates Length: %lu", message->conn_request->num_candidates, candidates_len);
 
     char localhashedid_str[29] = {0};
-    chiaki_base64_encode(
-        message->conn_request->local_hashed_id, sizeof(message->conn_request->local_hashed_id),
-        localhashedid_str, sizeof(localhashedid_str));
+    uint8_t zero_bytes0[sizeof(message->conn_request->local_hashed_id)] = {0};
+    if(memcmp(message->conn_request->local_hashed_id, zero_bytes0, sizeof(zero_bytes0)) == 0)
+        localhashedid_str[0] = '\0';
+    else
+    {
+        chiaki_base64_encode(
+            message->conn_request->local_hashed_id, sizeof(message->conn_request->local_hashed_id),
+            localhashedid_str, sizeof(localhashedid_str));
+    }
     char skey_str[25] = {0};
     chiaki_base64_encode (
         message->conn_request->skey, sizeof(message->conn_request->skey), skey_str, sizeof(skey_str));
@@ -2914,6 +3000,50 @@ static ChiakiErrorCode session_message_serialize(
     free(candidate_str);
     free(candidates_json);
     free(connreq_json);
+
+    return err;
+}
+
+static ChiakiErrorCode short_message_serialize(
+    Session *session, SessionMessage *message, char **out, size_t *out_len)
+{
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+
+    // Since the official remote play app doesn't send valid JSON half the time,
+    // we can't use a proper JSON library to serialize the message. Instead, we
+    // use snprintf to build the JSON string manually.
+
+    char connreq_json[2] = {'{', '}' };
+    size_t connreq_len = sizeof(connreq_json);
+
+    char* action_str;
+    switch (message->action)
+    {
+        case SESSION_MESSAGE_ACTION_OFFER:
+            action_str = "OFFER";
+            break;
+        case SESSION_MESSAGE_ACTION_ACCEPT:
+            action_str = "ACCEPT";
+            break;
+        case SESSION_MESSAGE_ACTION_TERMINATE:
+            action_str = "TERMINATE";
+            break;
+        case SESSION_MESSAGE_ACTION_RESULT:
+            action_str = "RESULT";
+            break;
+        default:
+            action_str = "UNKNOWN";
+            break;
+    }
+    ssize_t serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
+    char *serialized_msg = calloc(1, serialized_msg_len);
+    ssize_t msg_len = snprintf(
+        serialized_msg, serialized_msg_len, session_message_fmt,
+        action_str, message->req_id, message->error, connreq_json);
+
+    CHIAKI_LOGI(session->log, "Serialized Msg %s", serialized_msg);
+    *out = serialized_msg;
+    *out_len = msg_len;
 
     return err;
 }
