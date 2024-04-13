@@ -2988,7 +2988,7 @@ static void dequeueNq(NotificationQueue *nq)
     if(nq->front == NULL)
         nq->rear = NULL;
 
-    //json_object_put(notif->json);
+    json_object_put(notif->json);
     notif->json = NULL;
     free(notif->json_buf);
     notif->json_buf = NULL;
