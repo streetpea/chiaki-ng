@@ -862,6 +862,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         .req_id = console_offer_msg->req_id,
         .error = 0,
         .conn_request = calloc(1, sizeof(ConnectionRequest)),
+        .notification = NULL,
     };
     ack_msg.conn_request->num_candidates = 0;
     http_send_session_message(session, &ack_msg);
@@ -1302,8 +1303,7 @@ static void* websocket_thread_func(void *user) {
             chiaki_mutex_unlock(&session->state_mutex);
             if (should_ack_offers && notif->type == NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED)
             {
-                SessionMessage *msg;
-                msg->notification = notif;
+                SessionMessage *msg = NULL;
                 json_object *payload = session_message_get_payload(session->log, json);
                 err = session_message_parse(session->log, payload, &msg);
                 json_object_put(payload);
@@ -1312,6 +1312,7 @@ static void* websocket_thread_func(void *user) {
                     CHIAKI_LOGE(session->log, "websocket_thread_func: Failed to parse session message for ACKing.");
                     continue;
                 }
+                msg->notification = notif;
                 if (msg->action == SESSION_MESSAGE_ACTION_OFFER)
                 {
                     SessionMessage ack_msg = {
@@ -1319,6 +1320,7 @@ static void* websocket_thread_func(void *user) {
                         .req_id = msg->req_id,
                         .error = 0,
                         .conn_request = calloc(1, sizeof(ConnectionRequest)),
+                        .notification = NULL,
                     };
                     ack_msg.conn_request->num_candidates = 0;
                     http_send_session_message(session, &ack_msg);
@@ -1421,6 +1423,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         .req_id = req_id,
         .error = 0,
         .conn_request = malloc(sizeof(ConnectionRequest)),
+        .notification = NULL,
     };
 
     msg.conn_request->sid = session->sid_local;
@@ -1497,6 +1500,7 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
         .req_id = req_id,
         .error = 0,
         .conn_request = calloc(1, sizeof(ConnectionRequest)),
+        .notification = NULL,
     };
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
@@ -2640,6 +2644,7 @@ static ChiakiErrorCode session_message_parse(
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     SessionMessage *msg = calloc(1, sizeof(SessionMessage));
+    msg->notification = NULL;
 
     json_object *action_json;
     json_object_object_get_ex(message_json, "action", &action_json);
@@ -2919,10 +2924,7 @@ static ChiakiErrorCode session_message_free(SessionMessage *message)
             free(message->conn_request->candidates);
         free(message->conn_request);
     }
-    if (message->notification != NULL)
-    {
-        free(message->notification);
-    }
+    message->notification = NULL;
     free(message);
     return err;
 }
