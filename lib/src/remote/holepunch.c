@@ -990,7 +990,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
         if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED)
         {
             session->state |= SESSION_STATE_CREATED;
-            CHIAKI_LOGD(session->log, "chiaki_holepunch_session_fini: Session deleted.");
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_fini: Session deleted.");
             finished = true;
         }
         else
@@ -1193,6 +1193,11 @@ static void random_uuidv4(char* out)
     out[36] = '\0';
 }
 
+/**
+ * Thread function to run that pings the console every 5 seconds and receives notifications over the websocket
+ *
+ * @param user Pointer to the session context
+*/
 static void* websocket_thread_func(void *user) {
     Session* session = (Session*) user;
 
@@ -2116,6 +2121,16 @@ static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr)
     return true;
 }
 
+/**
+ * Linking to a responsive PlayStation candidate from the available console candidates
+ *
+ * @param[in] session Pointer to the session context
+ * @param[in] local_candidates Pointer to the client's candidates
+ * @param[in] candidates Candidates for the console to check against
+ * @param[out] out Pointer to the socket where the connection was established with the selected candidate
+ * @param[out] out_port Pointer to the port number of the console connection
+*/
+
 static ChiakiErrorCode check_candidates(
     Session *session, Candidate* local_candidates, Candidate *candidates, size_t num_candidates, chiaki_socket_t *out,
     uint16_t *out_port, Candidate **out_candidate)
@@ -2493,6 +2508,11 @@ cleanup_sockets:
     return err;
 }
 
+/**
+ * Log the current session state
+ *
+ * @param[in] session A pointer to the session context
+*/
 
 static void log_session_state(Session *session)
 {
@@ -2539,6 +2559,14 @@ static void log_session_state(Session *session)
     CHIAKI_LOGD(session->log, "Session state: %d = %s", session->state, state_str);
 }
 
+/**
+ * Decode the customdata1 for use
+ *
+ * @param[in] customdata1 A char pointer to the customdata1 that arrived via the websocket
+ * @param[out] out The decoded customdata1 for use in the remote registration
+ * @param[out] out_len The length of the decoded customdata1
+*/
+
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len)
 {
 
@@ -2554,6 +2582,13 @@ static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out,
         return CHIAKI_ERR_UNKNOWN;
     return CHIAKI_ERR_SUCCESS;
 }
+
+/**
+ * Get the SessionMessage json from the payload field of the message that arrivved over the websocket
+ *
+ * @param[in] log Pointer to a ChiakiLog object for logging
+ * @param session_message The payload field json that is transformed into the session message json via parsing
+*/
 
 static json_object* session_message_get_payload(ChiakiLog *log, json_object *session_message)
 {
@@ -2649,6 +2684,14 @@ static SessionMessageAction get_session_message_action(json_object *payload)
         return SESSION_MESSAGE_ACTION_UNKNOWN;
 }
 
+/**
+ * Wait for notification to arrive
+ *
+ * @param[in] session Pointer to the session context
+ * @param[out] out The new Notification object that's been created from the arrived json over the websocket
+ * @param[in] types The types of notifications to look for (ORed together if multiple)
+ * @param[in] timeout_ms The amount of time to wait before timing out
+*/
 static ChiakiErrorCode wait_for_notification(
     Session *session, Notification** out,
     uint16_t types, uint64_t timeout_ms)
@@ -2722,6 +2765,14 @@ static ChiakiErrorCode clear_notification(
         return CHIAKI_ERR_UNKNOWN;
 }
 
+/**
+ * Wait for a SessionMessage to arrive
+ *
+ * @param[in] session Pointer to the session context
+ * @param[out] out The new SessionMessage object that's been created from the arrived json over the websocket
+ * @param[in] types The types of messages to look for (ORed together if multiple)
+ * @param[in] timeout_ms The amount of time to wait before timing out
+*/
 static ChiakiErrorCode wait_for_session_message(
     Session *session, SessionMessage** out,
     uint16_t types, uint64_t timeout_ms)
@@ -2765,6 +2816,14 @@ static ChiakiErrorCode wait_for_session_message(
     return CHIAKI_ERR_SUCCESS;
 }
 
+/**
+ * Wait for an ack for a SessionMessage
+ *
+ * @param[in] session Pointer to the session context
+ * @param[in] req_id The request id of the message to be acked (will also be the request id of the ack)
+ * @param[in] timeout_ms The amount of time to wait before timing out
+*/
+
 static ChiakiErrorCode wait_for_session_message_ack(
     Session *session, int req_id, uint64_t timeout_ms)
 {
@@ -2799,6 +2858,13 @@ static ChiakiErrorCode wait_for_session_message_ack(
     return err;
 }
 
+/**
+ * Parse the json object received over the websocket into a SessionMessage
+ *
+ * @param[in] log Pointer to a ChiakiLog object for logging
+ * @param[in] message_json Pointer to the the json object to transform into a SessionMessage
+ * @param[in] out Pointer to a pointer to the created SessionMessage
+*/
 static ChiakiErrorCode session_message_parse(
     ChiakiLog *log, json_object *message_json, SessionMessage **out)
 {
@@ -3013,6 +3079,14 @@ cleanup:
     return err;
 }
 
+/**
+ * Serialize a session message into a array to send over the websocket
+ *
+ * @param[in] session Pointer to the session context
+ * @param[in] message Pointer to the session message to serialize
+ * @param[out] out Pointer to the the serialized msg array
+ * @param[out] out_len Pointer to the sizse of the serialized msg array
+*/
 static ChiakiErrorCode session_message_serialize(
     Session *session, SessionMessage *message, char **out, size_t *out_len)
 {
@@ -3125,6 +3199,14 @@ static ChiakiErrorCode session_message_serialize(
     return err;
 }
 
+/**
+ * Serialize a short message used for acks
+ *
+ * @param[in] session Pointer to the session context
+ * @param[in] message Pointer to the session message to serialize
+ * @param[out] out Pointer to the the serialized msg array
+ * @param[out] out_len Pointer to the sizse of the serialized msg array
+*/
 static ChiakiErrorCode short_message_serialize(
     Session *session, SessionMessage *message, char **out, size_t *out_len)
 {
@@ -3169,6 +3251,11 @@ static ChiakiErrorCode short_message_serialize(
     return err;
 }
 
+/**
+ * Frees a session message
+ *
+ * @param message The message to free
+*/
 static ChiakiErrorCode session_message_free(SessionMessage *message)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
@@ -3182,6 +3269,13 @@ static ChiakiErrorCode session_message_free(SessionMessage *message)
     free(message);
     return err;
 }
+
+/**
+ * Prints a session request
+ *
+ * @param[in] log pointer to a Chiaki log instance
+ * @param[in] req Pointer to the ConnectionRequest that will be printed.
+*/
 
 static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
 {
@@ -3208,6 +3302,13 @@ static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
     CHIAKI_LOGV(log, "local hashed id %s", local_hashed_id);
 }
 
+/**
+ * Prints a candidate
+ *
+ * @param[in] log pointer to a Chiaki log instance
+ * @param[in] candidate Pointer to the Candidate that will be printed.
+*/
+
 static void print_candidate(ChiakiLog *log, Candidate *candidate)
 {
     if(candidate->type == CANDIDATE_TYPE_LOCAL)
@@ -3222,6 +3323,12 @@ static void print_candidate(ChiakiLog *log, Candidate *candidate)
     CHIAKI_LOGV(log, "Mapped Port: %u", candidate->port_mapped);
 }
 
+/**
+ * Create a notification queue for holding notifications for a session.
+ *
+ * @return nq Pointer to a NotificationQueue to be used for the session.
+*/
+
 static NotificationQueue *createNq()
 {
     NotificationQueue *nq = (NotificationQueue*)malloc(sizeof(NotificationQueue));
@@ -3229,6 +3336,11 @@ static NotificationQueue *createNq()
     return nq;
 }
 
+/**
+ * Delete a notification from the queue
+ *
+ * @param nq the notification queue to dequeue from
+*/
 
 static void dequeueNq(NotificationQueue *nq)
 {
@@ -3249,6 +3361,13 @@ static void dequeueNq(NotificationQueue *nq)
     free(notif);
 }
 
+/**
+ * Adds a notification to the queue.
+ *
+ * @param nq Notification queue to add to
+ * @param[in] notif Notification to add to the queue
+*/
+
 static void enqueueNq(NotificationQueue *nq, Notification*notif)
 {
     if(nq->rear == NULL)
@@ -3260,6 +3379,15 @@ static void enqueueNq(NotificationQueue *nq, Notification*notif)
     nq->rear = notif;
 }
 
+/**
+ * Creates a notification
+ *
+ * @param[in] type The type of notification
+ * @param[in] json The pointer to the json object of the notification
+ * @param[in] json_buf A pointer to the char representation of the json
+ * @param[in] json_buf_size The length of the char representation of the json
+ * @return notif Created notification
+*/
 static Notification* newNotification(NotificationType type, json_object *json, char* json_buf, size_t json_buf_size)
 {
     Notification *notif = (Notification *)malloc(sizeof(Notification));
