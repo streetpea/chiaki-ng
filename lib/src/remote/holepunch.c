@@ -35,6 +35,7 @@
 #include <json-c/json_pointer.h>
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
 
 #include <chiaki/remote/holepunch.h>
 #include <chiaki/stoppipe.h>
@@ -65,6 +66,7 @@ static const char ws_fqdn_api_url[] = "https://mobile-pushcl.np.communication.pl
 static const char session_create_url[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions";
 static const char session_command_url[] = "https://web.np.playstation.com/api/cloudAssistedNavigation/v2/users/me/commands";
 static const char session_message_url_fmt[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions/%s/sessionMessage";
+static const char delete_messsage_url_fmt[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions/%s/members/me";
 
 // JSON payloads for requests.
 // Implemented as string templates due to the broken JSON used by the official app, which we're
@@ -179,6 +181,12 @@ typedef enum session_state_t
     SESSION_STATE_DATA_ESTABLISHED = 1 << 16
 } SessionState;
 
+typedef struct upnp_gateway_info_t
+{
+    char lan_ip[16];
+    struct UPNPUrls *urls;
+    struct IGDdatas *data;
+} UPNPGatewayInfo;
 typedef struct session_t
 {
     // TODO: Clean this up, how much of this stuff do we really need?
@@ -198,6 +206,8 @@ typedef struct session_t
     uint8_t hashed_id_console[20];
     size_t local_req_id;
     uint8_t local_mac_addr[6];
+    uint16_t local_port;
+    UPNPGatewayInfo gw;
 
     uint8_t data1[16];
     uint8_t data2[16];
@@ -241,13 +251,6 @@ typedef struct http_response_data_t
     char* data;
     size_t size;
 } HttpResponseData;
-
-typedef struct upnp_gateway_info_t
-{
-    char lan_ip[16];
-    struct UPNPUrls *urls;
-    struct IGDdatas *data;
-} UPNPGatewayInfo;
 
 typedef enum candidate_type_t
 {
@@ -302,9 +305,9 @@ static ChiakiErrorCode http_start_session(Session *session);
 static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *msg, bool short_msg);
 static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_console_candidate, char *out, size_t out_len);
 static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info);
-static bool get_client_addr_remote_upnp(UPNPGatewayInfo *gw_info, char *out);
-static bool upnp_add_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external, char* ip_local);
-static bool upnp_delete_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_external);
+static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info, char *out);
+static bool upnp_add_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external);
+static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_external);
 static bool get_client_addr_remote_stun(ChiakiLog *log, char *out);
 static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
@@ -338,6 +341,7 @@ static ChiakiErrorCode session_message_serialize(
 static ChiakiErrorCode short_message_serialize(
     Session *session, SessionMessage *message, char **out, size_t *out_len);
 static ChiakiErrorCode session_message_free(SessionMessage *message);
+static ChiakiErrorCode deleteSession(Session *session);
 static void print_session_request(ChiakiLog *log, ConnectionRequest *req);
 static void print_candidate(ChiakiLog *log, Candidate *candidate);
 
@@ -560,6 +564,8 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->sock = -1;
     session->sid_console = 0;
     session->local_req_id = 1;
+    session->local_port = 0;
+    session->gw.data = NULL;
 
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&session->notif_mutex, false);
@@ -960,17 +966,52 @@ cleanup:
 
 CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 {
-    // ACK the message
-    SessionMessage terminate_msg = {
-        .action = SESSION_MESSAGE_ACTION_TERMINATE,
-        .req_id = session->local_req_id,
-        .error = 0,
-        .conn_request = NULL,
-        .notification = NULL,
-    };
-    http_send_session_message(session, &terminate_msg, true);
+
+    ChiakiErrorCode err = deleteSession(session);
+    if(err != CHIAKI_ERR_SUCCESS)
+        CHIAKI_LOGE(session->log, "Couldn't remove our session gracefully from session on PlayStation servers.");
+    bool finished = false;
+    Notification *notif = NULL;
+    int notif_query = NOTIFICATION_TYPE_MEMBER_DELETED;
+    while (!finished)
+    {
+        err = wait_for_notification(session, &notif, notif_query, SESSION_CREATION_TIMEOUT_SEC * 1000);
+        if (err == CHIAKI_ERR_TIMEOUT)
+        {
+            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Timed out waiting for session deletion notifications.");
+            break;
+        }
+        else if (err != CHIAKI_ERR_SUCCESS)
+        {
+            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Failed to wait for session deletion notifications.");
+            break;
+        }
+
+        if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED)
+        {
+            session->state |= SESSION_STATE_CREATED;
+            CHIAKI_LOGD(session->log, "chiaki_holepunch_session_fini: Session deleted.");
+            finished = true;
+        }
+        else
+        {
+            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
+            err = CHIAKI_ERR_UNKNOWN;
+            break;
+        }
+        clear_notification(session, notif);
+    }
     session->ws_thread_should_stop = true;
     chiaki_thread_join(&session->ws_thread, NULL);
+    if(session->gw.data)
+    {
+        if(upnp_delete_udp_port_mapping(session->log, &session->gw, session->local_port))
+            CHIAKI_LOGI(session->log, "Deleted UPNP local port mapping");
+        else
+            CHIAKI_LOGE(session->log, "Couldn't delete UPNP local port mapping");
+        free(session->gw.data);
+        free(session->gw.urls);
+    }
     if (session->oauth_header)
         free(session->oauth_header);
     if (session->curl_share)
@@ -1387,6 +1428,9 @@ static NotificationType parse_notification_type(
     } else if (strcmp(datatype_str, "psn:sessionManager:sys:rps:sessionMessage:created") == 0)
     {
         return NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED;
+    } else if (strcmp(datatype_str, "psn:sessionManager:sys:rps:members:deleted") == 0)
+    {
+        return NOTIFICATION_TYPE_MEMBER_DELETED;
     } else
     {
         CHIAKI_LOGW(log, "parse_notification_type: Unknown notification type \"%s\"", datatype_str);
@@ -1441,6 +1485,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         .conn_request = malloc(sizeof(ConnectionRequest)),
         .notification = NULL,
     };
+    session->local_port = local_port;
 
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
@@ -1463,10 +1508,16 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
     upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
     err = upnp_get_gateway_info(session->log, &upnp_gw);
-    err = CHIAKI_ERR_NETWORK;
     if (err == CHIAKI_ERR_SUCCESS) {
         memcpy(candidate_local->addr, upnp_gw.lan_ip, sizeof(upnp_gw.lan_ip));
-        have_addr = get_client_addr_remote_upnp(&upnp_gw, candidate_remote->addr);
+        have_addr = get_client_addr_remote_upnp(session->log, &upnp_gw, candidate_remote->addr);
+        if(upnp_add_udp_port_mapping(session->log, &upnp_gw, local_port, local_port))
+        {
+            CHIAKI_LOGI(session->log, "Added local UPNP port mapping to port %u", local_port);
+            session->gw = upnp_gw;
+        }
+        else
+            CHIAKI_LOGE(session->log, "Adding upnp port mapping failed");
     }
     else {
         get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
@@ -1502,8 +1553,6 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
 cleanup:
     free(msg.conn_request->candidates);
     free(msg.conn_request);
-    free(upnp_gw.data);
-    free(upnp_gw.urls);
 
     return err;
 }
@@ -1789,6 +1838,60 @@ cleanup:
 }
 
 /**
+ * Deletes session from PlayStation servers
+ *
+ * @param session The Session instance.
+ * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
+*/
+static ChiakiErrorCode deleteSession(Session *session)
+{
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+
+    HttpResponseData response_data = {
+        .data = malloc(0),
+        .size = 0,
+    };
+
+    char url[128] = {0};
+    snprintf(url, sizeof(url), delete_messsage_url_fmt, session->session_id);
+
+    CURL *curl = curl_easy_init();
+
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, session->oauth_header);
+    headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
+
+    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+
+    CURLcode res = curl_easy_perform(curl);
+    curl_slist_free_all(headers);
+    if (res != CURLE_OK)
+    {
+        if (res == CURLE_HTTP_RETURNED_ERROR)
+        {
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            CHIAKI_LOGE(session->log, "http_send_session_message: Sending session message failed with HTTP code %ld.", http_code);
+            err = CHIAKI_ERR_HTTP_NONOK;
+        } else {
+            CHIAKI_LOGE(session->log, "http_send_session_message: Sending session message failed with CURL error %d.", res);
+            err = CHIAKI_ERR_NETWORK;
+        }
+        goto cleanup;
+    }
+
+cleanup:
+    return err;
+
+}
+
+/**
  * Retrieves the IP address on the local network of the client.
  *
  * @param session The Session instance.
@@ -1889,11 +1992,14 @@ cleanup:
  * @param gw_info The UPNPGatewayInfo structure containing the gateway information.
  * @param[out] out Pointer to the buffer where the external IP address will be stored, needs to be at least 16 bytes long.
  */
-static bool get_client_addr_remote_upnp(UPNPGatewayInfo *gw_info, char* out)
+static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info, char* out)
 {
-    // TODO: Error checking, logging?
-    return UPNP_GetExternalIPAddress(
-        gw_info->urls->controlURL, gw_info->data->first.servicetype, out) == UPNPCOMMAND_SUCCESS;
+    int res = UPNP_GetExternalIPAddress(
+        gw_info->urls->controlURL, gw_info->data->first.servicetype, out);
+    bool success = (res == UPNPCOMMAND_SUCCESS);
+    if(!success)
+        CHIAKI_LOGE(log, "UPNP error getting external IP Address: %s", strupnperror(res));
+    return success;
 }
 
 /**
@@ -1905,7 +2011,7 @@ static bool get_client_addr_remote_upnp(UPNPGatewayInfo *gw_info, char* out)
  * @param ip_local The local IP address to map to.
  * @return true if the port mapping was successfully added, false otherwise.
 */
-static bool upnp_add_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external, char* ip_local)
+static bool upnp_add_udp_port_mapping(ChiakiLog* log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external)
 {
     char port_internal_str[6];
     snprintf(port_internal_str, sizeof(port_internal_str), "%d", port_internal);
@@ -1914,8 +2020,12 @@ static bool upnp_add_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_in
 
     int res = UPNP_AddPortMapping(
         gw_info->urls->controlURL, gw_info->data->first.servicetype,
-        port_external_str, port_internal_str, ip_local, "Chiaki", "UDP", NULL, "0");
-    return res == UPNPCOMMAND_SUCCESS;
+        port_external_str, port_internal_str, gw_info->lan_ip, "Chiaki Streaming", "UDP", NULL, "0");
+
+    bool success = (res == UPNPCOMMAND_SUCCESS);
+    if(!success)
+        CHIAKI_LOGE(log, "UPNP error adding port mapping: %s", strupnperror(res));
+    return success;
 }
 
 /**
@@ -1925,7 +2035,7 @@ static bool upnp_add_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_in
  * @param port_external The external port to delete the mapping for.
  * @return true if the port mapping was successfully deleted, false otherwise.
 */
-static bool upnp_delete_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port_external)
+static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_external)
 {
     char port_external_str[6];
     snprintf(port_external_str, sizeof(port_external_str), "%d", port_external);
@@ -1933,7 +2043,10 @@ static bool upnp_delete_udp_port_mapping(UPNPGatewayInfo *gw_info, uint16_t port
     int res = UPNP_DeletePortMapping(
         gw_info->urls->controlURL, gw_info->data->first.servicetype,
         port_external_str, "UDP", NULL);
-    return res == UPNPCOMMAND_SUCCESS;
+    bool success = (res == UPNPCOMMAND_SUCCESS);
+    if(!success)
+        CHIAKI_LOGE(log, "UPNP error deleting port mapping: %s", strupnperror(res));
+    return success;
 }
 
 /**
@@ -2313,17 +2426,29 @@ static ChiakiErrorCode check_candidates(
     *(uint16_t*)&confirm_buf[0x46] = htons(session->sid_console);
     memcpy(&confirm_buf[0x4b], &followup_req[0x4b], 5);
     uint8_t console_addr[16];
-    char *search_ptr = strchr(selected_candidate->addr, ',');
+    uint8_t local_port[2];
+    if(selected_candidate->type == CANDIDATE_TYPE_LOCAL)
+    {
+        char *search_ptr = strchr(local_candidate->addr, ',');
+        if(search_ptr)
+            inet_pton(AF_INET, local_candidate->addr, console_addr);
+        else
+            inet_pton(AF_INET6, local_candidate->addr, console_addr);
+        *(uint16_t*)&local_port = htons(local_candidate->port);
+    }
+    else
+    {
+        char *search_ptr = strchr(local_candidate->addr, ',');
+        if(search_ptr)
+            inet_pton(AF_INET, remote_candidate->addr, console_addr);
+        else
+            inet_pton(AF_INET6, remote_candidate->addr, console_addr);
+        *(uint16_t*)&local_port = htons(remote_candidate->port);
+    }
     *(uint16_t*)&confirm_buf[0x51] = htons(session->sid_local);
     *(uint16_t*)&confirm_buf[0x53] = htons(session->sid_console);
     *(uint16_t*)&confirm_buf[0x55] = htons(session->sid_local);
-    if(search_ptr)
-        inet_pton(AF_INET, selected_candidate->addr, console_addr);
-    else
-        inet_pton(AF_INET6, selected_candidate->addr, console_addr);
     xor_bytes(&confirm_buf[0x51], console_addr, 4);
-    uint8_t local_port[2];
-    *(uint16_t*)&local_port = htons(local_candidate->port);
     xor_bytes(&confirm_buf[0x55], local_port, 2);
 
     if (send(selected_sock, confirm_buf, sizeof(confirm_buf), 0) < 0)
@@ -2539,9 +2664,6 @@ static ChiakiErrorCode wait_for_notification(
     while (true) {
         while (session->ws_notification_queue->rear == last_known)
         {
-            CHIAKI_LOGD(session->log, "wait_for_notification: Waiting for notifications of type %d", types);
-            if(session->ws_notification_queue->rear)
-                CHIAKI_LOGD(session->log, "last notification is of type %d", session->ws_notification_queue->rear->type);
             err = chiaki_cond_timedwait(&session->notif_cond, &session->notif_mutex, timeout_ms);
             if (err == CHIAKI_ERR_TIMEOUT)
             {
@@ -2917,7 +3039,6 @@ static ChiakiErrorCode session_message_serialize(
             candidate_str, candidate_str_len, session_connrequest_candidate_fmt,
             candidate.type == CANDIDATE_TYPE_LOCAL ? "LOCAL" : "STATIC",
             candidate.addr, candidate.addr_mapped, candidate.port, candidate.port_mapped);
-        CHIAKI_LOGI(session->log, "Candidate %d Length: %lu", i, candidate_len);
         snprintf(candidates_json + candidates_len, candidate_len, "%s", candidate_str);
         // Take into account that char arrays are null-terminated
         if(i < (message->conn_request->num_candidates - 1))
