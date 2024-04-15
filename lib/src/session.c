@@ -677,9 +677,6 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	else
 	{
 		session_sock = *sock;
-		ChiakiErrorCode err = chiaki_socket_set_nonblock(session_sock, true);
-		if(err != CHIAKI_ERR_SUCCESS)
-			CHIAKI_LOGE(session->log, "Failed to set session socket to non-blocking: %s", chiaki_error_string(err));
 	}
 	if(CHIAKI_SOCKET_IS_INVALID(session_sock))
 	{

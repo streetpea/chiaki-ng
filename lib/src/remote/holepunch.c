@@ -2190,6 +2190,10 @@ static ChiakiErrorCode check_candidates(
         sockets[i] = sock;
         FD_SET(sock, &fds);
 
+        ChiakiErrorCode err = chiaki_socket_set_nonblock(sock, true);
+        if(err != CHIAKI_ERR_SUCCESS)
+            CHIAKI_LOGE(session->log, "Failed to set new socket to non-blocking: %s", chiaki_error_string(err));
+
         sprintf(service_remote, "%d", candidates[i].port);
 
         const int enable = 1;
@@ -2240,8 +2244,6 @@ static ChiakiErrorCode check_candidates(
 
     // Wait for responses
     uint8_t response_buf[88];
-    struct sockaddr response_addr;
-    socklen_t response_addr_len = sizeof(response_addr);
 
     chiaki_socket_t maxfd = -1;
     for (int i=0; i < num_candidates; i++)
@@ -2298,7 +2300,7 @@ static ChiakiErrorCode check_candidates(
         }
 
         CHIAKI_LOGD(session->log, "check_candidate: Receiving data from %s:%d", candidate->addr, candidate->port);
-        ssize_t response_len = recvfrom(candidate_sock, response_buf, sizeof(response_buf), 0, &response_addr, &response_addr_len);
+        ssize_t response_len = recv(candidate_sock, response_buf, sizeof(response_buf), 0);
         if (response_len < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", candidate->addr, candidate->port, strerror(errno));
@@ -2378,7 +2380,7 @@ static ChiakiErrorCode check_candidates(
             CHIAKI_LOGE(session->log, "check_candidate: Timed out waiting for selected candidate's request");
             return CHIAKI_ERR_TIMEOUT;
         }
-        followup_len = recvfrom(selected_sock, followup_req, sizeof(followup_req), 0, &response_addr, &response_addr_len);
+        followup_len = recv(selected_sock, followup_req, sizeof(followup_req), 0);
         if (followup_len != sizeof(followup_req))
         {
             CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
