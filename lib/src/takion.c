@@ -249,14 +249,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 #if defined(_WIN32)
 		const DWORD dontfragment_val = 1;
 		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const void *)&dontfragment_val, sizeof(dontfragment_val));
-#elif defined(__FreeBSD__) || defined(__SWITCH__)
+#elif defined(__FreeBSD__) || defined(__SWITCH__) || defined(__APPLE__)
 		const int dontfrag_val = 1;
 		r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const void *)&dontfrag_val, sizeof(dontfrag_val));
 #elif defined(IP_PMTUDISC_DO)
 		const int mtu_discover_val = IP_PMTUDISC_DO;
 		r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const void *)&mtu_discover_val, sizeof(mtu_discover_val));
 #else
-		// macOS and OpenBSD
+		// OpenBSD
 		CHIAKI_LOGW(takion->log, "Don't fragment is not supported on this platform, MTU values may be incorrect.");
 #define NO_DONTFRAG
 #endif
