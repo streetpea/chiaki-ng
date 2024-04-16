@@ -36,8 +36,14 @@ typedef struct rudp_t* Rudp;
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
 CHIAKI_EXPORT ChiakiErrorCode init_rudp(
-    Rudp rudp, ChiakiLog *log);
+Rudp rudp, ChiakiLog *log);
 
+/**
+ * Frees rudp message data
+ *
+ * @param message The Rudp message with the data to free
+*/
+CHIAKI_EXPORT void rudp_message_free_data(RudpMessage *message)
 
 /**
  * Terminate rudp instance
