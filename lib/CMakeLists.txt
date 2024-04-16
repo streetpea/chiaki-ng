@@ -40,7 +40,8 @@ set(HEADER_FILES
 		include/chiaki/opusencoder.h
 		include/chiaki/orientation.h
 		include/chiaki/bitstream.h
-		include/chiaki/remote/holepunch.h)
+		include/chiaki/remote/holepunch.h
+		include/chiaki/remote/rudp.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -83,7 +84,8 @@ set(SOURCE_FILES
 		src/opusencoder.c
 		src/orientation.c
 		src/bitstream.c
-		src/remote/holepunch.c)
+		src/remote/holepunch.c
+		src/remote/rudp.c)
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND HEADER_FILES include/chiaki/ffmpegdecoder.h)
