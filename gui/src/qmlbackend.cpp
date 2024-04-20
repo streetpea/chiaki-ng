@@ -162,13 +162,13 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                 });
                 connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
                     resume_session = false;
-                    emit psnConnect();
+                    createSession(session_info);
                 });
                 QString refresh_token = settings->GetPsnRefreshToken();
                 psnToken->RefreshPsnToken(refresh_token);
             }
             else
-                emit psnConnect();
+                createSession(session_info);
         }
     });
     refreshPsnToken();
@@ -268,9 +268,25 @@ bool QmlBackend::autoConnect() const
 
 void QmlBackend::psnConnector()
 {
-    QFuture<void> future = QtConcurrent::run(&QmlBackend::createSession, this, session_info);
+    QFuture<bool> future = QtConcurrent::run(&StreamSession::ConnectPsnConnection, session, session_info.duid, chiaki_target_is_ps5(session_info.target));
     watcher.setFuture(future);
-    connect(&watcher, &QFutureWatcher<void>::finished, this, &QmlBackend::psnConnectDone);
+    connect(&watcher, &QFutureWatcher<bool>::resultReadyAt, this, &QmlBackend::checkPsnConnection);
+}
+
+void QmlBackend::checkPsnConnection(int index)
+{
+    bool connected = watcher.resultAt(index);
+    emit psnConnectDone(connected);
+    if(connected)
+        psnSessionStart();
+}
+
+void QmlBackend::psnSessionStart()
+{
+    session->Start();
+    emit sessionChanged(session);
+
+    sleep_inhibit->inhibit();
 }
 
 void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
@@ -370,10 +386,15 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     chiaki_log_ctx = session->GetChiakiLog();
     chiaki_log_mutex.unlock();
 
-    session->Start();
-    emit sessionChanged(session);
+    if(connect_info.duid.isEmpty())
+    {
+        session->Start();
+        emit sessionChanged(session);
 
-    sleep_inhibit->inhibit();
+        sleep_inhibit->inhibit();
+    }
+    else
+        emit psnConnect();
 }
 
 bool QmlBackend::closeRequested()
@@ -583,13 +604,13 @@ void QmlBackend::connectToHost(int index)
                 qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
             });
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
-                emit psnConnect();
+                createSession(info);
             });
             QString refresh_token = settings->GetPsnRefreshToken();
             psnToken->RefreshPsnToken(refresh_token);
         }
         else
-            emit psnConnect();
+            createSession(info);
     }
 }
 

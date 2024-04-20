@@ -275,13 +275,13 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 		RudpMessage message;
-		chiaki_rudp_recv(regist->info.rudp, 1500, &message);
+		err = chiaki_rudp_recv(regist->info.rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed receive rudp regist init message");
 			goto fail;
 		}
-		if(message.type != INIT_RESPONSE)
+		if(message.type != ntohs(INIT_RESPONSE))
 		{
 			CHIAKI_LOGE(regist->log, "Expected Rudp regist init response and got type %d instead", message.type);
 			chiaki_rudp_print_message(regist->info.rudp, &message);
@@ -303,19 +303,19 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 		chiaki_rudp_message_pointers_free(&message);
-		chiaki_rudp_send_cookie_message(regist->info.rudp, message.data + 8, message.data_size - 8, &local_counter);
+		err = chiaki_rudp_send_cookie_message(regist->info.rudp, message.data + 8, message.data_size - 8, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed to send regist rudp cookie message");
 			goto fail;
 		}
-		chiaki_rudp_recv(regist->info.rudp, 1500, &message);
+		err = chiaki_rudp_recv(regist->info.rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed receive regist rudp cookie response");
 			goto fail;
 		}
-		if(message.type != COOKIE_RESPONSE)
+		if(message.type != ntohs(COOKIE_RESPONSE))
 		{
 			CHIAKI_LOGE(regist->log, "Expected Rudp regist Cookie Response and got type %d instead", message.type);
 			chiaki_rudp_print_message(regist->info.rudp, &message);
@@ -703,7 +703,7 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 			CHIAKI_LOGE(regist->log, "Failed to receive rudp regist finish message");
 			return err;
 		}
-		if(message.type != FINISH)
+		if(message.type != ntohs(FINISH))
 		{
 			CHIAKI_LOGE(regist->log, "Expected Rudp regist FINISH message and got type %d instead", message.type);
 			chiaki_rudp_print_message(regist->info.rudp, &message);

@@ -116,7 +116,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
 	haptics_sdeck(0),
-	ctrl_sock(-1),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	echo_resampler_buf(nullptr),
@@ -242,7 +241,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.holepunch_session = NULL;
 	if(!connect_info.duid.isEmpty())
 	{
-		err = InitiatePsnConnection(connect_info.duid, connect_info.psn_token, chiaki_connect_info.ps5);
+		err = InitiatePsnConnection(connect_info.psn_token);
 		if (err != CHIAKI_ERR_SUCCESS)
 			throw ChiakiException("Psn Connection Failed " + QString::fromLocal8Bit(chiaki_error_string(err)));
 		chiaki_connect_info.holepunch_session = holepunch_session;
@@ -252,7 +251,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
         }
         memcpy(chiaki_connect_info.psn_account_id, psn_account_id.constData(), CHIAKI_PSN_ACCOUNT_ID_SIZE);
 	}
-	chiaki_connect_info.rudp_sock = &ctrl_sock;
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
@@ -1559,7 +1557,7 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 }
 #endif
 
-ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_token, bool ps5)
+ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 {
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 	ChiakiLog *log = GetChiakiLog();
@@ -1570,8 +1568,13 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Initialized session");
+	return err;
+}
 
-	err = chiaki_holepunch_session_create(holepunch_session);
+bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
+{
+	ChiakiLog *log = GetChiakiLog();
+	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create session");
@@ -1587,7 +1590,7 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 	if(duid_bytes_len != duid_bytes_lenr)
 	{
 		CHIAKI_LOGE(log, "Couldn't convert duid string to bytes got size mismatch");
-		return CHIAKI_ERR_INVALID_DATA;
+		return false;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
 	err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
@@ -1595,19 +1598,19 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
 		chiaki_holepunch_session_fini(holepunch_session);
-		return err;
+		return false;
 	}
 	CHIAKI_LOGI(log, ">> Started session");
 
-	err = chiaki_holepunch_session_punch_hole(holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL, &ctrl_sock);
+	err = chiaki_holepunch_session_punch_hole(holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
 		chiaki_holepunch_session_fini(holepunch_session);
-		return err;
+		return false;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
-	return err;
+	return true;
 }
 
 void StreamSession::TriggerFfmpegFrameAvailable()

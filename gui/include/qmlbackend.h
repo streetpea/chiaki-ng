@@ -66,6 +66,10 @@ public:
 
     void createSession(const StreamSessionConnectInfo &connect_info);
 
+    void psnSessionStart();
+
+    void checkPsnConnection(int index);
+
     bool closeRequested();
 
     Q_INVOKABLE void deleteHost(int index);
@@ -89,7 +93,7 @@ public:
 signals:
     void sessionChanged(StreamSession *session);
     void psnConnect();
-    void psnConnectDone();
+    void psnConnectDone(bool connected);
     void controllersChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
@@ -145,5 +149,5 @@ private:
     bool resume_session = false;
     HostMAC auto_connect_mac = {};
     QMap<QString, PsnHost> psn_hosts;
-    QFutureWatcher<void> watcher;
+    QFutureWatcher<bool> watcher;
 };

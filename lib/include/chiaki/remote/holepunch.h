@@ -112,6 +112,16 @@ CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* 
 CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(ChiakiHolepunchSession session);
 
 /**
+ * This function returns the sock created for the holepunch session based on the desired sock type
+ *
+ * This function should be called after chiaki_holepunch_session_punch_hole for the given sock.
+ *
+ * @param[in] session Handle to the holepunching session
+ * @return the ChiakiHolepunchRegistInfo for the session
+*/
+CHIAKI_EXPORT chiaki_socket_t *chiaki_get_holepunch_sock(ChiakiHolepunchSession session, ChiakiHolepunchPortType type);
+
+/**
  * Generate a unique device identifier for the client.
  *
  * @param[out] out Buffer to write the identifier to, must be at least `CHIAKI_DUID_STR_SIZE` bytes
@@ -181,7 +191,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
-    ChiakiHolepunchSession session, ChiakiHolepunchPortType port_type, chiaki_socket_t *socket);
+    ChiakiHolepunchSession session, ChiakiHolepunchPortType port_type);
 
 /**
  * Finalize a holepunching session.

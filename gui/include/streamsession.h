@@ -174,7 +174,6 @@ class StreamSession : public QObject
 		ChiakiOrientationTracker sdeck_orient_tracker;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
-		chiaki_socket_t ctrl_sock;
 #endif
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
@@ -215,7 +214,7 @@ class StreamSession : public QObject
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
-		ChiakiErrorCode InitiatePsnConnection(QString duid, QString psn_token, bool ps5);
+		ChiakiErrorCode InitiatePsnConnection(QString psn_token);
 #ifdef Q_OS_MACOS
 		void SetMicAuthorization(Authorization authorization);
 #endif
@@ -258,6 +257,7 @@ class StreamSession : public QObject
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		bool GetCantDisplay()	{ return cant_display; }
+		bool ConnectPsnConnection(QString duid, bool ps5);
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
 		QList<Controller *> GetControllers()	{ return controllers.values(); }

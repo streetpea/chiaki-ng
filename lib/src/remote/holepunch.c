@@ -531,6 +531,21 @@ CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(Session *session)
     return regist_info;
 }
 
+CHIAKI_EXPORT chiaki_socket_t *chiaki_get_holepunch_sock(ChiakiHolepunchSession session, ChiakiHolepunchPortType type)
+{
+    switch(type)
+    {
+        case CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL:
+            return &session->ctrl_sock;
+        case CHIAKI_HOLEPUNCH_PORT_TYPE_DATA:
+            return &session->data_sock;
+        default:
+            CHIAKI_LOGE(session->log, "chose an invalid holepunch port type!");
+            return NULL;
+    }
+
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_generate_client_device_uid(
     char *out, size_t *out_size)
 {
@@ -825,7 +840,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
     return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* session, ChiakiHolepunchPortType port_type, chiaki_socket_t *out_sock)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* session, ChiakiHolepunchPortType port_type)
 {
     if (port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL
         && !(session->state & SESSION_STATE_CUSTOMDATA1_RECEIVED))
@@ -924,8 +939,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         goto cleanup;
     }
 
-    *out_sock = sock;
-
     err = send_accept(session, session->local_req_id, selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
@@ -954,11 +967,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
             if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
             {
                 session->state |= SESSION_STATE_CTRL_ESTABLISHED;
+                session->ctrl_sock = sock;
                 CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
             }
             else
             {
                 session->state |= SESSION_STATE_DATA_ESTABLISHED;
+                session->data_sock = sock;
                 CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Data connection established.");
             }
             chiaki_mutex_unlock(&session->state_mutex);

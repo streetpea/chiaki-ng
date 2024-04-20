@@ -146,9 +146,7 @@ int main(int argc, char **argv)
     }
     printf(">> Started session\n");
 
-    chiaki_socket_t ctrl_sock = -1;
-    chiaki_socket_t data_sock = -1;
-    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL, &ctrl_sock);
+    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to punch hole for control connection.\n");
@@ -157,7 +155,7 @@ int main(int argc, char **argv)
     }
     printf(">> Punched hole for control connection!\n");
 
-    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA, &data_sock);
+    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to punch hole for data connection.\n");

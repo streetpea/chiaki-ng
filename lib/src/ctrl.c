@@ -971,13 +971,13 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			goto error;
 		}
 		RudpMessage message;
-		chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive rudp ctrl start init message");
 			goto error;
 		}
-		if(message.type != INIT_RESPONSE)
+		if(message.type != ntohs(INIT_RESPONSE))
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp ctrl start init response and got type %d instead", message.type);
 			chiaki_rudp_print_message(session->rudp, &message);
@@ -999,19 +999,19 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			goto error;
 		}
 		chiaki_rudp_message_pointers_free(&message);
-		chiaki_rudp_send_cookie_message(session->rudp, message.data + 8, message.data_size - 8, &local_counter);
+		err = chiaki_rudp_send_cookie_message(session->rudp, message.data + 8, message.data_size - 8, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send ctrl start rudp cookie message");
 			goto error;
 		}
-		chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive ctrl start rudp cookie response");
 			goto error;
 		}
-		if(message.type != COOKIE_RESPONSE)
+		if(message.type != ntohs(COOKIE_RESPONSE))
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp ctrl start Cookie Response and got type %d instead", message.type);
 			chiaki_rudp_print_message(session->rudp, &message);
@@ -1277,14 +1277,14 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			goto error;
 		}
 		RudpMessage message;
-		chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to receive rudp ctrl request finish message");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			goto error;
 		}
-		if(message.type != FINISH)
+		if(message.type != ntohs(FINISH))
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp ctrl request FINISH message and got type %d instead", message.type);
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;

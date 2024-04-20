@@ -168,8 +168,8 @@ Item {
             root.showPSNTokenDialog(qsTr(""), true);
         }
 
-        function onPsnConnectDone() {
-            if (Chiaki.session)
+        function onPsnConnectDone(connected) {
+            if (connected)
                 root.showStreamView();
             else
                 root.showMainView();
