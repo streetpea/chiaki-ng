@@ -166,6 +166,9 @@ class Settings : public QObject
 		QString GetPsnAuthTokenExpiry() const;
 		void SetPsnAuthTokenExpiry(QString expiry_date);
 
+		QString GetPsnAccountId() const;
+		void SetPsnAccountId(QString account_id);
+
 		QString GetTimeFormat() const     { return time_format; }
 		void ClearKeyMapping();
 

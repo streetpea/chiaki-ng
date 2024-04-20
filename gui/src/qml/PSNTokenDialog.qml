@@ -9,7 +9,13 @@ import "controls" as C
 
 DialogView {
     property var psnurl
-    title: qsTr("Setup Automatic PSN Remote Connection")
+    property var expired
+    title: {
+        if(expired)
+            qsTr("Credentials Expired: Refresh PSN Remote Connection")
+        else
+            qsTr("Setup Automatic PSN Remote Connection")
+    }
     buttonText: qsTr("✓ Setup")
     buttonEnabled: url.text.trim()
     onAccepted: {

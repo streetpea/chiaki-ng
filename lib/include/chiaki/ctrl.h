@@ -51,6 +51,7 @@ typedef struct chiaki_ctrl_t
 	__attribute__((aligned(__alignof__(uint32_t))))
 #endif
 	uint8_t recv_buf[512];
+	uint8_t rudp_recv_buf[520];
 
 	size_t recv_buf_size;
 	uint64_t crypt_counter_local;
@@ -59,7 +60,7 @@ typedef struct chiaki_ctrl_t
 } ChiakiCtrl;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, struct chiaki_session_t *session);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl, chiaki_socket_t *sock);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_start(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT void chiaki_ctrl_fini(ChiakiCtrl *ctrl);

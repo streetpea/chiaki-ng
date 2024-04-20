@@ -42,6 +42,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnRefreshToken READ psnRefreshToken WRITE setPsnRefreshToken NOTIFY psnRefreshTokenChanged)
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
+    Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
 
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
@@ -131,7 +132,8 @@ public:
     QString psnAuthTokenExpiry() const;
     void setPsnAuthTokenExpiry(const QString &expiry);
 
-
+    QString psnAccountId() const;
+    void setPsnAccountId(const QString &account_id);
 
     QString logDirectory() const;
     QStringList availableDecoders() const;
@@ -179,6 +181,7 @@ signals:
     void psnAuthTokenChanged();
     void psnRefreshTokenChanged();
     void psnAuthTokenExpiryChanged();
+    void psnAccountIdChanged();
     void controllerMappingChanged();
 
 private:

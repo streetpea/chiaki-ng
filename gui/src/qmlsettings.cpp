@@ -320,8 +320,19 @@ QString QmlSettings::psnAuthTokenExpiry() const
 
 void QmlSettings::setPsnAuthTokenExpiry(const QString &expiry)
 {
-    return settings->SetPsnAuthTokenExpiry(expiry);
+    settings->SetPsnAuthTokenExpiry(expiry);
     emit psnAuthTokenExpiryChanged();
+}
+
+QString QmlSettings:: psnAccountId() const
+{
+    return settings->GetPsnAccountId();
+}
+
+void QmlSettings::setPsnAccountId(const QString &account_id)
+{
+    settings->SetPsnAccountId(account_id);
+    emit psnAccountIdChanged();
 }
 
 QString QmlSettings::logDirectory() const

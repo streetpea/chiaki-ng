@@ -14,6 +14,9 @@
 #include "audio.h"
 #include "controller.h"
 #include "stoppipe.h"
+#include "remote/holepunch.h"
+#include "remote/rudp.h"
+#include "regist.h"
 
 #include <stdint.h>
 
@@ -79,6 +82,9 @@ typedef struct chiaki_connect_info_t
 	bool video_profile_auto_downgrade; // Downgrade video_profile if server does not seem to support it.
 	bool enable_keyboard;
 	bool enable_dualsense;
+	ChiakiHolepunchSession holepunch_session;
+	chiaki_socket_t *rudp_sock;
+	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
 } ChiakiConnectInfo;
 
 
@@ -96,6 +102,7 @@ typedef enum {
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN,
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED,
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_SHUTDOWN, // like REMOTE_DISCONNECTED, but because the server shut down
+	CHIAKI_QUIT_REASON_PSN_REGIST_FAILED,
 } ChiakiQuitReason;
 
 CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason);
@@ -188,6 +195,7 @@ typedef struct chiaki_session_t
 		bool video_profile_auto_downgrade;
 		bool enable_keyboard;
 		bool enable_dualsense;
+		uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
 	} connect_info;
 
 	ChiakiTarget target;
@@ -222,10 +230,13 @@ typedef struct chiaki_session_t
 	bool ctrl_session_id_received;
 	bool ctrl_login_pin_requested;
 	bool login_pin_entered;
+	bool psn_regist_succeeded;
 	uint8_t *login_pin;
 	size_t login_pin_size;
 
 	ChiakiCtrl ctrl;
+	ChiakiHolepunchSession holepunch_session;
+	ChiakiRudp rudp;
 
 	ChiakiLog *log;
 
@@ -236,7 +247,7 @@ typedef struct chiaki_session_t
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, ChiakiConnectInfo *connect_info, ChiakiLog *log);
 CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session);
-CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session, chiaki_socket_t *ctrl_socket, chiaki_socket_t *data_socket);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);

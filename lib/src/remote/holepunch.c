@@ -522,6 +522,15 @@ CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* 
     free(devices);
 }
 
+CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(Session *session)
+{
+    ChiakiHolepunchRegistInfo regist_info;
+    memcpy(regist_info.data1, session->data1, sizeof(session->data1));
+    memcpy(regist_info.data2, session->data2, sizeof(session->data2));
+    memcpy(regist_info.custom_data1, session->custom_data1, sizeof(session->custom_data1));
+    return regist_info;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_generate_client_device_uid(
     char *out, size_t *out_size)
 {
@@ -967,7 +976,6 @@ cleanup:
 
 CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 {
-
     ChiakiErrorCode err = deleteSession(session);
     if(err != CHIAKI_ERR_SUCCESS)
         CHIAKI_LOGE(session->log, "Couldn't remove our session gracefully from session on PlayStation servers.");
@@ -2351,16 +2359,12 @@ static ChiakiErrorCode check_candidates(
         close(session->client_sock);
     size_t select_failed = 0;
 
+    tv.tv_sec = SELECT_CANDIDATE_TIMEOUT_SEC;
+    tv.tv_usec = 0;
     // Wait for followup request from responsive candidate
     while (true)
     {
-        chiaki_socket_t maxfd = -1;
-        for (int i=0; i < num_candidates; i++)
-        {
-            if (sockets[i] > maxfd)
-                maxfd = sockets[i];
-        }
-        maxfd = maxfd + 1;
+        maxfd = selected_sock + 1;
         int ret = select(maxfd, &fds, NULL, NULL, &tv);
         if (ret < 0)
         {

@@ -64,8 +64,8 @@ Item {
         stack.push(steamShortcutDialogComponent)
     }
 
-    function showPSNTokenDialog(psnurl) {
-        stack.push(psnTokenDialogComponent, {psnurl: psnurl});
+    function showPSNTokenDialog(psnurl, expired) {
+        stack.push(psnTokenDialogComponent, {psnurl: psnurl, expired: expired});
     }
 
     Component.onCompleted: {
@@ -158,6 +158,14 @@ Item {
 
         function onPsnConnect() {
             root.showPsnView();
+        }
+
+        function onPsnCredsExpired() {
+            Chiaki.settings.psnRefreshToken = ""
+            Chiaki.settings.psnAuthToken = ""
+            Chiaki.settings.psnAuthTokenExpiry = ""
+            Chiaki.settings.psnAccountId = ""
+            root.showPSNTokenDialog(qsTr(""), true);
         }
 
         function onPsnConnectDone() {

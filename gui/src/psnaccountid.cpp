@@ -42,9 +42,10 @@ void PSNAccountID::handUserIDResponse(const QString& url, const QJsonDocument& j
     QString user_id = object.value("user_id").toString();
 
     QByteArray byte_representation = to_bytes(std::stoll(user_id.toStdString()), 8);
+    settings->SetPsnAccountId(byte_representation.toBase64());
     emit AccountIDResponse(byte_representation.toBase64());
 }
 
-void PSNAccountID::handleErrorResponse(const QString& url, const QString& error) {
+void PSNAccountID::handleErrorResponse(const QString& url, const QString& error, const QNetworkReply::NetworkError& err) {
     emit AccountIDError(url, error);
 }

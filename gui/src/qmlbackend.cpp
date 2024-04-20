@@ -156,6 +156,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                 connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
                     qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
                 });
+                connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
                 connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
                     qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
                 });
@@ -448,6 +449,8 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     info.broadcast = broadcast;
     info.pin = (uint32_t)pin.toULong();
     info.console_pin = (uint32_t)cpin.toULong();
+    info.holepunch_info = nullptr;
+    info.rudp = nullptr;
     QByteArray psn_idb;
     if (target == CHIAKI_TARGET_PS4_8) {
         psn_idb = psn_id.toUtf8();
@@ -575,6 +578,7 @@ void QmlBackend::connectToHost(int index)
             connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
                 qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
             });
+            connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
                 qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
             });
@@ -908,17 +912,17 @@ void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
             cb.call({QString("[E] Invalid code from redirect url."), false, true});
         return;
     }
-    PSNToken *psnToken = new PSNToken(settings, this);
-    connect(psnToken, &PSNToken::PSNTokenError, this, [cb](const QString &error) {
+    PSNAccountID *psnId = new PSNAccountID(settings, this);
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
+    connect(psnId, &PSNAccountID::AccountIDError, [this, cb](const QString &error) {
         if (cb.isCallable())
             cb.call({error, false, true});
     });
-    connect(psnToken, &PSNToken::PSNTokenSuccess, this, [cb]() {
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, [cb]() {
         if (cb.isCallable())
             cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
     });
-    connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
-    psnToken->InitPsnToken(code);
+    psnId->GetPsnAccountId(code);
     emit psnTokenChanged();
 }
 
@@ -928,6 +932,7 @@ void QmlBackend::refreshAuth()
     connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
         qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
     });
+    connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
     connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
         qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
     });

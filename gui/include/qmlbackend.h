@@ -83,7 +83,7 @@ public:
     Q_INVOKABLE QString openPsnLink();
     Q_INVOKABLE void initPsnAuth(const QUrl &url, const QJSValue &callback);
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
-Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
+    Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
 #endif
 
 signals:
@@ -94,6 +94,7 @@ signals:
     void discoveryEnabledChanged();
     void hostsChanged();
     void psnTokenChanged();
+    void psnCredsExpired();
     void autoConnectChanged();
     void windowTypeUpdated(WindowType type);
 

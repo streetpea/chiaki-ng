@@ -82,6 +82,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->echo_suppress_level = settings->GetEchoSuppressLevel();
 #endif
 	this->psn_token = settings->GetPsnAuthToken();
+	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = duid;
 }
 
@@ -116,13 +117,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	sdeck_haptics_senderr(nullptr),
 	haptics_sdeck(0),
 	ctrl_sock(-1),
-	data_sock(-1),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	echo_resampler_buf(nullptr),
 	mic_resampler_buf(nullptr),
 #endif
-	haptics_resampler_buf(nullptr)
+	haptics_resampler_buf(nullptr),
+	holepunch_session(nullptr)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -238,12 +239,20 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	touch_tracker=QMap<int, uint8_t>();
 	mouse_touch_id=-1;
 	// If duid isn't empty connect with psn
+	chiaki_connect_info.holepunch_session = NULL;
 	if(!connect_info.duid.isEmpty())
 	{
 		err = InitiatePsnConnection(connect_info.duid, connect_info.psn_token, chiaki_connect_info.ps5);
 		if (err != CHIAKI_ERR_SUCCESS)
 			throw ChiakiException("Psn Connection Failed " + QString::fromLocal8Bit(chiaki_error_string(err)));
+		chiaki_connect_info.holepunch_session = holepunch_session;
+        QByteArray psn_account_id = QByteArray::fromBase64(connect_info.psn_account_id.toUtf8());
+        if (psn_account_id.size() != CHIAKI_PSN_ACCOUNT_ID_SIZE) {
+            throw ChiakiException((tr("Invalid Account-ID"), tr("The PSN Account-ID must be exactly %1 bytes encoded as base64.")).arg(CHIAKI_PSN_ACCOUNT_ID_SIZE));
+        }
+        memcpy(chiaki_connect_info.psn_account_id, psn_account_id.constData(), CHIAKI_PSN_ACCOUNT_ID_SIZE);
 	}
+	chiaki_connect_info.rudp_sock = &ctrl_sock;
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
@@ -458,7 +467,7 @@ void StreamSession::Start()
 {
 	if(!connect_timer.isValid())
 		connect_timer.start();
-	ChiakiErrorCode err = chiaki_session_start(&session, &ctrl_sock, &data_sock);
+	ChiakiErrorCode err = chiaki_session_start(&session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		chiaki_session_fini(&session);
@@ -1554,7 +1563,7 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 {
 	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 	ChiakiLog *log = GetChiakiLog();
-	ChiakiHolepunchSession session = chiaki_holepunch_session_init(psn_token.toUtf8().constData(), log);
+	holepunch_session = chiaki_holepunch_session_init(psn_token.toUtf8().constData(), log);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to initialize session\n");
@@ -1562,7 +1571,7 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 	}
 	CHIAKI_LOGI(log, ">> Initialized session");
 
-	err = chiaki_holepunch_session_create(session);
+	err = chiaki_holepunch_session_create(holepunch_session);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create session");
@@ -1581,34 +1590,23 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString duid, QString psn_t
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-	err = chiaki_holepunch_session_start(session, duid_bytes, console_type);
+	err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
-		chiaki_holepunch_session_fini(session);
+		chiaki_holepunch_session_fini(holepunch_session);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Started session");
 
-	err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL, &ctrl_sock);
+	err = chiaki_holepunch_session_punch_hole(holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL, &ctrl_sock);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
-		chiaki_holepunch_session_fini(session);
+		chiaki_holepunch_session_fini(holepunch_session);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
-
-	err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA, &data_sock);
-	if (err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "!! Failed to punch hole for data connection.");
-		chiaki_holepunch_session_fini(session);
-		return err;
-	}
-	CHIAKI_LOGI(log, ">> Punched hole for data connection!");
-	CHIAKI_LOGI(log, ">> Successfully punched holes for all neccessary connections!");
-	chiaki_holepunch_session_fini(session);
 	return err;
 }
 

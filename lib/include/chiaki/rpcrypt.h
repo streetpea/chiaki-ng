@@ -28,6 +28,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_aeropause(ChiakiTarget target, size
 CHIAKI_EXPORT void chiaki_rpcrypt_init_auth(ChiakiRPCrypt *rpcrypt, ChiakiTarget target, const uint8_t *nonce, const uint8_t *morning);
 CHIAKI_EXPORT void chiaki_rpcrypt_init_regist_ps4_pre10(ChiakiRPCrypt *rpcrypt, const uint8_t *ambassador, uint32_t pin);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_init_regist(ChiakiRPCrypt *rpcrypt, ChiakiTarget target, const uint8_t *ambassador, size_t key_0_off, uint32_t pin);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_init_regist_psn(ChiakiRPCrypt *rpcrypt, ChiakiTarget target, const uint8_t *ambassador, size_t key_0_off, uint8_t *custom_data1, uint8_t *data1, uint8_t *data2);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt, uint8_t *iv, uint64_t counter);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_encrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, const uint8_t *in, uint8_t *out, size_t sz);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_decrypt(ChiakiRPCrypt *rpcrypt, uint64_t counter, const uint8_t *in, uint8_t *out, size_t sz);

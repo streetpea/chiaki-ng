@@ -361,6 +361,16 @@ void Settings::SetPsnAuthTokenExpiry(QString expiry_date)
 	settings.setValue("settings/psn_auth_token_expiry", expiry_date);
 }
 
+QString Settings::GetPsnAccountId() const
+{
+	return settings.value("settings/psn_account_id").toString();
+}
+
+void Settings::SetPsnAccountId(QString account_id)
+{
+	settings.setValue("settings/psn_account_id", account_id);
+}
+
 ChiakiConnectVideoProfile Settings::GetVideoProfile()
 {
 	ChiakiConnectVideoProfile profile = {};

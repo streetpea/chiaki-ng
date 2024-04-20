@@ -44,6 +44,14 @@ extern "C" {
 /** Handle to holepunching session state */
 typedef struct session_t* ChiakiHolepunchSession;
 
+/** Info for Remote Registration */
+typedef struct holepunch_regist_info_t
+{
+    uint8_t data1[16];
+    uint8_t data2[16];
+    uint8_t custom_data1[16];
+} ChiakiHolepunchRegistInfo;
+
 /** Types of PlayStation consoles supported for Remote Play. */
 typedef enum chiaki_holepunch_console_type_t
 {
@@ -91,6 +99,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
  *                    should be freed
 */
 CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* devices);
+
+/**
+ * This function returns the data needed for regist from the ChiakiHolepunchSession
+ *
+ * This function should be called after the first chiaki_holepunch_session_punch_hole
+ * punching the control hole used for regist
+ *
+ * @param[in] session Handle to the holepunching session
+ * @return the ChiakiHolepunchRegistInfo for the session
+*/
+CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(ChiakiHolepunchSession session);
 
 /**
  * Generate a unique device identifier for the client.

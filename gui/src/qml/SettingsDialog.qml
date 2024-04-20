@@ -653,10 +653,10 @@ DialogView {
                         firstInFocusChain: true
                         text: qsTr("Login to PSN")
                         onClicked: {
-                            showPSNTokenDialog(Chiaki.openPsnLink())
+                            showPSNTokenDialog(Chiaki.openPsnLink(), false)
                         }
                         Material.roundedScale: Material.SmallScale
-                        visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry
+                        visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
                     }
 
                     C.Button {
@@ -671,9 +671,10 @@ DialogView {
                             Chiaki.settings.psnRefreshToken = ""
                             Chiaki.settings.psnAuthToken = ""
                             Chiaki.settings.psnAuthTokenExpiry = ""
+                            Chiaki.settings.psnAccountId = ""
                         }
                         Material.roundedScale: Material.SmallScale
-                        visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry
+                        visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId
                     }
                 }
             }

@@ -20,6 +20,7 @@ public:
 signals:
     void PSNTokenSuccess();
     void PSNTokenError(const QString error);
+    void UnauthorizedError();
 
 private:
     QString basicAuthHeader;
@@ -27,7 +28,7 @@ private:
 
 private slots:
     void handleAccessTokenResponse(const QString& url, const QJsonDocument& jsonDocument);
-    void handleErrorResponse(const QString& url, const QString& error);
+    void handleErrorResponse(const QString& url, const QString& error, const QNetworkReply::NetworkError& err);
 };
 
 #endif //PSNTOKEN_H

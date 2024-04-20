@@ -95,6 +95,7 @@ struct StreamSessionConnectInfo
 #endif
 	QString duid;
 	QString psn_token;
+	QString psn_account_id;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
@@ -173,7 +174,7 @@ class StreamSession : public QObject
 		ChiakiOrientationTracker sdeck_orient_tracker;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
-		chiaki_socket_t ctrl_sock, data_sock;
+		chiaki_socket_t ctrl_sock;
 #endif
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
@@ -197,6 +198,7 @@ class StreamSession : public QObject
 		size_t audio_out_sample_size;
 		bool audio_out_drain_queue;
 		unsigned int audio_buffer_size;
+		ChiakiHolepunchSession holepunch_session;
 #if CHIAKI_GUI_ENABLE_SPEEX
 		SpeexEchoState *echo_state;
 		SpeexPreprocessState *preprocess_state;
