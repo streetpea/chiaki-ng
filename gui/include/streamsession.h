@@ -183,6 +183,7 @@ class StreamSession : public QObject
 		QElapsedTimer double_tap_timer;
 		bool rumbleHaptics;
 		bool start_mic_unmuted;
+		bool session_started;
 
 		ChiakiFfmpegDecoder *ffmpeg_decoder;
 		void TriggerFfmpegFrameAvailable();

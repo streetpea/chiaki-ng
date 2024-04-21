@@ -279,6 +279,11 @@ void QmlBackend::checkPsnConnection(int index)
     emit psnConnectDone(connected);
     if(connected)
         psnSessionStart();
+    else
+    {
+        delete session;
+        session = NULL;
+    }
 }
 
 void QmlBackend::psnSessionStart()

@@ -112,6 +112,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_out(0),
 	audio_in(0),
 	haptics_output(0),
+	session_started(false),
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
@@ -384,7 +385,8 @@ StreamSession::~StreamSession()
 		SDL_CloseAudioDevice(audio_out);
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
-	chiaki_session_join(&session);
+	if(session_started)
+		chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
 	chiaki_opus_encoder_fini(&opus_encoder);
@@ -468,7 +470,7 @@ void StreamSession::Start()
 	ChiakiErrorCode err = chiaki_session_start(&session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		chiaki_session_fini(&session);
+		session_started = true;
 		throw ChiakiException("Chiaki Session Start failed");
 	}
 }
@@ -1597,7 +1599,6 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
-		chiaki_holepunch_session_fini(holepunch_session);
 		return false;
 	}
 	CHIAKI_LOGI(log, ">> Started session");
@@ -1606,7 +1607,6 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
-		chiaki_holepunch_session_fini(holepunch_session);
 		return false;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
