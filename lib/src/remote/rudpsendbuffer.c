@@ -7,6 +7,8 @@
 
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
+#include <arpa/inet.h>
 
 #define RUDP_DATA_RESEND_TIMEOUT_MS 200
 #define RUDP_DATA_RESEND_WAKEUP_TIMEOUT_MS (RUDP_DATA_RESEND_TIMEOUT_MS/2)
@@ -81,6 +83,47 @@ CHIAKI_EXPORT void chiaki_rudp_send_buffer_fini(ChiakiRudpSendBuffer *send_buffe
 	chiaki_cond_fini(&send_buffer->cond);
 	chiaki_mutex_fini(&send_buffer->mutex);
 	free(send_buffer->packets);
+}
+
+static void GetRudpPacketType(ChiakiRudpSendBuffer *send_buffer, uint16_t packet_type, char *ptype)
+{
+    RudpPacketType type = htons(packet_type);
+    switch(type)
+    {
+        case INIT_REQUEST:
+			strcpy(ptype, "Init Request");
+			break;
+        case INIT_RESPONSE:
+            strcpy(ptype, "Init Response");
+			break;
+        case COOKIE_REQUEST:
+			strcpy(ptype, "Cookie Request");
+            break;
+        case COOKIE_RESPONSE:
+            strcpy(ptype, "Cookie Response");
+			break;
+        case SESSION_MESSAGE:
+			strcpy(ptype, "Session Message");
+            break;
+        case TAKION_SWITCH_ACK:
+			strcpy(ptype, "Takion Switch Ack");
+            break;
+        case ACK:
+            strcpy(ptype, "Ack");
+			break;
+        case CTRL_MESSAGE:
+            strcpy(ptype, "Ctrl Message");
+			break;
+        case UNKNOWN:
+            strcpy(ptype, "Unknown");
+			break;
+        case FINISH:
+			strcpy(ptype, "Finish");
+            break;
+        default:
+			sprintf(ptype, "Undefined packet type %04x", type);
+			break;
+    }
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_push(ChiakiRudpSendBuffer *send_buffer, ChiakiSeqNum16 seq_num, uint8_t *buf, size_t buf_size)
@@ -245,7 +288,9 @@ static void rudp_send_buffer_resend(ChiakiRudpSendBuffer *send_buffer)
 		ChiakiRudpSendBufferPacket *packet = &send_buffer->packets[i];
 		if(now - packet->last_send_ms > RUDP_DATA_RESEND_TIMEOUT_MS)
 		{
-			CHIAKI_LOGI(send_buffer->log, "rudp Send Buffer re-sending packet with seqnum %#lx and type %lu, tries: %llu", (unsigned long)packet->seq_num, *((uint16_t *)(packet->buf + 6)),(unsigned long long)packet->tries);
+			char packet_type[28] = {0};
+			GetRudpPacketType(send_buffer, *((uint16_t *)(packet->buf + 6)), packet_type);
+			CHIAKI_LOGI(send_buffer->log, "rudp Send Buffer re-sending packet with seqnum %#lx and type %s, tries: %llu", (unsigned long)packet->seq_num, packet_type, (unsigned long long)packet->tries);
 			packet->last_send_ms = now;
 			chiaki_rudp_send_raw(send_buffer->rudp, packet->buf, packet->buf_size);
 			packet->tries++;
