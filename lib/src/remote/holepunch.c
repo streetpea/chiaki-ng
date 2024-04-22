@@ -2456,33 +2456,29 @@ static ChiakiErrorCode send_response_ps(Session *session, uint8_t *followup_req,
         Candidate *local_candidate = &local_candidates[0];
         Candidate *remote_candidate = &local_candidates[1];
 
-        if(selected_candidate->type == CANDIDATE_TYPE_LOCAL)
-        {
-            char *search_ptr = strchr(local_candidate->addr, ',');
-            if(search_ptr)
-                inet_pton(AF_INET, local_candidate->addr, console_addr);
-            else
-                inet_pton(AF_INET6, local_candidate->addr, console_addr);
-            *(uint16_t*)&local_port = htons(local_candidate->port);
-        }
-        else
-        {
-            char *search_ptr = strchr(remote_candidate->addr, '.');
-            if(search_ptr)
-                inet_pton(AF_INET, remote_candidate->addr, console_addr);
-            else
-                inet_pton(AF_INET6, remote_candidate->addr, console_addr);
-            *(uint16_t*)&local_port = htons(remote_candidate->port);
-        }
-        CHIAKI_LOGI(session->log, "LOCAL ADDR");
-        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, console_addr, 4);
+        // if(selected_candidate->type == CANDIDATE_TYPE_STATIC)
+        // {
+        //     char *search_ptr = strchr(local_candidate->addr, '.');
+        //     if(search_ptr)
+        //         inet_pton(AF_INET, local_candidate->addr, console_addr);
+        //     else
+        //         inet_pton(AF_INET6, local_candidate->addr, console_addr);
+        //     *(uint16_t*)&local_port = htons(selected_candidate->port);
+        // }
+        // else
+        // {
+        //     char *search_ptr = strchr(remote_candidate->addr, '.');
+        //     if(search_ptr)
+        //         inet_pton(AF_INET, remote_candidate->addr, console_addr);
+        //     else
+        //         inet_pton(AF_INET6, remote_candidate->addr, console_addr);
+        //     *(uint16_t*)&local_port = htons(selected_candidate->port);
+        // }
         char *search_ptr = strchr(selected_candidate->addr, '.');
         if(search_ptr)
             inet_pton(AF_INET, selected_candidate->addr, console_addr);
         else
             inet_pton(AF_INET6, selected_candidate->addr, console_addr);
-        CHIAKI_LOGI(session->log, "CONSOLE ADDR");
-        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, console_addr, 4);
         *(uint16_t*)&local_port = htons(selected_candidate->port);
         *(uint16_t*)&confirm_buf[0x50] = htons(session->sid_local);
         *(uint16_t*)&confirm_buf[0x52] = htons(session->sid_console);
