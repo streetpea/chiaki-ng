@@ -57,8 +57,8 @@
 #define SESSION_START_TIMEOUT_SEC 30
 #define SELECT_CANDIDATE_TIMEOUT_SEC 10
 #define WAIT_RESPONSE_TIMEOUT_SEC 5
-#define MSG_TYPE_REQ 100663296
-#define MSG_TYPE_RESP 117440512
+#define MSG_TYPE_REQ 0x06000000
+#define MSG_TYPE_RESP 0x07000000
 
 static const char oauth_header_fmt[] = "Authorization: Bearer %s";
 
@@ -348,11 +348,10 @@ static ChiakiErrorCode session_message_free(SessionMessage *message);
 static ChiakiErrorCode deleteSession(Session *session);
 static void print_session_request(ChiakiLog *log, ConnectionRequest *req);
 static void print_candidate(ChiakiLog *log, Candidate *candidate);
-static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki_socket_t *selected_sock,
-    Candidate *local_candidates, Candidate *selected_candidate, size_t timeout);
-
-static ChiakiErrorCode send_response_ps(Session *session, uint8_t *followup_req, chiaki_socket_t *selected_sock,
-    Candidate *local_candidates, Candidate *selected_candidate);
+static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki_socket_t *sock,
+    Candidate *candidate, size_t timeout);
+static ChiakiErrorCode send_response_ps(Session *session, uint8_t *req, chiaki_socket_t *sock,
+    Candidate *candidate);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     const char* psn_oauth2_token, ChiakiHolepunchConsoleType console_type,
@@ -988,7 +987,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
             }
             chiaki_mutex_unlock(&session->state_mutex);
         }
-        ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, local_candidates, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
+        ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
         if(!(pserr == CHIAKI_ERR_SUCCESS || pserr == CHIAKI_ERR_TIMEOUT))
         {
             CHIAKI_LOGE(session->log, "Sending extra request to ps failed");
@@ -2360,7 +2359,9 @@ static ChiakiErrorCode check_candidates(
         if (msg_type == MSG_TYPE_REQ)
         {
             CHIAKI_LOGI(session->log, "Responding to request");
-            send_response_ps(session, response_buf, &selected_sock, local_candidates, candidate);
+            err = send_response_ps(session, response_buf, &candidate_sock, candidate);
+            if(err != CHIAKI_ERR_SUCCESS)
+                goto cleanup_sockets;
             continue;
         }
         if (msg_type != MSG_TYPE_RESP)
@@ -2411,7 +2412,7 @@ static ChiakiErrorCode check_candidates(
     if (session->client_sock >= 0)
         close(session->client_sock);
 
-    err = receive_request_send_response_ps(session, out, local_candidates, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
+    err = receive_request_send_response_ps(session, out, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
     if(err != CHIAKI_ERR_SUCCESS)
         goto cleanup_sockets;
 
@@ -2442,7 +2443,16 @@ cleanup_sockets:
     return err;
 }
 
-static ChiakiErrorCode send_response_ps(Session *session, uint8_t *followup_req, chiaki_socket_t *selected_sock, Candidate *local_candidates, Candidate *selected_candidate)
+/**
+ * Sends a response buf for a given request buf from the console
+ *
+ * @param session Pointer to session instance
+ * @param[in] req Buffer with the request
+ * @param[in] sock Pointer to a socket to use to send the response
+ * @param[in] candidate Pointer to the candidate to send the response to
+ * @return CHIAKI_ERR_SUCCESS on success or an error code on failure
+ */
+static ChiakiErrorCode send_response_ps(Session *session, uint8_t *req, chiaki_socket_t *sock, Candidate *candidate)
 {
         uint8_t confirm_buf[88] = {0};
         *(uint32_t*)&confirm_buf[0] = htonl(MSG_TYPE_RESP);
@@ -2450,85 +2460,76 @@ static ChiakiErrorCode send_response_ps(Session *session, uint8_t *followup_req,
         memcpy(&confirm_buf[0x24], session->hashed_id_console, sizeof(session->hashed_id_console));
         *(uint16_t*)&confirm_buf[0x44] = htons(session->sid_local);
         *(uint16_t*)&confirm_buf[0x46] = htons(session->sid_console);
-        memcpy(&confirm_buf[0x4b], &followup_req[0x4b], 5);
+        memcpy(&confirm_buf[0x4b], &req[0x4b], 5);
         uint8_t console_addr[16];
-        uint8_t local_port[2];
-        Candidate *local_candidate = &local_candidates[0];
-        Candidate *remote_candidate = &local_candidates[1];
-
-        // if(selected_candidate->type == CANDIDATE_TYPE_STATIC)
-        // {
-        //     char *search_ptr = strchr(local_candidate->addr, '.');
-        //     if(search_ptr)
-        //         inet_pton(AF_INET, local_candidate->addr, console_addr);
-        //     else
-        //         inet_pton(AF_INET6, local_candidate->addr, console_addr);
-        //     *(uint16_t*)&local_port = htons(selected_candidate->port);
-        // }
-        // else
-        // {
-        //     char *search_ptr = strchr(remote_candidate->addr, '.');
-        //     if(search_ptr)
-        //         inet_pton(AF_INET, remote_candidate->addr, console_addr);
-        //     else
-        //         inet_pton(AF_INET6, remote_candidate->addr, console_addr);
-        //     *(uint16_t*)&local_port = htons(selected_candidate->port);
-        // }
-        char *search_ptr = strchr(selected_candidate->addr, '.');
+        uint8_t console_port[2];
+        char *search_ptr = strchr(candidate->addr, '.');
         if(search_ptr)
-            inet_pton(AF_INET, selected_candidate->addr, console_addr);
+            inet_pton(AF_INET, candidate->addr, console_addr);
         else
-            inet_pton(AF_INET6, selected_candidate->addr, console_addr);
-        *(uint16_t*)&local_port = htons(selected_candidate->port);
+            inet_pton(AF_INET6, candidate->addr, console_addr);
+        *(uint16_t*)console_port = htons(candidate->port);
         *(uint16_t*)&confirm_buf[0x50] = htons(session->sid_local);
         *(uint16_t*)&confirm_buf[0x52] = htons(session->sid_console);
         *(uint16_t*)&confirm_buf[0x54] = htons(session->sid_local);
         xor_bytes(&confirm_buf[0x50], console_addr, 4);
-        xor_bytes(&confirm_buf[0x54], local_port, 2);
+        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, console_addr, 4);
+        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, console_port, 2);
+        xor_bytes(&confirm_buf[0x54], console_port, 2);
+        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, req, sizeof(confirm_buf));
         chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, confirm_buf, sizeof(confirm_buf));
 
-        if (send(*selected_sock, confirm_buf, sizeof(confirm_buf), 0) < 0)
+        if (send(*sock, confirm_buf, sizeof(confirm_buf), 0) < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Sending confirmation failed for %s:%d with error: %s", selected_candidate->addr, selected_candidate->port, strerror(errno));
+            CHIAKI_LOGE(session->log, "check_candidate: Sending confirmation failed for %s:%d with error: %s", candidate->addr, candidate->port, strerror(errno));
             return CHIAKI_ERR_NETWORK;
         }
-        CHIAKI_LOGI(session->log, "Sent response to %s:%d", selected_candidate->addr, selected_candidate->port);
+        CHIAKI_LOGI(session->log, "Sent response to %s:%d", candidate->addr, candidate->port);
         return CHIAKI_ERR_SUCCESS;
 }
 
-static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki_socket_t *selected_sock, Candidate *local_candidates, Candidate *selected_candidate, size_t timeout)
+/**
+ * Receives a request and sends a response buf for that request
+ *
+ * @param session Pointer to session instance
+ * @param[in] sock Pointer to a socket to use to send the response
+ * @param[in] candidate Pointer to the candidate to send the response to
+ * @param[in] timeout Amount of time to wait for next request
+ * @return CHIAKI_ERR_SUCCESS on success or an error code on failure
+ */
+static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki_socket_t *sock, Candidate *candidate, size_t timeout)
 {
-    ssize_t followup_len = 0;
-    uint8_t followup_req[88] = {0};
+    ssize_t len = 0;
+    uint8_t req[88] = {0};
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     bool received = false;
     // Wait for followup request from responsive candidate
     while (true)
     {
-        err = chiaki_stop_pipe_select_single(&session->select_pipe, *selected_sock, false, timeout * 1000);
+        err = chiaki_stop_pipe_select_single(&session->select_pipe, *sock, false, timeout * 1000);
         if(err == CHIAKI_ERR_TIMEOUT && received)
             return CHIAKI_ERR_SUCCESS;
         if(err != CHIAKI_ERR_SUCCESS)
             return err;
 
-        followup_len = recv(*selected_sock, followup_req, sizeof(followup_req), 0);
-        if (followup_len != sizeof(followup_req))
+        len = recv(*sock, req, sizeof(req), 0);
+        if (len != sizeof(req))
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", followup_len, selected_candidate->addr, selected_candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", len, candidate->addr, candidate->port);
             return CHIAKI_ERR_NETWORK;
         }
-        if (followup_len < 0)
+        if (len < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", selected_candidate->addr, selected_candidate->port, strerror(errno));
+            CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: %s", candidate->addr, candidate->port, strerror(errno));
             continue;
         }
-        if (followup_len != sizeof(followup_req))
+        if (len != sizeof(req))
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected size %ld from %s:%d with error ", followup_len, selected_candidate->addr, selected_candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected size %ld from %s:%d with error ", len, candidate->addr, candidate->port);
             err = CHIAKI_ERR_NETWORK;
             return err;
         }
-        uint32_t msg_type = ntohl(*(uint32_t*)(followup_req));
+        uint32_t msg_type = ntohl(*(uint32_t*)(req));
         if(msg_type == MSG_TYPE_RESP)
         {
             CHIAKI_LOGI(session->log, "Received an extra response, ignoring....");
@@ -2536,14 +2537,16 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         }
         else if(msg_type != MSG_TYPE_REQ)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, selected_candidate->addr, selected_candidate->port);
-            chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, followup_req, 88);
+            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, candidate->addr, candidate->port);
+            chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, req, 88);
             err = CHIAKI_ERR_UNKNOWN;
             return err;
         }
         received = true;
 
-        send_response_ps(session, followup_req, selected_sock, local_candidates, selected_candidate);
+        err = send_response_ps(session, req, sock, candidate);
+        if(err != CHIAKI_ERR_SUCCESS)
+            return err;
     }
 }
 
