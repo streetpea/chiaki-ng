@@ -133,7 +133,12 @@ DialogView {
 
                     C.CheckBox {
                         text: qsTr("True haptics for SteamDeck, better quality but noisier")
-                        checked: Chiaki.settings.steamDeckHaptics
+                        checked: {
+                            if(typeof Chiaki.settings.steamDeckHaptics !== "undefined")
+                                Chiaki.settings.steamDeckHaptics
+                            else
+                                false
+                        }
                         onToggled: Chiaki.settings.steamDeckHaptics = checked
                         visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
@@ -157,7 +162,12 @@ DialogView {
 
                     C.CheckBox {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
-                        checked: Chiaki.settings.verticalDeck
+                        checked: {
+                            if(typeof Chiaki.settings.verticalDeck !== "undefined")
+                                Chiaki.settings.verticalDeck
+                            else
+                                false
+                        }
                         onToggled: Chiaki.settings.verticalDeck = checked
                         visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }

@@ -912,14 +912,20 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 
 QString QmlBackend::openPsnLink()
 {
-    size_t duid_size = 48;
+    size_t duid_size = CHIAKI_DUID_STR_SIZE;
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
     if(QDesktopServices::openUrl(url))
+    {
+        qCWarning(chiakiGui) << "Launched browser.";
         return QString();
+    }
     else
+    {
+        qCWarning(chiakiGui) << "Could not launch browser.";
         return QString(url.toEncoded());
+    }
 }
 
 void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)

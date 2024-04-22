@@ -15,19 +15,21 @@
  */
 
 // TODO: Make portable for Windows
-// TODO: Make portable for MacOS
 // TODO: Make portable for Switch
 
 #include <string.h>
 #include <time.h>
-#include <linux/if_arp.h>
-#include <linux/sockios.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <ifaddrs.h>
+#include <net/if.h>
+#if defined __linux__
+#include <linux/sockios.h>
+#elif defined _WIN32
+#endif
 
 #include <curl/curl.h>
 #include <json-c/json_object.h>
@@ -92,13 +94,13 @@ static const char session_message_envelope_fmt[] =
     "{\"channel\":\"remote_play:1\","
      "\"payload\":\"ver=1.0, type=text, body=%s\","  // 0: message body as JSON string
      "\"to\":["
-       "{\"accountId\":\"%lu\","                     // 1: PSN account ID
+       "{\"accountId\":\"%llu\","                     // 1: PSN account ID
         "\"deviceUniqueId\":\"%s\","                 // 2: device UID, lowercase hex string
         "\"platform\":\"%s\"}]}";                    // 3: PS4/PS5
 
 // NOTE: These payloads are JSON-escaped, since they're going to be embedded in a JSON string
 static const char session_start_payload_fmt[] =
-    "{\\\"accountId\\\":%lu,"             // 0: PSN account ID, integer
+    "{\\\"accountId\\\":%llu,"             // 0: PSN account ID, integer
      "\\\"roomId\\\":0,"
      "\\\"sessionId\\\":\\\"%s\\\","      // 1: session identifier (lowercase UUIDv4)
      "\\\"clientType\\\":\\\"Windows\\\","
@@ -127,7 +129,7 @@ static const char session_connrequest_candidate_fmt[] =
      "\\\"port\\\":%d,"                // 3: Port
      "\\\"mappedPort\\\":%d}";         // 4: Mapped Port
 static const char session_localpeeraddr_fmt[] =
-    "{\\\"accountId\\\":\\\"%lu\\\","   // 0: PSN account ID
+    "{\\\"accountId\\\":\\\"%llu\\\","   // 0: PSN account ID
      "\\\"platform\\\":\\\"%s\\\"}";    // 1: "PROSPERO" for PS5, "ORBIS" for PS4, "REMOTE_PLAY" for client
 
 typedef enum notification_type_t
@@ -741,7 +743,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Session already started");
         return CHIAKI_ERR_UNKNOWN;
     }
-    char duid_str[64];
+    char duid_str[65];
     bytes_to_hex(device_uid, 32, duid_str, sizeof(duid_str));
     CHIAKI_LOGD(session->log, "chiaki_holepunch_session_start: Starting session %s for device %s", session->session_id, duid_str);
     memcpy(session->console_uid, device_uid, sizeof(session->console_uid));
@@ -1941,6 +1943,8 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     struct ifaddrs *local_addrs, *current_addr;
     void *in_addr;
+    struct sockaddr_in *res4 = NULL;
+    struct sockaddr_in6 *res6 = NULL;
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof hints);
@@ -1965,12 +1969,12 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
         switch (current_addr->ifa_addr->sa_family)
         {
             case AF_INET:
-                struct sockaddr_in *res4 = (struct sockaddr_in *)current_addr->ifa_addr;
+                res4 = (struct sockaddr_in *)current_addr->ifa_addr;
                 in_addr = &res4->sin_addr;
                 break;
 
             case AF_INET6:
-                struct sockaddr_in6 *res6 = (struct sockaddr_in6 *)current_addr->ifa_addr;
+                res6 = (struct sockaddr_in6 *)current_addr->ifa_addr;
                 in_addr = &res6->sin6_addr;
                 break;
 
@@ -2111,48 +2115,48 @@ static bool get_client_addr_remote_stun(ChiakiLog *log, char *out)
  * @param mac_addr Pointer to the buffer where the MAC address will be stored, needs to be at least 6 bytes long.
  * @return True if the MAC address was successfully retrieved, false otherwise.
  */
-static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr)
-{
-    struct ifreq req;
-    struct ifconf conf;
-    char buf[1024];
+// static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr)
+// {
+//     struct ifreq req;
+//     struct ifconf conf;
+//     char buf[1024];
 
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        return false;
-    }
+//     int sock = socket(AF_INET, SOCK_DGRAM, 0);
+//     if (sock < 0) {
+//         return false;
+//     }
 
-    memset(&req, 0, sizeof(req));
-    conf.ifc_len = sizeof(buf);
-    conf.ifc_buf = buf;
-    if(ioctl(sock, SIOCGIFCONF, &conf) < 0)
-    {
-        CHIAKI_LOGE(log, "Error getting local IFConfig: %s", strerror(errno));
-        return false;
-    }
+//     memset(&req, 0, sizeof(req));
+//     conf.ifc_len = sizeof(buf);
+//     conf.ifc_buf = buf;
+//     if(ioctl(sock, SIOCGIFCONF, &conf) < 0)
+//     {
+//         CHIAKI_LOGE(log, "Error getting local IFConfig: %s", strerror(errno));
+//         return false;
+//     }
 
-    struct ifreq* it = conf.ifc_req;
-    const struct ifreq* const end = it + (conf.ifc_len / sizeof(struct ifreq));
-    bool success = false;
-    for (; it != end; it++)
-    {
-        strcpy(req.ifr_name, it->ifr_name);
-        if (ioctl(sock, SIOCGIFFLAGS, &req) == 0) {
-            if (! (req.ifr_flags & IFF_LOOPBACK)) { // don't count loopback
-                if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
-                    success = true;
-                    break;
-                }
-            }
-        }
-        else
-            CHIAKI_LOGE(log, "Error getting IFFlags for local device: %s", strerror(errno));
-    }
-    if(!success)
-        return false;
-    memcpy(mac_addr, req.ifr_hwaddr.sa_data, 6);
-    return true;
-}
+//     struct ifreq* it = conf.ifc_req;
+//     const struct ifreq* const end = it + (conf.ifc_len / sizeof(struct ifreq));
+//     bool success = false;
+//     for (; it != end; it++)
+//     {
+//         strcpy(req.ifr_name, it->ifr_name);
+//         if (ioctl(sock, SIOCGIFFLAGS, &req) == 0) {
+//             if (! (req.ifr_flags & IFF_LOOPBACK)) { // don't count loopback
+//                 if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
+//                     success = true;
+//                     break;
+//                 }
+//             }
+//         }
+//         else
+//             CHIAKI_LOGE(log, "Error getting IFFlags for local device: %s", strerror(errno));
+//     }
+//     if(!success)
+//         return false;
+//     memcpy(mac_addr, req.ifr_hwaddr.sa_data, 6);
+//     return true;
+// }
 
 /**
  * Linking to a responsive PlayStation candidate from the available console candidates
@@ -3315,7 +3319,7 @@ static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
     ChiakiErrorCode err = chiaki_base64_encode(req->skey, sizeof(req->skey), skey, sizeof(skey));
     if(err != CHIAKI_ERR_SUCCESS)
     {
-        char hex[32];
+        char hex[33];
         bytes_to_hex(req->skey, sizeof(req->skey), hex, sizeof(hex));
         CHIAKI_LOGE(log, "Error with base64 encoding of string %s", hex);
     }

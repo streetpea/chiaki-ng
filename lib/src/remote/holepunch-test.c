@@ -1,7 +1,5 @@
 #include <string.h>
 #include <time.h>
-#include <linux/if_arp.h>
-#include <linux/sockios.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
