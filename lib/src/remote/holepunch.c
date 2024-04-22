@@ -1566,12 +1566,6 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     else {
         get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
     }
-    if(!get_mac_addr(session->log, msg.conn_request->default_route_mac_addr))
-    {
-        CHIAKI_LOGE(session->log, "Couldn't get local mac address!");
-    }
-    else
-        memcpy(session->local_mac_addr, msg.conn_request->default_route_mac_addr, sizeof(session->local_mac_addr));
     if (!have_addr) {
         have_addr = get_client_addr_remote_stun(session->log, candidate_remote->addr);
     }
@@ -2380,6 +2374,8 @@ static ChiakiErrorCode check_candidates(
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
+        CHIAKI_LOGI(session->log, "Received the following response:");
+        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, response_buf, sizeof(response_buf));
         responses_received[i]++;
         responses = responses_received[i];
         if(responses > 2)
@@ -2399,7 +2395,6 @@ static ChiakiErrorCode check_candidates(
                 freeaddrinfo(addr_remote);
                     continue;
             }
-            CHIAKI_LOGI(session->log, "Sending request %d", responses);
         }
     }
     *out = selected_sock;
@@ -2473,10 +2468,10 @@ static ChiakiErrorCode send_response_ps(Session *session, uint8_t *req, chiaki_s
         *(uint16_t*)&confirm_buf[0x52] = htons(session->sid_console);
         *(uint16_t*)&confirm_buf[0x54] = htons(session->sid_local);
         xor_bytes(&confirm_buf[0x50], console_addr, 4);
-        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, console_addr, 4);
-        chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, console_port, 2);
         xor_bytes(&confirm_buf[0x54], console_port, 2);
+        CHIAKI_LOGI(session->log, "Console's Request");
         chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, req, sizeof(confirm_buf));
+        CHIAKI_LOGI(session->log, "Our Response");
         chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, confirm_buf, sizeof(confirm_buf));
 
         if (send(*sock, confirm_buf, sizeof(confirm_buf), 0) < 0)
@@ -3189,14 +3184,7 @@ static ChiakiErrorCode session_message_serialize(
     size_t connreq_json_len = sizeof(session_connrequest_fmt) * 2 + localpeeraddr_len + candidates_len;
     char *connreq_json = calloc(
         1, connreq_json_len);
-    char mac_addr[18] = {0};
-    uint8_t zero_bytes[6] = {0};
-    uint8_t *mac = message->conn_request->default_route_mac_addr;
-    if(!(strcmp((const char*)(mac), (const char*)(zero_bytes)) == 0))
-    {
-        snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    }
+    char mac_addr[1] = { '\0' };
     ssize_t connreq_len = snprintf(
         connreq_json, connreq_json_len, session_connrequest_fmt,
         message->conn_request->sid, message->conn_request->peer_sid,
