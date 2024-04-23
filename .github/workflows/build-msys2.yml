@@ -33,9 +33,11 @@ jobs:
             ffmpeg:p
             fftw:p
             hidapi:p
+            json-c:p
             lcms2:p
             libdovi:p
             meson:p
+            miniupnpc:p
             nasm:p
             ninja:p
             openssl:p

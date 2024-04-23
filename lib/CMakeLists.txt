@@ -122,7 +122,7 @@ add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 
 if(WIN32)
-	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt)
+	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt iphlpapi)
 endif()
 
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
