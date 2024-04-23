@@ -55,6 +55,13 @@ static QString shader_cache_path()
     return path;
 }
 
+
+static const char *render_params_path()
+{
+    static QString path = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/Chiaki/pl_render_params.conf";
+    return qPrintable(path);
+}
+
 class RenderControl : public QQuickRenderControl
 {
 public:
@@ -134,6 +141,7 @@ QmlMainWindow::~QmlMainWindow()
     pl_renderer_destroy(&placebo_renderer);
     pl_vulkan_destroy(&placebo_vulkan);
     pl_vk_inst_destroy(&placebo_vk_inst);
+    pl_options_free(&renderparams_opts);
     pl_log_destroy(&placebo_log);
 }
 
@@ -510,12 +518,30 @@ void QmlMainWindow::init(Settings *settings)
         dropped_frames_current = 0;
     });
 
+    this->renderparams_opts = pl_options_alloc(this->placebo_log);
+    pl_options_reset(this->renderparams_opts, &pl_render_high_quality_params);
+
+    this->renderparams_watcher = new QFileSystemWatcher(this);
+    this->renderparams_watcher->addPath(render_params_path());
+    this->renderparams_changed = true;
+    connect(
+        this->renderparams_watcher,
+        &QFileSystemWatcher::fileChanged, this,
+        [this](const QString &path) {
+            this->renderparams_changed = true;
+            this->renderparams_watcher->addPath(render_params_path());
+        });
+
+
     switch (settings->GetPlaceboPreset()) {
     case PlaceboPreset::Fast:
         setVideoPreset(VideoPreset::Fast);
         break;
     case PlaceboPreset::Default:
         setVideoPreset(VideoPreset::Default);
+        break;
+    case PlaceboPreset::Custom:
+        setVideoPreset(VideoPreset::Custom);
         break;
     case PlaceboPreset::HighQuality:
     default:
@@ -782,6 +808,22 @@ void QmlMainWindow::render()
         break;
     case VideoPreset::HighQuality:
         render_params = &pl_render_high_quality_params;
+        break;
+    case VideoPreset::Custom:
+        if (renderparams_changed) {
+            renderparams_changed = false;
+            QFile paramsFile(render_params_path());
+            bool loaded = false;
+            if (paramsFile.open(QIODevice::ReadOnly)) {
+                QByteArray paramsData = paramsFile.readAll();
+                if (!pl_options_load(this->renderparams_opts, paramsData.constData())) {
+                    qCCritical(chiakiGui) << "Failed to load custom render params!";
+                } else {
+                    qCInfo(chiakiGui) << "Updated custom render parameters.";
+                }
+            }
+        }
+        render_params = &(this->renderparams_opts->params);
         break;
     }
 

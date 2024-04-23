@@ -6,6 +6,7 @@
 #include <QWindow>
 #include <QQuickWindow>
 #include <QLoggingCategory>
+#include <QFileSystemWatcher>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -55,7 +56,8 @@ public:
     enum class VideoPreset {
         Fast,
         Default,
-        HighQuality
+        HighQuality,
+        Custom
     };
     Q_ENUM(VideoPreset);
 
@@ -154,6 +156,9 @@ private:
     bool quick_frame = false;
     bool quick_need_sync = false;
     std::atomic<bool> quick_need_render = {false};
+    QFileSystemWatcher *renderparams_watcher = {};
+    pl_options renderparams_opts = {};
+    bool renderparams_changed = false;
 
     struct {
         PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;

@@ -403,7 +403,8 @@ void Settings::SetDecoder(Decoder decoder)
 static const QMap<PlaceboPreset, QString> placebo_preset_values = {
 	{ PlaceboPreset::Fast, "fast" },
 	{ PlaceboPreset::Default, "default" },
-	{ PlaceboPreset::HighQuality, "high_quality" }
+	{ PlaceboPreset::HighQuality, "high_quality" },
+	{ PlaceboPreset::Custom, "custom" }
 };
 
 PlaceboPreset Settings::GetPlaceboPreset() const
