@@ -49,6 +49,7 @@
 #include <chiaki/base64.h>
 #include <chiaki/random.h>
 #include <chiaki/sock.h>
+#include <chiaki/time.h>
 
 #include "../utils.h"
 #include "stun.h"
@@ -1305,7 +1306,6 @@ static void* websocket_thread_func(void *user) {
 
     // Need to send a ping every 5secs
     uint32_t timeout = WEBSOCKET_PING_INTERVAL_SEC * 1000;
-    struct timespec ts;
     uint64_t now = 0;
     uint64_t last_ping_sent = 0;
 
@@ -1318,8 +1318,7 @@ static void* websocket_thread_func(void *user) {
     bool expecting_pong = false;
     while (!session->ws_thread_should_stop)
     {
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        now = ts.tv_sec * SECOND_NS + ts.tv_nsec;
+        now = chiaki_time_now_monotonic_us();
 
         if (expecting_pong && now - last_ping_sent > 5LL * SECOND_NS)
         {
@@ -2800,9 +2799,7 @@ static ChiakiErrorCode wait_for_notification(
     Session *session, Notification** out,
     uint16_t types, uint64_t timeout_ms)
 {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    uint64_t waiting_since = ts.tv_sec * SECOND_NS + ts.tv_nsec;
+    uint64_t waiting_since = chiaki_time_now_monotonic_us();
     uint64_t now = waiting_since;
     Notification *last_known = NULL;
 
@@ -2814,8 +2811,7 @@ static ChiakiErrorCode wait_for_notification(
             err = chiaki_cond_timedwait(&session->notif_cond, &session->notif_mutex, timeout_ms);
             if (err == CHIAKI_ERR_TIMEOUT)
             {
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                now = ts.tv_sec * SECOND_NS + ts.tv_nsec;
+                now = chiaki_time_now_monotonic_us();
                 if ((now - waiting_since) > (timeout_ms * MILLISECONDS_NS))
                 {
                     CHIAKI_LOGE(session->log, "wait_for_notification: Timed out waiting for session messages");

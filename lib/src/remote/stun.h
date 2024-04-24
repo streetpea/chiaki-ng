@@ -134,7 +134,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
 
     //uint8_t* transaction_id = &binding_req[8];
 
-    ssize_t sent = sendto(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
+    CHIAKI_SSIZET_TYPE sent = sendto(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
     if (sent != sizeof(binding_req)) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to send STUN request, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         CHIAKI_SOCKET_CLOSE(sock);
@@ -155,7 +155,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     }
 
     uint8_t binding_resp[256];
-    ssize_t received = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
+    CHIAKI_SSIZET_TYPE received = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
     CHIAKI_SOCKET_CLOSE(sock);
     if (received < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to receive STUN response, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
