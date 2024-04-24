@@ -134,7 +134,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
 
     //uint8_t* transaction_id = &binding_req[8];
 
-    ssize_t sent = sendto(sock, SOCKET_BUF_TYPE binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
+    ssize_t sent = sendto(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
     if (sent != sizeof(binding_req)) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to send STUN request, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         CHIAKI_SOCKET_CLOSE(sock);
@@ -142,22 +142,20 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     }
 
 #ifdef _WIN32
-    char timeout[20] = {0};
-    sprintf(timeout, "%d", STUN_REPLY_TIMEOUT_SEC * 1000);
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, timeout, sizeof(timeout)) < 0) {
+    int timeout = STUN_REPLY_TIMEOUT_SEC * 1000;
 #else
     struct timeval timeout;
     timeout.tv_sec = STUN_REPLY_TIMEOUT_SEC;
     timeout.tv_usec = 0;
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
 #endif
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to set socket timeout, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         CHIAKI_SOCKET_CLOSE(sock);
         return false;
     }
 
     uint8_t binding_resp[256];
-    ssize_t received = recvfrom(sock, SOCKET_BUF_TYPE binding_resp, sizeof(binding_resp), 0, NULL, NULL);
+    ssize_t received = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
     CHIAKI_SOCKET_CLOSE(sock);
     if (received < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to receive STUN response, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);

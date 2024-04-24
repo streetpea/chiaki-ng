@@ -492,7 +492,7 @@ static void *ctrl_thread_func(void *user)
 		}
 		else
 		{
-			received = recv(ctrl->sock, ctrl->recv_buf + ctrl->recv_buf_size, sizeof(ctrl->recv_buf) - ctrl->recv_buf_size, 0);
+			received = recv(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)ctrl->recv_buf + ctrl->recv_buf_size, sizeof(ctrl->recv_buf) - ctrl->recv_buf_size, 0);
 			if(received <= 0)
 			{
 				if(received < 0)
@@ -565,7 +565,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 	}
 	else
 	{
-		int sent = send(ctrl->sock, header, sizeof(header), 0);
+		int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)header, sizeof(header), 0);
 		if(sent < 0)
 		{
 			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Header");
@@ -574,7 +574,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 
 		if(enc)
 		{
-			sent = send(ctrl->sock, enc, payload_size, 0);
+			sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)enc, payload_size, 0);
 			free(enc);
 			if(sent < 0)
 			{
@@ -960,11 +960,12 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	ChiakiSession *session = ctrl->session;
 	uint16_t remote_counter = 0;
 	uint16_t local_counter = 0;
+	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
 	if(session->rudp)
 	{
 		CHIAKI_LOGI(session->log, "Starting RUDP ctrl start session for %s", session->connect_info.ps5 ? "PS5" : "PS4");
-		ChiakiErrorCode err = chiaki_rudp_send_init_message(session->rudp, &local_counter);
+		err = chiaki_rudp_send_init_message(session->rudp, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send rudp ctrl start init message");
@@ -1064,7 +1065,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			return CHIAKI_ERR_NETWORK;
 		}
 
-		ChiakiErrorCode err = chiaki_socket_set_nonblock(sock, true);
+		err = chiaki_socket_set_nonblock(sock, true);
 		if(err != CHIAKI_ERR_SUCCESS)
 			CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
 
@@ -1096,7 +1097,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	}
 
 	uint8_t auth_enc[CHIAKI_RPCRYPT_KEY_SIZE];
-	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
+	err = chiaki_rpcrypt_encrypt(&session->rpcrypt, ctrl->crypt_counter_local++, (const uint8_t *)session->connect_info.regist_key, auth_enc, CHIAKI_RPCRYPT_KEY_SIZE);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
 	char auth_b64[CHIAKI_RPCRYPT_KEY_SIZE*2];
@@ -1227,7 +1228,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	}
 	else
 	{
-		int sent = send(ctrl->sock, buf, (size_t)request_len, 0);
+		int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)buf, (size_t)request_len, 0);
 		if(sent < 0)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send ctrl request");

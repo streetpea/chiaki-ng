@@ -13,8 +13,7 @@
  *
  * The hole punching process itself i
  */
-
-// TODO: Make portable for Windows
+ 
 // TODO: Make portable for Switch
 
 #include <string.h>
@@ -1305,7 +1304,7 @@ static void* websocket_thread_func(void *user) {
     FD_SET(sockfd, &fds);
 
     // Need to send a ping every 5secs
-    struct timeval timeout = { .tv_sec = WEBSOCKET_PING_INTERVAL_SEC, .tv_usec = 0 };
+    uint32_t timeout = WEBSOCKET_PING_INTERVAL_SEC * 1000;
     struct timespec ts;
     uint64_t now = 0;
     uint64_t last_ping_sent = 0;
@@ -1347,7 +1346,8 @@ static void* websocket_thread_func(void *user) {
         {
             if (res == CURLE_AGAIN)
             {
-                if (select(sockfd + 1, &fds, NULL, NULL, &timeout) == -1)
+                ChiakiErrorCode err = chiaki_stop_pipe_select_single(&session->select_pipe, sockfd, false, timeout);
+                if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_TIMEOUT)
                 {
                     CHIAKI_LOGE(session->log, "websocket_thread_func: Select failed.");
                     goto cleanup_json;
@@ -2328,7 +2328,7 @@ static ChiakiErrorCode check_candidates(
                 continue;
         }
 
-        if (send(sock, SOCKET_BUF_TYPE request_buf[0], sizeof(request_buf[0]), 0) < 0)
+        if (send(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0) < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_NETWORK;
@@ -2363,7 +2363,11 @@ static ChiakiErrorCode check_candidates(
     while (!selected_candidate)
     {
         int ret = select(maxfd, &fds, NULL, NULL, &tv);
-        if (ret < 0)
+#ifdef _WIN32
+	    if (ret < 0 && WSAGetLastError() != WSAEINTR)
+#else
+	    if (ret < 0 && errno != EINTR)
+#endif
         {
             CHIAKI_LOGE(session->log, "check_candidate: Select failed");
             err = CHIAKI_ERR_NETWORK;
@@ -2401,7 +2405,7 @@ static ChiakiErrorCode check_candidates(
         }
 
         CHIAKI_LOGD(session->log, "check_candidate: Receiving data from %s:%d", candidate->addr, candidate->port);
-        ssize_t response_len = recv(candidate_sock, SOCKET_BUF_TYPE response_buf, sizeof(response_buf), 0);
+        ssize_t response_len = recv(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) response_buf, sizeof(response_buf), 0);
         if (response_len < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
@@ -2452,7 +2456,7 @@ static ChiakiErrorCode check_candidates(
         }
         else
         {
-            if (send(candidate_sock, SOCKET_BUF_TYPE request_buf[responses], sizeof(request_buf[responses]), 0) < 0)
+            if (send(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[responses], sizeof(request_buf[responses]), 0) < 0)
             {
                 CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                 err = CHIAKI_ERR_NETWORK;
@@ -2538,7 +2542,7 @@ static ChiakiErrorCode send_response_ps(Session *session, uint8_t *req, chiaki_s
         CHIAKI_LOGI(session->log, "Our Response");
         chiaki_log_hexdump(session->log, CHIAKI_LOG_INFO, confirm_buf, sizeof(confirm_buf));
 
-        if (send(*sock, SOCKET_BUF_TYPE confirm_buf, sizeof(confirm_buf), 0) < 0)
+        if (send(*sock, (CHIAKI_SOCKET_BUF_TYPE) confirm_buf, sizeof(confirm_buf), 0) < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Sending confirmation failed for %s:%d with error: %s", candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             return CHIAKI_ERR_NETWORK;
@@ -2571,7 +2575,7 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         if(err != CHIAKI_ERR_SUCCESS)
             return err;
 
-        len = recv(*sock, SOCKET_BUF_TYPE req, sizeof(req), 0);
+        len = recv(*sock, (CHIAKI_SOCKET_BUF_TYPE) req, sizeof(req), 0);
         if (len != sizeof(req))
         {
             CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", len, candidate->addr, candidate->port);

@@ -336,7 +336,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(RudpInstance *rudp, uint8_t *
     {
         return CHIAKI_ERR_DISCONNECTED;
     }
-	int sent = send(rudp->sock, SOCKET_BUF_TYPE buf, buf_size, 0);
+	int sent = send(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
 	if(sent < 0)
 	{
 #ifdef _WIN32
@@ -361,7 +361,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(RudpInstance *rudp, size_t buf_si
 		return err;
 	}
 
-	int received_sz = recv(rudp->sock, SOCKET_BUF_TYPE buf, buf_size, 0);
+	int received_sz = recv(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
 	if(received_sz <= 8)
 	{
 		if(received_sz < 0)

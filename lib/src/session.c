@@ -255,7 +255,8 @@ error_state_mutex:
 error_state_cond:
 	chiaki_cond_fini(&session->state_cond);
 error:
-	chiaki_holepunch_session_fini(session->holepunch_session);
+	if(session->holepunch_session)
+		chiaki_holepunch_session_fini(session->holepunch_session);
 	return err;
 }
 
@@ -269,7 +270,8 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session)
 	chiaki_ctrl_fini(&session->ctrl);
 	if(session->rudp)
 		chiaki_rudp_fini(session->rudp);
-	chiaki_holepunch_session_fini(session->holepunch_session);
+	if(session->holepunch_session)
+		chiaki_holepunch_session_fini(session->holepunch_session);
 	chiaki_stop_pipe_fini(&session->stop_pipe);
 	chiaki_cond_fini(&session->state_cond);
 	chiaki_mutex_fini(&session->state_mutex);
