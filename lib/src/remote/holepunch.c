@@ -20,6 +20,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -99,13 +100,13 @@ static const char session_message_envelope_fmt[] =
     "{\"channel\":\"remote_play:1\","
      "\"payload\":\"ver=1.0, type=text, body=%s\","  // 0: message body as JSON string
      "\"to\":["
-       "{\"accountId\":\"%llu\","                     // 1: PSN account ID
+       "{\"accountId\":\"%" PRId64"\","                     // 1: PSN account ID
         "\"deviceUniqueId\":\"%s\","                 // 2: device UID, lowercase hex string
         "\"platform\":\"%s\"}]}";                    // 3: PS4/PS5
 
 // NOTE: These payloads are JSON-escaped, since they're going to be embedded in a JSON string
 static const char session_start_payload_fmt[] =
-    "{\\\"accountId\\\":%llu,"             // 0: PSN account ID, integer
+    "{\\\"accountId\\\":%" PRId64","             // 0: PSN account ID, integer
      "\\\"roomId\\\":0,"
      "\\\"sessionId\\\":\\\"%s\\\","      // 1: session identifier (lowercase UUIDv4)
      "\\\"clientType\\\":\\\"Windows\\\","
@@ -134,7 +135,7 @@ static const char session_connrequest_candidate_fmt[] =
      "\\\"port\\\":%d,"                // 3: Port
      "\\\"mappedPort\\\":%d}";         // 4: Mapped Port
 static const char session_localpeeraddr_fmt[] =
-    "{\\\"accountId\\\":\\\"%llu\\\","   // 0: PSN account ID
+    "{\\\"accountId\\\":\\\"%" PRId64"\\\","   // 0: PSN account ID
      "\\\"platform\\\":\\\"%s\\\"}";    // 1: "PROSPERO" for PS5, "ORBIS" for PS4, "REMOTE_PLAY" for client
 
 typedef enum notification_type_t
@@ -2819,7 +2820,7 @@ static ChiakiErrorCode wait_for_notification(
                     goto cleanup;
                 }
             }
-            assert(err == CHIAKI_ERR_SUCCESS);
+            assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
 
         Notification *notif = session->ws_notification_queue->front;
@@ -3195,66 +3196,81 @@ static ChiakiErrorCode session_message_serialize(
     // Since the official remote play app doesn't send valid JSON half the time,
     // we can't use a proper JSON library to serialize the message. Instead, we
     // use snprintf to build the JSON string manually.
-    char localpeeraddr_json[128] = {0};
-    size_t localpeeraddr_len = snprintf(
-        localpeeraddr_json, sizeof(localpeeraddr_json), session_localpeeraddr_fmt,
-        session->account_id, "REMOTE_PLAY");
 
-    size_t candidate_str_len = sizeof(session_connrequest_candidate_fmt) * 2;
-    char *candidates_json = calloc(1, candidate_str_len * message->conn_request->num_candidates + 3);
-    *(candidates_json) = '[';
-    size_t candidates_len = 1;
-    char *candidate_str = calloc(1, candidate_str_len);
-    for (int i=0; i < message->conn_request->num_candidates; i++)
+    char *candidate_str = NULL;
+    char *candidates_json = NULL;
+    char *connreq_json = NULL;
+    CHIAKI_SSIZET_TYPE connreq_len = 0;
+
+    if(message->conn_request->num_candidates == 0)
     {
-        Candidate candidate = message->conn_request->candidates[i];
-        memset(candidate_str, 0, candidate_str_len);
-        size_t candidate_len = snprintf(
-            candidate_str, candidate_str_len, session_connrequest_candidate_fmt,
-            candidate.type == CANDIDATE_TYPE_LOCAL ? "LOCAL" : "STATIC",
-            candidate.addr, candidate.addr_mapped, candidate.port, candidate.port_mapped);
-        snprintf(candidates_json + candidates_len, candidate_len, "%s", candidate_str);
-        // Take into account that char arrays are null-terminated
-        if(i < (message->conn_request->num_candidates - 1))
-        {
-            *(candidates_json + candidates_len + candidate_len - 1) = '}';
-            *(candidates_json + candidates_len + candidate_len) = ',';
-            candidates_len += candidate_len + 1;
-        }
-        else
-        {
-            *(candidates_json + candidates_len + candidate_len - 1) = '}';
-            candidates_len += candidate_len;
-        }
+        connreq_len = 1;
+        connreq_json = calloc(1, sizeof(char));
+        connreq_json[connreq_len] = '\0';
     }
-    *(candidates_json + candidates_len) = ']';
-    *(candidates_json + candidates_len + 1) = '\0';
-    candidates_len += 2;
-    CHIAKI_LOGI(session->log, "Number of candidates %d, Candidates Length: %lu", message->conn_request->num_candidates, candidates_len);
-
-    char localhashedid_str[29] = {0};
-    uint8_t zero_bytes0[sizeof(message->conn_request->local_hashed_id)] = {0};
-    if(memcmp(message->conn_request->local_hashed_id, zero_bytes0, sizeof(zero_bytes0)) == 0)
-        localhashedid_str[0] = '\0';
     else
     {
-        chiaki_base64_encode(
-            message->conn_request->local_hashed_id, sizeof(message->conn_request->local_hashed_id),
-            localhashedid_str, sizeof(localhashedid_str));
+        char localpeeraddr_json[128] = {0};
+        size_t localpeeraddr_len = snprintf(
+            localpeeraddr_json, sizeof(localpeeraddr_json), session_localpeeraddr_fmt,
+            session->account_id, "REMOTE_PLAY");
+
+        size_t candidate_str_len = sizeof(session_connrequest_candidate_fmt) * 2;
+        candidates_json = calloc(1, candidate_str_len * message->conn_request->num_candidates + 3);
+        *(candidates_json) = '[';
+        size_t candidates_len = 1;
+        candidate_str = calloc(1, candidate_str_len);
+        for (int i=0; i < message->conn_request->num_candidates; i++)
+        {
+            Candidate candidate = message->conn_request->candidates[i];
+            memset(candidate_str, 0, candidate_str_len);
+            size_t candidate_len = snprintf(
+                candidate_str, candidate_str_len, session_connrequest_candidate_fmt,
+                candidate.type == CANDIDATE_TYPE_LOCAL ? "LOCAL" : "STATIC",
+                candidate.addr, candidate.addr_mapped, candidate.port, candidate.port_mapped);
+            snprintf(candidates_json + candidates_len, candidate_len, "%s", candidate_str);
+            // Take into account that char arrays are null-terminated
+            if(i < (message->conn_request->num_candidates - 1))
+            {
+                *(candidates_json + candidates_len + candidate_len - 1) = '}';
+                *(candidates_json + candidates_len + candidate_len) = ',';
+                candidates_len += candidate_len + 1;
+            }
+            else
+            {
+                *(candidates_json + candidates_len + candidate_len - 1) = '}';
+                candidates_len += candidate_len;
+            }
+        }
+        *(candidates_json + candidates_len) = ']';
+        *(candidates_json + candidates_len + 1) = '\0';
+        candidates_len += 2;
+        CHIAKI_LOGI(session->log, "Number of candidates %d, Candidates Length: %lu", message->conn_request->num_candidates, candidates_len);
+
+        char localhashedid_str[29] = {0};
+        uint8_t zero_bytes0[sizeof(message->conn_request->local_hashed_id)] = {0};
+        if(memcmp(message->conn_request->local_hashed_id, zero_bytes0, sizeof(zero_bytes0)) == 0)
+            localhashedid_str[0] = '\0';
+        else
+        {
+            chiaki_base64_encode(
+                message->conn_request->local_hashed_id, sizeof(message->conn_request->local_hashed_id),
+                localhashedid_str, sizeof(localhashedid_str));
+        }
+        char skey_str[25] = {0};
+        chiaki_base64_encode (
+            message->conn_request->skey, sizeof(message->conn_request->skey), skey_str, sizeof(skey_str));
+        size_t connreq_json_len = sizeof(session_connrequest_fmt) * 2 + localpeeraddr_len + candidates_len;
+        connreq_json = calloc(
+            1, connreq_json_len);
+        char mac_addr[1] = { '\0' };
+        connreq_len = snprintf(
+            connreq_json, connreq_json_len, session_connrequest_fmt,
+            message->conn_request->sid, message->conn_request->peer_sid,
+            skey_str, message->conn_request->nat_type,
+            candidates_json, mac_addr,
+            localpeeraddr_json, localhashedid_str);
     }
-    char skey_str[25] = {0};
-    chiaki_base64_encode (
-        message->conn_request->skey, sizeof(message->conn_request->skey), skey_str, sizeof(skey_str));
-    size_t connreq_json_len = sizeof(session_connrequest_fmt) * 2 + localpeeraddr_len + candidates_len;
-    char *connreq_json = calloc(
-        1, connreq_json_len);
-    char mac_addr[1] = { '\0' };
-    CHIAKI_SSIZET_TYPE connreq_len = snprintf(
-        connreq_json, connreq_json_len, session_connrequest_fmt,
-        message->conn_request->sid, message->conn_request->peer_sid,
-        skey_str, message->conn_request->nat_type,
-        candidates_json, mac_addr,
-        localpeeraddr_json, localhashedid_str);
 
     char* action_str;
     switch (message->action)
@@ -3285,9 +3301,12 @@ static ChiakiErrorCode session_message_serialize(
     *out = serialized_msg;
     *out_len = msg_len;
 
-    free(candidate_str);
-    free(candidates_json);
-    free(connreq_json);
+    if(candidate_str)
+        free(candidate_str);
+    if(candidates_json)
+        free(candidates_json);
+    if(connreq_json)
+        free(connreq_json);
 
     return err;
 }
