@@ -155,7 +155,6 @@ jobs:
         run: |
           mkdir Chiaki4deck-VC
           cp build\gui\chiaki.exe Chiaki4deck-VC
-          cp build\third-party\cpp-steam-tools\libcpp-steam-tools.dll Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" Chiaki4deck-VC
