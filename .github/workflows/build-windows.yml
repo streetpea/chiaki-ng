@@ -155,6 +155,7 @@ jobs:
         run: |
           mkdir Chiaki4deck-VC
           cp build\gui\chiaki.exe Chiaki4deck-VC
+          Dir -Recurse "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin" | Select Fullname
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" Chiaki4deck-VC
