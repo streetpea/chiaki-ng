@@ -143,7 +143,6 @@ jobs:
           -DCHIAKI_ENABLE_CLI=OFF `
           -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON `
           -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF `
-          -DCHIAKI_USE_SYSTEM_CURL `
           -DPYTHON_EXECUTABLE="${{ env.pythonLocation }}\python.exe" `
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}\${{ env.dep_folder }};${{ env.VULKAN_SDK }}"
 

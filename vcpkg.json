@@ -3,13 +3,6 @@
     "version": "1.7.0",
     "dependencies": [
       "pkgconf",
-      {
-        "name": "curl",
-        "features": [
-          "ssl",
-          "websockets"
-        ]
-      },
       "sdl2",
       "protobuf",
       "openssl",
