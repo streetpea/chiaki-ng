@@ -155,7 +155,6 @@ jobs:
         run: |
           mkdir Chiaki4deck-VC
           cp build\gui\chiaki.exe Chiaki4deck-VC
-          Dir -Recurse "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin" | Select Fullname
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" Chiaki4deck-VC
@@ -164,8 +163,8 @@ jobs:
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\opus.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libspeexdsp.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libminiupnpc.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libjson-c-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" Chiaki4deck-VC
