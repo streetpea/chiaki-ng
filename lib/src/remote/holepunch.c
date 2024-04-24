@@ -597,10 +597,10 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     memset(&session->console_uid, 0, sizeof(session->console_uid));
     memset(&session->hashed_id_console, 0, sizeof(session->hashed_id_console));
     memset(&session->custom_data1, 0, sizeof(session->custom_data1));
-    session->client_sock = -1;
-    session->ctrl_sock = -1;
-    session->data_sock = -1;
-    session->sock = -1;
+    session->client_sock = CHIAKI_INVALID_SOCKET;
+    session->ctrl_sock = CHIAKI_INVALID_SOCKET;
+    session->data_sock = CHIAKI_INVALID_SOCKET;
+    session->sock = CHIAKI_INVALID_SOCKET;
     session->sid_console = 0;
     session->local_req_id = 1;
     session->local_port = 0;
@@ -940,7 +940,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
 
     // Find candidate that we can use to connect to the console
-    chiaki_socket_t sock = -1;
+    chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
     Candidate *selected_candidate = NULL;
     for(size_t i = 0; i < console_req->num_candidates; i++)
     {
@@ -1501,7 +1501,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
 {
     // Create listening socket that the console can reach us on
     session->client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (session->client_sock < 0)
+    if (CHIAKI_SOCKET_IS_INVALID(session->client_sock))
     {
         CHIAKI_LOGE(session->log, "send_offer: Creating socket failed");
         return CHIAKI_ERR_UNKNOWN;
@@ -2182,7 +2182,7 @@ static bool get_client_addr_remote_stun(ChiakiLog *log, char *out)
 //     char buf[1024];
 
 //     int sock = socket(AF_INET, SOCK_DGRAM, 0);
-//     if (sock < 0) {
+//     if (CHIAKI_SOCKET_IS_INVALID(sock)) {
 //         return false;
 //     }
 
@@ -2257,7 +2257,7 @@ static ChiakiErrorCode check_candidates(
     // Set up sockets for candidates and send a request over each of them
     chiaki_socket_t sockets[num_candidates];
     for (int i=0; i < num_candidates; i++)
-        sockets[i] = -1;
+        sockets[i] = CHIAKI_INVALID_SOCKET;
     int responses_received[num_candidates];
     fd_set fds;
     FD_ZERO(&fds);
@@ -2282,7 +2282,7 @@ static ChiakiErrorCode check_candidates(
         Candidate *candidate = &candidates[i];
         responses_received[i] = 0;
         chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (sock < 0)
+        if CHIAKI_SOCKET_IS_INVALID(sock)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Creating socket failed");
             return CHIAKI_ERR_UNKNOWN;
@@ -2357,7 +2357,7 @@ static ChiakiErrorCode check_candidates(
     tv.tv_sec = SELECT_CANDIDATE_TIMEOUT_SEC;
     tv.tv_usec = 0;
 
-    chiaki_socket_t selected_sock = -1;
+    chiaki_socket_t selected_sock = CHIAKI_INVALID_SOCKET;
     Candidate *selected_candidate = NULL;
 
     while (!selected_candidate)
@@ -2375,7 +2375,7 @@ static ChiakiErrorCode check_candidates(
         } else if (ret == 0)
         {
             // No responsive candidate within timeout, terminate with error
-            if (selected_sock < 0)
+            if (CHIAKI_SOCKET_IS_INVALID(selected_sock))
             {
                 CHIAKI_LOGE(session->log, "check_candidate: Select timed out");
                 err = CHIAKI_ERR_TIMEOUT;
@@ -2386,18 +2386,18 @@ static ChiakiErrorCode check_candidates(
         }
 
         Candidate *candidate = NULL;
-        chiaki_socket_t candidate_sock = -1;
+        chiaki_socket_t candidate_sock = CHIAKI_INVALID_SOCKET;
         int i = 0;
         for (; i < num_candidates; i++)
         {
-            if (sockets[i] >= 0 && FD_ISSET(sockets[i], &fds))
+            if (!(CHIAKI_SOCKET_IS_INVALID(sockets[i])) && FD_ISSET(sockets[i], &fds))
             {
                 candidate_sock = sockets[i];
                 candidate = &candidates[i];
                 break;
             }
         }
-        if (candidate_sock < 0)
+        if (CHIAKI_SOCKET_IS_INVALID(candidate_sock))
         {
             CHIAKI_LOGE(session->log, "check_candidate: Select returned unexpected socket");
             err = CHIAKI_ERR_UNKNOWN;
@@ -2405,7 +2405,7 @@ static ChiakiErrorCode check_candidates(
         }
 
         CHIAKI_LOGD(session->log, "check_candidate: Receiving data from %s:%d", candidate->addr, candidate->port);
-        ssize_t response_len = recv(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) response_buf, sizeof(response_buf), 0);
+        CHIAKI_SSIZET_TYPE response_len = recv(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) response_buf, sizeof(response_buf), 0);
         if (response_len < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
@@ -2469,10 +2469,10 @@ static ChiakiErrorCode check_candidates(
     // Close non-chosen sockets
     for (int i=0; i < num_candidates; i++)
     {
-        if (sockets[i] != *out && sockets[i] >= 0)
+        if (sockets[i] != *out && (!CHIAKI_SOCKET_IS_INVALID(sockets[i])))
             CHIAKI_SOCKET_CLOSE(sockets[i]);
     }
-    if (session->client_sock >= 0)
+    if (!(CHIAKI_SOCKET_IS_INVALID(session->client_sock)))
         CHIAKI_SOCKET_CLOSE(session->client_sock);
 
     err = receive_request_send_response_ps(session, out, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
@@ -2497,10 +2497,10 @@ static ChiakiErrorCode check_candidates(
 cleanup_sockets:
     for (int i=0; i < num_candidates; i++)
     {
-        if (sockets[i] != *out && sockets[i] >= 0)
+        if (sockets[i] != *out && (!CHIAKI_SOCKET_IS_INVALID(sockets[i])))
             CHIAKI_SOCKET_CLOSE(sockets[i]);
     }
-    if (session->client_sock >= 0)
+    if (!(CHIAKI_SOCKET_IS_INVALID(session->client_sock)))
         CHIAKI_SOCKET_CLOSE(session->client_sock);
 
     return err;
@@ -2562,7 +2562,7 @@ static ChiakiErrorCode send_response_ps(Session *session, uint8_t *req, chiaki_s
  */
 static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki_socket_t *sock, Candidate *candidate, size_t timeout)
 {
-    ssize_t len = 0;
+    CHIAKI_SSIZET_TYPE len = 0;
     uint8_t req[88] = {0};
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     bool received = false;
@@ -3253,7 +3253,7 @@ static ChiakiErrorCode session_message_serialize(
     char *connreq_json = calloc(
         1, connreq_json_len);
     char mac_addr[1] = { '\0' };
-    ssize_t connreq_len = snprintf(
+    CHIAKI_SSIZET_TYPE connreq_len = snprintf(
         connreq_json, connreq_json_len, session_connrequest_fmt,
         message->conn_request->sid, message->conn_request->peer_sid,
         skey_str, message->conn_request->nat_type,
@@ -3279,9 +3279,9 @@ static ChiakiErrorCode session_message_serialize(
             action_str = "UNKNOWN";
             break;
     }
-    ssize_t serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
+    CHIAKI_SSIZET_TYPE serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
     char *serialized_msg = calloc(1, serialized_msg_len);
-    ssize_t msg_len = snprintf(
+    CHIAKI_SSIZET_TYPE msg_len = snprintf(
         serialized_msg, serialized_msg_len, session_message_fmt,
         action_str, message->req_id, message->error, connreq_json);
 
@@ -3335,9 +3335,9 @@ static ChiakiErrorCode short_message_serialize(
             action_str = "UNKNOWN";
             break;
     }
-    ssize_t serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
+    CHIAKI_SSIZET_TYPE serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
     char *serialized_msg = calloc(1, serialized_msg_len);
-    ssize_t msg_len = snprintf(
+    CHIAKI_SSIZET_TYPE msg_len = snprintf(
         serialized_msg, serialized_msg_len, session_message_fmt,
         action_str, message->req_id, message->error, connreq_json);
 

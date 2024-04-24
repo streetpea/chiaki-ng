@@ -647,7 +647,7 @@ static void parse_session_response(SessionResponse *response, ChiakiHttpResponse
  */
 static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out)
 {
-	chiaki_socket_t session_sock = -1;
+	chiaki_socket_t session_sock = CHIAKI_INVALID_SOCKET;
 	uint16_t remote_counter = 0;
 	if(session->rudp)
 	{
@@ -778,7 +778,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 				CHIAKI_LOGI(session->log, "Session stopped while connecting for session request");
 				session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
 				CHIAKI_SOCKET_CLOSE(session_sock);
-				session_sock = -1;
+				session_sock = CHIAKI_INVALID_SOCKET;
 				free(sa);
 				break;
 			}
@@ -790,7 +790,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 				else
 					session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 				CHIAKI_SOCKET_CLOSE(session_sock);
-				session_sock = -1;
+				session_sock = CHIAKI_INVALID_SOCKET;
 				free(sa);
 				continue;
 			}

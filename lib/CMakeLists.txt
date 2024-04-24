@@ -130,9 +130,10 @@ target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
-find_package(json-c REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(json-c REQUIRED json-c IMPORTED_TARGET)
 target_include_directories(chiaki-lib PRIVATE ${json-c_INCLUDE_DIRS})
-target_link_libraries(chiaki-lib json-c::json-c)
+target_link_libraries(chiaki-lib PkgConfig::json-c)
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)

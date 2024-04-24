@@ -136,7 +136,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->cant_displayb = false;
 	ctrl->msg_queue = NULL;
 	ctrl->keyboard_text_counter = 0;
-	ctrl->sock = -1;
+	ctrl->sock = CHIAKI_INVALID_SOCKET;
 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)

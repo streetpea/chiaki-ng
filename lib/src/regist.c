@@ -261,7 +261,7 @@ static void *regist_thread_func(void *user)
 	CHIAKI_LOGV(regist->log, "Regist formatted request header:");
 	chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, (uint8_t *)request_header, request_header_size);
 
-	chiaki_socket_t sock = -1;
+	chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
 	uint16_t remote_counter = 0;
 	struct addrinfo *addrinfos;
 	if(psn)
