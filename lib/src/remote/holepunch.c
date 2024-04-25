@@ -63,6 +63,7 @@
 #define WEBSOCKET_MAX_FRAME_SIZE 64 * 1024
 #define SESSION_CREATION_TIMEOUT_SEC 30
 #define SESSION_START_TIMEOUT_SEC 30
+#define SESSION_DELETION_TIMEOUT_SEC 3
 #define SELECT_CANDIDATE_TIMEOUT_SEC 10
 #define WAIT_RESPONSE_TIMEOUT_SEC 5
 #define MSG_TYPE_REQ 0x06000000
@@ -188,7 +189,8 @@ typedef enum session_state_t
     SESSION_STATE_DATA_OFFER_SENT = 1 << 13,
     SESSION_STATE_DATA_CONSOLE_ACCEPTED = 1 << 14,
     SESSION_STATE_DATA_CLIENT_ACCEPTED = 1 << 15,
-    SESSION_STATE_DATA_ESTABLISHED = 1 << 16
+    SESSION_STATE_DATA_ESTABLISHED = 1 << 16,
+    SESSION_STATE_DELETED = 1 << 17
 } SessionState;
 
 typedef struct upnp_gateway_info_t
@@ -1023,7 +1025,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     int notif_query = NOTIFICATION_TYPE_MEMBER_DELETED;
     while (!finished)
     {
-        err = wait_for_notification(session, &notif, notif_query, SESSION_CREATION_TIMEOUT_SEC * 1000);
+        err = wait_for_notification(session, &notif, notif_query, SESSION_DELETION_TIMEOUT_SEC * 1000);
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Timed out waiting for session deletion notifications.");
@@ -1037,7 +1039,10 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 
         if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED)
         {
-            session->state |= SESSION_STATE_CREATED;
+            chiaki_mutex_lock(&session->state_mutex);
+            session->state |= SESSION_STATE_DELETED;
+            chiaki_mutex_unlock(&session->state_mutex);
+            log_session_state(session);
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_fini: Session deleted.");
             finished = true;
         }
@@ -1072,6 +1077,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
         notification_queue_free(session->ws_notification_queue);
         chiaki_mutex_unlock(&session->notif_mutex);
     }
+    chiaki_stop_pipe_fini(&session->select_pipe);
     chiaki_stop_pipe_fini(&session->notif_pipe);
     chiaki_mutex_fini(&session->notif_mutex);
     chiaki_cond_fini(&session->notif_cond);
@@ -2627,6 +2633,8 @@ static void log_session_state(Session *session)
         strcat(state_str, " ✅INIT");
     if (session->state & SESSION_STATE_WS_OPEN)
         strcat(state_str, " ✅WS_OPEN");
+    if (session->state & SESSION_STATE_DELETED)
+        strcat(state_str, " ✅DELETED");
     if (session->state & SESSION_STATE_CREATED)
         strcat(state_str, " ✅CREATED");
     if (session->state & SESSION_STATE_STARTED)
@@ -2820,7 +2828,7 @@ static ChiakiErrorCode wait_for_notification(
                     goto cleanup;
                 }
             }
-            assert(err == CHIAKI_ERR_SUCCESS);
+            assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
 
         Notification *notif = session->ws_notification_queue->front;
@@ -3310,7 +3318,7 @@ static ChiakiErrorCode short_message_serialize(
     // we can't use a proper JSON library to serialize the message. Instead, we
     // use snprintf to build the JSON string manually.
 
-    char connreq_json[3] = {'{', '}', '\0' };
+    char connreq_json[3] = { '{', '}', '\0' };
     size_t connreq_len = sizeof(connreq_json);
 
     char* action_str;
