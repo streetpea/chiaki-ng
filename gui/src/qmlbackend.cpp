@@ -101,9 +101,15 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     frame_thread->start();
     frame_obj->moveToThread(frame_thread);
 
+    PsnConnectionWorker *worker = new PsnConnectionWorker;
+    worker->moveToThread(&psn_connection_thread);
+    connect(&psn_connection_thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(this, &QmlBackend::psnConnect, worker, &PsnConnectionWorker::ConnectPsnConnection);
+    connect(worker, &PsnConnectionWorker::resultReady, this, &QmlBackend::checkPsnConnection);
+    psn_connection_thread.start();
+
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(this, &QmlBackend::psnConnect, this, &QmlBackend::psnConnector);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
@@ -179,6 +185,8 @@ QmlBackend::~QmlBackend()
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
+    psn_connection_thread.quit();
+    psn_connection_thread.wait();
 }
 
 QmlMainWindow *QmlBackend::qmlWindow() const
@@ -266,16 +274,13 @@ bool QmlBackend::autoConnect() const
     return auto_connect_mac.GetValue();
 }
 
-void QmlBackend::psnConnector()
+void QmlBackend::psnCancel()
 {
-    QFuture<bool> future = QtConcurrent::run(&StreamSession::ConnectPsnConnection, session, session_info.duid, chiaki_target_is_ps5(session_info.target));
-    watcher.setFuture(future);
-    connect(&watcher, &QFutureWatcher<bool>::resultReadyAt, this, &QmlBackend::checkPsnConnection);
+    session->CancelPsnConnection();
 }
 
-void QmlBackend::checkPsnConnection(int index)
+void QmlBackend::checkPsnConnection(const bool &connected)
 {
-    bool connected = watcher.resultAt(index);
     emit psnConnectDone(connected);
     if(connected)
         psnSessionStart();
@@ -399,7 +404,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         sleep_inhibit->inhibit();
     }
     else
-        emit psnConnect();
+        emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
 }
 
 bool QmlBackend::closeRequested()
@@ -572,11 +577,6 @@ void QmlBackend::connectToHost(int index)
     }
     else
     {
-        if(watcher.isRunning())
-        {
-            qCWarning(chiakiGui) << "Previous psn connection is still running";
-            return;
-        }
         resume_session = false;
         StreamSessionConnectInfo info(
                 settings,
@@ -1040,4 +1040,10 @@ void QmlBackend::refreshPsnToken()
         refreshAuth();
     else
         updatePsnHosts();
+}
+
+void PsnConnectionWorker::ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5)
+{
+    bool result = session->ConnectPsnConnection(duid, ps5);
+    emit resultReady(result);
 }

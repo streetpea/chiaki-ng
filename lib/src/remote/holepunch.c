@@ -56,8 +56,8 @@
 #include "stun.h"
 
 #define UUIDV4_STR_LEN 37
-#define SECOND_NS 1000000000L
-#define MILLISECONDS_NS 1000000L
+#define SECOND_US 1000000L
+#define MILLISECONDS_US 1000L
 #define WEBSOCKET_PING_INTERVAL_SEC 5
 // Maximum WebSocket frame size currently supported by libcurl
 #define WEBSOCKET_MAX_FRAME_SIZE 64 * 1024
@@ -151,7 +151,9 @@ typedef enum notification_type_t
     // psn:sessionManager:sys:rps:customData1:updated
     NOTIFICATION_TYPE_CUSTOM_DATA1_UPDATED = 1 << 3,
     // psn:sessionManager:sys:rps:sessionMessage:created
-    NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED = 1 << 4
+    NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED = 1 << 4,
+    // psn:sessionManager:sys:remotePlaySession:deleted
+    NOTIFICATION_TYPE_SESSION_DELETED = 1 << 5
 } NotificationType;
 
 typedef struct notification_t
@@ -231,6 +233,9 @@ typedef struct session_t
     ChiakiThread ws_thread;
     NotificationQueue* ws_notification_queue;
     bool ws_thread_should_stop;
+    bool ws_open;
+
+    bool main_should_stop;
 
     ChiakiStopPipe notif_pipe;
     ChiakiStopPipe select_pipe;
@@ -595,6 +600,8 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->ws_fqdn = NULL;
     session->ws_notification_queue = createNq();
     session->ws_thread_should_stop = false;
+    session->ws_open = false;
+    session->main_should_stop = false;
     session->client_addr_static = NULL;
     session->client_addr_local = NULL;
     memset(&session->session_id, 0, sizeof(session->session_id));
@@ -646,6 +653,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     ChiakiErrorCode err = get_websocket_fqdn(session, &session->ws_fqdn);
     if (err != CHIAKI_ERR_SUCCESS)
         goto cleanup_curlsh;
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup_curlsh;
+    }
 
     err = chiaki_thread_create(&session->ws_thread, websocket_thread_func, session);
     if (err != CHIAKI_ERR_SUCCESS)
@@ -662,11 +675,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     }
     chiaki_mutex_unlock(&session->state_mutex);
 
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup_thread;
+    }
     err = http_create_session(session);
     if (err != CHIAKI_ERR_SUCCESS)
         goto cleanup_thread;
     CHIAKI_LOGD(session->log, "chiaki_holepunch_session_create: Sent session creation request");
-
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup_thread;
+    }
 
     // FIXME: We're currently not using a shared timeout for both  notifications, i.e. if the first one
     //        takes 29 secs arrive, and the second one takes 15 secs, we're not going to time out despite
@@ -681,6 +705,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Timed out waiting for session creation notifications.");
+            goto cleanup_thread;
+        }
+        else if (err == CHIAKI_ERR_CANCELED)
+        {
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
             goto cleanup_thread;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
@@ -704,6 +733,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
             err = CHIAKI_ERR_UNKNOWN;
+            goto cleanup_thread;
+        }
+        if(session->main_should_stop)
+        {
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
+            err = CHIAKI_ERR_CANCELED;
             goto cleanup_thread;
         }
         log_session_state(session);
@@ -763,6 +798,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Starting session failed with error %d", err);
         return err;
     }
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        return err;
+    }
 
     // FIXME: We're currently not using a shared timeout for both  notifications, i.e. if the first one
     //        takes 29 secs arrive, and the second one takes 15 secs, we're not going to time out despite
@@ -778,6 +819,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Timed out waiting for session start notifications.");
             return CHIAKI_ERR_UNKNOWN;
+        }
+        else if (err == CHIAKI_ERR_CANCELED)
+        {
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
+            return err;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
         {
@@ -853,6 +899,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             break;
         }
         clear_notification(session, notif);
+        if(session->main_should_stop)
+        {
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
+            err = CHIAKI_ERR_CANCELED;
+            return err;
+        }
         finished = (session->state & SESSION_STATE_CONSOLE_JOINED) &&
                    (session->state & SESSION_STATE_CUSTOMDATA1_RECEIVED);
         log_session_state(session);
@@ -884,6 +936,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     if (err == CHIAKI_ERR_TIMEOUT)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Timed out waiting for OFFER session message.");
+        return err;
+    }
+    else if (err == CHIAKI_ERR_CANCELED)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         return err;
     }
     else if (err != CHIAKI_ERR_SUCCESS)
@@ -921,7 +978,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         .conn_request = NULL,
         .notification = NULL,
     };
-    http_send_session_message(session, &ack_msg, true);
+    err = http_send_session_message(session, &ack_msg, true);
+    if(err != CHIAKI_ERR_SUCCESS)
+    {
+        CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Couldn't send session message");
+        goto cleanup;
+    }
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup;
+    }
 
     // Send our own OFFER
     const int our_offer_req_id = session->local_req_id;
@@ -935,6 +1003,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     if (err == CHIAKI_ERR_TIMEOUT)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Timed out waiting for ACK of our connection offer.");
+        goto cleanup;
+    }
+    else if (err == CHIAKI_ERR_CANCELED)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         goto cleanup;
     }
     else if (err != CHIAKI_ERR_SUCCESS)
@@ -958,11 +1031,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
             port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL ? "control" : "data");
         goto cleanup;
     }
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup;
+    }
 
     err = send_accept(session, session->local_req_id, selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to send ACCEPT message.");
+        goto cleanup;
+    }
+    if(session->main_should_stop)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+        err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
     session->local_req_id++;
@@ -973,6 +1058,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Timed out waiting for ACCEPT session message.");
+            goto cleanup;
+        }
+        else if (err == CHIAKI_ERR_CANCELED)
+        {
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
             goto cleanup;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
@@ -998,6 +1088,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
             }
             chiaki_mutex_unlock(&session->state_mutex);
         }
+        if(session->main_should_stop)
+        {
+            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+            err = CHIAKI_ERR_CANCELED;
+            goto cleanup;
+        }
         ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
         if(!(pserr == CHIAKI_ERR_SUCCESS || pserr == CHIAKI_ERR_TIMEOUT))
         {
@@ -1017,45 +1113,48 @@ cleanup:
 
 CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 {
-    ChiakiErrorCode err = deleteSession(session);
-    if(err != CHIAKI_ERR_SUCCESS)
-        CHIAKI_LOGE(session->log, "Couldn't remove our session gracefully from session on PlayStation servers.");
-    bool finished = false;
-    Notification *notif = NULL;
-    int notif_query = NOTIFICATION_TYPE_MEMBER_DELETED;
-    while (!finished)
+    if(session->ws_open)
     {
-        err = wait_for_notification(session, &notif, notif_query, SESSION_DELETION_TIMEOUT_SEC * 1000);
-        if (err == CHIAKI_ERR_TIMEOUT)
+        ChiakiErrorCode err = deleteSession(session);
+        if(err != CHIAKI_ERR_SUCCESS)
+            CHIAKI_LOGE(session->log, "Couldn't remove our session gracefully from session on PlayStation servers.");
+        bool finished = false;
+        Notification *notif = NULL;
+        int notif_query = NOTIFICATION_TYPE_MEMBER_DELETED;
+        while (!finished)
         {
-            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Timed out waiting for session deletion notifications.");
-            break;
-        }
-        else if (err != CHIAKI_ERR_SUCCESS)
-        {
-            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Failed to wait for session deletion notifications.");
-            break;
-        }
+            err = wait_for_notification(session, &notif, notif_query, SESSION_DELETION_TIMEOUT_SEC * 1000);
+            if (err == CHIAKI_ERR_TIMEOUT)
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Timed out waiting for session deletion notifications.");
+                break;
+            }
+            else if (err != CHIAKI_ERR_SUCCESS)
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Failed to wait for session deletion notifications.");
+                break;
+            }
 
-        if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED)
-        {
-            chiaki_mutex_lock(&session->state_mutex);
-            session->state |= SESSION_STATE_DELETED;
-            chiaki_mutex_unlock(&session->state_mutex);
-            log_session_state(session);
-            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_fini: Session deleted.");
-            finished = true;
+            if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED)
+            {
+                chiaki_mutex_lock(&session->state_mutex);
+                session->state |= SESSION_STATE_DELETED;
+                chiaki_mutex_unlock(&session->state_mutex);
+                log_session_state(session);
+                CHIAKI_LOGI(session->log, "chiaki_holepunch_session_fini: Session deleted.");
+                finished = true;
+            }
+            else
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
+                err = CHIAKI_ERR_UNKNOWN;
+                break;
+            }
+            clear_notification(session, notif);
         }
-        else
-        {
-            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
-            err = CHIAKI_ERR_UNKNOWN;
-            break;
-        }
-        clear_notification(session, notif);
+        session->ws_thread_should_stop = true;
+        chiaki_thread_join(&session->ws_thread, NULL);
     }
-    session->ws_thread_should_stop = true;
-    chiaki_thread_join(&session->ws_thread, NULL);
     if(session->gw.data)
     {
         if(upnp_delete_udp_port_mapping(session->log, &session->gw, session->local_port))
@@ -1083,6 +1182,14 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     chiaki_cond_fini(&session->notif_cond);
     chiaki_mutex_fini(&session->state_mutex);
     chiaki_cond_fini(&session->state_cond);
+}
+
+CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session)
+{
+    CHIAKI_LOGI(session->log, "Canceling establishing connection over PSN");
+    session->main_should_stop = true;
+    chiaki_cond_signal(&session->notif_cond);
+    chiaki_cond_signal(&session->state_cond);
 }
 
 void notification_queue_free(NotificationQueue *nq)
@@ -1290,6 +1397,7 @@ static void* websocket_thread_func(void *user) {
         }
         goto cleanup;
     }
+    session->ws_open = true;
     CHIAKI_LOGV(session->log, "websocket_thread_func: Connected to push notification WebSocket %s", ws_url);
     ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
     assert(err == CHIAKI_ERR_SUCCESS);
@@ -1312,7 +1420,7 @@ static void* websocket_thread_func(void *user) {
     FD_SET(sockfd, &fds);
 
     // Need to send a ping every 5secs
-    uint32_t timeout = WEBSOCKET_PING_INTERVAL_SEC * 1000;
+    uint64_t timeout = WEBSOCKET_PING_INTERVAL_SEC * 1000;
     uint64_t now = 0;
     uint64_t last_ping_sent = 0;
 
@@ -1327,13 +1435,13 @@ static void* websocket_thread_func(void *user) {
     {
         now = chiaki_time_now_monotonic_us();
 
-        if (expecting_pong && now - last_ping_sent > 5LL * SECOND_NS)
+        if (expecting_pong && now - last_ping_sent > 5LL * SECOND_US)
         {
             CHIAKI_LOGE(session->log, "websocket_thread_func: Did not receive PONG in time.");
             goto cleanup_json;
         }
 
-        if (now - last_ping_sent > 5LL * SECOND_NS)
+        if (now - last_ping_sent > 5LL * SECOND_US)
         {
             res = curl_ws_send(curl, buf, 0, &wlen, 0, CURLWS_PING);
             if (res != CURLE_OK)
@@ -1443,6 +1551,11 @@ static void* websocket_thread_func(void *user) {
                 }
                 session_message_free(msg);
             }
+            if (notif->type == NOTIFICATION_TYPE_SESSION_DELETED)
+            {
+                CHIAKI_LOGI(session->log, "websocket_thread_func: Remote play session was deleted on PSN server, exiting....");
+                goto cleanup_json;
+            }
             ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->notif_mutex);
             assert(mutex_err == CHIAKI_ERR_SUCCESS);
             enqueueNq(session->ws_notification_queue, notif);
@@ -1455,6 +1568,7 @@ cleanup_json:
     json_tokener_free(tok);
 cleanup:
     curl_easy_cleanup(curl);
+    session->ws_open = false;
 
     return NULL;
 }
@@ -1489,7 +1603,10 @@ static NotificationType parse_notification_type(
     } else if (strcmp(datatype_str, "psn:sessionManager:sys:rps:members:deleted") == 0)
     {
         return NOTIFICATION_TYPE_MEMBER_DELETED;
-    } else
+    } else if (strcmp(datatype_str, "psn:sessionManager:sys:remotePlaySession:deleted") == 0)
+    {
+        return NOTIFICATION_TYPE_SESSION_DELETED;
+    }else
     {
         CHIAKI_LOGW(log, "parse_notification_type: Unknown notification type \"%s\"", datatype_str);
         CHIAKI_LOGD(log, "parse_notification_type: JSON was:\n%s", json_object_to_json_string_ext(json, JSON_C_TO_STRING_PRETTY));
@@ -2821,12 +2938,17 @@ static ChiakiErrorCode wait_for_notification(
             if (err == CHIAKI_ERR_TIMEOUT)
             {
                 now = chiaki_time_now_monotonic_us();
-                if ((now - waiting_since) > (timeout_ms * MILLISECONDS_NS))
+                if ((now - waiting_since) > (timeout_ms * MILLISECONDS_US))
                 {
                     CHIAKI_LOGE(session->log, "wait_for_notification: Timed out waiting for session messages");
                     err = CHIAKI_ERR_TIMEOUT;
                     goto cleanup;
                 }
+            }
+            if(session->main_should_stop)
+            {
+                err = CHIAKI_ERR_CANCELED;
+                goto cleanup;
             }
             assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
@@ -2904,6 +3026,11 @@ static ChiakiErrorCode wait_for_session_message(
             CHIAKI_LOGE(session->log, "Failed to wait for session message notification.");
             return err;
         }
+        if(session->main_should_stop)
+        {
+            err = CHIAKI_ERR_CANCELED;
+            return err;
+        }
         json_object *payload = session_message_get_payload(session->log, notif->json);
         err = session_message_parse(session->log, payload, &msg);
         json_object_put(payload);
@@ -2951,6 +3078,11 @@ static ChiakiErrorCode wait_for_session_message_ack(
         else if (err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "wait_for_session_message_ack: Failed to wait for session connection offer ACK notification.");
+            return err;
+        }
+        if(session->main_should_stop)
+        {
+            err = CHIAKI_ERR_CANCELED;
             return err;
         }
         if (msg->req_id != req_id)

@@ -199,6 +199,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
     ChiakiHolepunchSession session, ChiakiHolepunchPortType port_type);
 
 /**
+ * Cancel initial psn connection steps (i.e., session create, session start and session punch hole)
+ *
+ * @param[in] session Handle to the holepunching session
+*/
+CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(
+    ChiakiHolepunchSession session);
+
+/**
  * Finalize a holepunching session.
  *
  * **IMPORTANT**: This function should be called after the **streaming** session has terminated,
