@@ -655,6 +655,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         goto cleanup_curlsh;
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup_curlsh;
@@ -677,6 +678,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
 
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup_thread;
@@ -687,6 +689,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     CHIAKI_LOGD(session->log, "chiaki_holepunch_session_create: Sent session creation request");
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup_thread;
@@ -737,6 +740,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         }
         if(session->main_should_stop)
         {
+            session->main_should_stop = false;
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
             err = CHIAKI_ERR_CANCELED;
             goto cleanup_thread;
@@ -800,6 +804,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
     }
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
         err = CHIAKI_ERR_CANCELED;
         return err;
@@ -901,6 +906,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         clear_notification(session, notif);
         if(session->main_should_stop)
         {
+            session->main_should_stop = false;
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
             err = CHIAKI_ERR_CANCELED;
             return err;
@@ -929,6 +935,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
 
     ChiakiErrorCode err;
+    Candidate *local_candidates = NULL;
 
     // NOTE: Needs to be kept around until the end, we're using the candidates in the message later on
     SessionMessage *console_offer_msg = NULL;
@@ -986,6 +993,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
@@ -994,7 +1002,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     // Send our own OFFER
     const int our_offer_req_id = session->local_req_id;
     session->local_req_id++;
-    Candidate *local_candidates = calloc(2, sizeof(Candidate));
+    local_candidates = calloc(2, sizeof(Candidate));
     send_offer(session, our_offer_req_id, console_candidate_local, local_candidates);
 
     // Wait for ACK of OFFER, ignore other OFFERs, simply ACK them
@@ -1033,6 +1041,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
@@ -1046,6 +1055,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
     if(session->main_should_stop)
     {
+        session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
@@ -1090,6 +1100,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         }
         if(session->main_should_stop)
         {
+            session->main_should_stop = false;
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
             err = CHIAKI_ERR_CANCELED;
             goto cleanup;
@@ -1106,7 +1117,8 @@ cleanup:
     chiaki_mutex_lock(&session->notif_mutex);
     session_message_free(console_offer_msg);
     chiaki_mutex_unlock(&session->notif_mutex);
-    free(local_candidates);
+    if(local_candidates)
+        free(local_candidates);
 
     return err;
 }
@@ -1120,7 +1132,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
             CHIAKI_LOGE(session->log, "Couldn't remove our session gracefully from session on PlayStation servers.");
         bool finished = false;
         Notification *notif = NULL;
-        int notif_query = NOTIFICATION_TYPE_MEMBER_DELETED;
+        int notif_query = NOTIFICATION_TYPE_MEMBER_DELETED | NOTIFICATION_TYPE_SESSION_DELETED;
         while (!finished)
         {
             err = wait_for_notification(session, &notif, notif_query, SESSION_DELETION_TIMEOUT_SEC * 1000);
@@ -1135,7 +1147,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
                 break;
             }
 
-            if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED)
+            if (notif->type == NOTIFICATION_TYPE_MEMBER_DELETED || notif->type == NOTIFICATION_TYPE_SESSION_DELETED)
             {
                 chiaki_mutex_lock(&session->state_mutex);
                 session->state |= SESSION_STATE_DELETED;
@@ -1146,7 +1158,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
             }
             else
             {
-                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_fini: Got unexpected notification of type %d", notif->type);
                 err = CHIAKI_ERR_UNKNOWN;
                 break;
             }
@@ -1551,16 +1563,16 @@ static void* websocket_thread_func(void *user) {
                 }
                 session_message_free(msg);
             }
-            if (notif->type == NOTIFICATION_TYPE_SESSION_DELETED)
-            {
-                CHIAKI_LOGI(session->log, "websocket_thread_func: Remote play session was deleted on PSN server, exiting....");
-                goto cleanup_json;
-            }
             ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->notif_mutex);
             assert(mutex_err == CHIAKI_ERR_SUCCESS);
             enqueueNq(session->ws_notification_queue, notif);
             chiaki_cond_signal(&session->notif_cond);
             chiaki_mutex_unlock(&session->notif_mutex);
+            if (notif->type == NOTIFICATION_TYPE_SESSION_DELETED)
+            {
+                CHIAKI_LOGI(session->log, "websocket_thread_func: Remote play session was deleted on PSN server, exiting....");
+                goto cleanup_json;
+            }
         }
     }
 
@@ -2932,7 +2944,7 @@ static ChiakiErrorCode wait_for_notification(
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     chiaki_mutex_lock(&session->notif_mutex);
     while (true) {
-        while (session->ws_notification_queue->rear == last_known)
+        while (session->ws_notification_queue->rear == last_known || session->ws_notification_queue->rear == NULL)
         {
             err = chiaki_cond_timedwait(&session->notif_cond, &session->notif_mutex, timeout_ms);
             if (err == CHIAKI_ERR_TIMEOUT)
@@ -2947,13 +2959,15 @@ static ChiakiErrorCode wait_for_notification(
             }
             if(session->main_should_stop)
             {
+                session->main_should_stop = false;
                 err = CHIAKI_ERR_CANCELED;
                 goto cleanup;
             }
             assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
-
         Notification *notif = session->ws_notification_queue->front;
+        if(notif == last_known)
+            notif = notif->next;
         while (notif != NULL && notif != last_known)
         {
             if (notif->type & types)
@@ -3028,6 +3042,7 @@ static ChiakiErrorCode wait_for_session_message(
         }
         if(session->main_should_stop)
         {
+            session->main_should_stop = false;
             err = CHIAKI_ERR_CANCELED;
             return err;
         }
@@ -3082,6 +3097,7 @@ static ChiakiErrorCode wait_for_session_message_ack(
         }
         if(session->main_should_stop)
         {
+            session->main_should_stop = false;
             err = CHIAKI_ERR_CANCELED;
             return err;
         }

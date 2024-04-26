@@ -8,6 +8,11 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 #define RUDP_DATA_RESEND_TIMEOUT_MS 200
 #define RUDP_DATA_RESEND_WAKEUP_TIMEOUT_MS (RUDP_DATA_RESEND_TIMEOUT_MS/2)
