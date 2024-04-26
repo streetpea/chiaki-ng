@@ -2965,9 +2965,11 @@ static ChiakiErrorCode wait_for_notification(
             }
             assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
-        Notification *notif = session->ws_notification_queue->front;
-        if(notif == last_known)
-            notif = notif->next;
+        Notification *notif;
+        if(last_known)
+            notif = last_known->next;
+        else
+            notif = session->ws_notification_queue->front;
         while (notif != NULL && notif != last_known)
         {
             if (notif->type & types)
