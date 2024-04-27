@@ -129,7 +129,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(RudpInstance *rud
     message.type = SESSION_MESSAGE;
     message.subMessage = &subMessage;
     message.data_size = 4;
-    size_t alloc_size = 8 + message.data_size + session_msg_size;
+    size_t alloc_size = 8 + message.data_size + 8 + subMessage.data_size;
     uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0x0c << 12) | alloc_size;
@@ -442,6 +442,7 @@ CHIAKI_EXPORT void chiaki_rudp_message_pointers_free(RudpMessage *message)
     }
     if(message->subMessage)
     {
+        chiaki_rudp_message_pointers_free(message->subMessage);
         free(message->subMessage);
         message->subMessage = NULL;
     }

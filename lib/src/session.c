@@ -417,6 +417,7 @@ static void *session_thread_func(void *arg)
 		info.holepunch_info = &hinfo;
 		info.host = NULL;
 		info.broadcast = false;
+		info.psn_online_id = NULL;
 		memcpy(info.psn_account_id, session->connect_info.psn_account_id, CHIAKI_PSN_ACCOUNT_ID_SIZE);
 		info.rudp = session->rudp;
 		info.target = session->connect_info.ps5 ? CHIAKI_TARGET_PS5_1 : CHIAKI_TARGET_PS4_10;
