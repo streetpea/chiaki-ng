@@ -1964,7 +1964,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_init_regist_psn(ChiakiRPCrypt *rpcr
 	customDataCrypt.target = target;
 	memcpy(customDataCrypt.ambassador, data2, sizeof(customDataCrypt.ambassador));
 	memcpy(customDataCrypt.bright, data1, sizeof(customDataCrypt.bright));
-	chiaki_rpcrypt_encrypt(&customDataCrypt, 0, custom_data1, encrypted_custom_data1, CHIAKI_RPCRYPT_KEY_SIZE);
+	ChiakiErrorCode err = chiaki_rpcrypt_encrypt(&customDataCrypt, 0, custom_data1, encrypted_custom_data1, CHIAKI_RPCRYPT_KEY_SIZE);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
 
 	if(target < CHIAKI_TARGET_PS4_10)
 		return CHIAKI_ERR_INVALID_DATA;
@@ -1977,10 +1979,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_init_regist_psn(ChiakiRPCrypt *rpcr
 	memcpy(rpcrypt->ambassador, ambassador, sizeof(rpcrypt->ambassador));
 
 	for(size_t i=0; i<CHIAKI_RPCRYPT_KEY_SIZE; i++)
-		rpcrypt->bright[i] = keys_0[i*0x20 + key_0_off];
-
-	for (size_t i=0; i<CHIAKI_RPCRYPT_KEY_SIZE; i++)
-		rpcrypt->bright[i] = keys_0[i] ^ encrypted_custom_data1[i];
+		rpcrypt->bright[i] = keys_0[i*0x20 + key_0_off] ^ encrypted_custom_data1[i];
 
 	return CHIAKI_ERR_SUCCESS;
 }

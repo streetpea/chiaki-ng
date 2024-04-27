@@ -892,7 +892,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             err = decode_customdata1(custom_data1, session->custom_data1, sizeof(session->custom_data1));
             if (err != CHIAKI_ERR_SUCCESS)
             {
-                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Failed to decode \"customData1\": '%s'", custom_data1);
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Failed to decode \"customData1\": '%s' with error %S", custom_data1, chiaki_error_string(err));
                 break;
             }
             session->state |= SESSION_STATE_CUSTOMDATA1_RECEIVED;
@@ -916,6 +916,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         log_session_state(session);
         chiaki_mutex_unlock(&session->state_mutex);
     }
+    chiaki_mutex_unlock(&session->state_mutex);
     return err;
 }
 
@@ -1549,7 +1550,6 @@ static void* websocket_thread_func(void *user) {
 
             // Automatically ACK OFFER session messages if we're not currently explicitly
             // waiting on offers
-            chiaki_mutex_lock(&session->state_mutex);
             bool should_ack_offers =
                 // We're not expecting any offers after receiving one for the control port and before it's established, afterwards we expect
                 // one for the data port, so we don't auto-ACK in between
@@ -1557,7 +1557,6 @@ static void* websocket_thread_func(void *user) {
                  && !(session->state & SESSION_STATE_CTRL_ESTABLISHED))
                  // At this point all offers were received and we don't care for new ones anymore
                 || session->state & SESSION_STATE_DATA_OFFER_RECEIVED;
-            chiaki_mutex_unlock(&session->state_mutex);
             if (should_ack_offers && notif->type == NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED)
             {
                 SessionMessage *msg = NULL;
@@ -1894,7 +1893,7 @@ static ChiakiErrorCode http_start_session(Session *session)
     char data1_base64[25] = {0};
     char data2_base64[25] = {0};
     chiaki_base64_encode(session->data1, sizeof(session->data1), data1_base64, sizeof(data1_base64));
-    chiaki_base64_encode(session->data2, sizeof(session->data1), data2_base64, sizeof(data2_base64));
+    chiaki_base64_encode(session->data2, sizeof(session->data2), data2_base64, sizeof(data2_base64));
     snprintf(payload_buf, sizeof(payload_buf), session_start_payload_fmt,
         session->account_id,
         session->session_id,
