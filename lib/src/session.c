@@ -666,7 +666,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			CHIAKI_LOGE(session->log, "Failed receive rudp session request init message");
 			return err;
 		}
-		if(message.type != ntohs(INIT_RESPONSE))
+		if(message.type != INIT_RESPONSE)
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp session request init response and got type %d instead", message.type);
 			chiaki_rudp_print_message(session->rudp, &message);
@@ -687,20 +687,20 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			chiaki_rudp_message_pointers_free(&message);
 			return err;
 		}
-		chiaki_rudp_message_pointers_free(&message);
 		err = chiaki_rudp_send_cookie_message(session->rudp, message.data + 8, message.data_size - 8, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send session request rudp cookie message");
 			return err;
 		}
+		chiaki_rudp_message_pointers_free(&message);
 		err = chiaki_rudp_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive session request rudp cookie response");
 			return err;
 		}
-		if(message.type != ntohs(COOKIE_RESPONSE))
+		if(message.type != COOKIE_RESPONSE)
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp session request Cookie Response and got type %d instead", message.type);
 			chiaki_rudp_print_message(session->rudp, &message);

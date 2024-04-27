@@ -78,7 +78,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(RudpInstance *rudp, 
         free(serialized_msg);
         return err;
     }
-    chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, serialized_msg, msg_size);
     err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, *local_counter, serialized_msg, msg_size);
     return err;
 }
@@ -97,7 +96,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp
     uint8_t data[message.data_size];
     const uint8_t after_header[0x2] = { 0x05, 0x82 };
     const uint8_t after_counter[0x6] = { 0x0b, 0x01, 0x01, 0x00, 0x01, 0x00 };
-    *(chiaki_unaligned_uint16_t *)(serialized_msg) = htons(*local_counter);
+    *(chiaki_unaligned_uint16_t *)(data) = htons(*local_counter);
     memcpy(data + 2, after_counter, sizeof(after_counter));
     *(chiaki_unaligned_uint16_t *)(data + 8) = htonl(rudp->header);
     memcpy(data + 12, after_header, sizeof(after_header));
@@ -110,7 +109,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp
         free(serialized_msg);
         return err;
     }
-    chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, serialized_msg, msg_size);
     err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, *local_counter, serialized_msg, msg_size);
     return err;
 }
@@ -227,8 +225,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_takion_message(RudpInst
     memcpy(data + 10, buf, buf_size);
     message.data = data;
     rudp_message_serialize(&message, serialized_msg, &msg_size);
-    uint8_t hmessage[22] = { 0xc0, 0x16, 0x24, 0x4f, 0x24, 0x4f, 0x80, 0x30, 0xf1, 0x3f, 0x0b, 0x01, 0x01, 0x00, 0x01, 0x00, 0x6c, 0x0d, 0xc1, 0x65, 0x05, 0x82 };
-    memcpy(serialized_msg, hmessage, sizeof(hmessage));
     ChiakiErrorCode err = chiaki_rudp_send_raw(rudp, serialized_msg, msg_size);
     if(err != CHIAKI_ERR_SUCCESS)
     {
@@ -283,19 +279,18 @@ static void chiaki_rudp_message_parse(
     uint16_t length;
     memcpy(length_array, serialized_msg, 2);
     length_array[0] = length_array[0] & 0x0F;
-    length = ntohs(*(chiaki_unaligned_uint16_t *)(length_array));
+    length = htons(*(chiaki_unaligned_uint16_t *)(length_array));
     int remaining = msg_size - 8;
     int subMessageDataLeft = 0;
     if(length > 8)
     {
-        int subMessageDataLeft = length - 8;
+        subMessageDataLeft = length - 8;
         subMessageDataLeft = fmin(subMessageDataLeft, remaining);
         message->data_size = subMessageDataLeft;
         message->data = calloc(message->data_size, sizeof(uint8_t));
-        memcpy(message->data, serialized_msg, subMessageDataLeft);
+        memcpy(message->data, serialized_msg + 8, subMessageDataLeft);
         message->remote_counter = ntohs(*(chiaki_unaligned_uint16_t *)(message->data));
     }
-
 
     remaining = remaining - subMessageDataLeft;
     if (remaining >= 8)
@@ -336,6 +331,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(RudpInstance *rudp, uint8_t *
     {
         return CHIAKI_ERR_DISCONNECTED;
     }
+    CHIAKI_LOGI(rudp->log, "Sending Message:");
+    chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, buf, buf_size);
 	int sent = send(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
 	if(sent < 0)
 	{
@@ -370,6 +367,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(RudpInstance *rudp, size_t buf_si
 			CHIAKI_LOGE(rudp->log, "Rudp recv returned less than the required 8 byte RUDP header");
 		return CHIAKI_ERR_NETWORK;
 	}
+    CHIAKI_LOGI(rudp->log, "Receiving message:");
     chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, buf, received_sz);
 
     chiaki_rudp_message_parse(buf, received_sz, message);
@@ -388,7 +386,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_ack_packet(RudpInstance *rudp, uint16_
 CHIAKI_EXPORT void chiaki_rudp_print_message(RudpInstance *rudp, RudpMessage *message)
 {
     CHIAKI_LOGI(rudp->log, "-------------RUDP MESSAGE------------");
-    RudpPacketType type = htons(message->type);
+    RudpPacketType type = message->type;
     switch(type)
     {
         case INIT_REQUEST:
@@ -425,12 +423,12 @@ CHIAKI_EXPORT void chiaki_rudp_print_message(RudpInstance *rudp, RudpMessage *me
             CHIAKI_LOGI(rudp->log, "Unknown Message Type: %04x", type);
             break;      
     }
-    CHIAKI_LOGI(rudp->log, "Rudp Message Subtype: %u", message->subtype);
-    CHIAKI_LOGI(rudp->log, "Rudp Message Size: %u", message->size);
+    CHIAKI_LOGI(rudp->log, "Rudp Message Subtype: %02x", message->subtype);
+    CHIAKI_LOGI(rudp->log, "Rudp Message Size: %02x", message->size);
     CHIAKI_LOGI(rudp->log, "Rudp Message Data Size: %lu", message->data_size);
     CHIAKI_LOGI(rudp->log, "-----Rudp Message Data ---");
     chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, message->data, message->data_size);
-    CHIAKI_LOGI(rudp->log, "Rudp Message Remote Counter: %u", message->remote_counter);
+    CHIAKI_LOGI(rudp->log, "Rudp Message Remote Counter: %lu", message->remote_counter);
     if(message->subMessage)
         chiaki_rudp_print_message(rudp, message->subMessage);
 }
@@ -438,9 +436,15 @@ CHIAKI_EXPORT void chiaki_rudp_print_message(RudpInstance *rudp, RudpMessage *me
 CHIAKI_EXPORT void chiaki_rudp_message_pointers_free(RudpMessage *message)
 {
     if(message->data)
+    {
         free(message->data);
+        message->data = NULL;
+    }
     if(message->subMessage)
+    {
         free(message->subMessage);
+        message->subMessage = NULL;
+    }
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_fini(RudpInstance *rudp)

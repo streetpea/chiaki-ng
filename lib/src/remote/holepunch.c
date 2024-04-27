@@ -65,7 +65,7 @@
 #define SESSION_START_TIMEOUT_SEC 30
 #define SESSION_DELETION_TIMEOUT_SEC 3
 #define SELECT_CANDIDATE_TIMEOUT_SEC 10
-#define WAIT_RESPONSE_TIMEOUT_SEC 5
+#define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
 
@@ -1062,56 +1062,75 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
     session->local_req_id++;
 
-    // bool finished = false;
     SessionMessage *msg = NULL;
-        err = wait_for_session_message(session, &msg, SESSION_MESSAGE_ACTION_ACCEPT, SESSION_START_TIMEOUT_SEC * 1000);
-        if (err == CHIAKI_ERR_TIMEOUT)
-        {
-            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Timed out waiting for ACCEPT session message.");
-            goto cleanup;
-        }
-        else if (err == CHIAKI_ERR_CANCELED)
-        {
-            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
-            goto cleanup;
-        }
-        else if (err != CHIAKI_ERR_SUCCESS)
-        {
-            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to wait for ACCEPT or OFFER session message.");
-            goto cleanup;
-        }
+    err = wait_for_session_message(session, &msg, SESSION_MESSAGE_ACTION_ACCEPT, SESSION_START_TIMEOUT_SEC * 1000);
+    if (err == CHIAKI_ERR_TIMEOUT)
+    {
+        CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Timed out waiting for ACCEPT session message.");
+        goto cleanup;
+    }
+    else if (err == CHIAKI_ERR_CANCELED)
+    {
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+        goto cleanup;
+    }
+    else if (err != CHIAKI_ERR_SUCCESS)
+    {
+        CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to wait for ACCEPT or OFFER session message.");
+        goto cleanup;
+    }
 
-        if (msg->action == SESSION_MESSAGE_ACTION_ACCEPT)
-        {
-            chiaki_mutex_lock(&session->state_mutex);
-            if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
-            {
-                session->state |= SESSION_STATE_CTRL_ESTABLISHED;
-                session->ctrl_sock = sock;
-                CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
-            }
-            else
-            {
-                session->state |= SESSION_STATE_DATA_ESTABLISHED;
-                session->data_sock = sock;
-                CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Data connection established.");
-            }
-            chiaki_mutex_unlock(&session->state_mutex);
-        }
-        if(session->main_should_stop)
-        {
-            session->main_should_stop = false;
-            CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
-            err = CHIAKI_ERR_CANCELED;
-            goto cleanup;
-        }
-        ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
-        if(!(pserr == CHIAKI_ERR_SUCCESS || pserr == CHIAKI_ERR_TIMEOUT))
-        {
-            CHIAKI_LOGE(session->log, "Sending extra request to ps failed");
-            err = pserr;
-        }
-        log_session_state(session);
+    // ACK the accept message response
+    SessionMessage accept_ack_msg = {
+        .action = SESSION_MESSAGE_ACTION_RESULT,
+        .req_id = msg->req_id,
+        .error = 0,
+        .conn_request = NULL,
+        .notification = NULL,
+    };
+    err = http_send_session_message(session, &accept_ack_msg, true);
+    if(err != CHIAKI_ERR_SUCCESS)
+    {
+        CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Couldn't send session message");
+        goto cleanup;
+    }
+    if(session->main_should_stop)
+    {
+        session->main_should_stop = false;
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup;
+    }
+
+    chiaki_mutex_lock(&session->state_mutex);
+    if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
+    {
+        session->state |= SESSION_STATE_CTRL_ESTABLISHED;
+        session->ctrl_sock = sock;
+        CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
+    }
+    else
+    {
+        session->state |= SESSION_STATE_DATA_ESTABLISHED;
+        session->data_sock = sock;
+        CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Data connection established.");
+    }
+    chiaki_mutex_unlock(&session->state_mutex);
+
+    if(session->main_should_stop)
+    {
+        session->main_should_stop = false;
+        CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
+        err = CHIAKI_ERR_CANCELED;
+        goto cleanup;
+    }
+    ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
+    if(!(pserr == CHIAKI_ERR_SUCCESS || pserr == CHIAKI_ERR_TIMEOUT))
+    {
+        CHIAKI_LOGE(session->log, "Sending extra request to ps failed");
+        err = pserr;
+    }
+    log_session_state(session);
 
 cleanup:
     chiaki_mutex_lock(&session->notif_mutex);
@@ -1750,7 +1769,7 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
     };
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
-    msg.conn_request->nat_type = selected_candidate->type == CANDIDATE_TYPE_LOCAL ? 0 : 2;
+    msg.conn_request->nat_type = 0;
     msg.conn_request->num_candidates = 1;
     msg.conn_request->candidates = calloc(1, sizeof(Candidate));
     memcpy(&msg.conn_request->candidates[0], selected_candidate, sizeof(Candidate));

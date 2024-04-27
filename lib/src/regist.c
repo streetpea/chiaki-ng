@@ -281,7 +281,7 @@ static void *regist_thread_func(void *user)
 			CHIAKI_LOGE(regist->log, "Failed receive rudp regist init message");
 			goto fail;
 		}
-		if(message.type != ntohs(INIT_RESPONSE))
+		if(message.type != INIT_RESPONSE)
 		{
 			CHIAKI_LOGE(regist->log, "Expected Rudp regist init response and got type %d instead", message.type);
 			chiaki_rudp_print_message(regist->info.rudp, &message);
@@ -302,20 +302,20 @@ static void *regist_thread_func(void *user)
 			chiaki_rudp_message_pointers_free(&message);
 			goto fail;
 		}
-		chiaki_rudp_message_pointers_free(&message);
 		err = chiaki_rudp_send_cookie_message(regist->info.rudp, message.data + 8, message.data_size - 8, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed to send regist rudp cookie message");
 			goto fail;
 		}
+		chiaki_rudp_message_pointers_free(&message);
 		err = chiaki_rudp_recv(regist->info.rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed receive regist rudp cookie response");
 			goto fail;
 		}
-		if(message.type != ntohs(COOKIE_RESPONSE))
+		if(message.type != COOKIE_RESPONSE)
 		{
 			CHIAKI_LOGE(regist->log, "Expected Rudp regist Cookie Response and got type %d instead", message.type);
 			chiaki_rudp_print_message(regist->info.rudp, &message);

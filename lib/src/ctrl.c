@@ -978,7 +978,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			CHIAKI_LOGE(session->log, "Failed receive rudp ctrl start init message");
 			goto error;
 		}
-		if(message.type != ntohs(INIT_RESPONSE))
+		if(message.type != INIT_RESPONSE)
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp ctrl start init response and got type %d instead", message.type);
 			chiaki_rudp_print_message(session->rudp, &message);
@@ -999,20 +999,20 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			chiaki_rudp_message_pointers_free(&message);
 			goto error;
 		}
-		chiaki_rudp_message_pointers_free(&message);
 		err = chiaki_rudp_send_cookie_message(session->rudp, message.data + 8, message.data_size - 8, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send ctrl start rudp cookie message");
 			goto error;
 		}
+		chiaki_rudp_message_pointers_free(&message);
 		err = chiaki_rudp_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive ctrl start rudp cookie response");
 			goto error;
 		}
-		if(message.type != ntohs(COOKIE_RESPONSE))
+		if(message.type != COOKIE_RESPONSE)
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp ctrl start Cookie Response and got type %d instead", message.type);
 			chiaki_rudp_print_message(session->rudp, &message);
