@@ -930,7 +930,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			return err;
 		}
-		if(message.type != ntohs(FINISH))
+		if(message.type != FINISH)
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp session request FINISH message and got type %d instead", message.type);
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;

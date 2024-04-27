@@ -1285,7 +1285,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			goto error;
 		}
-		if(message.type != ntohs(FINISH))
+		if(message.type != FINISH)
 		{
 			CHIAKI_LOGE(session->log, "Expected Rudp ctrl request FINISH message and got type %d instead", message.type);
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
