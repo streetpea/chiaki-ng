@@ -654,7 +654,7 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 	if(regist->info.holepunch_info)
 	{
 		uint16_t local_counter = 0;
-		ChiakiErrorCode err = chiaki_rudp_send_ack_message(regist->info.rudp, remote_counter, &local_counter);
+		ChiakiErrorCode err = chiaki_rudp_send_ack_message(regist->info.rudp, remote_counter, true, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed to send rudp session regist ack message");

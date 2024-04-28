@@ -915,7 +915,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	}
 	if(session->rudp)
 	{
-		err = chiaki_rudp_send_ack_message(session->rudp, remote_counter, &local_counter);
+		err = chiaki_rudp_send_ack_message(session->rudp, remote_counter, true, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send rudp session request ack message");

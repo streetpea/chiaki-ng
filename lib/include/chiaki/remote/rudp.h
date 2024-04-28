@@ -110,10 +110,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(ChiakiRudp rudp, 
  *
  * @param rudp Pointer to the Rudp instance to use for the message
  * @param[in] remote_counter The remote counter of the message to ack
+ * @param[in] resend Whether the package should be added to the resend buffer
  * @param[out] local_counter Pointer to the local counter used for the message or NULL if not needed
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint16_t remote_counter, uint16_t *local_counter);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint16_t remote_counter, bool resend, uint16_t *local_counter);
 
 /**
  * Creates and sends a ctrl rudp message for use with ctrl

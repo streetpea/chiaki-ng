@@ -148,7 +148,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(RudpInstance *rud
     return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, uint16_t remote_counter, uint16_t *local_counter)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, uint16_t remote_counter, bool resend, uint16_t *local_counter)
 {
     RudpMessage message;
     uint16_t counter = increase_counter(rudp);
@@ -174,7 +174,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, u
         free(serialized_msg);
         return err;
     }
-    free(serialized_msg);
+    if(resend)
+        err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, counter, serialized_msg, msg_size);
+    else
+        free(serialized_msg);
     return err;
 }
 

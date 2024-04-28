@@ -424,7 +424,7 @@ static void *ctrl_thread_func(void *user)
 					case 0x26:
 					case 0x36:
 						ack_counter = htons(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
-						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, NULL);
+						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, false, NULL);
 						int offset = rudp_packet_type_data_offset(message.type);
 						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
 						if((message.data_size - offset) < 2)
@@ -435,6 +435,7 @@ static void *ctrl_thread_func(void *user)
 						memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
 						break;
 					case 0xc0:
+						CHIAKI_LOGI(ctrl->session->log, "Received rudp finish message, stopping ctrl.");
 						chiaki_ctrl_stop(ctrl);
 						break;
 					default:
@@ -1268,38 +1269,13 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 	if(session->rudp)
 	{
-		err = chiaki_rudp_send_ack_message(session->rudp, remote_counter, &local_counter);
+		err = chiaki_rudp_send_ack_message(session->rudp, remote_counter, false, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send rudp ctrl request ack message");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			goto error;
 		}
-		RudpMessage message;
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to receive rudp ctrl request finish message");
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			goto error;
-		}
-		if(message.type != FINISH)
-		{
-			CHIAKI_LOGE(session->log, "Expected Rudp ctrl request FINISH message and got type %d instead", message.type);
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			chiaki_rudp_print_message(session->rudp, &message);
-			chiaki_rudp_message_pointers_free(&message);
-			return CHIAKI_ERR_NETWORK;
-		}
-		err = chiaki_rudp_ack_packet(session->rudp, local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to ack rudp packet");
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			chiaki_rudp_message_pointers_free(&message);
-			goto error;
-		}
-		chiaki_rudp_message_pointers_free(&message);
 	}
 
 	CHIAKI_LOGI(session->log, "Ctrl received http header as response");
