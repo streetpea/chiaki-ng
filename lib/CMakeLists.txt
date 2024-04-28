@@ -123,8 +123,6 @@ set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 
 if(WIN32)
 	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt iphlpapi)
-else()
-	target_link_libraries(chiaki-lib m)
 endif()
 
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -285,29 +285,28 @@ static void chiaki_rudp_message_parse(
     message->size = ntohs(*(chiaki_unaligned_uint16_t *)(serialized_msg));
     message->type = ntohs(*(chiaki_unaligned_uint16_t *)(serialized_msg + 6));
     message->subtype = serialized_msg[6] & 0xFF;
-    uint8_t length_array[2];
-    uint16_t length;
-    memcpy(length_array, serialized_msg, 2);
-    length_array[0] = length_array[0] & 0x0F;
-    length = htons(*(chiaki_unaligned_uint16_t *)(length_array));
+    // Eliminate 0xc before size
+    serialized_msg[0] & 0x0f;
+    uint16_t length = ntohs(*(chiaki_unaligned_uint16_t *)(serialized_msg));
     int remaining = msg_size - 8;
-    int subMessageDataLeft = 0;
+    int data_size = 0;
     if(length > 8)
     {
-        subMessageDataLeft = length - 8;
-        subMessageDataLeft = fmin(subMessageDataLeft, remaining);
-        message->data_size = subMessageDataLeft;
+        data_size = length - 8;
+        if(remaining < data_size)
+            data_size = remaining;
+        message->data_size = data_size;
         message->data = calloc(message->data_size, sizeof(uint8_t));
-        memcpy(message->data, serialized_msg + 8, subMessageDataLeft);
+        memcpy(message->data, serialized_msg + 8, data_size);
         message->remote_counter = ntohs(*(chiaki_unaligned_uint16_t *)(message->data));
     }
 
-    remaining = remaining - subMessageDataLeft;
+    remaining = remaining - data_size;
     if (remaining >= 8)
     {
         message->subMessage = calloc(1, sizeof(RudpMessage));
         message->subMessage_size = remaining;
-        chiaki_rudp_message_parse(serialized_msg + 8 + subMessageDataLeft, remaining, message->subMessage);
+        chiaki_rudp_message_parse(serialized_msg + 8 + data_size, remaining, message->subMessage);
     }
 }
 
