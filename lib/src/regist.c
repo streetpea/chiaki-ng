@@ -376,47 +376,7 @@ static void *regist_thread_func(void *user)
 		}
 		CHIAKI_LOGI(regist->log, "Regist connected to %s, sending request", regist->info.host);
 	}
-	if(psn)
-	{
-		// uint16_t local_counter = 0;
-		// err = chiaki_rudp_send_session_message(regist->info.rudp, remote_counter, (uint8_t *)request_header, request_header_size, &local_counter);
-		// if(err != CHIAKI_ERR_SUCCESS)
-		// {
-		// 	CHIAKI_LOGE(regist->log, "Regist failed to send request header");
-		// 	goto fail_socket;
-		// }
-		// RudpMessage message;
-		// err = chiaki_rudp_recv(regist->info.rudp, 1500, &message);
-		// if(err != CHIAKI_ERR_SUCCESS)
-		// {
-		// 	CHIAKI_LOGE(regist->log, "Regist failed to receive ack of header message");
-		// 	goto fail_socket;
-		// }
-		// if((message.subtype & 0x0F) != 0x2 && (message.subtype & 0x0F) != 0x6)
-		// {
-		// 	CHIAKI_LOGE(regist->log, "Expected Rudp PlayStation regist ack and got type %d instead", message.type);
-		// 	chiaki_rudp_print_message(regist->info.rudp, &message);
-		// 	chiaki_rudp_message_pointers_free(&message);
-		// 	goto fail_socket;
-		// }
-		// if(message.data_size < 2)
-		// {
-		// 	CHIAKI_LOGE(regist->log, "Rudp session message response too small. Failed registering PlayStation");
-		// 	chiaki_rudp_print_message(regist->info.rudp, &message);
-		// 	chiaki_rudp_message_pointers_free(&message);
-		// 	goto fail_socket;
-		// }
-		// err = chiaki_rudp_ack_packet(regist->info.rudp, local_counter);
-		// if(err != CHIAKI_ERR_SUCCESS)
-		// {
-		// 	CHIAKI_LOGE(regist->log, "Failed to ack rudp packet");
-		// 	chiaki_rudp_message_pointers_free(&message);
-		// 	goto fail_socket;
-		// }
-		// remote_counter = message.remote_counter + 1;
-		// chiaki_rudp_message_pointers_free(&message);
-	}
-	else
+	if(!psn)
 	{
 		int s = send(sock, (CHIAKI_SOCKET_BUF_TYPE)request_header, request_header_size, 0);
 		if(s < 0)

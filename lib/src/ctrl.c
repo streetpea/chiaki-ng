@@ -549,17 +549,15 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 
 	if(ctrl->session->rudp)
 	{
+		uint8_t buf_size = 8 + payload_size;
+		uint8_t buf[buf_size];
+		memcpy(buf, header, 8);
+		memcpy(buf + 8, enc, payload_size);
 		ChiakiErrorCode err;
-		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, header, sizeof(header));
+		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Header");
-			return err;
-		}
-		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, enc, payload_size);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Payload");
+			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message");
 			return err;
 		}
 	}
