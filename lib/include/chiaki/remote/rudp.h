@@ -76,6 +76,14 @@ CHIAKI_EXPORT ChiakiRudp chiaki_rudp_init(chiaki_socket_t *sock,
  * @param[out] local_counter The local counter used for the message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
+
+/**
+ * Resets the counter and header of the rudp instance (used before init message is sent if rudp is already initialized)
+ *
+ * @param rudp Pointer to the Rudp instance of which to reset the counter and header
+*/
+CHIAKI_EXPORT void chiaki_rudp_reset_counter_header(ChiakiRudp rudp);
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(
     ChiakiRudp rudp, uint16_t *local_counter);
 

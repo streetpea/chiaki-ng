@@ -654,6 +654,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	{
 		uint16_t local_counter = 0;
 		CHIAKI_LOGI(session->log, "Starting RUDP thread request session for %s", session->connect_info.ps5 ? "PS5" : "PS4");
+		chiaki_rudp_reset_counter_header(session->rudp);
 		ChiakiErrorCode err = chiaki_rudp_send_init_message(session->rudp, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{

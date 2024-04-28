@@ -964,6 +964,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if(session->rudp)
 	{
 		CHIAKI_LOGI(session->log, "Starting RUDP ctrl start session for %s", session->connect_info.ps5 ? "PS5" : "PS4");
+		chiaki_rudp_reset_counter_header(session->rudp);
 		err = chiaki_rudp_send_init_message(session->rudp, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{

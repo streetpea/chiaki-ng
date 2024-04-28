@@ -30,8 +30,7 @@ CHIAKI_EXPORT RudpInstance *chiaki_rudp_init(chiaki_socket_t *sock, ChiakiLog *l
 {
     RudpInstance *rudp = (RudpInstance *)calloc(1, sizeof(RudpInstance));
     rudp->log = log;
-    rudp->counter = chiaki_random_32()%0x5E00 + 0x1FF;
-    rudp->header = chiaki_random_32() + 0x8000;
+    chiaki_rudp_reset_counter_header(rudp);
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&rudp->counter_mutex, false);
     assert(err == CHIAKI_ERR_SUCCESS);
@@ -50,6 +49,14 @@ CHIAKI_EXPORT RudpInstance *chiaki_rudp_init(chiaki_socket_t *sock, ChiakiLog *l
         return NULL;
     }
     return rudp;
+}
+
+CHIAKI_EXPORT void chiaki_rudp_reset_counter_header(RudpInstance *rudp)
+{
+    chiaki_mutex_lock(&rudp->counter_mutex);
+    rudp->counter = chiaki_random_32()%0x5E00 + 0x1FF;
+    chiaki_mutex_unlock(&rudp->counter_mutex);
+    rudp->header = chiaki_random_32() + 0x8000;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(RudpInstance *rudp, uint16_t *local_counter)
@@ -339,11 +346,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(RudpInstance *rudp, uint8_t *
 	int sent = send(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
 	if(sent < 0)
 	{
-#ifdef _WIN32
-		CHIAKI_LOGE(rudp->log, "Rudp raw failed to send packet: %u", WSAGetLastError());
-#else
-		CHIAKI_LOGE(rudp->log, "Rudp raw failed to send packet: %s", strerror(errno));
-#endif
+		CHIAKI_LOGE(rudp->log, "Rudp raw failed to send packet: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 		return CHIAKI_ERR_NETWORK;
 	}
 	return CHIAKI_ERR_SUCCESS;
@@ -357,7 +360,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(RudpInstance *rudp, size_t buf_si
 		return err;
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(rudp->log, "Rudp select failed: %s", strerror(errno));
+		CHIAKI_LOGE(rudp->log, "Rudp select failed: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 		return err;
 	}
 
@@ -365,7 +368,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(RudpInstance *rudp, size_t buf_si
 	if(received_sz <= 8)
 	{
 		if(received_sz < 0)
-			CHIAKI_LOGE(rudp->log, "Rudp recv failed: %s", strerror(errno));
+			CHIAKI_LOGE(rudp->log, "Rudp recv failed: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 		else
 			CHIAKI_LOGE(rudp->log, "Rudp recv returned less than the required 8 byte RUDP header");
 		return CHIAKI_ERR_NETWORK;
