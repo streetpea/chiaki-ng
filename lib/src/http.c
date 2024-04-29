@@ -234,7 +234,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header_psn(ChiakiRudp rudp, Chiak
 	}
 	received = message.data_size - 2;
 	memcpy(buf, message.data + 2, received);
-	*remote_counter = message.remote_counter + 1;
+	*remote_counter = message.remote_counter;
 	chiaki_rudp_message_pointers_free(&message);
 
 	if(received <= 0)

@@ -423,7 +423,7 @@ static void *ctrl_thread_func(void *user)
 					case 0x24:
 					case 0x26:
 					case 0x36:
-						ack_counter = htons(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
+						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
 						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, false, NULL);
 						int offset = rudp_packet_type_data_offset(message.type);
 						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
@@ -1033,7 +1033,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			chiaki_rudp_message_pointers_free(&message);
 			goto error;
 		}
-		remote_counter = htons(*(chiaki_unaligned_uint16_t *)(message.data)) + 1;
+		remote_counter = message.remote_counter;
 		chiaki_rudp_message_pointers_free(&message);
 	}
 	else

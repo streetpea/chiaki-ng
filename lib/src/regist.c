@@ -336,7 +336,7 @@ static void *regist_thread_func(void *user)
 			chiaki_rudp_message_pointers_free(&message);
 			goto fail;
 		}
-		remote_counter = htons(*(chiaki_unaligned_uint16_t *)(message.data)) + 1;
+		remote_counter = message.remote_counter;
 		chiaki_rudp_message_pointers_free(&message);
 	}
 	else
@@ -400,7 +400,7 @@ static void *regist_thread_func(void *user)
 		err = chiaki_rudp_send_session_message(regist->info.rudp, remote_counter, buf, buf_size, &local_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(regist->log, "Regist failed to send payload");
+			CHIAKI_LOGE(regist->log, "Regist failed to send request");
 			goto fail_socket;
 		}
 	}

@@ -723,7 +723,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			chiaki_rudp_message_pointers_free(&message);
 			return err;
 		}
-		remote_counter = htons(*(chiaki_unaligned_uint16_t *)(message.data)) + 1;
+		remote_counter = message.remote_counter;
 		chiaki_rudp_message_pointers_free(&message);
 	}
 	else
