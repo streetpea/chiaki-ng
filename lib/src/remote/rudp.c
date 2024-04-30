@@ -1,7 +1,6 @@
 #include <chiaki/remote/rudp.h>
 #include <chiaki/random.h>
 #include <chiaki/thread.h>
-#include <chiaki/stoppipe.h>
 #include <chiaki/remote/rudpsendbuffer.h>
 
 #include <math.h>
@@ -189,7 +188,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, u
     return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, uint8_t *ctrl_message, size_t ctrl_message_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, uint8_t *ctrl_message, size_t ctrl_message_size, bool resend)
 {
     RudpMessage message;
     uint16_t counter = increase_counter(rudp);
@@ -211,7 +210,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
         free(serialized_msg);
         return err;
     }
-    err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, counter, serialized_msg, msg_size);
+    if(resend)
+        err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, counter, serialized_msg, msg_size);
+    else
+        free(serialized_msg);
     return err;
 }
 
@@ -299,7 +301,8 @@ static void chiaki_rudp_message_parse(
         message->data_size = data_size;
         message->data = calloc(message->data_size, sizeof(uint8_t));
         memcpy(message->data, serialized_msg + 8, data_size);
-        message->remote_counter = ntohs(*(chiaki_unaligned_uint16_t *)(message->data)) + 1;
+        if(data_size >= 2)
+            message->remote_counter = ntohs(*(chiaki_unaligned_uint16_t *)(message->data)) + 1;
     }
 
     remaining = remaining - data_size;
@@ -352,7 +355,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(RudpInstance *rudp, uint8_t *
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(RudpInstance *rudp, size_t buf_size,  RudpMessage *message)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_select_recv(RudpInstance *rudp, size_t buf_size,  RudpMessage *message)
 {
     uint8_t buf[buf_size]; 
 	ChiakiErrorCode err = chiaki_stop_pipe_select_single(&rudp->stop_pipe, rudp->sock, false, RUDP_EXPECT_TIMEOUT_MS);
@@ -379,6 +382,39 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(RudpInstance *rudp, size_t buf_si
     chiaki_rudp_message_parse(buf, received_sz, message);
     
 	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv_only(RudpInstance *rudp, size_t buf_size,  RudpMessage *message)
+{
+    uint8_t buf[buf_size];
+	int received_sz = recv(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
+	if(received_sz <= 8)
+	{
+		if(received_sz < 0)
+			CHIAKI_LOGE(rudp->log, "Rudp recv failed: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+		else
+			CHIAKI_LOGE(rudp->log, "Rudp recv returned less than the required 8 byte RUDP header");
+		return CHIAKI_ERR_NETWORK;
+	}
+    CHIAKI_LOGI(rudp->log, "Receiving message:");
+    chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, buf, received_sz);
+
+    chiaki_rudp_message_parse(buf, received_sz, message);
+
+	return CHIAKI_ERR_SUCCESS;
+}
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_stop_pipe_select_single(RudpInstance *rudp, ChiakiStopPipe *stop_pipe, uint64_t timeout)
+{
+	ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, rudp->sock, false, timeout);
+	if(err == CHIAKI_ERR_TIMEOUT || err == CHIAKI_ERR_CANCELED)
+		return err;
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(rudp->log, "Rudp select failed: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+		return err;
+	}
+    return CHIAKI_ERR_SUCCESS;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_ack_packet(RudpInstance *rudp, uint16_t counter_to_ack)

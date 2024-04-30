@@ -21,6 +21,7 @@
 #include <chiaki/log.h>
 #include <chiaki/common.h>
 #include <chiaki/sock.h>
+#include <chiaki/stoppipe.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,8 +42,8 @@ typedef enum rudp_packet_type_t
     ACK = 0x2430,
     CTRL_MESSAGE = 0x0230,
     UNKNOWN = 0x022F,
-    OFFSET6 = 0x1230,
-    OFFSET8 = 0x2630,
+    OFFSET8 = 0x1230,
+    OFFSET10 = 0x2630,
     FINISH = 0xC000,
 } RudpPacketType;
 
@@ -130,11 +131,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint
  * @param rudp Pointer to the Rudp indstance to use for the message
  * @param[in] ctrl_message The byte array of the ctrl message to send
  * @param[in] ctrl_messaage_size The size of the ctrl message to send
+ * @param[in] resend Whether the package should be added to the resend buffer
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(ChiakiRudp rudp, uint8_t *ctrl_message, 
-    size_t ctrl_message_size);
+    size_t ctrl_message_size, bool resend);
 
 /**
  * Creates and sends a switch to takion rudp message for use when switching to takion
@@ -157,7 +159,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(ChiakiRudp rudp,
     uint8_t *buf, size_t buf_size);
 
 /**
- * Receive rudp message
+ * Selects an incoming message from the queue and receives the rudp message
+ *
+ * @param rudp Pointer to the Rudp instance to use
+ * @param[in] buf_size The size of the received message
+ * @param[out] message The Rudp message returned
+ * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
+ *
+*/
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_select_recv(ChiakiRudp rudp, size_t buf_size, RudpMessage *message);
+
+/**
+ * Receives the rudp message. Must use select separately from this function
  *
  * @param rudp Pointer to the Rudp instance to use
  * @param[in] buf_size The size of the received message
@@ -165,7 +178,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(ChiakiRudp rudp,
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(ChiakiRudp rudp, size_t buf_size, RudpMessage *message);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv_only(ChiakiRudp rudp, size_t buf_size,  RudpMessage *message);
+
+/**
+ * Selects a rudp message using the given stop pipe and timeout
+ *
+ * @param rudp Pointer to the Rudp instance to use
+ * @param[in] stop_pipe Pointer to the stop pipe to use
+ * @param[in] timeout The timeout in ms
+ * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
+ *
+*/
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_stop_pipe_select_single(ChiakiRudp rudp, ChiakiStopPipe *stop_pipe, uint64_t timeout);
 
 /**
  * Frees rudp message pointers if present (data and subMessage)
@@ -182,6 +206,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv(ChiakiRudp rudp, size_t buf_size,
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_ack_packet(ChiakiRudp rudp, uint16_t counter_to_ack);
 
 /**

@@ -423,6 +423,7 @@ static void *session_thread_func(void *arg)
 		info.target = session->connect_info.ps5 ? CHIAKI_TARGET_PS5_1 : CHIAKI_TARGET_PS4_10;
 		chiaki_regist_start(&regist, session->log, &info, regist_cb, session);
 		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, 10000, session_check_state_pred_regist, session);
+		chiaki_regist_stop(&regist);
 		chiaki_regist_fini(&regist);
 		CHECK_STOP(quit);
 	}
@@ -662,7 +663,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			return err;
 		}
 		RudpMessage message;
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive rudp session request init message");
@@ -677,7 +678,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		}
 		if(message.data_size < 8)
 		{
-			CHIAKI_LOGE(session->log, "Rudp session request Init Response too small. Failed initiating rudp regist");
+			CHIAKI_LOGE(session->log, "Rudp session request Init Response too small. Failed initiating rudp session request");
 			chiaki_rudp_message_pointers_free(&message);
 			chiaki_rudp_print_message(session->rudp, &message);
 			return CHIAKI_ERR_INVALID_RESPONSE;
@@ -696,7 +697,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			return err;
 		}
 		chiaki_rudp_message_pointers_free(&message);
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive session request rudp cookie response");
@@ -924,12 +925,28 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			return err;
 		}
 		RudpMessage message;
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to receive rudp session request finish message");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			return err;
+		}
+		// try again twice if received ack instead of finish
+		for(int i=0; i<2; i++)
+		{
+			if(message.type == ACK)
+			{
+				chiaki_rudp_message_pointers_free(&message);
+				chiaki_rudp_select_recv(session->rudp, 1500, &message);
+				if(err != CHIAKI_ERR_SUCCESS)
+				{
+					CHIAKI_LOGE(session->log, "Failed to receive rudp session request finish message");
+					return err;
+				}
+			}
+			else
+				break;
 		}
 		if(message.type != FINISH)
 		{

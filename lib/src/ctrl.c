@@ -95,16 +95,16 @@ typedef struct ctrl_keyboard_text_response_t
 /**
  * @return The offset of the mac of size CHIAKI_GKCRYPT_GMAC_SIZE inside a packet of type or -1 if unknown.
  */
-int rudp_packet_type_data_offset(RudpPacketType type)
+int rudp_packet_type_data_offset(uint8_t subtype)
 {
-	switch(type)
+	switch(subtype)
 	{
-		case OFFSET6:
-			return 6;
-		case OFFSET8:
+		case 0x12:
 			return 8;
+		case 0x26:
+			return 10;
 		default:
-			return 0;
+			return 2;
 	}
 }
 
@@ -350,7 +350,9 @@ static void *ctrl_thread_func(void *user)
 		}
 
 		chiaki_mutex_unlock(&ctrl->notif_mutex);
-		if(!ctrl->session->rudp)
+		if(ctrl->session->rudp)
+			err = chiaki_rudp_stop_pipe_select_single(ctrl->session->rudp, &ctrl->notif_pipe, UINT64_MAX);
+		else
 			err = chiaki_stop_pipe_select_single(&ctrl->notif_pipe, ctrl->sock, false, UINT64_MAX);
 		chiaki_mutex_lock(&ctrl->notif_mutex);
 
@@ -401,17 +403,19 @@ static void *ctrl_thread_func(void *user)
 			RudpMessage message;
 			uint16_t remote_counter = 0;
 			uint16_t ack_counter = 0;
-			err = chiaki_rudp_recv(ctrl->session->rudp, sizeof(ctrl->rudp_recv_buf) - ctrl->recv_buf_size, &message);
-			if(err == CHIAKI_ERR_SUCCESS)
+			err = chiaki_rudp_recv_only(ctrl->session->rudp, sizeof(ctrl->rudp_recv_buf) - ctrl->recv_buf_size, &message);
+			if(err != CHIAKI_ERR_SUCCESS)
 			{
 				CHIAKI_LOGE(ctrl->session->log, "Failed to receive Rudp ctrl packet");
 				ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+				break;
 			}
 			if(message.data_size < 4)
 			{
 				CHIAKI_LOGE(ctrl->session->log, "Rudp ctrl message response too small");
 				chiaki_rudp_print_message(ctrl->session->rudp, &message);
 				ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+				break;
 			}
 			remote_counter = message.remote_counter;
 			while(true)
@@ -420,35 +424,36 @@ static void *ctrl_thread_func(void *user)
 				{
 					case 0x02:
 					case 0x12:
-					case 0x24:
 					case 0x26:
 					case 0x36:
-						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
 						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, false, NULL);
-						int offset = rudp_packet_type_data_offset(message.type);
-						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
+						int offset = rudp_packet_type_data_offset(message.subtype);
 						if((message.data_size - offset) < 2)
 						{
 							memcpy(&message, message.subMessage, message.subMessage_size);
 							continue;
 						}
 						memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
+						ctrl->recv_buf_size += message.data_size - offset;
 						break;
-					case 0xc0:
+					case 0x24:
+						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
+						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
+						break;
+					case 0xC0:
 						CHIAKI_LOGI(ctrl->session->log, "Received rudp finish message, stopping ctrl.");
-						chiaki_ctrl_stop(ctrl);
+						ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED);
+						//chiaki_ctrl_stop(ctrl);
 						break;
 					default:
-						if(message.data_size > 6)
-						{
-							int offset = 2;
-							memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
-						}
+						CHIAKI_LOGI(ctrl->session->log, "Received message of unknown type: %04x", message.type);
+						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, false, NULL);
 						break;
 				}
 				if(message.subMessage)
 				{
-					free(message.data);
+					if(message.data_size > 0)
+						free(message.data);
 					RudpMessage *tmp = message.subMessage;
 					memcpy(&message, message.subMessage, message.subMessage_size);
 					free(tmp);
@@ -510,8 +515,8 @@ static void *ctrl_thread_func(void *user)
 	}
 
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
-
-	CHIAKI_SOCKET_CLOSE(ctrl->sock);
+	if(!ctrl->session->rudp)
+		CHIAKI_SOCKET_CLOSE(ctrl->sock);
 
 	return NULL;
 }
@@ -555,7 +560,10 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		memcpy(buf, header, 8);
 		memcpy(buf + 8, enc, payload_size);
 		ChiakiErrorCode err;
-		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size);
+		if(type == CTRL_MESSAGE_TYPE_HEARTBEAT_REP)
+			err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size, false);
+		else
+			err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size, true);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message");
@@ -972,7 +980,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			goto error;
 		}
 		RudpMessage message;
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive rudp ctrl start init message");
@@ -987,7 +995,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		}
 		if(message.data_size < 8)
 		{
-			CHIAKI_LOGE(session->log, "Rudp ctrl start Init Response too small. Failed initiating rudp regist");
+			CHIAKI_LOGE(session->log, "Rudp ctrl start Init Response too small. Failed initiating rudp ctrl");
 			chiaki_rudp_message_pointers_free(&message);
 			chiaki_rudp_print_message(session->rudp, &message);
 			return CHIAKI_ERR_INVALID_RESPONSE;
@@ -1006,7 +1014,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			goto error;
 		}
 		chiaki_rudp_message_pointers_free(&message);
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(session->rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed receive ctrl start rudp cookie response");

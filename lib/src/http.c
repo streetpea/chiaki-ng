@@ -208,7 +208,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header_psn(ChiakiRudp rudp, Chiak
 	int received;
 	RudpMessage message;
 	ChiakiErrorCode err;
-	err = chiaki_rudp_recv(rudp, buf_size, &message);
+	err = chiaki_rudp_select_recv(rudp, buf_size, &message);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "Failed to receive http header response");

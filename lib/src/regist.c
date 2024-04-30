@@ -181,15 +181,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(ChiakiTarget 
 	{
 		size_t key_0_off = buf[0x18D] & 0x1F;
 		size_t key_1_off = buf[0] >> 3;
+		uint8_t aeropause[0x10];
 		ChiakiErrorCode err;
 		if(holepunch_info)
+		{
 			err = chiaki_rpcrypt_init_regist_psn(crypt, target, ambassador, key_0_off, holepunch_info->custom_data1, holepunch_info->data1, holepunch_info->data2);
+			if(err != CHIAKI_ERR_SUCCESS)
+				return err;
+			err = chiaki_rpcrypt_aeropause_psn(target, key_1_off, aeropause, crypt->ambassador);
+		}
 		else
+		{
 			err = chiaki_rpcrypt_init_regist(crypt, target, ambassador, key_0_off, pin);
-		if(err != CHIAKI_ERR_SUCCESS)
-			return err;
-		uint8_t aeropause[0x10];
-		err = chiaki_rpcrypt_aeropause(target, key_1_off, aeropause, crypt->ambassador);
+			if(err != CHIAKI_ERR_SUCCESS)
+				return err;
+			err = chiaki_rpcrypt_aeropause(target, key_1_off, aeropause, crypt->ambassador);
+		}
 		if(err != CHIAKI_ERR_SUCCESS)
 			return err;
 		memcpy(buf + 0xc7, aeropause + 8, 8);
@@ -275,7 +282,7 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 		RudpMessage message;
-		err = chiaki_rudp_recv(regist->info.rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(regist->info.rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed receive rudp regist init message");
@@ -309,7 +316,7 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 		chiaki_rudp_message_pointers_free(&message);
-		err = chiaki_rudp_recv(regist->info.rudp, 1500, &message);
+		err = chiaki_rudp_select_recv(regist->info.rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed receive regist rudp cookie response");
@@ -661,11 +668,27 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 			return err;
 		}
 		RudpMessage message;
-		chiaki_rudp_recv(regist->info.rudp, 1500, &message);
+		chiaki_rudp_select_recv(regist->info.rudp, 1500, &message);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(regist->log, "Failed to receive rudp regist finish message");
 			return err;
+		}
+		// try again twice if received ack instead of finish
+		for(int i=0; i<2; i++)
+		{
+			if(message.type == ACK)
+			{
+				chiaki_rudp_message_pointers_free(&message);
+				chiaki_rudp_select_recv(regist->info.rudp, 1500, &message);
+				if(err != CHIAKI_ERR_SUCCESS)
+				{
+					CHIAKI_LOGE(regist->log, "Failed to receive rudp regist finish message");
+					return err;
+				}
+			}
+			else
+				break;
 		}
 		if(message.type != FINISH)
 		{
@@ -869,6 +892,11 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 			{
 				mac_found = true;
 			}
+		}
+		else if(strcmp(header->key, "RP-SupportCmd") == 0)
+		{
+			uint32_t support_cmd = (uint32_t)strtoul(header->value, NULL, 0);
+			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %llu", support_cmd);
 		}
 		else
 		{

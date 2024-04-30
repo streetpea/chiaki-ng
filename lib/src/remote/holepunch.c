@@ -275,6 +275,7 @@ typedef enum candidate_type_t
 {
     CANDIDATE_TYPE_STATIC = 0,
     CANDIDATE_TYPE_LOCAL = 1,
+    CANDIDATE_TYPE_DERIVED = 2,
 } CandidateType;
 
 typedef struct candidate_t
@@ -2828,7 +2829,6 @@ static void log_session_state(Session *session)
 
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len)
 {
-
     uint8_t customdata1_round1[24];
     size_t decoded_len = sizeof(customdata1_round1);
     ChiakiErrorCode err = chiaki_base64_decode(customdata1, strlen(customdata1), customdata1_round1, &decoded_len);
@@ -3297,6 +3297,8 @@ static ChiakiErrorCode session_message_parse(
                 candidate.type = CANDIDATE_TYPE_LOCAL;
             else if (strcmp(type_str, "STATIC") == 0)
                 candidate.type = CANDIDATE_TYPE_STATIC;
+            else if (strcmp(type_str, "DERIVED") == 0)
+                candidate.type = CANDIDATE_TYPE_DERIVED;
             else
             {
                 CHIAKI_LOGE(log, "Type field wasn't LOCAL or STATIC.");
@@ -3585,6 +3587,8 @@ static void print_candidate(ChiakiLog *log, Candidate *candidate)
         CHIAKI_LOGV(log, "--------------LOCAL CANDIDATE---------------------");
     else if(candidate->type == CANDIDATE_TYPE_STATIC)
         CHIAKI_LOGV(log, "--------------REMOTE CANDIDATE--------------------");
+    else if(candidate->type == CANDIDATE_TYPE_DERIVED)
+        CHIAKI_LOGV(log, "--------------DERIVED CANDIDATE-------------------");
     else
         CHIAKI_LOGV(log, "--------------CANDIDATE TYPE UNKNOWN--------------");
     CHIAKI_LOGV(log, "Address: %s", candidate->addr);
