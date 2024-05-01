@@ -38,7 +38,7 @@ typedef enum rudp_packet_type_t
     COOKIE_REQUEST = 0x9030,
     COOKIE_RESPONSE = 0xA030,
     SESSION_MESSAGE = 0x2030,
-    TAKION_SWITCH_ACK = 0x242E,
+    STREAM_CONNECTION_SWITCH_ACK = 0x242E,
     ACK = 0x2430,
     CTRL_MESSAGE = 0x0230,
     UNKNOWN = 0x022F,
@@ -139,12 +139,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(ChiakiRudp rudp, uin
     size_t ctrl_message_size, bool resend);
 
 /**
- * Creates and sends a switch to takion rudp message for use when switching to takion
+ * Creates and sends a switch to stream connection rudp message for use when switching from Senkusha to Stream Connection
  *
  * @param rudp Pointer to the Rudp indstance to use for the message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_takion_message(ChiakiRudp rudp);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(ChiakiRudp rudp);
 
 /**
  * Parses byte array into rudp message

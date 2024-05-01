@@ -6,6 +6,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 
 #define RUDP_CONSTANT 0x244F244F
 #define RUDP_SEND_BUFFER_SIZE 16
@@ -217,7 +218,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
     return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_takion_message(RudpInstance *rudp)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(RudpInstance *rudp)
 {
     RudpMessage message;
     uint16_t counter = increase_counter(rudp);
@@ -446,7 +447,7 @@ CHIAKI_EXPORT void chiaki_rudp_print_message(RudpInstance *rudp, RudpMessage *me
         case SESSION_MESSAGE:
             CHIAKI_LOGI(rudp->log, "Message Type: Session Message");
             break;
-        case TAKION_SWITCH_ACK:
+        case STREAM_CONNECTION_SWITCH_ACK:
             CHIAKI_LOGI(rudp->log, "Message Type: Takion Switch Ack");
             break;
         case ACK:

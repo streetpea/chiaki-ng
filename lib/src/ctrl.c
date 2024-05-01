@@ -437,7 +437,7 @@ static void *ctrl_thread_func(void *user)
 						ctrl->recv_buf_size += message.data_size - offset;
 						break;
 					case 0x24:
-						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
+						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2))) - 1;
 						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
 						break;
 					case 0xC0:
@@ -446,16 +446,19 @@ static void *ctrl_thread_func(void *user)
 						//chiaki_ctrl_stop(ctrl);
 						break;
 					default:
-						CHIAKI_LOGI(ctrl->session->log, "Received message of unknown type: %04x", message.type);
-						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, false, NULL);
+						CHIAKI_LOGI(ctrl->session->log, "Received message of unknown type: 0x%04x", message.type);
+						// chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter, false, NULL);
 						break;
 				}
 				if(message.subMessage)
 				{
-					if(message.data_size > 0)
+					if(message.data)
+					{
 						free(message.data);
+						message.data = NULL;
+					}
 					RudpMessage *tmp = message.subMessage;
-					memcpy(&message, message.subMessage, message.subMessage_size);
+					memcpy(&message, message.subMessage, sizeof(RudpMessage));
 					free(tmp);
 					// process last message before adding second message
 					bool overflow = false;
@@ -560,7 +563,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		memcpy(buf, header, 8);
 		memcpy(buf + 8, enc, payload_size);
 		ChiakiErrorCode err;
-		if(type == CTRL_MESSAGE_TYPE_HEARTBEAT_REP)
+		if(type == CTRL_MESSAGE_TYPE_HEARTBEAT_REP || type == CTRL_MESSAGE_TYPE_LOGIN_PIN_REP)
 			err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size, false);
 		else
 			err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size, true);
@@ -683,7 +686,7 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 			ctrl_message_received_displayb(ctrl, payload, payload_size);
 			break;
       default:
-			CHIAKI_LOGW(ctrl->session->log, "Received Ctrl Message with unknown type %#x", msg_type);
+			// CHIAKI_LOGW(ctrl->session->log, "Received Ctrl Message with unknown type %#x", msg_type);
 			chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_WARNING, payload, payload_size);
 			break;
 	}
@@ -758,16 +761,6 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 	}
 
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl received valid Session Id: %s", ctrl->session->session_id);
-	if(ctrl->session->rudp)
-	{
-		ChiakiErrorCode err;
-		err = chiaki_rudp_send_switch_to_takion_message(ctrl->session->rudp);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(ctrl->session->log, "Failed to send switch to takion message");
-			return;
-		}
-	}
 
 	memcpy(ctrl->session->session_id, payload, payload_size);
 	ctrl->session->session_id[payload_size] = '\0';

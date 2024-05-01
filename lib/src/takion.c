@@ -177,6 +177,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	ChiakiErrorCode ret = CHIAKI_ERR_SUCCESS;
 
 	takion->log = info->log;
+	takion->close_socket = info->close_socket;
 	takion->version = info->protocol_version;
 
 	switch(takion->version)
@@ -264,6 +265,32 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 				goto error_sock;
 			}
 			CHIAKI_LOGI(takion->log, "Takion enabled Don't Fragment Bit");
+#endif
+		}
+		else
+		{
+#if defined(_WIN32)
+			const DWORD dontfragment_val = 0;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const CHIAKI_SOCKET_BUF_TYPE)&dontfragment_val, sizeof(dontfragment_val));
+#elif defined(__FreeBSD__) || defined(__SWITCH__)
+			const int dontfrag_val = 0;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const CHIAKI_SOCKET_BUF_TYPE)&dontfrag_val, sizeof(dontfrag_val));
+#elif defined(IP_PMTUDISC_DO)
+			const int mtu_discover_val = IP_PMTUDISC_DONT;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const CHIAKI_SOCKET_BUF_TYPE)&mtu_discover_val, sizeof(mtu_discover_val));
+#else
+			// macOS and OpenBSD
+#define NO_DONTFRAG
+#endif
+
+#ifndef NO_DONTFRAG
+			if(r < 0)
+			{
+				CHIAKI_LOGE(takion->log, "Takion failed to unset setsockopt IP_MTU_DISCOVER: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+				ret = CHIAKI_ERR_NETWORK;
+				goto error_sock;
+			}
+			CHIAKI_LOGI(takion->log, "Takion disabled Don't Fragment Bit");
 #endif
 		}
 	}
@@ -895,7 +922,8 @@ beach:
 		event.type = CHIAKI_TAKION_EVENT_TYPE_DISCONNECT;
 		takion->cb(&event, takion->cb_user);
 	}
-	CHIAKI_SOCKET_CLOSE(takion->sock);
+	if(takion->close_socket)
+		CHIAKI_SOCKET_CLOSE(takion->sock);
 	return NULL;
 }
 

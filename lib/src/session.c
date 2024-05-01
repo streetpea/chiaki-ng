@@ -506,19 +506,11 @@ static void *session_thread_func(void *arg)
 		session->login_pin_size = 0;
 
 		// wait for session id again
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		if(!session->rudp)
+			chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}
 
-	if(!session->ctrl_session_id_received)
-	{
-		CHIAKI_LOGE(session->log, "Ctrl did not receive session id");
-ctrl_failed:
-		CHIAKI_LOGE(session->log, "Ctrl has failed, shutting down");
-		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
-			session->quit_reason = CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
-		QUIT(quit_ctrl);
-	}
 	chiaki_socket_t *data_sock = NULL;
 	if(session->rudp)
 	{
@@ -530,6 +522,17 @@ ctrl_failed:
 		}
 		CHIAKI_LOGI(session->log, ">> Punched hole for data connection!");
 		data_sock = chiaki_get_holepunch_sock(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+	}
+
+	if(!session->ctrl_session_id_received)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl did not receive session id");
+ctrl_failed:
+		CHIAKI_LOGE(session->log, "Ctrl has failed, shutting down");
+		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
+			session->quit_reason = CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
+		QUIT(quit_ctrl);
 	}
 
 #ifdef ENABLE_SENKUSHA
@@ -555,6 +558,16 @@ ctrl_failed:
 		session->rtt_us = 1000;
 	}
 #endif
+	if(session->rudp)
+	{
+		ChiakiErrorCode err;
+		err = chiaki_rudp_send_switch_to_stream_connection_message(session->rudp);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "Failed to send switch to stream connection message");
+			QUIT(quit_ctrl);
+		}
+	}
 
 	err = chiaki_random_bytes_crypt(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)
