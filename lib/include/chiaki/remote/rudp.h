@@ -74,7 +74,6 @@ CHIAKI_EXPORT ChiakiRudp chiaki_rudp_init(chiaki_socket_t *sock,
  * Creates and sends an init rudp message for use when starting the session
  *
  * @param rudp Pointer to the Rudp instance to use for the message
- * @param[out] local_counter The local counter used for the message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
 
@@ -86,7 +85,7 @@ CHIAKI_EXPORT ChiakiRudp chiaki_rudp_init(chiaki_socket_t *sock,
 CHIAKI_EXPORT void chiaki_rudp_reset_counter_header(ChiakiRudp rudp);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(
-    ChiakiRudp rudp, uint16_t *local_counter);
+    ChiakiRudp rudp);
 
 /**
  * Creates and sends a cookie rudp message for use after starting message
@@ -94,12 +93,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(
  * @param rudp Pointer to the Rudp instance to use for the message
  * @param[in] response_buf The response from the init message
  * @param[in] response_size The size of the response from the init message
- * @param[out] local_counter The local counter used for the message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(ChiakiRudp rudp, uint8_t *response_buf, 
-    size_t response_size, uint16_t *local_counter);
+    size_t response_size);
 
 /**
  * Creates and sends a session rudp message for use with registration message
@@ -107,23 +105,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(ChiakiRudp rudp, u
  * @param rudp Pointer to the Rudp instance to use for the message
  * @param[in] session_msg The data from the session msg (i.e., regist message)
  * @param[in] session_msg_sizse The size of the session message
- * @param[out] local_counter The local counter used for the message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(ChiakiRudp rudp, uint16_t remote_counter,
-    uint8_t *session_msg, size_t session_msg_size, uint16_t *local_counter);
+    uint8_t *session_msg, size_t session_msg_size);
 
 /**
  * Creates and sends an ack rudp message for use in acking received rudp messages
  *
  * @param rudp Pointer to the Rudp instance to use for the message
  * @param[in] remote_counter The remote counter of the message to ack
- * @param[in] resend Whether the package should be added to the resend buffer
- * @param[out] local_counter Pointer to the local counter used for the message or NULL if not needed
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint16_t remote_counter, bool resend, uint16_t *local_counter);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint16_t remote_counter);
 
 /**
  * Creates and sends a ctrl rudp message for use with ctrl
@@ -157,6 +152,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_messa
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(ChiakiRudp rudp,
     uint8_t *buf, size_t buf_size);
+
+/**
+ * Sends a rudp message of a given type and checks for a given type to be returned.
+ * Tries a given number of times before failing.
+ * Used for initial rudp sequences.
+ *
+ * @param rudp Pointer to the rudp instance to use
+ * @param message Pointer to the rudp message that will be filled in during the receive
+ * @param[in] buf The buf to send as part of the data of the rudp message or NULL if not used
+ * @param[in] buf_size The size of the sbuf or 0 if buf not used for the message type
+ * @param[in] remote_counter The remote counter of the message this message is being sent in response to or 0 if not used for the message type
+ * @param[in] send_type The RudpPacketType of the message to send
+ * @param[in] recv_type The RudpPacketType of that we want to receive (success when received, otherwise failure)
+ * @param[in] min_data_size The minimum size of the Rudp Message data for the response message to be considered valid
+ * @param[in] tries The amount of times to try to receive a message of receive type in response to our sent message before giving up
+ *
+*/
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_recv(ChiakiRudp rudp,
+    RudpMessage *message, uint8_t *buf, size_t buf_size,
+    uint16_t remote_counter, RudpPacketType send_type,
+    RudpPacketType recv_type, size_t min_data_size, size_t tries);
 
 /**
  * Selects an incoming message from the queue and receives the rudp message

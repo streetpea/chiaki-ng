@@ -192,8 +192,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 	return CHIAKI_ERR_SUCCESS;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header_psn(ChiakiRudp rudp, ChiakiLog *log, uint16_t local_counter,
-	uint16_t *remote_counter, char *buf, size_t buf_size, size_t *header_size, size_t *received_size)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_send_recv_http_header_psn(ChiakiRudp rudp, ChiakiLog *log,
+	uint16_t *remote_counter, char *send_buf, size_t send_buf_size,
+	char *buf, size_t buf_size, size_t *header_size, size_t *received_size)
 {
 	// 0 = ""
 	// 1 = "\r"
@@ -208,28 +209,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header_psn(ChiakiRudp rudp, Chiak
 	int received;
 	RudpMessage message;
 	ChiakiErrorCode err;
-	err = chiaki_rudp_select_recv(rudp, buf_size, &message);
+	err = chiaki_rudp_send_recv(rudp, &message, (uint8_t *)send_buf, send_buf_size, *remote_counter, SESSION_MESSAGE, CTRL_MESSAGE, 2, 3);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(log, "Failed to receive http header response");
-		return err;
-	}
-	if((message.subtype & 0x0F) != 0x2 && (message.subtype & 0x0F) != 0x6)
-	{
-		CHIAKI_LOGE(log, "Expected Rudp PlayStation regist response and got type %d instead", message.type);
-		chiaki_rudp_print_message(rudp, &message);
-		return CHIAKI_ERR_NETWORK;
-	}
-	if(message.data_size < 2)
-	{
-		CHIAKI_LOGE(log, "Rudp session message response too small. Failed registering PlayStation");
-		chiaki_rudp_print_message(rudp, &message);
-		return CHIAKI_ERR_NETWORK;
-	}
-	chiaki_rudp_ack_packet(rudp, local_counter);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "Failed to ack rudp packet");
+		CHIAKI_LOGE(log, "Didn't receive http session message response");
 		return err;
 	}
 	received = message.data_size - 2;
