@@ -37,11 +37,11 @@ typedef struct chiaki_regist_info_t
 	uint32_t pin;
 	uint32_t console_pin;
 	/**
-	 * may be null, in which regular regist (insstead of PSN Regist will be used)
+	 * may be null, in which regular regist (instead of PSN Regist will be used)
 	 */
 	ChiakiHolepunchRegistInfo* holepunch_info;
 	/**
-	 * may be null, in which regular regist (insstead of PSN Regist will be used)
+	 * NULL unless using PSN Regist
 	 */
 	ChiakiRudp rudp;
 } ChiakiRegistInfo;
