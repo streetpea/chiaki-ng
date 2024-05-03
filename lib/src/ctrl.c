@@ -436,13 +436,19 @@ static void *ctrl_thread_func(void *user)
 						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
 						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
 						int offset = rudp_packet_type_data_offset(message.subtype);
-						if((message.data_size - offset) < 2)
+						// ctrl message header is 8 bytes
+						if((message.data_size - offset) < 8)
+							break;
+						else
 						{
-							memcpy(&message, message.subMessage, sizeof(RudpMessage));
-							continue;
+							// check if message is ctrl message by making sure the payload size (size of message - 8 byte header is correct)
+							uint32_t ctrl_payload_size = ntohl(*(uint32_t*)(message.data + offset));
+							if((message.data_size - offset - 8) == ctrl_payload_size)
+							{
+								memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
+								ctrl->recv_buf_size += message.data_size - offset;
+							}
 						}
-						memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
-						ctrl->recv_buf_size += message.data_size - offset;
 						break;
 					case 0x24:
 						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
@@ -473,37 +479,6 @@ static void *ctrl_thread_func(void *user)
 					RudpMessage *tmp = message.subMessage;
 					memcpy(&message, message.subMessage, sizeof(RudpMessage));
 					free(tmp);
-					// process last message before adding second message
-					bool overflow = false;
-					while(ctrl->recv_buf_size >= 8)
-					{
-						uint32_t payload_size = *((uint32_t *)ctrl->recv_buf);
-						payload_size = ntohl(payload_size);
-
-						if(ctrl->recv_buf_size < 8 + payload_size)
-						{
-							if(8 + payload_size > sizeof(ctrl->recv_buf))
-							{
-								CHIAKI_LOGE(ctrl->session->log, "Ctrl buffer overflow!");
-								overflow = true;
-							}
-							break;
-						}
-
-						uint16_t msg_type = *((chiaki_unaligned_uint16_t *)(ctrl->recv_buf + 4));
-						msg_type = ntohs(msg_type);
-
-						ctrl_message_received(ctrl, msg_type, ctrl->recv_buf + 8, (size_t)payload_size);
-						ctrl->recv_buf_size -= 8 + payload_size;
-						if(ctrl->recv_buf_size > 0)
-							memmove(ctrl->recv_buf, ctrl->recv_buf + 8 + payload_size, ctrl->recv_buf_size);
-					}
-
-					if(overflow)
-					{
-						ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
-						break;
-					}
 				}
 				else
 				{
