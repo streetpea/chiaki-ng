@@ -126,20 +126,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint
  * @param rudp Pointer to the Rudp indstance to use for the message
  * @param[in] ctrl_message The byte array of the ctrl message to send
  * @param[in] ctrl_messaage_size The size of the ctrl message to send
- * @param[in] resend Whether the package should be added to the resend buffer
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(ChiakiRudp rudp, uint8_t *ctrl_message, 
-    size_t ctrl_message_size, bool resend);
+    size_t ctrl_message_size);
 
 /**
  * Creates and sends a switch to stream connection rudp message for use when switching from Senkusha to Stream Connection
  *
  * @param rudp Pointer to the Rudp indstance to use for the message
+ * @param[out] ack_counter Filled with the ack counter of the switch to stream connection message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(ChiakiRudp rudp);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(ChiakiRudp rudp, uint16_t *ack_counter);
 
 /**
  * Parses byte array into rudp message

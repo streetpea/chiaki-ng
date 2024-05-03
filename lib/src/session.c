@@ -29,6 +29,7 @@
 #define SESSION_PORT					9295
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
+#define STREAM_CONNECTION_SWITCH_EXPECT_TIMEOUT_MS 2000
 
 static void *session_thread_func(void *arg);
 static void regist_cb(ChiakiRegistEvent *event, void *user);
@@ -197,6 +198,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	session->ctrl_login_pin_requested = false;
 	session->login_pin_entered = false;
 	session->psn_regist_succeeded = false;
+	session->stream_connection_switch_received = false;
 	session->login_pin = NULL;
 	session->login_pin_size = 0;
 
@@ -337,6 +339,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *sessio
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_stream_connection_switch_received(ChiakiSession *session)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	session->stream_connection_switch_received = true;
+	chiaki_mutex_unlock(&session->state_mutex);
+	chiaki_cond_signal(&session->state_cond);
+	return CHIAKI_ERR_SUCCESS;
+}
+
 void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event)
 {
 	if(!session->event_cb)
@@ -367,6 +379,14 @@ static bool session_check_state_pred_pin(void *user)
 	return session->should_stop
 		   || session->ctrl_failed
 		   || session->login_pin_entered;
+}
+
+static bool session_check_state_pred_stream_connection_switch(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		|| session->ctrl_failed
+		|| session->stream_connection_switch_received;
 }
 
 static bool session_check_state_pred_regist(void *user)
@@ -561,12 +581,21 @@ ctrl_failed:
 	if(session->rudp)
 	{
 		ChiakiErrorCode err;
-		err = chiaki_rudp_send_switch_to_stream_connection_message(session->rudp);
+		uint16_t ack_counter = 0;
+		err = chiaki_rudp_send_switch_to_stream_connection_message(session->rudp, &ack_counter);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send switch to stream connection message");
 			QUIT(quit_ctrl);
 		}
+		chiaki_ctrl__set_stream_connection_switch_counter(&session->ctrl, ack_counter);
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, STREAM_CONNECTION_SWITCH_EXPECT_TIMEOUT_MS, session_check_state_pred_stream_connection_switch, session);
+		if(!session->stream_connection_switch_received)
+		{
+			CHIAKI_LOGE(session->log, "Failed to receive switch to stream connection ack!");
+			QUIT(quit_ctrl);
+		}
+		CHIAKI_LOGI(session->log, "Received Switch to Stream Connection Ack... Switching to Stream Connection now");
 	}
 
 	err = chiaki_random_bytes_crypt(session->handshake_key, sizeof(session->handshake_key));

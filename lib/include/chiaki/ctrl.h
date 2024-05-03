@@ -37,6 +37,7 @@ typedef struct chiaki_ctrl_t
 	bool login_pin_entered;
 	uint8_t *login_pin;
 	size_t login_pin_size;
+	int32_t stream_connection_switch_counter;
 	ChiakiCtrlMessageQueue *msg_queue;
 	ChiakiStopPipe notif_pipe;
 	ChiakiMutex notif_mutex;
@@ -73,6 +74,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, co
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_accept(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_reject(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode ctrl_message_go_home(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT void chiaki_ctrl__set_stream_connection_switch_counter(ChiakiCtrl *ctrl, uint16_t counter);
 
 #ifdef __cplusplus
 }

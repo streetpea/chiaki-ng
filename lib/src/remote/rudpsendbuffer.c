@@ -14,7 +14,7 @@
 #include <arpa/inet.h>
 #endif
 
-#define RUDP_DATA_RESEND_TIMEOUT_MS 200
+#define RUDP_DATA_RESEND_TIMEOUT_MS 400
 #define RUDP_DATA_RESEND_WAKEUP_TIMEOUT_MS (RUDP_DATA_RESEND_TIMEOUT_MS/2)
 #define RUDP_DATA_RESEND_TRIES_MAX 10
 
@@ -72,11 +72,8 @@ error_packets:
 
 CHIAKI_EXPORT void chiaki_rudp_send_buffer_fini(ChiakiRudpSendBuffer *send_buffer)
 {
-	ChiakiErrorCode err = chiaki_mutex_lock(&send_buffer->mutex);
-	assert(err == CHIAKI_ERR_SUCCESS);
 	send_buffer->should_stop = true;
-	chiaki_mutex_unlock(&send_buffer->mutex);
-	err = chiaki_cond_signal(&send_buffer->cond);
+	ChiakiErrorCode err = chiaki_cond_signal(&send_buffer->cond);
 	assert(err == CHIAKI_ERR_SUCCESS);
 	err = chiaki_thread_join(&send_buffer->thread, NULL);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -297,7 +294,11 @@ static void rudp_send_buffer_resend(ChiakiRudpSendBuffer *send_buffer)
 				CHIAKI_LOGI(send_buffer->log, "Hit max retries of %d tries giving up on packet with seqnum %#lx", RUDP_DATA_RESEND_TRIES_MAX, (unsigned long)packet->seq_num);
 				ChiakiSeqNum16 ack_seq_nums;
 				size_t ack_seq_nums_count;
+				chiaki_mutex_unlock(&send_buffer->mutex);
 				chiaki_rudp_send_buffer_ack(send_buffer, packet->seq_num, &ack_seq_nums, &ack_seq_nums_count);
+				chiaki_mutex_lock(&send_buffer->mutex);
+				i-= 1;
+				continue;
 			}
 			char packet_type[28] = {0};
 			GetRudpPacketType(send_buffer, *((uint16_t *)(packet->buf + 6)), packet_type);
