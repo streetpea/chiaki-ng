@@ -848,8 +848,14 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	}
 
 	char send_buf[512];
+	int port = SESSION_PORT;
+	if(session->holepunch_session)
+	{
+		chiaki_get_ps_selected_addr(session->holepunch_session, session->connect_info.hostname);
+		port = chiaki_get_ps_ctrl_port(session->holepunch_session);
+	}
 	int request_len = snprintf(send_buf, sizeof(send_buf), session_request_fmt,
-			path, session->connect_info.hostname, SESSION_PORT, regist_key_hex, rp_version_str ? rp_version_str : "");
+			path, session->connect_info.hostname, port, regist_key_hex, rp_version_str ? rp_version_str : "");
 	if(request_len < 0 || request_len >= sizeof(send_buf))
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);

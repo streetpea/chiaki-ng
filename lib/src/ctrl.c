@@ -1142,10 +1142,10 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	else
 		path = "/sie/ps4/rp/sess/ctrl";
 	const char *rp_version = chiaki_rp_version_string(session->target);
-
+	int port = session->holepunch_session ? chiaki_get_ps_ctrl_port(session->holepunch_session) : SESSION_CTRL_PORT;
 	char send_buf[512];
 	int request_len = snprintf(send_buf, sizeof(send_buf), request_fmt,
-			path, session->connect_info.hostname, SESSION_CTRL_PORT, auth_b64,
+			path, session->connect_info.hostname, port, auth_b64,
 			rp_version ? rp_version : "", did_b64, ostype_b64,
 			have_bitrate ? "RP-StartBitrate: " : "",
 			have_bitrate ? bitrate_b64 : "",

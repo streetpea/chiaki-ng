@@ -197,7 +197,7 @@ typedef enum session_state_t
 
 typedef struct upnp_gateway_info_t
 {
-    char lan_ip[16];
+    char lan_ip[INET6_ADDRSTRLEN];
     struct UPNPUrls *urls;
     struct IGDdatas *data;
 } UPNPGatewayInfo;
@@ -226,6 +226,9 @@ typedef struct session_t
     uint8_t data1[16];
     uint8_t data2[16];
     uint8_t custom_data1[16];
+    char ps_ip[INET6_ADDRSTRLEN];
+    uint16_t ctrl_port;
+    char client_local_ip[INET6_ADDRSTRLEN];
 
     CURLSH* curl_share;
 
@@ -247,8 +250,6 @@ typedef struct session_t
     ChiakiMutex state_mutex;
     ChiakiCond state_cond;
 
-    char* client_addr_static;
-    char* client_addr_local;
     chiaki_socket_t client_sock;
     chiaki_socket_t ctrl_sock;
     chiaki_socket_t data_sock;
@@ -337,7 +338,7 @@ static ChiakiErrorCode check_candidates(
     Candidate **out_candidate);
 
 static json_object* session_message_get_payload(ChiakiLog *log, json_object *session_message);
-static SessionMessageAction get_session_message_action(json_object *payload);
+// static SessionMessageAction get_session_message_action(json_object *payload);
 static ChiakiErrorCode wait_for_notification(
     Session *session, Notification** out,
     uint16_t types, uint64_t timeout_ms);
@@ -552,7 +553,18 @@ CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(Session *session)
     memcpy(regist_info.data1, session->data1, sizeof(session->data1));
     memcpy(regist_info.data2, session->data2, sizeof(session->data2));
     memcpy(regist_info.custom_data1, session->custom_data1, sizeof(session->custom_data1));
+    memcpy(regist_info.regist_local_ip, session->client_local_ip, sizeof(session->client_local_ip));
     return regist_info;
+}
+
+CHIAKI_EXPORT void chiaki_get_ps_selected_addr(Session *session, char *ps_ip)
+{
+    memcpy(ps_ip, session->ps_ip, sizeof(session->ps_ip)); 
+}
+
+CHIAKI_EXPORT uint16_t chiaki_get_ps_ctrl_port(Session *session)
+{
+    return session->ctrl_port;
 }
 
 CHIAKI_EXPORT chiaki_socket_t *chiaki_get_holepunch_sock(ChiakiHolepunchSession session, ChiakiHolepunchPortType type)
@@ -603,8 +615,6 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->ws_thread_should_stop = false;
     session->ws_open = false;
     session->main_should_stop = false;
-    session->client_addr_static = NULL;
-    session->client_addr_local = NULL;
     memset(&session->session_id, 0, sizeof(session->session_id));
     memset(&session->console_uid, 0, sizeof(session->console_uid));
     memset(&session->hashed_id_console, 0, sizeof(session->hashed_id_console));
@@ -1103,12 +1113,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
+    memcpy(session->ps_ip, selected_candidate->addr, sizeof(session->ps_ip));
 
     chiaki_mutex_lock(&session->state_mutex);
     if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
     {
         session->state |= SESSION_STATE_CTRL_ESTABLISHED;
         session->ctrl_sock = sock;
+        session->ctrl_port = selected_candidate->port;
         CHIAKI_LOGD(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
     }
     else
@@ -1728,6 +1740,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     else {
         get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
     }
+    memcpy(session->client_local_ip, candidate_local->addr, sizeof(candidate_local->addr));
     if (!have_addr) {
         have_addr = get_client_addr_remote_stun(session->log, candidate_remote->addr);
     }
@@ -2925,23 +2938,23 @@ static json_object* session_message_get_payload(ChiakiLog *log, json_object *ses
     return message_json;
 }
 
-static SessionMessageAction get_session_message_action(json_object *payload)
-{
-    json_object *action_json;
-    json_object_object_get_ex(payload, "action", &action_json);
-    assert(json_object_is_type(action_json, json_type_string));
-    const char *action = json_object_get_string(action_json);
-    if (strcmp(action, "OFFER") == 0)
-        return SESSION_MESSAGE_ACTION_OFFER;
-    else if (strcmp(action, "ACCEPT") == 0)
-        return SESSION_MESSAGE_ACTION_ACCEPT;
-    else if (strcmp(action, "TERMINATE") == 0)
-        return SESSION_MESSAGE_ACTION_TERMINATE;
-    else if (strcmp(action, "RESULT") == 0)
-        return SESSION_MESSAGE_ACTION_RESULT;
-    else
-        return SESSION_MESSAGE_ACTION_UNKNOWN;
-}
+// static SessionMessageAction get_session_message_action(json_object *payload)
+// {
+//     json_object *action_json;
+//     json_object_object_get_ex(payload, "action", &action_json);
+//     assert(json_object_is_type(action_json, json_type_string));
+//     const char *action = json_object_get_string(action_json);
+//     if (strcmp(action, "OFFER") == 0)
+//         return SESSION_MESSAGE_ACTION_OFFER;
+//     else if (strcmp(action, "ACCEPT") == 0)
+//         return SESSION_MESSAGE_ACTION_ACCEPT;
+//     else if (strcmp(action, "TERMINATE") == 0)
+//         return SESSION_MESSAGE_ACTION_TERMINATE;
+//     else if (strcmp(action, "RESULT") == 0)
+//         return SESSION_MESSAGE_ACTION_RESULT;
+//     else
+//         return SESSION_MESSAGE_ACTION_UNKNOWN;
+// }
 
 /**
  * Wait for notification to arrive

@@ -101,7 +101,7 @@ static void regist_event_simple(ChiakiRegist *regist, ChiakiRegistEventType type
 
 static const char *const request_head_fmt =
 	"POST %s HTTP/1.1\r\n HTTP/1.1\r\n"
-	"HOST: 10.0.2.15\r\n" // random lol
+	"HOST: %s\r\n"
 	"User-Agent: remoteplay Windows\r\n"
 	"Connection: close\r\n"
 	"Content-Length: %llu\r\n";
@@ -141,10 +141,10 @@ static const char *const request_inner_online_id_fmt =
 	"Np-Online-Id: %s\r\n";
 
 
-static int request_header_format(char *buf, size_t buf_size, size_t payload_size, ChiakiTarget target)
+static int request_header_format(char *buf, size_t buf_size, size_t payload_size, ChiakiTarget target, char *regist_local_addr)
 {
 	int cur = snprintf(buf, buf_size, request_head_fmt, request_path(target),
-			(unsigned long long)payload_size);
+			regist_local_addr, (unsigned long long)payload_size);
 	if(cur < 0 || cur >= payload_size)
 		return -1;
 	if(target >= CHIAKI_TARGET_PS4_9)
@@ -257,7 +257,11 @@ static void *regist_thread_func(void *user)
 	}
 
 	char request_header[0x100];
-	int request_header_size = request_header_format(request_header, sizeof(request_header), payload_size, regist->info.target);
+	// random local addr if our local addr is not provided
+	char regist_local_addr[INET6_ADDRSTRLEN] = "10.0.2.15";
+	if(regist->info.holepunch_info)
+		memcpy(regist_local_addr, regist->info.holepunch_info->regist_local_ip, sizeof(regist_local_addr));
+	int request_header_size = request_header_format(request_header, sizeof(request_header), payload_size, regist->info.target, regist_local_addr);
 
 	if(request_header_size < 0 || request_header_size >= sizeof(request_header))
 	{
