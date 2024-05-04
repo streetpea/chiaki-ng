@@ -770,7 +770,7 @@ static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *paylo
 		CHIAKI_LOGW(ctrl->session->log, "Ctrl received Heartbeat request with non-empty payload");
 
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl received Heartbeat, sending reply");
-	if(!ctrl->first_heartbeat)
+	if(!ctrl->session->ctrl_first_heartbeat_received)
 	{
 		chiaki_mutex_lock(&ctrl->session->state_mutex);
 		ctrl->session->ctrl_first_heartbeat_received = true;

@@ -18,6 +18,7 @@
 #include <QDesktopServices>
 #include <QtConcurrent>
 
+#define PSN_DEVICES_TRIES 2
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -985,17 +986,31 @@ void QmlBackend::updatePsnHosts()
     size_t num_devices_ps4;
     ChiakiLog backend_log;
     chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
-    ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
-    if (err != CHIAKI_ERR_SUCCESS)
+    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
     {
-        qCWarning(chiakiGui) << "Failed to get PS5 devices";
-        return;
+        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
+            if(PSN_DEVICES_TRIES - i > 0)
+                continue;
+            else
+                return;
+        }
+        break;
     }
-    err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
-    if (err != CHIAKI_ERR_SUCCESS)
+    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
     {
-        qCWarning(chiakiGui) << "Failed to get PS4 devices";
-        return;
+        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            qCWarning(chiakiGui) << "Failed to get PS4 devices";
+            if(PSN_DEVICES_TRIES - i > 0)
+                continue;
+            else
+                return;
+        }
+        break;
     }
     for (size_t i = 0; i < num_devices_ps5; i++)
     {
@@ -1025,6 +1040,7 @@ void QmlBackend::updatePsnHosts()
 		    psn_hosts.insert(duid, psn_host);
     }
     emit hostsChanged();
+    qCInfo(chiakiGui) << "Updated PSN hosts";
 }
 
 void QmlBackend::refreshPsnToken()

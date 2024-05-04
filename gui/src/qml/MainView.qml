@@ -25,7 +25,7 @@ Pane {
             event.accepted = true;
             break;
         case Qt.Key_PageDown:
-            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog();
+            if (Chiaki.settings.psnAuthToken) Chiaki.refreshPsnToken();
             event.accepted = true;
             break;
         }
@@ -65,11 +65,22 @@ Pane {
                 Layout.preferredWidth: 400
                 flat: true
                 text: "Create Steam Shortcut"
-                icon.source: "qrc:/icons/r1.svg"
                 focusPolicy: Qt.NoFocus
                 onClicked: root.showSteamShortcutDialog()
                 Material.roundedScale: Material.SmallScale
                 visible: typeof Chiaki.createSteamShortcut === "function"
+            }
+
+            Button {
+                Layout.fillHeight: true
+                Layout.preferredWidth: 400
+                flat: true
+                text: "Refresh PSN Hosts"
+                icon.source: "qrc:/icons/r1.svg"
+                focusPolicy: Qt.NoFocus
+                onClicked: Chiaki.refreshPsnToken();
+                Material.roundedScale: Material.SmallScale
+                visible: Chiaki.settings.psnAuthToken
             }
 
             Button {
