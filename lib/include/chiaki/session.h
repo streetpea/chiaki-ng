@@ -229,6 +229,7 @@ typedef struct chiaki_session_t
 	bool ctrl_failed;
 	bool ctrl_session_id_received;
 	bool ctrl_login_pin_requested;
+	bool ctrl_first_heartbeat_received;
 	bool login_pin_entered;
 	bool psn_regist_succeeded;
 	bool stream_connection_switch_received;

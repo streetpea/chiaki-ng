@@ -373,6 +373,16 @@ static bool session_check_state_pred_ctrl_start(void *user)
 		   || session->ctrl_login_pin_requested;
 }
 
+static bool session_check_state_pred_ctrl_start_heartbeat(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		   || session->ctrl_failed
+		   || session->ctrl_session_id_received
+		   || session->ctrl_first_heartbeat_received
+		   || session->ctrl_login_pin_requested;
+}
+
 static bool session_check_state_pred_pin(void *user)
 {
 	ChiakiSession *session = user;
@@ -486,7 +496,10 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
-	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+	if(session->rudp)
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS * 2, session_check_state_pred_ctrl_start_heartbeat, session);
+	else
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 	CHECK_STOP(quit_ctrl);
 
 	if(session->ctrl_failed)
@@ -525,15 +538,15 @@ static void *session_thread_func(void *arg)
 		session->login_pin = NULL;
 		session->login_pin_size = 0;
 
-		// wait for session id again
-		if(!session->rudp)
-			chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		// wait for session id or new login pin request
+		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}
 
 	chiaki_socket_t *data_sock = NULL;
 	if(session->rudp)
 	{
+		CHIAKI_LOGI(session->log, "Punching hole for data connection");
 		err = chiaki_holepunch_session_punch_hole(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
 		if (err != CHIAKI_ERR_SUCCESS)
 		{

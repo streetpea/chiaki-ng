@@ -559,7 +559,7 @@ CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(Session *session)
 
 CHIAKI_EXPORT void chiaki_get_ps_selected_addr(Session *session, char *ps_ip)
 {
-    memcpy(ps_ip, session->ps_ip, sizeof(session->ps_ip)); 
+    memcpy(ps_ip, session->ps_ip, sizeof(session->ps_ip));
 }
 
 CHIAKI_EXPORT uint16_t chiaki_get_ps_ctrl_port(Session *session)
