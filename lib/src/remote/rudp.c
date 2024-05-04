@@ -170,6 +170,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
 {
     RudpMessage message;
     uint16_t counter = increase_counter(rudp);
+    uint16_t counter_ack = rudp->counter;
     message.type = CTRL_MESSAGE;
     message.subMessage = NULL;
     message.data_size = 2 + ctrl_message_size;
@@ -188,9 +189,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
         free(serialized_msg);
         return err;
     }
-    uint16_t counter_ack = counter + 1;
-    if(counter_ack >= UINT16_MAX)
-        counter_ack = 0;
     err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, counter_ack, serialized_msg, msg_size);
     return err;
 }
@@ -199,6 +197,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_messa
 {
     RudpMessage message;
     uint16_t counter = increase_counter(rudp);
+    uint16_t counter_ack = rudp->counter;
+    *ack_counter = counter_ack;
     message.type = CTRL_MESSAGE;
     message.subMessage = NULL;
     message.data_size = 26;
@@ -222,10 +222,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_messa
         free(serialized_msg);
         return err;
     }
-    uint16_t counter_ack = counter + 1;
-    if(counter_ack >= UINT16_MAX)
-        counter_ack = 0;
-    *ack_counter = counter_ack;
     err = chiaki_rudp_send_buffer_push(&rudp->send_buffer, counter_ack, serialized_msg, msg_size);
     return err;
 }
