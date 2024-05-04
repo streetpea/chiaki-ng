@@ -22,7 +22,7 @@ typedef struct rudp_t
     ChiakiRudpSendBuffer send_buffer;
 } RudpInstance;
 
-static uint16_t increase_counter(RudpInstance *rudp);
+static uint16_t get_then_increase_counter(RudpInstance *rudp);
 static void chiaki_rudp_message_parse(uint8_t *serialized_msg, size_t msg_size, RudpMessage *message);
 static void rudp_message_serialize(RudpMessage *message, uint8_t *serialized_msg, size_t *msg_size);
 static void print_rudp_message_type(RudpInstance *rudp, RudpPacketType type);
@@ -64,7 +64,7 @@ CHIAKI_EXPORT void chiaki_rudp_reset_counter_header(RudpInstance *rudp)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(RudpInstance *rudp)
 {
     RudpMessage message;
-    uint16_t local_counter = increase_counter(rudp);
+    uint16_t local_counter = get_then_increase_counter(rudp);
     message.type = INIT_REQUEST;
     message.subMessage = NULL;
     message.data_size = 14;
@@ -89,7 +89,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(RudpInstance *rudp)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp, uint8_t *response_buf, size_t response_size)
 {
     RudpMessage message;
-    uint16_t local_counter = increase_counter(rudp);
+    uint16_t local_counter = get_then_increase_counter(rudp);
     message.type = COOKIE_REQUEST;
     message.subMessage = NULL;
     message.data_size = 14 + response_size;
@@ -115,7 +115,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(RudpInstance *rudp, uint16_t remote_counter, uint8_t *session_msg, size_t session_msg_size)
 {
     RudpMessage subMessage;
-    uint16_t local_counter = increase_counter(rudp);
+    uint16_t local_counter = get_then_increase_counter(rudp);
     subMessage.type = CTRL_MESSAGE;
     subMessage.subMessage = NULL;
     subMessage.data_size = 2 + session_msg_size;
@@ -169,7 +169,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, u
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, uint8_t *ctrl_message, size_t ctrl_message_size)
 {
     RudpMessage message;
-    uint16_t counter = increase_counter(rudp);
+    uint16_t counter = get_then_increase_counter(rudp);
     uint16_t counter_ack = rudp->counter;
     message.type = CTRL_MESSAGE;
     message.subMessage = NULL;
@@ -196,7 +196,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(RudpInstance *rudp, uint16_t *ack_counter)
 {
     RudpMessage message;
-    uint16_t counter = increase_counter(rudp);
+    uint16_t counter = get_then_increase_counter(rudp);
     uint16_t counter_ack = rudp->counter;
     *ack_counter = counter_ack;
     message.type = CTRL_MESSAGE;
@@ -293,13 +293,13 @@ static void chiaki_rudp_message_parse(
 }
 
 /**
- * Increase rudp local counter
+ * Get current rudp local counter and then increase rudp local counter
  *
  * @param[in] rudp The rudp instance to use
- * @return tmp The rudp counter before increasing
+ * @return The rudp counter before increasing
  * 
 */
-static uint16_t increase_counter(RudpInstance *rudp)
+static uint16_t get_then_increase_counter(RudpInstance *rudp)
 {
     chiaki_mutex_lock(&rudp->counter_mutex);
     uint16_t tmp = rudp->counter;
