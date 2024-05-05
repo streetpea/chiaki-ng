@@ -175,7 +175,6 @@ Pane {
                             t += "\n" + qsTr("ID: %1 (%2)").arg(modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
                         if (modelData.duid)
                         {
-                            t += qsTr("Device uid: %1").arg(modelData.duid);
                             t += "\n" + qsTr("Automatic Connection via PSN");
                         } 
                         else
