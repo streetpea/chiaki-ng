@@ -104,7 +104,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(ChiakiRudp rudp, u
  *
  * @param rudp Pointer to the Rudp instance to use for the message
  * @param[in] session_msg The data from the session msg (i.e., regist message)
- * @param[in] session_msg_sizse The size of the session message
+ * @param[in] session_msg_size The size of the session message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
@@ -125,7 +125,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(ChiakiRudp rudp, uint
  *
  * @param rudp Pointer to the Rudp indstance to use for the message
  * @param[in] ctrl_message The byte array of the ctrl message to send
- * @param[in] ctrl_messaage_size The size of the ctrl message to send
+ * @param[in] ctrl_message_size The size of the ctrl message to send
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  * 
 */
@@ -135,20 +135,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(ChiakiRudp rudp, uin
 /**
  * Creates and sends a switch to stream connection rudp message for use when switching from Senkusha to Stream Connection
  *
- * @param rudp Pointer to the Rudp indstance to use for the message
+ * @param rudp Pointer to the Rudp instance to use for the message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(ChiakiRudp rudp);
 
 /**
- * Parses byte array into rudp message
+ * Sends a raw byte array over the Rudp socket
  *
- * @param[in] serialized_msg The serialized message to transform into a rudp message
- * @param[in] msg_size The size of the serialized message
- * @param[out] message The rudp messaage created from the serialized message
+ * @param rudp Pointer to the Rudp instance containing the socket to send over
+ * @param[in] buf The serialized message to send
+ * @param[in] buf_size The size of the serialized message
  * 
 */
-
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_raw(ChiakiRudp rudp,
     uint8_t *buf, size_t buf_size);
 

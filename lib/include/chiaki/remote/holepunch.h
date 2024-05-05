@@ -29,7 +29,9 @@
 #include "../sock.h"
 
 #include <stdint.h>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
 #include <unistd.h>
 #endif
 
@@ -215,7 +217,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
  *
  * @param[in] session Handle to the holepunching session
  * @param[in] port_type Type of port to punch a hole for
- * @param[out] socket Pointer to a socket that will be set to the control or data socket
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
