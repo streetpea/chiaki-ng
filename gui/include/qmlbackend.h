@@ -134,7 +134,6 @@ private:
         QString duid;
         RegisteredHost registered_host;
         bool registered;
-        QString console_pin;
 
         QString GetHostAddr() const { return discovered ? discovery_host.host_addr : manual_host.GetHost(); }
         bool IsPS5() const { return discovered ? discovery_host.ps5 :

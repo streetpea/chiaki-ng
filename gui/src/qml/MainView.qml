@@ -137,7 +137,7 @@ Pane {
             }
 
             function deleteHost() {
-                if (!modelData.discovered)
+                if (!modelData.discovered && !modelData.duid)
                     root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
             }
 
@@ -236,7 +236,7 @@ Pane {
                         flat: true
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
-                        visible: modelData.registered && (!modelData.discovered || modelData.state == "standby")
+                        visible: modelData.registered && !modelData.duid && (!modelData.discovered || modelData.state == "standby")
                         focusPolicy: Qt.NoFocus
                         onClicked: delegate.wakeUpHost()
                         Material.roundedScale: Material.SmallScale

@@ -64,7 +64,7 @@ class Settings : public QObject
 		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
-		QList<QString> registered_nicknames;
+		QMap<QString, RegisteredHost> nickname_registered_hosts;
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
@@ -79,8 +79,6 @@ class Settings : public QObject
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
-
-		QList<QString> GetRegisteredNicknames();
 
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
@@ -199,6 +197,8 @@ class Settings : public QObject
 		void RemoveRegisteredHost(const HostMAC &mac);
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
+		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
+		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
 
 		QList<ManualHost> GetManualHosts() const 					{ return manual_hosts.values(); }
 		int SetManualHost(const ManualHost &host);

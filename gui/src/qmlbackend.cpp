@@ -274,7 +274,7 @@ QVariantList QmlBackend::hosts() const
         m["name"] = host.GetName();
         m["duid"] = host.GetDuid();
         m["address"] = "";
-        m["registered"] = false;
+        m["registered"] = true;
         m["ps5"] = host.IsPS5();
         out.append(m);
     }
@@ -544,7 +544,7 @@ void QmlBackend::connectToHost(int index)
     if (!server.valid)
         return;
 
-    if (!server.registered && server.duid.isEmpty()) {
+    if (!server.registered) {
         regist_dialog_server = server;
         emit registDialogRequested(server.GetHostAddr(), server.IsPS5());
         return;
@@ -571,6 +571,7 @@ void QmlBackend::connectToHost(int index)
     }
     emit windowTypeUpdated(settings->GetWindowType());
 
+    resume_session = false;
     if(server.duid.isEmpty())
     {
         QString host = server.GetHostAddr();
@@ -589,14 +590,13 @@ void QmlBackend::connectToHost(int index)
     }
     else
     {
-        resume_session = false;
         StreamSessionConnectInfo info(
                 settings,
                 server.psn_host.GetTarget(),
                 QString(),
                 QByteArray(),
                 QByteArray(),
-                QString(),
+                server.registered_host.GetConsolePin(),
                 server.duid,
                 fullscreen,
                 zoom,
@@ -652,6 +652,7 @@ void QmlBackend::sessionGoHome()
 
 void QmlBackend::enterPin(const QString &pin)
 {
+    qCInfo(chiakiGui) << "Set login pin " << pin;
     if (session)
         session->SetLoginPIN(pin);
 }
@@ -739,9 +740,10 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
             {
                 server.valid = true;
                 server.discovered = false;
-                server.registered = false;
                 server.psn_host = i.value();
                 server.duid = i.key();
+                server.registered = true;
+                server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
                 return server;
             }
             j++;
@@ -1023,7 +1025,6 @@ void QmlBackend::updatePsnHosts()
         }
         break;
     }
-    QList<QString> nicknames_available = settings->GetRegisteredNicknames();
     for (size_t i = 0; i < num_devices_ps5; i++)
     {
         ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
@@ -1033,16 +1034,7 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
-        bool found = false;
-        for (int i = 0; i < nicknames_available.size(); ++i)
-        {
-            if (nicknames_available.at(i) == name)
-            {
-                found = true;
-                break;
-            }
-        }
-        if(!found)
+        if(!settings->GetNicknameRegisteredHostRegistered(name))
             continue;
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
         PsnHost psn_host(duid, name, ps5);
@@ -1057,16 +1049,7 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
-        bool found = false;
-        for (int i = 0; i < nicknames_available.size(); ++i)
-        {
-            if (nicknames_available.at(i) == name)
-            {
-                found = true;
-                break;
-            }
-        }
-        if(!found)
+        if(!settings->GetNicknameRegisteredHostRegistered(name))
             continue;
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
         PsnHost psn_host(duid, name, ps5);

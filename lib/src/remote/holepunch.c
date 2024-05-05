@@ -220,7 +220,8 @@ typedef struct session_t
     uint8_t hashed_id_console[20];
     size_t local_req_id;
     uint8_t local_mac_addr[6];
-    uint16_t local_port;
+    uint16_t local_port_ctrl;
+    uint16_t local_port_data;
     UPNPGatewayInfo gw;
 
     uint8_t data1[16];
@@ -625,7 +626,8 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->sock = CHIAKI_INVALID_SOCKET;
     session->sid_console = 0;
     session->local_req_id = 1;
-    session->local_port = 0;
+    session->local_port_ctrl = 0;
+    session->local_port_data = 0;
     session->gw.data = NULL;
 
     ChiakiErrorCode err;
@@ -1202,10 +1204,20 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     }
     if(session->gw.data)
     {
-        if(upnp_delete_udp_port_mapping(session->log, &session->gw, session->local_port))
-            CHIAKI_LOGI(session->log, "Deleted UPNP local port mapping");
-        else
-            CHIAKI_LOGE(session->log, "Couldn't delete UPNP local port mapping");
+        if(session->local_port_ctrl != 0)
+        {
+            if(upnp_delete_udp_port_mapping(session->log, &session->gw, session->local_port_ctrl))
+                CHIAKI_LOGI(session->log, "Deleted UPNP local port ctrl mapping");
+            else
+                CHIAKI_LOGE(session->log, "Couldn't delete UPNP local port ctrl mapping");
+        }
+        if(session->local_port_data != 0)
+        {
+            if(upnp_delete_udp_port_mapping(session->log, &session->gw, session->local_port_data))
+                CHIAKI_LOGI(session->log, "Deleted UPNP local port data mapping");
+            else
+                CHIAKI_LOGE(session->log, "Couldn't delete UPNP local port data mapping"); 
+        }
         free(session->gw.data);
         free(session->gw.urls);
     }
@@ -1703,7 +1715,10 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         .conn_request = malloc(sizeof(ConnectionRequest)),
         .notification = NULL,
     };
-    session->local_port = local_port;
+    if(session->local_port_ctrl == 0)
+        session->local_port_ctrl = local_port;
+    else
+        session->local_port_data = local_port;
 
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
