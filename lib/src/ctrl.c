@@ -50,7 +50,8 @@ typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_DISPLAYB = 0x16,
 	CTRL_MESSAGE_TYPE_MIC_CONNECT = 0x30,
 	CTRL_MESSAGE_TYPE_MIC_TOGGLE = 0x36,
-	CTRL_MESSAGE_TYPE_DISPLAY_DEVICES = 0x910
+	CTRL_MESSAGE_TYPE_DISPLAY_DEVICES = 0x910,
+	CTRL_MESSAGE_TYPE_SWITCH_TO_STREAM_CONNECTION = 0x34
 } CtrlMessageType;
 
 typedef enum ctrl_login_state_t {
@@ -102,7 +103,7 @@ int rudp_packet_type_data_offset(uint8_t subtype)
 		case 0x12:
 			return 8;
 		case 0x26:
-			return 10;
+			return 6;
 		default:
 			return 2;
 	}
@@ -122,6 +123,7 @@ static void ctrl_message_received_displayb(ChiakiCtrl *ctrl, uint8_t *payload, s
 static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static void ctrl_message_received_switch_to_stream_connection(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
@@ -131,7 +133,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->login_pin_entered = false;
 	ctrl->login_pin_requested = false;
 	ctrl->login_pin = NULL;
-	ctrl->stream_connection_switch_counter = -1;
 	ctrl->login_pin_size = 0;
 	ctrl->cant_displaya = false;
 	ctrl->cant_displayb = false;
@@ -245,11 +246,6 @@ CHIAKI_EXPORT void chiaki_ctrl_set_login_pin(ChiakiCtrl *ctrl, const uint8_t *pi
 	ctrl->login_pin_size = pin_size;
 	chiaki_stop_pipe_stop(&ctrl->notif_pipe);
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
-}
-
-CHIAKI_EXPORT void chiaki_ctrl__set_stream_connection_switch_counter(ChiakiCtrl *ctrl, uint16_t counter)
-{
-	ctrl->stream_connection_switch_counter = counter;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_goto_bed(ChiakiCtrl *ctrl)
@@ -452,11 +448,6 @@ static void *ctrl_thread_func(void *user)
 						break;
 					case 0x24:
 						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
-						if(ctrl->stream_connection_switch_counter == ack_counter)
-						{
-							ctrl->stream_connection_switch_counter = -1;
-							chiaki_session_set_stream_connection_switch_received(ctrl->session);
-						}
 						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
 						break;
 					case 0xC0:
@@ -679,7 +670,10 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 		case CTRL_MESSAGE_TYPE_DISPLAYB:
 			ctrl_message_received_displayb(ctrl, payload, payload_size);
 			break;
-      default:
+		case CTRL_MESSAGE_TYPE_SWITCH_TO_STREAM_CONNECTION:
+			ctrl_message_received_switch_to_stream_connection(ctrl, payload, payload_size);
+			break;
+		default:
 			// CHIAKI_LOGW(ctrl->session->log, "Received Ctrl Message with unknown type %#x", msg_type);
 			chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_WARNING, payload, payload_size);
 			break;
@@ -770,14 +764,19 @@ static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *paylo
 		CHIAKI_LOGW(ctrl->session->log, "Ctrl received Heartbeat request with non-empty payload");
 
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl received Heartbeat, sending reply");
-	if(!ctrl->session->ctrl_first_heartbeat_received)
-	{
-		chiaki_mutex_lock(&ctrl->session->state_mutex);
-		ctrl->session->ctrl_first_heartbeat_received = true;
-		chiaki_mutex_unlock(&ctrl->session->state_mutex);
-		chiaki_cond_signal(&ctrl->session->state_cond);
-	}
 	ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_HEARTBEAT_REP, NULL, 0);
+}
+
+static void ctrl_message_received_switch_to_stream_connection(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
+{
+	if(payload_size != 0)
+		CHIAKI_LOGW(ctrl->session->log, "Ctrl received Switch to Stream Connection Ack with non-empty payload");
+	if(!ctrl->session->stream_connection_switch_received)
+	{
+		chiaki_session_set_stream_connection_switch_received(ctrl->session);
+	}
+	else
+		CHIAKI_LOGI(ctrl->session->log, "Received an extra stream connection switch ACK, ignoring...");
 }
 
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
@@ -963,7 +962,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 	if(session->rudp)
 	{
-		CHIAKI_LOGI(session->log, "CTRL - Starting RUDP session session");
+		CHIAKI_LOGI(session->log, "CTRL - Starting RUDP session");
 		RudpMessage message;
 		ChiakiErrorCode err = chiaki_rudp_send_recv(session->rudp, &message, NULL, 0, 0, INIT_REQUEST, INIT_RESPONSE, 8, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -1165,9 +1164,13 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	CHIAKI_LOGI(session->log, "Sending ctrl request");
 	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)send_buf, (size_t)request_len);
 
-	if(!session->rudp)
+	if(session->rudp)
 	{
-		ctrl->crypt_counter_local++;
+		if(chiaki_target_is_ps5(session->target))
+			ctrl->crypt_counter_local++;
+	}
+	else
+	{
 		int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)send_buf, (size_t)request_len, 0);
 		if(sent < 0)
 		{
@@ -1179,7 +1182,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	size_t header_size;
 	size_t received_size;
 	if(session->rudp)
-		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, sizeof(send_buf), buf, sizeof(buf), &header_size, &received_size);
+		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
 	else
 		err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->notif_pipe, CTRL_EXPECT_TIMEOUT);
 	if(err != CHIAKI_ERR_SUCCESS)

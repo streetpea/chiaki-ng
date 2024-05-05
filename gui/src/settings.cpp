@@ -429,8 +429,14 @@ void Settings::LoadRegisteredHosts()
 		settings.setArrayIndex(i);
 		RegisteredHost host = RegisteredHost::LoadFromSettings(&settings);
 		registered_hosts[host.GetServerMAC()] = host;
+		registered_nicknames.append(host.GetServerNickname());
 	}
 	settings.endArray();
+}
+
+QList<QString> Settings::GetRegisteredNicknames()
+{
+	return registered_nicknames;
 }
 
 void Settings::SaveRegisteredHosts()

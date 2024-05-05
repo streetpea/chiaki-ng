@@ -373,16 +373,6 @@ static bool session_check_state_pred_ctrl_start(void *user)
 		   || session->ctrl_login_pin_requested;
 }
 
-static bool session_check_state_pred_ctrl_start_heartbeat(void *user)
-{
-	ChiakiSession *session = user;
-	return session->should_stop
-		   || session->ctrl_failed
-		   || session->ctrl_session_id_received
-		   || session->ctrl_first_heartbeat_received
-		   || session->ctrl_login_pin_requested;
-}
-
 static bool session_check_state_pred_pin(void *user)
 {
 	ChiakiSession *session = user;
@@ -496,10 +486,7 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
-	if(session->rudp)
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS * 2, session_check_state_pred_ctrl_start_heartbeat, session);
-	else
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+	err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 	CHECK_STOP(quit_ctrl);
 
 	if(session->ctrl_failed)
@@ -522,7 +509,7 @@ static void *session_thread_func(void *arg)
 		chiaki_session_send_event(session, &event);
 		pin_incorrect = true;
 
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
 		CHECK_STOP(quit_ctrl);
 		if(session->ctrl_failed)
 		{
@@ -539,7 +526,7 @@ static void *session_thread_func(void *arg)
 		session->login_pin_size = 0;
 
 		// wait for session id or new login pin request
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}
 
@@ -555,7 +542,8 @@ static void *session_thread_func(void *arg)
 		}
 		CHIAKI_LOGI(session->log, ">> Punched hole for data connection!");
 		data_sock = chiaki_get_holepunch_sock(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		CHECK_STOP(quit_ctrl);
 	}
 
 	if(!session->ctrl_session_id_received)
@@ -594,20 +582,19 @@ ctrl_failed:
 	if(session->rudp)
 	{
 		ChiakiErrorCode err;
-		uint16_t ack_counter = 0;
-		err = chiaki_rudp_send_switch_to_stream_connection_message(session->rudp, &ack_counter);
+		err = chiaki_rudp_send_switch_to_stream_connection_message(session->rudp);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send switch to stream connection message");
 			QUIT(quit_ctrl);
 		}
-		chiaki_ctrl__set_stream_connection_switch_counter(&session->ctrl, ack_counter);
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, STREAM_CONNECTION_SWITCH_EXPECT_TIMEOUT_MS, session_check_state_pred_stream_connection_switch, session);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_stream_connection_switch, session);
 		if(!session->stream_connection_switch_received)
 		{
 			CHIAKI_LOGE(session->log, "Failed to receive switch to stream connection ack!");
 			QUIT(quit_ctrl);
 		}
+		CHECK_STOP(quit_ctrl);
 		CHIAKI_LOGI(session->log, "Received Switch to Stream Connection Ack... Switching to Stream Connection now");
 	}
 
@@ -708,7 +695,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	uint16_t remote_counter = 0;
 	if(session->rudp)
 	{
-		CHIAKI_LOGI(session->log, "SESSION START THREAD - Starting RUDP session session");
+		CHIAKI_LOGI(session->log, "SESSION START THREAD - Starting RUDP session");
 		RudpMessage message;
 		ChiakiErrorCode err = chiaki_rudp_send_recv(session->rudp, &message, NULL, 0, 0, INIT_REQUEST, INIT_RESPONSE, 8, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -894,7 +881,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	size_t received_size;
 	chiaki_mutex_unlock(&session->state_mutex);
 	if(session->rudp)
-		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, sizeof(send_buf), buf, sizeof(buf), &header_size, &received_size);
+		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
 	else
 		err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size, &session->stop_pipe, SESSION_EXPECT_TIMEOUT_MS);
 	ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->state_mutex);

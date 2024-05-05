@@ -136,10 +136,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(ChiakiRudp rudp, uin
  * Creates and sends a switch to stream connection rudp message for use when switching from Senkusha to Stream Connection
  *
  * @param rudp Pointer to the Rudp indstance to use for the message
- * @param[out] ack_counter Filled with the ack counter of the switch to stream connection message
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
 */
-CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(ChiakiRudp rudp, uint16_t *ack_counter);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_message(ChiakiRudp rudp);
 
 /**
  * Parses byte array into rudp message

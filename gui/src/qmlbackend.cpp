@@ -224,6 +224,7 @@ void QmlBackend::setDiscoveryEnabled(bool enabled)
 QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
+    QList<QString> discovered_nicknames;
     for (const auto &host : discovery_manager.GetHosts()) {
         QVariantMap m;
         m["discovered"] = true;
@@ -237,6 +238,7 @@ QVariantList QmlBackend::hosts() const
         m["app"] = host.running_app_name;
         m["titleId"] = host.running_app_titleid;
         m["registered"] = settings->GetRegisteredHostRegistered(host.GetHostMAC());
+        discovered_nicknames.append(host.host_name);
         out.append(m);
     }
     for (const auto &host : settings->GetManualHosts()) {
@@ -258,6 +260,15 @@ QVariantList QmlBackend::hosts() const
     }
     for (const auto &host : std::as_const(psn_hosts)) {
         QVariantMap m;
+        // Only list PSN remote hosts that aren't discovered locally
+        bool discovered = false;
+        for (int i = 0; i < discovered_nicknames.size(); ++i)
+        {
+            if (discovered_nicknames.at(i) == host.GetName())
+                discovered = true;
+        }
+        if(discovered)
+            continue;
         m["discovered"] = false;
         m["manual"] = false;
         m["name"] = host.GetName();
@@ -1012,6 +1023,7 @@ void QmlBackend::updatePsnHosts()
         }
         break;
     }
+    QList<QString> nicknames_available = settings->GetRegisteredNicknames();
     for (size_t i = 0; i < num_devices_ps5; i++)
     {
         ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
@@ -1021,6 +1033,17 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
+        bool found = false;
+        for (int i = 0; i < nicknames_available.size(); ++i)
+        {
+            if (nicknames_available.at(i) == name)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+            continue;
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))
@@ -1034,6 +1057,17 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
+        bool found = false;
+        for (int i = 0; i < nicknames_available.size(); ++i)
+        {
+            if (nicknames_available.at(i) == name)
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+            continue;
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))

@@ -8,6 +8,7 @@
 #include "host.h"
 
 #include <QSettings>
+#include <QList>
 
 enum class ControllerButtonExt
 {
@@ -63,6 +64,7 @@ class Settings : public QObject
 		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
+		QList<QString> registered_nicknames;
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
@@ -77,6 +79,8 @@ class Settings : public QObject
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
+
+		QList<QString> GetRegisteredNicknames();
 
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }

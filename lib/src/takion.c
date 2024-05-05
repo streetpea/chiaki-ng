@@ -956,8 +956,6 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 		return CHIAKI_ERR_NETWORK;
 	}
 	*buf_size = (size_t)received_sz;
-	CHIAKI_LOGI(takion->log, "RECEIVED TAKION MESSAGE: ");
-	chiaki_log_hexdump_raw(takion->log, CHIAKI_LOG_INFO, buf, *buf_size);
 	return CHIAKI_ERR_SUCCESS;
 }
 
