@@ -24,6 +24,8 @@ typedef struct chiaki_rpcrypt_t
 CHIAKI_EXPORT void chiaki_rpcrypt_bright_ambassador(ChiakiTarget target, uint8_t *bright, uint8_t *ambassador, const uint8_t *nonce, const uint8_t *morning);
 CHIAKI_EXPORT void chiaki_rpcrypt_aeropause_ps4_pre10(uint8_t *aeropause, const uint8_t *ambassador);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_aeropause(ChiakiTarget target, size_t key_1_off, uint8_t *aeropause, const uint8_t *ambassador);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_aeropause_psn(ChiakiTarget target, size_t key_1_off, uint8_t *aeropause, const uint8_t *ambassador);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_ambassador_from_aeropause(ChiakiTarget target, size_t key_1_off, const uint8_t *aeropause, uint8_t *ambassador);
 
 CHIAKI_EXPORT void chiaki_rpcrypt_init_auth(ChiakiRPCrypt *rpcrypt, ChiakiTarget target, const uint8_t *nonce, const uint8_t *morning);
 CHIAKI_EXPORT void chiaki_rpcrypt_init_regist_ps4_pre10(ChiakiRPCrypt *rpcrypt, const uint8_t *ambassador, uint32_t pin);

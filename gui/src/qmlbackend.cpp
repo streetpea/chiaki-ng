@@ -18,6 +18,7 @@
 #include <QDesktopServices>
 #include <QtConcurrent>
 
+#define PSN_DEVICES_TRIES 2
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -101,9 +102,15 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     frame_thread->start();
     frame_obj->moveToThread(frame_thread);
 
+    PsnConnectionWorker *worker = new PsnConnectionWorker;
+    worker->moveToThread(&psn_connection_thread);
+    connect(&psn_connection_thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(this, &QmlBackend::psnConnect, worker, &PsnConnectionWorker::ConnectPsnConnection);
+    connect(worker, &PsnConnectionWorker::resultReady, this, &QmlBackend::checkPsnConnection);
+    psn_connection_thread.start();
+
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(this, &QmlBackend::psnConnect, this, &QmlBackend::psnConnector);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
@@ -179,6 +186,8 @@ QmlBackend::~QmlBackend()
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
+    psn_connection_thread.quit();
+    psn_connection_thread.wait();
 }
 
 QmlMainWindow *QmlBackend::qmlWindow() const
@@ -215,6 +224,7 @@ void QmlBackend::setDiscoveryEnabled(bool enabled)
 QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
+    QList<QString> discovered_nicknames;
     for (const auto &host : discovery_manager.GetHosts()) {
         QVariantMap m;
         m["discovered"] = true;
@@ -228,6 +238,7 @@ QVariantList QmlBackend::hosts() const
         m["app"] = host.running_app_name;
         m["titleId"] = host.running_app_titleid;
         m["registered"] = settings->GetRegisteredHostRegistered(host.GetHostMAC());
+        discovered_nicknames.append(host.host_name);
         out.append(m);
     }
     for (const auto &host : settings->GetManualHosts()) {
@@ -249,12 +260,21 @@ QVariantList QmlBackend::hosts() const
     }
     for (const auto &host : std::as_const(psn_hosts)) {
         QVariantMap m;
+        // Only list PSN remote hosts that aren't discovered locally
+        bool discovered = false;
+        for (int i = 0; i < discovered_nicknames.size(); ++i)
+        {
+            if (discovered_nicknames.at(i) == host.GetName())
+                discovered = true;
+        }
+        if(discovered)
+            continue;
         m["discovered"] = false;
         m["manual"] = false;
         m["name"] = host.GetName();
         m["duid"] = host.GetDuid();
         m["address"] = "";
-        m["registered"] = false;
+        m["registered"] = true;
         m["ps5"] = host.IsPS5();
         out.append(m);
     }
@@ -266,16 +286,13 @@ bool QmlBackend::autoConnect() const
     return auto_connect_mac.GetValue();
 }
 
-void QmlBackend::psnConnector()
+void QmlBackend::psnCancel()
 {
-    QFuture<bool> future = QtConcurrent::run(&StreamSession::ConnectPsnConnection, session, session_info.duid, chiaki_target_is_ps5(session_info.target));
-    watcher.setFuture(future);
-    connect(&watcher, &QFutureWatcher<bool>::resultReadyAt, this, &QmlBackend::checkPsnConnection);
+    session->CancelPsnConnection();
 }
 
-void QmlBackend::checkPsnConnection(int index)
+void QmlBackend::checkPsnConnection(const bool &connected)
 {
-    bool connected = watcher.resultAt(index);
     emit psnConnectDone(connected);
     if(connected)
         psnSessionStart();
@@ -399,7 +416,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         sleep_inhibit->inhibit();
     }
     else
-        emit psnConnect();
+        emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
 }
 
 bool QmlBackend::closeRequested()
@@ -527,7 +544,7 @@ void QmlBackend::connectToHost(int index)
     if (!server.valid)
         return;
 
-    if (!server.registered && server.duid.isEmpty()) {
+    if (!server.registered) {
         regist_dialog_server = server;
         emit registDialogRequested(server.GetHostAddr(), server.IsPS5());
         return;
@@ -554,6 +571,7 @@ void QmlBackend::connectToHost(int index)
     }
     emit windowTypeUpdated(settings->GetWindowType());
 
+    resume_session = false;
     if(server.duid.isEmpty())
     {
         QString host = server.GetHostAddr();
@@ -572,19 +590,13 @@ void QmlBackend::connectToHost(int index)
     }
     else
     {
-        if(watcher.isRunning())
-        {
-            qCWarning(chiakiGui) << "Previous psn connection is still running";
-            return;
-        }
-        resume_session = false;
         StreamSessionConnectInfo info(
                 settings,
                 server.psn_host.GetTarget(),
                 QString(),
                 QByteArray(),
                 QByteArray(),
-                QString(),
+                server.registered_host.GetConsolePin(),
                 server.duid,
                 fullscreen,
                 zoom,
@@ -640,6 +652,7 @@ void QmlBackend::sessionGoHome()
 
 void QmlBackend::enterPin(const QString &pin)
 {
+    qCInfo(chiakiGui) << "Set login pin " << pin;
     if (session)
         session->SetLoginPIN(pin);
 }
@@ -727,9 +740,10 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
             {
                 server.valid = true;
                 server.discovered = false;
-                server.registered = false;
                 server.psn_host = i.value();
                 server.duid = i.key();
+                server.registered = true;
+                server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
                 return server;
             }
             j++;
@@ -985,17 +999,31 @@ void QmlBackend::updatePsnHosts()
     size_t num_devices_ps4;
     ChiakiLog backend_log;
     chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
-    ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
-    if (err != CHIAKI_ERR_SUCCESS)
+    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
     {
-        qCWarning(chiakiGui) << "Failed to get PS5 devices";
-        return;
+        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
+            if(PSN_DEVICES_TRIES - i > 0)
+                continue;
+            else
+                return;
+        }
+        break;
     }
-    err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
-    if (err != CHIAKI_ERR_SUCCESS)
+    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
     {
-        qCWarning(chiakiGui) << "Failed to get PS4 devices";
-        return;
+        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            qCWarning(chiakiGui) << "Failed to get PS4 devices";
+            if(PSN_DEVICES_TRIES - i > 0)
+                continue;
+            else
+                return;
+        }
+        break;
     }
     for (size_t i = 0; i < num_devices_ps5; i++)
     {
@@ -1006,6 +1034,8 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
+        if(!settings->GetNicknameRegisteredHostRegistered(name))
+            continue;
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))
@@ -1019,12 +1049,15 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
+        if(!settings->GetNicknameRegisteredHostRegistered(name))
+            continue;
         bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
     }
     emit hostsChanged();
+    qCInfo(chiakiGui) << "Updated PSN hosts";
 }
 
 void QmlBackend::refreshPsnToken()
@@ -1040,4 +1073,10 @@ void QmlBackend::refreshPsnToken()
         refreshAuth();
     else
         updatePsnHosts();
+}
+
+void PsnConnectionWorker::ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5)
+{
+    bool result = session->ConnectPsnConnection(duid, ps5);
+    emit resultReady(result);
 }

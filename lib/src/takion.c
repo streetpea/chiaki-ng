@@ -5,6 +5,7 @@
 #include <chiaki/congestioncontrol.h>
 #include <chiaki/random.h>
 #include <chiaki/gkcrypt.h>
+#include <chiaki/time.h>
 
 #include <fcntl.h>
 #include <stdbool.h>
@@ -171,12 +172,14 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, TakionMessagePayloadInitAck *payload);
 static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion);
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size);
+static ChiakiErrorCode takion_read_extra_sock_messages(ChiakiTakion *takion);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info, chiaki_socket_t *sock)
 {
 	ChiakiErrorCode ret = CHIAKI_ERR_SUCCESS;
 
 	takion->log = info->log;
+	takion->close_socket = info->close_socket;
 	takion->version = info->protocol_version;
 
 	switch(takion->version)
@@ -230,6 +233,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	if(sock)
 	{
 		takion->sock = *sock;
+		err = takion_read_extra_sock_messages(takion);
+		if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_TIMEOUT)
+		{
+			CHIAKI_LOGE(takion->log, "Takion had problem reading extra messages from socket using PSN Connection with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+			goto error_sock;
+		}
 		const int rcvbuf_val = takion->a_rwnd;
 		int r = setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const CHIAKI_SOCKET_BUF_TYPE)&rcvbuf_val, sizeof(rcvbuf_val));
 		if(r < 0)
@@ -264,6 +273,32 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 				goto error_sock;
 			}
 			CHIAKI_LOGI(takion->log, "Takion enabled Don't Fragment Bit");
+#endif
+		}
+		else
+		{
+#if defined(_WIN32)
+			const DWORD dontfragment_val = 0;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const CHIAKI_SOCKET_BUF_TYPE)&dontfragment_val, sizeof(dontfragment_val));
+#elif defined(__FreeBSD__) || defined(__SWITCH__)
+			const int dontfrag_val = 0;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const CHIAKI_SOCKET_BUF_TYPE)&dontfrag_val, sizeof(dontfrag_val));
+#elif defined(IP_PMTUDISC_DO)
+			const int mtu_discover_val = IP_PMTUDISC_DONT;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const CHIAKI_SOCKET_BUF_TYPE)&mtu_discover_val, sizeof(mtu_discover_val));
+#else
+			// macOS and OpenBSD
+#define NO_DONTFRAG
+#endif
+
+#ifndef NO_DONTFRAG
+			if(r < 0)
+			{
+				CHIAKI_LOGE(takion->log, "Takion failed to unset setsockopt IP_MTU_DISCOVER: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+				ret = CHIAKI_ERR_NETWORK;
+				goto error_sock;
+			}
+			CHIAKI_LOGI(takion->log, "Takion disabled Don't Fragment Bit");
 #endif
 		}
 	}
@@ -895,7 +930,8 @@ beach:
 		event.type = CHIAKI_TAKION_EVENT_TYPE_DISCONNECT;
 		takion->cb(&event, takion->cb_user);
 	}
-	CHIAKI_SOCKET_CLOSE(takion->sock);
+	if(takion->close_socket)
+		CHIAKI_SOCKET_CLOSE(takion->sock);
 	return NULL;
 }
 
@@ -1570,4 +1606,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_v7_av_packet_parse(ChiakiTakionAVPac
 	packet->data_size = buf_size;
 
 	return CHIAKI_ERR_SUCCESS;
+}
+
+static ChiakiErrorCode takion_read_extra_sock_messages(ChiakiTakion *takion)
+{
+	// Stop trying after 1s
+	uint64_t expired = 1000 + chiaki_time_now_monotonic_ms();
+    while (true)
+    {
+		uint64_t now = chiaki_time_now_monotonic_ms();
+		if(now > expired)
+			return CHIAKI_ERR_TIMEOUT;
+		uint8_t buf[1500];
+		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, false, 200);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
+        int len = recv(takion->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, sizeof(buf), 0);
+        if (len < 0)
+            return CHIAKI_ERR_NETWORK;
+	}
 }

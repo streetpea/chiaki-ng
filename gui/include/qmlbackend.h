@@ -34,6 +34,17 @@ private:
     ChiakiRegist chiaki_regist;
 };
 
+class PsnConnectionWorker : public QObject
+{
+    Q_OBJECT
+
+public:
+    void ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5);
+
+signals:
+    void resultReady(const bool &result);
+};
+
 class QmlBackend : public QObject
 {
     Q_OBJECT
@@ -68,7 +79,7 @@ public:
 
     void psnSessionStart();
 
-    void checkPsnConnection(int index);
+    void checkPsnConnection(const bool &connected);
 
     bool closeRequested();
 
@@ -86,13 +97,15 @@ public:
     Q_INVOKABLE void setConsolePin(int index, QString console_pin);
     Q_INVOKABLE QString openPsnLink();
     Q_INVOKABLE void initPsnAuth(const QUrl &url, const QJSValue &callback);
+    Q_INVOKABLE void psnCancel();
+    Q_INVOKABLE void refreshPsnToken();
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
     Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
 #endif
 
 signals:
     void sessionChanged(StreamSession *session);
-    void psnConnect();
+    void psnConnect(StreamSession *session, const QString &duid, const bool &ps5);
     void psnConnectDone(bool connected);
     void controllersChanged();
     void discoveryEnabledChanged();
@@ -133,7 +146,6 @@ private:
     void updateControllers();
     void updateDiscoveryHosts();
     void updatePsnHosts();
-    void refreshPsnToken();
     QString getExecutable();
 
     Settings *settings = {};
@@ -141,6 +153,7 @@ private:
     QmlMainWindow *window = {};
     StreamSession *session = {};
     QThread *frame_thread = {};
+    QThread psn_connection_thread;
     DiscoveryManager discovery_manager;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;
@@ -149,5 +162,4 @@ private:
     bool resume_session = false;
     HostMAC auto_connect_mac = {};
     QMap<QString, PsnHost> psn_hosts;
-    QFutureWatcher<bool> watcher;
 };

@@ -1361,7 +1361,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
-			if(!connected && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
+			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
 			{
 				QTimer::singleShot(1000, this, &StreamSession::Start);
 				return;
@@ -1569,7 +1569,6 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 		CHIAKI_LOGE(log, "!! Failed to initialize session\n");
 		return err;
 	}
-	CHIAKI_LOGI(log, ">> Initialized session");
 	return err;
 }
 
@@ -1580,7 +1579,7 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create session");
-		return err;
+		return false;
 	}
 	CHIAKI_LOGI(log, ">> Created session");
 	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
@@ -1611,6 +1610,11 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
 	return true;
+}
+
+void StreamSession::CancelPsnConnection()
+{
+	chiaki_holepunch_main_thread_cancel(holepunch_session);
 }
 
 void StreamSession::TriggerFfmpegFrameAvailable()

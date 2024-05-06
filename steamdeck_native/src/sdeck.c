@@ -161,7 +161,7 @@ hid_device *is_steam_deck()
 	uint16_t vid = 0x28DE;
 	uint16_t pid = 0x1205;
 	hid_device *handle;
-	struct hid_device_info *devs, *cur_dev;
+	struct hid_device_info *devs = NULL, *cur_dev = NULL;
 	uint16_t usage_page = 0xFFFF;				// usagePage for SteamDeck controls/haptics
 	uint16_t usage = 0x0001;					// usage for SteamDeck controls/haptics (general)
 	wchar_t serial_wstr[MAX_STR / 4] = {L'\0'}; // serial number string rto search for, if any
@@ -183,7 +183,8 @@ hid_device *is_steam_deck()
 		cur_dev = cur_dev->next;
 	}
 #undef MAX_STR
-	hid_free_enumeration(devs);
+	if(devs)
+		hid_free_enumeration(devs);
 
 	if (devpath[0])
 	{

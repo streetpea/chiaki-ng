@@ -8,6 +8,7 @@
 #include "host.h"
 
 #include <QSettings>
+#include <QList>
 
 enum class ControllerButtonExt
 {
@@ -63,6 +64,7 @@ class Settings : public QObject
 		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
+		QMap<QString, RegisteredHost> nickname_registered_hosts;
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
@@ -195,6 +197,8 @@ class Settings : public QObject
 		void RemoveRegisteredHost(const HostMAC &mac);
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
+		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
+		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
 
 		QList<ManualHost> GetManualHosts() const 					{ return manual_hosts.values(); }
 		int SetManualHost(const ManualHost &host);

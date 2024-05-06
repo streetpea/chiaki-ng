@@ -29,6 +29,7 @@
 #define SESSION_PORT					9295
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
+#define STREAM_CONNECTION_SWITCH_EXPECT_TIMEOUT_MS 2000
 
 static void *session_thread_func(void *arg);
 static void regist_cb(ChiakiRegistEvent *event, void *user);
@@ -197,6 +198,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	session->ctrl_login_pin_requested = false;
 	session->login_pin_entered = false;
 	session->psn_regist_succeeded = false;
+	session->stream_connection_switch_received = false;
 	session->login_pin = NULL;
 	session->login_pin_size = 0;
 
@@ -337,6 +339,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *sessio
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_stream_connection_switch_received(ChiakiSession *session)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+	session->stream_connection_switch_received = true;
+	chiaki_mutex_unlock(&session->state_mutex);
+	chiaki_cond_signal(&session->state_cond);
+	return CHIAKI_ERR_SUCCESS;
+}
+
 void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event)
 {
 	if(!session->event_cb)
@@ -367,6 +379,14 @@ static bool session_check_state_pred_pin(void *user)
 	return session->should_stop
 		   || session->ctrl_failed
 		   || session->login_pin_entered;
+}
+
+static bool session_check_state_pred_stream_connection_switch(void *user)
+{
+	ChiakiSession *session = user;
+	return session->should_stop
+		|| session->ctrl_failed
+		|| session->stream_connection_switch_received;
 }
 
 static bool session_check_state_pred_regist(void *user)
@@ -417,11 +437,13 @@ static void *session_thread_func(void *arg)
 		info.holepunch_info = &hinfo;
 		info.host = NULL;
 		info.broadcast = false;
+		info.psn_online_id = NULL;
 		memcpy(info.psn_account_id, session->connect_info.psn_account_id, CHIAKI_PSN_ACCOUNT_ID_SIZE);
 		info.rudp = session->rudp;
 		info.target = session->connect_info.ps5 ? CHIAKI_TARGET_PS5_1 : CHIAKI_TARGET_PS4_10;
 		chiaki_regist_start(&regist, session->log, &info, regist_cb, session);
 		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, 10000, session_check_state_pred_regist, session);
+		chiaki_regist_stop(&regist);
 		chiaki_regist_fini(&regist);
 		CHECK_STOP(quit);
 	}
@@ -464,7 +486,7 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
-	chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+	err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 	CHECK_STOP(quit_ctrl);
 
 	if(session->ctrl_failed)
@@ -487,7 +509,7 @@ static void *session_thread_func(void *arg)
 		chiaki_session_send_event(session, &event);
 		pin_incorrect = true;
 
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
 		CHECK_STOP(quit_ctrl);
 		if(session->ctrl_failed)
 		{
@@ -503,8 +525,24 @@ static void *session_thread_func(void *arg)
 		session->login_pin = NULL;
 		session->login_pin_size = 0;
 
-		// wait for session id again
-		chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		// wait for session id or new login pin request
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		CHECK_STOP(quit_ctrl);
+	}
+
+	chiaki_socket_t *data_sock = NULL;
+	if(session->rudp)
+	{
+		CHIAKI_LOGI(session->log, "Punching hole for data connection");
+		err = chiaki_holepunch_session_punch_hole(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
+		if (err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "!! Failed to punch hole for data connection.");
+			QUIT(quit_ctrl);
+		}
+		CHIAKI_LOGI(session->log, ">> Punched hole for data connection!");
+		data_sock = chiaki_get_holepunch_sock(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}
 
@@ -516,18 +554,6 @@ ctrl_failed:
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)
 			session->quit_reason = CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
 		QUIT(quit_ctrl);
-	}
-	chiaki_socket_t *data_sock = NULL;
-	if(session->rudp)
-	{
-		err = chiaki_holepunch_session_punch_hole(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
-		if (err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "!! Failed to punch hole for data connection.");
-			QUIT(quit_ctrl);
-		}
-		CHIAKI_LOGI(session->log, ">> Punched hole for data connection!");
-		data_sock = chiaki_get_holepunch_sock(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
 	}
 
 #ifdef ENABLE_SENKUSHA
@@ -553,6 +579,24 @@ ctrl_failed:
 		session->rtt_us = 1000;
 	}
 #endif
+	if(session->rudp)
+	{
+		ChiakiErrorCode err;
+		err = chiaki_rudp_send_switch_to_stream_connection_message(session->rudp);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "Failed to send switch to stream connection message");
+			QUIT(quit_ctrl);
+		}
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_stream_connection_switch, session);
+		if(!session->stream_connection_switch_received)
+		{
+			CHIAKI_LOGE(session->log, "Failed to receive switch to stream connection ack!");
+			QUIT(quit_ctrl);
+		}
+		CHECK_STOP(quit_ctrl);
+		CHIAKI_LOGI(session->log, "Received Switch to Stream Connection Ack... Switching to Stream Connection now");
+	}
 
 	err = chiaki_random_bytes_crypt(session->handshake_key, sizeof(session->handshake_key));
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -651,77 +695,25 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	uint16_t remote_counter = 0;
 	if(session->rudp)
 	{
-		uint16_t local_counter = 0;
-		CHIAKI_LOGI(session->log, "Starting RUDP thread request session for %s", session->connect_info.ps5 ? "PS5" : "PS4");
-		ChiakiErrorCode err = chiaki_rudp_send_init_message(session->rudp, &local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to send rudp session request init message");
-			return err;
-		}
+		CHIAKI_LOGI(session->log, "SESSION START THREAD - Starting RUDP session");
 		RudpMessage message;
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		ChiakiErrorCode err = chiaki_rudp_send_recv(session->rudp, &message, NULL, 0, 0, INIT_REQUEST, INIT_RESPONSE, 8, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(session->log, "Failed receive rudp session request init message");
+			CHIAKI_LOGE(session->log, "SESSION START THREAD - Failed to init rudp");
 			return err;
 		}
-		if(message.type != ntohs(INIT_RESPONSE))
-		{
-			CHIAKI_LOGE(session->log, "Expected Rudp session request init response and got type %d instead", message.type);
-			chiaki_rudp_print_message(session->rudp, &message);
-			chiaki_rudp_message_pointers_free(&message);
-			return CHIAKI_ERR_INVALID_RESPONSE;
-		}
-		if(message.data_size < 8)
-		{
-			CHIAKI_LOGE(session->log, "Rudp session request Init Response too small. Failed initiating rudp regist");
-			chiaki_rudp_message_pointers_free(&message);
-			chiaki_rudp_print_message(session->rudp, &message);
-			return CHIAKI_ERR_INVALID_RESPONSE;
-		}
-		err = chiaki_rudp_ack_packet(session->rudp, local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to ack rudp packet");
-			chiaki_rudp_message_pointers_free(&message);
-			return err;
-		}
+		size_t init_response_size = message.data_size - 8;
+		uint8_t init_response[init_response_size];
+		memcpy(init_response, message.data + 8, init_response_size);
 		chiaki_rudp_message_pointers_free(&message);
-		err = chiaki_rudp_send_cookie_message(session->rudp, message.data + 8, message.data_size - 8, &local_counter);
+		err = chiaki_rudp_send_recv(session->rudp, &message, init_response, init_response_size, 0, COOKIE_REQUEST, COOKIE_RESPONSE, 2, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(session->log, "Failed to send session request rudp cookie message");
+			CHIAKI_LOGE(session->log, "SESSION START THREAD - Failed to pass rudp cookie");
 			return err;
 		}
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed receive session request rudp cookie response");
-			return err;
-		}
-		if(message.type != ntohs(COOKIE_RESPONSE))
-		{
-			CHIAKI_LOGE(session->log, "Expected Rudp session request Cookie Response and got type %d instead", message.type);
-			chiaki_rudp_print_message(session->rudp, &message);
-			chiaki_rudp_message_pointers_free(&message);
-			return CHIAKI_ERR_INVALID_RESPONSE;
-		}
-		if(message.data_size < 2)
-		{
-			CHIAKI_LOGE(session->log, "Rudp session request cookie response too small. Failed initiating rudp");
-			chiaki_rudp_print_message(session->rudp, &message);
-			chiaki_rudp_message_pointers_free(&message);
-			return CHIAKI_ERR_INVALID_RESPONSE;
-		}
-		err = chiaki_rudp_ack_packet(session->rudp, local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to ack rudp packet");
-			chiaki_rudp_message_pointers_free(&message);
-			return err;
-		}
-		remote_counter = htons(*(chiaki_unaligned_uint16_t *)(message.data)) + 1;
+		remote_counter = message.remote_counter;
 		chiaki_rudp_message_pointers_free(&message);
 	}
 	else
@@ -855,10 +847,16 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 
-	char buf[512];
-	int request_len = snprintf(buf, sizeof(buf), session_request_fmt,
-			path, session->connect_info.hostname, SESSION_PORT, regist_key_hex, rp_version_str ? rp_version_str : "");
-	if(request_len < 0 || request_len >= sizeof(buf))
+	char send_buf[512];
+	int port = SESSION_PORT;
+	if(session->holepunch_session)
+	{
+		chiaki_get_ps_selected_addr(session->holepunch_session, session->connect_info.hostname);
+		port = chiaki_get_ps_ctrl_port(session->holepunch_session);
+	}
+	int request_len = snprintf(send_buf, sizeof(send_buf), session_request_fmt,
+			path, session->connect_info.hostname, port, regist_key_hex, rp_version_str ? rp_version_str : "");
+	if(request_len < 0 || request_len >= sizeof(send_buf))
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
@@ -866,20 +864,10 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	}
 
 	CHIAKI_LOGI(session->log, "Sending session request");
-	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (uint8_t *)buf, request_len);
-	uint16_t local_counter = 0;
-	if(session->rudp)
+	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (uint8_t *)send_buf, request_len);
+	if(!session->rudp)
 	{
-		err = chiaki_rudp_send_session_message(session->rudp, remote_counter, (uint8_t *)buf,	(size_t)request_len, &local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to send session request");
-			return err;
-		}
-	}
-	else
-	{
-		int sent = send(session_sock, buf, (size_t)request_len, 0);
+		int sent = send(session_sock, send_buf, (size_t)request_len, 0);
 		if(sent < 0)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send session request");
@@ -888,12 +876,12 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			return CHIAKI_ERR_NETWORK;
 		}
 	}
-
+	char buf[512];
 	size_t header_size;
 	size_t received_size;
 	chiaki_mutex_unlock(&session->state_mutex);
 	if(session->rudp)
-		err = chiaki_recv_http_header_psn(session->rudp, session->log, local_counter, &remote_counter, buf, sizeof(buf), &header_size, &received_size);
+		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
 	else
 		err = chiaki_recv_http_header(session_sock, buf, sizeof(buf), &header_size, &received_size, &session->stop_pipe, SESSION_EXPECT_TIMEOUT_MS);
 	ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->state_mutex);
@@ -914,35 +902,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	}
 	if(session->rudp)
 	{
-		err = chiaki_rudp_send_ack_message(session->rudp, remote_counter, &local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to send rudp session request ack message");
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			return err;
-		}
 		RudpMessage message;
-		err = chiaki_rudp_recv(session->rudp, 1500, &message);
+		err = chiaki_rudp_send_recv(session->rudp, &message, NULL, 0, remote_counter, ACK, FINISH, 0, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(session->log, "Failed to receive rudp session request finish message");
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			return err;
-		}
-		if(message.type != ntohs(FINISH))
-		{
-			CHIAKI_LOGE(session->log, "Expected Rudp session request FINISH message and got type %d instead", message.type);
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			chiaki_rudp_print_message(session->rudp, &message);
-			chiaki_rudp_message_pointers_free(&message);
-			return CHIAKI_ERR_NETWORK;
-		}
-		err = chiaki_rudp_ack_packet(session->rudp, local_counter);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to ack rudp packet");
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			chiaki_rudp_message_pointers_free(&message);
+			CHIAKI_LOGE(session->log, "SESSION START THREAD - Failed to finish rudp");
 			return err;
 		}
 		chiaki_rudp_message_pointers_free(&message);

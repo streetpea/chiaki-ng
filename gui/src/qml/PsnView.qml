@@ -6,12 +6,14 @@ import org.streetpea.chiaki4deck
 Rectangle {
     id: view
     property bool allowClose: false
+    property bool cancelling: false
     color: "black"
 
     function stop() {
         if (!allowClose)
             return;
-        root.showMainView();
+        cancelling = true;
+        Chiaki.psnCancel();
     }
 
     Keys.onReturnPressed: view.stop()
@@ -28,7 +30,12 @@ Rectangle {
         anchors.centerIn: parent
         opacity: view.allowClose ? 1.0 : 0.0
         visible: opacity
-        text: qsTr("Establishing connection with console over PSN ...")
+        text: {
+            if(cancelling)
+                qsTr("Cancelling connection with console over PSN ...")
+            else
+                qsTr("Establishing connection with console over PSN ...")
+        }
 
         Behavior on opacity { NumberAnimation { duration: 250 } }
     }

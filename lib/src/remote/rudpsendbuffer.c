@@ -8,8 +8,13 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
-#define RUDP_DATA_RESEND_TIMEOUT_MS 200
+#define RUDP_DATA_RESEND_TIMEOUT_MS 400
 #define RUDP_DATA_RESEND_WAKEUP_TIMEOUT_MS (RUDP_DATA_RESEND_TIMEOUT_MS/2)
 #define RUDP_DATA_RESEND_TRIES_MAX 10
 
@@ -67,11 +72,8 @@ error_packets:
 
 CHIAKI_EXPORT void chiaki_rudp_send_buffer_fini(ChiakiRudpSendBuffer *send_buffer)
 {
-	ChiakiErrorCode err = chiaki_mutex_lock(&send_buffer->mutex);
-	assert(err == CHIAKI_ERR_SUCCESS);
 	send_buffer->should_stop = true;
-	chiaki_mutex_unlock(&send_buffer->mutex);
-	err = chiaki_cond_signal(&send_buffer->cond);
+	ChiakiErrorCode err = chiaki_cond_signal(&send_buffer->cond);
 	assert(err == CHIAKI_ERR_SUCCESS);
 	err = chiaki_thread_join(&send_buffer->thread, NULL);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -104,7 +106,7 @@ static void GetRudpPacketType(ChiakiRudpSendBuffer *send_buffer, uint16_t packet
         case SESSION_MESSAGE:
 			strcpy(ptype, "Session Message");
             break;
-        case TAKION_SWITCH_ACK:
+        case STREAM_CONNECTION_SWITCH_ACK:
 			strcpy(ptype, "Takion Switch Ack");
             break;
         case ACK:
@@ -120,7 +122,7 @@ static void GetRudpPacketType(ChiakiRudpSendBuffer *send_buffer, uint16_t packet
 			strcpy(ptype, "Finish");
             break;
         default:
-			sprintf(ptype, "Undefined packet type %04x", type);
+			sprintf(ptype, "Undefined packet type 0x%04x", type);
 			break;
     }
 }
@@ -287,13 +289,23 @@ static void rudp_send_buffer_resend(ChiakiRudpSendBuffer *send_buffer)
 		ChiakiRudpSendBufferPacket *packet = &send_buffer->packets[i];
 		if(now - packet->last_send_ms > RUDP_DATA_RESEND_TIMEOUT_MS)
 		{
+			if(packet->tries >= RUDP_DATA_RESEND_TRIES_MAX)
+			{
+				CHIAKI_LOGI(send_buffer->log, "Hit max retries of %d tries giving up on packet with seqnum %#lx", RUDP_DATA_RESEND_TRIES_MAX, (unsigned long)packet->seq_num);
+				ChiakiSeqNum16 ack_seq_nums;
+				size_t ack_seq_nums_count;
+				chiaki_mutex_unlock(&send_buffer->mutex);
+				chiaki_rudp_send_buffer_ack(send_buffer, packet->seq_num, &ack_seq_nums, &ack_seq_nums_count);
+				chiaki_mutex_lock(&send_buffer->mutex);
+				i-= 1;
+				continue;
+			}
 			char packet_type[28] = {0};
 			GetRudpPacketType(send_buffer, *((uint16_t *)(packet->buf + 6)), packet_type);
 			CHIAKI_LOGI(send_buffer->log, "rudp Send Buffer re-sending packet with seqnum %#lx and type %s, tries: %llu", (unsigned long)packet->seq_num, packet_type, (unsigned long long)packet->tries);
 			packet->last_send_ms = now;
 			chiaki_rudp_send_raw(send_buffer->rudp, packet->buf, packet->buf_size);
 			packet->tries++;
-			// TODO: check tries and disconnect if necessary
 		}
 	}
 }

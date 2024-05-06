@@ -29,7 +29,9 @@
 #include "../sock.h"
 
 #include <stdint.h>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <ws2ipdef.h>
+#else
 #include <unistd.h>
 #endif
 
@@ -55,6 +57,7 @@ typedef struct holepunch_regist_info_t
     uint8_t data1[16];
     uint8_t data2[16];
     uint8_t custom_data1[16];
+    char regist_local_ip[INET6_ADDRSTRLEN];
 } ChiakiHolepunchRegistInfo;
 
 /** Types of PlayStation consoles supported for Remote Play. */
@@ -115,6 +118,28 @@ CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* 
  * @return the ChiakiHolepunchRegistInfo for the session
 */
 CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(ChiakiHolepunchSession session);
+
+/**
+ * This function returns the data needed for regist from the ChiakiHolepunchSession
+ *
+ * This function should be called after the first chiaki_holepunch_session_punch_hole
+ * punching the control hole used for regist
+ *
+ * @param[in] session Handle to the holepunching session
+ * @param ps_ip The char array to store the selected PlayStation IP
+*/
+CHIAKI_EXPORT void chiaki_get_ps_selected_addr(ChiakiHolepunchSession session, char *ps_ip);
+
+/**
+ * This function returns the data needed for regist from the ChiakiHolepunchSession
+ *
+ * This function should be called after the first chiaki_holepunch_session_punch_hole
+ * punching the control hole used for regist
+ *
+ * @param[in] session Handle to the holepunching session
+ * @return The selected candidate's ctrl port
+*/
+CHIAKI_EXPORT uint16_t chiaki_get_ps_ctrl_port(ChiakiHolepunchSession session);
 
 /**
  * This function returns the sock created for the holepunch session based on the desired sock type
@@ -192,11 +217,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
  *
  * @param[in] session Handle to the holepunching session
  * @param[in] port_type Type of port to punch a hole for
- * @param[out] socket Pointer to a socket that will be set to the control or data socket
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
     ChiakiHolepunchSession session, ChiakiHolepunchPortType port_type);
+
+/**
+ * Cancel initial psn connection steps (i.e., session create, session start and session punch hole)
+ *
+ * @param[in] session Handle to the holepunching session
+*/
+CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(
+    ChiakiHolepunchSession session);
 
 /**
  * Finalize a holepunching session.

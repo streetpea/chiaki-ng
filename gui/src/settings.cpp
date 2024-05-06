@@ -429,6 +429,7 @@ void Settings::LoadRegisteredHosts()
 		settings.setArrayIndex(i);
 		RegisteredHost host = RegisteredHost::LoadFromSettings(&settings);
 		registered_hosts[host.GetServerMAC()] = host;
+		nickname_registered_hosts[host.GetServerNickname()] = host;
 	}
 	settings.endArray();
 }

@@ -229,8 +229,10 @@ typedef struct chiaki_session_t
 	bool ctrl_failed;
 	bool ctrl_session_id_received;
 	bool ctrl_login_pin_requested;
+	bool ctrl_first_heartbeat_received;
 	bool login_pin_entered;
 	bool psn_regist_succeeded;
+	bool stream_connection_switch_received;
 	uint8_t *login_pin;
 	size_t login_pin_size;
 
@@ -252,6 +254,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_stream_connection_switch_received(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_toggle_microphone(ChiakiSession *session, bool muted);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_connect_microphone(ChiakiSession *session);
