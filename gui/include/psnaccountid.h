@@ -43,12 +43,12 @@ private:
     Settings *settings = {};
 
     static QByteArray to_bytes(long number, int num_bytes) {
-        std::vector<unsigned char> result(num_bytes);
-        for (int i = 0; i < num_bytes; ++i) {
-            result[i] = static_cast<unsigned char>(number & 0xFF);
+        QByteArray byte_array;
+        for (int i = 0; i < num_bytes; i++) {
+            char result = number & 0xFF;
+            byte_array.append(result);
             number >>= 8;
         }
-        QByteArray byte_array(reinterpret_cast<const char *>(result.data()), static_cast<int>(result.size()));
         return byte_array;
     }
 
