@@ -23,7 +23,6 @@
 #include <inttypes.h>
 
 #ifdef _WIN32
-#include <ws2tcpip.h>
 #include <iphlpapi.h>
 #else
 #include <unistd.h>

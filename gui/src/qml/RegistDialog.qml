@@ -80,7 +80,7 @@ DialogView {
                 id: accountId
                 visible: !ps4_7.checked
                 placeholderText: qsTr("base64")
-                Layout.preferredWidth: 400 - loginButton.width - lookupButton.width - 10
+                Layout.preferredWidth: 400 - loginButton.width - 10
 
                 C.Button {
                     id: loginButton

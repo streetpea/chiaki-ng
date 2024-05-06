@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 #ifdef _WIN32
-#include <ws2ipdef.h>
+#include <ws2tcpip.h>
 #else
 #include <unistd.h>
 #endif

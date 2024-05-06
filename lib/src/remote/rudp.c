@@ -32,7 +32,6 @@ CHIAKI_EXPORT RudpInstance *chiaki_rudp_init(chiaki_socket_t *sock, ChiakiLog *l
 {
     RudpInstance *rudp = (RudpInstance *)calloc(1, sizeof(RudpInstance));
     rudp->log = log;
-    chiaki_rudp_reset_counter_header(rudp);
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&rudp->counter_mutex, false);
     assert(err == CHIAKI_ERR_SUCCESS);
@@ -42,6 +41,7 @@ CHIAKI_EXPORT RudpInstance *chiaki_rudp_init(chiaki_socket_t *sock, ChiakiLog *l
         CHIAKI_LOGE(rudp->log, "Rudp failed initializing, failed creating stop pipe");
         return NULL;
     }
+    chiaki_rudp_reset_counter_header(rudp);
     rudp->sock = *sock;
 	// The send buffer size MUST be consistent with the acked seqnums array size in rudp_handle_message_ack()
     err = chiaki_rudp_send_buffer_init(&rudp->send_buffer, rudp, log, RUDP_SEND_BUFFER_SIZE);
@@ -418,7 +418,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_recv(RudpInstance *rudp, RudpMess
                 break;
         }
         ChiakiErrorCode err = chiaki_rudp_select_recv(rudp, 1500, message);
-        if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_TIMEOUT)
+        if(err == CHIAKI_ERR_TIMEOUT)
+            continue;
+        if(err != CHIAKI_ERR_SUCCESS)
             return err;
         if(recv_type == CTRL_MESSAGE)
         {
