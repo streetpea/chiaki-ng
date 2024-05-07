@@ -57,8 +57,41 @@ Rectangle {
     }
 
     Timer {
+        id: closeTimer
         interval: 1500
         running: true
         onTriggered: view.allowClose = true
+    }
+
+    Timer {
+        id: failTimer
+        interval: 1500
+        running: false
+        onTriggered: root.showMainView()
+    }
+
+    Connections {
+        target: Chiaki
+
+        function onConnectStateChanged() {
+            switch(Chiaki.connectState)
+            {
+                case Chiaki.PsnConnectState.LinkingConsole:
+                    infoLabel.text = qsTr("Linking Chiaki4deck with PlayStation console ...")
+                    view.allowClose = false
+                    break
+                case Chiaki.PsnConnectState.DataConnectionStart:
+                    infoLabel.text = qsTr("Console Linked ... Establising data connection with console over PSN ...")
+                    view.allowClose = true
+                    break
+                case Chiaki.PsnConnectState.DataConnectionFinished:
+                    root.showStreamView()
+                    break
+                case Chiaki.PsnConnectState.ConnectFailed:
+                    qsTr("Connection over PSN failed closing ...")
+                    failTimer.running = true
+                    break
+            }
+        }
     }
 }

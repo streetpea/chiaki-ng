@@ -1373,6 +1373,9 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			emit LoginPINRequested(event->login_pin_request.pin_incorrect);
 			break;
+		case CHIAKI_EVENT_HOLEPUNCH:
+			emit DataHolepunchProgress(event->data_holepunch.finished);
+			break;
 		case CHIAKI_EVENT_RUMBLE: {
 			uint8_t left = event->rumble.left;
 			uint8_t right = event->rumble.right;

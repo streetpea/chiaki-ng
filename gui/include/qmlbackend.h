@@ -55,8 +55,20 @@ class QmlBackend : public QObject
     Q_PROPERTY(bool discoveryEnabled READ discoveryEnabled WRITE setDiscoveryEnabled NOTIFY discoveryEnabledChanged)
     Q_PROPERTY(QVariantList hosts READ hosts NOTIFY hostsChanged)
     Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
+    Q_PROPERTY(PsnConnectState connectState READ connectState WRITE setConnectState NOTIFY connectStateChanged)
 
 public:
+
+    enum class PsnConnectState
+    {
+        NotStarted,
+        InitiatingConnection,
+        LinkingConsole,
+        DataConnectionStart,
+        DataConnectionFinished,
+        ConnectFailed
+    };
+    Q_ENUM(PsnConnectState);
     QmlBackend(Settings *settings, QmlMainWindow *window);
     ~QmlBackend();
 
@@ -68,6 +80,9 @@ public:
     bool discoveryEnabled() const;
     void setDiscoveryEnabled(bool enabled);
     void refreshAuth();
+
+    PsnConnectState connectState() const;
+    void setConnectState(PsnConnectState connect_state);
 
     QVariantList hosts() const;
 
@@ -106,7 +121,7 @@ public:
 signals:
     void sessionChanged(StreamSession *session);
     void psnConnect(StreamSession *session, const QString &duid, const bool &ps5);
-    void psnConnectDone(bool connected);
+    void connectStateChanged();
     void controllersChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
@@ -154,6 +169,7 @@ private:
     StreamSession *session = {};
     QThread *frame_thread = {};
     QThread psn_connection_thread;
+    PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;

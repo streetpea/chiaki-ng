@@ -534,6 +534,10 @@ static void *session_thread_func(void *arg)
 	if(session->rudp)
 	{
 		CHIAKI_LOGI(session->log, "Punching hole for data connection");
+		ChiakiEvent event_start = { 0 };
+		event_start.type = CHIAKI_EVENT_HOLEPUNCH;
+		event_start.data_holepunch.finished = false;
+		chiaki_session_send_event(session, &event_start);
 		err = chiaki_holepunch_session_punch_hole(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
 		if (err != CHIAKI_ERR_SUCCESS)
 		{
@@ -542,6 +546,10 @@ static void *session_thread_func(void *arg)
 		}
 		CHIAKI_LOGI(session->log, ">> Punched hole for data connection!");
 		data_sock = chiaki_get_holepunch_sock(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
+		ChiakiEvent event_finish = { 0 };
+		event_finish.type = CHIAKI_EVENT_HOLEPUNCH;
+		event_finish.data_holepunch.finished = true;
+		chiaki_session_send_event(session, &event_finish);
 		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}

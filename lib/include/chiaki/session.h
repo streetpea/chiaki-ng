@@ -146,6 +146,7 @@ typedef struct chiaki_trigger_effects_event_t
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
+	CHIAKI_EVENT_HOLEPUNCH,
 	CHIAKI_EVENT_KEYBOARD_OPEN,
 	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
 	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
@@ -167,6 +168,10 @@ typedef struct chiaki_event_t
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
 		} login_pin_request;
+		struct
+		{
+			bool finished; // false when punching hole, true when finished
+		} data_holepunch;
 	};
 } ChiakiEvent;
 

@@ -109,6 +109,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(worker, &PsnConnectionWorker::resultReady, this, &QmlBackend::checkPsnConnection);
     psn_connection_thread.start();
 
+    setConnectState(PsnConnectState::NotStarted);
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
@@ -221,6 +222,17 @@ void QmlBackend::setDiscoveryEnabled(bool enabled)
     emit discoveryEnabledChanged();
 }
 
+QmlBackend::PsnConnectState QmlBackend::connectState() const
+{
+    return psn_connect_state;
+}
+
+void QmlBackend::setConnectState(PsnConnectState connect_state)
+{
+    psn_connect_state = connect_state;
+    emit connectStateChanged();
+}
+
 QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
@@ -293,11 +305,14 @@ void QmlBackend::psnCancel()
 
 void QmlBackend::checkPsnConnection(const bool &connected)
 {
-    emit psnConnectDone(connected);
     if(connected)
+    {
+        setConnectState(PsnConnectState::LinkingConsole);
         psnSessionStart();
+    }
     else
     {
+        setConnectState(PsnConnectState::ConnectFailed);
         delete session;
         session = NULL;
     }
@@ -306,7 +321,6 @@ void QmlBackend::checkPsnConnection(const bool &connected)
 void QmlBackend::psnSessionStart()
 {
     session->Start();
-    emit sessionChanged(session);
 
     sleep_inhibit->inhibit();
 }
@@ -396,6 +410,13 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             emit sessionPinDialogRequested();
     });
 
+    connect(session, &StreamSession::DataHolepunchProgress, this, [this](bool finished) {
+        if(finished)
+            setConnectState(PsnConnectState::DataConnectionFinished);
+        else
+            setConnectState(PsnConnectState::DataConnectionStart);
+    });
+
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
             setDiscoveryEnabled(false);
@@ -416,7 +437,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         sleep_inhibit->inhibit();
     }
     else
+    {
+        setConnectState(PsnConnectState::InitiatingConnection);
         emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
+    }
 }
 
 bool QmlBackend::closeRequested()

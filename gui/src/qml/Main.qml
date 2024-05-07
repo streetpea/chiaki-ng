@@ -168,13 +168,6 @@ Item {
             root.showPSNTokenDialog(qsTr(""), true);
         }
 
-        function onPsnConnectDone(connected) {
-            if (connected)
-                root.showStreamView();
-            else
-                root.showMainView();
-        }
-
         function onError(title, text) {
             errorTitleLabel.text = title;
             errorTextLabel.text = text;
