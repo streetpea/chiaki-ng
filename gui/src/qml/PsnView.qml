@@ -7,12 +7,14 @@ Rectangle {
     id: view
     property bool allowClose: false
     property bool cancelling: false
+    property bool textVisible: true
     color: "black"
 
     function stop() {
         if (!allowClose)
             return;
         cancelling = true;
+        infoLabel.text = qsTr("Cancelling connection with console over PSN ...");
         Chiaki.psnCancel();
     }
 
@@ -42,15 +44,9 @@ Rectangle {
     Label {
         id: infoLabel
         anchors.centerIn: parent
-        opacity: 1.0
+        opacity: textVisible ? 1.0: 0.0
         visible: opacity
-        text: {
-            if(cancelling)
-                qsTr("Cancelling connection with console over PSN ...")
-            else
-                qsTr("Establishing connection with console over PSN ...")
-        }
-
+        text: qsTr("Establishing connection with console over PSN ...")
         Behavior on opacity { NumberAnimation { duration: 250 } }
     }
 
@@ -79,6 +75,7 @@ Rectangle {
             visible: text
             onVisibleChanged: {
                 if (visible) {
+                    textVisible = false
                     view.allowClose = false
                     view.grabInput(errorTitleLabel)
                 }
@@ -124,9 +121,13 @@ Rectangle {
             standardButton(Dialog.Ok).enabled = Qt.binding(function() {
                 return pinField.acceptableInput;
             });
+            textVisible = false
             view.grabInput(pinField);
         }
-        onClosed: view.releaseInput()
+        onClosed: {
+            textVisible = true
+            view.releaseInput()
+        }
         onAccepted: Chiaki.enterPin(pinField.text)
         onRejected: Chiaki.stopSession(false)
         Material.roundedScale: Material.MediumScale
