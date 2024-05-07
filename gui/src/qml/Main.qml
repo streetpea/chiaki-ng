@@ -8,6 +8,9 @@ import org.streetpea.chiaki4deck
 Item {
     id: root
 
+    Material.theme: Material.Dark
+    Material.accent: "#00a7ff"
+
     function controllerButton(name) {
         let type = "ps";
         for (let i = 0; i < Chiaki.controllers.length; ++i) {
@@ -85,6 +88,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: false
         initialItem: mainViewComponent
+        font.pixelSize: 20
 
         replaceEnter: Transition {
             PropertyAnimation {
