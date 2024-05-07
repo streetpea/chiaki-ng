@@ -16,6 +16,20 @@ Rectangle {
         Chiaki.psnCancel();
     }
 
+    function grabInput(item) {
+        Chiaki.window.grabInput();
+        restoreFocusItems.push(Window.window.activeFocusItem);
+        if (item)
+            item.forceActiveFocus();
+    }
+
+    function releaseInput() {
+        Chiaki.window.releaseInput();
+        let item = restoreFocusItems.pop();
+        if (item && item.visible)
+            item.forceActiveFocus();
+    }
+
     Keys.onReturnPressed: view.stop()
     Keys.onEscapePressed: view.stop()
 
@@ -28,7 +42,7 @@ Rectangle {
     Label {
         id: infoLabel
         anchors.centerIn: parent
-        opacity: view.allowClose ? 1.0 : 0.0
+        opacity: 1.0
         visible: opacity
         text: {
             if(cancelling)
@@ -54,6 +68,33 @@ Rectangle {
             width: 70
             height: width
         }
+
+        Label {
+            id: errorTitleLabel
+            anchors {
+                bottom: spinner.top
+                horizontalCenter: spinner.horizontalCenter
+            }
+            font.pixelSize: 24
+            visible: text
+            onVisibleChanged: {
+                if (visible) {
+                    view.allowClose = false
+                    view.grabInput(errorTitleLabel)
+                }
+            }
+            Keys.onReturnPressed: root.showMainView()
+            Keys.onEscapePressed: root.showMainView()
+        }
+
+        Label {
+            id: errorTextLabel
+            anchors {
+                top: errorTitleLabel.bottom
+                horizontalCenter: errorTitleLabel.horizontalCenter
+                topMargin: 10
+            }
+        }
     }
 
     Timer {
@@ -65,15 +106,43 @@ Rectangle {
 
     Timer {
         id: failTimer
-        interval: 1500
+        interval: 2000
         running: false
         onTriggered: root.showMainView()
+    }
+
+    Dialog {
+        id: sessionPinDialog
+        parent: Overlay.overlay
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+        title: qsTr("Console Login PIN")
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAboutToShow: {
+            standardButton(Dialog.Ok).enabled = Qt.binding(function() {
+                return pinField.acceptableInput;
+            });
+            view.grabInput(pinField);
+        }
+        onClosed: view.releaseInput()
+        onAccepted: Chiaki.enterPin(pinField.text)
+        onRejected: Chiaki.stopSession(false)
+        Material.roundedScale: Material.MediumScale
+
+        TextField {
+            id: pinField
+            implicitWidth: 200
+            validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
+        }
     }
 
     Connections {
         target: Chiaki
 
-        function onConnectStateChanged() {
+        function onConnectStateChanged() 
+        {
             switch(Chiaki.connectState)
             {
                 case Chiaki.PsnConnectState.LinkingConsole:
@@ -85,6 +154,7 @@ Rectangle {
                     view.allowClose = true
                     break
                 case Chiaki.PsnConnectState.DataConnectionFinished:
+                    view.allowClose = false
                     root.showStreamView()
                     break
                 case Chiaki.PsnConnectState.ConnectFailed:
@@ -92,6 +162,30 @@ Rectangle {
                     failTimer.running = true
                     break
             }
+        }
+
+        function onSessionChanged() 
+        {
+            if (!Chiaki.session) {
+                if (errorTitleLabel.text)
+                    failTimer.start();
+                else
+                    root.showMainView();
+            }
+        }
+
+        function onSessionError(title, text)
+        {
+            errorTitleLabel.text = title;
+            errorTextLabel.text = text;
+            closeTimer.start();
+        }
+
+        function onSessionPinDialogRequested() 
+        {
+            if (sessionPinDialog.opened)
+                return;
+            sessionPinDialog.open();
         }
     }
 }
