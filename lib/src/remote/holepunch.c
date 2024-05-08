@@ -1727,6 +1727,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     msg.conn_request->peer_sid = session->sid_console;
     msg.conn_request->nat_type = 2;
     memset(msg.conn_request->skey, 0, sizeof(msg.conn_request->skey));
+    memset(msg.conn_request->default_route_mac_addr, 0, sizeof(msg.conn_request->default_route_mac_addr));
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->num_candidates = 2;
     msg.conn_request->candidates = calloc(2, sizeof(Candidate));
@@ -1801,6 +1802,9 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
     msg.conn_request->nat_type = 0;
+    memset(msg.conn_request->skey, 0, sizeof(msg.conn_request->skey));
+    memset(msg.conn_request->default_route_mac_addr, 0, sizeof(msg.conn_request->default_route_mac_addr));
+    memset(msg.conn_request->local_hashed_id, 0, sizeof(msg.conn_request->local_hashed_id));
     msg.conn_request->num_candidates = 1;
     msg.conn_request->candidates = calloc(1, sizeof(Candidate));
     memcpy(&msg.conn_request->candidates[0], selected_candidate, sizeof(Candidate));
@@ -3585,14 +3589,22 @@ static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
     }
     CHIAKI_LOGV(log, "skey: %s", skey);
     CHIAKI_LOGV(log, "nat type %u", req->nat_type);
-    char mac_addr[18] = {0};
-    uint8_t *mac = req->default_route_mac_addr;
-    snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
-         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    CHIAKI_LOGV(log, "default_route_mac_addr: %s", mac_addr);
-    char local_hashed_id[29];
-    chiaki_base64_encode(req->local_hashed_id, sizeof(req->local_hashed_id), local_hashed_id, sizeof(local_hashed_id));
-    CHIAKI_LOGV(log, "local hashed id %s", local_hashed_id);
+    uint8_t zero_bytes0[sizeof(req->default_route_mac_addr)] = {0};
+    if(memcmp(zero_bytes0, req->default_route_mac_addr, sizeof(req->default_route_mac_addr)) != 0)
+    {
+        char mac_addr[18] = {0};
+        uint8_t *mac = req->default_route_mac_addr;
+        snprintf(mac_addr, sizeof(mac_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        CHIAKI_LOGV(log, "default_route_mac_addr: %s", mac_addr);
+    }
+    uint8_t zero_bytes[sizeof(req->local_hashed_id)] = {0};
+    if(memcmp(req->local_hashed_id, zero_bytes, sizeof(req->local_hashed_id)) != 0)
+    {
+        char local_hashed_id[29];
+        chiaki_base64_encode(req->local_hashed_id, sizeof(req->local_hashed_id), local_hashed_id, sizeof(local_hashed_id));
+        CHIAKI_LOGV(log, "local hashed id %s", local_hashed_id);
+    }
 }
 
 /**
