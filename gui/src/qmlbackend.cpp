@@ -1029,7 +1029,7 @@ void QmlBackend::updatePsnHosts()
         if (err != CHIAKI_ERR_SUCCESS)
         {
             qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
-            if(PSN_DEVICES_TRIES - i > 0)
+            if(PSN_DEVICES_TRIES - i > 1)
                 continue;
             else
                 return;
@@ -1042,7 +1042,7 @@ void QmlBackend::updatePsnHosts()
         if (err != CHIAKI_ERR_SUCCESS)
         {
             qCWarning(chiakiGui) << "Failed to get PS4 devices";
-            if(PSN_DEVICES_TRIES - i > 0)
+            if(PSN_DEVICES_TRIES - i > 1)
                 continue;
             else
                 return;

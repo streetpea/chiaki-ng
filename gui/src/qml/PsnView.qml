@@ -9,6 +9,7 @@ Rectangle {
     property bool allowClose: false
     property bool cancelling: false
     property bool textVisible: true
+    property list<Item> restoreFocusItems
     color: "black"
 
     function stop() {

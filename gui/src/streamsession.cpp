@@ -1588,8 +1588,9 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
 	size_t duid_len = duid.size();
 	size_t duid_bytes_len = duid_len / 2;
-	size_t duid_bytes_lenr;
+	size_t duid_bytes_lenr = duid_bytes_len;
 	uint8_t duid_bytes[duid_bytes_len];
+	memset(duid_bytes, 0, duid_bytes_len);
 	parse_hex(duid_bytes, &duid_bytes_lenr, duid.toUtf8().constData(), duid_len);
 	if(duid_bytes_len != duid_bytes_lenr)
 	{
