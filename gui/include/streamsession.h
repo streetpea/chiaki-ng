@@ -259,7 +259,7 @@ class StreamSession : public QObject
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		bool GetCantDisplay()	{ return cant_display; }
 		bool ConnectPsnConnection(QString duid, bool ps5);
-		void CancelPsnConnection();
+		void CancelPsnConnection(bool stop_thread);
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
 		QList<Controller *> GetControllers()	{ return controllers.values(); }

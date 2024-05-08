@@ -160,7 +160,7 @@ Item {
                 root.showStreamView();
         }
 
-        function onPsnConnect() {
+        function onShowPsnView() {
             root.showPsnView();
         }
 

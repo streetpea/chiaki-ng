@@ -1616,9 +1616,9 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	return true;
 }
 
-void StreamSession::CancelPsnConnection()
+void StreamSession::CancelPsnConnection(bool stop_thread)
 {
-	chiaki_holepunch_main_thread_cancel(holepunch_session);
+	chiaki_holepunch_main_thread_cancel(holepunch_session, stop_thread);
 }
 
 void StreamSession::TriggerFfmpegFrameAvailable()

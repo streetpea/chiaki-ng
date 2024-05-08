@@ -17,7 +17,7 @@ Rectangle {
             return;
         cancelling = true;
         infoLabel.text = qsTr("Cancelling connection with console over PSN ...");
-        Chiaki.psnCancel();
+        Chiaki.psnCancel(false);
     }
 
     function grabInput(item) {
@@ -161,8 +161,11 @@ Rectangle {
                     root.showStreamView()
                     break
                 case Chiaki.PsnConnectState.ConnectFailed:
-                    qsTr("Connection over PSN failed closing ...")
+                    infoLabel.text = qsTr("Connection over PSN failed closing ...")
                     failTimer.running = true
+                    break
+                case Chiaki.PsnConnectState.WaitingForInternet:
+                    infoLabel.text = qsTr("Establishing Internet Connection to PSN...")
                     break
             }
         }

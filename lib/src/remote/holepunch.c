@@ -1244,12 +1244,16 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     chiaki_cond_fini(&session->state_cond);
 }
 
-CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session)
+CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session, bool stop_thread)
 {
-    CHIAKI_LOGI(session->log, "Canceling establishing connection over PSN");
+    if(stop_thread)
+        session->ws_thread_should_stop = true;
+    else
+        CHIAKI_LOGI(session->log, "Canceling establishing connection over PSN");
     session->main_should_stop = true;
     chiaki_cond_signal(&session->notif_cond);
     chiaki_cond_signal(&session->state_cond);
+    chiaki_stop_pipe_stop(&session->select_pipe);
 }
 
 void notification_queue_free(NotificationQueue *nq)
@@ -1521,6 +1525,11 @@ static void* websocket_thread_func(void *user) {
             if (res == CURLE_AGAIN)
             {
                 ChiakiErrorCode err = chiaki_stop_pipe_select_single(&session->select_pipe, sockfd, false, timeout);
+                if(err == CHIAKI_ERR_CANCELED)
+                {
+                    CHIAKI_LOGE(session->log, "websocket_thread_func: Select canceled.");
+                    goto cleanup_json;
+                }
                 if(err != CHIAKI_ERR_SUCCESS && err != CHIAKI_ERR_TIMEOUT)
                 {
                     CHIAKI_LOGE(session->log, "websocket_thread_func: Select failed.");

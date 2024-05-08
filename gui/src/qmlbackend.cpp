@@ -19,6 +19,8 @@
 #include <QtConcurrent>
 
 #define PSN_DEVICES_TRIES 2
+#define MAX_PSN_RECONNECT_TRIES 6
+#define PSN_INTERNET_WAIT_SECONDS 5
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -120,7 +122,46 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     updateControllers();
 
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
-
+    psn_reconnect_tries = 0;
+    psn_reconnect_timer = new QTimer(this);
+    connect(psn_reconnect_timer, &QTimer::timeout, this, [this, settings]{
+        QString refresh = settings->GetPsnRefreshToken();
+        if(refresh.isEmpty())
+        {
+            qCWarning(chiakiGui) << "No refresh token found, can't refresh PSN token to use PSN remote connection";
+            psn_reconnect_tries = 0;
+            resume_session = false;
+            psn_reconnect_timer->stop();
+            setConnectState(PsnConnectState::ConnectFailed);
+            return;
+        }
+        PSNToken *psnToken = new PSNToken(settings, this);
+        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+            qCWarning(chiakiGui) << "Internet is currently down...waiting 5 seconds" << error;
+            psn_reconnect_tries++;
+            if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
+                return;
+            else
+            {
+                resume_session = false;
+                psn_reconnect_tries = 0;
+                psn_reconnect_timer->stop();
+                setConnectState(PsnConnectState::ConnectFailed);
+            }
+        });
+        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
+        });
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
+            resume_session = false;
+            psn_reconnect_tries = 0;
+            psn_reconnect_timer->stop();
+            createSession(session_info);
+        });
+        QString refresh_token = settings->GetPsnRefreshToken();
+        psnToken->RefreshPsnToken(refresh_token);
+    });
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
         qCInfo(chiakiGui) << "About to sleep";
@@ -128,6 +169,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
                 session->GoToBed();
             session->Stop();
+            psnCancel(true);
             resume_session = true;
         }
     });
@@ -135,13 +177,6 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         qCInfo(chiakiGui) << "Resumed from sleep";
         if (resume_session) {
             qCInfo(chiakiGui) << "Resuming session...";
-            QString expiry_s = settings->GetPsnAuthTokenExpiry();
-            QString refresh = settings->GetPsnRefreshToken();
-            if(expiry_s.isEmpty() || refresh.isEmpty())
-                return;
-            QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
-            // give 1 minute buffer
-            QDateTime now = QDateTime::currentDateTime().addSecs(60);
             resume_session = false;
             if(session_info.duid.isEmpty())
             {
@@ -158,25 +193,12 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                     session_info.stretch,
                 });
             }
-            else if(now > expiry)
-            {
-                PSNToken *psnToken = new PSNToken(settings, this);
-                connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-                    qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
-                });
-                connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
-                connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-                    qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
-                });
-                connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
-                    resume_session = false;
-                    createSession(session_info);
-                });
-                QString refresh_token = settings->GetPsnRefreshToken();
-                psnToken->RefreshPsnToken(refresh_token);
-            }
             else
-                createSession(session_info);
+            {
+                emit showPsnView();
+                setConnectState(PsnConnectState::WaitingForInternet);
+                psn_reconnect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+            }
         }
     });
     refreshPsnToken();
@@ -298,9 +320,9 @@ bool QmlBackend::autoConnect() const
     return auto_connect_mac.GetValue();
 }
 
-void QmlBackend::psnCancel()
+void QmlBackend::psnCancel(bool stop_thread)
 {
-    session->CancelPsnConnection();
+    session->CancelPsnConnection(stop_thread);
 }
 
 void QmlBackend::checkPsnConnection(const bool &connected)
@@ -438,6 +460,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
     else
     {
+        emit showPsnView();
         setConnectState(PsnConnectState::InitiatingConnection);
         emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
     }
