@@ -170,8 +170,9 @@ private:
     QmlMainWindow *window = {};
     StreamSession *session = {};
     QThread *frame_thread = {};
-    QTimer *psn_reconnect_timer;
-    int psn_reconnect_tries;
+    QTimer *psn_reconnect_timer = {};
+    QTimer *psn_auto_connect_timer = {};
+    int psn_reconnect_tries = 0;
     QThread psn_connection_thread;
     PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
@@ -181,5 +182,6 @@ private:
     SystemdInhibit *sleep_inhibit = {};
     bool resume_session = false;
     HostMAC auto_connect_mac = {};
+    QString auto_connect_nickname = "";
     QMap<QString, PsnHost> psn_hosts;
 };

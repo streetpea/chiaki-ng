@@ -122,8 +122,30 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     updateControllers();
 
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
+    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
+    psn_auto_connect_timer = new QTimer(this);
+    psn_auto_connect_timer->setSingleShot(true);
     psn_reconnect_tries = 0;
     psn_reconnect_timer = new QTimer(this);
+    if(autoConnect() && !auto_connect_nickname.isEmpty())
+    {
+        connect(psn_auto_connect_timer, &QTimer::timeout, this, [this, settings]
+        {
+            int i = 0;
+            for (const auto &host : std::as_const(psn_hosts))
+            {
+                if(host.GetName() == auto_connect_nickname)
+                {
+                    int index = discovery_manager.GetHosts().size() + settings->GetManualHosts().size() + i;
+                    connectToHost(index);
+                    return;
+                }
+                i++;
+            }
+            qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
+        });
+        psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+    }
     connect(psn_reconnect_timer, &QTimer::timeout, this, [this, settings]{
         QString refresh = settings->GetPsnRefreshToken();
         if(refresh.isEmpty())
@@ -648,7 +670,6 @@ void QmlBackend::connectToHost(int index)
                 fullscreen,
                 zoom,
                 stretch);
-        session_info = info;
 
         QString expiry_s = settings->GetPsnAuthTokenExpiry();
         QString refresh = settings->GetPsnRefreshToken();
@@ -868,6 +889,7 @@ void QmlBackend::updateDiscoveryHosts()
         for (int i = 0; i < hosts_count; ++i) {
             if (discovery_manager.GetHosts().at(i).GetHostMAC() != auto_connect_mac)
                 continue;
+            psn_auto_connect_timer->stop();
             connectToHost(i);
             break;
         }
