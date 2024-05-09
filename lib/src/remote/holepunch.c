@@ -17,6 +17,7 @@
 // TODO: Make portable for Switch
 
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
 #include <sys/types.h>
 #include <assert.h>
@@ -460,6 +461,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
 
     size_t num_clients = json_object_array_length(clients);
     *devices = malloc(sizeof(ChiakiHolepunchDeviceInfo) * num_clients);
+    if(!(*devices))
+    {
+        CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Memory could not be allocated for %d devices", num_clients);
+        return CHIAKI_ERR_MEMORY;
+    }
     *device_count = num_clients;
     for (size_t i = 0; i < num_clients; i++)
     {
@@ -1267,7 +1273,7 @@ void notification_queue_free(NotificationQueue *nq)
 
 static void make_oauth2_header(char** out, const char* token)
 {
-    size_t oauth_header_len = sizeof(oauth_header_fmt) + strlen(token);
+    size_t oauth_header_len = sizeof(oauth_header_fmt) + strlen(token) + 1;
     *out = malloc(oauth_header_len);
     snprintf(*out, oauth_header_len, oauth_header_fmt, token);
 }
@@ -2488,7 +2494,7 @@ static ChiakiErrorCode check_candidates(
         if(is_ipv4)
             sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         else
-            sock = sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+            sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
         if CHIAKI_SOCKET_IS_INVALID(sock)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Creating socket failed");
