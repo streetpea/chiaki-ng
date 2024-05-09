@@ -314,7 +314,7 @@ typedef struct session_message_t
     Notification *notification;
 } SessionMessage;
 
-static void make_oauth2_header(char** out, const char* token);
+static ChiakiErrorCode make_oauth2_header(char** out, const char* token);
 static ChiakiErrorCode get_websocket_fqdn(
     Session *session, char **fqdn);
 static inline size_t curl_write_cb(
@@ -392,7 +392,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     snprintf(url, sizeof(url), device_list_url_fmt, platform);
 
     char* oauth_header = NULL;
-    make_oauth2_header(&oauth_header, psn_oauth2_token);
+    ChiakiErrorCode err = make_oauth2_header(&oauth_header, psn_oauth2_token);
+    if(err != CHIAKI_ERR_SUCCESS)
+        return err;
 
     HttpResponseData response_data = {
         .data = malloc(0),
@@ -412,7 +414,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
 
     CURLcode res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
-    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     if (res != CURLE_OK)
     {
         if (res == CURLE_HTTP_RETURNED_ERROR)
@@ -617,11 +618,15 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     const char* psn_oauth2_token, ChiakiLog *log)
 {
     Session *session = malloc(sizeof(Session));
+    if(!session)
+        return NULL;
     make_oauth2_header(&session->oauth_header, psn_oauth2_token);
     session->log = log;
 
     session->ws_fqdn = NULL;
     session->ws_notification_queue = createNq();
+    if(!session->ws_notification_queue)
+        return NULL;
     session->ws_thread_should_stop = false;
     session->ws_open = false;
     session->main_should_stop = false;
@@ -1026,6 +1031,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     const int our_offer_req_id = session->local_req_id;
     session->local_req_id++;
     local_candidates = calloc(2, sizeof(Candidate));
+    if(!local_candidates)
+    {
+        err = CHIAKI_ERR_MEMORY;
+        goto cleanup;
+    }
     send_offer(session, our_offer_req_id, console_candidate_local, local_candidates);
 
     // Wait for ACK of OFFER, ignore other OFFERs, simply ACK them
@@ -1271,11 +1281,14 @@ void notification_queue_free(NotificationQueue *nq)
     }
 }
 
-static void make_oauth2_header(char** out, const char* token)
+static ChiakiErrorCode make_oauth2_header(char** out, const char* token)
 {
     size_t oauth_header_len = sizeof(oauth_header_fmt) + strlen(token) + 1;
     *out = malloc(oauth_header_len);
+    if(!(*out))
+        return CHIAKI_ERR_MEMORY;
     snprintf(*out, oauth_header_len, oauth_header_fmt, token);
+    return CHIAKI_ERR_SUCCESS;
 }
 
 /**
@@ -1496,9 +1509,16 @@ static void* websocket_thread_func(void *user) {
     uint64_t last_ping_sent = 0;
 
     json_tokener *tok = json_tokener_new();
+    if(!tok)
+        goto cleanup;
 
     const struct curl_ws_frame *meta;
     char *buf = malloc(WEBSOCKET_MAX_FRAME_SIZE);
+    if(!buf)
+    {
+        json_tokener_free(tok);
+        goto cleanup;
+    }
     size_t rlen;
     size_t wlen;
     bool expecting_pong = false;
@@ -1587,10 +1607,14 @@ static void* websocket_thread_func(void *user) {
 
             NotificationType type = parse_notification_type(session->log, json);
             char *json_buf = malloc(rlen);
+            if(!json_buf)
+                goto cleanup_json;
             memcpy(json_buf, buf, rlen);
             size_t json_buf_size = rlen;
             CHIAKI_LOGV(session->log, "Received notification of type %d", type);
             Notification *notif = newNotification(type, json, json_buf, json_buf_size);
+            if(!notif)
+                goto cleanup_json;
 
             // Automatically ACK OFFER session messages if we're not currently explicitly
             // waiting on offers
@@ -1640,6 +1664,7 @@ static void* websocket_thread_func(void *user) {
 
 cleanup_json:
     json_tokener_free(tok);
+    free(buf);
 cleanup:
     curl_easy_cleanup(curl);
     session->ws_open = false;
@@ -1734,6 +1759,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         .conn_request = malloc(sizeof(ConnectionRequest)),
         .notification = NULL,
     };
+    if(!msg.conn_request)
+        return CHIAKI_ERR_MEMORY;
     if(session->local_port_ctrl == 0)
         session->local_port_ctrl = local_port;
     else
@@ -1747,6 +1774,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->num_candidates = 2;
     msg.conn_request->candidates = calloc(2, sizeof(Candidate));
+    if(!msg.conn_request->candidates)
+    {
+        free(msg.conn_request);
+        return CHIAKI_ERR_MEMORY;
+    }
 
     Candidate *candidate_local = &msg.conn_request->candidates[1];
     candidate_local->type = CANDIDATE_TYPE_LOCAL;
@@ -1759,7 +1791,18 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     candidate_remote->type = CANDIDATE_TYPE_STATIC;
     UPNPGatewayInfo upnp_gw;
     upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
+    if(!upnp_gw.data)
+    {
+        err = CHIAKI_ERR_MEMORY;
+        goto cleanup;
+    }
     upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
+    if(!upnp_gw.urls)
+    {
+        err = CHIAKI_ERR_MEMORY;
+        free(upnp_gw.data);
+        goto cleanup;
+    }
     err = upnp_get_gateway_info(session->log, &upnp_gw);
     if (err == CHIAKI_ERR_SUCCESS) {
         memcpy(candidate_local->addr, upnp_gw.lan_ip, sizeof(upnp_gw.lan_ip));
@@ -1815,6 +1858,8 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
         .conn_request = calloc(1, sizeof(ConnectionRequest)),
         .notification = NULL,
     };
+    if(!msg.conn_request)
+        return CHIAKI_ERR_MEMORY;
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
     msg.conn_request->nat_type = 0;
@@ -1823,6 +1868,11 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
     memset(msg.conn_request->local_hashed_id, 0, sizeof(msg.conn_request->local_hashed_id));
     msg.conn_request->num_candidates = 1;
     msg.conn_request->candidates = calloc(1, sizeof(Candidate));
+    if(!msg.conn_request->candidates)
+    {
+        free(msg.conn_request);
+        return CHIAKI_ERR_MEMORY;
+    }
     memcpy(&msg.conn_request->candidates[0], selected_candidate, sizeof(Candidate));
 
     ChiakiErrorCode err = http_send_session_message(session, &msg, false);
@@ -1841,6 +1891,8 @@ static ChiakiErrorCode http_create_session(Session *session)
 {
     size_t session_create_json_len = sizeof(session_create_json_fmt) + strlen(session->pushctx_id);
     char* session_create_json = malloc(session_create_json_len);
+    if(!session_create_json)
+        return CHIAKI_ERR_MEMORY;
     snprintf(session_create_json, session_create_json_len, session_create_json_fmt, session->pushctx_id);
     CHIAKI_LOGV(session->log, "http_create_session: Sending JSON:\n%s", session_create_json);
 
@@ -3203,6 +3255,8 @@ static ChiakiErrorCode session_message_parse(
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     SessionMessage *msg = calloc(1, sizeof(SessionMessage));
+    if(!msg)
+        return CHIAKI_ERR_MEMORY;
     msg->notification = NULL;
 
     json_object *action_json;
@@ -3249,6 +3303,11 @@ static ChiakiErrorCode session_message_parse(
     if (json_object_object_length(conn_request_json) > 0)
     {
         msg->conn_request = calloc(1, sizeof(ConnectionRequest));
+        if(!msg->conn_request)
+        {
+            err = CHIAKI_ERR_MEMORY;
+            goto cleanup;
+        }
 
         json_object *obj;
         json_object_object_get_ex(conn_request_json, "sid", &obj);
@@ -3336,6 +3395,12 @@ static ChiakiErrorCode session_message_parse(
         size_t num_candidates = json_object_array_length(obj);
         msg->conn_request->num_candidates = num_candidates;
         msg->conn_request->candidates = calloc(num_candidates, sizeof(Candidate));
+        if(!msg->conn_request->candidates)
+        {
+            free(msg->conn_request);
+            err = CHIAKI_ERR_MEMORY;
+            goto cleanup;
+        }
         for (size_t i = 0; i < num_candidates; i++)
         {
             Candidate candidate;
@@ -3437,9 +3502,16 @@ static ChiakiErrorCode session_message_serialize(
 
     size_t candidate_str_len = sizeof(session_connrequest_candidate_fmt) * 2;
     char *candidates_json = calloc(1, candidate_str_len * message->conn_request->num_candidates + 3);
+    if(!candidates_json)
+        return CHIAKI_ERR_MEMORY;
     *(candidates_json) = '[';
     size_t candidates_len = 1;
     char *candidate_str = calloc(1, candidate_str_len);
+    if(!candidate_str)
+    {
+        free(candidates_json);
+        return CHIAKI_ERR_MEMORY;
+    }
     for (int i=0; i < message->conn_request->num_candidates; i++)
     {
         Candidate candidate = message->conn_request->candidates[i];
@@ -3482,6 +3554,12 @@ static ChiakiErrorCode session_message_serialize(
     size_t connreq_json_len = sizeof(session_connrequest_fmt) * 2 + localpeeraddr_len + candidates_len;
     char *connreq_json = calloc(
         1, connreq_json_len);
+    if(!connreq_json)
+    {
+        free(candidates_json);
+        free(candidate_str);
+        return CHIAKI_ERR_MEMORY;
+    }
     char mac_addr[1] = { '\0' };
     CHIAKI_SSIZET_TYPE connreq_len = snprintf(
         connreq_json, connreq_json_len, session_connrequest_fmt,
@@ -3511,6 +3589,11 @@ static ChiakiErrorCode session_message_serialize(
     }
     CHIAKI_SSIZET_TYPE serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
     char *serialized_msg = calloc(1, serialized_msg_len);
+    if(!serialized_msg)
+    {
+        err = CHIAKI_ERR_MEMORY;
+        goto cleanup;
+    }
     CHIAKI_SSIZET_TYPE msg_len = snprintf(
         serialized_msg, serialized_msg_len, session_message_fmt,
         action_str, message->req_id, message->error, connreq_json);
@@ -3518,6 +3601,7 @@ static ChiakiErrorCode session_message_serialize(
     *out = serialized_msg;
     *out_len = msg_len;
 
+cleanup:
     free(candidate_str);
     free(candidates_json);
     free(connreq_json);
@@ -3566,6 +3650,8 @@ static ChiakiErrorCode short_message_serialize(
     }
     CHIAKI_SSIZET_TYPE serialized_msg_len = sizeof(session_message_envelope_fmt) * 2 + connreq_len;
     char *serialized_msg = calloc(1, serialized_msg_len);
+    if(!serialized_msg)
+        return CHIAKI_ERR_MEMORY;
     CHIAKI_SSIZET_TYPE msg_len = snprintf(
         serialized_msg, serialized_msg_len, session_message_fmt,
         action_str, message->req_id, message->error, connreq_json);
@@ -3667,6 +3753,8 @@ static void print_candidate(ChiakiLog *log, Candidate *candidate)
 static NotificationQueue *createNq()
 {
     NotificationQueue *nq = (NotificationQueue*)malloc(sizeof(NotificationQueue));
+    if(!nq)
+        return NULL;
     nq->front = nq->rear = NULL;
     return nq;
 }
@@ -3726,6 +3814,8 @@ static void enqueueNq(NotificationQueue *nq, Notification*notif)
 static Notification* newNotification(NotificationType type, json_object *json, char* json_buf, size_t json_buf_size)
 {
     Notification *notif = (Notification *)malloc(sizeof(Notification));
+    if(!notif)
+        return NULL;
     notif->type = type;
     notif->json = json;
     notif->json_buf = json_buf;

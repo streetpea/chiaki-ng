@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     }
 
     ChiakiHolepunchSession session = chiaki_holepunch_session_init(oauth_token, &log);
-    if (err != CHIAKI_ERR_SUCCESS)
+    if (!session)
     {
         fprintf(stderr, "!! Failed to initialize session\n");
         return -1;

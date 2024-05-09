@@ -24,7 +24,7 @@ typedef struct rudp_t
 } RudpInstance;
 
 static uint16_t get_then_increase_counter(RudpInstance *rudp);
-static void chiaki_rudp_message_parse(uint8_t *serialized_msg, size_t msg_size, RudpMessage *message);
+static ChiakiErrorCode chiaki_rudp_message_parse(uint8_t *serialized_msg, size_t msg_size, RudpMessage *message);
 static void rudp_message_serialize(RudpMessage *message, uint8_t *serialized_msg, size_t *msg_size);
 static void print_rudp_message_type(RudpInstance *rudp, RudpPacketType type);
 
@@ -32,6 +32,8 @@ static void print_rudp_message_type(RudpInstance *rudp, RudpPacketType type);
 CHIAKI_EXPORT RudpInstance *chiaki_rudp_init(chiaki_socket_t *sock, ChiakiLog *log)
 {
     RudpInstance *rudp = (RudpInstance *)calloc(1, sizeof(RudpInstance));
+    if(!rudp)
+        return NULL;
     rudp->log = log;
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&rudp->counter_mutex, false);
@@ -72,13 +74,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(RudpInstance *rudp)
     uint8_t data[message.data_size];
     size_t alloc_size = 8 + message.data_size;
     uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
+    if(!serialized_msg)
+    {
+        CHIAKI_LOGE(rudp->log, "Error allocating memory for rudp message");
+        return CHIAKI_ERR_MEMORY;
+    }
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     const uint8_t after_header[0x2] = { 0x05, 0x82 };
     const uint8_t after_counter[0x6] = { 0x0B, 0x01, 0x01, 0x00, 0x01, 0x00 };
     *(chiaki_unaligned_uint16_t *)(data) = htons(local_counter);
     memcpy(data + 2, after_counter, sizeof(after_counter));
-    *(chiaki_unaligned_uint16_t *)(data + 8) = htonl(rudp->header);
+    *(chiaki_unaligned_uint32_t *)(data + 8) = htonl(rudp->header);
     memcpy(data + 12, after_header, sizeof(after_header));
     message.data = data;
     rudp_message_serialize(&message, serialized_msg, &msg_size);
@@ -96,6 +103,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp
     message.data_size = 14 + response_size;
     size_t alloc_size = 8 + message.data_size;
     uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
+    if(!serialized_msg)
+    {
+        CHIAKI_LOGE(rudp->log, "Error allocating memory for rudp message");
+        return CHIAKI_ERR_MEMORY;
+    }
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -103,7 +115,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp
     const uint8_t after_counter[0x6] = { 0x0B, 0x01, 0x01, 0x00, 0x01, 0x00 };
     *(chiaki_unaligned_uint16_t *)(data) = htons(local_counter);
     memcpy(data + 2, after_counter, sizeof(after_counter));
-    *(chiaki_unaligned_uint16_t *)(data + 8) = htonl(rudp->header);
+    *(chiaki_unaligned_uint32_t *)(data + 8) = htonl(rudp->header);
     memcpy(data + 12, after_header, sizeof(after_header));
     memcpy(data + 14, response_buf, response_size);
     message.data = data;
@@ -132,6 +144,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(RudpInstance *rud
     message.data_size = 4;
     size_t alloc_size = 8 + message.data_size + 8 + subMessage.data_size;
     uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
+    if(!serialized_msg)
+    {
+        CHIAKI_LOGE(rudp->log, "Error allocating memory for rudp message");
+        return CHIAKI_ERR_MEMORY;
+    }
     size_t msg_size = 0;
     message.size = (0xC << 12) | (8 + message.data_size);
     uint8_t data[message.data_size];
@@ -153,6 +170,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, u
     message.data_size = 6;
     size_t alloc_size = 8 + message.data_size;
     uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
+    if(!serialized_msg)
+    {
+        CHIAKI_LOGE(rudp->log, "Error allocating memory for rudp message");
+        return CHIAKI_ERR_MEMORY;
+    }
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -177,6 +199,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
     message.data_size = 2 + ctrl_message_size;
     size_t alloc_size = 8 + message.data_size;
     uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
+    if(!serialized_msg)
+    {
+        CHIAKI_LOGE(rudp->log, "Error allocating memory for rudp message");
+        return CHIAKI_ERR_MEMORY;
+    }
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -204,6 +231,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_messa
     message.data_size = 26;
     size_t alloc_size = 8 + message.data_size;
     uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
+    if(!serialized_msg)
+    {
+        CHIAKI_LOGE(rudp->log, "Error allocating memory for rudp message");
+        return CHIAKI_ERR_MEMORY;
+    }
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -249,16 +281,18 @@ static void rudp_message_serialize(
 }
 
 /**
- * Send serialized rudp message across buffer
+ * Parse serialized message into rudp message
  *
- * @param rudp Pointer to the Rudp indstance to use
- * @param[in] buf The serialized Rudp message to send
- * @param[in] buf_size The size of the messsage to send
+ * @param[in] serialized_msg The serialized message to transform to a rudp message
+ * @param[in] msg_size The size of the serialized message
+ * @param[out] RudpMessage The parsed rudp message
+ * @return CHIAKI_ERR_SUCCESS on sucess or error code on failure
  * 
 */
-static void chiaki_rudp_message_parse(
+static ChiakiErrorCode chiaki_rudp_message_parse(
     uint8_t *serialized_msg, size_t msg_size, RudpMessage *message)
 {
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     message->data = NULL;
     message->subMessage = NULL;
     message->subMessage_size = 0;
@@ -279,6 +313,8 @@ static void chiaki_rudp_message_parse(
             data_size = remaining;
         message->data_size = data_size;
         message->data = malloc(message->data_size * sizeof(uint8_t));
+        if(!message->data)
+            return CHIAKI_ERR_MEMORY;
         memcpy(message->data, serialized_msg + 8, data_size);
         if(data_size >= 2)
             message->remote_counter = ntohs(*(chiaki_unaligned_uint16_t *)(message->data)) + 1;
@@ -288,9 +324,12 @@ static void chiaki_rudp_message_parse(
     if (remaining >= 8)
     {
         message->subMessage = malloc(1 * sizeof(RudpMessage));
+        if(!message->subMessage)
+            return CHIAKI_ERR_MEMORY;
         message->subMessage_size = remaining;
-        chiaki_rudp_message_parse(serialized_msg + 8 + data_size, remaining, message->subMessage);
+        err = chiaki_rudp_message_parse(serialized_msg + 8 + data_size, remaining, message->subMessage);
     }
+    return err;
 }
 
 /**
@@ -358,9 +397,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_select_recv(RudpInstance *rudp, size_t
     CHIAKI_LOGV(rudp->log, "Receiving message:");
     chiaki_log_hexdump(rudp->log, CHIAKI_LOG_VERBOSE, buf, received_sz);
 
-    chiaki_rudp_message_parse(buf, received_sz, message);
+    err = chiaki_rudp_message_parse(buf, received_sz, message);
     
-	return CHIAKI_ERR_SUCCESS;
+	return err;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv_only(RudpInstance *rudp, size_t buf_size,  RudpMessage *message)
@@ -378,9 +417,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv_only(RudpInstance *rudp, size_t b
     CHIAKI_LOGV(rudp->log, "Receiving message:");
     chiaki_log_hexdump(rudp->log, CHIAKI_LOG_VERBOSE, buf, received_sz);
 
-    chiaki_rudp_message_parse(buf, received_sz, message);
+    ChiakiErrorCode err = chiaki_rudp_message_parse(buf, received_sz, message);
 
-	return CHIAKI_ERR_SUCCESS;
+	return err;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_stop_pipe_select_single(RudpInstance *rudp, ChiakiStopPipe *stop_pipe, uint64_t timeout)

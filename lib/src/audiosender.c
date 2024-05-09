@@ -45,7 +45,7 @@ CHIAKI_EXPORT void chiaki_audio_sender_fini(ChiakiAudioSender *audio_sender)
     chiaki_mutex_fini(&audio_sender->mutex);
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender, uint8_t *opus_sender, size_t opus_sender_size)
+CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender, uint8_t *opus_sender, size_t opus_sender_size)
 {
     // skip audio packets without encoded audio
     // if no audio the packet will have only 3 encoded units because there is no entropy in the packet, otherwise should be max of 40
@@ -71,15 +71,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_opus_data(ChiakiAudioSender *a
     {
         audio_sender->frameb = malloc(audio_sender->buf_size_per_unit);
         if(!audio_sender->frameb)
-            return CHIAKI_ERR_MEMORY;
+        {
+            CHIAKI_LOGE(audio_sender->log, "Error allocating audio frameb");
+            return;
+        }
         memcpy(audio_sender->frameb, opus_sender, opus_sender_size);
-        return CHIAKI_ERR_SUCCESS;
+        return;
     }
     if(!audio_sender->framea)
     {
         audio_sender->framea = malloc(audio_sender->buf_size_per_unit);
         if(!audio_sender->framea)
-            return CHIAKI_ERR_MEMORY;
+        {
+            CHIAKI_LOGE(audio_sender->log, "Error allocating audio framea");
+            return;
+        }
         memcpy(audio_sender->framea, opus_sender, opus_sender_size);
         return;
     }
@@ -104,7 +110,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_opus_data(ChiakiAudioSender *a
         audio_sender->filled_packet_buf[19] = zero_byte;
     memcpy(audio_sender->filled_packet_buf + 19 + ps5_packet, audio_sender->frame_buf, audio_sender->frame_buf_size);
 	chiaki_audio_sender_frame(audio_sender, audio_sender->filled_packet_buf, filled_packet_size);
-    return CHIAKI_ERR_SUCCESS;
+    return;
 }
 
 static void chiaki_audio_sender_frame(ChiakiAudioSender *audio_sender, uint8_t *buf, size_t buf_size)
