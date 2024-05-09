@@ -795,7 +795,7 @@ void QmlMainWindow::render()
             // Nothing to do, target.crop already covers the full image
             break;
         case VideoMode::Zoom:
-            if(zoom_factor == 0)
+            if(zoom_factor == -1)
                 pl_rect2df_aspect_copy(&target_frame.crop, &crop, 1.0);
             else
             {
