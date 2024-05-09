@@ -134,8 +134,8 @@ static const char session_connrequest_fmt[] =
      "\\\"localHashedId\\\":\\\"%s\\\"}";      // 7: 16 byte buffer, base64 encoded
 static const char session_connrequest_candidate_fmt[] =
     "{\\\"type\\\":\\\"%s\\\","        // 0: STATIC/LOCAL
-     "\\\"addr\\\":\\\"%s\\\","        // 1: IPv4 address
-     "\\\"mappedAddr\\\":\\\"%s\\\","  // 2: IPv4 address
+     "\\\"addr\\\":\\\"%s\\\","        // 1: IP address
+     "\\\"mappedAddr\\\":\\\"%s\\\","  // 2: IP address
      "\\\"port\\\":%d,"                // 3: Port
      "\\\"mappedPort\\\":%d}";         // 4: Mapped Port
 static const char session_localpeeraddr_fmt[] =
@@ -1690,7 +1690,7 @@ static NotificationType parse_notification_type(
  */
 static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidates)
 {
-    // Create listening socket that the console can reach us on
+    // Create socket with available local port for connection
     session->client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (CHIAKI_SOCKET_IS_INVALID(session->client_sock))
     {
@@ -1699,7 +1699,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     }
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
-    client_addr.sin_family = AF_INET;
+    client_addr.sin_family = AF_UNSPEC;
     client_addr.sin_addr.s_addr = INADDR_ANY;
     client_addr.sin_port = 0;
     socklen_t client_addr_len = sizeof(client_addr);
@@ -2209,7 +2209,7 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
 
     if(getifaddrs(&local_addrs) != 0)
@@ -2467,21 +2467,28 @@ static ChiakiErrorCode check_candidates(
     sprintf(service_local, "%d", local_candidate->port);
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     struct addrinfo *addr_local, *addr_remote;
-
-    if (getaddrinfo(local_candidate->addr, service_local, &hints, &addr_local) != 0)
-    {
-        CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error  " CHIAKI_SOCKET_ERROR_FMT, local_candidate->addr, local_candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
-        return CHIAKI_ERR_UNKNOWN;
-    }
 
     for (int i=0; i < num_candidates; i++)
     {
         Candidate *candidate = &candidates[i];
         responses_received[i] = 0;
-        chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        char *is_ipv4 = strchr(candidate->addr, '.');
+        if(is_ipv4)
+            hints.ai_family = AF_INET;
+        else
+            hints.ai_family = AF_INET6;
+        if (getaddrinfo(local_candidate->addr, service_local, &hints, &addr_local) != 0)
+        {
+            CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error  " CHIAKI_SOCKET_ERROR_FMT, local_candidate->addr, local_candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+            return CHIAKI_ERR_UNKNOWN;
+        }
+        chiaki_socket_t sock;
+        if(is_ipv4)
+            sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        else
+            sock = sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
         if CHIAKI_SOCKET_IS_INVALID(sock)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Creating socket failed");
@@ -2508,7 +2515,7 @@ static ChiakiErrorCode check_candidates(
         {
             CHIAKI_LOGE(session->log, "check_candidate: Binding socket failed for local address: %s and port %d: with error " CHIAKI_SOCKET_ERROR_FMT, local_candidate->addr, local_candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_NETWORK;
-            freeaddrinfo(addr_remote);
+            freeaddrinfo(addr_local);
                 continue;
         }
 
@@ -2516,6 +2523,7 @@ static ChiakiErrorCode check_candidates(
         {
             CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_UNKNOWN;
+            freeaddrinfo(addr_local);
             if(i < num_candidates - 1)
                 continue;
         }
@@ -2525,6 +2533,7 @@ static ChiakiErrorCode check_candidates(
             CHIAKI_LOGE(session->log, "check_candidate: Connecting socket failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_NETWORK;
             freeaddrinfo(addr_remote);
+            freeaddrinfo(addr_local);
                 continue;
         }
 
@@ -2532,13 +2541,14 @@ static ChiakiErrorCode check_candidates(
         {
             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_NETWORK;
+            freeaddrinfo(addr_local);
             freeaddrinfo(addr_remote);
                 continue;
         }
         failed = false;
         freeaddrinfo(addr_remote);
+        freeaddrinfo(addr_local);
     }
-    freeaddrinfo(addr_local);
     if(failed)
         goto cleanup_sockets;
 
