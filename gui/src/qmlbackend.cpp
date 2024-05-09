@@ -231,6 +231,8 @@ QmlBackend::~QmlBackend()
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
+    delete psn_auto_connect_timer;
+    delete psn_reconnect_timer;
     psn_connection_thread.quit();
     psn_connection_thread.wait();
 }
@@ -1063,9 +1065,9 @@ void QmlBackend::updatePsnHosts()
         return;
 
     ChiakiHolepunchDeviceInfo *device_info_ps5;
-    size_t num_devices_ps5;
+    size_t num_devices_ps5 = 0;
     ChiakiHolepunchDeviceInfo *device_info_ps4;
-    size_t num_devices_ps4;
+    size_t num_devices_ps4 = 0;
     ChiakiLog backend_log;
     chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
     for(int i = 0; i < PSN_DEVICES_TRIES; i++)
@@ -1073,11 +1075,16 @@ void QmlBackend::updatePsnHosts()
         ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
         if (err != CHIAKI_ERR_SUCCESS)
         {
-            qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
             if(PSN_DEVICES_TRIES - i > 1)
+            {
+                qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
                 continue;
+            }
             else
+            {
+                qCWarning(chiakiGui) << "Failed to get PS5 devices after max tries: " << PSN_DEVICES_TRIES;
                 return;
+            }
         }
         break;
     }
@@ -1086,11 +1093,17 @@ void QmlBackend::updatePsnHosts()
         ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
         if (err != CHIAKI_ERR_SUCCESS)
         {
-            qCWarning(chiakiGui) << "Failed to get PS4 devices";
             if(PSN_DEVICES_TRIES - i > 1)
+            {
+                qCWarning(chiakiGui) << "Failed to get PS4 devices trying again";
                 continue;
+            }
             else
+            {
+                qCWarning(chiakiGui) << "Failed to get PS4 devices after max tries: " << PSN_DEVICES_TRIES;
+                chiaki_holepunch_free_device_list(device_info_ps5);
                 return;
+            }
         }
         break;
     }
@@ -1127,6 +1140,8 @@ void QmlBackend::updatePsnHosts()
     }
     emit hostsChanged();
     qCInfo(chiakiGui) << "Updated PSN hosts";
+    chiaki_holepunch_free_device_list(device_info_ps5);
+    chiaki_holepunch_free_device_list(device_info_ps4);
 }
 
 void QmlBackend::refreshPsnToken()
