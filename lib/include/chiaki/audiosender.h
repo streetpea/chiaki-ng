@@ -33,7 +33,7 @@ typedef struct chiaki_audio_sender_t
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_init(ChiakiAudioSender *audio_sender, ChiakiLog *log, ChiakiSession *session);
 CHIAKI_EXPORT void chiaki_audio_sender_fini(ChiakiAudioSender *audio_sender);
-CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender, uint8_t *opus_data, size_t opus_data_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender, uint8_t *opus_data, size_t opus_data_size);
 
 static inline ChiakiAudioSender *chiaki_audio_sender_new(ChiakiLog *log, ChiakiSession *session)
 {

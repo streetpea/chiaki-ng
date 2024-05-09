@@ -81,7 +81,11 @@ CHIAKI_EXPORT void chiaki_opus_encoder_frame(int16_t *pcm_buf, ChiakiOpusEncoder
 	if(r < 1)
 		CHIAKI_LOGE(encoder->log, "Encoding audio frame with opus failed: %s", opus_strerror(r));
 	else
-		chiaki_audio_sender_opus_data(encoder->audio_sender, encoder->opus_frame_buf, (size_t)r);
+	{
+		ChiakiErrorCode err = chiaki_audio_sender_opus_data(encoder->audio_sender, encoder->opus_frame_buf, (size_t)r);
+		if(err != CHIAKI_ERR_SUCCESS)
+			CHIAKI_LOGE(encoder->log, "Error Sending audio frame %s", chiaki_error_string(err));
+	}
 }
 
 #endif
