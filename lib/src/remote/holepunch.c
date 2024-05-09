@@ -1266,7 +1266,7 @@ void notification_queue_free(NotificationQueue *nq)
 
 static void make_oauth2_header(char** out, const char* token)
 {
-    size_t oauth_header_len = sizeof(oauth_header_fmt) + strlen(token);
+    size_t oauth_header_len = sizeof(oauth_header_fmt) + strlen(token) + 1;
     *out = malloc(oauth_header_len);
     snprintf(*out, oauth_header_len, oauth_header_fmt, token);
 }
@@ -2485,7 +2485,7 @@ static ChiakiErrorCode check_candidates(
         if(is_ipv4)
             sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         else
-            sock = sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+            sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
         if CHIAKI_SOCKET_IS_INVALID(sock)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Creating socket failed");
