@@ -1254,6 +1254,7 @@ CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session, bool st
     chiaki_cond_signal(&session->notif_cond);
     chiaki_cond_signal(&session->state_cond);
     chiaki_stop_pipe_stop(&session->select_pipe);
+    chiaki_stop_pipe_reset(&session->select_pipe);
 }
 
 void notification_queue_free(NotificationQueue *nq)
@@ -2077,6 +2078,7 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
     }
 
 cleanup:
+    curl_easy_cleanup(curl);
     return err;
 }
 
@@ -2130,6 +2132,7 @@ static ChiakiErrorCode deleteSession(Session *session)
     }
 
 cleanup:
+    curl_easy_cleanup(curl);
     return err;
 
 }
