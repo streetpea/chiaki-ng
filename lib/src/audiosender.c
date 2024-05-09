@@ -2,6 +2,7 @@
 
 #include <chiaki/audiosender.h>
 #include <string.h>
+#include <stdlib.h>
 #include <chiaki/fec.h>
 
 static void chiaki_audio_sender_frame(ChiakiAudioSender *audio_sender, uint8_t *buf, size_t buf_size);

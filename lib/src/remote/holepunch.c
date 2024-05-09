@@ -17,6 +17,7 @@
 // TODO: Make portable for Switch
 
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
 #include <sys/types.h>
 #include <assert.h>
@@ -460,6 +461,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
 
     size_t num_clients = json_object_array_length(clients);
     *devices = malloc(sizeof(ChiakiHolepunchDeviceInfo) * num_clients);
+    if(!(*devices))
+    {
+        CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Memory could not be allocated for %d devices", num_clients);
+        return CHIAKI_ERR_MEMORY;
+    }
     *device_count = num_clients;
     for (size_t i = 0; i < num_clients; i++)
     {

@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define RUDP_CONSTANT 0x244F244F
 #define RUDP_SEND_BUFFER_SIZE 16
@@ -70,7 +71,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_init_message(RudpInstance *rudp)
     message.data_size = 14;
     uint8_t data[message.data_size];
     size_t alloc_size = 8 + message.data_size;
-    uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
+    uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     const uint8_t after_header[0x2] = { 0x05, 0x82 };
@@ -94,7 +95,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_cookie_message(RudpInstance *rudp
     message.subMessage = NULL;
     message.data_size = 14 + response_size;
     size_t alloc_size = 8 + message.data_size;
-    uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
+    uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -130,7 +131,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_session_message(RudpInstance *rud
     message.subMessage = &subMessage;
     message.data_size = 4;
     size_t alloc_size = 8 + message.data_size + 8 + subMessage.data_size;
-    uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
+    uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0xC << 12) | (8 + message.data_size);
     uint8_t data[message.data_size];
@@ -151,7 +152,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ack_message(RudpInstance *rudp, u
     message.subMessage = NULL;
     message.data_size = 6;
     size_t alloc_size = 8 + message.data_size;
-    uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
+    uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -175,7 +176,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_ctrl_message(RudpInstance *rudp, 
     message.subMessage = NULL;
     message.data_size = 2 + ctrl_message_size;
     size_t alloc_size = 8 + message.data_size;
-    uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
+    uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -202,7 +203,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_switch_to_stream_connection_messa
     message.subMessage = NULL;
     message.data_size = 26;
     size_t alloc_size = 8 + message.data_size;
-    uint8_t *serialized_msg = calloc(alloc_size, sizeof(uint8_t));
+    uint8_t *serialized_msg = malloc(alloc_size * sizeof(uint8_t));
     size_t msg_size = 0;
     message.size = (0xC << 12) | alloc_size;
     uint8_t data[message.data_size];
@@ -267,6 +268,7 @@ static void chiaki_rudp_message_parse(
     message->subtype = serialized_msg[6] & 0xFF;
     // Eliminate 0xC before length (size of header + data but not submessage)
     serialized_msg[0] = serialized_msg[0] & 0x0F;
+    message->remote_counter = 0;
     uint16_t length = ntohs(*(chiaki_unaligned_uint16_t *)(serialized_msg));
     int remaining = msg_size - 8;
     int data_size = 0;
@@ -276,7 +278,7 @@ static void chiaki_rudp_message_parse(
         if(remaining < data_size)
             data_size = remaining;
         message->data_size = data_size;
-        message->data = calloc(message->data_size, sizeof(uint8_t));
+        message->data = malloc(message->data_size * sizeof(uint8_t));
         memcpy(message->data, serialized_msg + 8, data_size);
         if(data_size >= 2)
             message->remote_counter = ntohs(*(chiaki_unaligned_uint16_t *)(message->data)) + 1;
@@ -285,7 +287,7 @@ static void chiaki_rudp_message_parse(
     remaining = remaining - data_size;
     if (remaining >= 8)
     {
-        message->subMessage = calloc(1, sizeof(RudpMessage));
+        message->subMessage = malloc(1 * sizeof(RudpMessage));
         message->subMessage_size = remaining;
         chiaki_rudp_message_parse(serialized_msg + 8 + data_size, remaining, message->subMessage);
     }
