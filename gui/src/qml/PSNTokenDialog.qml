@@ -109,7 +109,7 @@ DialogView {
             standardButtons: Dialog.Cancel
             Material.roundedScale: Material.MediumScale
             onOpened: logArea.forceActiveFocus()
-            onClosed: stack.pop()
+            onClosed: root.showMainView()
 
             Flickable {
                 id: logFlick

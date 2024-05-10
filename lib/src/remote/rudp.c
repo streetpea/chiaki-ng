@@ -455,26 +455,56 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_recv(RudpInstance *rudp, RudpMess
                 chiaki_rudp_send_session_message(rudp, remote_counter, buf, buf_size);
                 break;
             default:
-                CHIAKI_LOGE(rudp->log, "Selected RudpPacketType 0x%04x that is not supported by rudp send receive.", send_type);
-                break;
+                CHIAKI_LOGE(rudp->log, "Selected RudpPacketType 0x%04x to send that is not supported by rudp send receive.", send_type);
+                return CHIAKI_ERR_INVALID_DATA;
         }
         ChiakiErrorCode err = chiaki_rudp_select_recv(rudp, 1500, message);
         if(err == CHIAKI_ERR_TIMEOUT)
             continue;
         if(err != CHIAKI_ERR_SUCCESS)
             return err;
-        if(recv_type == CTRL_MESSAGE)
+        switch(recv_type)
         {
-            if((message->subtype & 0x0F) != 0x2 && (message->subtype & 0x0F) != 0x6)
-            {
+            case INIT_RESPONSE:
+                if(message->subtype != 0xD0)
+                {
+                    CHIAKI_LOGE(rudp->log, "Expected INIT RESPONSE with subtype 0xD0.\nReceived unexpected RUDP message ... retrying");
+                    chiaki_rudp_print_message(rudp, message);
+                    chiaki_rudp_message_pointers_free(message);
+                    continue;
+                }
+                break;
+            case COOKIE_RESPONSE:
+                if(message->subtype != 0xA0)
+                {
+                    CHIAKI_LOGE(rudp->log, "Expected COOKIE RESPONSE with subtype 0xA0.\nReceived unexpected RUDP message ... retrying");
+                    chiaki_rudp_print_message(rudp, message);
+                    chiaki_rudp_message_pointers_free(message);
+                    continue;
+                }
+                break;
+            case CTRL_MESSAGE:
+                if((message->subtype & 0x0F) != 0x2 && (message->subtype & 0x0F) != 0x6)
+                {
+                    CHIAKI_LOGE(rudp->log, "Expected CTRL MESSAGE with subtype 0x2 or 0x36.\nReceived unexpected RUDP message ... retrying");
+                    chiaki_rudp_print_message(rudp, message);
+                    chiaki_rudp_message_pointers_free(message);
+                    continue;
+                }
+                break;
+            case FINISH:
+                if(message->subtype != 0xC0)
+                {
+                    CHIAKI_LOGE(rudp->log, "Expected FINISH MESSAGE with subtype 0xC0 .\nReceived unexpected RUDP message ... retrying");
+                    chiaki_rudp_print_message(rudp, message);
+                    chiaki_rudp_message_pointers_free(message);
+                    continue;
+                }
+                break;
+            default:
+                CHIAKI_LOGE(rudp->log, "Selected RudpPacketType 0x%04x to receive that is not supported by rudp send receive.", send_type);
                 chiaki_rudp_message_pointers_free(message);
-                continue;
-            }
-        }
-        else if(message->type != recv_type)
-        {
-            chiaki_rudp_message_pointers_free(message);
-            continue;
+                return CHIAKI_ERR_INVALID_DATA;
         }
         if(message->data_size < min_data_size)
         {
@@ -507,11 +537,12 @@ CHIAKI_EXPORT void chiaki_rudp_print_message(RudpInstance *rudp, RudpMessage *me
 {
     CHIAKI_LOGI(rudp->log, "-------------RUDP MESSAGE------------");
     print_rudp_message_type(rudp, message->type);
-    CHIAKI_LOGI(rudp->log, "Rudp Message Subtype: %02x", message->subtype);
+    CHIAKI_LOGI(rudp->log, "Rudp Message Subtype: 0x%02x", message->subtype);
     CHIAKI_LOGI(rudp->log, "Rudp Message Size: %02x", message->size);
     CHIAKI_LOGI(rudp->log, "Rudp Message Data Size: %lu", message->data_size);
     CHIAKI_LOGI(rudp->log, "-----Rudp Message Data ---");
-    chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, message->data, message->data_size);
+    if(message->data)
+        chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, message->data, message->data_size);
     CHIAKI_LOGI(rudp->log, "Rudp Message Remote Counter: %lu", message->remote_counter);
     if(message->subMessage)
         chiaki_rudp_print_message(rudp, message->subMessage);
