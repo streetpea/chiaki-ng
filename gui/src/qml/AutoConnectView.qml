@@ -19,6 +19,11 @@ Rectangle {
     Keys.onReturnPressed: view.stop()
     Keys.onEscapePressed: view.stop()
 
+    Shortcut {
+        sequence: "Ctrl+Q"
+        onActivated: view.stop()
+    }
+
     MouseArea {
         anchors.fill: parent
         enabled: view.allowClose

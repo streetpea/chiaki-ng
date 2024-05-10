@@ -12,9 +12,12 @@ Rectangle {
     property list<Item> restoreFocusItems
     color: "black"
 
+    StackView.onActivated: infoLabel.visible = false
+
     function stop() {
         if (!allowClose)
             return;
+        allowClose = false;
         cancelling = true;
         infoLabel.text = qsTr("Cancelling connection with console over PSN ...");
         Chiaki.psnCancel(false);
@@ -36,6 +39,11 @@ Rectangle {
 
     Keys.onReturnPressed: view.stop()
     Keys.onEscapePressed: view.stop()
+
+    Shortcut {
+        sequence: "Ctrl+Q"
+        onActivated: view.stop()
+    }
 
     MouseArea {
         anchors.fill: parent
@@ -100,7 +108,10 @@ Rectangle {
         id: closeTimer
         interval: 1500
         running: true
-        onTriggered: view.allowClose = true
+        onTriggered: {
+            view.allowClose = true
+            infoLabel.visible = infoLabel.opacity
+        }
     }
 
     Timer {

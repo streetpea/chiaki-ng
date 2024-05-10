@@ -1219,6 +1219,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
             clear_notification(session, notif);
         }
         session->ws_thread_should_stop = true;
+        chiaki_stop_pipe_stop(&session->select_pipe);
         chiaki_thread_join(&session->ws_thread, NULL);
     }
     if(session->gw.data)
@@ -1263,14 +1264,15 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session, bool stop_thread)
 {
     if(stop_thread)
+    {
         session->ws_thread_should_stop = true;
+        chiaki_stop_pipe_stop(&session->select_pipe);
+    }
     else
         CHIAKI_LOGI(session->log, "Canceling establishing connection over PSN");
     session->main_should_stop = true;
     chiaki_cond_signal(&session->notif_cond);
     chiaki_cond_signal(&session->state_cond);
-    chiaki_stop_pipe_stop(&session->select_pipe);
-    chiaki_stop_pipe_reset(&session->select_pipe);
 }
 
 void notification_queue_free(NotificationQueue *nq)

@@ -112,6 +112,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     psn_connection_thread.start();
 
     setConnectState(PsnConnectState::NotStarted);
+    psn_cancel = false;
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
@@ -346,6 +347,7 @@ bool QmlBackend::autoConnect() const
 
 void QmlBackend::psnCancel(bool stop_thread)
 {
+    psn_cancel = true;
     session->CancelPsnConnection(stop_thread);
 }
 
@@ -358,7 +360,10 @@ void QmlBackend::checkPsnConnection(const bool &connected)
     }
     else
     {
-        setConnectState(PsnConnectState::ConnectFailed);
+        if(!psn_cancel)
+            setConnectState(PsnConnectState::ConnectFailed);
+        else
+            psn_cancel = false;
         delete session;
         session = NULL;
     }
