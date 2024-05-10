@@ -171,7 +171,8 @@ Rectangle {
                     view.allowClose = false
                     break
                 case Chiaki.PsnConnectState.ConnectFailed:
-                    infoLabel.text = qsTr("Connection over PSN failed closing ...")
+                    if(!cancelling)
+                        infoLabel.text = qsTr("Connection over PSN failed closing ...")
                     failTimer.running = true
                     break
                 case Chiaki.PsnConnectState.WaitingForInternet:

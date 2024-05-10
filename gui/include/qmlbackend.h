@@ -173,7 +173,6 @@ private:
     QTimer *psn_reconnect_timer = {};
     QTimer *psn_auto_connect_timer = {};
     int psn_reconnect_tries = 0;
-    bool psn_cancel = false;
     QThread psn_connection_thread;
     PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
