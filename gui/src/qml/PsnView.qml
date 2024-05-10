@@ -158,7 +158,6 @@ Rectangle {
                     break
                 case Chiaki.PsnConnectState.DataConnectionFinished:
                     view.allowClose = false
-                    root.showStreamView()
                     break
                 case Chiaki.PsnConnectState.ConnectFailed:
                     infoLabel.text = qsTr("Connection over PSN failed closing ...")

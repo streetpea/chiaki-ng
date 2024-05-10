@@ -458,7 +458,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     connect(session, &StreamSession::DataHolepunchProgress, this, [this](bool finished) {
         if(finished)
+        {
             setConnectState(PsnConnectState::DataConnectionFinished);
+            emit sessionChanged(session);
+        }
         else
             setConnectState(PsnConnectState::DataConnectionStart);
     });
