@@ -557,6 +557,16 @@ static void *session_thread_func(void *arg)
 	if(!session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGE(session->log, "Ctrl did not receive session id");
+		chiaki_mutex_unlock(&session->state_mutex);
+		err = ctrl_message_set_fallback_session_id(&session->ctrl);
+		chiaki_mutex_lock(&session->state_mutex);
+		if(err != CHIAKI_ERR_SUCCESS)
+			goto ctrl_failed;
+		ctrl_enable_features(&session->ctrl);
+	}
+
+	if(!session->ctrl_session_id_received)
+	{
 ctrl_failed:
 		CHIAKI_LOGE(session->log, "Ctrl has failed, shutting down");
 		if(session->quit_reason == CHIAKI_QUIT_REASON_NONE)

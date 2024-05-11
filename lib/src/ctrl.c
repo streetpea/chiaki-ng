@@ -4,12 +4,14 @@
 #include <chiaki/session.h>
 #include <chiaki/base64.h>
 #include <chiaki/http.h>
+#include <chiaki/time.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -113,7 +115,6 @@ void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event);
 
 static void *ctrl_thread_func(void *user);
 static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size);
-static void ctrl_enable_features(ChiakiCtrl *ctrl);
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_heartbeat_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
@@ -624,6 +625,34 @@ CHIAKI_EXPORT ChiakiErrorCode ctrl_message_toggle_microphone(ChiakiCtrl *ctrl, b
 	return CHIAKI_ERR_SUCCESS;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *ctrl)
+{
+	size_t fallback_session_id_size = sizeof(uint64_t) + 64;
+	char fallback_session_id[fallback_session_id_size];
+	uint64_t time_seconds = chiaki_time_now_monotonic_ms() / 1000;
+	sprintf(fallback_session_id, PRId64, time_seconds);
+	ChiakiErrorCode err = chiaki_random_bytes_crypt((uint8_t *)(fallback_session_id + sizeof(uint64_t)), 64);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Couldn't create fallback session Id.");
+		return err;
+	}
+
+	if(ctrl->session->ctrl_session_id_received)
+	{
+		CHIAKI_LOGW(ctrl->session->log, "Aleady received session Id don't need fallback.");
+		return err;
+	}
+	memcpy(ctrl->session->session_id, fallback_session_id, fallback_session_id_size);
+	ctrl->session->session_id[fallback_session_id_size] = '\0';
+	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id: %s", ctrl->session->session_id);
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
+	ctrl->session->ctrl_session_id_received = true;
+	chiaki_mutex_unlock(&ctrl->session->state_mutex);
+	chiaki_cond_signal(&ctrl->session->state_cond);
+	return err;
+}
+
 static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *payload, size_t payload_size)
 {
 	if(payload_size > 0)
@@ -680,7 +709,7 @@ static void ctrl_message_received(ChiakiCtrl *ctrl, uint16_t msg_type, uint8_t *
 	}
 }
 
-static void ctrl_enable_features(ChiakiCtrl *ctrl)
+CHIAKI_EXPORT void ctrl_enable_features(ChiakiCtrl *ctrl)
 {
 	if(ctrl->session->connect_info.enable_dualsense)
 	{
@@ -716,6 +745,7 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 	if(payload_size < 2)
 	{
 		CHIAKI_LOGE(ctrl->session->log, "Invalid Session Id \"%s\" received", payload);
+		ctrl_message_set_fallback_session_id(ctrl);
 		return;
 	}
 
@@ -732,6 +762,7 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 	if(payload_size >= CHIAKI_SESSION_ID_SIZE_MAX - 1)
 	{
 		CHIAKI_LOGE(ctrl->session->log, "Received Session Id is too long");
+		ctrl_message_set_fallback_session_id(ctrl);
 		return;
 	}
 
@@ -745,13 +776,13 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 		if(c >= '0' && c <= '9')
 			continue;
 		CHIAKI_LOGE(ctrl->session->log, "Ctrl received Session Id contains invalid characters");
+		ctrl_message_set_fallback_session_id(ctrl);
 		return;
 	}
 
-	CHIAKI_LOGI(ctrl->session->log, "Ctrl received valid Session Id: %s", ctrl->session->session_id);
-
 	memcpy(ctrl->session->session_id, payload, payload_size);
 	ctrl->session->session_id[payload_size] = '\0';
+	CHIAKI_LOGI(ctrl->session->log, "Ctrl received valid Session Id: %s", ctrl->session->session_id);
 	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
