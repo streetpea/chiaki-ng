@@ -766,6 +766,13 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 		return;
 	}
 
+	if(payload_size < 24)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Received Session Id is too short");
+		ctrl_message_set_fallback_session_id(ctrl);
+		return;
+	}
+
 	for(uint8_t *cur=payload; cur<payload+payload_size; cur++)
 	{
 		char c = *cur;
