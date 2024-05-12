@@ -81,6 +81,8 @@ int Host::Register(int pin)
 	size_t account_id_size = sizeof(uint8_t[CHIAKI_PSN_ACCOUNT_ID_SIZE]);
 
 	regist_info.target = this->target;
+	regist_info.holepunch_info = NULL;
+	regist_info.rudp = NULL;
 
 	if(this->target >= CHIAKI_TARGET_PS4_9)
 	{

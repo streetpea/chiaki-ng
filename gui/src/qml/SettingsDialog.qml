@@ -60,6 +60,11 @@ DialogView {
                 text: qsTr("Keys")
                 focusPolicy: Qt.NoFocus
             }
+
+            TabButton {
+                text: qsTr("PSN")
+                focusPolicy: Qt.NoFocus
+            }
         }
 
         StackLayout {
@@ -128,7 +133,12 @@ DialogView {
 
                     C.CheckBox {
                         text: qsTr("True haptics for SteamDeck, better quality but noisier")
-                        checked: Chiaki.settings.steamDeckHaptics
+                        checked: {
+                            if(typeof Chiaki.settings.steamDeckHaptics !== "undefined")
+                                Chiaki.settings.steamDeckHaptics
+                            else
+                                false
+                        }
                         onToggled: Chiaki.settings.steamDeckHaptics = checked
                         visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
@@ -152,7 +162,12 @@ DialogView {
 
                     C.CheckBox {
                         text: qsTr("Use Steam Deck in vertical orientation (motion controls)")
-                        checked: Chiaki.settings.verticalDeck
+                        checked: {
+                            if(typeof Chiaki.settings.verticalDeck !== "undefined")
+                                Chiaki.settings.verticalDeck
+                            else
+                                false
+                        }
                         onToggled: Chiaki.settings.verticalDeck = checked
                         visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
@@ -627,6 +642,49 @@ DialogView {
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            Item {
+                // PSN Remote Connection Setup
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 50
+                    }
+                    columns: 3
+                    rowSpacing: 10
+                    columnSpacing: 10
+
+                    C.Button {
+                        id: openPsnLogin
+                        firstInFocusChain: true
+                        text: qsTr("Login to PSN")
+                        onClicked: {
+                            showPSNTokenDialog(Chiaki.openPsnLink(), false)
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
+                    }
+
+                    C.Button {
+                        id: resetPsnTokens
+                        topPadding: 26
+                        leftPadding: 30
+                        rightPadding: 30
+                        bottomPadding: 26
+                        firstInFocusChain: true
+                        text: qsTr("Clear PSN Token")
+                        onClicked: {
+                            Chiaki.settings.psnRefreshToken = ""
+                            Chiaki.settings.psnAuthToken = ""
+                            Chiaki.settings.psnAuthTokenExpiry = ""
+                            Chiaki.settings.psnAccountId = ""
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId
                     }
                 }
             }

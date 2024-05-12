@@ -53,7 +53,7 @@ static MunitResult test_request_payload_ps4_pre10(const MunitParameter params[],
 
 	uint8_t payload[0x400];
 	size_t payload_size = sizeof(payload);
-	ChiakiErrorCode err = chiaki_regist_request_payload_format(CHIAKI_TARGET_PS4_9, ambassador, payload, &payload_size, &rpcrypt, psn_id, NULL, pin);
+	ChiakiErrorCode err = chiaki_regist_request_payload_format(CHIAKI_TARGET_PS4_9, ambassador, payload, &payload_size, &rpcrypt, psn_id, NULL, pin, NULL);
 	munit_assert_int(err, ==, CHIAKI_ERR_SUCCESS);
 	munit_assert_size(payload_size, ==, sizeof(expected));
 	munit_assert_memory_equal(sizeof(expected), payload, expected);

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 import org.streetpea.chiaki4deck
 
@@ -9,41 +10,90 @@ import "controls" as C
 DialogView {
     id: dialog
     property var callback: null
+    property bool login
+    property var psnurl: ""
     title: qsTr("PSN Login")
     buttonVisible: false
+    buttonText: qsTr("✓ Get Account ID")
+    buttonEnabled: url.text.trim()
+    onAccepted: Chiaki.handlePsnLoginRedirect(url.text.trim())
 
-    Item {
-        Item {
-            id: webView
-            property Item web
-            anchors.fill: parent
-            Component.onCompleted: {
-                try {
-                    web = Qt.createQmlObject("
-                    import QtWebEngine
-                    import org.streetpea.chiaki4deck
-                    WebEngineView {
-                        signal redirectHandled()
-                        profile: WebEngineProfile { offTheRecord: true }
-                        onContextMenuRequested: (request) => request.accepted = true
-                        onNavigationRequested: (request) => {
-                            if (Chiaki.handlePsnLoginRedirect(request.url)) {
-                                request.action = WebEngineNavigationRequest.IgnoreRequest;
-                                redirectHandled();
-                            }
-                        }
-                    }", webView, "webView");
-                    web.url = Chiaki.psnLoginUrl();
-                    web.anchors.fill = webView;
-                } catch (error) {
-                    accountForm.visible = true;
+    StackView.onActivated: {
+        if(login)
+        {
+            loginForm.visible = true
+            psnurl = Chiaki.openPsnLink()
+            dialog.buttonVisible = true
+        }
+        else
+            accountForm.visible = true
+    }
+
+   Item {
+        GridLayout {
+            id: loginForm
+            anchors {
+                top: parent.top
+                horizontalCenter: parent.horizontalCenter
+                topMargin: 50
+            }
+            visible: false
+            columns: 2
+            rowSpacing: 10
+            columnSpacing: 20
+
+            Label {
+                text: qsTr("Open Web Browser with following link")
+                visible: psnurl
+            }
+
+            TextField {
+                id: openurl
+                text: psnurl
+                visible: psnurl
+                KeyNavigation.right: copyUrl
+                Layout.preferredWidth: 400
+                C.Button {
+                    id: copyUrl
+                    text: qsTr("Click to Copy URL")
+                    anchors {
+                        left: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 10
+                    }
+                    onClicked: {
+                        openurl.selectAll()
+                        openurl.copy()
+                    }
+                    KeyNavigation.up: openurl
+                    KeyNavigation.left: openurl
+                    KeyNavigation.down: url
+                    KeyNavigation.right: url
                 }
             }
 
-            Connections {
-                target: webView.web
-                function onRedirectHandled() {
-                    overlay.opacity = 0.8;
+            Label {
+                text: qsTr("Redirect URL from Web Browser")
+            }
+
+            TextField {
+                id: url
+                Layout.preferredWidth: 400
+                KeyNavigation.right: pasteUrl
+                KeyNavigation.left: copyUrl
+                KeyNavigation.up: copyUrl
+                KeyNavigation.down: pasteUrl
+                C.Button {
+                    id: pasteUrl
+                    text: qsTr("Click to Paste URL")
+                    anchors {
+                        left: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 10
+                    }
+                    onClicked: url.paste()
+                    KeyNavigation.left: url
+                    lastInFocusChain: true
                 }
             }
         }
@@ -106,7 +156,7 @@ DialogView {
 
         Rectangle {
             id: overlay
-            anchors.fill: webView
+            anchors.fill: loginForm
             color: "grey"
             opacity: 0.0
             visible: opacity

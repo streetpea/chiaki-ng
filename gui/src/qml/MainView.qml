@@ -25,7 +25,7 @@ Pane {
             event.accepted = true;
             break;
         case Qt.Key_PageDown:
-            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog();
+            if (Chiaki.settings.psnAuthToken) Chiaki.refreshPsnToken();
             event.accepted = true;
             break;
         }
@@ -65,11 +65,22 @@ Pane {
                 Layout.preferredWidth: 400
                 flat: true
                 text: "Create Steam Shortcut"
-                icon.source: "qrc:/icons/r1.svg"
                 focusPolicy: Qt.NoFocus
                 onClicked: root.showSteamShortcutDialog()
                 Material.roundedScale: Material.SmallScale
                 visible: typeof Chiaki.createSteamShortcut === "function"
+            }
+
+            Button {
+                Layout.fillHeight: true
+                Layout.preferredWidth: 400
+                flat: true
+                text: "Refresh PSN Hosts"
+                icon.source: "qrc:/icons/r1.svg"
+                focusPolicy: Qt.NoFocus
+                onClicked: Chiaki.refreshPsnToken();
+                Material.roundedScale: Material.SmallScale
+                visible: Chiaki.settings.psnAuthToken
             }
 
             Button {
@@ -126,7 +137,7 @@ Pane {
             }
 
             function deleteHost() {
-                if (!modelData.discovered)
+                if (!modelData.discovered && !modelData.duid)
                     root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
             }
 
@@ -158,10 +169,16 @@ Pane {
                         let t = "";
                         if (modelData.name)
                             t += modelData.name + "\n";
-                        t += qsTr("Address: %1").arg(modelData.address);
+                        if (modelData.address)
+                            t += qsTr("Address: %1").arg(modelData.address);
                         if (modelData.mac)
                             t += "\n" + qsTr("ID: %1 (%2)").arg(modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
-                        t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
+                        if (modelData.duid)
+                        {
+                            t += "\n" + qsTr("Remote Connection via PSN");
+                        } 
+                        else
+                            t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
                         return t;
                     }
                 }
@@ -194,7 +211,7 @@ Pane {
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
                         focusPolicy: Qt.NoFocus
-                        visible: !modelData.discovered
+                        visible: !modelData.discovered && !modelData.duid
                         onClicked: delegate.deleteHost()
                         Material.roundedScale: Material.SmallScale
 
@@ -218,7 +235,7 @@ Pane {
                         flat: true
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
-                        visible: modelData.registered && (!modelData.discovered || modelData.state == "standby")
+                        visible: modelData.registered && !modelData.duid && (!modelData.discovered || modelData.state == "standby")
                         focusPolicy: Qt.NoFocus
                         onClicked: delegate.wakeUpHost()
                         Material.roundedScale: Material.SmallScale

@@ -111,7 +111,7 @@ static bool state_finished_cond_check(void *user)
 	return senkusha->state_finished || senkusha->should_stop;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint32_t *mtu_in, uint32_t *mtu_out, uint64_t *rtt_us)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint32_t *mtu_in, uint32_t *mtu_out, uint64_t *rtt_us, chiaki_socket_t *socket)
 {
 	ChiakiSession *session = senkusha->session;
 	ChiakiErrorCode err;
@@ -132,17 +132,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = senkusha->log;
-	takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
-	takion_info.sa = malloc(takion_info.sa_len);
-	if(!takion_info.sa)
+	if(!socket)
 	{
-		err = CHIAKI_ERR_MEMORY;
-		QUIT(quit);
-	}
+		takion_info.close_socket = true;
+		takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
+		takion_info.sa = malloc(takion_info.sa_len);
+		if(!takion_info.sa)
+		{
+			err = CHIAKI_ERR_MEMORY;
+			QUIT(quit);
+		}
 
-	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
-	err = set_port(takion_info.sa, htons(SENKUSHA_PORT));
-	assert(err == CHIAKI_ERR_SUCCESS);
+		memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
+		err = set_port(takion_info.sa, htons(SENKUSHA_PORT));
+		assert(err == CHIAKI_ERR_SUCCESS);
+	}
+	else
+		takion_info.close_socket = false;
 	takion_info.ip_dontfrag = true;
 
 	takion_info.enable_crypt = false;
@@ -155,8 +161,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 	senkusha->state_finished = false;
 	senkusha->state_failed = false;
 
-	err = chiaki_takion_connect(&senkusha->takion, &takion_info);
-	free(takion_info.sa);
+	err = chiaki_takion_connect(&senkusha->takion, &takion_info, socket);
+	if(!socket)
+		free(takion_info.sa);
+	
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "Senkusha connect failed");

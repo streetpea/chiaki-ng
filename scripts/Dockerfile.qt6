@@ -29,7 +29,9 @@ RUN sudo apt-get -y install \
     liblcms2-dev \
     libvulkan-dev \
     libxkbcommon-dev \
-    libasound2-dev
+    libasound2-dev  \
+    libminiupnpc-dev \
+    libjson-c-dev
 
 RUN sudo pip3 install protobuf==3.19.5
 RUN sudo pip3 install meson==1.3.0

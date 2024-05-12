@@ -23,7 +23,7 @@ public:
 
 signals:
     void requestFinished(const QString& url, const QJsonDocument& jsonDocument);
-    void requestError(const QString& url, const QNetworkReply::NetworkError& error);
+    void requestError(const QString& url, const QString& error, const QNetworkReply::NetworkError& err);
 
 private slots:
     void onRequestFinished(QNetworkReply* reply);

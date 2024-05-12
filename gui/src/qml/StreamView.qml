@@ -266,7 +266,7 @@ Item {
             Slider {
                 id: zoomFactor
                 orientation: Qt.Vertical
-                from: 0
+                from: -1
                 to: 4
                 Layout.preferredHeight: 100
                 stepSize: 0.01
@@ -283,10 +283,12 @@ Item {
                         leftMargin: 10
                     }
                     text: {
-                        if(parent.value === 0)
+                        if(parent.value === -1)
                             qsTr("No Black Bars")
-                        else
+                        else if(parent.value >= 0)
                             qsTr("%1 x").arg(parent.value + 1)
+                        else
+                            qsTr("%1 x").arg(parent.value)
                     }
 
                 }

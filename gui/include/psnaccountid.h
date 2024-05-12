@@ -4,6 +4,9 @@
 
 #ifndef PSNACCOUNTID_H
 #define PSNACCOUNTID_H
+
+#include "settings.h"
+
 #include <ostream>
 #include <QNetworkReply>
 #include <qobject.h>
@@ -15,7 +18,7 @@ namespace PSNAuth {
     static QString CLIENT_ID = "ba495a24-818c-472b-b12d-ff231c1b5745";
     static QString CLIENT_SECRET = "mvaiZkRsAsI1IBkY";
     static const QString LOGIN_URL = QString(
-                "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?service_entity=urn:service-entity:psn&response_type=code&client_id=%1&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&scope=psn:clientapp&request_locale=en_US&ui=pr&service_logo=ps&layout_type=popup&smcid=remoteplay&prompt=always&PlatformPrivacyWs1=minimal&")
+                "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?service_entity=urn:service-entity:psn&response_type=code&client_id=%1&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&scope=psn:clientapp referenceDataService:countryConfig.read pushNotification:webSocket.desktop.connect sessionManager:remotePlaySession.system.update&request_locale=en_US&ui=pr&service_logo=ps&layout_type=popup&smcid=remoteplay&prompt=always&PlatformPrivacyWs1=minimal&")
             .arg(CLIENT_ID);
     static const QString TOKEN_URL = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
     static const std::string REDIRECT_PAGE = "https://remoteplay.dl.playstation.net/remoteplay/redirect";
@@ -25,7 +28,7 @@ class PSNAccountID : public QObject {
     Q_OBJECT
 
 public:
-    explicit PSNAccountID(QObject* parent = nullptr);
+    PSNAccountID(Settings *settings, QObject *parent = nullptr);
 
 
     void GetPsnAccountId(QString redirectCode);
@@ -33,18 +36,32 @@ public:
 
 signals:
     void AccountIDResponse(QString accountId);
-    void AccountIDError(const QString& url, const QNetworkReply::NetworkError& error);
+    void AccountIDError(const QString& url, const QString& error);
 
 private:
     QString basicAuthHeader;
+    Settings *settings = {};
 
-    static QByteArray to_bytes(long number, int num_bytes) {
-        std::vector<unsigned char> result(num_bytes);
-        for (int i = 0; i < num_bytes; ++i) {
-            result[i] = static_cast<unsigned char>(number & 0xFF);
-            number >>= 8;
+    static QByteArray to_bytes_little_endian(long long number, int num_bytes) {
+        QByteArray byte_array;
+        int n = 1;
+        if(*(char *)&n == 1) // little endian
+        {
+            for (int i = 0; i < num_bytes; i++)
+            {
+                char result = number & 0xFF;
+                byte_array.append(result);
+                number >>= 8;
+            }
         }
-        QByteArray byte_array(reinterpret_cast<const char *>(result.data()), static_cast<int>(result.size()));
+        else // big endian
+        {
+            for (int i = num_bytes - 1; i >= 0; i--)
+            {
+                char result = (number >> (8 * num_bytes)) & 0xFF;
+                byte_array.append(result);
+            }    
+        }
         return byte_array;
     }
 
@@ -53,7 +70,7 @@ private slots:
 
     void handUserIDResponse(const QString& url, const QJsonDocument& jsonDocument);
 
-    void handleErrorResponse(const QString& url, const QNetworkReply::NetworkError& error);
+    void handleErrorResponse(const QString& url, const QString& error, const QNetworkReply::NetworkError& err);
 };
 
 #endif //PSNACCOUNTID_H

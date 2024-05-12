@@ -16,6 +16,8 @@ DialogView {
     StackView.onActivated: {
         if (host == "255.255.255.255")
             broadcast.checked = true;
+        if(Chiaki.settings.psnAccountId)
+            accountId.text = Chiaki.settings.psnAccountId
     }
     onAccepted: {
         let psnId = onlineId.visible ? onlineId.text.trim() : accountId.text.trim();
@@ -90,7 +92,22 @@ DialogView {
                     topPadding: 18
                     bottomPadding: 18
                     text: qsTr("PSN Login")
-                    onClicked: stack.push(psnLoginDialogComponent, {callback: (id) => accountId.text = id})
+                    onClicked: stack.push(psnLoginDialogComponent, {login: true, callback: (id) => accountId.text = id})
+                    visible: !Chiaki.settings.psnAccountId
+                    Material.roundedScale: Material.SmallScale
+                }
+                C.Button {
+                    id: lookupButton
+                    anchors {
+                        left: loginButton.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 10
+                    }
+                    topPadding: 18
+                    bottomPadding: 18
+                    text: qsTr("Public Lookup")
+                    onClicked: stack.push(psnLoginDialogComponent, {login: false, callback: (id) => accountId.text = id})
+                    visible: !Chiaki.settings.psnAccountId
                     Material.roundedScale: Material.SmallScale
                 }
             }

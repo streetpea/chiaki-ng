@@ -93,6 +93,9 @@ struct StreamSessionConnectInfo
 	int32_t noise_suppress_level;
 	int32_t echo_suppress_level;
 #endif
+	QString duid;
+	QString psn_token;
+	QString psn_account_id;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
@@ -102,6 +105,7 @@ struct StreamSessionConnectInfo
 			QByteArray regist_key,
 			QByteArray morning,
 			QString initial_login_pin,
+			QString duid,
 			bool fullscreen,
 			bool zoom,
 			bool stretch);
@@ -179,6 +183,7 @@ class StreamSession : public QObject
 		QElapsedTimer double_tap_timer;
 		bool rumbleHaptics;
 		bool start_mic_unmuted;
+		bool session_started;
 
 		ChiakiFfmpegDecoder *ffmpeg_decoder;
 		void TriggerFfmpegFrameAvailable();
@@ -193,6 +198,7 @@ class StreamSession : public QObject
 		size_t audio_out_sample_size;
 		bool audio_out_drain_queue;
 		unsigned int audio_buffer_size;
+		ChiakiHolepunchSession holepunch_session;
 #if CHIAKI_GUI_ENABLE_SPEEX
 		SpeexEchoState *echo_state;
 		SpeexPreprocessState *preprocess_state;
@@ -209,6 +215,7 @@ class StreamSession : public QObject
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
+		ChiakiErrorCode InitiatePsnConnection(QString psn_token);
 #ifdef Q_OS_MACOS
 		void SetMicAuthorization(Authorization authorization);
 #endif
@@ -251,6 +258,8 @@ class StreamSession : public QObject
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		bool GetCantDisplay()	{ return cant_display; }
+		bool ConnectPsnConnection(QString duid, bool ps5);
+		void CancelPsnConnection(bool stop_thread);
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
 		QList<Controller *> GetControllers()	{ return controllers.values(); }
@@ -274,6 +283,7 @@ class StreamSession : public QObject
 #endif
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
+		void DataHolepunchProgress(bool finished);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();
 		void AveragePacketLossChanged();

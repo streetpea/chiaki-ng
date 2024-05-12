@@ -61,6 +61,17 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.7.0
+
+Enables remote connection via PSN
+
+- Remote connection via PSN now available without the need for port forwarding ([see remote connection docs for more details](../setup/remoteconnection.md#remote-connection-via-psn){target="_blank" rel="noopener"}) on how to setup and use.
+- Allow zooming out from resolution for users targeting a resolution beyond their screen resolution (i.e., 1080p on Steam Deck)
+- Enable don't fragment for MacOS Big Sur and later for more accurate MTU readings during Senkusha
+- Create a fallback session id when session id isn't received instead of erroring out
+- Workaround patch for vulkan ffmpeg hw decoder bug affecting Nvidia 30 series graphics card users
+- Add additional option for obtaining the PSN AccountId via logging in with your psn username and password (in addition to the public lookup)
+
 ### 1.6.6
 
 Lowers required mtu from 1435 to 576

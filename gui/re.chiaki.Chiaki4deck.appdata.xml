@@ -22,6 +22,20 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-5-12" version="1.7.0">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Remote connection via PSN now available without the need for port forwarding</li>
+          <li>Allow zooming out from resolution for users targeting a resolution beyond their screen resolution (i.e., 1080p on Steam Deck)</li>
+          <li>Create a fallback session id when session id isn't received instead of erroring out</li>
+          <li>Workaround patch for vulkan ffmpeg hw decoder bug affecting Nvidia 30 series graphics card users</li>
+          <li>Fix issues with address when registering manual consoles</li>
+          <li>Update steam shortcut creation to cover additional edge cases</li>
+          <li>Add additional option for obtaining the PSN AccountId via logging in with your psn username and password (in addition to the public lookup)</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-4-06" version="1.6.6">
       <description>
         <p>This release provides the following improvements:</p>

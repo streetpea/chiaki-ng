@@ -67,11 +67,8 @@ error_packets:
 
 CHIAKI_EXPORT void chiaki_takion_send_buffer_fini(ChiakiTakionSendBuffer *send_buffer)
 {
-	ChiakiErrorCode err = chiaki_mutex_lock(&send_buffer->mutex);
-	assert(err == CHIAKI_ERR_SUCCESS);
 	send_buffer->should_stop = true;
-	chiaki_mutex_unlock(&send_buffer->mutex);
-	err = chiaki_cond_signal(&send_buffer->cond);
+	ChiakiErrorCode err = chiaki_cond_signal(&send_buffer->cond);
 	assert(err == CHIAKI_ERR_SUCCESS);
 	err = chiaki_thread_join(&send_buffer->thread, NULL);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -228,7 +225,6 @@ static void *takion_send_buffer_thread_func(void *user)
 
 		takion_send_buffer_resend(send_buffer);
 	}
-
 	chiaki_mutex_unlock(&send_buffer->mutex);
 
 	return NULL;
@@ -246,11 +242,21 @@ static void takion_send_buffer_resend(ChiakiTakionSendBuffer *send_buffer)
 		ChiakiTakionSendBufferPacket *packet = &send_buffer->packets[i];
 		if(now - packet->last_send_ms > TAKION_DATA_RESEND_TIMEOUT_MS)
 		{
+			if(packet->tries >= TAKION_DATA_RESEND_TRIES_MAX)
+			{
+				CHIAKI_LOGI(send_buffer->log, "Hit max retries of %d tries... giving up on packet with seqnum %#llx", TAKION_DATA_RESEND_TRIES_MAX, (unsigned long long)packet->seq_num);
+				ChiakiSeqNum32 ack_seq_nums;
+				size_t ack_seq_nums_count;
+				chiaki_mutex_unlock(&send_buffer->mutex);
+				chiaki_takion_send_buffer_ack(send_buffer, packet->seq_num, &ack_seq_nums, &ack_seq_nums_count);
+				chiaki_mutex_lock(&send_buffer->mutex);
+				i-= 1;
+				continue;
+			}
 			CHIAKI_LOGI(send_buffer->log, "Takion Send Buffer re-sending packet with seqnum %#llx, tries: %llu", (unsigned long long)packet->seq_num, (unsigned long long)packet->tries);
 			packet->last_send_ms = now;
 			chiaki_takion_send_raw(send_buffer->takion, packet->buf, packet->buf_size);
 			packet->tries++;
-			// TODO: check tries and disconnect if necessary
 		}
 	}
 }

@@ -6,12 +6,14 @@
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
+#include <chiaki/remote/holepunch.h>
+#include <chiaki/session.h>
+#include <chiaki/time.h>
+#include "../../lib/src/utils.h"
 
 #include <QKeyEvent>
 
 #include <cstring>
-#include <chiaki/session.h>
-#include <chiaki/time.h>
 
 #define SETSU_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
@@ -42,6 +44,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		QByteArray regist_key,
 		QByteArray morning,
 		QString initial_login_pin,
+		QString duid,
 		bool fullscreen, 
 		bool zoom, 
 		bool stretch)
@@ -78,6 +81,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->noise_suppress_level = settings->GetNoiseSuppressLevel();
 	this->echo_suppress_level = settings->GetEchoSuppressLevel();
 #endif
+	this->psn_token = settings->GetPsnAuthToken();
+	this->psn_account_id = settings->GetPsnAccountId();
+	this->duid = duid;
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -106,6 +112,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_out(0),
 	audio_in(0),
 	haptics_output(0),
+	session_started(false),
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
@@ -115,7 +122,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	echo_resampler_buf(nullptr),
 	mic_resampler_buf(nullptr),
 #endif
-	haptics_resampler_buf(nullptr)
+	haptics_resampler_buf(nullptr),
+	holepunch_session(nullptr)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -204,14 +212,16 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		chiaki_connect_info.video_profile.codec = CHIAKI_CODEC_H264;
 	}
 #endif
+	if(connect_info.duid.isEmpty())
+	{
+		if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
+			throw ChiakiException("RegistKey invalid");
+		memcpy(chiaki_connect_info.regist_key, connect_info.regist_key.constData(), sizeof(chiaki_connect_info.regist_key));
 
-	if(connect_info.regist_key.size() != sizeof(chiaki_connect_info.regist_key))
-		throw ChiakiException("RegistKey invalid");
-	memcpy(chiaki_connect_info.regist_key, connect_info.regist_key.constData(), sizeof(chiaki_connect_info.regist_key));
-
-	if(connect_info.morning.size() != sizeof(chiaki_connect_info.morning))
-		throw ChiakiException("Morning invalid");
-	memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
+		if(connect_info.morning.size() != sizeof(chiaki_connect_info.morning))
+			throw ChiakiException("Morning invalid");
+		memcpy(chiaki_connect_info.morning, connect_info.morning.constData(), sizeof(chiaki_connect_info.morning));
+	}
 
 	if(chiaki_connect_info.ps5)
 	{
@@ -228,7 +238,20 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_controller_state_set_idle(&touch_state);
 	touch_tracker=QMap<int, uint8_t>();
 	mouse_touch_id=-1;
-
+	// If duid isn't empty connect with psn
+	chiaki_connect_info.holepunch_session = NULL;
+	if(!connect_info.duid.isEmpty())
+	{
+		err = InitiatePsnConnection(connect_info.psn_token);
+		if (err != CHIAKI_ERR_SUCCESS)
+			throw ChiakiException("Psn Connection Failed " + QString::fromLocal8Bit(chiaki_error_string(err)));
+		chiaki_connect_info.holepunch_session = holepunch_session;
+        QByteArray psn_account_id = QByteArray::fromBase64(connect_info.psn_account_id.toUtf8());
+        if (psn_account_id.size() != CHIAKI_PSN_ACCOUNT_ID_SIZE) {
+            throw ChiakiException((tr("Invalid Account-ID"), tr("The PSN Account-ID must be exactly %1 bytes encoded as base64.")).arg(CHIAKI_PSN_ACCOUNT_ID_SIZE));
+        }
+        memcpy(chiaki_connect_info.psn_account_id, psn_account_id.constData(), CHIAKI_PSN_ACCOUNT_ID_SIZE);
+	}
 	err = chiaki_session_init(&session, &chiaki_connect_info, GetChiakiLog());
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw ChiakiException("Chiaki Session Init failed: " + QString::fromLocal8Bit(chiaki_error_string(err)));
@@ -362,7 +385,8 @@ StreamSession::~StreamSession()
 		SDL_CloseAudioDevice(audio_out);
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
-	chiaki_session_join(&session);
+	if(session_started)
+		chiaki_session_join(&session);
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
 	chiaki_opus_encoder_fini(&opus_encoder);
@@ -446,7 +470,7 @@ void StreamSession::Start()
 	ChiakiErrorCode err = chiaki_session_start(&session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		chiaki_session_fini(&session);
+		session_started = true;
 		throw ChiakiException("Chiaki Session Start failed");
 	}
 }
@@ -824,6 +848,11 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	int16_t mic_buf_size = channels * MICROPHONE_SAMPLES;
 	mic_buf.size_bytes = mic_buf_size * sizeof(int16_t);
 	mic_buf.buf = (int16_t*) calloc(mic_buf_size, sizeof(int16_t));
+	if(!mic_buf.buf)
+	{
+		CHIAKI_LOGE(GetChiakiLog(), "Could not allocate memory for mic buf, aborting mic startup");
+		return;
+	}
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 	if(speech_processing_enabled)
@@ -1018,6 +1047,8 @@ void StreamSession::InitHaptics()
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
 	cvt.len = 240;  // 10 16bit stereo samples
 	haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
+	if(!haptics_resampler_buf)
+		CHIAKI_LOGE(log.GetChiakiLog(),"Haptics resampler buf could not be allocated");
 }
 
 void StreamSession::DisconnectHaptics()
@@ -1034,6 +1065,11 @@ void StreamSession::ConnectHaptics()
 	if (this->haptics_output > 0)
 	{
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring additional controllers.");
+		return;
+	}
+	if (!haptics_resampler_buf)
+	{
+		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics resampler buf wasn't allocated, can't use haptics.");
 		return;
 	}
 #ifdef Q_OS_MACOS
@@ -1093,8 +1129,15 @@ void StreamSession::ConnectSdeckHaptics()
 	sdeck_skipl = false;
 	sdeck_skipr = false;
 	sdeck_haptics_senderl = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
+	if(!sdeck_haptics_senderl)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics senderl buf could not be allocated :(");
+	}
 	sdeck_haptics_senderr = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
-
+	if(!sdeck_haptics_senderr)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics senderr buf could not be allocated :(");
+	}
 	qRegisterMetaType<haptic_packet_t>();
 	connect(this, &StreamSession::SdeckHapticPushed, this, &StreamSession::SdeckQueueHaptics);
 	auto sdeck_haptic_interval = STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS * 10;
@@ -1337,7 +1380,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
-			if(!connected && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
+			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
 			{
 				QTimer::singleShot(1000, this, &StreamSession::Start);
 				return;
@@ -1348,6 +1391,9 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			emit LoginPINRequested(event->login_pin_request.pin_incorrect);
+			break;
+		case CHIAKI_EVENT_HOLEPUNCH:
+			emit DataHolepunchProgress(event->data_holepunch.finished);
 			break;
 		case CHIAKI_EVENT_RUMBLE: {
 			uint8_t left = event->rumble.left;
@@ -1534,6 +1580,64 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 	}
 }
 #endif
+
+ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
+{
+	ChiakiLog *log = GetChiakiLog();
+	holepunch_session = chiaki_holepunch_session_init(psn_token.toUtf8().constData(), log);
+	if(!holepunch_session)
+	{
+		CHIAKI_LOGE(log, "!! Failed to initialize session");
+		return CHIAKI_ERR_MEMORY;
+	}
+	return CHIAKI_ERR_SUCCESS;
+}
+
+bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
+{
+	ChiakiLog *log = GetChiakiLog();
+	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to create session");
+		return false;
+	}
+	CHIAKI_LOGI(log, ">> Created session");
+	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
+	size_t duid_len = duid.size();
+	size_t duid_bytes_len = duid_len / 2;
+	size_t duid_bytes_lenr = duid_bytes_len;
+	uint8_t duid_bytes[duid_bytes_len];
+	memset(duid_bytes, 0, duid_bytes_len);
+	parse_hex(duid_bytes, &duid_bytes_lenr, duid.toUtf8().constData(), duid_len);
+	if(duid_bytes_len != duid_bytes_lenr)
+	{
+		CHIAKI_LOGE(log, "Couldn't convert duid string to bytes got size mismatch");
+		return false;
+	}
+	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
+	err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to start session");
+		return false;
+	}
+	CHIAKI_LOGI(log, ">> Started session");
+
+	err = chiaki_holepunch_session_punch_hole(holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
+		return false;
+	}
+	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
+	return true;
+}
+
+void StreamSession::CancelPsnConnection(bool stop_thread)
+{
+	chiaki_holepunch_main_thread_cancel(holepunch_session, stop_thread);
+}
 
 void StreamSession::TriggerFfmpegFrameAvailable()
 {

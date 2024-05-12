@@ -291,6 +291,50 @@ void QmlSettings::setWifiDroppedNotif(const uint percent)
     emit wifiDroppedNotifChanged();
 }
 
+QString QmlSettings::psnAuthToken() const
+{
+    return settings->GetPsnAuthToken();
+}
+
+void QmlSettings::setPsnAuthToken(const QString &auth_token)
+{
+    settings->SetPsnAuthToken(auth_token);
+    emit psnAuthTokenChanged();
+}
+
+QString QmlSettings::psnRefreshToken() const
+{
+    return settings->GetPsnRefreshToken();
+}
+
+void QmlSettings::setPsnRefreshToken(const QString &refresh_token)
+{
+    settings->SetPsnRefreshToken(refresh_token);
+    emit psnRefreshTokenChanged();
+}
+
+QString QmlSettings::psnAuthTokenExpiry() const
+{
+    return settings->GetPsnAuthTokenExpiry();
+}
+
+void QmlSettings::setPsnAuthTokenExpiry(const QString &expiry)
+{
+    settings->SetPsnAuthTokenExpiry(expiry);
+    emit psnAuthTokenExpiryChanged();
+}
+
+QString QmlSettings::psnAccountId() const
+{
+    return settings->GetPsnAccountId();
+}
+
+void QmlSettings::setPsnAccountId(const QString &account_id)
+{
+    settings->SetPsnAccountId(account_id);
+    emit psnAccountIdChanged();
+}
+
 QString QmlSettings::logDirectory() const
 {
     return GetLogBaseDir();

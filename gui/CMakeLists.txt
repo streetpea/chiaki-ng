@@ -32,6 +32,8 @@ set(SOURCE_FILES
 	src/controllermanager.cpp
 	include/psnaccountid.h
 	src/psnaccountid.cpp
+	include/psntoken.h
+	src/psntoken.cpp
 	include/jsonrequester.h
 	src/jsonrequester.cpp
 	src/qml/qml.qrc

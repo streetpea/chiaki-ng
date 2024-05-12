@@ -1,16 +1,23 @@
 {
-    "name": "chiaki4deck",
-    "version": "1.6.3",
-    "dependencies": [
-      "pkgconf",
-      "sdl2",
-      "protobuf",
-      "openssl",
-      "hidapi",
-      "opus",
-      "fftw3",
-      "lcms",
-      "speexdsp",
-      "vulkan"
+  "name": "chiaki4deck",
+  "version": "1.7.0",
+  "dependencies": [
+    "pkgconf",
+    "sdl2",
+    "protobuf",
+    "openssl",
+    "hidapi",
+    "json-c",
+    "miniupnpc",
+    "opus",
+    "fftw3",
+    "lcms",
+    "speexdsp",
+    "vulkan",
+    "ffmpeg"
+  ],
+  "vcpkg-configuration": {
+    "overlay-ports": [ "./scripts/ffmpeg-port"
     ]
   }
+}
