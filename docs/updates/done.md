@@ -1,5 +1,10 @@
 # Completed (Done) Updates
 
+
+## Remote Connection Via PSN
+
+Enabled remote connection via PSN so users can use this instead of port forwarding on their routers as an option.
+
 ## Touch Friendly and Controller Navigable GUI
 
 QML based user interface that is better suited for handheld computers such as the Steam Deck and more user-friendly in general.
