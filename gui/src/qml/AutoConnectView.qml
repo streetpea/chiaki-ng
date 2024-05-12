@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 import org.streetpea.chiaki4deck
 
@@ -17,6 +18,11 @@ Rectangle {
 
     Keys.onReturnPressed: view.stop()
     Keys.onEscapePressed: view.stop()
+
+    Shortcut {
+        sequence: "Ctrl+Q"
+        onActivated: view.stop()
+    }
 
     MouseArea {
         anchors.fill: parent

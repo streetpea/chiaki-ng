@@ -234,6 +234,21 @@ modules:
       url: https://gitlab.xiph.org/xiph/speexdsp.git
       tag: SpeexDSP-1.2.1
 
+  - name: json-c
+    buildsystem: cmake-ninja
+    sources:
+      - type: git
+        url: https://github.com/json-c/json-c.git
+        tag: json-c-0.17-20230812
+
+  - name: miniupnpc
+    buildsystem: cmake-ninja
+    subdir: miniupnpc
+    sources:
+    - type: git
+      url: https://github.com/miniupnp/miniupnp
+      tag: miniupnpc_2_2_7
+
   - name: vulkanso
     buildsystem: simple
     build-commands:

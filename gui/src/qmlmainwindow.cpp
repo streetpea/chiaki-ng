@@ -49,10 +49,10 @@ static void placebo_log_cb(void *user, pl_log_level level, const char *msg)
     }
 }
 
-static const char *shader_cache_path()
+static QString shader_cache_path()
 {
     static QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/pl_shader.cache";
-    return qPrintable(path);
+    return path;
 }
 
 class RenderControl : public QQuickRenderControl
@@ -125,7 +125,7 @@ QmlMainWindow::~QmlMainWindow()
     for (auto tex : placebo_tex)
         pl_tex_destroy(placebo_vulkan->gpu, &tex);
 
-    FILE *file = fopen(shader_cache_path(), "wb");
+    FILE *file = fopen(qPrintable(shader_cache_path()), "wb");
     if (file) {
         pl_cache_save_file(placebo_cache, file);
         fclose(file);
@@ -428,7 +428,7 @@ void QmlMainWindow::init(Settings *settings)
     };
     placebo_cache = pl_cache_create(&cache_params);
     pl_gpu_set_cache(placebo_vulkan->gpu, placebo_cache);
-    FILE *file = fopen(shader_cache_path(), "rb");
+    FILE *file = fopen(qPrintable(shader_cache_path()), "rb");
     if (file) {
         pl_cache_load_file(placebo_cache, file);
         fclose(file);

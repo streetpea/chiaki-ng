@@ -8,6 +8,9 @@ import org.streetpea.chiaki4deck
 Item {
     id: root
 
+    Material.theme: Material.Dark
+    Material.accent: "#00a7ff"
+
     function controllerButton(name) {
         let type = "ps";
         for (let i = 0; i < Chiaki.controllers.length; ++i) {
@@ -30,6 +33,10 @@ Item {
 
     function showStreamView() {
         stack.replace(stack.get(0), streamViewComponent);
+    }
+
+    function showPsnView() {
+        stack.replace(stack.get(0), psnViewComponent, {}, StackView.Immediate)
     }
 
     function showManualHostDialog() {
@@ -60,6 +67,10 @@ Item {
         stack.push(steamShortcutDialogComponent)
     }
 
+    function showPSNTokenDialog(psnurl, expired) {
+        stack.push(psnTokenDialogComponent, {psnurl: psnurl, expired: expired});
+    }
+
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
@@ -77,6 +88,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: false
         initialItem: mainViewComponent
+        font.pixelSize: 20
 
         replaceEnter: Transition {
             PropertyAnimation {
@@ -148,6 +160,18 @@ Item {
                 root.showStreamView();
         }
 
+        function onShowPsnView() {
+            root.showPsnView();
+        }
+
+        function onPsnCredsExpired() {
+            Chiaki.settings.psnRefreshToken = ""
+            Chiaki.settings.psnAuthToken = ""
+            Chiaki.settings.psnAuthTokenExpiry = ""
+            Chiaki.settings.psnAccountId = ""
+            root.showPSNTokenDialog(qsTr(""), true);
+        }
+
         function onError(title, text) {
             errorTitleLabel.text = title;
             errorTextLabel.text = text;
@@ -175,6 +199,11 @@ Item {
     }
 
     Component {
+        id: psnViewComponent
+        PsnView {}
+    }
+
+    Component {
         id: manualHostDialogComponent
         ManualHostDialog { }
     }
@@ -192,6 +221,11 @@ Item {
     Component {
         id: steamShortcutDialogComponent
         SteamShortcutDialog { }
+    }
+
+    Component {
+        id: psnTokenDialogComponent
+        PSNTokenDialog { }
     }
 
     Component {

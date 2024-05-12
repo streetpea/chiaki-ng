@@ -1,12 +1,14 @@
 {
     "name": "chiaki4deck",
-    "version": "1.6.3",
+    "version": "1.7.0",
     "dependencies": [
       "pkgconf",
       "sdl2",
       "protobuf",
       "openssl",
       "hidapi",
+      "json-c",
+      "miniupnpc",
       "opus",
       "fftw3",
       "lcms",

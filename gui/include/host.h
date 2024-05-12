@@ -93,8 +93,27 @@ class ManualHost
 		static ManualHost LoadFromSettings(QSettings *settings);
 };
 
+class PsnHost
+{
+	private:
+	    QString duid;
+		QString name;
+		bool ps5;
+
+	public:
+		PsnHost();
+		PsnHost(const QString &duid, const QString &name, bool ps5);
+
+		QString GetDuid() const          { return duid; }
+		QString GetName() const          { return name; }
+		bool IsPS5() const               { return ps5;  }
+		ChiakiTarget GetTarget() const;
+
+};
+
 Q_DECLARE_METATYPE(HostMAC)
 Q_DECLARE_METATYPE(RegisteredHost)
 Q_DECLARE_METATYPE(ManualHost)
+Q_DECLARE_METATYPE(PsnHost)
 
 #endif //CHIAKI_HOST_H

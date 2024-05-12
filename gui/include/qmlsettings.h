@@ -39,6 +39,10 @@ class QmlSettings : public QObject
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
     Q_PROPERTY(QVariantList controllerMapping READ controllerMapping NOTIFY controllerMappingChanged)
     Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
+    Q_PROPERTY(QString psnRefreshToken READ psnRefreshToken WRITE setPsnRefreshToken NOTIFY psnRefreshTokenChanged)
+    Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
+    Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
+    Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
 
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
@@ -119,6 +123,18 @@ public:
     uint wifiDroppedNotif() const;
     void setWifiDroppedNotif(uint percent);
 
+    QString psnAuthToken() const;
+    void setPsnAuthToken(const QString &auth_token);
+
+    QString psnRefreshToken() const;
+    void setPsnRefreshToken(const QString &refresh_token);
+
+    QString psnAuthTokenExpiry() const;
+    void setPsnAuthTokenExpiry(const QString &expiry);
+
+    QString psnAccountId() const;
+    void setPsnAccountId(const QString &account_id);
+
     QString logDirectory() const;
     QStringList availableDecoders() const;
     QStringList availableAudioOutDevices() const;
@@ -162,6 +178,10 @@ signals:
     void autoConnectMacChanged();
     void audioDevicesChanged();
     void registeredHostsChanged();
+    void psnAuthTokenChanged();
+    void psnRefreshTokenChanged();
+    void psnAuthTokenExpiryChanged();
+    void psnAccountIdChanged();
     void controllerMappingChanged();
 
 private:

@@ -132,20 +132,24 @@ static bool state_finished_cond_check(void *user)
 	return stream_connection->state_finished || stream_connection->should_stop || stream_connection->remote_disconnected;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnection *stream_connection)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnection *stream_connection, chiaki_socket_t *socket)
 {
 	ChiakiSession *session = stream_connection->session;
 	ChiakiErrorCode err;
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = stream_connection->log;
-	takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
-	takion_info.sa = malloc(takion_info.sa_len);
-	if(!takion_info.sa)
-		return CHIAKI_ERR_MEMORY;
-	memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
-	err = set_port(takion_info.sa, htons(STREAM_CONNECTION_PORT));
-	assert(err == CHIAKI_ERR_SUCCESS);
+	takion_info.close_socket = true;
+	if(!socket)
+	{
+		takion_info.sa_len = session->connect_info.host_addrinfo_selected->ai_addrlen;
+		takion_info.sa = malloc(takion_info.sa_len);
+		if(!takion_info.sa)
+			return CHIAKI_ERR_MEMORY;
+		memcpy(takion_info.sa, session->connect_info.host_addrinfo_selected->ai_addr, takion_info.sa_len);
+		err = set_port(takion_info.sa, htons(STREAM_CONNECTION_PORT));
+		assert(err == CHIAKI_ERR_SUCCESS);
+	}
 	takion_info.ip_dontfrag = false;
 
 	takion_info.enable_crypt = true;
@@ -190,8 +194,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	stream_connection->state = STATE_TAKION_CONNECT;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
-	err = chiaki_takion_connect(&stream_connection->takion, &takion_info);
-	free(takion_info.sa);
+	err = chiaki_takion_connect(&stream_connection->takion, &takion_info, socket);
+	if(!socket)
+		free(takion_info.sa);
+
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection connect failed");

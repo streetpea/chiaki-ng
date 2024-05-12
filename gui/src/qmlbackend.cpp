@@ -4,18 +4,23 @@
 #include "streamsession.h"
 #include "controllermanager.h"
 #include "psnaccountid.h"
+#include "psntoken.h"
 #include "systemdinhibit.h"
-
+#include "chiaki/remote/holepunch.h"
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 #include "steamtools.h"
 #endif
 
-#include <QUrl>
 #include <QUrlQuery>
 #include <QGuiApplication>
 #include <QPixmap>
 #include <QProcessEnvironment>
+#include <QDesktopServices>
+#include <QtConcurrent>
 
+#define PSN_DEVICES_TRIES 2
+#define MAX_PSN_RECONNECT_TRIES 6
+#define PSN_INTERNET_WAIT_SECONDS 5
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -99,6 +104,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     frame_thread->start();
     frame_obj->moveToThread(frame_thread);
 
+    PsnConnectionWorker *worker = new PsnConnectionWorker;
+    worker->moveToThread(&psn_connection_thread);
+    connect(&psn_connection_thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(this, &QmlBackend::psnConnect, worker, &PsnConnectionWorker::ConnectPsnConnection);
+    connect(worker, &PsnConnectionWorker::resultReady, this, &QmlBackend::checkPsnConnection);
+    psn_connection_thread.start();
+
+    setConnectState(PsnConnectState::NotStarted);
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
@@ -109,7 +122,68 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     updateControllers();
 
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
-
+    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
+    psn_auto_connect_timer = new QTimer(this);
+    psn_auto_connect_timer->setSingleShot(true);
+    psn_reconnect_tries = 0;
+    psn_reconnect_timer = new QTimer(this);
+    if(autoConnect() && !auto_connect_nickname.isEmpty())
+    {
+        connect(psn_auto_connect_timer, &QTimer::timeout, this, [this, settings]
+        {
+            int i = 0;
+            for (const auto &host : std::as_const(psn_hosts))
+            {
+                if(host.GetName() == auto_connect_nickname)
+                {
+                    int index = discovery_manager.GetHosts().size() + settings->GetManualHosts().size() + i;
+                    connectToHost(index);
+                    return;
+                }
+                i++;
+            }
+            qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
+        });
+        psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+    }
+    connect(psn_reconnect_timer, &QTimer::timeout, this, [this, settings]{
+        QString refresh = settings->GetPsnRefreshToken();
+        if(refresh.isEmpty())
+        {
+            qCWarning(chiakiGui) << "No refresh token found, can't refresh PSN token to use PSN remote connection";
+            psn_reconnect_tries = 0;
+            resume_session = false;
+            psn_reconnect_timer->stop();
+            setConnectState(PsnConnectState::ConnectFailed);
+            return;
+        }
+        PSNToken *psnToken = new PSNToken(settings, this);
+        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+            qCWarning(chiakiGui) << "Internet is currently down...waiting 5 seconds" << error;
+            psn_reconnect_tries++;
+            if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
+                return;
+            else
+            {
+                resume_session = false;
+                psn_reconnect_tries = 0;
+                psn_reconnect_timer->stop();
+                setConnectState(PsnConnectState::ConnectFailed);
+            }
+        });
+        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
+        });
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
+            resume_session = false;
+            psn_reconnect_tries = 0;
+            psn_reconnect_timer->stop();
+            createSession(session_info);
+        });
+        QString refresh_token = settings->GetPsnRefreshToken();
+        psnToken->RefreshPsnToken(refresh_token);
+    });
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
         qCInfo(chiakiGui) << "About to sleep";
@@ -117,27 +191,39 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
                 session->GoToBed();
             session->Stop();
+            psnCancel(true);
             resume_session = true;
         }
     });
-    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this]() {
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this, settings]() {
         qCInfo(chiakiGui) << "Resumed from sleep";
         if (resume_session) {
             qCInfo(chiakiGui) << "Resuming session...";
             resume_session = false;
-            createSession({
-                session_info.settings,
-                session_info.target,
-                session_info.host,
-                session_info.regist_key,
-                session_info.morning,
-                session_info.initial_login_pin,
-                session_info.fullscreen,
-                session_info.zoom,
-                session_info.stretch,
-            });
+            if(session_info.duid.isEmpty())
+            {
+                createSession({
+                    session_info.settings,
+                    session_info.target,
+                    session_info.host,
+                    session_info.regist_key,
+                    session_info.morning,
+                    session_info.initial_login_pin,
+                    session_info.duid,
+                    session_info.fullscreen,
+                    session_info.zoom,
+                    session_info.stretch,
+                });
+            }
+            else
+            {
+                emit showPsnView();
+                setConnectState(PsnConnectState::WaitingForInternet);
+                psn_reconnect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+            }
         }
     });
+    refreshPsnToken();
 }
 
 QmlBackend::~QmlBackend()
@@ -145,6 +231,10 @@ QmlBackend::~QmlBackend()
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
+    delete psn_auto_connect_timer;
+    delete psn_reconnect_timer;
+    psn_connection_thread.quit();
+    psn_connection_thread.wait();
 }
 
 QmlMainWindow *QmlBackend::qmlWindow() const
@@ -178,14 +268,27 @@ void QmlBackend::setDiscoveryEnabled(bool enabled)
     emit discoveryEnabledChanged();
 }
 
+QmlBackend::PsnConnectState QmlBackend::connectState() const
+{
+    return psn_connect_state;
+}
+
+void QmlBackend::setConnectState(PsnConnectState connect_state)
+{
+    psn_connect_state = connect_state;
+    emit connectStateChanged();
+}
+
 QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
+    QList<QString> discovered_nicknames;
     for (const auto &host : discovery_manager.GetHosts()) {
         QVariantMap m;
         m["discovered"] = true;
         m["manual"] = false;
         m["name"] = host.host_name;
+        m["duid"] = "";
         m["address"] = host.host_addr;
         m["ps5"] = host.ps5;
         m["mac"] = host.GetHostMAC().ToString();
@@ -193,6 +296,7 @@ QVariantList QmlBackend::hosts() const
         m["app"] = host.running_app_name;
         m["titleId"] = host.running_app_titleid;
         m["registered"] = settings->GetRegisteredHostRegistered(host.GetHostMAC());
+        discovered_nicknames.append(host.host_name);
         out.append(m);
     }
     for (const auto &host : settings->GetManualHosts()) {
@@ -200,6 +304,7 @@ QVariantList QmlBackend::hosts() const
         m["discovered"] = false;
         m["manual"] = true;
         m["name"] = host.GetHost();
+        m["duid"] = "";
         m["address"] = host.GetHost();
         m["registered"] = false;
         if (host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC())) {
@@ -211,12 +316,59 @@ QVariantList QmlBackend::hosts() const
         }
         out.append(m);
     }
+    for (const auto &host : std::as_const(psn_hosts)) {
+        QVariantMap m;
+        // Only list PSN remote hosts that aren't discovered locally
+        bool discovered = false;
+        for (int i = 0; i < discovered_nicknames.size(); ++i)
+        {
+            if (discovered_nicknames.at(i) == host.GetName())
+                discovered = true;
+        }
+        if(discovered)
+            continue;
+        m["discovered"] = false;
+        m["manual"] = false;
+        m["name"] = host.GetName();
+        m["duid"] = host.GetDuid();
+        m["address"] = "";
+        m["registered"] = true;
+        m["ps5"] = host.IsPS5();
+        out.append(m);
+    }
     return out;
 }
 
 bool QmlBackend::autoConnect() const
 {
     return auto_connect_mac.GetValue();
+}
+
+void QmlBackend::psnCancel(bool stop_thread)
+{
+    session->CancelPsnConnection(stop_thread);
+}
+
+void QmlBackend::checkPsnConnection(const bool &connected)
+{
+    if(connected)
+    {
+        setConnectState(PsnConnectState::LinkingConsole);
+        psnSessionStart();
+    }
+    else
+    {
+        setConnectState(PsnConnectState::ConnectFailed);
+        delete session;
+        session = NULL;
+    }
+}
+
+void QmlBackend::psnSessionStart()
+{
+    session->Start();
+
+    sleep_inhibit->inhibit();
 }
 
 void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
@@ -304,6 +456,16 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             emit sessionPinDialogRequested();
     });
 
+    connect(session, &StreamSession::DataHolepunchProgress, this, [this](bool finished) {
+        if(finished)
+        {
+            setConnectState(PsnConnectState::DataConnectionFinished);
+            emit sessionChanged(session);
+        }
+        else
+            setConnectState(PsnConnectState::DataConnectionStart);
+    });
+
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
             setDiscoveryEnabled(false);
@@ -316,10 +478,19 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     chiaki_log_ctx = session->GetChiakiLog();
     chiaki_log_mutex.unlock();
 
-    session->Start();
-    emit sessionChanged(session);
+    if(connect_info.duid.isEmpty())
+    {
+        session->Start();
+        emit sessionChanged(session);
 
-    sleep_inhibit->inhibit();
+        sleep_inhibit->inhibit();
+    }
+    else
+    {
+        emit showPsnView();
+        setConnectState(PsnConnectState::InitiatingConnection);
+        emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
+    }
 }
 
 bool QmlBackend::closeRequested()
@@ -395,6 +566,8 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     info.broadcast = broadcast;
     info.pin = (uint32_t)pin.toULong();
     info.console_pin = (uint32_t)cpin.toULong();
+    info.holepunch_info = nullptr;
+    info.rudp = nullptr;
     QByteArray psn_idb;
     if (target == CHIAKI_TARGET_PS4_8) {
         psn_idb = psn_id.toUtf8();
@@ -472,18 +645,63 @@ void QmlBackend::connectToHost(int index)
     }
     emit windowTypeUpdated(settings->GetWindowType());
 
-    QString host = server.GetHostAddr();
-    StreamSessionConnectInfo info(
-            settings,
-            server.registered_host.GetTarget(),
-            host,
-            server.registered_host.GetRPRegistKey(),
-            server.registered_host.GetRPKey(),
-            server.registered_host.GetConsolePin(),
-            fullscreen,
-            zoom,
-            stretch);
-    createSession(info);
+    resume_session = false;
+    if(server.duid.isEmpty())
+    {
+        QString host = server.GetHostAddr();
+        StreamSessionConnectInfo info(
+                settings,
+                server.registered_host.GetTarget(),
+                host,
+                server.registered_host.GetRPRegistKey(),
+                server.registered_host.GetRPKey(),
+                server.registered_host.GetConsolePin(),
+                server.duid,
+                fullscreen,
+                zoom,
+                stretch);
+        createSession(info);
+    }
+    else
+    {
+        StreamSessionConnectInfo info(
+                settings,
+                server.psn_host.GetTarget(),
+                QString(),
+                QByteArray(),
+                QByteArray(),
+                server.registered_host.GetConsolePin(),
+                server.duid,
+                fullscreen,
+                zoom,
+                stretch);
+
+        QString expiry_s = settings->GetPsnAuthTokenExpiry();
+        QString refresh = settings->GetPsnRefreshToken();
+        if(expiry_s.isEmpty() || refresh.isEmpty())
+            return;
+        QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
+        // give 1 minute buffer
+        QDateTime now = QDateTime::currentDateTime().addSecs(60);
+        if(now > expiry)
+        {
+            PSNToken *psnToken = new PSNToken(settings, this);
+            connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+                qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+            });
+            connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+            connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+                qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+            });
+            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
+                createSession(info);
+            });
+            QString refresh_token = settings->GetPsnRefreshToken();
+            psnToken->RefreshPsnToken(refresh_token);
+        }
+        else
+            createSession(info);
+    }
 }
 
 void QmlBackend::stopSession(bool sleep)
@@ -507,13 +725,17 @@ void QmlBackend::sessionGoHome()
 
 void QmlBackend::enterPin(const QString &pin)
 {
+    qCInfo(chiakiGui) << "Set login pin " << pin;
     if (session)
         session->SetLoginPIN(pin);
 }
 
 QUrl QmlBackend::psnLoginUrl() const
 {
-    return QUrl(PSNAuth::LOGIN_URL);
+    size_t duid_size = 48;
+    char duid[duid_size];
+    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
+    return QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
 }
 
 bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
@@ -527,12 +749,17 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
         emit psnLoginAccountIdDone({});
         return false;
     }
-    PSNAccountID *psnId = new PSNAccountID(this);
+    PSNAccountID *psnId = new PSNAccountID(settings, this);
     connect(psnId, &PSNAccountID::AccountIDResponse, this, [this, psnId](const QString &accountId) {
         psnId->deleteLater();
         emit psnLoginAccountIdDone(accountId);
     });
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
+    connect(psnId, &PSNAccountID::AccountIDError, [this](const QString &error) {
+        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+    });
     psnId->GetPsnAccountId(code);
+    emit psnTokenChanged();
     return true;
 }
 
@@ -553,6 +780,7 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
         server.discovered = true;
         server.discovery_host = discovered.at(index);
         server.registered = settings->GetRegisteredHostRegistered(server.discovery_host.GetHostMAC());
+        server.duid = QString();
         if (server.registered)
             server.registered_host = settings->GetRegisteredHost(server.discovery_host.GetHostMAC());
         return server;
@@ -565,11 +793,35 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
         server.discovered = false;
         server.manual_host = manual.at(index);
         server.registered = false;
+        server.duid = QString();
         if (server.manual_host.GetRegistered() && settings->GetRegisteredHostRegistered(server.manual_host.GetMAC())) {
             server.registered = true;
             server.registered_host = settings->GetRegisteredHost(server.manual_host.GetMAC());
         }
         return server;
+    }
+    index -= manual.size();
+    if (index < psn_hosts.count())
+    {
+        DisplayServer server;
+        QMapIterator<QString, PsnHost> i(psn_hosts);
+        size_t j = 0;
+        while (i.hasNext())
+        {
+            i.next();
+            if(j == index)
+            {
+                server.valid = true;
+                server.discovered = false;
+                server.psn_host = i.value();
+                server.duid = i.key();
+                server.registered = true;
+                server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
+                return server;
+            }
+            j++;
+        }
+        return {};
     }
     return {};
 }
@@ -642,6 +894,7 @@ void QmlBackend::updateDiscoveryHosts()
         for (int i = 0; i < hosts_count; ++i) {
             if (discovery_manager.GetHosts().at(i).GetHostMAC() != auto_connect_mac)
                 continue;
+            psn_auto_connect_timer->stop();
             connectToHost(i);
             break;
         }
@@ -744,3 +997,173 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
     }
 }
 #endif
+
+QString QmlBackend::openPsnLink()
+{
+    size_t duid_size = CHIAKI_DUID_STR_SIZE;
+    char duid[duid_size];
+    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
+    QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
+    if(QDesktopServices::openUrl(url))
+    {
+        qCWarning(chiakiGui) << "Launched browser.";
+        return QString();
+    }
+    else
+    {
+        qCWarning(chiakiGui) << "Could not launch browser.";
+        return QString(url.toEncoded());
+    }
+}
+
+void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
+{
+    QJSValue cb = callback;
+    if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
+    {
+        if (cb.isCallable())
+            cb.call({QString("[E] Invalid URL: Please make sure you have copy and pasted the URL correctly."), false, true});
+        return;
+    }
+    const QString code = QUrlQuery(url).queryItemValue("code");
+    if (code.isEmpty())
+    {
+        if (cb.isCallable())
+            cb.call({QString("[E] Invalid code from redirect url."), false, true});
+        return;
+    }
+    PSNAccountID *psnId = new PSNAccountID(settings, this);
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
+    connect(psnId, &PSNAccountID::AccountIDError, [this, cb](const QString &error) {
+        if (cb.isCallable())
+            cb.call({error, false, true});
+    });
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, [cb]() {
+        if (cb.isCallable())
+            cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
+    });
+    psnId->GetPsnAccountId(code);
+    emit psnTokenChanged();
+}
+
+void QmlBackend::refreshAuth()
+{
+    PSNToken *psnToken = new PSNToken(settings, this);
+    connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+    });
+    connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+    connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+        qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+    });
+    connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
+    QString refresh_token = settings->GetPsnRefreshToken();
+    psnToken->RefreshPsnToken(refresh_token);
+}
+
+void QmlBackend::updatePsnHosts()
+{
+    QString psn_token = settings->GetPsnAuthToken();
+    if(psn_token.isEmpty())
+        return;
+
+    ChiakiHolepunchDeviceInfo *device_info_ps5;
+    size_t num_devices_ps5 = 0;
+    ChiakiHolepunchDeviceInfo *device_info_ps4;
+    size_t num_devices_ps4 = 0;
+    ChiakiLog backend_log;
+    chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
+    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
+    {
+        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            if(PSN_DEVICES_TRIES - i > 1)
+            {
+                qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
+                continue;
+            }
+            else
+            {
+                qCWarning(chiakiGui) << "Failed to get PS5 devices after max tries: " << PSN_DEVICES_TRIES;
+                return;
+            }
+        }
+        break;
+    }
+    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
+    {
+        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            if(PSN_DEVICES_TRIES - i > 1)
+            {
+                qCWarning(chiakiGui) << "Failed to get PS4 devices trying again";
+                continue;
+            }
+            else
+            {
+                qCWarning(chiakiGui) << "Failed to get PS4 devices after max tries: " << PSN_DEVICES_TRIES;
+                chiaki_holepunch_free_device_list(device_info_ps5);
+                return;
+            }
+        }
+        break;
+    }
+    for (size_t i = 0; i < num_devices_ps5; i++)
+    {
+        ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
+        // skip devices that don't have remote play enabled
+        if(!dev.remoteplay_enabled)
+            continue;
+        QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
+        QString duid = QString(duid_bytes.toHex());
+        QString name = QString(dev.device_name);
+        if(!settings->GetNicknameRegisteredHostRegistered(name))
+            continue;
+        bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
+        PsnHost psn_host(duid, name, ps5);
+	    if(!psn_hosts.contains(duid))
+		    psn_hosts.insert(duid, psn_host);
+    }
+    for (size_t i = 0; i < num_devices_ps4; i++)
+    {
+        ChiakiHolepunchDeviceInfo dev = device_info_ps4[i];
+        if(!dev.remoteplay_enabled)
+            continue;
+        QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
+        QString duid = QString(duid_bytes.toHex());
+        QString name = QString(dev.device_name);
+        if(!settings->GetNicknameRegisteredHostRegistered(name))
+            continue;
+        bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
+        PsnHost psn_host(duid, name, ps5);
+	    if(!psn_hosts.contains(duid))
+		    psn_hosts.insert(duid, psn_host);
+    }
+    emit hostsChanged();
+    qCInfo(chiakiGui) << "Updated PSN hosts";
+    chiaki_holepunch_free_device_list(device_info_ps5);
+    chiaki_holepunch_free_device_list(device_info_ps4);
+}
+
+void QmlBackend::refreshPsnToken()
+{
+    QString expiry_s = settings->GetPsnAuthTokenExpiry();
+    QString refresh = settings->GetPsnRefreshToken();
+    if(expiry_s.isEmpty() || refresh.isEmpty())
+        return;
+    QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
+    // give 1 minute buffer
+    QDateTime now = QDateTime::currentDateTime().addSecs(60);
+    if (now >= expiry)
+        refreshAuth();
+    else
+        updatePsnHosts();
+}
+
+void PsnConnectionWorker::ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5)
+{
+    bool result = session->ConnectPsnConnection(duid, ps5);
+    emit resultReady(result);
+}

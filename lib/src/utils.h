@@ -90,7 +90,7 @@ static inline int sendto_broadcast(ChiakiLog *log, chiaki_socket_t s, const void
 		return r;
 	}
 #endif
-	return sendto(s, msg, len, flags, to, tolen);
+	return sendto(s, (CHIAKI_SOCKET_BUF_TYPE) msg, len, flags, to, tolen);
 }
 
 static inline void xor_bytes(uint8_t *dst, uint8_t *src, size_t sz)

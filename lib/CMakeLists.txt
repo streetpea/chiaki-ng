@@ -39,7 +39,10 @@ set(HEADER_FILES
 		include/chiaki/opusdecoder.h
 		include/chiaki/opusencoder.h
 		include/chiaki/orientation.h
-		include/chiaki/bitstream.h)
+		include/chiaki/bitstream.h
+		include/chiaki/remote/holepunch.h
+		include/chiaki/remote/rudp.h
+		include/chiaki/remote/rudpsendbuffer.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -81,7 +84,10 @@ set(SOURCE_FILES
 		src/opusdecoder.c
 		src/opusencoder.c
 		src/orientation.c
-		src/bitstream.c)
+		src/bitstream.c
+		src/remote/holepunch.c
+		src/remote/rudp.c
+		src/remote/rudpsendbuffer.c)
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND HEADER_FILES include/chiaki/ffmpegdecoder.h)
@@ -116,13 +122,26 @@ add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 
 if(WIN32)
-	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt)
+	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt iphlpapi)
+endif()
+
+if(APPLE)
+	target_link_libraries(chiaki-lib "-framework CoreServices")
 endif()
 
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
+
+find_package(PkgConfig REQUIRED)
+pkg_search_module(json-c REQUIRED json-c IMPORTED_TARGET)
+target_include_directories(chiaki-lib PRIVATE ${json-c_INCLUDE_DIRS})
+target_link_libraries(chiaki-lib PkgConfig::json-c)
+
+find_package(PkgConfig REQUIRED)
+pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
+target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)
@@ -142,6 +161,11 @@ else()
 	target_link_libraries(chiaki-lib OpenSSL::Crypto)
 endif()
 
+if (CHIAKI_USE_SYSTEM_CURL)
+	target_link_libraries(chiaki-lib CURL::libcurl_shared)
+else()
+	target_link_libraries(chiaki-lib CURL::libcurl_static)
+endif()
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
 
@@ -156,3 +180,6 @@ endif()
 if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
 endif()
+
+add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch-test.c)
+target_link_libraries(holepunch-test chiaki-lib)

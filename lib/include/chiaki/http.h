@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "stoppipe.h"
+#include "remote/rudp.h"
 
 #include <stdlib.h>
 
@@ -37,6 +38,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_http_response_parse(ChiakiHttpResponse *res
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_t buf_size, size_t *header_size, size_t *received_size, ChiakiStopPipe *stop_pipe, uint64_t timeout_ms);
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_send_recv_http_header_psn(ChiakiRudp rudp, ChiakiLog *log,
+	uint16_t *remote_counter, char *send_buf, size_t send_buf_size, char *buf, size_t buf_size,
+	size_t *header_size, size_t *received_size);
 
 #ifdef __cplusplus
 }

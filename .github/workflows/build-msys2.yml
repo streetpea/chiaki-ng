@@ -33,9 +33,11 @@ jobs:
             ffmpeg:p
             fftw:p
             hidapi:p
+            json-c:p
             lcms2:p
             libdovi:p
             meson:p
+            miniupnpc:p
             nasm:p
             ninja:p
             openssl:p
@@ -181,6 +183,10 @@ jobs:
           cp /mingw64/bin/libjxl*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libzvbi-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libhwy*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libminiupnpc.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libpsl-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libssh2-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libjson-c-*.dll Chiaki4deck-Win/
           /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release Chiaki4deck-Win/chiaki.exe
           cp -R /mingw64/share/qt6/qml/QtQuick Chiaki4deck-Win/qml/
           cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ Chiaki4deck-Win/qml/QtQml/

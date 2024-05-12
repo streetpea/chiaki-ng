@@ -130,3 +130,31 @@ ManualHost ManualHost::LoadFromSettings(QSettings *settings)
 		r.registered_mac = HostMAC((const uint8_t *)registered_mac.constData());
 	return r;
 }
+
+PsnHost::PsnHost()
+{
+	duid = QString();
+	name = QString();
+	ps5 = false;
+}
+
+PsnHost::PsnHost(const QString &duid, const QString &name, bool ps5)
+	: duid(duid),
+	name(name),
+	ps5(ps5)
+{
+}
+
+ChiakiTarget PsnHost::GetTarget() const
+{
+	if(ps5)
+	{
+		ChiakiTarget target = CHIAKI_TARGET_PS5_1;
+		return target;
+	}
+	else
+	{
+		ChiakiTarget target = CHIAKI_TARGET_PS4_10;
+		return target;
+	}
+}

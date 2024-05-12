@@ -51,6 +51,7 @@ typedef struct chiaki_ctrl_t
 	__attribute__((aligned(__alignof__(uint32_t))))
 #endif
 	uint8_t recv_buf[512];
+	uint8_t rudp_recv_buf[520];
 
 	size_t recv_buf_size;
 	uint64_t crypt_counter_local;
@@ -72,6 +73,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, co
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_accept(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_reject(ChiakiCtrl *ctrl);
 CHIAKI_EXPORT ChiakiErrorCode ctrl_message_go_home(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *ctrl);
+CHIAKI_EXPORT void ctrl_enable_features(ChiakiCtrl *ctrl);
 
 #ifdef __cplusplus
 }

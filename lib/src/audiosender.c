@@ -2,6 +2,7 @@
 
 #include <chiaki/audiosender.h>
 #include <string.h>
+#include <stdlib.h>
 #include <chiaki/fec.h>
 
 static void chiaki_audio_sender_frame(ChiakiAudioSender *audio_sender, uint8_t *buf, size_t buf_size);
@@ -17,7 +18,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_init(ChiakiAudioSender *audio_
     audio_sender->frameb = NULL;
     audio_sender->frame_buf_size = 3 * audio_sender->buf_size_per_unit;
     audio_sender->frame_buf = malloc(audio_sender->frame_buf_size);
+    if(!audio_sender->frame_buf)
+        return CHIAKI_ERR_MEMORY;
     audio_sender->filled_packet_buf = malloc(audio_sender->frame_buf_size + 20);
+    if(!audio_sender->filled_packet_buf)
+        return CHIAKI_ERR_MEMORY;
 
     ChiakiErrorCode err = chiaki_mutex_init(&audio_sender->mutex, false);
     if(err != CHIAKI_ERR_SUCCESS)
@@ -65,12 +70,22 @@ CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender
     if(!audio_sender->frameb)
     {
         audio_sender->frameb = malloc(audio_sender->buf_size_per_unit);
+        if(!audio_sender->frameb)
+        {
+            CHIAKI_LOGE(audio_sender->log, "Error allocating audio frameb");
+            return;
+        }
         memcpy(audio_sender->frameb, opus_sender, opus_sender_size);
         return;
     }
     if(!audio_sender->framea)
     {
         audio_sender->framea = malloc(audio_sender->buf_size_per_unit);
+        if(!audio_sender->framea)
+        {
+            CHIAKI_LOGE(audio_sender->log, "Error allocating audio framea");
+            return;
+        }
         memcpy(audio_sender->framea, opus_sender, opus_sender_size);
         return;
     }
@@ -95,6 +110,7 @@ CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender
         audio_sender->filled_packet_buf[19] = zero_byte;
     memcpy(audio_sender->filled_packet_buf + 19 + ps5_packet, audio_sender->frame_buf, audio_sender->frame_buf_size);
 	chiaki_audio_sender_frame(audio_sender, audio_sender->filled_packet_buf, filled_packet_size);
+    return;
 }
 
 static void chiaki_audio_sender_frame(ChiakiAudioSender *audio_sender, uint8_t *buf, size_t buf_size)

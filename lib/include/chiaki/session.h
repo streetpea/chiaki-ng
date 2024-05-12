@@ -14,6 +14,9 @@
 #include "audio.h"
 #include "controller.h"
 #include "stoppipe.h"
+#include "remote/holepunch.h"
+#include "remote/rudp.h"
+#include "regist.h"
 
 #include <stdint.h>
 
@@ -79,6 +82,9 @@ typedef struct chiaki_connect_info_t
 	bool video_profile_auto_downgrade; // Downgrade video_profile if server does not seem to support it.
 	bool enable_keyboard;
 	bool enable_dualsense;
+	ChiakiHolepunchSession holepunch_session;
+	chiaki_socket_t *rudp_sock;
+	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
 } ChiakiConnectInfo;
 
 
@@ -96,6 +102,7 @@ typedef enum {
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_UNKNOWN,
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_DISCONNECTED,
 	CHIAKI_QUIT_REASON_STREAM_CONNECTION_REMOTE_SHUTDOWN, // like REMOTE_DISCONNECTED, but because the server shut down
+	CHIAKI_QUIT_REASON_PSN_REGIST_FAILED,
 } ChiakiQuitReason;
 
 CHIAKI_EXPORT const char *chiaki_quit_reason_string(ChiakiQuitReason reason);
@@ -139,6 +146,7 @@ typedef struct chiaki_trigger_effects_event_t
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
+	CHIAKI_EVENT_HOLEPUNCH,
 	CHIAKI_EVENT_KEYBOARD_OPEN,
 	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
 	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
@@ -160,6 +168,10 @@ typedef struct chiaki_event_t
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
 		} login_pin_request;
+		struct
+		{
+			bool finished; // false when punching hole, true when finished
+		} data_holepunch;
 	};
 } ChiakiEvent;
 
@@ -188,6 +200,7 @@ typedef struct chiaki_session_t
 		bool video_profile_auto_downgrade;
 		bool enable_keyboard;
 		bool enable_dualsense;
+		uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
 	} connect_info;
 
 	ChiakiTarget target;
@@ -221,11 +234,16 @@ typedef struct chiaki_session_t
 	bool ctrl_failed;
 	bool ctrl_session_id_received;
 	bool ctrl_login_pin_requested;
+	bool ctrl_first_heartbeat_received;
 	bool login_pin_entered;
+	bool psn_regist_succeeded;
+	bool stream_connection_switch_received;
 	uint8_t *login_pin;
 	size_t login_pin_size;
 
 	ChiakiCtrl ctrl;
+	ChiakiHolepunchSession holepunch_session;
+	ChiakiRudp rudp;
 
 	ChiakiLog *log;
 
@@ -241,6 +259,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_stream_connection_switch_received(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_goto_bed(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_toggle_microphone(ChiakiSession *session, bool muted);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_connect_microphone(ChiakiSession *session);

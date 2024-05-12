@@ -8,6 +8,7 @@
 #include "host.h"
 
 #include <QSettings>
+#include <QList>
 
 enum class ControllerButtonExt
 {
@@ -60,8 +61,10 @@ class Settings : public QObject
 
 	private:
 		QSettings settings;
+		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
+		QMap<QString, RegisteredHost> nickname_registered_hosts;
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
@@ -156,6 +159,19 @@ class Settings : public QObject
 		uint GetWifiDroppedNotif() const;
 		void SetWifiDroppedNotif(uint percent);
 
+		QString GetPsnAuthToken() const;
+		void SetPsnAuthToken(QString auth_token);
+
+		QString GetPsnRefreshToken() const;
+		void SetPsnRefreshToken(QString refresh_token);
+
+		QString GetPsnAuthTokenExpiry() const;
+		void SetPsnAuthTokenExpiry(QString expiry_date);
+
+		QString GetPsnAccountId() const;
+		void SetPsnAccountId(QString account_id);
+
+		QString GetTimeFormat() const     { return time_format; }
 		void ClearKeyMapping();
 
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -181,6 +197,8 @@ class Settings : public QObject
 		void RemoveRegisteredHost(const HostMAC &mac);
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
+		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
+		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
 
 		QList<ManualHost> GetManualHosts() const 					{ return manual_hosts.values(); }
 		int SetManualHost(const ManualHost &host);

@@ -151,7 +151,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 	do
 	{
 		r = select(nfds, &rfds, write ? &wfds : NULL, NULL, timeout);
+#ifdef _WIN32
+	} while(r < 0 && WSAGetLastError() == WSAEINTR)
+#else
 	} while(r < 0 && errno == EINTR);
+#endif
 
 	if(r < 0)
 		return CHIAKI_ERR_UNKNOWN;

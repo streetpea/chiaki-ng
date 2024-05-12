@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 
 RadioButton {
     property bool firstInFocusChain: false

@@ -108,6 +108,7 @@ typedef struct chiaki_takion_connect_info_t
 	bool enable_crypt;
 	bool enable_dualsense;
 	uint8_t protocol_version;
+	bool close_socket; // close socket when finishing takion
 } ChiakiTakionConnectInfo;
 
 
@@ -151,6 +152,7 @@ typedef struct chiaki_takion_t
 	ChiakiStopPipe stop_pipe;
 	uint32_t tag_local;
 	uint32_t tag_remote;
+	bool close_socket;
 
 	ChiakiSeqNum32 seq_num_local;
 	ChiakiMutex seq_num_local_mutex;
@@ -168,7 +170,7 @@ typedef struct chiaki_takion_t
 } ChiakiTakion;
 
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info);
+CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, ChiakiTakionConnectInfo *info, chiaki_socket_t *sock);
 CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion);
 
 /**

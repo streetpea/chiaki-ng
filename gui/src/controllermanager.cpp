@@ -114,6 +114,9 @@ ControllerManager::ControllerManager(QObject *parent)
 ControllerManager::~ControllerManager()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	for (Controller *controller : std::as_const(open_controllers))
+		delete controller;
+	open_controllers.clear();
 	SDL_Quit();
 #endif
 }
@@ -286,7 +289,7 @@ Controller::~Controller()
 {
 	Q_ASSERT(ref == 0);
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(controller)
+	if(controller && SDL_WasInit(SDL_INIT_GAMECONTROLLER)!=0)
 	{
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
