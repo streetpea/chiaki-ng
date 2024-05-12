@@ -125,6 +125,10 @@ if(WIN32)
 	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt iphlpapi)
 endif()
 
+if(APPLE)
+	target_link_libraries(chiaki-lib "-framework CoreServices")
+endif()
+
 target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 find_package(Threads REQUIRED)

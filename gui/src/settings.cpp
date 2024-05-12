@@ -210,7 +210,7 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 
 float Settings::GetZoomFactor() const
 {
-	return settings.value("settings/zoom_factor", 0).toFloat();
+	return settings.value("settings/zoom_factor", -1).toFloat();
 }
 
 void Settings::SetZoomFactor(float factor)

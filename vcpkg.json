@@ -13,6 +13,9 @@
       "fftw3",
       "lcms",
       "speexdsp",
-      "vulkan"
+      "vulkan",
+      "ffmpeg"
+    ],
+    "overlay-ports": [ "./scripts/ffmpeg-port"
     ]
   }

@@ -62,6 +62,7 @@ public:
     enum class PsnConnectState
     {
         NotStarted,
+        WaitingForInternet,
         InitiatingConnection,
         LinkingConsole,
         DataConnectionStart,
@@ -112,7 +113,7 @@ public:
     Q_INVOKABLE void setConsolePin(int index, QString console_pin);
     Q_INVOKABLE QString openPsnLink();
     Q_INVOKABLE void initPsnAuth(const QUrl &url, const QJSValue &callback);
-    Q_INVOKABLE void psnCancel();
+    Q_INVOKABLE void psnCancel(bool stop_thread);
     Q_INVOKABLE void refreshPsnToken();
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
     Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
@@ -121,6 +122,7 @@ public:
 signals:
     void sessionChanged(StreamSession *session);
     void psnConnect(StreamSession *session, const QString &duid, const bool &ps5);
+    void showPsnView();
     void connectStateChanged();
     void controllersChanged();
     void discoveryEnabledChanged();
@@ -168,6 +170,9 @@ private:
     QmlMainWindow *window = {};
     StreamSession *session = {};
     QThread *frame_thread = {};
+    QTimer *psn_reconnect_timer = {};
+    QTimer *psn_auto_connect_timer = {};
+    int psn_reconnect_tries = 0;
     QThread psn_connection_thread;
     PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
@@ -177,5 +182,6 @@ private:
     SystemdInhibit *sleep_inhibit = {};
     bool resume_session = false;
     HostMAC auto_connect_mac = {};
+    QString auto_connect_nickname = "";
     QMap<QString, PsnHost> psn_hosts;
 };

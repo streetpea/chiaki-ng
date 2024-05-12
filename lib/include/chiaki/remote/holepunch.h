@@ -226,9 +226,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
  * Cancel initial psn connection steps (i.e., session create, session start and session punch hole)
  *
  * @param[in] session Handle to the holepunching session
+ * @param[in] bool stop_thread Whether or not to stop the websocket thread
 */
 CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(
-    ChiakiHolepunchSession session);
+    ChiakiHolepunchSession session, bool stop_thread);
 
 /**
  * Finalize a holepunching session.

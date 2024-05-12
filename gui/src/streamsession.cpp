@@ -848,6 +848,11 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	int16_t mic_buf_size = channels * MICROPHONE_SAMPLES;
 	mic_buf.size_bytes = mic_buf_size * sizeof(int16_t);
 	mic_buf.buf = (int16_t*) calloc(mic_buf_size, sizeof(int16_t));
+	if(!mic_buf.buf)
+	{
+		CHIAKI_LOGE(GetChiakiLog(), "Could not allocate memory for mic buf, aborting mic startup");
+		return;
+	}
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 	if(speech_processing_enabled)
@@ -1042,6 +1047,8 @@ void StreamSession::InitHaptics()
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
 	cvt.len = 240;  // 10 16bit stereo samples
 	haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
+	if(!haptics_resampler_buf)
+		CHIAKI_LOGE(log.GetChiakiLog(),"Haptics resampler buf could not be allocated");
 }
 
 void StreamSession::DisconnectHaptics()
@@ -1058,6 +1065,11 @@ void StreamSession::ConnectHaptics()
 	if (this->haptics_output > 0)
 	{
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics already connected to an attached DualSense controller, ignoring additional controllers.");
+		return;
+	}
+	if (!haptics_resampler_buf)
+	{
+		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics resampler buf wasn't allocated, can't use haptics.");
 		return;
 	}
 #ifdef Q_OS_MACOS
@@ -1117,8 +1129,15 @@ void StreamSession::ConnectSdeckHaptics()
 	sdeck_skipl = false;
 	sdeck_skipr = false;
 	sdeck_haptics_senderl = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
+	if(!sdeck_haptics_senderl)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics senderl buf could not be allocated :(");
+	}
 	sdeck_haptics_senderr = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
-
+	if(!sdeck_haptics_senderr)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics senderr buf could not be allocated :(");
+	}
 	qRegisterMetaType<haptic_packet_t>();
 	connect(this, &StreamSession::SdeckHapticPushed, this, &StreamSession::SdeckQueueHaptics);
 	auto sdeck_haptic_interval = STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS * 10;
@@ -1564,15 +1583,14 @@ void StreamSession::HandleSetsuEvent(SetsuEvent *event)
 
 ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 {
-	ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 	ChiakiLog *log = GetChiakiLog();
 	holepunch_session = chiaki_holepunch_session_init(psn_token.toUtf8().constData(), log);
-	if (err != CHIAKI_ERR_SUCCESS)
+	if(!holepunch_session)
 	{
-		CHIAKI_LOGE(log, "!! Failed to initialize session\n");
-		return err;
+		CHIAKI_LOGE(log, "!! Failed to initialize session");
+		return CHIAKI_ERR_MEMORY;
 	}
-	return err;
+	return CHIAKI_ERR_SUCCESS;
 }
 
 bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
@@ -1588,8 +1606,9 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
 	size_t duid_len = duid.size();
 	size_t duid_bytes_len = duid_len / 2;
-	size_t duid_bytes_lenr;
+	size_t duid_bytes_lenr = duid_bytes_len;
 	uint8_t duid_bytes[duid_bytes_len];
+	memset(duid_bytes, 0, duid_bytes_len);
 	parse_hex(duid_bytes, &duid_bytes_lenr, duid.toUtf8().constData(), duid_len);
 	if(duid_bytes_len != duid_bytes_lenr)
 	{
@@ -1615,9 +1634,9 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	return true;
 }
 
-void StreamSession::CancelPsnConnection()
+void StreamSession::CancelPsnConnection(bool stop_thread)
 {
-	chiaki_holepunch_main_thread_cancel(holepunch_session);
+	chiaki_holepunch_main_thread_cancel(holepunch_session, stop_thread);
 }
 
 void StreamSession::TriggerFfmpegFrameAvailable()
