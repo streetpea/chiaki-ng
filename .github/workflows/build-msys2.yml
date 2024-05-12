@@ -29,6 +29,7 @@ jobs:
             cc:p
             cmake:p
             curl:p
+            diffutils:p
             fast_float:p
             fftw:p
             hidapi:p
@@ -61,7 +62,7 @@ jobs:
       - name: Install python protobuf and zip
         run: |
           pip install protobuf
-          pacman -S zip git --noconfirm
+          pacman -S zip git make --noconfirm
 
       - name: Build libbplacebo
         run: |
