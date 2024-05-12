@@ -69,7 +69,7 @@ jobs:
 
       - name: Build ffmpeg
         run: |
-          scripts/build-ffmpeg.sh
+          scripts/build-ffmpeg-windows.sh
 
       - name: Configure Chiaki4deck
         run: |
