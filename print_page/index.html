@@ -1738,6 +1738,9 @@
 <p>If you are not using the settings listed in <a href="#setup-configuration-choosing-your-remote-play-settings">Choosing Your Remote Play Settings</a>, try with those settings and see if that fixes it for you. The biggest of these is using a HW Decoder option for your system which should help significantly.</p>
 </li>
 <li>
+<p>If you are on Steam Deck OLED and you are using the Steam Deck after waking up from sleep, please trying turning the wifi off and then back on in the Steam Deck settings and see if this improves your performance (this is likely due to a WiFi driver issue with the Steam Deck OLED on certain networks so can't be fixed by Chiaki4deck)</p>
+</li>
+<li>
 <p>Switch to <strong>720p</strong> from 1080p</p>
 <p><strong>720p</strong> requires less bandwidth than 1080p. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems).</p>
 </li>
@@ -1761,11 +1764,92 @@
 <h2 id="setup-configuration-chiakichiaki4deck-via-internet-outside-of-home-connection">Chiaki/<code>chiaki4deck</code> via Internet (Outside of Home Connection)<a class="headerlink" href="#setup-configuration-chiakichiaki4deck-via-internet-outside-of-home-connection" title="Permanent link">&para;</a></h2>
 <div class="admonition info">
 <p class="admonition-title">Chiaki/<code>chiaki4deck</code> Outside of your Home Network</p>
-<p>You can also open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly. Nevertheless, it can be very convenient to use while traveling, especially when playing less timing intensive games (i.e., games that would play well via cloud streaming). Setup is covered in the next <a href="#setup-remoteconnection" rel="noopener" target="_blank">remote connection section</a>.</p>
+<p>You can also either the remote connection via PSN or open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly. Nevertheless, it can be very convenient to use while traveling, especially when playing less timing intensive games (i.e., games that would play well via cloud streaming). Setup is covered in the <a href="#setup-remoteconnection" rel="noopener" target="_blank">remote connection section</a>.</p>
 </div></section><section class="print-page" id="setup-remoteconnection"><h1 id="setup-remoteconnection-set-up-chiaki4deck-to-work-outside-of-your-home-network">Set up chiaki4deck to work outside of your home network<a class="headerlink" href="#setup-remoteconnection-set-up-chiaki4deck-to-work-outside-of-your-home-network" title="Permanent link">&para;</a></h1>
-<h2 id="setup-remoteconnection-set-static-ip">Set Static IP<a class="headerlink" href="#setup-remoteconnection-set-static-ip" title="Permanent link">&para;</a></h2>
+<h2 id="setup-remoteconnection-remote-connection-via-psn">Remote Connection via PSN<a class="headerlink" href="#setup-remoteconnection-remote-connection-via-psn" title="Permanent link">&para;</a></h2>
+<p><strong>Supports Both IPv4 and IPV6</strong></p>
+<h3 id="setup-remoteconnection-overview">Overview<a class="headerlink" href="#setup-remoteconnection-overview" title="Permanent link">&para;</a></h3>
+<p>The remote connection via PSN uses PSN servers as an initial go-between to exchange the necessary information to initiate a direct connection between your client device (i.e., computer, portable gaming device, etc.) and your PlayStation console using a technique called <a href="https://en.wikipedia.org/wiki/UDP_hole_punching" rel="noopener" target="_blank">UDP Holepunching</a>. This replicates the behavior of this feature in the official remote play app from Sony.</p>
+<div class="admonition question">
+<p class="admonition-title">Why do I need to login to PSN and how is this token used?</p>
+<p>The remote connection via PSN requires you to login to PSN to generate an auth token used for contacting the PSN servers that serve as an initial go-between to initiate the direct connection to your PlayStation. </p>
+<p>This auth token is stored locally and used to connect with the PSN servers (this can be verified by looking at the code [if you want to be doubly sure] as Chiaki4deck is open source) and not used or stored anywhere outside of that.</p>
+</div>
+<h3 id="setup-remoteconnection-requirements">Requirements<a class="headerlink" href="#setup-remoteconnection-requirements" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Console must be updated to the latest firmware</li>
+<li>Console must be registered locally prior to using remote connection via PSN</li>
+<li>To see the remote connection via PSN tab for the given console, the console must not be available locally (otherwise you would want to use a local connection as it is faster and more efficient)</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Not All Networks Supported</p>
+<p>Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently, you can reach the dev team via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a> in order to determine if the failure is due to your network or an issue with Chiaki4deck that needs fixing. If you are able to connect over the same wireless connection with the official remote play app, please open an issue on the Chiaki4deck Github.</p>
+</div>
+<h3 id="setup-remoteconnection-setup">Setup<a class="headerlink" href="#setup-remoteconnection-setup" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p>Go to the Chiaki4deck settings page by hitting the gear icon from the main page</p>
+<p><img alt="Go to Settings" src="../setup/images/GoToSettings.png" /></p>
+</li>
+<li>
+<p>Go to the PSN tab and then click <code>Login to PSN</code></p>
+<p><img alt="PSN credentials" src="../setup/images/ClickLoginToPsn.png" /></p>
+</li>
+<li>
+<p>Login to psn on the provided page</p>
+<details class="- tip">
+<summary>Tips for those having trouble logging into to PSN</summary>
+<p>If you get a <code>connection to the server timed out</code> message, keep on trying to login by hitting <span class="keys"><kbd class="key-enter">Enter</kbd></span> every few seconds until you get a different error message such as <code>Can't connect to the server</code> or you have tried for at least 20 seconds. If that doesn't work, please try refreshing the page and going through the process again. If you still can't find success, make an attempt using a different browser.</p>
+<p>Unfortunately, we have no control over Sony's site (that gives out auth tokens to access their PSN servers for the remote connection over PSN setup) so we can only give tips on how best to handle the errors that may occur on the page and wish you the best in obtaining your token. Fortunately, once this token is obtained, Chiaki4deck will automatically refresh it as needed and only ask for you to create a new token in the event that PSN requires you to generate a new one using your login.</p>
+</details>
+</li>
+<li>
+<p>Copy your redirect url from the browser</p>
+<p><img alt="Redirect picture" src="../setup/images/CopyRedirectLinkPsn.png" /></p>
+</li>
+<li>
+<p>Paste your redirect url on the page and create your token</p>
+<p><img alt="Create token" src="../setup/images/PasteUrlPSN.png" /></p>
+</li>
+<li>
+<p>See success message and close the dialog box</p>
+<p><img alt="Success Message" src="../setup/images/CloseTokenDialogBox.png" /></p>
+<div class="admonition danger">
+<p class="admonition-title">Error Message</p>
+<p>If you obtain an error with a link to Sony's oauth site, it is likely the code from the link has expired and you need to create a new code by logging in again and pasting the url into Chiaki4deck. The code usually expires within a few minutes. Otherwise, the error code should hopefully be self explanatory.</p>
+</div>
+</li>
+</ol>
+<h3 id="setup-remoteconnection-initiating-connection">Initiating Connection<a class="headerlink" href="#setup-remoteconnection-initiating-connection" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Register console (either locally or remotely via a manual connection) if it's not already registered</li>
+<li>Switch to non-local internet (otherwise you would want to connect locally instead, so remote connections via PSN for consoles found locally aren't shown)</li>
+<li>
+<p>Click on the box of the console you want to connect to (it will say <code>Remote Connection via PSN</code>)</p>
+<p><img alt="Remote Connection via PSN view" src="../setup/images/ConsoleListPsnConnection.png" /></p>
+<div class="admonition question">
+<p class="admonition-title">What if my console doesn't appear</p>
+<ol>
+<li>Make sure the console is registered via the standard local registration</li>
+<li>Make sure the console doesn't appear on your Chiaki4deck menu (i.e., make sure it's not available locally)</li>
+<li>Hit the button to <code>Refresh PSN hosts</code> to query the PSN network again for the console.</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Wait for the connection to load</p>
+</li>
+<li>Play</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Testing</p>
+<p>It may be hard to test if this feature is working properly for you at home (before using it remotely) if you don't have access to another network. In this case, you can use a cellular hotspot to test the connection.</p>
+</div>
+<h2 id="setup-remoteconnection-manual-remote-connection">Manual Remote Connection<a class="headerlink" href="#setup-remoteconnection-manual-remote-connection" title="Permanent link">&para;</a></h2>
+<p><strong>Supports IPv4 only</strong></p>
+<h3 id="setup-remoteconnection-set-static-ip">Set Static IP<a class="headerlink" href="#setup-remoteconnection-set-static-ip" title="Permanent link">&para;</a></h3>
 <p>In order to prevent your IP from changing which would break the port forwarding rules if you ever disconnect your PlayStation console from your network and reconnect it (especially if other devices are added to the network in the meantime), you should go into your router settings and reserve an IP address for your PlayStation (DHCP IP reservation / "static" IP) or create a hostname for it. For a TP-Link, Netgear, Asus or Linskys router, follow <a href="https://www.coolblue.nl/en/advice/assign-fixed-ip-address-router.html" rel="noopener" target="_blank">these instructions</a>. If you have a different router, you can search (using a search engine such as DuckDuckGo or Google) for instructions for that specific router using the formula "dhcp reservation myroutername router" such as "dhcp reservation netgear router" and follow the instructions to reserve an IP for your PlayStation console so that it won't change. Alternatively, if your router has an option to set hostnames for your devices, you can set a hostname for your PlayStation console and use your hostname in the automation instead of a static IP address.</p>
-<h2 id="setup-remoteconnection-port-forwarding">Port Forwarding<a class="headerlink" href="#setup-remoteconnection-port-forwarding" title="Permanent link">&para;</a></h2>
+<h3 id="setup-remoteconnection-port-forwarding">Port Forwarding<a class="headerlink" href="#setup-remoteconnection-port-forwarding" title="Permanent link">&para;</a></h3>
 <p>Forward the ports for your console on your router following <a href="https://portforward.com/router.htm" rel="noopener" target="_blank">this port forwarding guide starting with selecting your router</a></p>
 <div class="admonition tip">
 <p class="admonition-title">Close out of ads</p>
@@ -1831,7 +1915,7 @@
 </div>
 </div>
 </div>
-<h2 id="setup-remoteconnection-find-routers-ip">Find Router's IP<a class="headerlink" href="#setup-remoteconnection-find-routers-ip" title="Permanent link">&para;</a></h2>
+<h3 id="setup-remoteconnection-find-routers-ip">Find Router's IP<a class="headerlink" href="#setup-remoteconnection-find-routers-ip" title="Permanent link">&para;</a></h3>
 <p>On a computer connected to your router such as your Steam Deck (make sure to disconnect from a vpn first if you're connected to one to get the right IP) use one of the following:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="setup-remoteconnection-__tabbed_2_1" name="setup-remoteconnection-__tabbed_2" type="radio" /><input id="setup-remoteconnection-__tabbed_2_2" name="setup-remoteconnection-__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="setup-remoteconnection-__tabbed_2_1">Browser</label><label for="setup-remoteconnection-__tabbed_2_2">Konsole/terminal</label></div>
 <div class="tabbed-content">
@@ -1844,7 +1928,7 @@
 </div>
 </div>
 </div>
-<h2 id="setup-remoteconnection-test-connection">Test Connection<a class="headerlink" href="#setup-remoteconnection-test-connection" title="Permanent link">&para;</a></h2>
+<h3 id="setup-remoteconnection-test-connection">Test Connection<a class="headerlink" href="#setup-remoteconnection-test-connection" title="Permanent link">&para;</a></h3>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="setup-remoteconnection-__tabbed_3_1" name="setup-remoteconnection-__tabbed_3" type="radio" /><input id="setup-remoteconnection-__tabbed_3_2" name="setup-remoteconnection-__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="setup-remoteconnection-__tabbed_3_1">GUI</label><label for="setup-remoteconnection-__tabbed_3_2">Automation</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3182,6 +3266,16 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-170">1.7.0<a class="headerlink" href="#updates-releases-170" title="Permanent link">&para;</a></h3>
+<p>Enables remote connection via PSN</p>
+<ul>
+<li>Remote connection via PSN now available without the need for port forwarding (<a href="#setup-remoteconnection-remote-connection-via-psn" rel="noopener" target="_blank">see remote connection docs for more details</a>) on how to setup and use.</li>
+<li>Allow zooming out from resolution for users targeting a resolution beyond their screen resolution (i.e., 1080p on Steam Deck)</li>
+<li>Enable don't fragment for MacOS Big Sur and later for more accurate MTU readings during Senkusha</li>
+<li>Create a fallback session id when session id isn't received instead of erroring out</li>
+<li>Workaround patch for vulkan ffmpeg hw decoder bug affecting Nvidia 30 series graphics card users</li>
+<li>Add additional option for obtaining the PSN AccountId via logging in with your psn username and password (in addition to the public lookup)</li>
+</ul>
 <h3 id="updates-releases-166">1.6.6<a class="headerlink" href="#updates-releases-166" title="Permanent link">&para;</a></h3>
 <p>Lowers required mtu from 1435 to 576</p>
 <ul>
@@ -3462,6 +3556,8 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>Enabled Automated Launch</p>
 </li>
 </ol></section><section class="print-page" id="updates-done"><h1 id="updates-done-completed-done-updates">Completed (Done) Updates<a class="headerlink" href="#updates-done-completed-done-updates" title="Permanent link">&para;</a></h1>
+<h2 id="updates-done-remote-connection-via-psn">Remote Connection Via PSN<a class="headerlink" href="#updates-done-remote-connection-via-psn" title="Permanent link">&para;</a></h2>
+<p>Enabled remote connection via PSN so users can use this instead of port forwarding on their routers as an option.</p>
 <h2 id="updates-done-touch-friendly-and-controller-navigable-gui">Touch Friendly and Controller Navigable GUI<a class="headerlink" href="#updates-done-touch-friendly-and-controller-navigable-gui" title="Permanent link">&para;</a></h2>
 <p>QML based user interface that is better suited for handheld computers such as the Steam Deck and more user-friendly in general.</p>
 <h2 id="updates-done-hdr-for-steam-deck-oled-in-game-mode">HDR for Steam Deck OLED in game mode<a class="headerlink" href="#updates-done-hdr-for-steam-deck-oled-in-game-mode" title="Permanent link">&para;</a></h2>
@@ -3568,9 +3664,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <p>now part of upstream Chiaki as of latest release&#160;<a class="footnote-backref" href="#updates-done-fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a><a class="footnote-backref" href="#updates-done-fnref2:3" title="Jump back to footnote 3 in the text">&#8617;</a><a class="footnote-backref" href="#updates-done-fnref3:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
 </li>
 </ol>
-</div></section><section class="print-page" id="updates-planned"><h1 id="updates-planned-future-updates-planned">Future Updates Planned<a class="headerlink" href="#updates-planned-future-updates-planned" title="Permanent link">&para;</a></h1>
-<h2 id="updates-planned-enable-remote-connection-using-psn">Enable Remote Connection Using PSN<a class="headerlink" href="#updates-planned-enable-remote-connection-using-psn" title="Permanent link">&para;</a></h2>
-<p>Enable remote connection using PSN so users can use this instead of port forwarding on their routers.</p></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
+</div></section><section class="print-page" id="updates-planned"><h1 id="updates-planned-future-updates-planned">Future Updates Planned<a class="headerlink" href="#updates-planned-future-updates-planned" title="Permanent link">&para;</a></h1></section><h1 class='nav-section-title-end'>Ended: Updates</h1>
                         <h1 class='nav-section-title' id='section-diy'>
                             DIY <a class='headerlink' href='#section-diy' title='Permanent link'>↵</a>
                         </h1>
