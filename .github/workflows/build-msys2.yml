@@ -30,7 +30,6 @@ jobs:
             cmake:p
             curl:p
             fast_float:p
-            ffmpeg:p
             fftw:p
             hidapi:p
             json-c:p
@@ -52,6 +51,7 @@ jobs:
             qt6-base:p
             qt6-declarative:p
             qt6-svg:p
+            SDL2:p
             shaderc:p
             speexdsp:p
             spirv-cross:p
@@ -66,6 +66,10 @@ jobs:
       - name: Build libbplacebo
         run: |
           scripts/build-libplacebo.sh
+
+      - name: Build ffmpeg
+        run: |
+          scripts/build-ffmpeg.sh
 
       - name: Configure Chiaki4deck
         run: |

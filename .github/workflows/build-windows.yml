@@ -70,13 +70,6 @@ jobs:
           arch: 'win64_msvc2019_64'
           modules: 'qtwebengine qtpositioning qtwebchannel'
 
-      - name: Setup ffmpeg
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -OutFile ".\ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip"
-          Expand-Archive -LiteralPath "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1.zip" -DestinationPath "."
-          Rename-Item "ffmpeg-n6.1-latest-win64-lgpl-shared-6.1" "${{ env.dep_folder }}"
-
       - name: Build SPIRV-Cross
         run: |
           git clone https://github.com/KhronosGroup/SPIRV-Cross.git
@@ -165,10 +158,10 @@ jobs:
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\swresample-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\avcodec-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\avutil-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\avformat-*.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" Chiaki4deck-VC
