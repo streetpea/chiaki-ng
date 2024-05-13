@@ -117,7 +117,7 @@ modules:
       - type: patch
         path: 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
       - type: patch
-        path: 0001-vulkan-ignore-frames-without-hw-context
+        path: 0001-vulkan-ignore-frames-without-hw-context.patch
 
   - name: python3-google
     buildsystem: simple
