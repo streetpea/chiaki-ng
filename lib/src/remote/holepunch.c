@@ -1732,7 +1732,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     }
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
-    client_addr.sin_family = AF_UNSPEC;
+    client_addr.sin_family = AF_INET;
     client_addr.sin_addr.s_addr = INADDR_ANY;
     client_addr.sin_port = 0;
     socklen_t client_addr_len = sizeof(client_addr);
