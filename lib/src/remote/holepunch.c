@@ -280,8 +280,7 @@ typedef struct http_response_data_t
 typedef enum candidate_type_t
 {
     CANDIDATE_TYPE_STATIC = 0,
-    CANDIDATE_TYPE_LOCAL = 1,
-    CANDIDATE_TYPE_DERIVED = 2,
+    CANDIDATE_TYPE_LOCAL = 1
 } CandidateType;
 
 typedef struct candidate_t
@@ -3418,15 +3417,8 @@ static ChiakiErrorCode session_message_parse(
             const char *type_str = json_object_get_string(jobj);
             if (strcmp(type_str, "LOCAL") == 0)
                 candidate.type = CANDIDATE_TYPE_LOCAL;
-            else if (strcmp(type_str, "STATIC") == 0)
-                candidate.type = CANDIDATE_TYPE_STATIC;
-            else if (strcmp(type_str, "DERIVED") == 0)
-                candidate.type = CANDIDATE_TYPE_DERIVED;
             else
-            {
-                CHIAKI_LOGE(log, "Type field wasn't LOCAL or STATIC.");
-                goto invalid_schema;
-            }
+                candidate.type = CANDIDATE_TYPE_STATIC;
 
             json_object_object_get_ex(candidate_json, "addr", &jobj);
             if (jobj == NULL || !json_object_is_type(jobj, json_type_string))
@@ -3736,8 +3728,6 @@ static void print_candidate(ChiakiLog *log, Candidate *candidate)
         CHIAKI_LOGV(log, "--------------LOCAL CANDIDATE---------------------");
     else if(candidate->type == CANDIDATE_TYPE_STATIC)
         CHIAKI_LOGV(log, "--------------REMOTE CANDIDATE--------------------");
-    else if(candidate->type == CANDIDATE_TYPE_DERIVED)
-        CHIAKI_LOGV(log, "--------------DERIVED CANDIDATE-------------------");
     else
         CHIAKI_LOGV(log, "--------------CANDIDATE TYPE UNKNOWN--------------");
     CHIAKI_LOGV(log, "Address: %s", candidate->addr);
