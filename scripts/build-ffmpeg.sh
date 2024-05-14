@@ -6,7 +6,7 @@ cd "./$1"
 shift
 ROOT="`pwd`"
 
-TAG=n7.0
+TAG=n6.1
 
 git clone https://git.ffmpeg.org/ffmpeg.git --depth 1 -b $TAG && cd ffmpeg || exit 1
 git apply ${SCRIPT_DIR}/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch || exit 1
