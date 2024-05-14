@@ -1067,9 +1067,9 @@ void QmlBackend::updatePsnHosts()
     if(psn_token.isEmpty())
         return;
 
-    ChiakiHolepunchDeviceInfo *device_info_ps5;
+    ChiakiHolepunchDeviceInfo *device_info_ps5 = NULL;
     size_t num_devices_ps5 = 0;
-    ChiakiHolepunchDeviceInfo *device_info_ps4;
+    ChiakiHolepunchDeviceInfo *device_info_ps4 = NULL;
     size_t num_devices_ps4 = 0;
     ChiakiLog backend_log;
     chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
@@ -1104,7 +1104,7 @@ void QmlBackend::updatePsnHosts()
             else
             {
                 qCWarning(chiakiGui) << "Failed to get PS4 devices after max tries: " << PSN_DEVICES_TRIES;
-                chiaki_holepunch_free_device_list(device_info_ps5);
+                chiaki_holepunch_free_device_list(&device_info_ps5);
                 return;
             }
         }
@@ -1143,8 +1143,8 @@ void QmlBackend::updatePsnHosts()
     }
     emit hostsChanged();
     qCInfo(chiakiGui) << "Updated PSN hosts";
-    chiaki_holepunch_free_device_list(device_info_ps5);
-    chiaki_holepunch_free_device_list(device_info_ps4);
+    chiaki_holepunch_free_device_list(&device_info_ps5);
+    chiaki_holepunch_free_device_list(&device_info_ps4);
 }
 
 void QmlBackend::refreshPsnToken()
