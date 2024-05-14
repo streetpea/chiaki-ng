@@ -165,8 +165,8 @@ int main(int argc, char **argv)
     printf(">> Successfully punched holes for all neccessary connections!\n");
 
 cleanup:
-    chiaki_holepunch_free_device_list(device_info_ps5);
-    chiaki_holepunch_free_device_list(device_info_ps4);
+    chiaki_holepunch_free_device_list(&device_info_ps5);
+    chiaki_holepunch_free_device_list(&device_info_ps4);
     chiaki_holepunch_session_fini(session);
 
     return 0;

@@ -379,6 +379,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     ChiakiLog *log)
 {
     CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
     char url[133];
 
     char *platform;
@@ -437,12 +442,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
         goto cleanup;
     }
     json_tokener *tok = json_tokener_new();
+    if(!tok)
+    {
+        CHIAKI_LOGE(log, "Couldn't create new json tokener");
+        goto cleanup;
+    }
     json_object *json = json_tokener_parse_ex(tok, response_data.data, response_data.size);
     if (json == NULL)
     {
         CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Parsing JSON failed");
         err = CHIAKI_ERR_UNKNOWN;
-        goto cleanup;
+        goto cleanup_json_tokener;
     }
 
     json_object *clients;
@@ -540,9 +550,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
 
 cleanup_devices:
 if (err != CHIAKI_ERR_SUCCESS)
-    chiaki_holepunch_free_device_list(*devices);
+    chiaki_holepunch_free_device_list(devices);
 cleanup_json:
     json_object_put(json);
+cleanup_json_tokener:
     json_tokener_free(tok);
 cleanup:
     free(oauth_header);
@@ -551,9 +562,10 @@ cleanup:
     return err;
 }
 
-CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* devices)
+CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo** devices)
 {
-    free(devices);
+    free(*devices);
+    *devices = NULL;
 }
 
 CHIAKI_EXPORT ChiakiHolepunchRegistInfo chiaki_get_regist_info(Session *session)
@@ -1307,6 +1319,11 @@ static ChiakiErrorCode get_websocket_fqdn(Session *session, char **fqdn)
     };
 
     CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
 
@@ -1336,12 +1353,17 @@ static ChiakiErrorCode get_websocket_fqdn(Session *session, char **fqdn)
     }
 
     json_tokener *tok = json_tokener_new();
+    if(!tok)
+    {
+        CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
+        goto cleanup;
+    }
     json_object *json = json_tokener_parse_ex(tok, response_data.data, response_data.size);
     if (json == NULL)
     {
         CHIAKI_LOGE(session->log, "get_websocket_fqdn: Parsing JSON failed");
         err = CHIAKI_ERR_UNKNOWN;
-        goto cleanup;
+        goto cleanup_json_tokener;
     }
     json_object *fqdn_json;
     if (!json_object_object_get_ex(json, "fqdn", &fqdn_json))
@@ -1359,6 +1381,7 @@ static ChiakiErrorCode get_websocket_fqdn(Session *session, char **fqdn)
 
 cleanup_json:
     json_object_put(json);
+cleanup_json_tokener:
     json_tokener_free(tok);
 cleanup:
     curl_easy_cleanup(curl);
@@ -1449,6 +1472,11 @@ static void* websocket_thread_func(void *user) {
     snprintf(ws_url, sizeof(ws_url), "wss://%s/np/pushNotification", session->ws_fqdn);
 
     CURL* curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return NULL;
+    }
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, "Sec-WebSocket-Protocol: np-pushpacket");
@@ -1509,7 +1537,10 @@ static void* websocket_thread_func(void *user) {
 
     json_tokener *tok = json_tokener_new();
     if(!tok)
+    {
+        CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
         goto cleanup;
+    }
 
     const struct curl_ws_frame *meta;
     char *buf = malloc(WEBSOCKET_MAX_FRAME_SIZE);
@@ -1901,6 +1932,11 @@ static ChiakiErrorCode http_create_session(Session *session)
     };
 
     CURL* curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
@@ -1932,13 +1968,18 @@ static ChiakiErrorCode http_create_session(Session *session)
     }
 
     json_tokener *tok = json_tokener_new();
+    if(!tok)
+    {
+        CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
+        goto cleanup;
+    }
     CHIAKI_LOGV(session->log, "http_create_session: Received JSON:\n%s", response_data.data);
     json_object *json = json_tokener_parse_ex(tok, response_data.data, response_data.size);
     if (json == NULL)
     {
         CHIAKI_LOGE(session->log, "http_create_session: Parsing JSON failed");
         err = CHIAKI_ERR_UNKNOWN;
-        goto cleanup;
+        goto cleanup_json_tokener;
     }
 
     json_object* session_id_json;
@@ -1973,6 +2014,7 @@ static ChiakiErrorCode http_create_session(Session *session)
 
 cleanup_json:
     json_object_put(json);
+cleanup_json_tokener:
     json_tokener_free(tok);
 cleanup:
     free(session_create_json);
@@ -2018,6 +2060,11 @@ static ChiakiErrorCode http_start_session(Session *session)
     };
 
     CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
 
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
@@ -2103,6 +2150,11 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
     );
     CHIAKI_LOGV(session->log, "Message to send: %s", msg_buf);
     CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
 
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
@@ -2158,6 +2210,11 @@ static ChiakiErrorCode deleteSession(Session *session)
     snprintf(url, sizeof(url), delete_messsage_url_fmt, session->session_id);
 
     CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
 
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
