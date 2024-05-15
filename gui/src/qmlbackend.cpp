@@ -1072,7 +1072,7 @@ void QmlBackend::updatePsnHosts()
     ChiakiHolepunchDeviceInfo *device_info_ps4 = NULL;
     size_t num_devices_ps4 = 0;
     ChiakiLog backend_log;
-    chiaki_log_init(&backend_log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
+    chiaki_log_init(&backend_log, settings->GetLogLevelMask(), chiaki_log_cb_print, NULL);
     for(int i = 0; i < PSN_DEVICES_TRIES; i++)
     {
         ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
@@ -1121,7 +1121,7 @@ void QmlBackend::updatePsnHosts()
         QString name = QString(dev.device_name);
         if(!settings->GetNicknameRegisteredHostRegistered(name))
             continue;
-        bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
+        bool ps5 = true;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
@@ -1136,7 +1136,7 @@ void QmlBackend::updatePsnHosts()
         QString name = QString(dev.device_name);
         if(!settings->GetNicknameRegisteredHostRegistered(name))
             continue;
-        bool ps5 = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? true : false;
+        bool ps5 = false;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
