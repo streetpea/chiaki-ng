@@ -2264,6 +2264,7 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     bool status = false;
+    bool ethernet = false;
 #ifdef _WIN32
     PIP_ADAPTER_INFO pAdapterInfo;
     PIP_ADAPTER_INFO pAdapter = NULL;
@@ -2305,9 +2306,15 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
                 }
                 memcpy(local_console_candidate->addr, str->IpAddress.String, strlen(str->IpAddress.String) + 1);
                 status = true;
+                if(pAdapter->Type == MIB_IF_TYPE_ETHERNET)
+                    ethernet = true;
+                else
+                    ethernet = false;
                 break;
             }
-            break;
+            if(status && !ethernet)
+                break;
+            pAdapter = pAdapter->Next;
         }
     } else {
         CHIAKI_LOGE(session->log, "GetAdaptersInfo failed with error: %d\n", dwRetVal);
@@ -2318,7 +2325,7 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
 
     if(!status)
     {
-        CHIAKI_LOGE(session->log, "Couldn't find a valid external address!");
+        CHIAKI_LOGE(session->log, "Couldn't find a valid local address!");
         return CHIAKI_ERR_NETWORK;
     }
     return err;
@@ -2719,7 +2726,7 @@ static ChiakiErrorCode check_candidates(
 	    if (ret < 0 && errno != EINTR)
 #endif
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Select failed");
+            CHIAKI_LOGE(session->log, "check_candidate: Select failed with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         } else if (ret == 0)
@@ -2731,6 +2738,7 @@ static ChiakiErrorCode check_candidates(
                     retry_counter++;
                     tv.tv_sec = 0;
                     tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
+                    FD_ZERO(&fds);
                     Candidate *candidate = NULL;
                     chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
                     CHIAKI_LOGI(session->log, "Resending requests to all candidates TRY %d... waiting for 1st response", retry_counter);
@@ -2738,6 +2746,7 @@ static ChiakiErrorCode check_candidates(
                     {
                         sock = sockets[i];
                         candidate = &candidates[i];
+                        FD_SET(sock, &fds);
                         if (send(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0) < 0)
                         {
                             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
