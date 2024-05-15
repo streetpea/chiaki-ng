@@ -68,7 +68,9 @@
 #define SESSION_CREATION_TIMEOUT_SEC 30
 #define SESSION_START_TIMEOUT_SEC 30
 #define SESSION_DELETION_TIMEOUT_SEC 3
-#define SELECT_CANDIDATE_TIMEOUT_SEC 10
+#define SELECT_CANDIDATE_TIMEOUT_SEC 0.5F
+#define SELECT_CANDIDATE_TRIES 20
+#define SELECT_CANDIDATE_CONNECTION_SEC 5
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -2699,11 +2701,14 @@ static ChiakiErrorCode check_candidates(
     maxfd = maxfd + 1;
 
     struct timeval tv;
-    tv.tv_sec = SELECT_CANDIDATE_TIMEOUT_SEC;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
 
     chiaki_socket_t selected_sock = CHIAKI_INVALID_SOCKET;
     Candidate *selected_candidate = NULL;
+    bool received_response = false;
+    bool connecting = false;
+    int retry_counter = 0;
 
     while (!selected_candidate)
     {
@@ -2719,9 +2724,36 @@ static ChiakiErrorCode check_candidates(
             goto cleanup_sockets;
         } else if (ret == 0)
         {
-            // No responsive candidate within timeout, terminate with error
             if (CHIAKI_SOCKET_IS_INVALID(selected_sock))
             {
+                if(retry_counter < SELECT_CANDIDATE_TRIES && !received_response)
+                {
+                    retry_counter++;
+                    tv.tv_sec = 0;
+                    tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
+                    Candidate *candidate = NULL;
+                    chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
+                    CHIAKI_LOGI(session->log, "Resending requests to all candidates TRY %d... waiting for 1st response", retry_counter);
+                    for (int i=0; i < num_candidates; i++)
+                    {
+                        sock = sockets[i];
+                        candidate = &candidates[i];
+                        if (send(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0) < 0)
+                        {
+                            CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                                continue;
+                        }
+                    }
+                    continue;                    
+                }
+                else if(received_response && !connecting)
+                {
+                    connecting = true;
+                    tv.tv_sec = SELECT_CANDIDATE_CONNECTION_SEC;
+                    tv.tv_usec = 0;
+                    continue;
+                }
+                // No responsive candidate within timeout, terminate with error
                 CHIAKI_LOGE(session->log, "check_candidate: Select timed out");
                 err = CHIAKI_ERR_TIMEOUT;
                 goto cleanup_sockets;
@@ -2784,9 +2816,9 @@ static ChiakiErrorCode check_candidates(
         {
             CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %lu from %s:%d", request_id, candidate->addr, candidate->port);
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
-            err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup_sockets;
+            continue;
         }
+        received_response = true;
         responses_received[i]++;
         responses = responses_received[i];
         if(responses > 2)
