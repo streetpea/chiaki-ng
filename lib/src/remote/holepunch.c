@@ -2391,7 +2391,7 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
     struct UPNPDev *devlist = upnpDiscover(
         2000 /** ms, delay*/, NULL, NULL, 0, 0, 2, &success);
     if (devlist == NULL || err != UPNPDISCOVER_SUCCESS) {
-        CHIAKI_LOGI(log, "Failed to UPnP-capable devices on network: err=%d", err);
+        CHIAKI_LOGI(log, "Failed to find UPnP-capable devices on network: err=%d", err);
         return CHIAKI_ERR_NETWORK;
     }
 
@@ -2803,7 +2803,6 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                 err = CHIAKI_ERR_NETWORK;
-                freeaddrinfo(addr_remote);
                     continue;
             }
         }
