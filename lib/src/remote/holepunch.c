@@ -2356,11 +2356,10 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
     struct ifaddrs *local_addrs, *current_addr;
     void *in_addr;
     struct sockaddr_in *res4 = NULL;
-    struct sockaddr_in6 *res6 = NULL;
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
 
     if(getifaddrs(&local_addrs) != 0)
@@ -2381,10 +2380,6 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
             case AF_INET:
                 res4 = (struct sockaddr_in *)current_addr->ifa_addr;
                 in_addr = &res4->sin_addr;
-                break;
-            case AF_INET6:
-                res6 = (struct sockaddr_in6 *)current_addr->ifa_addr;
-                in_addr = &res6->sin6_addr;
                 break;
             default:
                 continue;
