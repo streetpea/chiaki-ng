@@ -48,7 +48,7 @@ StunServer STUN_SERVERS[] = {
     {"stun4.l.google.com", 19305}
 };
 
-static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port);
+static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port, chiaki_socket_t *sock);
 
 /**
  * Get external address and port using STUN.
@@ -61,10 +61,10 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
  * @param[out] port Buffer to store port in
  * @return true if successful, false otherwise
  */
-static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *port)
+static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *port, chiaki_socket_t *sock)
 {
     // Try moonlight server first
-    if (stun_get_external_address_from_server(log, &STUN_SERVERS[0], address, port)) {
+    if (stun_get_external_address_from_server(log, &STUN_SERVERS[0], address, port, sock)) {
         return true;
     }
     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[0].host, STUN_SERVERS[0].port);
@@ -80,7 +80,7 @@ static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *p
 
     // Try other servers
     for (int i = 1; i < num_servers; i++) {
-        if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], address, port)) {
+        if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], address, port, sock)) {
             return true;
         }
         CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
@@ -90,26 +90,8 @@ static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *p
     return false;
 }
 
-static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port)
+static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port, chiaki_socket_t *sock)
 {
-    chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        CHIAKI_LOGE(log, "remote/stun.h: Failed to create socket, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        return false;
-    }
-
-    struct sockaddr_in local_addr;
-    memset(&local_addr, 0, sizeof(local_addr));
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_port = htons(0);
-    local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(sock, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
-        CHIAKI_LOGE(log, "remote/stun.h: Failed to bind socket to local address, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
-        return false;
-    }
-
     struct addrinfo* resolved;
     struct addrinfo hints;
     struct sockaddr_in *server_addr;
@@ -118,7 +100,6 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     hints.ai_socktype = SOCK_DGRAM;
     if (getaddrinfo(server->host, NULL, &hints, &resolved) != 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to resolve STUN server '%s', error was " CHIAKI_SOCKET_ERROR_FMT, server->host, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
         return false;
     }
 
@@ -134,10 +115,10 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
 
     //uint8_t* transaction_id = &binding_req[8];
 
-    CHIAKI_SSIZET_TYPE sent = sendto(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
+    CHIAKI_SSIZET_TYPE sent = sendto(*sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
     if (sent != sizeof(binding_req)) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to send STUN request, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
+        CHIAKI_SOCKET_CLOSE(*sock);
         return false;
     }
 
@@ -148,15 +129,14 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     timeout.tv_sec = STUN_REPLY_TIMEOUT_SEC;
     timeout.tv_usec = 0;
 #endif
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0) {
+    if (setsockopt(*sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to set socket timeout, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
+        CHIAKI_SOCKET_CLOSE(*sock);
         return false;
     }
 
     uint8_t binding_resp[256];
-    CHIAKI_SSIZET_TYPE received = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
-    CHIAKI_SOCKET_CLOSE(sock);
+    CHIAKI_SSIZET_TYPE received = recvfrom(*sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
     if (received < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to receive STUN response, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         return false;

@@ -259,6 +259,7 @@ typedef struct session_t
 
     chiaki_socket_t ctrl_sock;
     chiaki_socket_t data_sock;
+    chiaki_socket_t client_sock;
 
     ChiakiLog *log;
 } Session;
@@ -281,7 +282,9 @@ typedef struct http_response_data_t
 typedef enum candidate_type_t
 {
     CANDIDATE_TYPE_STATIC = 0,
-    CANDIDATE_TYPE_LOCAL = 1
+    CANDIDATE_TYPE_LOCAL = 1,
+    CANDIDATE_TYPE_STUN = 2,
+    CANDIDATE_TYPE_DERIVED = 3
 } CandidateType;
 
 typedef struct candidate_t
@@ -334,7 +337,7 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
 static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info, char *out);
 static bool upnp_add_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external);
 static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_external);
-static bool get_client_addr_remote_stun(ChiakiLog *log, char *out);
+static bool get_client_addr_remote_stun(ChiakiLog *log, char *address, uint16_t *port, chiaki_socket_t *sock);
 // static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
@@ -648,6 +651,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     memset(&session->custom_data1, 0, sizeof(session->custom_data1));
     session->ctrl_sock = CHIAKI_INVALID_SOCKET;
     session->data_sock = CHIAKI_INVALID_SOCKET;
+    session->client_sock = CHIAKI_INVALID_SOCKET;
     session->sock = CHIAKI_INVALID_SOCKET;
     session->sid_console = 0;
     session->local_req_id = 1;
@@ -1179,6 +1183,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     log_session_state(session);
 
 cleanup:
+    if(!CHIAKI_SOCKET_IS_INVALID(session->client_sock))
+        CHIAKI_SOCKET_CLOSE(session->client_sock);
     chiaki_mutex_lock(&session->notif_mutex);
     session_message_free(console_offer_msg);
     chiaki_mutex_unlock(&session->notif_mutex);
@@ -1754,8 +1760,8 @@ static NotificationType parse_notification_type(
 static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidates)
 {
     // Create socket with available local port for connection
-    chiaki_socket_t client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (CHIAKI_SOCKET_IS_INVALID(client_sock))
+    session->client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (CHIAKI_SOCKET_IS_INVALID(session->client_sock))
     {
         CHIAKI_LOGE(session->log, "send_offer: Creating socket failed");
         return CHIAKI_ERR_UNKNOWN;
@@ -1768,17 +1774,17 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     socklen_t client_addr_len = sizeof(client_addr);
     const int enable = 1;
 #if defined(SO_REUSEPORT)
-        if (setsockopt(client_sock, SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
+        if (setsockopt(session->client_sock, SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
             CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 #else
-        if (setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
+        if (setsockopt(session->client_sock, SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
             CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 #endif
-    bind(client_sock, (struct sockaddr*)&client_addr, client_addr_len);
-    if (getsockname(client_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
+    bind(session->client_sock, (struct sockaddr*)&client_addr, client_addr_len);
+    if (getsockname(session->client_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
     {
         CHIAKI_LOGE(session->log, "send_offer: Getting socket port failed");
-        CHIAKI_SOCKET_CLOSE(client_sock);
+        CHIAKI_SOCKET_CLOSE(session->client_sock);
         return CHIAKI_ERR_UNKNOWN;
     }
 
@@ -1798,8 +1804,6 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     else
         session->local_port_data = local_port;
 
-    CHIAKI_SOCKET_CLOSE(client_sock);
-
     msg.conn_request->sid = session->sid_local;
     msg.conn_request->peer_sid = session->sid_console;
     msg.conn_request->nat_type = 2;
@@ -1807,7 +1811,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     memset(msg.conn_request->default_route_mac_addr, 0, sizeof(msg.conn_request->default_route_mac_addr));
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->num_candidates = 2;
-    msg.conn_request->candidates = calloc(2, sizeof(Candidate));
+    // allocate extra space for stun candidate
+    msg.conn_request->candidates = calloc(3, sizeof(Candidate));
     if(!msg.conn_request->candidates)
     {
         free(msg.conn_request);
@@ -1854,7 +1859,23 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     }
     memcpy(session->client_local_ip, candidate_local->addr, sizeof(candidate_local->addr));
     if (!have_addr) {
-        have_addr = get_client_addr_remote_stun(session->log, candidate_remote->addr);
+        Candidate *candidate_stun = &msg.conn_request->candidates[2];
+        candidate_stun->type = CANDIDATE_TYPE_LOCAL;
+        memcpy(candidate_stun->addr_mapped, "0.0.0.0", 8);
+        candidate_stun->port = local_port;
+        candidate_stun->port_mapped = 0;
+        have_addr = get_client_addr_remote_stun(session->log, candidate_stun->addr, &candidate_stun->port, &session->client_sock);
+        if(have_addr)
+        {
+            memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
+            msg.conn_request->num_candidates = 3;
+        }
+        if(CHIAKI_SOCKET_IS_INVALID(session->client_sock))
+        {
+            CHIAKI_LOGE(session->log, "STUN caused socket to close due to error");
+            err = CHIAKI_ERR_UNKNOWN;
+            goto cleanup;
+        }
     }
     if (!have_addr) {
         CHIAKI_LOGE(session->log, "send_offer: Could not get remote address");
@@ -1869,6 +1890,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
+        CHIAKI_SOCKET_CLOSE(session->client_sock);
     }
     memcpy(&local_candidates[0], candidate_local, sizeof(Candidate));
     memcpy(&local_candidates[1], candidate_remote, sizeof(Candidate));
@@ -2264,13 +2286,13 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     bool status = false;
-    bool ethernet = false;
 #ifdef _WIN32
     PIP_ADAPTER_INFO pAdapterInfo;
     PIP_ADAPTER_INFO pAdapter = NULL;
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
     DWORD dwRetVal = 0;
+    bool ethernet = false;
     ULONG ulOutBufLen = sizeof (IP_ADAPTER_INFO);
     pAdapterInfo = (IP_ADAPTER_INFO *) MALLOC(sizeof (IP_ADAPTER_INFO));
     if (pAdapterInfo == NULL) {
@@ -2485,10 +2507,9 @@ static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_inf
  * @param log The ChiakiLog instance for logging.
  * @return The external IP address of the client, or NULL if the IP address could not be retrieved. Needs to be freed by the caller.
 */
-static bool get_client_addr_remote_stun(ChiakiLog *log, char *out)
+static bool get_client_addr_remote_stun(ChiakiLog *log, char *address, uint16_t *port, chiaki_socket_t *sock)
 {
-    uint16_t port = 0;
-    if (!stun_get_external_address(log, out, &port))
+    if (!stun_get_external_address(log, address, port, sock))
     {
         CHIAKI_LOGE(log, "get_client_addr_remote_stun: Failed to get external address");
         return false;
@@ -2683,6 +2704,9 @@ static ChiakiErrorCode check_candidates(
                 continue;
         }
 
+        if(i == 0)
+            CHIAKI_SOCKET_CLOSE(session->client_sock);
+
         if (send(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0) < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
@@ -2714,6 +2738,7 @@ static ChiakiErrorCode check_candidates(
     chiaki_socket_t selected_sock = CHIAKI_INVALID_SOCKET;
     Candidate *selected_candidate = NULL;
     bool received_response = false;
+    bool responded = false;
     bool connecting = false;
     int retry_counter = 0;
 
@@ -2807,6 +2832,7 @@ static ChiakiErrorCode check_candidates(
         if (msg_type == MSG_TYPE_REQ)
         {
             CHIAKI_LOGI(session->log, "Responding to request");
+            responded = true;
             err = send_response_ps(session, response_buf, &candidate_sock, candidate);
             if(err != CHIAKI_ERR_SUCCESS)
                 goto cleanup_sockets;
@@ -2857,7 +2883,12 @@ static ChiakiErrorCode check_candidates(
     }
 
     err = receive_request_send_response_ps(session, out, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
-    if(err != CHIAKI_ERR_SUCCESS)
+    if(err == CHIAKI_ERR_TIMEOUT)
+    {
+        if(!responded)
+            goto cleanup_sockets;
+    }
+    else if(err != CHIAKI_ERR_SUCCESS)
         goto cleanup_sockets;
 
     memset(selected_candidate->addr_mapped, 0, sizeof(selected_candidate->addr_mapped));
@@ -3529,6 +3560,10 @@ static ChiakiErrorCode session_message_parse(
             const char *type_str = json_object_get_string(jobj);
             if (strcmp(type_str, "LOCAL") == 0)
                 candidate.type = CANDIDATE_TYPE_LOCAL;
+            else if (strcmp(type_str, "STUN") == 0)
+                candidate.type = CANDIDATE_TYPE_STUN;
+            else if (strcmp(type_str, "DERIVED") == 0)
+                candidate.type = CANDIDATE_TYPE_DERIVED;
             else
                 candidate.type = CANDIDATE_TYPE_STATIC;
 
@@ -3621,11 +3656,30 @@ static ChiakiErrorCode session_message_serialize(
     for (int i=0; i < message->conn_request->num_candidates; i++)
     {
         Candidate candidate = message->conn_request->candidates[i];
+        char candidate_type[8] = {0};
+        switch(candidate.type)
+        {
+            case CANDIDATE_TYPE_LOCAL:
+                strcpy(candidate_type, "LOCAL");
+                break;
+            case CANDIDATE_TYPE_STATIC:
+                strcpy(candidate_type, "STATIC");
+                break;
+            case CANDIDATE_TYPE_STUN:
+                strcpy(candidate_type, "STUN");
+                break;
+            case CANDIDATE_TYPE_DERIVED:
+                strcpy(candidate_type, "DERIVED");
+                break;
+            default:
+                CHIAKI_LOGE(session->log, "Undefined candidate type %d", candidate.type);
+                return CHIAKI_ERR_INVALID_DATA;
+        }
         memset(candidate_str, 0, candidate_str_len);
         size_t candidate_len = snprintf(
             candidate_str, candidate_str_len, session_connrequest_candidate_fmt,
-            candidate.type == CANDIDATE_TYPE_LOCAL ? "LOCAL" : "STATIC",
-            candidate.addr, candidate.addr_mapped, candidate.port, candidate.port_mapped);
+            candidate_type, candidate.addr, candidate.addr_mapped, candidate.port,
+            candidate.port_mapped);
         snprintf(candidates_json + candidates_len, candidate_len, "%s", candidate_str);
         // Take into account that char arrays are null-terminated
         if(i < (message->conn_request->num_candidates - 1))
@@ -3836,12 +3890,24 @@ static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
 
 static void print_candidate(ChiakiLog *log, Candidate *candidate)
 {
-    if(candidate->type == CANDIDATE_TYPE_LOCAL)
-        CHIAKI_LOGV(log, "--------------LOCAL CANDIDATE---------------------");
-    else if(candidate->type == CANDIDATE_TYPE_STATIC)
-        CHIAKI_LOGV(log, "--------------REMOTE CANDIDATE--------------------");
-    else
-        CHIAKI_LOGV(log, "--------------CANDIDATE TYPE UNKNOWN--------------");
+    switch(candidate->type)
+    {
+        case CANDIDATE_TYPE_LOCAL:
+            CHIAKI_LOGV(log, "--------------LOCAL CANDIDATE---------------------");
+            break;
+        case CANDIDATE_TYPE_STATIC:
+            CHIAKI_LOGV(log, "--------------REMOTE CANDIDATE--------------------");
+            break;
+        case CANDIDATE_TYPE_DERIVED:
+            CHIAKI_LOGV(log, "--------------DERIVED CANDIDATE--------------------");
+            break;
+        case CANDIDATE_TYPE_STUN:
+            CHIAKI_LOGV(log, "--------------STUN CANDIDATE--------------------");
+            break;
+        default:
+            CHIAKI_LOGV(log, "--------------CANDIDATE TYPE UNKNOWN--------------");
+            break;    
+    }
     CHIAKI_LOGV(log, "Address: %s", candidate->addr);
     CHIAKI_LOGV(log, "Mapped Address: %s", candidate->addr_mapped);
     CHIAKI_LOGV(log, "Port: %u", candidate->port);
