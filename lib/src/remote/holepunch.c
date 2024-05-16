@@ -1860,9 +1860,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     memcpy(session->client_local_ip, candidate_local->addr, sizeof(candidate_local->addr));
     if (!have_addr) {
         Candidate *candidate_stun = &msg.conn_request->candidates[2];
-        candidate_stun->type = CANDIDATE_TYPE_LOCAL;
+        candidate_stun->type = CANDIDATE_TYPE_STUN;
         memcpy(candidate_stun->addr_mapped, "0.0.0.0", 8);
-        candidate_stun->port = local_port;
         candidate_stun->port_mapped = 0;
         have_addr = get_client_addr_remote_stun(session->log, candidate_stun->addr, &candidate_stun->port, &session->client_sock);
         if(have_addr)
