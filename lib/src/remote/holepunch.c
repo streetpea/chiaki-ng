@@ -651,7 +651,6 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     memset(&session->custom_data1, 0, sizeof(session->custom_data1));
     session->ctrl_sock = CHIAKI_INVALID_SOCKET;
     session->data_sock = CHIAKI_INVALID_SOCKET;
-    session->client_sock = CHIAKI_INVALID_SOCKET;
     session->sock = CHIAKI_INVALID_SOCKET;
     session->sid_console = 0;
     session->local_req_id = 1;
@@ -1183,8 +1182,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     log_session_state(session);
 
 cleanup:
-    if(!CHIAKI_SOCKET_IS_INVALID(session->client_sock))
-        CHIAKI_SOCKET_CLOSE(session->client_sock);
     chiaki_mutex_lock(&session->notif_mutex);
     session_message_free(console_offer_msg);
     chiaki_mutex_unlock(&session->notif_mutex);
@@ -1760,8 +1757,9 @@ static NotificationType parse_notification_type(
 static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidates)
 {
     // Create socket with available local port for connection
-    session->client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (CHIAKI_SOCKET_IS_INVALID(session->client_sock))
+    chiaki_socket_t client_sock = CHIAKI_INVALID_SOCKET;
+    client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (CHIAKI_SOCKET_IS_INVALID(client_sock))
     {
         CHIAKI_LOGE(session->log, "send_offer: Creating socket failed");
         return CHIAKI_ERR_UNKNOWN;
@@ -1774,17 +1772,17 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     socklen_t client_addr_len = sizeof(client_addr);
     const int enable = 1;
 #if defined(SO_REUSEPORT)
-        if (setsockopt(session->client_sock, SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
+        if (setsockopt(client_sock, SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
             CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 #else
-        if (setsockopt(session->client_sock, SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
+        if (setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
             CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 #endif
-    bind(session->client_sock, (struct sockaddr*)&client_addr, client_addr_len);
-    if (getsockname(session->client_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
+    bind(client_sock, (struct sockaddr*)&client_addr, client_addr_len);
+    if (getsockname(client_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
     {
         CHIAKI_LOGE(session->log, "send_offer: Getting socket port failed");
-        CHIAKI_SOCKET_CLOSE(session->client_sock);
+        CHIAKI_SOCKET_CLOSE(client_sock);
         return CHIAKI_ERR_UNKNOWN;
     }
 
@@ -1816,6 +1814,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if(!msg.conn_request->candidates)
     {
         free(msg.conn_request);
+        CHIAKI_SOCKET_CLOSE(client_sock);
         return CHIAKI_ERR_MEMORY;
     }
 
@@ -1863,13 +1862,13 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         candidate_stun->type = CANDIDATE_TYPE_STUN;
         memcpy(candidate_stun->addr_mapped, "0.0.0.0", 8);
         candidate_stun->port_mapped = 0;
-        have_addr = get_client_addr_remote_stun(session->log, candidate_stun->addr, &candidate_stun->port, &session->client_sock);
+        have_addr = get_client_addr_remote_stun(session->log, candidate_stun->addr, &candidate_stun->port, &client_sock);
         if(have_addr)
         {
             memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
             msg.conn_request->num_candidates = 3;
         }
-        if(CHIAKI_SOCKET_IS_INVALID(session->client_sock))
+        if(CHIAKI_SOCKET_IS_INVALID(client_sock))
         {
             CHIAKI_LOGE(session->log, "STUN caused socket to close due to error");
             err = CHIAKI_ERR_UNKNOWN;
@@ -1889,12 +1888,13 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
-        CHIAKI_SOCKET_CLOSE(session->client_sock);
     }
     memcpy(&local_candidates[0], candidate_local, sizeof(Candidate));
     memcpy(&local_candidates[1], candidate_remote, sizeof(Candidate));
 
 cleanup:
+    if(!CHIAKI_SOCKET_IS_INVALID(client_sock))
+        CHIAKI_SOCKET_CLOSE(client_sock);
     free(msg.conn_request->candidates);
     free(msg.conn_request);
 
@@ -2698,9 +2698,6 @@ static ChiakiErrorCode check_candidates(
                 continue;
         }
 
-        if(i == 0)
-            CHIAKI_SOCKET_CLOSE(session->client_sock);
-
         if (send(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0) < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
@@ -2712,7 +2709,10 @@ static ChiakiErrorCode check_candidates(
         freeaddrinfo(addr_remote);
     }
     if(failed)
+    {
+        err = CHIAKI_ERR_NETWORK;
         goto cleanup_sockets;
+    }
 
     // Wait for responses
     uint8_t response_buf[88];
