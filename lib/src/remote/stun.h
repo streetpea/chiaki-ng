@@ -188,7 +188,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
                 uint32_t addr = xored_addr;
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             } else {
-                *port = *(uint16_t*)(&binding_resp[response_pos + 6]);
+                *port = ntohs(*(uint16_t*)(&binding_resp[response_pos + 6]));
                 uint32_t addr = *(uint32_t*)(&binding_resp[response_pos + 8]);
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             }
@@ -207,7 +207,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
                 }
                 inet_ntop(AF_INET6, &xored_addr, address, INET6_ADDRSTRLEN);
             } else {
-                *port = *(uint16_t*)(&binding_resp[response_pos + 6]);
+                *port = ntohs(*(uint16_t*)(&binding_resp[response_pos + 6]));
                 inet_ntop(AF_INET6, &binding_resp[response_pos + 8], address, INET6_ADDRSTRLEN);
             }
         } else {
