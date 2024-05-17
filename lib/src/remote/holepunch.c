@@ -472,7 +472,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup_json;
     }
-
+    CHIAKI_LOGV(log, console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? "PS5 devices: ": "PS4 devices: ");
+    const char *json_str = json_object_to_json_string_ext(clients, JSON_C_TO_STRING_PRETTY);
+        CHIAKI_LOGV(log, "chiaki_holepunch_list_devices: retrieved devices \n%s", json_str);
     size_t num_clients = json_object_array_length(clients);
     *devices = malloc(sizeof(ChiakiHolepunchDeviceInfo) * num_clients);
     if(!(*devices))
