@@ -2846,10 +2846,17 @@ static ChiakiErrorCode check_candidates(
 
         Candidate *candidate = NULL;
         chiaki_socket_t candidate_sock = CHIAKI_INVALID_SOCKET;
+        socklen_t recv_len;
         if (!(CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock)) && FD_ISSET(session->ipv4_sock, &fds))
+        {
             candidate_sock = session->ipv4_sock;
+            recv_len = sizeof(struct sockaddr_in);
+        }
         else if (!(CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock)) && FD_ISSET(session->ipv6_sock, &fds))
+        {
             candidate_sock = session->ipv6_sock;
+            recv_len = sizeof(struct sockaddr_in6);
+        }
         else
         {
             CHIAKI_LOGE(session->log, "check_candidate: Select returned an invalid socket!");
@@ -2859,7 +2866,6 @@ static ChiakiErrorCode check_candidates(
 
         struct sockaddr recv_address;
         char recv_address_string[INET6_ADDRSTRLEN];
-        socklen_t recv_len;
         int i = 0;
         CHIAKI_SSIZET_TYPE response_len = recvfrom(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) response_buf, sizeof(response_buf), 0, &recv_address, &recv_len);
         if (response_len < 0)
@@ -3020,7 +3026,43 @@ static ChiakiErrorCode check_candidates(
         goto cleanup_sockets;
 
     memset(selected_candidate->addr_mapped, 0, sizeof(selected_candidate->addr_mapped));
-    if(selected_candidate->type == CANDIDATE_TYPE_LOCAL)
+    bool local = false;
+    if(selected_candidate->type == CANDIDATE_TYPE_DERIVED)
+    {
+        char *search_ptr = strchr(selected_candidate->addr, '.');
+        if(search_ptr)
+        {
+            if (strncmp(selected_candidate->addr, "10.", 4) == 0)
+                local = true;
+            else if (strncmp(selected_candidate->addr, "192.168.", 9) == 0)
+                local = true;
+            else
+            {
+                for (int j = 16; j < 32; j++)
+                {
+                    char compare_addr[9] = {0};
+                    sprintf(compare_addr, "172.%d.", j);
+                    if (strncmp(selected_candidate->addr, compare_addr, 9) == 0)
+                    {
+                        local = true;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (strncmp(selected_candidate->addr, "FC", 3) == 0)
+                local = true;
+            else if (strncmp(selected_candidate->addr, "fc", 3) == 0)
+                local = true;
+            else if (strncmp(selected_candidate->addr, "FD", 3) == 0)
+                local = true;
+            else if (strncmp(selected_candidate->addr, "fd", 3) == 0)
+                local = true;
+        }
+    }
+    if(selected_candidate->type == CANDIDATE_TYPE_LOCAL || local)
     {
         memcpy(selected_candidate->addr_mapped, local_candidate->addr, sizeof(local_candidate->addr));
         selected_candidate->port_mapped = local_candidate->port;
@@ -3158,11 +3200,6 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
             return err;
 
         len = recv(*sock, (CHIAKI_SOCKET_BUF_TYPE) req, sizeof(req), 0);
-        if (len != sizeof(req))
-        {
-            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", len, candidate->addr, candidate->port);
-            return CHIAKI_ERR_NETWORK;
-        }
         if (len < 0)
         {
             CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
@@ -3170,9 +3207,8 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         }
         if (len != sizeof(req))
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected size %ld from %s:%d with error ", len, candidate->addr, candidate->port);
-            err = CHIAKI_ERR_NETWORK;
-            return err;
+            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", len, candidate->addr, candidate->port);
+            return CHIAKI_ERR_NETWORK;
         }
         uint32_t msg_type = ntohl(*(uint32_t*)(req));
         if(msg_type == MSG_TYPE_RESP)
