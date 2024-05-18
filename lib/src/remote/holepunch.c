@@ -2914,6 +2914,7 @@ static ChiakiErrorCode check_candidates(
             else
             {
                 candidate = &candidates[i];
+                responses_received[i] = 0;
                 memcpy(candidate->addr, recv_address_string, sizeof(recv_address_string));
                 candidate->port_mapped = 0;
                 candidate->type = CANDIDATE_TYPE_DERIVED;
