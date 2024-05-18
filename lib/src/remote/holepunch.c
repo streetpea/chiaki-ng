@@ -229,6 +229,7 @@ typedef struct session_t
     uint8_t local_mac_addr[6];
     uint16_t local_port_ctrl;
     uint16_t local_port_data;
+    int32_t stun_allocation_increment;
     UPNPGatewayInfo gw;
 
     uint8_t data1[16];
@@ -340,7 +341,7 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
 static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info, char *out);
 static bool upnp_add_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external);
 static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_external);
-static bool get_client_addr_remote_stun(ChiakiLog *log, char *address, uint16_t *port, chiaki_socket_t *sock);
+static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock);
 // static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
@@ -664,6 +665,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->local_req_id = 1;
     session->local_port_ctrl = 0;
     session->local_port_data = 0;
+    session->stun_allocation_increment = -1;
     session->gw.data = NULL;
 
     ChiakiErrorCode err;
@@ -1874,8 +1876,9 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     memset(msg.conn_request->default_route_mac_addr, 0, sizeof(msg.conn_request->default_route_mac_addr));
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->num_candidates = 2;
-    // allocate extra space for stun candidate
-    msg.conn_request->candidates = calloc(3, sizeof(Candidate));
+    // allocate extra space for stun candidates (add extra stun candidate to work around case where extra allocation 
+    // occurs before we get our port allocated during signalling with the console in check_candidates)
+    msg.conn_request->candidates = calloc(4, sizeof(Candidate));
     if(!msg.conn_request->candidates)
     {
         free(msg.conn_request);
@@ -1930,11 +1933,23 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         candidate_stun->type = CANDIDATE_TYPE_STUN;
         memcpy(candidate_stun->addr_mapped, "0.0.0.0", 8);
         candidate_stun->port_mapped = 0;
-        have_addr = get_client_addr_remote_stun(session->log, candidate_stun->addr, &candidate_stun->port, &session->ipv4_sock);
+        have_addr = get_client_addr_remote_stun(session, candidate_stun->addr, &candidate_stun->port, &session->ipv4_sock);
         if(have_addr)
         {
             memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
             msg.conn_request->num_candidates = 3;
+            if(session->stun_allocation_increment != 0)
+            {
+                candidate_stun->port += session->stun_allocation_increment;
+                // Setup extra stun candidate in case there was an allocation in between the stun request and our allocation
+                Candidate *candidate_stun2 = &msg.conn_request->candidates[3];
+                candidate_stun2->type = CANDIDATE_TYPE_STUN;
+                memcpy(candidate_stun2->addr_mapped, "0.0.0.0", 8);
+                candidate_stun2->port_mapped = 0;
+                memcpy(candidate_stun2->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
+                candidate_stun2->port = candidate_stun->port + session->stun_allocation_increment;
+                msg.conn_request->num_candidates = 4;
+            }
         }
         if(CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
         {
@@ -2600,11 +2615,21 @@ static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_inf
  * @param log The ChiakiLog instance for logging.
  * @return The external IP address of the client, or NULL if the IP address could not be retrieved. Needs to be freed by the caller.
 */
-static bool get_client_addr_remote_stun(ChiakiLog *log, char *address, uint16_t *port, chiaki_socket_t *sock)
+static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock)
 {
-    if (!stun_get_external_address(log, address, port, sock))
+    // run STUN test if it hasn't been run yet
+    if(session->stun_allocation_increment == -1)
     {
-        CHIAKI_LOGE(log, "get_client_addr_remote_stun: Failed to get external address");
+        if (!stun_port_allocation_test(session->log, address, port, &session->stun_allocation_increment, sock))
+        {
+            CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
+            return false;
+        }
+        return true;
+    }
+    if (!stun_get_external_address(session->log, address, port, sock))
+    {
+        CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
         return false;
     }
     return true;
