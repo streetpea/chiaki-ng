@@ -230,6 +230,8 @@ typedef struct session_t
     uint16_t local_port_ctrl;
     uint16_t local_port_data;
     int32_t stun_allocation_increment;
+    StunServer stun_server_list[10];
+    size_t num_stun_servers;
     UPNPGatewayInfo gw;
 
     uint8_t data1[16];
@@ -342,12 +344,13 @@ static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info
 static bool upnp_add_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external);
 static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_external);
 static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock);
+static ChiakiErrorCode get_stun_servers(Session *session);
 // static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
 static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
 static ChiakiErrorCode check_candidates(
     Session *session, Candidate *local_candidates, Candidate *candidates_received, size_t num_candidates, chiaki_socket_t *out,
-    Candidate **out_candidate);
+    Candidate *out_candidate);
 
 static json_object* session_message_get_payload(ChiakiLog *log, json_object *session_message);
 // static SessionMessageAction get_session_message_action(json_object *payload);
@@ -666,6 +669,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->local_port_ctrl = 0;
     session->local_port_data = 0;
     session->stun_allocation_increment = -1;
+    session->num_stun_servers = 0;
     session->gw.data = NULL;
 
     ChiakiErrorCode err;
@@ -1083,11 +1087,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
 
     // Find candidate that we can use to connect to the console
     chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
-    Candidate *selected_candidate = NULL;
     for(size_t i = 0; i < console_req->num_candidates; i++)
     {
         print_candidate(session->log, &console_req->candidates[i]);
     }
+    Candidate selected_candidate;
     err = check_candidates(session, local_candidates, console_req->candidates, console_req->num_candidates, &sock, &selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
@@ -1104,7 +1108,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         goto cleanup;
     }
 
-    err = send_accept(session, session->local_req_id, selected_candidate);
+    err = send_accept(session, session->local_req_id, &selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to send ACCEPT message.");
@@ -1158,14 +1162,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
-    memcpy(session->ps_ip, selected_candidate->addr, sizeof(session->ps_ip));
+    memcpy(session->ps_ip, selected_candidate.addr, sizeof(session->ps_ip));
 
     chiaki_mutex_lock(&session->state_mutex);
     if(port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL)
     {
         session->state |= SESSION_STATE_CTRL_ESTABLISHED;
         session->ctrl_sock = sock;
-        session->ctrl_port = selected_candidate->port;
+        session->ctrl_port = selected_candidate.port;
         CHIAKI_LOGV(session->log, "chiaki_holepunch_session_punch_holes: Control connection established.");
     }
     else
@@ -1183,7 +1187,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
-    ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
+    ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, &selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
     if(!(pserr == CHIAKI_ERR_SUCCESS || pserr == CHIAKI_ERR_TIMEOUT))
     {
         CHIAKI_LOGE(session->log, "Sending extra request to ps failed");
@@ -1289,6 +1293,10 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
         chiaki_mutex_lock(&session->notif_mutex);
         notification_queue_free(session->ws_notification_queue);
         chiaki_mutex_unlock(&session->notif_mutex);
+    }
+    for(int i=0; i < session->num_stun_servers; i++)
+    {
+        free(session->stun_server_list[i].host);
     }
     chiaki_stop_pipe_fini(&session->select_pipe);
     chiaki_stop_pipe_fini(&session->notif_pipe);
@@ -2620,14 +2628,19 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
     // run STUN test if it hasn't been run yet
     if(session->stun_allocation_increment == -1)
     {
-        if (!stun_port_allocation_test(session->log, address, port, &session->stun_allocation_increment, sock))
+        ChiakiErrorCode err = get_stun_servers(session);
+        if(err != CHIAKI_ERR_SUCCESS)
+        {
+            CHIAKI_LOGW(session->log, "Getting stun servers returned error %s", chiaki_error_string(err));
+        }
+        if (!stun_port_allocation_test(session->log, address, port, &session->stun_allocation_increment, session->stun_server_list, session->num_stun_servers, sock))
         {
             CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
             return false;
         }
         return true;
     }
-    if (!stun_get_external_address(session->log, address, port, sock))
+    if (!stun_get_external_address(session->log, address, port, session->stun_server_list, session->num_stun_servers, sock))
     {
         CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
         return false;
@@ -2696,7 +2709,7 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
 
 static ChiakiErrorCode check_candidates(
     Session *session, Candidate* local_candidates, Candidate *candidates_received, size_t num_candidates, chiaki_socket_t *out,
-    Candidate **out_candidate)
+    Candidate *out_candidate)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
@@ -3099,7 +3112,7 @@ static ChiakiErrorCode check_candidates(
         selected_candidate->port_mapped = remote_candidate->port;
     }
 
-    *out_candidate = selected_candidate;
+    memcpy(out_candidate, selected_candidate, sizeof(Candidate));
     session->ipv4_sock = CHIAKI_INVALID_SOCKET;
     session->ipv6_sock = CHIAKI_INVALID_SOCKET;
     return CHIAKI_ERR_SUCCESS;
@@ -4076,6 +4089,94 @@ static ChiakiErrorCode session_message_free(SessionMessage *message)
     }
     message->notification = NULL;
     free(message);
+    return err;
+}
+
+/**
+ * Gets stun servers from updated list of online STUN servers
+ *
+ * @param session Pointer to the holepunch session
+ * @return ChiakiErrSuccess on success or error code on failure
+*/
+static ChiakiErrorCode get_stun_servers(Session *session)
+{
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+    const char STUN_HOSTS_URL[] = "https://raw.githubusercontent.com/pradt2/always-online-stun/master/valid_hosts.txt";
+    CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
+
+    HttpResponseData response_data = {
+        .data = malloc(0),
+        .size = 0,
+    };
+
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK)
+    {
+        if (res == CURLE_HTTP_RETURNED_ERROR)
+        {
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            CHIAKI_LOGE(session->log, "Getting stun servers from %s failed with HTTP code %ld", STUN_HOSTS_URL, http_code);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            err = CHIAKI_ERR_HTTP_NONOK;
+        } else {
+            CHIAKI_LOGE(session->log, "Getting stun servers from %s failed with CURL error %d", STUN_HOSTS_URL, res);
+            err = CHIAKI_ERR_NETWORK;
+        }
+        goto cleanup;
+    }
+    // h0stname has max of 253 chars + 1 char for colon : + port has max of 4 chars + 1 char for null termination
+    char server_strings[10][259];
+    char *ptr = strtok(response_data.data, "\n");
+    while(ptr != NULL && session->num_stun_servers <= 9)
+    {
+        strcpy(server_strings[session->num_stun_servers], ptr);
+        session->num_stun_servers++;
+		ptr = strtok(NULL, "\n");
+    }
+    ptr = NULL;
+    for(int i = 0; i < session->num_stun_servers; i++)
+    {
+        ptr = strtok(server_strings[i], ":");
+        if(ptr == NULL)
+        {
+            CHIAKI_LOGW(session->log, "Problem reading stun server list host");
+            session->num_stun_servers = i;
+            return CHIAKI_ERR_INVALID_DATA;
+        }
+        session->stun_server_list[i].host = malloc((strlen(ptr) + 1) * sizeof(char));
+        if(!session->stun_server_list[i].host)
+        {
+            CHIAKI_LOGW(session->log, "Problem allocating memory for stun server list host");
+            session->num_stun_servers = i;
+            return CHIAKI_ERR_MEMORY;
+        }
+        strcpy(session->stun_server_list[i].host, ptr);
+        ptr = strtok(NULL, ":");
+        if(ptr == NULL)
+        {
+            CHIAKI_LOGW(session->log, "Problem reading stun server list port");
+            session->num_stun_servers = i;
+            return CHIAKI_ERR_INVALID_DATA;
+        }
+        session->stun_server_list[i].port = strtol(ptr, NULL, 10);
+        ptr = NULL;
+    }
+
+cleanup:
+    free(response_data.data);
+    curl_easy_cleanup(curl);
     return err;
 }
 
