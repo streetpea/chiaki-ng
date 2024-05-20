@@ -82,6 +82,8 @@ static const char oauth_header_fmt[] = "Authorization: Bearer %s";
 static const char device_list_url_fmt[] = "https://web.np.playstation.com/api/cloudAssistedNavigation/v2/users/me/clients?platform=%s&includeFields=device&limit=10&offset=0";
 static const char ws_fqdn_api_url[] = "https://mobile-pushcl.np.communication.playstation.net/np/serveraddr?version=2.1&fields=keepAliveStatus&keepAliveStatusType=3";
 static const char session_create_url[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions";
+static const char user_profile_url[] = "https://asm.np.community.playstation.net/asm/v1/apps/me/baseUrls/userProfile";
+static const char wakeup_url_fmt[] = "%s/userProfile/v1/users/%s/remoteConsole/wakeUp?platform=PS4";
 static const char session_command_url[] = "https://web.np.playstation.com/api/cloudAssistedNavigation/v2/users/me/commands";
 static const char session_message_url_fmt[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions/%s/sessionMessage";
 static const char delete_messsage_url_fmt[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions/%s/members/me";
@@ -104,6 +106,14 @@ static const char session_start_envelope_fmt[] =
          "\"messageDestination\":\"SQS\","
          "\"parameters\":{\"initialParams\":\"%s\"},"  // 1: string containing escaped JSON data
          "\"platform\":\"%s\"}}";                      // 2: PS4/PS5
+static const char session_wakeup_envelope_fmt[] =
+    "{\"data\":"
+        "{\"clientType\":\"Windows\","
+         "\"data1\":\"%s\","                            // 0: 16 byte data1, base64 encoded
+         "\"data2\":\"%s\","                            // 1: 16 byte data2, base64 encoded
+         "\"roomId\":\"0\","
+         "\"sessionId\":\"%s\","                        // 2: session identifier (lowercase UUIDv4)
+         "\"dataTypeSuffix\":\"remotePlay\"}}";
 static const char session_message_envelope_fmt[] =
     "{\"channel\":\"remote_play:1\","
      "\"payload\":\"ver=1.0, type=text, body=%s\","  // 0: message body as JSON string
@@ -338,6 +348,7 @@ static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *sele
 static ChiakiErrorCode http_create_session(Session *session);
 static ChiakiErrorCode http_start_session(Session *session);
 static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *msg, bool short_msg);
+static ChiakiErrorCode http_ps4_session_wakeup(Session *session);
 static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_console_candidate, char *out, size_t out_len);
 static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info);
 static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info, char *out);
@@ -364,6 +375,7 @@ static NotificationQueue *createNq();
 static void dequeueNq(NotificationQueue *nq);
 static void enqueueNq(NotificationQueue *nq, Notification *notif);
 static Notification* newNotification(NotificationType type, json_object *json, char* json_buf, size_t json_buf_size);
+static void remove_substring(char *str, char *substring);
 
 static ChiakiErrorCode wait_for_session_message(
     Session *session, SessionMessage** out,
@@ -402,7 +414,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
 
     char *platform;
     if (console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4) {
-        platform = "PS4";
+        CHIAKI_LOGW(log, "PS4 is not supported by the list devices function!");
     } else {
         platform = "PS5";
     }
@@ -846,16 +858,29 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Holepunch session already started");
         return CHIAKI_ERR_UNKNOWN;
     }
-    char duid_str[65];
-    bytes_to_hex(device_uid, 32, duid_str, sizeof(duid_str));
-    CHIAKI_LOGV(session->log, "chiaki_holepunch_session_start: Starting holepunch session %s for device %s", session->session_id, duid_str);
-    memcpy(session->console_uid, device_uid, sizeof(session->console_uid));
-    session->console_type = console_type;
-    ChiakiErrorCode err = http_start_session(session);
-    if (err != CHIAKI_ERR_SUCCESS)
+    ChiakiErrorCode err;
+    CHIAKI_LOGV(session->log, "chiaki_holepunch_session_start: Starting holepunch session %s for the Main PS4 console registered to your PlayStation account", session->session_id);
+    if(console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4)
     {
-        CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Starting holepunch session failed with error %d", err);
-        return err;
+        err = http_ps4_session_wakeup(session);
+        if(err != CHIAKI_ERR_SUCCESS)
+        {
+            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Starting holepunch session for PS4 failed with error %d", err);
+            return err;
+        }
+    }
+    else
+    {
+        char duid_str[65];
+        bytes_to_hex(device_uid, 32, duid_str, sizeof(duid_str));
+        memcpy(session->console_uid, device_uid, sizeof(session->console_uid));
+        session->console_type = console_type;
+        err = http_start_session(session);
+        if (err != CHIAKI_ERR_SUCCESS)
+        {
+            CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Starting holepunch session for PS5 failed with error %d", err);
+            return err;
+        }
     }
     if(session->main_should_stop)
     {
@@ -917,7 +942,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
 
             uint8_t duid_bytes[32];
             hex_to_bytes(member_duid, duid_bytes, sizeof(duid_bytes));
-            if (memcmp(duid_bytes, session->console_uid, sizeof(session->console_uid)) != 0)
+            // We don't have duid beforehand for PS4
+            if(console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4)
+                memcpy(session->console_uid, duid_bytes, sizeof(duid_bytes));
+            else if (memcmp(duid_bytes, session->console_uid, sizeof(session->console_uid)) != 0)
             {
                 CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: holepunch session does not contain console");
                 err = CHIAKI_ERR_UNKNOWN;
@@ -972,6 +1000,211 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         chiaki_mutex_unlock(&session->state_mutex);
     }
     chiaki_mutex_unlock(&session->state_mutex);
+    return err;
+}
+
+/**
+ * Wakes up and connects to the main PS4 console connected to a PSN account
+ * (only main console can be used for remote connection via PSN due to a limitation imposed by Sony)
+ *
+ * @param session
+ * @param[in] json The pointer to the json object of the notification
+ * @param[in] json_buf A pointer to the char representation of the json
+ * @param[in] json_buf_size The length of the char representation of the json
+ * @return notif Created notification
+*/
+static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
+{
+    HttpResponseData response_data = {
+        .data = malloc(0),
+        .size = 0,
+    };
+
+    CURL *curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
+
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, session->oauth_header);
+    headers = curl_slist_append(headers, "Host: asm.np.community.playstation.net");
+    headers = curl_slist_append(headers, "Connection: Keep-Alive");
+    headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
+    headers = curl_slist_append(headers, "User-Agent: RpNetHttpUtilImpl");
+
+    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_URL, user_profile_url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+    CURLcode res = curl_easy_perform(curl);
+    curl_slist_free_all(headers);
+    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Received JSON:\n%.*s", response_data.size, response_data.data);
+    if (res != CURLE_OK)
+    {
+        if (res == CURLE_HTTP_RETURNED_ERROR)
+        {
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Retrieving profile information for PS4 wakeup command failed with HTTP code %ld.", http_code);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            err = CHIAKI_ERR_HTTP_NONOK;
+        } else {
+            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Retrieving profile information for PS4 wakeup command failed with CURL error %d.", res);
+            err = CHIAKI_ERR_NETWORK;
+        }
+        goto cleanup;
+    }
+    return CHIAKI_ERR_DISCONNECTED;
+
+    json_tokener *tok = json_tokener_new();
+    if(!tok)
+    {
+        CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
+        goto cleanup;
+    }
+    CHIAKI_LOGV(session->log, "http_create_session: Received JSON:\n%s", response_data.data);
+    json_object *json = json_tokener_parse_ex(tok, response_data.data, response_data.size);
+    if (json == NULL)
+    {
+        CHIAKI_LOGE(session->log, "http_create_session: Parsing JSON failed");
+        err = CHIAKI_ERR_UNKNOWN;
+        goto cleanup_json_tokener;
+    }
+
+    json_object *user_profile_url_json = NULL;
+    json_object *online_id_json = NULL;
+    json_pointer_get(json, "/remotePlaySessions/0/members/0/accountId", &user_profile_url_json);
+    json_pointer_get(json, "/remotePlaySessions/0/members/0/accountId", &online_id_json);
+
+    bool schema_bad =
+        (user_profile_url_json == NULL
+        || !json_object_is_type(user_profile_url_json, json_type_string)
+        || online_id_json == NULL
+        || !json_object_is_type(online_id_json, json_type_string));
+    if (schema_bad)
+    {
+        CHIAKI_LOGE(session->log, "http_create_session: Unexpected JSON schema, could not parse user profile url and online Id.");
+        CHIAKI_LOGV(session->log, json_object_to_json_string_ext(json, JSON_C_TO_STRING_PRETTY));
+        err = CHIAKI_ERR_UNKNOWN;
+        goto cleanup_json;
+    }
+
+    const char *user_profile_url = json_object_get_string(user_profile_url_json);
+    if (!user_profile_url)
+    {
+        CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Could not extract user profile url string.");
+        err = CHIAKI_ERR_UNKNOWN;
+        goto cleanup_json;
+    }
+
+    const char *online_id = json_object_get_string(online_id_json);
+    if (!online_id)
+    {
+        CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Could not extract online id string.");
+        err = CHIAKI_ERR_UNKNOWN;
+        goto cleanup_json;
+    }
+    char host_url_starter[128];
+    char host_url[128];
+    // Get just the base url
+    remove_substring(host_url, "https://");
+    remove_substring(host_url, "http://");
+    char *ptr = strtok(host_url_starter, "/");
+    strcpy(host_url, ptr);
+    memset(host_url_starter, 0, 128);
+    strcpy(host_url_starter, host_url);
+    ptr = strtok(host_url_starter, "?");
+    strcpy(host_url, ptr);
+    memset(host_url_starter, 0, 128);
+    strcpy(host_url_starter, host_url);
+    ptr = strtok(host_url_starter, "#");
+    strcpy(host_url, ptr);
+
+    curl_easy_cleanup(curl);
+    free(response_data.data);
+    response_data.data = malloc(0);
+    response_data.size = 0;
+    headers = NULL;
+    char url[128] = {0};
+    snprintf(url, sizeof(url), wakeup_url_fmt, user_profile_url, online_id);
+    char envelope_buf[sizeof(session_wakeup_envelope_fmt) * 2] = {0};
+
+    char data1_base64[25] = {0};
+    char data2_base64[25] = {0};
+    chiaki_base64_encode(session->data1, sizeof(session->data1), data1_base64, sizeof(data1_base64));
+    chiaki_base64_encode(session->data2, sizeof(session->data2), data2_base64, sizeof(data2_base64));
+    snprintf(envelope_buf, sizeof(envelope_buf), session_wakeup_envelope_fmt,
+        data1_base64,
+        data2_base64,
+        online_id);
+
+    curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        json_object_put(json);
+        json_tokener_free(tok);
+        return CHIAKI_ERR_MEMORY;
+    }
+
+    char host_url_string[128];
+    snprintf(host_url_string, sizeof(host_url_string), "Host: %s", host_url);
+    headers = curl_slist_append(headers, session->oauth_header);
+    headers = curl_slist_append(headers, host_url_string);
+    headers = curl_slist_append(headers, "Connection: Keep-Alive");
+    headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
+    headers = curl_slist_append(headers, "User-Agent: RpNetHttpUtilImpl");
+
+    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_URL, session_command_url);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, envelope_buf);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+
+    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Sending JSON:\n%s", envelope_buf);
+
+    res = curl_easy_perform(curl);
+    curl_slist_free_all(headers);
+    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Received JSON:\n%.*s", response_data.size, response_data.data);
+    if (res != CURLE_OK)
+    {
+        if (res == CURLE_HTTP_RETURNED_ERROR)
+        {
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with HTTP code %ld.", http_code);
+            CHIAKI_LOGV(session->log, "Request Body: %s.", envelope_buf);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            err = CHIAKI_ERR_HTTP_NONOK;
+        } else {
+            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with CURL error %d.", res);
+            err = CHIAKI_ERR_NETWORK;
+        }
+        goto cleanup_json;
+    }
+
+    chiaki_mutex_lock(&session->state_mutex);
+    session->state |= SESSION_STATE_DATA_SENT;
+    log_session_state(session);
+    chiaki_mutex_unlock(&session->state_mutex);
+
+cleanup_json:
+    json_object_put(json);
+cleanup_json_tokener:
+    json_tokener_free(tok);
+cleanup:
+    curl_easy_cleanup(curl);
+    free(response_data.data);
+
     return err;
 }
 
@@ -4331,4 +4564,20 @@ static Notification* newNotification(NotificationType type, json_object *json, c
     notif->json_buf_size = json_buf_size;
     notif->next = NULL;
     return notif;
+}
+
+/**
+ * Removes a substring from a string
+ *
+ * @param string The string to remove the substring from
+ * @param[in] substring The substring to remove from the string
+*/
+static void remove_substring(char *str, char *substring)
+{
+    char *start = strstr(str, substring);
+    // substring doesn't exist within string we're done
+    if(start == NULL)
+        return;
+    char *end = start + strlen(substring);
+    memmove(start, start + strlen(substring), strlen(end) + 1);
 }

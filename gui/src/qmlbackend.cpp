@@ -273,6 +273,17 @@ QmlBackend::PsnConnectState QmlBackend::connectState() const
     return psn_connect_state;
 }
 
+void QmlBackend::checkNickname(QString nickname)
+{
+    if(!session)
+        return;
+    if(!settings->GetNicknameRegisteredHostRegistered(nickname))
+    {
+        emit error(tr("PS4 Console Unregistered"), tr("Can't proceed...please register your PS4 console locally"));
+        session->Stop();
+    }
+}
+
 void QmlBackend::setConnectState(PsnConnectState connect_state)
 {
     psn_connect_state = connect_state;
@@ -283,8 +294,10 @@ QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
     QList<QString> discovered_nicknames;
+    size_t registered_discovered_ps4s = 0;
     for (const auto &host : discovery_manager.GetHosts()) {
         QVariantMap m;
+        bool registered = settings->GetRegisteredHostRegistered(host.GetHostMAC());
         m["discovered"] = true;
         m["manual"] = false;
         m["name"] = host.host_name;
@@ -295,9 +308,11 @@ QVariantList QmlBackend::hosts() const
         m["state"] = chiaki_discovery_host_state_string(host.state);
         m["app"] = host.running_app_name;
         m["titleId"] = host.running_app_titleid;
-        m["registered"] = settings->GetRegisteredHostRegistered(host.GetHostMAC());
+        m["registered"] = registered;
         discovered_nicknames.append(host.host_name);
         out.append(m);
+        if(!host.ps5 && registered)
+            registered_discovered_ps4s++;
     }
     for (const auto &host : settings->GetManualHosts()) {
         QVariantMap m;
@@ -316,6 +331,8 @@ QVariantList QmlBackend::hosts() const
         }
         out.append(m);
     }
+    if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
+        discovered_nicknames.append(QString("Main PS4 Console"));
     for (const auto &host : std::as_const(psn_hosts)) {
         QVariantMap m;
         // Only list PSN remote hosts that aren't discovered locally
@@ -465,6 +482,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         else
             setConnectState(PsnConnectState::DataConnectionStart);
     });
+
+    connect(session, &StreamSession::NicknameReceived, this, &QmlBackend::checkNickname);
 
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
@@ -1069,8 +1088,6 @@ void QmlBackend::updatePsnHosts()
 
     ChiakiHolepunchDeviceInfo *device_info_ps5 = NULL;
     size_t num_devices_ps5 = 0;
-    ChiakiHolepunchDeviceInfo *device_info_ps4 = NULL;
-    size_t num_devices_ps4 = 0;
     ChiakiLog backend_log;
     chiaki_log_init(&backend_log, settings->GetLogLevelMask(), chiaki_log_cb_print, NULL);
     for(int i = 0; i < PSN_DEVICES_TRIES; i++)
@@ -1086,25 +1103,6 @@ void QmlBackend::updatePsnHosts()
             else
             {
                 qCWarning(chiakiGui) << "Failed to get PS5 devices after max tries: " << PSN_DEVICES_TRIES;
-                return;
-            }
-        }
-        break;
-    }
-    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
-    {
-        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &backend_log);
-        if (err != CHIAKI_ERR_SUCCESS)
-        {
-            if(PSN_DEVICES_TRIES - i > 1)
-            {
-                qCWarning(chiakiGui) << "Failed to get PS4 devices trying again";
-                continue;
-            }
-            else
-            {
-                qCWarning(chiakiGui) << "Failed to get PS4 devices after max tries: " << PSN_DEVICES_TRIES;
-                chiaki_holepunch_free_device_list(&device_info_ps5);
                 return;
             }
         }
@@ -1126,25 +1124,20 @@ void QmlBackend::updatePsnHosts()
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
     }
-    for (size_t i = 0; i < num_devices_ps4; i++)
+    if (settings->GetPS4RegisteredHostsRegistered() > 0)
     {
-        ChiakiHolepunchDeviceInfo dev = device_info_ps4[i];
-        if(!dev.remoteplay_enabled)
-            continue;
-        QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
+        QByteArray duid_bytes(32, 'A');
         QString duid = QString(duid_bytes.toHex());
-        QString name = QString(dev.device_name);
-        if(!settings->GetNicknameRegisteredHostRegistered(name))
-            continue;
+        QString name = QString("Main PS4 Console");
         bool ps5 = false;
         PsnHost psn_host(duid, name, ps5);
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
     }
+
     emit hostsChanged();
     qCInfo(chiakiGui) << "Updated PSN hosts";
     chiaki_holepunch_free_device_list(&device_info_ps5);
-    chiaki_holepunch_free_device_list(&device_info_ps4);
 }
 
 void QmlBackend::refreshPsnToken()

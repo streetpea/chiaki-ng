@@ -284,6 +284,7 @@ class StreamSession : public QObject
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 		void DataHolepunchProgress(bool finished);
+		void NicknameReceived(QString nickname);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();
 		void AveragePacketLossChanged();

@@ -1395,6 +1395,9 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_HOLEPUNCH:
 			emit DataHolepunchProgress(event->data_holepunch.finished);
 			break;
+		case CHIAKI_EVENT_NICKNAME_RECEIVED:
+			emit NicknameReceived(event->server_nickname);
+			break;
 		case CHIAKI_EVENT_RUMBLE: {
 			uint8_t left = event->rumble.left;
 			uint8_t right = event->rumble.right;

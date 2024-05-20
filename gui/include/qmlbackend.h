@@ -97,6 +97,8 @@ public:
 
     void checkPsnConnection(const bool &connected);
 
+    void checkNickname(QString nickname);
+
     bool closeRequested();
 
     Q_INVOKABLE void deleteHost(int index);
