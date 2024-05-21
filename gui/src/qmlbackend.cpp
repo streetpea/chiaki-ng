@@ -376,8 +376,11 @@ void QmlBackend::checkPsnConnection(const bool &connected)
     else
     {
         setConnectState(PsnConnectState::ConnectFailed);
-        delete session;
-        session = NULL;
+        if(session)
+        {
+            delete session;
+            session = NULL;
+        }
     }
 }
 

@@ -1097,11 +1097,10 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
         CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
         goto cleanup;
     }
-    CHIAKI_LOGV(session->log, "http_create_session: Received JSON:\n%s", response_data.data);
     json_object *json = json_tokener_parse_ex(tok, response_data.data, response_data.size);
     if (json == NULL)
     {
-        CHIAKI_LOGE(session->log, "http_create_session: Parsing JSON failed");
+        CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Parsing JSON failed");
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup_json_tokener;
     }
@@ -1114,7 +1113,7 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
         || !json_object_is_type(user_profile_url_json, json_type_string));
     if (schema_bad)
     {
-        CHIAKI_LOGE(session->log, "http_create_session: Unexpected JSON schema, could not parse user profile url");
+        CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Unexpected JSON schema, could not parse user profile url");
         CHIAKI_LOGV(session->log, json_object_to_json_string_ext(json, JSON_C_TO_STRING_PRETTY));
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup_json;
