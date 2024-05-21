@@ -1113,7 +1113,6 @@ void QmlBackend::updatePsnHosts()
             else
             {
                 qCWarning(chiakiGui) << "Failed to get PS5 devices after max tries: " << PSN_DEVICES_TRIES;
-                return;
             }
         }
         break;
@@ -1147,7 +1146,8 @@ void QmlBackend::updatePsnHosts()
 
     emit hostsChanged();
     qCInfo(chiakiGui) << "Updated PSN hosts";
-    chiaki_holepunch_free_device_list(&device_info_ps5);
+    if(device_info_ps5)
+        chiaki_holepunch_free_device_list(&device_info_ps5);
 }
 
 void QmlBackend::refreshPsnToken()
