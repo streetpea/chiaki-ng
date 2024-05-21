@@ -1157,7 +1157,6 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
     headers = NULL;
     char url[128] = {0};
     snprintf(url, sizeof(url), wakeup_url_fmt, user_profile_url, session->online_id);
-    CHIAKI_LOGI(session->log, "Formatted wakeup url %s", url);
 
     char envelope_buf[sizeof(session_wakeup_envelope_fmt) * 2] = {0};
 

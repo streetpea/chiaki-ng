@@ -331,8 +331,8 @@ QVariantList QmlBackend::hosts() const
         }
         out.append(m);
     }
-    // if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
-    //     discovered_nicknames.append(QString("Main PS4 Console"));
+    if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
+        discovered_nicknames.append(QString("Main PS4 Console"));
     for (const auto &host : psn_hosts) {
         QVariantMap m;
         // Only list PSN remote hosts that aren't discovered locally
@@ -1113,6 +1113,7 @@ void QmlBackend::updatePsnHosts()
             else
             {
                 qCWarning(chiakiGui) << "Failed to get PS5 devices after max tries: " << PSN_DEVICES_TRIES;
+                num_devices_ps5 = 0;
             }
         }
         break;
@@ -1133,7 +1134,7 @@ void QmlBackend::updatePsnHosts()
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
     }
-    if (settings->GetPS4RegisteredHostsRegistered() > 0 || true)
+    if (settings->GetPS4RegisteredHostsRegistered() > 0)
     {
         QByteArray duid_bytes(32, 'A');
         QString duid = QString(duid_bytes.toHex());
