@@ -83,7 +83,7 @@ static const char device_list_url_fmt[] = "https://web.np.playstation.com/api/cl
 static const char ws_fqdn_api_url[] = "https://mobile-pushcl.np.communication.playstation.net/np/serveraddr?version=2.1&fields=keepAliveStatus&keepAliveStatusType=3";
 static const char session_create_url[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions";
 static const char user_profile_url[] = "https://asm.np.community.playstation.net/asm/v1/apps/me/baseUrls/userProfile";
-static const char wakeup_url_fmt[] = "%s/userProfile/v1/users/%s/remoteConsole/wakeUp?platform=PS4";
+static const char wakeup_url_fmt[] = "%s/v1/users/%s/remoteConsole/wakeUp?platform=PS4";
 static const char session_command_url[] = "https://web.np.playstation.com/api/cloudAssistedNavigation/v2/users/me/commands";
 static const char session_message_url_fmt[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions/%s/sessionMessage";
 static const char delete_messsage_url_fmt[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions/%s/members/me";
@@ -111,9 +111,10 @@ static const char session_wakeup_envelope_fmt[] =
         "{\"clientType\":\"Windows\","
          "\"data1\":\"%s\","                            // 0: 16 byte data1, base64 encoded
          "\"data2\":\"%s\","                            // 1: 16 byte data2, base64 encoded
-         "\"roomId\":\"0\","
-         "\"sessionId\":\"%s\","                        // 2: session identifier (lowercase UUIDv4)
-         "\"dataTypeSuffix\":\"remotePlay\"}}";
+         "\"roomId\": 0,"
+         "\"protocolVer\":\"10.0\","
+         "\"sessionId\":\"%s\"},"                        // 2: session identifier (lowercase UUIDv4)
+         "\"dataTypeSuffix\":\"remotePlay\"}";
 static const char session_message_envelope_fmt[] =
     "{\"channel\":\"remote_play:1\","
      "\"payload\":\"ver=1.0, type=text, body=%s\","  // 0: message body as JSON string
@@ -228,6 +229,7 @@ typedef struct session_t
     chiaki_socket_t sock;
 
     uint64_t account_id;
+    char *online_id;
     char session_id[UUIDV4_STR_LEN];
     char pushctx_id[UUIDV4_STR_LEN];
 
@@ -667,6 +669,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
         return NULL;
     session->ws_thread_should_stop = false;
     session->ws_open = false;
+    session->online_id = NULL;
     session->main_should_stop = false;
     memset(&session->session_id, 0, sizeof(session->session_id));
     memset(&session->console_uid, 0, sizeof(session->console_uid));
@@ -793,6 +796,32 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         {
             session->state |= SESSION_STATE_CREATED;
             CHIAKI_LOGV(session->log, "chiaki_holepunch_session_create: Holepunch session created.");
+            // Get the user's online id
+            json_object *online_id_json = NULL;
+            json_pointer_get(notif->json, "/to/onlineId", &online_id_json);
+            if (!online_id_json || !json_object_is_type(online_id_json, json_type_string))
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: JSON does not contain member with online Id of user");
+                const char *json_str = json_object_to_json_string_ext(notif->json, JSON_C_TO_STRING_PRETTY);
+                CHIAKI_LOGV(session->log, "chiaki_holepunch_session_create: JSON was:\n%s", json_str);
+                err = CHIAKI_ERR_UNKNOWN;
+                break;
+            }
+            const char *online_id = json_object_get_string(online_id_json);
+            if (!online_id_json)
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: could not extra PSN online id string.");
+                err = CHIAKI_ERR_UNKNOWN;
+                goto cleanup_thread;
+            }
+            session->online_id = malloc((strlen(online_id) + 1) * sizeof(char));
+            if(!session->online_id)
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: could not allocate space for PSN online id string.");
+                err = CHIAKI_ERR_MEMORY;
+                goto cleanup_thread;
+            }
+            strcpy(session->online_id, online_id);
         }
         else if (notif->type == NOTIFICATION_TYPE_MEMBER_CREATED)
         {
@@ -1061,7 +1090,6 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
         }
         goto cleanup;
     }
-    return CHIAKI_ERR_DISCONNECTED;
 
     json_tokener *tok = json_tokener_new();
     if(!tok)
@@ -1079,18 +1107,14 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
     }
 
     json_object *user_profile_url_json = NULL;
-    json_object *online_id_json = NULL;
-    json_pointer_get(json, "/remotePlaySessions/0/members/0/accountId", &user_profile_url_json);
-    json_pointer_get(json, "/remotePlaySessions/0/members/0/accountId", &online_id_json);
+    json_pointer_get(json, "/url", &user_profile_url_json);
 
     bool schema_bad =
         (user_profile_url_json == NULL
-        || !json_object_is_type(user_profile_url_json, json_type_string)
-        || online_id_json == NULL
-        || !json_object_is_type(online_id_json, json_type_string));
+        || !json_object_is_type(user_profile_url_json, json_type_string));
     if (schema_bad)
     {
-        CHIAKI_LOGE(session->log, "http_create_session: Unexpected JSON schema, could not parse user profile url and online Id.");
+        CHIAKI_LOGE(session->log, "http_create_session: Unexpected JSON schema, could not parse user profile url");
         CHIAKI_LOGV(session->log, json_object_to_json_string_ext(json, JSON_C_TO_STRING_PRETTY));
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup_json;
@@ -1104,28 +1128,27 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
         goto cleanup_json;
     }
 
-    const char *online_id = json_object_get_string(online_id_json);
-    if (!online_id)
-    {
-        CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Could not extract online id string.");
-        err = CHIAKI_ERR_UNKNOWN;
-        goto cleanup_json;
-    }
     char host_url_starter[128];
     char host_url[128];
+    memcpy(host_url, user_profile_url, strlen(user_profile_url) + 1);
     // Get just the base url
     remove_substring(host_url, "https://");
     remove_substring(host_url, "http://");
+    strcpy(host_url_starter, host_url);
     char *ptr = strtok(host_url_starter, "/");
-    strcpy(host_url, ptr);
+    if(!(ptr == (host_url_starter + strlen(host_url_starter))))
+        strcpy(host_url, ptr);
     memset(host_url_starter, 0, 128);
     strcpy(host_url_starter, host_url);
     ptr = strtok(host_url_starter, "?");
-    strcpy(host_url, ptr);
+    // if string found, copy part before string found, else leave string as-is
+    if(!(ptr == (host_url_starter + strlen(host_url_starter))))
+        strcpy(host_url, ptr);
     memset(host_url_starter, 0, 128);
     strcpy(host_url_starter, host_url);
     ptr = strtok(host_url_starter, "#");
-    strcpy(host_url, ptr);
+    if(!(ptr == (host_url_starter + strlen(host_url_starter))))
+        strcpy(host_url, ptr);
 
     curl_easy_cleanup(curl);
     free(response_data.data);
@@ -1133,7 +1156,9 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
     response_data.size = 0;
     headers = NULL;
     char url[128] = {0};
-    snprintf(url, sizeof(url), wakeup_url_fmt, user_profile_url, online_id);
+    snprintf(url, sizeof(url), wakeup_url_fmt, user_profile_url, session->online_id);
+    CHIAKI_LOGI(session->log, "Formatted wakeup url %s", url);
+
     char envelope_buf[sizeof(session_wakeup_envelope_fmt) * 2] = {0};
 
     char data1_base64[25] = {0};
@@ -1143,7 +1168,7 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
     snprintf(envelope_buf, sizeof(envelope_buf), session_wakeup_envelope_fmt,
         data1_base64,
         data2_base64,
-        online_id);
+        session->session_id);
 
     curl = curl_easy_init();
     if(!curl)
@@ -1154,7 +1179,7 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
         return CHIAKI_ERR_MEMORY;
     }
 
-    char host_url_string[128];
+    char host_url_string[134];
     snprintf(host_url_string, sizeof(host_url_string), "Host: %s", host_url);
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, host_url_string);
@@ -1164,7 +1189,7 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
 
     curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_URL, session_command_url);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, envelope_buf);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
@@ -1517,6 +1542,8 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     }
     if (session->oauth_header)
         free(session->oauth_header);
+    if (session->online_id)
+        free(session->online_id);
     if (session->curl_share)
         curl_share_cleanup(session->curl_share);
     if (session->ws_fqdn)
@@ -3137,6 +3164,7 @@ static ChiakiErrorCode check_candidates(
 
         struct sockaddr recv_address;
         char recv_address_string[INET6_ADDRSTRLEN];
+        uint16_t recv_address_port = 0;
         int i = 0;
         CHIAKI_SSIZET_TYPE response_len = recvfrom(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) response_buf, sizeof(response_buf), 0, &recv_address, &recv_len);
         if (response_len < 0)
@@ -3151,6 +3179,7 @@ static ChiakiErrorCode check_candidates(
                 CHIAKI_LOGE(session->log, "check_candidate: Couldn't retrieve address from recv address!");
                 continue;
             }
+            recv_address_port = ntohs(((struct sockaddr_in *)&recv_address)->sin_port);
         }
         else if (recv_address.sa_family == AF_INET6)
         {
@@ -3159,6 +3188,7 @@ static ChiakiErrorCode check_candidates(
                 CHIAKI_LOGE(session->log, "check_candidate: Couldn't retrieve address from recv address!");
                 continue;
             }
+            recv_address_port = ntohs(((struct sockaddr_in6 *)&recv_address)->sin6_port);
         }
         else
         {
@@ -3169,7 +3199,7 @@ static ChiakiErrorCode check_candidates(
         for (; i < num_candidates + extra_addresses_used; i++)
         {
             candidate = &candidates[i];
-            if(strcmp(candidate->addr, recv_address_string) == 0)
+            if((strcmp(candidate->addr, recv_address_string) == 0) && (candidate->port == recv_address_port))
             {
                 existing_candidate = true;
                 break;
@@ -3191,12 +3221,12 @@ static ChiakiErrorCode check_candidates(
                 candidate->type = CANDIDATE_TYPE_DERIVED;
                 if(recv_address.sa_family == AF_INET)
                 {
-                    candidate->port = ntohs(((struct sockaddr_in *)&recv_address)->sin_port);
+                    candidate->port = recv_address_port;
                     memcpy(candidate->addr_mapped, "0.0.0.0", 8);
                 }
                 else if(recv_address.sa_family == AF_INET6)
                 {
-                    candidate->port = ntohs(((struct sockaddr_in6 *)&recv_address)->sin6_port);
+                    candidate->port = recv_address_port;
                     memcpy(candidate->addr_mapped, "0:0:0:0:0:0:0:0", 16);
                 }
                 else

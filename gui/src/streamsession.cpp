@@ -1606,7 +1606,8 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 		return false;
 	}
 	CHIAKI_LOGI(log, ">> Created session");
-	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
+	if(ps5)
+		CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
 	size_t duid_len = duid.size();
 	size_t duid_bytes_len = duid_len / 2;
 	size_t duid_bytes_lenr = duid_bytes_len;

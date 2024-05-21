@@ -331,9 +331,9 @@ QVariantList QmlBackend::hosts() const
         }
         out.append(m);
     }
-    if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
-        discovered_nicknames.append(QString("Main PS4 Console"));
-    for (const auto &host : std::as_const(psn_hosts)) {
+    // if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
+    //     discovered_nicknames.append(QString("Main PS4 Console"));
+    for (const auto &host : psn_hosts) {
         QVariantMap m;
         // Only list PSN remote hosts that aren't discovered locally
         bool discovered = false;
@@ -823,16 +823,26 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
     if (index < psn_hosts.count())
     {
         DisplayServer server;
+
         QMapIterator<QString, PsnHost> i(psn_hosts);
         size_t j = 0;
         while (i.hasNext())
         {
             i.next();
+            PsnHost psn_host = i.value();
+            bool hidden = false;
+            for (const auto &host : discovery_manager.GetHosts())
+            {
+                if(host.host_name == psn_host.GetName())
+                    hidden = true;
+            }
+            if(hidden)
+                continue;
             if(j == index)
             {
                 server.valid = true;
                 server.discovered = false;
-                server.psn_host = i.value();
+                server.psn_host = psn_host;
                 server.duid = i.key();
                 server.registered = true;
                 server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
@@ -1124,7 +1134,7 @@ void QmlBackend::updatePsnHosts()
 	    if(!psn_hosts.contains(duid))
 		    psn_hosts.insert(duid, psn_host);
     }
-    if (settings->GetPS4RegisteredHostsRegistered() > 0)
+    if (settings->GetPS4RegisteredHostsRegistered() > 0 || true)
     {
         QByteArray duid_bytes(32, 'A');
         QString duid = QString(duid_bytes.toHex());
