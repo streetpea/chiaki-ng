@@ -1593,19 +1593,19 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 		CHIAKI_LOGE(log, "!! Failed to initialize session");
 		return CHIAKI_ERR_MEMORY;
 	}
-	return CHIAKI_ERR_SUCCESS;
+	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to create session");
+		return err;
+	}
+	CHIAKI_LOGI(log, ">> Created session");
+	return err;
 }
 
 bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 {
 	ChiakiLog *log = GetChiakiLog();
-	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
-	if (err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "!! Failed to create session");
-		return false;
-	}
-	CHIAKI_LOGI(log, ">> Created session");
 	if(ps5)
 		CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
 	size_t duid_len = duid.size();
@@ -1620,7 +1620,7 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 		return false;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-	err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
+	ChiakiErrorCode err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
