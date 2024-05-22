@@ -453,8 +453,7 @@ static void *ctrl_thread_func(void *user)
 						break;
 					case 0xC0:
 						CHIAKI_LOGI(ctrl->session->log, "Received rudp finish message, stopping ctrl.");
-						ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED);
-						//chiaki_ctrl_stop(ctrl);
+						ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 						break;
 					default:
 						CHIAKI_LOGI(ctrl->session->log, "Received message of unknown type: 0x%04x", message.type);
