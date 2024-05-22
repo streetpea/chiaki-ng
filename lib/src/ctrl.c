@@ -635,25 +635,35 @@ CHIAKI_EXPORT ChiakiErrorCode ctrl_message_toggle_microphone(ChiakiCtrl *ctrl, b
 
 CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *ctrl)
 {
-	size_t fallback_session_id_size = sizeof(uint64_t) + 64;
-	char fallback_session_id[fallback_session_id_size];
-	uint64_t time_seconds = chiaki_time_now_monotonic_ms() / 1000;
-	sprintf(fallback_session_id, PRId64, time_seconds);
-	ChiakiErrorCode err = chiaki_random_bytes_crypt((uint8_t *)(fallback_session_id + sizeof(uint64_t)), 64);
+	char fallback_session_id[80];
+	int64_t time_seconds = chiaki_time_now_monotonic_ms() / 1000;
+	int len = snprintf(fallback_session_id, 16, "%"PRId64, time_seconds);
+	if(len < 0)
+	{
+		CHIAKI_LOGI(ctrl->session->log, "Error writing time to fallback session id");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	CHIAKI_LOGI(ctrl->session->log, "Seconds ARE: %s with length %d", fallback_session_id, len);
+	uint8_t rand_bytes[48];
+	ChiakiErrorCode err = chiaki_random_bytes_crypt(rand_bytes, 48);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(ctrl->session->log, "Couldn't create fallback session Id.");
+		CHIAKI_LOGE(ctrl->session->log, "Couldn't generate random bytes to use for fallback session Id with error: %s.", chiaki_error_string(err));
 		return err;
 	}
-
+	err = chiaki_base64_encode(rand_bytes, sizeof(rand_bytes), fallback_session_id + len, 65);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Couldn't base64 encode rand_bytes for fallback session Id with error: %s", chiaki_error_string(err));
+		return err;
+	}
 	if(ctrl->session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGW(ctrl->session->log, "Aleady received session Id don't need fallback.");
 		return err;
 	}
-	memcpy(ctrl->session->session_id, fallback_session_id, fallback_session_id_size);
-	ctrl->session->session_id[fallback_session_id_size] = '\0';
-	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id: %s", ctrl->session->session_id);
+	memcpy(ctrl->session->session_id, fallback_session_id, sizeof(fallback_session_id));
+	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id %s", fallback_session_id);
 	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
