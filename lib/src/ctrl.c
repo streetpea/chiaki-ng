@@ -458,7 +458,16 @@ static void *ctrl_thread_func(void *user)
 						break;
 					default:
 						CHIAKI_LOGI(ctrl->session->log, "Received message of unknown type: 0x%04x", message.type);
-						// chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
+						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
+						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
+						// we already checked before if data size was at least 4
+						int offset2 = 4;
+						uint32_t ctrl_payload_size2 = ntohl(*(uint32_t*)(message.data + offset2));
+						if((message.data_size - offset2 - 8) == ctrl_payload_size2)
+						{
+							memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset2, message.data_size - offset2);
+							ctrl->recv_buf_size += message.data_size - offset2;
+						}
 						break;
 				}
 				if(message.subMessage)
