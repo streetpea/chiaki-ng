@@ -1207,6 +1207,8 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
             CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with HTTP code %ld.", http_code);
             CHIAKI_LOGV(session->log, "Request Body: %s.", envelope_buf);
             CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            if(http_code == 404)
+                CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Please make sure PS4 is registered to your account and on or in rest mode.");
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
             CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with CURL error %d.", res);
