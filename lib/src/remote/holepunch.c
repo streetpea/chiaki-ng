@@ -888,6 +888,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         return CHIAKI_ERR_UNKNOWN;
     }
     ChiakiErrorCode err;
+    session->console_type = console_type;
     CHIAKI_LOGV(session->log, "chiaki_holepunch_session_start: Starting holepunch session %s for the Main PS4 console registered to your PlayStation account", session->session_id);
     if(console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4)
     {
@@ -903,7 +904,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         char duid_str[65];
         bytes_to_hex(device_uid, 32, duid_str, sizeof(duid_str));
         memcpy(session->console_uid, device_uid, sizeof(session->console_uid));
-        session->console_type = console_type;
         err = http_start_session(session);
         if (err != CHIAKI_ERR_SUCCESS)
         {
