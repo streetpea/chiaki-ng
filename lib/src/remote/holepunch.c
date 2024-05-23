@@ -2157,14 +2157,14 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         return CHIAKI_ERR_MEMORY;
     }
 
-    Candidate *candidate_local = &msg.conn_request->candidates[1];
+    Candidate *candidate_local = &msg.conn_request->candidates[3];
     candidate_local->type = CANDIDATE_TYPE_LOCAL;
     memcpy(candidate_local->addr_mapped, "0.0.0.0", 8);
     candidate_local->port = local_port;
     candidate_local->port_mapped = 0;
 
     bool have_addr = false;
-    Candidate *candidate_remote = &msg.conn_request->candidates[0];
+    Candidate *candidate_remote = &msg.conn_request->candidates[2];
     candidate_remote->type = CANDIDATE_TYPE_STATIC;
     UPNPGatewayInfo upnp_gw;
     upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
@@ -2197,7 +2197,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     }
     memcpy(session->client_local_ip, candidate_local->addr, sizeof(candidate_local->addr));
     if (!have_addr) {
-        Candidate *candidate_stun = &msg.conn_request->candidates[2];
+        // Move current candidates behind STUN candidates so when the console reaches out to our STUN candidate it will be using the correct port if behind symmetric NAT
+        Candidate *candidate_stun = &msg.conn_request->candidates[0];
         candidate_stun->type = CANDIDATE_TYPE_STUN;
         memcpy(candidate_stun->addr_mapped, "0.0.0.0", 8);
         candidate_stun->port_mapped = 0;
@@ -2205,12 +2206,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         if(have_addr)
         {
             memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
-            msg.conn_request->num_candidates = 3;
             if(session->stun_allocation_increment != 0)
             {
                 candidate_stun->port += session->stun_allocation_increment;
                 // Setup extra stun candidate in case there was an allocation in between the stun request and our allocation
-                Candidate *candidate_stun2 = &msg.conn_request->candidates[3];
+                Candidate *candidate_stun2 = &msg.conn_request->candidates[1];
                 candidate_stun2->type = CANDIDATE_TYPE_STUN;
                 memcpy(candidate_stun2->addr_mapped, "0.0.0.0", 8);
                 candidate_stun2->port_mapped = 0;
@@ -2218,7 +2218,17 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 candidate_stun2->port = candidate_stun->port + session->stun_allocation_increment;
                 msg.conn_request->num_candidates = 4;
             }
+            else
+            {
+                msg.conn_request->num_candidates = 3;
+                memcpy(&msg.conn_request->candidates[1], &msg.conn_request->candidates[2], sizeof(Candidate));
+                memcpy(&msg.conn_request->candidates[2], &msg.conn_request->candidates[3], sizeof(Candidate));
+                candidate_remote = &msg.conn_request->candidates[1];
+                candidate_local = &msg.conn_request->candidates[2];
+            }
         }
+        else
+            CHIAKI_LOGE(session->log, "send_offer: Could not get remote address from STUN");
         if(CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
         {
             CHIAKI_LOGE(session->log, "STUN caused socket to close due to error");
@@ -2238,6 +2248,13 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup;
         }
+    }
+    else
+    {
+        // If no STUN address the static and local candidates are our first candidates
+        memcpy(msg.conn_request->candidates, msg.conn_request->candidates + 2 * sizeof(Candidate), 2 * sizeof(Candidate));
+        candidate_remote = &msg.conn_request->candidates[0];
+        candidate_local = &msg.conn_request->candidates[1];
     }
     if (!have_addr) {
         CHIAKI_LOGE(session->log, "send_offer: Could not get remote address");
