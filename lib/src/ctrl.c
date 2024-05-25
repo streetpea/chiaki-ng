@@ -436,15 +436,12 @@ static void *ctrl_thread_func(void *user)
 						// ctrl message header is 8 bytes
 						if((message.data_size - offset) < 8)
 							break;
-						else
+						// check if message is ctrl message by making sure the payload size (size of message - 8 byte header is correct)
+						uint32_t ctrl_payload_size = ntohl(*(uint32_t*)(message.data + offset));
+						if((message.data_size - offset - 8) == ctrl_payload_size)
 						{
-							// check if message is ctrl message by making sure the payload size (size of message - 8 byte header is correct)
-							uint32_t ctrl_payload_size = ntohl(*(uint32_t*)(message.data + offset));
-							if((message.data_size - offset - 8) == ctrl_payload_size)
-							{
-								memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
-								ctrl->recv_buf_size += message.data_size - offset;
-							}
+							memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
+							ctrl->recv_buf_size += message.data_size - offset;
 						}
 						break;
 					case 0x24:
@@ -461,6 +458,9 @@ static void *ctrl_thread_func(void *user)
 						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
 						// we already checked before if data size was at least 4
 						int offset2 = 4;
+						// ctrl message header is 8 bytes
+						if((message.data_size - offset2) < 8)
+							break;
 						uint32_t ctrl_payload_size2 = ntohl(*(uint32_t*)(message.data + offset2));
 						if((message.data_size - offset2 - 8) == ctrl_payload_size2)
 						{
