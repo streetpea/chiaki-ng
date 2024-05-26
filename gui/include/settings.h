@@ -65,6 +65,7 @@ class Settings : public QObject
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
 		QMap<QString, RegisteredHost> nickname_registered_hosts;
+		size_t ps4s_registered;
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
@@ -199,6 +200,7 @@ class Settings : public QObject
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
 		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
 		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
+		size_t GetPS4RegisteredHostsRegistered() const { return ps4s_registered; }
 
 		QList<ManualHost> GetManualHosts() const 					{ return manual_hosts.values(); }
 		int SetManualHost(const ManualHost &host);

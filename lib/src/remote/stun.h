@@ -131,27 +131,27 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                 if (!stun_get_external_address_from_server(log, &passed_servers[i], addr1, &port1, sock))
                     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
                 else
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
             }
             else if(port2 == 0)
             {
                 if (!stun_get_external_address_from_server(log, &passed_servers[i], addr2, &port2, sock))
                     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
                 else
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
             }
             else if(port3 == 0)
             {
                 if (!stun_get_external_address_from_server(log, &passed_servers[i], addr3, &port3, sock))
                     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
                 else
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
             }
             else if(port4 == 0)
             {
                 if (stun_get_external_address_from_server(log, &passed_servers[i], addr4, &port4, sock))
                 {
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
                     break;
                 }
                 else
@@ -176,27 +176,27 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                 if (!stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr1, &port1, sock))
                     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
                 else
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
             }
             else if(port2 == 0)
             {
                 if (!stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr2, &port2, sock))
                     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
                 else
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
             }
             else if(port3 == 0)
             {
                 if (!stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr3, &port3, sock))
                     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
                 else
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
             }
             else if(port4 == 0)
             {
                 if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr4, &port4, sock))
                 {
-                    CHIAKI_LOGI(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
                     break;
                 }
                 else

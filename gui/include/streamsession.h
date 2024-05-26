@@ -258,7 +258,7 @@ class StreamSession : public QObject
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		bool GetCantDisplay()	{ return cant_display; }
-		bool ConnectPsnConnection(QString duid, bool ps5);
+		ChiakiErrorCode ConnectPsnConnection(QString duid, bool ps5);
 		void CancelPsnConnection(bool stop_thread);
 
 		ChiakiLog *GetChiakiLog()				{ return log.GetChiakiLog(); }
@@ -284,6 +284,7 @@ class StreamSession : public QObject
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 		void DataHolepunchProgress(bool finished);
+		void NicknameReceived(QString nickname);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();
 		void AveragePacketLossChanged();

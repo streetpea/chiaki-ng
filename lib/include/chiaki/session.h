@@ -147,6 +147,7 @@ typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
 	CHIAKI_EVENT_HOLEPUNCH,
+	CHIAKI_EVENT_NICKNAME_RECEIVED,
 	CHIAKI_EVENT_KEYBOARD_OPEN,
 	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
 	CHIAKI_EVENT_KEYBOARD_REMOTE_CLOSE,
@@ -172,6 +173,7 @@ typedef struct chiaki_event_t
 		{
 			bool finished; // false when punching hole, true when finished
 		} data_holepunch;
+		char server_nickname[0x20];
 	};
 } ChiakiEvent;
 

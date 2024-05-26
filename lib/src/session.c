@@ -1016,6 +1016,13 @@ static void regist_cb(ChiakiRegistEvent *event, void *user)
 			CHIAKI_LOGI(session->log, "%s successfully registered for Remote Play", event->registered_host->server_nickname);
 			memcpy(session->connect_info.morning, event->registered_host->rp_key, sizeof(session->connect_info.morning));
 			memcpy(session->connect_info.regist_key, event->registered_host->rp_regist_key, sizeof(session->connect_info.regist_key));
+			if(!session->connect_info.ps5)
+			{
+				ChiakiEvent event_start = { 0 };
+				event_start.type = CHIAKI_EVENT_NICKNAME_RECEIVED;
+				memcpy(event_start.server_nickname, event->registered_host->server_nickname, sizeof(event->registered_host->server_nickname));
+				chiaki_session_send_event(session, &event_start);
+			}
 			chiaki_mutex_lock(&session->state_mutex); 
 			session->psn_regist_succeeded = true;
 			chiaki_mutex_unlock(&session->state_mutex);
