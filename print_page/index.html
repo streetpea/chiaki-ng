@@ -1780,10 +1780,11 @@
 <li>Console must be updated to the latest firmware</li>
 <li>Console must be registered locally prior to using remote connection via PSN</li>
 <li>To see the remote connection via PSN tab for the given console, the console must not be available locally (otherwise you would want to use a local connection as it is faster and more efficient)</li>
+<li>Remote Connection via PSN for <strong>PS4</strong> only works with the main registered console for your PSN account (<em>Note: this is a limitation imposed by Sony not a limitation specific to Chiaki4deck</em>)</li>
 </ol>
 <div class="admonition warning">
 <p class="admonition-title">Not All Networks Supported</p>
-<p>Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently, you can reach the dev team via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a> in order to determine if the failure is due to your network or an issue with Chiaki4deck that needs fixing. If you are able to connect over the same wireless connection with the official remote play app, please open an issue on the Chiaki4deck Github.</p>
+<p>Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently with the message <em>Couldn't contact PlayStation over established connection, likely unsupported network type</em>, your network type is currently unsupported. If you are able to connect over the same wireless connection with the official remote play app and are willing to help the Chiaki4deck developers improve Chiaki4deck to support your network type please reach out to the dev team via <a href="https://www.reddit.com/message/compose/?to=Street_Pea_6693" rel="noopener" target="_blank">Reddit</a> or <a href="mailto:streetpea@proton.me">email</a>. If you are failing with <em>Connection over PSN failed closing ...</em>, please either add your logs to an appropriate existing issue or open a new issue on the Chiaki4deck Github.</p>
 </div>
 <h3 id="setup-remoteconnection-setup">Setup<a class="headerlink" href="#setup-remoteconnection-setup" title="Permanent link">&para;</a></h3>
 <ol>
@@ -3266,6 +3267,12 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-171">1.7.1<a class="headerlink" href="#updates-releases-171" title="Permanent link">&para;</a></h3>
+<p>Improves remote connection via PSN + adds PS4 support</p>
+<ul>
+<li>remote connection via PSN now supports PS4 consoles</li>
+<li>remote connection via PSN now supports more network types</li>
+</ul>
 <h3 id="updates-releases-170">1.7.0<a class="headerlink" href="#updates-releases-170" title="Permanent link">&para;</a></h3>
 <p>Enables remote connection via PSN</p>
 <ul>
