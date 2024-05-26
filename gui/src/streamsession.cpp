@@ -1395,6 +1395,9 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_HOLEPUNCH:
 			emit DataHolepunchProgress(event->data_holepunch.finished);
 			break;
+		case CHIAKI_EVENT_NICKNAME_RECEIVED:
+			emit NicknameReceived(event->server_nickname);
+			break;
 		case CHIAKI_EVENT_RUMBLE: {
 			uint8_t left = event->rumble.left;
 			uint8_t right = event->rumble.right;
@@ -1590,20 +1593,21 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 		CHIAKI_LOGE(log, "!! Failed to initialize session");
 		return CHIAKI_ERR_MEMORY;
 	}
-	return CHIAKI_ERR_SUCCESS;
-}
-
-bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
-{
-	ChiakiLog *log = GetChiakiLog();
 	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create session");
-		return false;
+		return err;
 	}
 	CHIAKI_LOGI(log, ">> Created session");
-	CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
+	return err;
+}
+
+ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
+{
+	ChiakiLog *log = GetChiakiLog();
+	if(ps5)
+		CHIAKI_LOGI(log, "Duid: %s", duid.toUtf8().constData());
 	size_t duid_len = duid.size();
 	size_t duid_bytes_len = duid_len / 2;
 	size_t duid_bytes_lenr = duid_bytes_len;
@@ -1613,14 +1617,14 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	if(duid_bytes_len != duid_bytes_lenr)
 	{
 		CHIAKI_LOGE(log, "Couldn't convert duid string to bytes got size mismatch");
-		return false;
+		return CHIAKI_ERR_INVALID_DATA;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-	err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
+	ChiakiErrorCode err = chiaki_holepunch_session_start(holepunch_session, duid_bytes, console_type);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
-		return false;
+		return err;
 	}
 	CHIAKI_LOGI(log, ">> Started session");
 
@@ -1628,10 +1632,10 @@ bool StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
-		return false;
+		return err;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
-	return true;
+	return err;
 }
 
 void StreamSession::CancelPsnConnection(bool stop_thread)

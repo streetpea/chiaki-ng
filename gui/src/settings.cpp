@@ -422,6 +422,8 @@ void Settings::SetSuspendAction(SuspendAction action)
 void Settings::LoadRegisteredHosts()
 {
 	registered_hosts.clear();
+	nickname_registered_hosts.clear();
+	ps4s_registered = 0;
 
 	int count = settings.beginReadArray("registered_hosts");
 	for(int i=0; i<count; i++)
@@ -430,6 +432,8 @@ void Settings::LoadRegisteredHosts()
 		RegisteredHost host = RegisteredHost::LoadFromSettings(&settings);
 		registered_hosts[host.GetServerMAC()] = host;
 		nickname_registered_hosts[host.GetServerNickname()] = host;
+		if(!chiaki_target_is_ps5(host.GetTarget()))
+			ps4s_registered++;
 	}
 	settings.endArray();
 }

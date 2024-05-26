@@ -80,7 +80,6 @@ jobs:
 
       - name: Build Chiaki4deck
         run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
           cmake --build build --config Release --clean-first --target chiaki
           
       - name: Deploy qt6-base:p
@@ -91,9 +90,9 @@ jobs:
           cp /mingw64/bin/libcrypto-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libssl-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/SDL2.dll Chiaki4deck-Win/
-          cp /usr/local/bin/avcodec-*.dll Chiaki4deck-Win/
-          cp /usr/local/bin/avutil-*.dll Chiaki4deck-Win/
-          cp /usr/local/bin/avformat-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/avcodec-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/avutil-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/avformat-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libgcc_s_seh-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libopus-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libfftw3-*.dll Chiaki4deck-Win/

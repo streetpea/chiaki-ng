@@ -175,6 +175,16 @@ Rectangle {
                         infoLabel.text = qsTr("Connection over PSN failed closing ...")
                     failTimer.running = true
                     break
+                case Chiaki.PsnConnectState.ConnectFailedStart:
+                    if(!cancelling)
+                        infoLabel.text = qsTr("PSN couldn't establish connection with PlayStation. Please try again ...")
+                    failTimer.running = true
+                    break
+                case Chiaki.PsnConnectState.ConnectFailedConsoleUnreachable:
+                    if(!cancelling)
+                        infoLabel.text = qsTr("Couldn't contact PlayStation over established connection, likely unsupported network type")
+                    failTimer.running = true
+                    break
                 case Chiaki.PsnConnectState.WaitingForInternet:
                     infoLabel.text = qsTr("Establishing Internet Connection to PSN...")
                     break

@@ -110,14 +110,14 @@ modules:
       - --enable-hwaccel=hevc_vulkan
     sources:
       - type: archive
-        url: https://ffmpeg.org/releases/ffmpeg-7.0.tar.xz
-        sha256: 4426a94dd2c814945456600c8adfc402bee65ec14a70e8c531ec9a2cd651da7b
+        url: https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz
+        sha256: 488c76e57dd9b3bee901f71d5c95eaf1db4a5a31fe46a28654e837144207c270
       - type: patch
         path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
       - type: patch
         path: 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
       - type: patch
-        path: 0001-vulkan-ignore-frames-without-hw-context
+        path: 0001-vulkan-ignore-frames-without-hw-context.patch
 
   - name: python3-google
     buildsystem: simple

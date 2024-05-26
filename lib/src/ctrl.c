@@ -436,15 +436,12 @@ static void *ctrl_thread_func(void *user)
 						// ctrl message header is 8 bytes
 						if((message.data_size - offset) < 8)
 							break;
-						else
+						// check if message is ctrl message by making sure the payload size (size of message - 8 byte header is correct)
+						uint32_t ctrl_payload_size = ntohl(*(uint32_t*)(message.data + offset));
+						if((message.data_size - offset - 8) == ctrl_payload_size)
 						{
-							// check if message is ctrl message by making sure the payload size (size of message - 8 byte header is correct)
-							uint32_t ctrl_payload_size = ntohl(*(uint32_t*)(message.data + offset));
-							if((message.data_size - offset - 8) == ctrl_payload_size)
-							{
-								memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
-								ctrl->recv_buf_size += message.data_size - offset;
-							}
+							memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset, message.data_size - offset);
+							ctrl->recv_buf_size += message.data_size - offset;
 						}
 						break;
 					case 0x24:
@@ -453,12 +450,23 @@ static void *ctrl_thread_func(void *user)
 						break;
 					case 0xC0:
 						CHIAKI_LOGI(ctrl->session->log, "Received rudp finish message, stopping ctrl.");
-						ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_CONNECT_FAILED);
-						//chiaki_ctrl_stop(ctrl);
+						ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 						break;
 					default:
 						CHIAKI_LOGI(ctrl->session->log, "Received message of unknown type: 0x%04x", message.type);
-						// chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
+						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
+						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
+						// we already checked before if data size was at least 4
+						int offset2 = 4;
+						// ctrl message header is 8 bytes
+						if((message.data_size - offset2) < 8)
+							break;
+						uint32_t ctrl_payload_size2 = ntohl(*(uint32_t*)(message.data + offset2));
+						if((message.data_size - offset2 - 8) == ctrl_payload_size2)
+						{
+							memcpy(ctrl->recv_buf + ctrl->recv_buf_size, message.data + offset2, message.data_size - offset2);
+							ctrl->recv_buf_size += message.data_size - offset2;
+						}
 						break;
 				}
 				if(message.subMessage)
@@ -627,25 +635,35 @@ CHIAKI_EXPORT ChiakiErrorCode ctrl_message_toggle_microphone(ChiakiCtrl *ctrl, b
 
 CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *ctrl)
 {
-	size_t fallback_session_id_size = sizeof(uint64_t) + 64;
-	char fallback_session_id[fallback_session_id_size];
-	uint64_t time_seconds = chiaki_time_now_monotonic_ms() / 1000;
-	sprintf(fallback_session_id, PRId64, time_seconds);
-	ChiakiErrorCode err = chiaki_random_bytes_crypt((uint8_t *)(fallback_session_id + sizeof(uint64_t)), 64);
+	char fallback_session_id[80];
+	int64_t time_seconds = chiaki_time_now_monotonic_ms() / 1000;
+	int len = snprintf(fallback_session_id, 16, "%"PRId64, time_seconds);
+	if(len < 0)
+	{
+		CHIAKI_LOGI(ctrl->session->log, "Error writing time to fallback session id");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+	CHIAKI_LOGI(ctrl->session->log, "Seconds ARE: %s with length %d", fallback_session_id, len);
+	uint8_t rand_bytes[48];
+	ChiakiErrorCode err = chiaki_random_bytes_crypt(rand_bytes, 48);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_LOGE(ctrl->session->log, "Couldn't create fallback session Id.");
+		CHIAKI_LOGE(ctrl->session->log, "Couldn't generate random bytes to use for fallback session Id with error: %s.", chiaki_error_string(err));
 		return err;
 	}
-
+	err = chiaki_base64_encode(rand_bytes, sizeof(rand_bytes), fallback_session_id + len, 65);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Couldn't base64 encode rand_bytes for fallback session Id with error: %s", chiaki_error_string(err));
+		return err;
+	}
 	if(ctrl->session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGW(ctrl->session->log, "Aleady received session Id don't need fallback.");
 		return err;
 	}
-	memcpy(ctrl->session->session_id, fallback_session_id, fallback_session_id_size);
-	ctrl->session->session_id[fallback_session_id_size] = '\0';
-	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id: %s", ctrl->session->session_id);
+	memcpy(ctrl->session->session_id, fallback_session_id, sizeof(fallback_session_id));
+	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id %s", fallback_session_id);
 	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);

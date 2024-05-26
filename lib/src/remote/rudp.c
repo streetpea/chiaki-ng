@@ -27,6 +27,7 @@ static uint16_t get_then_increase_counter(RudpInstance *rudp);
 static ChiakiErrorCode chiaki_rudp_message_parse(uint8_t *serialized_msg, size_t msg_size, RudpMessage *message);
 static void rudp_message_serialize(RudpMessage *message, uint8_t *serialized_msg, size_t *msg_size);
 static void print_rudp_message_type(RudpInstance *rudp, RudpPacketType type);
+static bool assign_submessage_to_message(RudpMessage *message);
 
 
 CHIAKI_EXPORT RudpInstance *chiaki_rudp_init(chiaki_socket_t *sock, ChiakiLog *log)
@@ -463,49 +464,68 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_recv(RudpInstance *rudp, RudpMess
             continue;
         if(err != CHIAKI_ERR_SUCCESS)
             return err;
-        switch(recv_type)
+        bool found = true;
+        while(true)
         {
-            case INIT_RESPONSE:
-                if(message->subtype != 0xD0)
-                {
-                    CHIAKI_LOGE(rudp->log, "Expected INIT RESPONSE with subtype 0xD0.\nReceived unexpected RUDP message ... retrying");
-                    chiaki_rudp_print_message(rudp, message);
+            switch(recv_type)
+            {
+                case INIT_RESPONSE:
+                    if(message->subtype != 0xD0)
+                    {
+                        if(assign_submessage_to_message(message))
+                            continue;
+                        CHIAKI_LOGE(rudp->log, "Expected INIT RESPONSE with subtype 0xD0.\nReceived unexpected RUDP message ... retrying");
+                        chiaki_rudp_print_message(rudp, message);
+                        chiaki_rudp_message_pointers_free(message);
+                        found = false;
+                        break;
+                    }
+                    break;
+                case COOKIE_RESPONSE:
+                    if(message->subtype != 0xA0)
+                    {
+                        if(assign_submessage_to_message(message))
+                            continue;
+                        CHIAKI_LOGE(rudp->log, "Expected COOKIE RESPONSE with subtype 0xA0.\nReceived unexpected RUDP message ... retrying");
+                        chiaki_rudp_print_message(rudp, message);
+                        chiaki_rudp_message_pointers_free(message);
+                        found = false;
+                        break;
+                    }
+                    break;
+                case CTRL_MESSAGE:
+                    if((message->subtype & 0x0F) != 0x2 && (message->subtype & 0x0F) != 0x6)
+                    {
+                        if(assign_submessage_to_message(message))
+                            continue;
+                        CHIAKI_LOGE(rudp->log, "Expected CTRL MESSAGE with subtype 0x2 or 0x36.\nReceived unexpected RUDP message ... retrying");
+                        chiaki_rudp_print_message(rudp, message);
+                        chiaki_rudp_message_pointers_free(message);
+                        found = false;
+                        break;
+                    }
+                    break;
+                case FINISH:
+                    if(message->subtype != 0xC0)
+                    {
+                        if(assign_submessage_to_message(message))
+                            continue;
+                        CHIAKI_LOGE(rudp->log, "Expected FINISH MESSAGE with subtype 0xC0 .\nReceived unexpected RUDP message ... retrying");
+                        chiaki_rudp_print_message(rudp, message);
+                        chiaki_rudp_message_pointers_free(message);
+                        found = false;
+                        break;
+                    }
+                    break;
+                default:
+                    CHIAKI_LOGE(rudp->log, "Selected RudpPacketType 0x%04x to receive that is not supported by rudp send receive.", send_type);
                     chiaki_rudp_message_pointers_free(message);
-                    continue;
-                }
-                break;
-            case COOKIE_RESPONSE:
-                if(message->subtype != 0xA0)
-                {
-                    CHIAKI_LOGE(rudp->log, "Expected COOKIE RESPONSE with subtype 0xA0.\nReceived unexpected RUDP message ... retrying");
-                    chiaki_rudp_print_message(rudp, message);
-                    chiaki_rudp_message_pointers_free(message);
-                    continue;
-                }
-                break;
-            case CTRL_MESSAGE:
-                if((message->subtype & 0x0F) != 0x2 && (message->subtype & 0x0F) != 0x6)
-                {
-                    CHIAKI_LOGE(rudp->log, "Expected CTRL MESSAGE with subtype 0x2 or 0x36.\nReceived unexpected RUDP message ... retrying");
-                    chiaki_rudp_print_message(rudp, message);
-                    chiaki_rudp_message_pointers_free(message);
-                    continue;
-                }
-                break;
-            case FINISH:
-                if(message->subtype != 0xC0)
-                {
-                    CHIAKI_LOGE(rudp->log, "Expected FINISH MESSAGE with subtype 0xC0 .\nReceived unexpected RUDP message ... retrying");
-                    chiaki_rudp_print_message(rudp, message);
-                    chiaki_rudp_message_pointers_free(message);
-                    continue;
-                }
-                break;
-            default:
-                CHIAKI_LOGE(rudp->log, "Selected RudpPacketType 0x%04x to receive that is not supported by rudp send receive.", send_type);
-                chiaki_rudp_message_pointers_free(message);
-                return CHIAKI_ERR_INVALID_DATA;
+                    return CHIAKI_ERR_INVALID_DATA;
+            }
+            break;
         }
+        if(!found)
+            continue;
         if(message->data_size < min_data_size)
         {
             chiaki_rudp_message_pointers_free(message);
@@ -525,6 +545,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_recv(RudpInstance *rudp, RudpMess
     }
 }
 
+static bool assign_submessage_to_message(RudpMessage *message)
+{
+    if(message->subMessage)
+    {
+        if(message->data)
+        {
+            free(message->data);
+            message->data = NULL;
+        }
+        RudpMessage *tmp = message->subMessage;
+        memcpy(message, message->subMessage, sizeof(RudpMessage));
+        free(tmp);
+        return true;
+    }
+    return false;
+}
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_ack_packet(RudpInstance *rudp, uint16_t counter_to_ack)
 {
 	ChiakiSeqNum16 acked_seq_nums[RUDP_SEND_BUFFER_SIZE];

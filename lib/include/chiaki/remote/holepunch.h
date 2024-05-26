@@ -103,10 +103,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
 /**
  * Free the memory allocated for a device list.
  *
- * @param[in] devices Pointer to the array of `ChiakiHolepunchDeviceInfo` structs whose memory
+ * @param[in] devices Pointer to a pointer to the array of `ChiakiHolepunchDeviceInfo` structs whose memory
  *                    should be freed
 */
-CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo* devices);
+CHIAKI_EXPORT void chiaki_holepunch_free_device_list(ChiakiHolepunchDeviceInfo** devices);
 
 /**
  * This function returns the data needed for regist from the ChiakiHolepunchSession

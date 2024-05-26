@@ -3,6 +3,7 @@ FROM docker.io/stateoftheartio/qt6:6.6-gcc-aqt
 RUN sudo apt-get update
 RUN sudo apt-get install -y software-properties-common gpg wget
 RUN sudo add-apt-repository ppa:deadsnakes/ppa
+RUN sudo apt-get update
 RUN sudo apt-get -y install \
     git \
     g++ \

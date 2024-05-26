@@ -81,6 +81,8 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
+    SDL_SetHint(SDL_HINT_APP_NAME, "chiaki4deck");
+
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
 		fprintf(stderr, "SDL Audio init failed: %s\n", SDL_GetError());

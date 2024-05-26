@@ -19,10 +19,11 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
 1. Console must be updated to the latest firmware
 2. Console must be registered locally prior to using remote connection via PSN
 3. To see the remote connection via PSN tab for the given console, the console must not be available locally (otherwise you would want to use a local connection as it is faster and more efficient)
+4. Remote Connection via PSN for **PS4** only works with the main registered console for your PSN account (*Note: this is a limitation imposed by Sony not a limitation specific to Chiaki4deck*)
 
 !!! Warning "Not All Networks Supported"
 
-    Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently, you can reach the dev team via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me) in order to determine if the failure is due to your network or an issue with Chiaki4deck that needs fixing. If you are able to connect over the same wireless connection with the official remote play app, please open an issue on the Chiaki4deck Github.
+    Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently with the message *Couldn't contact PlayStation over established connection, likely unsupported network type*, your network type is currently unsupported. If you are able to connect over the same wireless connection with the official remote play app and are willing to help the Chiaki4deck developers improve Chiaki4deck to support your network type please reach out to the dev team via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you are failing with *Connection over PSN failed closing ...*, please either add your logs to an appropriate existing issue or open a new issue on the Chiaki4deck Github.
 
 ### Setup
 

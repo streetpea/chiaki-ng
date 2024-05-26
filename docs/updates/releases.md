@@ -61,6 +61,13 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.7.1
+
+Improves remote connection via PSN + adds PS4 support
+
+- remote connection via PSN now supports PS4 consoles
+- remote connection via PSN now supports more network types
+
 ### 1.7.0
 
 Enables remote connection via PSN

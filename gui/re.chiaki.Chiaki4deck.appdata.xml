@@ -22,6 +22,15 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-5-26" version="1.7.1">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Remote connection via PSN now supports PS4 consoles</li>
+          <li>Remote connection via PSN now supports more network types</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-5-12" version="1.7.0">
       <description>
         <p>This release provides the following improvements:</p>

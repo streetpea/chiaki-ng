@@ -21,7 +21,7 @@
 #define STUN_HEADER_SIZE 20
 #define STUN_MSG_TYPE_BINDING_REQUEST 0x0001
 #define STUN_MSG_TYPE_BINDING_RESPONSE 0x0101
-#define STUN_MAGIC_COOKIE 0x2112A442
+#define STUN_MAGIC_COOKIE 0x2112A442UL
 #define STUN_TRANSACTION_ID_LENGTH 12
 #define STUN_ATTRIB_MAPPED_ADDRESS 0x0001
 #define STUN_ATTRIB_XOR_MAPPED_ADDRESS 0x0020
@@ -48,7 +48,7 @@ StunServer STUN_SERVERS[] = {
     {"stun4.l.google.com", 19305}
 };
 
-static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port);
+static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port, chiaki_socket_t *sock);
 
 /**
  * Get external address and port using STUN.
@@ -61,14 +61,24 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
  * @param[out] port Buffer to store port in
  * @return true if successful, false otherwise
  */
-static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *port)
+static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *port, StunServer *passed_servers, size_t num_passed_servers, chiaki_socket_t *sock)
 {
     // Try moonlight server first
-    if (stun_get_external_address_from_server(log, &STUN_SERVERS[0], address, port)) {
+    if (stun_get_external_address_from_server(log, &STUN_SERVERS[0], address, port, sock)) {
         return true;
     }
     CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[0].host, STUN_SERVERS[0].port);
 
+    // Try servers preferred by user (i.e., known to be online)
+    if(num_passed_servers > 0)
+    {
+       for (int i = 0; i < num_passed_servers; i++)
+        {
+            if (stun_get_external_address_from_server(log, &passed_servers[i], address, port, sock))
+                return true;
+            CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
+        }
+    }
     // Shuffle order of other servers
     size_t num_servers = sizeof(STUN_SERVERS) / sizeof(StunServer);
     for (int i = num_servers - 1; i > 1; i--) {
@@ -77,39 +87,337 @@ static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *p
         STUN_SERVERS[i] = STUN_SERVERS[j];
         STUN_SERVERS[j] = temp;
     }
-
     // Try other servers
     for (int i = 1; i < num_servers; i++) {
-        if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], address, port)) {
+        if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], address, port, sock)) {
             return true;
         }
         CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
     }
-
     CHIAKI_LOGE(log, "Failed to get external address from any STUN server.");
     return false;
 }
 
-static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port)
+/**
+ * Get external address and port using STUN.
+ *
+ * This will try multiple STUN servers, preferring the STUN server of the Moonlight
+ * project, and if that fails, trying other STUN servers in random order.
+ *
+ * @param log Log context
+ * @param[out] address Buffer to store address in
+ * @param[out] port Buffer to store port in
+ * @return true if successful, false otherwise
+ */
+CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint16_t *port, int32_t *allocation_increment, StunServer *passed_servers, size_t num_passed_servers, chiaki_socket_t *sock)
 {
-    chiaki_socket_t sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        CHIAKI_LOGE(log, "remote/stun.h: Failed to create socket, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+    // skip testing if outgoing port changes with same internal ip and port if send to same ip and different port bc that doesn't apply in our case (we will be using a different address anyway)
+    uint16_t port1 = 0;
+    uint16_t port2 = 0;
+    uint16_t port3 = 0;
+    uint16_t port4 = 0;
+    char addr1[INET6_ADDRSTRLEN];
+    char addr2[INET6_ADDRSTRLEN];
+    char addr3[INET6_ADDRSTRLEN];
+    char addr4[INET6_ADDRSTRLEN];
+
+    // Try servers preferred by user (i.e., known to be online)
+    if(num_passed_servers > 0)
+    {
+        for (int i = 0; i < num_passed_servers; i++)
+        {
+            if(port1 == 0)
+            {
+                if (!stun_get_external_address_from_server(log, &passed_servers[i], addr1, &port1, sock))
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
+                else
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+            }
+            else if(port2 == 0)
+            {
+                if (!stun_get_external_address_from_server(log, &passed_servers[i], addr2, &port2, sock))
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
+                else
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+            }
+            else if(port3 == 0)
+            {
+                if (!stun_get_external_address_from_server(log, &passed_servers[i], addr3, &port3, sock))
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
+                else
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+            }
+            else if(port4 == 0)
+            {
+                if (stun_get_external_address_from_server(log, &passed_servers[i], addr4, &port4, sock))
+                {
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", passed_servers[i].host, passed_servers[i].port);
+                    break;
+                }
+                else
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
+            }
+        }
+    }
+    if(port4 == 0)
+    {
+        size_t num_servers = sizeof(STUN_SERVERS) / sizeof(StunServer);
+        for (int i = num_servers; i > 0; i--) {
+            int j = chiaki_random_32() % i;
+            StunServer temp = STUN_SERVERS[i];
+            STUN_SERVERS[i] = STUN_SERVERS[j];
+            STUN_SERVERS[j] = temp;
+        }
+        // Try other servers
+        for (int i = 0; i < num_servers; i++)
+        {
+            if(port1 == 0)
+            {
+                if (!stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr1, &port1, sock))
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                else
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+            }
+            else if(port2 == 0)
+            {
+                if (!stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr2, &port2, sock))
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                else
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+            }
+            else if(port3 == 0)
+            {
+                if (!stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr3, &port3, sock))
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                else
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+            }
+            else if(port4 == 0)
+            {
+                if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], addr4, &port4, sock))
+                {
+                    CHIAKI_LOGV(log, "Got response from STUN server %s:%d", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+                    break;
+                }
+                else
+                    CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+            }
+        }
+    }
+    // No servers returned
+    if(port1 == 0)
+    {
+        CHIAKI_LOGE(log, "Failed to get external address from any STUN server.");
         return false;
     }
+    // 1 server returned
+    else if(port2 == 0)
+    {
+        CHIAKI_LOGW(log, "Only 1 STUN server responded for packet allocation calculation.");
+        CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded.");
+        memcpy(address, addr1, sizeof(addr1));
+        *port = port1;
+        *allocation_increment = 0;
+    }
+    // 2 servers returned
+    else if(port3 == 0)
+    {
+        memcpy(address, addr1, sizeof(addr1));
+        CHIAKI_LOGW(log, "Only 2 STUN servers responded for packet allocation calculation.");
+        if(strcmp(addr1, addr2) != 0)
+        {
+            CHIAKI_LOGW(log, "Got different addresses between 2 responses, using 1st one...");
+            CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded with the same address defaulting to 0.");
+            *port = port1;
+            *allocation_increment = 0;
+        }
+        else
+        {
+            *allocation_increment = port2 - port1;
+            *port = port2 + 2 * (*allocation_increment);
+        }
+    }
+    // 3 servers returned
+    else if(port4 == 0)
+    {
+        CHIAKI_LOGW(log, "Only 3 STUN servers responded for packet allocation calculation.");
+        if(strcmp(addr1, addr2) != 0)
+        {
+            if(strcmp(addr1, addr3) == 0)
+            {
+                CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                *allocation_increment = (port3 - port1) / 2;
+                memcpy(address, addr1, sizeof(addr1));
+                *port = port3 + (*allocation_increment);
+            }
+            else if(strcmp(addr2, addr3) == 0)
+            {
+                CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                memcpy(address, addr2, sizeof(addr2));
+                *allocation_increment = port3 - port2;
+                *port = port3 + (*allocation_increment);
+            }
+            else
+            {
+                CHIAKI_LOGW(log, "Got 3 different addresses between 3 responses, using 1st one...");
+                CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded with the same address.");
+                memcpy(address, addr1, sizeof(addr1));
+                *port = port1;
+                *allocation_increment = 0;
+            }
+        }
+        else
+        {
+            memcpy(address, addr1, sizeof(addr1));
+            if(strcmp(addr1, addr3) != 0)
+            {
+                CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                *allocation_increment = port2 - port1;
+                *port = port2 + 2 * (*allocation_increment);
+            }
+            else
+            {
+                CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
+                *allocation_increment = port2 - port1;
+                if ((port3 - port2) != (*allocation_increment))
+                    CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                *port = port3 + (*allocation_increment);
+            }
+        }
+    }
+    // all 4 servers returned
+    else
+    {
+        if(strcmp(addr1, addr2) != 0)
+        {
+            if((strcmp(addr1, addr3) == 0) || (strcmp(addr1, addr4) == 0))
+            {
+                memcpy(address, addr1, sizeof(addr1));
+                if((strcmp(addr1, addr4) == 0))
+                {
+                    *port = port4;
+                    if(strcmp(addr1, addr3) == 0)
+                    {
+                        CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
+                        *allocation_increment = port4 - port3;
+                        if(((port3 - port1) / 2) != (*allocation_increment))
+                            CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                    }
+                    else
+                    {
+                        CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                        *allocation_increment = (port4 - port1) / 4;
+                    }
+                }
+                else
+                {
+                    CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                    *allocation_increment = (port3 - port1) / 2;
+                    *port = port3 + *allocation_increment;
+                }
+            }
+            else
+            {
+                if((strcmp(addr2, addr3) == 0) || (strcmp(addr2, addr4) == 0))
+                {
+                    memcpy(address, addr2, sizeof(addr2));
+                    if((strcmp(addr2, addr4) == 0))
+                    {
+                        *port = port4;
+                        if(strcmp(addr2, addr3) == 0)
+                        {
+                            CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
+                            *allocation_increment = port4 - port3;
+                            if((port3 - port2) != (*allocation_increment))
+                                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                        }
+                        else
+                        {
+                            CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                            *allocation_increment = (port4 - port1) / 4;
+                        }
+                    }
+                    else
+                    {
+                        CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                        *allocation_increment = (port3 - port1) / 2;
+                        *port = port3 + (*allocation_increment);
+                    }
 
-    struct sockaddr_in local_addr;
-    memset(&local_addr, 0, sizeof(local_addr));
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_port = htons(0);
-    local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(sock, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
-        CHIAKI_LOGE(log, "remote/stun.h: Failed to bind socket to local address, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
-        return false;
+                }
+                else if (strcmp(addr3, addr4) == 0)
+                {
+                    CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                    memcpy(address, addr3, sizeof(addr3));
+                    *allocation_increment = port3 - port4;
+                    *port = port4;
+                }
+                else
+                {
+                    memcpy(address, addr1, sizeof(addr1));
+                    CHIAKI_LOGW(log, "Got 4 different addresses between 4 responses, using 1st one...");
+                    CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded with the same address.");
+                    *allocation_increment = 0;
+                    *port = port1;
+                }
+            }
+        }
+        else if(strcmp(addr2, addr3) != 0)
+        {
+            memcpy(address, addr1, sizeof(addr1));
+            *allocation_increment = port2 - port1;
+            if(strcmp(addr2, addr4) == 0)
+            {
+                CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
+                if((port4 - port2 - (*allocation_increment)) != (*allocation_increment))
+                    CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                *port = port4;
+            }
+            else
+            {
+                CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
+                *port = port2 + 2 * (*allocation_increment);
+            }
+        }
+        else if(strcmp(addr3, addr4) != 0)
+        {
+            CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
+            memcpy(address, addr1, sizeof(addr1));
+            *allocation_increment = port2 - port1;
+            if((port3 - port2) != (*allocation_increment))
+                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+            *port = port3 + (*allocation_increment);
+        }
+        else
+        {
+            memcpy(address, addr1, sizeof(addr1));
+            CHIAKI_LOGI(log, "Calculating packet allocation based on 4 responses with the same address");
+            uint16_t increment0 = port2 - port1;
+            uint16_t increment1 = port3 - port2;
+            uint16_t increment2 = port4 - port3;
+            *port = port4;
+            if((increment0 == increment1) && (increment1 == increment2))
+            {
+                *allocation_increment = increment0;
+            }
+            else if ((increment0 == (increment1 || increment2)) || (increment1 != increment2))
+            {
+                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                *allocation_increment = increment0;
+            }
+            else
+            {
+                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                *allocation_increment = increment1;
+            }
+        }
     }
 
+    return true;
+}
+
+static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *server, char *address, uint16_t *port, chiaki_socket_t *sock)
+{
     struct addrinfo* resolved;
     struct addrinfo hints;
     struct sockaddr_in *server_addr;
@@ -118,7 +426,6 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     hints.ai_socktype = SOCK_DGRAM;
     if (getaddrinfo(server->host, NULL, &hints, &resolved) != 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to resolve STUN server '%s', error was " CHIAKI_SOCKET_ERROR_FMT, server->host, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
         return false;
     }
 
@@ -132,12 +439,10 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     *(int*)(&binding_req[4]) = htonl(STUN_MAGIC_COOKIE);
     chiaki_random_bytes_crypt(&binding_req[8], STUN_TRANSACTION_ID_LENGTH);
 
-    //uint8_t* transaction_id = &binding_req[8];
-
-    CHIAKI_SSIZET_TYPE sent = sendto(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
+    CHIAKI_SSIZET_TYPE sent = sendto(*sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, sizeof(struct sockaddr_in));
     if (sent != sizeof(binding_req)) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to send STUN request, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
+        CHIAKI_SOCKET_CLOSE(*sock);
         return false;
     }
 
@@ -148,15 +453,14 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     timeout.tv_sec = STUN_REPLY_TIMEOUT_SEC;
     timeout.tv_usec = 0;
 #endif
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0) {
+    if (setsockopt(*sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to set socket timeout, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(sock);
+        CHIAKI_SOCKET_CLOSE(*sock);
         return false;
     }
 
     uint8_t binding_resp[256];
-    CHIAKI_SSIZET_TYPE received = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
-    CHIAKI_SOCKET_CLOSE(sock);
+    CHIAKI_SSIZET_TYPE received = recvfrom(*sock, (CHIAKI_SOCKET_BUF_TYPE)binding_resp, sizeof(binding_resp), 0, NULL, NULL);
     if (received < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to receive STUN response, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         return false;
@@ -202,19 +506,19 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         uint8_t family = binding_resp[response_pos + 5];
         if (family == STUN_MAPPED_ADDR_FAMILY_IPV4) {
             if (xored) {
-                uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (STUN_MAGIC_COOKIE >> 16);
+                uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (uint16_t)(htonl(STUN_MAGIC_COOKIE));
                 *port = ntohs(xored_port);
-                uint32_t xored_addr = *(uint32_t*)(&binding_resp[response_pos + 8]) ^ STUN_MAGIC_COOKIE;
+                uint32_t xored_addr = *(uint32_t*)(&binding_resp[response_pos + 8]) ^ htonl(STUN_MAGIC_COOKIE);
                 uint32_t addr = xored_addr;
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             } else {
-                *port = *(uint16_t*)(&binding_resp[response_pos + 6]);
+                *port = ntohs(*(uint16_t*)(&binding_resp[response_pos + 6]));
                 uint32_t addr = *(uint32_t*)(&binding_resp[response_pos + 8]);
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             }
         } else if (family == STUN_MAPPED_ADDR_FAMILY_IPV6) {
             if (xored) {
-                uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (STUN_MAGIC_COOKIE >> 16);
+                uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (uint16_t)(htonl(STUN_MAGIC_COOKIE));
                 *port = ntohs(xored_port);
 
                 // XOR address with concat(STUN_MAGIC_COOKIE, transaction_id)
@@ -227,7 +531,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
                 }
                 inet_ntop(AF_INET6, &xored_addr, address, INET6_ADDRSTRLEN);
             } else {
-                *port = *(uint16_t*)(&binding_resp[response_pos + 6]);
+                *port = ntohs(*(uint16_t*)(&binding_resp[response_pos + 6]));
                 inet_ntop(AF_INET6, &binding_resp[response_pos + 8], address, INET6_ADDRSTRLEN);
             }
         } else {
