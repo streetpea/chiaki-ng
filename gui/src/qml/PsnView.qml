@@ -182,7 +182,7 @@ Rectangle {
                     break
                 case Chiaki.PsnConnectState.ConnectFailedConsoleUnreachable:
                     if(!cancelling)
-                        infoLabel.text = qsTr("Couldn't contact PlayStation over established connection, unsupported network type")
+                        infoLabel.text = qsTr("Couldn't contact PlayStation over established connection, likely unsupported network type")
                     failTimer.running = true
                     break
                 case Chiaki.PsnConnectState.WaitingForInternet:
