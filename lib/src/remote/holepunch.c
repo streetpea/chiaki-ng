@@ -2206,7 +2206,14 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         if(have_addr)
         {
             memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
-            if(session->stun_allocation_increment != 0)
+            // Local port is used externally so don't make duplicate STUN candidate since STATIC candidate will have same ip and port number
+            if(local_port == candidate_stun->port)
+            {
+                memcpy(msg.conn_request->candidates, msg.conn_request->candidates + 2 * sizeof(Candidate), 2 * sizeof(Candidate));
+                candidate_remote = &msg.conn_request->candidates[0];
+                candidate_local = &msg.conn_request->candidates[1];
+            }
+            else if(session->stun_allocation_increment != 0)
             {
                 candidate_stun->port += session->stun_allocation_increment;
                 // Setup extra stun candidate in case there was an allocation in between the stun request and our allocation
