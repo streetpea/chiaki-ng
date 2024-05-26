@@ -366,21 +366,38 @@ void QmlBackend::psnCancel(bool stop_thread)
     session->CancelPsnConnection(stop_thread);
 }
 
-void QmlBackend::checkPsnConnection(const bool &connected)
+void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
 {
-    if(connected)
+    switch(err)
     {
-        setConnectState(PsnConnectState::LinkingConsole);
-        psnSessionStart();
-    }
-    else
-    {
-        setConnectState(PsnConnectState::ConnectFailed);
-        if(session)
-        {
-            delete session;
-            session = NULL;
-        }
+        case CHIAKI_ERR_SUCCESS:
+            setConnectState(PsnConnectState::LinkingConsole);
+            psnSessionStart();
+            break;
+        case CHIAKI_ERR_HOST_DOWN:
+            setConnectState(PsnConnectState::ConnectFailedStart);
+            if(session)
+            {
+                delete session;
+                session = NULL;
+            }
+            break;
+        case CHIAKI_ERR_HOST_UNREACH:
+            setConnectState(PsnConnectState::ConnectFailedConsoleUnreachable);
+            if(session)
+            {
+                delete session;
+                session = NULL;
+            }
+            break;
+        default:
+            setConnectState(PsnConnectState::ConnectFailed);
+            if(session)
+            {
+                delete session;
+                session = NULL;
+            }
+            break;
     }
 }
 
@@ -1171,6 +1188,6 @@ void QmlBackend::refreshPsnToken()
 
 void PsnConnectionWorker::ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5)
 {
-    bool result = session->ConnectPsnConnection(duid, ps5);
+    ChiakiErrorCode result = session->ConnectPsnConnection(duid, ps5);
     emit resultReady(result);
 }

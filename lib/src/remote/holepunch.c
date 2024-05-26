@@ -932,7 +932,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Timed out waiting for holepunch session start notifications.");
-            return CHIAKI_ERR_UNKNOWN;
+            return CHIAKI_ERR_HOST_DOWN;
         }
         else if (err == CHIAKI_ERR_CANCELED)
         {
@@ -2210,7 +2210,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             uint16_t stun_port = candidate_stun->port;
             if(local_port == stun_port)
             {
-                memcpy(msg.conn_request->candidates, msg.conn_request->candidates + 2 * sizeof(Candidate), 2 * sizeof(Candidate));
+                memcpy(&msg.conn_request->candidates[0], &msg.conn_request->candidates[2], sizeof(Candidate));
+                memcpy(&msg.conn_request->candidates[1], &msg.conn_request->candidates[3], sizeof(Candidate));
                 candidate_remote = &msg.conn_request->candidates[0];
                 candidate_local = &msg.conn_request->candidates[1];
             }
@@ -2260,7 +2261,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     else
     {
         // If no STUN address the static and local candidates are our first candidates
-        memcpy(msg.conn_request->candidates, msg.conn_request->candidates + 2 * sizeof(Candidate), 2 * sizeof(Candidate));
+        memcpy(&msg.conn_request->candidates[0], &msg.conn_request->candidates[2], sizeof(Candidate));
+        memcpy(&msg.conn_request->candidates[1], &msg.conn_request->candidates[3], sizeof(Candidate));
         candidate_remote = &msg.conn_request->candidates[0];
         candidate_local = &msg.conn_request->candidates[1];
     }
@@ -3160,7 +3162,7 @@ static ChiakiErrorCode check_candidates(
                 }
                 // No responsive candidate within timeout, terminate with error
                 CHIAKI_LOGE(session->log, "check_candidate: Select timed out");
-                err = CHIAKI_ERR_TIMEOUT;
+                err = CHIAKI_ERR_HOST_UNREACH;
                 goto cleanup_sockets;
             }
             // Otherwise, we have a responsive candidate, break out of loop

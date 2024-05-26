@@ -42,7 +42,7 @@ public:
     void ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5);
 
 signals:
-    void resultReady(const bool &result);
+    void resultReady(const ChiakiErrorCode &err);
 };
 
 class QmlBackend : public QObject
@@ -67,7 +67,9 @@ public:
         LinkingConsole,
         DataConnectionStart,
         DataConnectionFinished,
-        ConnectFailed
+        ConnectFailed,
+        ConnectFailedStart,
+        ConnectFailedConsoleUnreachable,
     };
     Q_ENUM(PsnConnectState);
     QmlBackend(Settings *settings, QmlMainWindow *window);
@@ -95,7 +97,7 @@ public:
 
     void psnSessionStart();
 
-    void checkPsnConnection(const bool &connected);
+    void checkPsnConnection(const ChiakiErrorCode &err);
 
     void checkNickname(QString nickname);
 
