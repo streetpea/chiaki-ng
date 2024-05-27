@@ -2289,7 +2289,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
     }
     memcpy(&local_candidates[0], candidate_local, sizeof(Candidate));
-    memcpy(&local_candidates[1], candidate_remote, sizeof(Candidate));
+    // either STUN candidate if it exists, else STATIC candidate
+    memcpy(&local_candidates[1], &msg.conn_request->candidates[0], sizeof(Candidate));
 
 cleanup:
     if(err != CHIAKI_ERR_SUCCESS)
