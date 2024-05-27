@@ -1,6 +1,6 @@
 {
   "name": "chiaki4deck",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "dependencies": [
     "pkgconf",
     "sdl2",
@@ -13,11 +13,6 @@
     "fftw3",
     "lcms",
     "speexdsp",
-    "vulkan",
-    "ffmpeg"
-  ],
-  "vcpkg-configuration": {
-    "overlay-ports": [ "./scripts/ffmpeg-port"
-    ]
-  }
+    "vulkan"
+  ]
 }
