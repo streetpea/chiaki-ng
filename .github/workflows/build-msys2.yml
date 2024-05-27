@@ -63,19 +63,22 @@ jobs:
       - name: Install python protobuf and zip
         run: |
           pip install protobuf
-          pacman -S zip git make --noconfirm
+          pacman -S zip git make unzip --noconfirm
 
       - name: Build libbplacebo
         run: |
           scripts/build-libplacebo.sh
 
-      - name: Build ffmpeg
+      - name: Setup ffmpeg
         run: |
-          scripts/build-ffmpeg-windows.sh
+          curl -LO https://github.com/r52/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.0-latest-win64-gpl-shared-7.0.zip
+          unzip ffmpeg-n7.0-latest-win64-gpl-shared-7.0.zip
+          cp -a "ffmpeg-n7.0-latest-win64-gpl-shared-7.0/bin/." /mingw64/bin
+          cp -a "ffmpeg-n7.0-latest-win64-gpl-shared-7.0/include/." /mingw64/include
+          cp -a "ffmpeg-n7.0-latest-win64-gpl-shared-7.0/lib/." /mingw64/lib
 
       - name: Configure Chiaki4deck
         run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
           cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
 
       - name: Build Chiaki4deck
@@ -102,7 +105,6 @@ jobs:
           cp /mingw64/bin/libbz2-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libiconv-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libhidapi-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libxml2-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/zlib1.dll Chiaki4deck-Win/
           cp /mingw64/bin/libglib-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libgobject-*.dll Chiaki4deck-Win/
@@ -150,6 +152,7 @@ jobs:
           cp /mingw64/bin/libpsl-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libssh2-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libjson-c-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/swresample-*.dll Chiaki4deck-Win/
           /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release Chiaki4deck-Win/chiaki.exe
           cp -R /mingw64/share/qt6/qml/QtQuick Chiaki4deck-Win/qml/
           cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ Chiaki4deck-Win/qml/QtQml/
