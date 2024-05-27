@@ -90,6 +90,7 @@ jobs:
           mkdir Chiaki4deck-Win
           cp build/gui/chiaki.exe Chiaki4deck-Win
           cp build/third-party/cpp-steam-tools/libcpp-steam-tools.dll Chiaki4deck-Win/
+          ls /mingw64/bin/
           cp /mingw64/bin/libcrypto-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libssl-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/SDL2.dll Chiaki4deck-Win/
@@ -111,15 +112,11 @@ jobs:
           cp /mingw64/bin/liblzma-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libintl-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libwinpthread-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libva.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libva_win32.dll Chiaki4deck-Win/
           cp /mingw64/bin/liblcms2-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/dovi.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libspeex-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libshaderc_shared.dll Chiaki4deck-Win/
           cp /mingw64/bin/libspirv-cross-c-shared.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libwebp-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libwebpmux-*.dll Chiaki4deck-Win/
+          cp /mingw64/bin/libssh2-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libbrotlienc.dll Chiaki4deck-Win/
           cp /mingw64/bin/libbrotlidec.dll Chiaki4deck-Win/
           cp /mingw64/bin/libfreetype-*.dll Chiaki4deck-Win/
@@ -140,7 +137,6 @@ jobs:
           cp /mingw64/bin/libfontconfig-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libffi-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libgio-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libogg-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libsharpyuv-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libbrotlicommon.dll Chiaki4deck-Win/
           cp /mingw64/bin/libicudt*.dll Chiaki4deck-Win/
@@ -150,7 +146,6 @@ jobs:
           cp /mingw64/bin/libgomp-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libminiupnpc.dll Chiaki4deck-Win/
           cp /mingw64/bin/libpsl-*.dll Chiaki4deck-Win/
-          cp /mingw64/bin/libssh2-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/libjson-c-*.dll Chiaki4deck-Win/
           cp /mingw64/bin/swresample-*.dll Chiaki4deck-Win/
           /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release Chiaki4deck-Win/chiaki.exe
