@@ -12,10 +12,10 @@ jobs:
       CXX: clang-cl.exe
       VULKAN_SDK: C:\VulkanSDK\
       triplet: x64-windows
-      vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
+      vcpkg_baseline: 01f602195983451bc83e72f4214af2cbc495aa94
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
-      libplacebo_tag: 5c1e6da21f108a27b11fad97fd491ddee06ede3c
+      libplacebo_tag: 9e1257c8262fe27a2dd9414c1dd51be9fc56608d
 
     defaults:
       run:
@@ -61,14 +61,20 @@ jobs:
           python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
       - name: Setup Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
-          aqtversion: '==3.1.*'
-          version: "6.6.2"
+          version: "6.7.*"
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
           modules: 'qtwebengine qtpositioning qtwebchannel'
+
+      - name: Setup ffmpeg
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/r52/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.0-latest-win64-gpl-shared-7.0.zip" -OutFile ".\ffmpeg-n7.0-latest-win64-gpl-shared-7.0.zip"
+          Expand-Archive -LiteralPath "ffmpeg-n7.0-latest-win64-gpl-shared-7.0.zip" -DestinationPath "."
+          Rename-Item "ffmpeg-n7.0-latest-win64-gpl-shared-7.0" "${{ env.dep_folder }}"
 
       - name: Build SPIRV-Cross
         run: |
@@ -158,10 +164,10 @@ jobs:
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\swresample-*.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\avcodec-*.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\avutil-*.dll" Chiaki4deck-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\avformat-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" Chiaki4deck-VC
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" Chiaki4deck-VC
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" Chiaki4deck-VC
