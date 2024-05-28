@@ -2265,14 +2265,25 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                             CHIAKI_LOGW(session->log, "Unsupported address family, skipping...");
                     }
                 }
-                candidate_stun->port += session->stun_allocation_increment;
+                int32_t port_check = candidate_stun->port + session->stun_allocation_increment;
+                // loop around if next port goes over or under port range
+                if(port_check < 0)
+                    port_check += UINT16_MAX;
+                if(port_check > UINT16_MAX)
+                    port_check -= UINT16_MAX;
+                candidate_stun->port = port_check;
                 // Setup extra stun candidate in case there was an allocation in between the stun request and our allocation
                 Candidate *candidate_stun2 = &msg.conn_request->candidates[1];
                 candidate_stun2->type = CANDIDATE_TYPE_STUN;
                 memcpy(candidate_stun2->addr_mapped, "0.0.0.0", 8);
                 candidate_stun2->port_mapped = 0;
                 memcpy(candidate_stun2->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
-                candidate_stun2->port = candidate_stun->port + session->stun_allocation_increment;
+                port_check += session->stun_allocation_increment;
+                if(port_check < 0)
+                    port_check += UINT16_MAX;
+                if(port_check > UINT16_MAX)
+                    port_check -= UINT16_MAX;
+                candidate_stun2->port = port_check;
                 msg.conn_request->num_candidates = 4;
             }
             else

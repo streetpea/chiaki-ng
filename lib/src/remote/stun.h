@@ -13,6 +13,7 @@
 #endif
 
 #include <chiaki/log.h>
+#include <chiaki/seqnum.h>
 #include <chiaki/sock.h>
 #include <chiaki/random.h>
 
@@ -222,86 +223,81 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
     // 2 servers returned
     else if(port3 == 0)
     {
-        memcpy(address, addr1, sizeof(addr1));
+        memcpy(address, addr2, sizeof(addr2));
         CHIAKI_LOGW(log, "Only 2 STUN servers responded for packet allocation calculation.");
+        // address changed between requests use most recent one
         if(strcmp(addr1, addr2) != 0)
         {
-            CHIAKI_LOGW(log, "Got different addresses between 2 responses, using 1st one...");
+            CHIAKI_LOGW(log, "Got different addresses between 2 responses, using 2nd one...");
             CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded with the same address defaulting to 0.");
-            *port = port1;
             *allocation_increment = 0;
         }
         else
         {
             *allocation_increment = port2 - port1;
-            *port = port2 + 2 * (*allocation_increment);
         }
+        *port = port2 + 2 * (*allocation_increment);
     }
     // 3 servers returned
     else if(port4 == 0)
     {
         CHIAKI_LOGW(log, "Only 3 STUN servers responded for packet allocation calculation.");
+        memcpy(address, addr3, sizeof(addr3));
         if(strcmp(addr1, addr2) != 0)
         {
             if(strcmp(addr1, addr3) == 0)
             {
                 CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
                 *allocation_increment = (port3 - port1) / 2;
-                memcpy(address, addr1, sizeof(addr1));
-                *port = port3 + (*allocation_increment);
             }
             else if(strcmp(addr2, addr3) == 0)
             {
                 CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
-                memcpy(address, addr2, sizeof(addr2));
                 *allocation_increment = port3 - port2;
-                *port = port3 + (*allocation_increment);
             }
             else
             {
-                CHIAKI_LOGW(log, "Got 3 different addresses between 3 responses, using 1st one...");
+                CHIAKI_LOGW(log, "Got 3 different addresses between 3 responses, using 3rd one...");
                 CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded with the same address.");
-                memcpy(address, addr1, sizeof(addr1));
-                *port = port1;
                 *allocation_increment = 0;
             }
         }
         else
         {
-            memcpy(address, addr1, sizeof(addr1));
             if(strcmp(addr1, addr3) != 0)
             {
                 CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
                 *allocation_increment = port2 - port1;
-                *port = port2 + 2 * (*allocation_increment);
             }
             else
             {
                 CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
                 *allocation_increment = port2 - port1;
-                if ((port3 - port2) != (*allocation_increment))
-                    CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
-                *port = port3 + (*allocation_increment);
+                int32_t allocation_increment1 = port3 - port2;
+                if(allocation_increment1 != (*allocation_increment))
+                    CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
             }
         }
+        *port = port3 + (*allocation_increment);
     }
     // all 4 servers returned
     else
     {
+        memcpy(address, addr4, sizeof(addr4));
+        *port = port4;
         if(strcmp(addr1, addr2) != 0)
         {
             if((strcmp(addr1, addr3) == 0) || (strcmp(addr1, addr4) == 0))
             {
-                memcpy(address, addr1, sizeof(addr1));
                 if((strcmp(addr1, addr4) == 0))
                 {
-                    *port = port4;
                     if(strcmp(addr1, addr3) == 0)
                     {
                         CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
                         *allocation_increment = port4 - port3;
-                        if(((port3 - port1) / 2) != (*allocation_increment))
-                            CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                        int32_t allocation_increment1 = (port3 - port1) / 2;
+                        if(allocation_increment1 != (*allocation_increment))
+                            CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
                     }
                     else
                     {
@@ -313,23 +309,21 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                 {
                     CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
                     *allocation_increment = (port3 - port1) / 2;
-                    *port = port3 + *allocation_increment;
                 }
             }
             else
             {
                 if((strcmp(addr2, addr3) == 0) || (strcmp(addr2, addr4) == 0))
                 {
-                    memcpy(address, addr2, sizeof(addr2));
                     if((strcmp(addr2, addr4) == 0))
                     {
-                        *port = port4;
                         if(strcmp(addr2, addr3) == 0)
                         {
                             CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
                             *allocation_increment = port4 - port3;
-                            if((port3 - port2) != (*allocation_increment))
-                                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                            int32_t allocation_increment1 = port3 - port2;
+                            if(allocation_increment1 != (*allocation_increment))
+                                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
                         }
                         else
                         {
@@ -341,73 +335,63 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                     {
                         CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
                         *allocation_increment = (port3 - port1) / 2;
-                        *port = port3 + (*allocation_increment);
                     }
 
                 }
                 else if (strcmp(addr3, addr4) == 0)
                 {
                     CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
-                    memcpy(address, addr3, sizeof(addr3));
                     *allocation_increment = port3 - port4;
-                    *port = port4;
                 }
                 else
                 {
-                    memcpy(address, addr1, sizeof(addr1));
-                    CHIAKI_LOGW(log, "Got 4 different addresses between 4 responses, using 1st one...");
+                    CHIAKI_LOGW(log, "Got 4 different addresses between 4 responses, using 4th one...");
                     CHIAKI_LOGW(log, "Couldn't determine packet allocation because not enough STUN servers responded with the same address.");
                     *allocation_increment = 0;
-                    *port = port1;
                 }
             }
         }
         else if(strcmp(addr2, addr3) != 0)
         {
-            memcpy(address, addr1, sizeof(addr1));
             *allocation_increment = port2 - port1;
             if(strcmp(addr2, addr4) == 0)
             {
                 CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
-                if((port4 - port2 - (*allocation_increment)) != (*allocation_increment))
-                    CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
-                *port = port4;
+                int32_t allocation_increment1 = (port4 - port2) / 2;
+                if(allocation_increment1 != (*allocation_increment))
+                    CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
             }
             else
             {
                 CHIAKI_LOGW(log, "Calculating packet allocation based on 2 responses with the same address");
-                *port = port2 + 2 * (*allocation_increment);
             }
         }
         else if(strcmp(addr3, addr4) != 0)
         {
             CHIAKI_LOGW(log, "Calculating packet allocation based on 3 responses with the same address");
-            memcpy(address, addr1, sizeof(addr1));
             *allocation_increment = port2 - port1;
-            if((port3 - port2) != (*allocation_increment))
-                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
-            *port = port3 + (*allocation_increment);
+            int32_t allocation_increment1 = port3 - port2;
+            if(allocation_increment1 != (*allocation_increment))
+                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
         }
         else
         {
-            memcpy(address, addr1, sizeof(addr1));
             CHIAKI_LOGI(log, "Calculating packet allocation based on 4 responses with the same address");
             uint16_t increment0 = port2 - port1;
             uint16_t increment1 = port3 - port2;
             uint16_t increment2 = port4 - port3;
-            *port = port4;
             if((increment0 == increment1) && (increment1 == increment2))
             {
                 *allocation_increment = increment0;
             }
             else if ((increment0 == (increment1 || increment2)) || (increment1 != increment2))
             {
-                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement 0: %d, Increment 1: %d, Increment 2: %d", increment0, increment1, increment2);
                 *allocation_increment = increment0;
             }
             else
             {
-                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports");
+                CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement 0: %d, Increment 1: %d, Increment 2: %d", increment0, increment1, increment2);
                 *allocation_increment = increment1;
             }
         }
