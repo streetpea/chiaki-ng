@@ -3176,21 +3176,33 @@ static ChiakiErrorCode check_candidates(
             client_addr.sin_port = 0;
             socklen_t client_addr_len = sizeof(client_addr);
             const int enable = 1;
-        #if defined(SO_REUSEPORT)
-                if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
-                {
-                    CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                    CHIAKI_SOCKET_CLOSE(socks[i]);
-                    continue;
-                }
-        #else
-                if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
-                {
-                    CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                    CHIAKI_SOCKET_CLOSE(socks[i]);
-                    continue;
-                }
-        #endif
+#if defined(SO_REUSEPORT)
+            if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
+            {
+                CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_SOCKET_CLOSE(socks[i]);
+                continue;
+            }
+#else
+            if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
+            {
+                CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_SOCKET_CLOSE(socks[i]);
+                continue;
+            }
+#endif
+                // set low ttl so packets just punch hole in NAT
+#ifdef _WIN32
+            DWORD ttl = 2;
+#else
+            int ttl = 2;
+#endif
+            if (setsockopt(socks[i], IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
+            {
+                CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_SOCKET_CLOSE(socks[i]);
+                continue;
+            }
             bind(socks[i], (struct sockaddr*)&client_addr, client_addr_len);
             err = chiaki_socket_set_nonblock(session->ipv6_sock, true);
             if(err != CHIAKI_ERR_SUCCESS)
@@ -3239,6 +3251,7 @@ static ChiakiErrorCode check_candidates(
                             CHIAKI_SOCKET_CLOSE(socks[i]);
                             continue;
                         }
+
                     }
                 }
                 break;
@@ -3388,6 +3401,18 @@ static ChiakiErrorCode check_candidates(
                 {
                     candidate_sock = socks[i];
                     recv_len = sizeof(struct sockaddr_in);
+#ifdef _WIN32
+                    DWORD ttl = 64;
+#else
+                    int ttl = 64;
+#endif
+                    if (setsockopt(socks[i], IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
+                    {
+                        CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                        CHIAKI_SOCKET_CLOSE(socks[i]);
+                        err = CHIAKI_ERR_UNKNOWN;
+                        goto cleanup_sockets;
+                    }
                     break;
                 }
             }
