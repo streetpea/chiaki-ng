@@ -3347,19 +3347,12 @@ static ChiakiErrorCode check_candidates(
                         if (sendto(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                         {
                             CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
-                                continue;
+                            continue;
                         }
                         if(session->stun_random_allocation && (candidate->type == CANDIDATE_TYPE_STATIC || candidate->type == CANDIDATE_TYPE_STUN))
                         {
                             for(int i=0; i<1000; i++)
-                            {
-                                if (sendto(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
-                                {
-                                    CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
-                                        continue;
-                                }
                                 FD_SET(socks[i], &fds);
-                            }
                         }
                     }
                     continue;                    
@@ -3528,10 +3521,16 @@ static ChiakiErrorCode check_candidates(
             CHIAKI_LOGI(session->log, "Responding to request");
             responded = true;
             err = send_responseto_ps(session, response_buf, &candidate_sock, candidate, (struct sockaddr *)&addrs[i], lens[i]);
-            if(candidate->type == CANDIDATE_TYPE_DERIVED)
-                continue;
-            if(err != CHIAKI_ERR_SUCCESS)
+            if(err != CHIAKI_ERR_SUCCESS && candidate->type != CANDIDATE_TYPE_DERIVED)
                 goto cleanup_sockets;
+            if((session->stun_random_allocation || candidate->type == CANDIDATE_TYPE_DERIVED) && responses_received[i] == 0)
+            {
+                if (sendto(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
+                {
+                    CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                    goto cleanup_sockets;
+                }
+            }
             continue;
         }
         if (msg_type != MSG_TYPE_RESP)
