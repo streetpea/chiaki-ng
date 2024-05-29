@@ -2316,7 +2316,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 else
                 {
                     Candidate *tmp = NULL;
-                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 995);
+                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 1009);
                     if(tmp)
                         msg.conn_request->candidates = tmp;
                     else
@@ -2325,8 +2325,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         goto cleanup;
                     }
                     int32_t port_check = 1025;
-                    // Setup 1000 STUN candidates because we have a random allocation
-                    for(int i=0; i<993; i++)
+                    // Setup 10007 STUN candidates because we have a random allocation and usually 64 port blocks are minimum
+                    for(int i=0; i<1007; i++)
                     {
                         Candidate *candidate_stun2 = &msg.conn_request->candidates[i];
                         candidate_stun2->type = CANDIDATE_TYPE_STUN;
@@ -2338,13 +2338,13 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         if(port_check > UINT16_MAX)
                             port_check -= UINT16_MAX;
                         candidate_stun2->port = port_check;
-                        port_check += 65;
+                        port_check += 64;
                     }
-                    memcpy(&msg.conn_request->candidates[994], &original_candidates[1], sizeof(Candidate));
-                    memcpy(&msg.conn_request->candidates[995], &original_candidates[2], sizeof(Candidate));
-                    candidate_remote = &msg.conn_request->candidates[994];
-                    candidate_local = &msg.conn_request->candidates[995];
-                    msg.conn_request->num_candidates = 995;
+                    memcpy(&msg.conn_request->candidates[1007], &original_candidates[1], sizeof(Candidate));
+                    memcpy(&msg.conn_request->candidates[1008], &original_candidates[2], sizeof(Candidate));
+                    candidate_remote = &msg.conn_request->candidates[1007];
+                    candidate_local = &msg.conn_request->candidates[1008];
+                    msg.conn_request->num_candidates = 1009;
                 }
             }
             else
