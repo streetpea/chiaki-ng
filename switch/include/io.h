@@ -79,6 +79,7 @@ class IO
 		SDL_AudioDeviceID sdl_audio_device_id = 0;
 		SDL_Event sdl_event;
 		SDL_Joystick *sdl_joystick_ptr[SDL_JOYSTICK_COUNT] = {0};
+		SDL_Haptic *sdl_haptic_ptr[2];
 #ifdef __SWITCH__
 		PadState pad;
 		HidSixAxisSensorHandle sixaxis_handles[4];
@@ -112,6 +113,7 @@ class IO
 		IO(const IO&) = delete;
 		void operator=(const IO&) = delete;
 		static IO * GetInstance();
+		int HapticBase = 400;
 
 		~IO();
 		bool isFirst = true;
@@ -127,6 +129,9 @@ class IO
 		bool MainLoop();
 		void UpdateControllerState(ChiakiControllerState *state, std::map<uint32_t, int8_t> *finger_id_touch_id);
 		void SetRumble(uint8_t left, uint8_t right);
+		void SetHapticRumble(uint8_t left, uint8_t right);
+		void HapticCB(uint8_t *buf, size_t buf_size);
+		void CleanUpHaptic();
 };
 
 #endif //CHIAKI_IO_H

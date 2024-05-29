@@ -446,6 +446,32 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	fps->getValueSelectedEvent()->subscribe(fps_cb);
 	ls->addView(fps);
 
+	value = this->settings->GetHaptic(host);
+
+	brls::SelectListItem *haptic = new brls::SelectListItem(
+		"Haptic", { "Disabled", "Weak", "Strong" }, value);
+
+	auto haptic_cb = [this, host](int result) {
+		HapticPreset value = HAPTIC_PRESET_DIABLED;
+		switch(result)
+		{
+			case 0:
+				value = HAPTIC_PRESET_DIABLED;
+				break;
+			case 1:
+				value = HAPTIC_PRESET_WEAK;
+				break;
+			case 2:
+				value = HAPTIC_PRESET_STRONG;
+				break;
+		}
+		this->settings->SetHaptic(host, value);
+		this->settings->WriteFile();
+	};
+
+	haptic->getValueSelectedEvent()->subscribe(haptic_cb);
+	ls->addView(haptic);
+
 	if(host != nullptr)
 	{
 		// message delimiter

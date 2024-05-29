@@ -3,6 +3,9 @@
 #include "io.h"
 #include "settings.h"
 
+#include <chrono>
+#include <thread>
+
 // https://github.com/torvalds/linux/blob/41ba50b0572e90ed3d24fe4def54567e9050bc47/drivers/hid/hid-sony.c#L2742
 #define DS4_TRACKPAD_MAX_X 1920
 #define DS4_TRACKPAD_MAX_Y 942
@@ -78,6 +81,10 @@ void main()
 
 int current_frame = 0;
 int next_frame = 0;
+
+bool haptic_lock = false;
+int haptic_val = 0;
+std::chrono::system_clock::time_point haptic_lock_time;
 
 static const float vert_pos[] = {
 	0.0f, 0.0f,
@@ -330,6 +337,11 @@ void IO::AudioCB(int16_t *buf, size_t samples_count)
 	int success = SDL_QueueAudio(this->sdl_audio_device_id, buf, sizeof(int16_t) * samples_count * 2);
 	if(success != 0)
 		CHIAKI_LOGE(this->log, "SDL_QueueAudio failed: %s\n", SDL_GetError());
+
+	// check haptic
+	if (haptic_lock) {
+		CleanUpHaptic();
+	}
 }
 
 bool IO::InitVideo(int video_width, int video_height, int screen_width, int screen_height)
@@ -470,53 +482,118 @@ void IO::SetRumble(uint8_t left, uint8_t right)
 			.amp_low = 0.0f,
 			.freq_low = 160.0f,
 			.amp_high = 0.0f,
-			.freq_high = 320.0f,
+			.freq_high = 200.0f,
 		},
 		{
 			.amp_low = 0.0f,
 			.freq_low = 160.0f,
 			.amp_high = 0.0f,
-			.freq_high = 320.0f,
+			.freq_high = 200.0f,
 		}};
 
 	int target_device = padIsHandheld(&pad) ? 0 : 1;
+	if(left > 160) left = 160;
 	if(left > 0)
 	{
 		// SDL_HapticRumblePlay(this->sdl_haptic_ptr[0], left / 100, 5000);
-		vibration_values[0].amp_low = (float)left / (float)100;
-		vibration_values[0].amp_high = (float)left / (float)100;
-		vibration_values[0].freq_low *= (float)left / (float)100;
-		vibration_values[0].freq_high *= (float)left / (float)100;
+		float l = (float)left / 255.0;
+		vibration_values[0].amp_low = l;
+		vibration_values[0].freq_low *= l;
+		vibration_values[0].amp_high = l;
+		vibration_values[0].freq_high *= l;
 	}
 
+	if(right > 160) right = 160;
 	if(right > 0)
 	{
 		// SDL_HapticRumblePlay(this->sdl_haptic_ptr[1], right / 100, 5000);
-		vibration_values[1].amp_low = (float)right / (float)100;
-		vibration_values[1].amp_high = (float)right / (float)100;
-		vibration_values[1].freq_low *= (float)left / (float)100;
-		vibration_values[1].freq_high *= (float)left / (float)100;
+		float r = (float)right / 255.0;
+		vibration_values[1].amp_low = r;
+		vibration_values[1].freq_low *= r;
+		vibration_values[1].amp_high = r;
+		vibration_values[1].freq_high *= r;
 	}
-
-	// printf("left ptr %p amp_low %f amp_high %f freq_low %f freq_high %f\n",
-	// 	&vibration_values[0],
-	// 	vibration_values[0].amp_low,
-	// 	vibration_values[0].amp_high,
-	// 	vibration_values[0].freq_low,
-	// 	vibration_values[0].freq_high);
-
-	// printf("right ptr %p amp_low %f amp_high %f freq_low %f freq_high %f\n",
-	// 	&vibration_values[1],
-	// 	vibration_values[1].amp_low,
-	// 	vibration_values[1].amp_high,
-	// 	vibration_values[1].freq_low,
-	// 	vibration_values[1].freq_high);
 
 	rc = hidSendVibrationValues(this->vibration_handles[target_device], vibration_values, 2);
 	if(R_FAILED(rc))
 		CHIAKI_LOGE(this->log, "hidSendVibrationValues() returned: 0x%x", rc);
 
 #endif
+}
+
+void IO::HapticCB(uint8_t *buf, size_t buf_size) {
+		int16_t amplitudel = 0, amplituder = 0;
+		int32_t suml = 0, sumr = 0;
+		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples
+
+		size_t buf_count = buf_size / sample_size;
+		for (size_t i = 0; i < buf_count; i++){
+			size_t cur = i * sample_size;
+
+			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
+			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
+			suml += amplitudel;
+			sumr += amplituder;
+		}
+		uint16_t left = 0, right = 0;
+		left = suml / buf_count;
+		right = sumr / buf_count;
+		SetHapticRumble(left, right);
+		if ((left != 0 || right != 0) && !haptic_lock) {
+			haptic_lock = true;
+		}
+}
+
+void IO::SetHapticRumble(uint8_t left, uint8_t right)
+{
+	uint8_t val = left > right ? left : right;
+	haptic_val = val;
+	haptic_lock_time = std::chrono::high_resolution_clock::now(); 
+	
+#ifdef __SWITCH__
+	Result rc = 0;
+	HidVibrationValue vibration_values[] = {
+		{
+			.amp_low = 0.0f,
+			.freq_low = 160.0f,
+			.amp_high = 0.0f,
+			.freq_high = 200.0f,
+		},
+		{
+			.amp_low = 0.0f,
+			.freq_low = 160.0f,
+			.amp_high = 0.0f,
+			.freq_high = 200.0f,
+		}};
+
+	int target_device = padIsHandheld(&pad) ? 0 : 1;
+	for (int i = 0; i < 2; i++) {
+		float index = (float)val / (float)HapticBase;
+		vibration_values[i].amp_low = index;
+		vibration_values[i].amp_high = index;
+		if (val != 0) {
+			vibration_values[i].freq_low *= index;
+			vibration_values[i].freq_high *= index;
+		}
+	}
+	// CHIAKI_LOGW(this->log, "haptic rumble param: %f %f %f %f",
+	// 	vibration_values[0].amp_low, vibration_values[0].amp_high,
+	// 	vibration_values[0].freq_low, vibration_values[0].freq_high);
+	
+	rc = hidSendVibrationValues(this->vibration_handles[target_device], vibration_values, 2);
+#endif
+}
+
+void IO::CleanUpHaptic() {
+	std::chrono::system_clock::time_point now = std::chrono::high_resolution_clock::now();
+	auto dur = now - haptic_lock_time;
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
+	if (haptic_val == 0) {
+		haptic_lock = false;
+	} else if (ms > 30) {
+		SetHapticRumble(0, 0);
+		haptic_lock = false;
+	}
 }
 
 bool IO::ReadGameSixAxis(ChiakiControllerState *state)
@@ -1099,10 +1176,11 @@ bool IO::InitController()
 			return false;
 		}
 		// this->sdl_haptic_ptr[i] = SDL_HapticOpenFromJoystick(sdl_joystick_ptr[i]);
-		// SDL_HapticRumbleInit(this->sdl_haptic_ptr[i]);
 		// if(sdl_haptic_ptr[i] == nullptr)
 		// {
 		// 	CHIAKI_LOGE(this->log, "SDL_HapticRumbleInit: %s\n", SDL_GetError());
+		// } else {
+		// 	SDL_HapticRumbleInit(this->sdl_haptic_ptr[i]);
 		// }
 	}
 #ifdef __SWITCH__

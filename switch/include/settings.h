@@ -8,6 +8,12 @@
 #include <chiaki/log.h>
 #include "host.h"
 
+typedef enum {
+	HAPTIC_PRESET_DIABLED = 0,
+	HAPTIC_PRESET_WEAK = 1,
+	HAPTIC_PRESET_STRONG = 2
+} HapticPreset;
+
 // mutual host and settings
 class Host;
 
@@ -28,6 +34,7 @@ class Settings
 		ChiakiVideoFPSPreset global_video_fps = CHIAKI_VIDEO_FPS_PRESET_60;
 		std::string global_psn_online_id = "";
 		std::string global_psn_account_id = "";
+		HapticPreset global_haptic = HAPTIC_PRESET_DIABLED;
 
 		typedef enum configurationitem
 		{
@@ -42,6 +49,7 @@ class Settings
 			VIDEO_RESOLUTION,
 			VIDEO_FPS,
 			TARGET,
+			HAPTIC,
 		} ConfigurationItem;
 
 		// dummy parser implementation
@@ -58,6 +66,7 @@ class Settings
 			{VIDEO_RESOLUTION, std::regex("^\\s*video_resolution\\s*=\\s*\"?(1080p|720p|540p|360p)\"?")},
 			{VIDEO_FPS, std::regex("^\\s*video_fps\\s*=\\s*\"?(60|30)\"?")},
 			{TARGET, std::regex("^\\s*target\\s*=\\s*\"?(\\d+)\"?")},
+			{HAPTIC, std::regex("^\\s*haptic\\s*=\\s*\"?(\\d+)\"?")},
 		};
 
 		ConfigurationItem ParseLine(std::string * line, std::string * value);
@@ -100,6 +109,10 @@ class Settings
 		ChiakiVideoFPSPreset GetVideoFPS(Host * host);
 		void SetVideoFPS(Host * host, ChiakiVideoFPSPreset value);
 		void SetVideoFPS(Host * host, std::string value);
+
+		HapticPreset GetHaptic(Host * host);
+		void SetHaptic(Host * host, HapticPreset value);
+		void SetHaptic(Host * host, std::string value);
 
 		ChiakiTarget GetChiakiTarget(Host * host);
 		bool SetChiakiTarget(Host * host, ChiakiTarget target);
