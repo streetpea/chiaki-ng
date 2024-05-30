@@ -245,7 +245,9 @@ typedef struct session_t
     int32_t stun_allocation_increment;
     bool stun_random_allocation;
     StunServer stun_server_list[10];
+    StunServer stun_server_list_ipv6[10];
     size_t num_stun_servers;
+    size_t num_stun_servers_ipv6;
     UPNPGatewayInfo gw;
 
     uint8_t data1[16];
@@ -358,7 +360,7 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
 static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info, char *out);
 static bool upnp_add_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external);
 static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_info, uint16_t port_external);
-static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock);
+static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock, bool ipv4);
 static ChiakiErrorCode get_stun_servers(Session *session);
 // static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
@@ -688,6 +690,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->stun_random_allocation = false;
     session->stun_allocation_increment = -1;
     session->num_stun_servers = 0;
+    session->num_stun_servers_ipv6 = 0;
     session->gw.data = NULL;
 
     ChiakiErrorCode err;
@@ -1562,6 +1565,10 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     {
         free(session->stun_server_list[i].host);
     }
+    for(int i=0; i < session->num_stun_servers_ipv6; i++)
+    {
+        free(session->stun_server_list_ipv6[i].host);
+    }
     chiaki_stop_pipe_fini(&session->select_pipe);
     chiaki_stop_pipe_fini(&session->notif_pipe);
     chiaki_mutex_fini(&session->notif_mutex);
@@ -2130,12 +2137,6 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         CHIAKI_LOGE(session->log, "send_offer: Binding ipv6 socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         return CHIAKI_ERR_UNKNOWN;
     }
-    err = chiaki_socket_set_nonblock(session->ipv6_sock, true);
-    if(err != CHIAKI_ERR_SUCCESS)
-    {
-        CHIAKI_LOGE(session->log, "Failed to set ipv6 socket to non-blocking: %s", chiaki_error_string(err));
-        return CHIAKI_ERR_UNKNOWN;
-    }
 
     if(!msg.conn_request)
         return CHIAKI_ERR_MEMORY;
@@ -2234,7 +2235,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         candidate_stun->type = CANDIDATE_TYPE_STUN;
         memcpy(candidate_stun->addr_mapped, "0.0.0.0", 8);
         candidate_stun->port_mapped = 0;
-        have_addr = get_client_addr_remote_stun(session, candidate_stun->addr, &candidate_stun->port, &session->ipv4_sock);
+        have_addr = get_client_addr_remote_stun(session, candidate_stun->addr, &candidate_stun->port, &session->ipv4_sock, true);
         if(have_addr)
         {
             memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
@@ -2255,7 +2256,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 if(!session->stun_random_allocation)
                 {
                     Candidate *tmp = NULL;
-                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 10);
+                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 11);
                     if(tmp)
                         msg.conn_request->candidates = tmp;
                     else
@@ -2317,7 +2318,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 else
                 {
                     Candidate *tmp = NULL;
-                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 27);
+                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 28);
                     if(tmp)
                         msg.conn_request->candidates = tmp;
                     else
@@ -2380,6 +2381,20 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup;
         }
+        // Only PS5 supports ipv6
+        if(session->console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5)
+        {
+            Candidate *candidate_stun_ipv6 = &msg.conn_request->candidates[msg.conn_request->num_candidates];
+            candidate_stun_ipv6->type = CANDIDATE_TYPE_STUN;
+            memcpy(candidate_stun_ipv6->addr_mapped, "0.0.0.0", 8);
+            candidate_stun_ipv6->port_mapped = 0;
+            if(get_client_addr_remote_stun(session, candidate_stun_ipv6->addr, &candidate_stun_ipv6->port, &session->ipv6_sock, false))
+            {
+                msg.conn_request->num_candidates++;
+            }
+            else
+                CHIAKI_LOGW(session->log, "Couldn't get STUN ipv6 address. IPV6 likely not supported.");
+            }
     }
     else
     {
@@ -2400,6 +2415,12 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         CHIAKI_LOGE(session->log, "Failed to set ipv4 socket to non-blocking: %s", chiaki_error_string(err));
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup;
+    }
+    err = chiaki_socket_set_nonblock(session->ipv6_sock, true);
+    if(err != CHIAKI_ERR_SUCCESS)
+    {
+        CHIAKI_LOGE(session->log, "Failed to set ipv6 socket to non-blocking: %s", chiaki_error_string(err));
+        return CHIAKI_ERR_UNKNOWN;
     }
     memcpy(candidate_remote->addr_mapped, "0.0.0.0", 8);
     candidate_remote->port = local_port;
@@ -3034,7 +3055,7 @@ static bool upnp_delete_udp_port_mapping(ChiakiLog *log, UPNPGatewayInfo *gw_inf
  * @param log The ChiakiLog instance for logging.
  * @return The external IP address of the client, or NULL if the IP address could not be retrieved. Needs to be freed by the caller.
 */
-static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock)
+static bool get_client_addr_remote_stun(Session *session, char *address, uint16_t *port, chiaki_socket_t *sock, bool ipv4)
 {
     // run STUN test if it hasn't been run yet
     if(session->stun_allocation_increment == -1)
@@ -3051,10 +3072,21 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
         }
         return true;
     }
-    if (!stun_get_external_address(session->log, address, port, session->stun_server_list, session->num_stun_servers, sock))
+    if(ipv4)
     {
-        CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
-        return false;
+        if (!stun_get_external_address(session->log, address, port, session->stun_server_list, session->num_stun_servers, sock, ipv4))
+        {
+            CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
+            return false;
+        }
+    }
+    else
+    {
+        if (!stun_get_external_address(session->log, address, port, session->stun_server_list_ipv6, session->num_stun_servers_ipv6, sock, ipv4))
+        {
+            CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");
+            return false;
+        }
     }
     return true;
 }
@@ -4691,7 +4723,7 @@ static ChiakiErrorCode get_stun_servers(Session *session)
         }
         goto cleanup;
     }
-    // h0stname has max of 253 chars + 1 char for colon : + port has max of 4 chars + 1 char for null termination
+    // hostname has max of 253 chars + 1 char for colon : + port has max of 4 chars + 1 char for null termination
     char server_strings[10][259];
     char *ptr = strtok(response_data.data, "\n");
     while(ptr != NULL && session->num_stun_servers <= 9)
@@ -4726,6 +4758,81 @@ static ChiakiErrorCode get_stun_servers(Session *session)
             return CHIAKI_ERR_INVALID_DATA;
         }
         session->stun_server_list[i].port = strtol(ptr, NULL, 10);
+        ptr = NULL;
+    }
+
+    free(response_data.data);
+    response_data.data = malloc(0);
+    response_data.size = 0;
+    curl_easy_cleanup(curl);
+    curl = NULL;
+    const char STUN_HOSTS_URL_IPV6[] = "https://raw.githubusercontent.com/pradt2/always-online-stun/master/valid_ipv6s.txt";
+    curl = curl_easy_init();
+    if(!curl)
+    {
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
+
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL_IPV6);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+
+    res = curl_easy_perform(curl);
+    if (res != CURLE_OK)
+    {
+        if (res == CURLE_HTTP_RETURNED_ERROR)
+        {
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            CHIAKI_LOGE(session->log, "Getting IPV6 stun servers from %s failed with HTTP code %ld", STUN_HOSTS_URL, http_code);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            err = CHIAKI_ERR_HTTP_NONOK;
+        } else {
+            CHIAKI_LOGE(session->log, "Getting IPV6 stun servers from %s failed with CURL error %d", STUN_HOSTS_URL, res);
+            err = CHIAKI_ERR_NETWORK;
+        }
+        goto cleanup;
+    }
+    // ipv6 string has max of 45 chars: 39 chars + 2 chars for [] + 1 char for colon : + port has max of 4 chars + 1 char for null termination
+    char server_strings_ipv6[10][47];
+    ptr = strtok(response_data.data, "\n");
+    while(ptr != NULL && session->num_stun_servers_ipv6 <= 9)
+    {
+        // omit leading [
+        strcpy(server_strings_ipv6[session->num_stun_servers_ipv6], ptr + 1);
+        session->num_stun_servers_ipv6++;
+		ptr = strtok(NULL, "\n");
+    }
+    ptr = NULL;
+    for(int i = 0; i < session->num_stun_servers_ipv6; i++)
+    {
+        ptr = strtok(server_strings_ipv6[i], "]");
+        if(ptr == NULL)
+        {
+            CHIAKI_LOGW(session->log, "Problem reading stun server list host");
+            session->num_stun_servers_ipv6 = i;
+            return CHIAKI_ERR_INVALID_DATA;
+        }
+        session->stun_server_list_ipv6[i].host = malloc((strlen(ptr) + 1) * sizeof(char));
+        if(!session->stun_server_list_ipv6[i].host)
+        {
+            CHIAKI_LOGW(session->log, "Problem allocating memory for stun server list host");
+            session->num_stun_servers_ipv6 = i;
+            return CHIAKI_ERR_MEMORY;
+        }
+        strcpy(session->stun_server_list_ipv6[i].host, ptr);
+        ptr = strtok(NULL, "]");
+        if(ptr == NULL)
+        {
+            CHIAKI_LOGW(session->log, "Problem reading stun server list port");
+            session->num_stun_servers_ipv6 = i;
+            return CHIAKI_ERR_INVALID_DATA;
+        }
+        // omit :
+        session->stun_server_list_ipv6[i].port = strtol(ptr + 1, NULL, 10);
         ptr = NULL;
     }
 
