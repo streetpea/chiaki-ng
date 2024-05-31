@@ -2153,7 +2153,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     memcpy(msg.conn_request->local_hashed_id, session->hashed_id_local, sizeof(session->hashed_id_local));
     msg.conn_request->num_candidates = 2;
     // allocate extra space for stun candidates
-    msg.conn_request->candidates = calloc(3, sizeof(Candidate));
+    msg.conn_request->candidates = calloc(4, sizeof(Candidate));
     if(!msg.conn_request->candidates)
     {
         free(msg.conn_request);
@@ -2318,7 +2318,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 else
                 {
                     Candidate *tmp = NULL;
-                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * 28);
+                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * (RANDOM_ALLOCATION_SOCKS_NUMBER + 3));
                     if(tmp)
                         msg.conn_request->candidates = tmp;
                     else
@@ -2402,8 +2402,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             else
             {
                 CHIAKI_LOGW(session->log, "IPV6 NOT supported by device. Couldn't get IPV6 STUN address.");
-                CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
-                session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+                if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+                {
+                    CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+                    session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+                }
             }
         }
     }

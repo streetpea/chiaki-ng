@@ -40,7 +40,10 @@ DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 DiscoveryManager::~DiscoveryManager()
 {
 	if(service_active)
+	{
 		chiaki_discovery_service_fini(&service);
+		chiaki_discovery_service_fini(&service_ipv6);
+	}
 	qDeleteAll(manual_services);
 }
 
