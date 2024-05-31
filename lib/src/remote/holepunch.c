@@ -2390,11 +2390,22 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             candidate_stun_ipv6->port_mapped = 0;
             if(get_client_addr_remote_stun(session, candidate_stun_ipv6->addr, &candidate_stun_ipv6->port, &session->ipv6_sock, false))
             {
-                msg.conn_request->num_candidates++;
+                if (setsockopt(session->ipv6_sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0)
+                {
+                    CHIAKI_LOGE(session->log, "send_offer: Failed to unset socket timeout, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                    CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+                    session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+                }
+                else
+                    msg.conn_request->num_candidates++;
             }
             else
-                CHIAKI_LOGW(session->log, "Couldn't get STUN ipv6 address. IPV6 likely not supported.");
+            {
+                CHIAKI_LOGW(session->log, "IPV6 NOT supported by device. Couldn't get IPV6 STUN address.");
+                CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+                session->ipv6_sock = CHIAKI_INVALID_SOCKET;
             }
+        }
     }
     else
     {
@@ -2416,11 +2427,14 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup;
     }
-    err = chiaki_socket_set_nonblock(session->ipv6_sock, true);
-    if(err != CHIAKI_ERR_SUCCESS)
+    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
     {
-        CHIAKI_LOGE(session->log, "Failed to set ipv6 socket to non-blocking: %s", chiaki_error_string(err));
-        return CHIAKI_ERR_UNKNOWN;
+        err = chiaki_socket_set_nonblock(session->ipv6_sock, true);
+        if(err != CHIAKI_ERR_SUCCESS)
+        {
+            CHIAKI_LOGE(session->log, "Failed to set ipv6 socket to non-blocking: %s", chiaki_error_string(err));
+            return CHIAKI_ERR_UNKNOWN;
+        }
     }
     memcpy(candidate_remote->addr_mapped, "0.0.0.0", 8);
     candidate_remote->port = local_port;
@@ -3204,6 +3218,7 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "send_offer: Creating ipv4 socket %d failed", i);
                 CHIAKI_SOCKET_CLOSE(socks[i]);
+                socks[i] = CHIAKI_INVALID_SOCKET;
                 continue;
             }
             struct sockaddr_in client_addr;
@@ -3218,6 +3233,7 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 CHIAKI_SOCKET_CLOSE(socks[i]);
+                socks[i] = CHIAKI_INVALID_SOCKET;
                 continue;
             }
 #else
@@ -3225,6 +3241,7 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 CHIAKI_SOCKET_CLOSE(socks[i]);
+                socks[i] = CHIAKI_INVALID_SOCKET;
                 continue;
             }
 #endif
@@ -3238,6 +3255,7 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 CHIAKI_SOCKET_CLOSE(socks[i]);
+                socks[i] = CHIAKI_INVALID_SOCKET;
                 continue;
             }
             bind(socks[i], (struct sockaddr*)&client_addr, client_addr_len);
@@ -3246,6 +3264,7 @@ static ChiakiErrorCode check_candidates(
             {
                 CHIAKI_LOGE(session->log, "Failed to set ipv4 socket %d to non-blocking: %s", i, chiaki_error_string(err));
                 CHIAKI_SOCKET_CLOSE(socks[i]);
+                socks[i] = CHIAKI_INVALID_SOCKET;
                 continue;
             }
         }
@@ -3286,6 +3305,7 @@ static ChiakiErrorCode check_candidates(
                         {
                             CHIAKI_LOGW(session->log, "check_candidate: Sending request for socket %d failed for %s:%d with error, closing socket: " CHIAKI_SOCKET_ERROR_FMT, j, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                             CHIAKI_SOCKET_CLOSE(socks[j]);
+                            socks[j] = CHIAKI_INVALID_SOCKET;
                             continue;
                         }
 
@@ -3440,6 +3460,7 @@ static ChiakiErrorCode check_candidates(
                     {
                         CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                         CHIAKI_SOCKET_CLOSE(socks[j]);
+                        socks[j] = CHIAKI_INVALID_SOCKET;
                         err = CHIAKI_ERR_UNKNOWN;
                         goto cleanup_sockets;
                     }
@@ -3618,8 +3639,8 @@ static ChiakiErrorCode check_candidates(
     // Close non-chosen sockets
     if (session->ipv4_sock != *out && (!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock)))
     {
-        session->ipv4_sock = CHIAKI_INVALID_SOCKET;
         CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
+        session->ipv4_sock = CHIAKI_INVALID_SOCKET;
     }
     if (session->ipv6_sock != *out && (!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock)))
     {
@@ -3631,7 +3652,10 @@ static ChiakiErrorCode check_candidates(
         for(int j=0; j<RANDOM_ALLOCATION_SOCKS_NUMBER; j++)
         {
             if(!CHIAKI_SOCKET_IS_INVALID(socks[j]) && socks[j] != selected_sock)
+            {
                 CHIAKI_SOCKET_CLOSE(socks[j]);
+                socks[j] = CHIAKI_INVALID_SOCKET;
+            }
         }
     }
 
@@ -3713,7 +3737,10 @@ cleanup_sockets:
         for(int j=0; j<RANDOM_ALLOCATION_SOCKS_NUMBER; j++)
         {
             if(!CHIAKI_SOCKET_IS_INVALID(socks[j]))
+            {
                 CHIAKI_SOCKET_CLOSE(socks[j]);
+                socks[j] = CHIAKI_INVALID_SOCKET;
+            }
         }
     }
     return err;

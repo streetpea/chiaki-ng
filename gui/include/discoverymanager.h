@@ -33,6 +33,7 @@ struct ManualService
 	bool discovered = false;
 	DiscoveryHost discovery_host;
 	ChiakiDiscoveryService service;
+	ChiakiDiscoveryService service_ipv6;
 };
 
 class Settings;
@@ -46,6 +47,7 @@ class DiscoveryManager : public QObject
 	private:
 		ChiakiLog log;
 		ChiakiDiscoveryService service;
+		ChiakiDiscoveryService service_ipv6;
 		bool service_active;
 		QList<DiscoveryHost> hosts;
 		Settings *settings = {};

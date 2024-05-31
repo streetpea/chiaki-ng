@@ -461,6 +461,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     if (sent != sizeof(binding_req)) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to send STUN request, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         CHIAKI_SOCKET_CLOSE(*sock);
+        *sock = CHIAKI_INVALID_SOCKET;
         return false;
     }
 
@@ -474,6 +475,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     if (setsockopt(*sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to set socket timeout, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         CHIAKI_SOCKET_CLOSE(*sock);
+        *sock = CHIAKI_INVALID_SOCKET;
         return false;
     }
 

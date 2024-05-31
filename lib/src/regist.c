@@ -307,10 +307,10 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 
-		struct sockaddr recv_addr = { 0 };
+		struct sockaddr_in6 recv_addr = { 0 };
 		socklen_t recv_addr_size;
 		recv_addr_size = sizeof(recv_addr);
-		err = regist_search(regist, addrinfos, &recv_addr, &recv_addr_size);
+		err = regist_search(regist, addrinfos, (struct sockaddr *)&recv_addr, &recv_addr_size);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			if(err == CHIAKI_ERR_CANCELED)
@@ -327,7 +327,7 @@ static void *regist_thread_func(void *user)
 			goto fail_addrinfos;
 		}
 
-		sock = regist_request_connect(regist, &recv_addr, recv_addr_size);
+		sock = regist_request_connect(regist, (struct sockaddr *)&recv_addr, recv_addr_size);
 		if(CHIAKI_SOCKET_IS_INVALID(sock))
 		{
 			CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for request");
@@ -390,7 +390,10 @@ static void *regist_thread_func(void *user)
 
 fail_socket:
 	if(!psn)
+	{
 		CHIAKI_SOCKET_CLOSE(sock);
+		sock = CHIAKI_INVALID_SOCKET;
+	}
 fail_addrinfos:
 	if(!psn)
 		freeaddrinfo(addrinfos);
@@ -416,9 +419,9 @@ fail:
 static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *recv_addr, socklen_t *recv_addr_size)
 {
 	CHIAKI_LOGI(regist->log, "Regist starting search");
-	struct sockaddr send_addr;
+	struct sockaddr_in6 send_addr;
 	socklen_t send_addr_len = sizeof(send_addr);
-	chiaki_socket_t sock = regist_search_connect(regist, addrinfos, &send_addr, &send_addr_len);
+	chiaki_socket_t sock = regist_search_connect(regist, addrinfos, (struct sockaddr *)&send_addr, &send_addr_len);
 	if(CHIAKI_SOCKET_IS_INVALID(sock))
 	{
 		CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for search");
@@ -434,7 +437,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 	CHIAKI_LOGI(regist->log, "Regist sending search packet");
 	int r;
 	if(regist->info.broadcast)
-		r = sendto_broadcast(regist->log, sock, src, strlen(src) + 1, 0, &send_addr, send_addr_len);
+		r = sendto_broadcast(regist->log, sock, src, strlen(src) + 1, 0, (struct sockaddr *)&send_addr, send_addr_len);
 	else
 		r = send(sock, src, strlen(src) + 1, 0);
 	if(r < 0)
@@ -485,6 +488,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 
 done:
 	CHIAKI_SOCKET_CLOSE(sock);
+	sock = CHIAKI_INVALID_SOCKET;
 	return err;
 }
 
@@ -496,7 +500,7 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 		//if(ai->ai_protocol != IPPROTO_UDP)
 		//	continue;
 
-		if(ai->ai_addr->sa_family != AF_INET) // TODO: support IPv6
+		if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 			continue;
 
 		if(ai->ai_addrlen > *send_addr_len)
@@ -506,31 +510,43 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 
 		set_port(send_addr, htons(REGIST_PORT));
 
-		sock = socket(ai->ai_family, SOCK_DGRAM, IPPROTO_UDP);
+		sock = socket(send_addr->sa_family, SOCK_DGRAM, IPPROTO_UDP);
 		if(CHIAKI_SOCKET_IS_INVALID(sock))
 		{
 			CHIAKI_LOGE(regist->log, "Regist failed to create socket for search");
 			continue;
 		}
-
+		int r = 0;
 		if(regist->info.broadcast)
 		{
 			const int broadcast = 1;
-			int r = setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const CHIAKI_SOCKET_BUF_TYPE)&broadcast, sizeof(broadcast));
-			if(r < 0)
+			if(send_addr->sa_family == AF_INET)
 			{
+				r = setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const CHIAKI_SOCKET_BUF_TYPE)&broadcast, sizeof(broadcast));
+				if(r < 0)
+				{
 #ifdef _WIN32
-				CHIAKI_LOGE(regist->log, "Regist failed to setsockopt SO_BROADCAST, error %u", WSAGetLastError());
+					CHIAKI_LOGE(regist->log, "Regist failed to setsockopt SO_BROADCAST, error %u", WSAGetLastError());
 #else
-				CHIAKI_LOGE(regist->log, "Regist failed to setsockopt SO_BROADCAST");
+					CHIAKI_LOGE(regist->log, "Regist failed to setsockopt SO_BROADCAST");
 #endif
-				goto connect_fail;
+					goto connect_fail;
+				}
+				in_addr_t ip = ((struct sockaddr_in *)send_addr)->sin_addr.s_addr;
+				((struct sockaddr_in *)send_addr)->sin_addr.s_addr = htonl(INADDR_ANY);
+				((struct sockaddr_in *)send_addr)->sin_port = 0;
+				((struct sockaddr_in *)send_addr)->sin_family = AF_INET;
+				r = bind(sock, send_addr, *send_addr_len);
+				((struct sockaddr_in *)send_addr)->sin_addr.s_addr = ip;
 			}
-
-			in_addr_t ip = ((struct sockaddr_in *)send_addr)->sin_addr.s_addr;
-			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = htonl(INADDR_ANY);
-			r = bind(sock, send_addr, *send_addr_len);
-			((struct sockaddr_in *)send_addr)->sin_addr.s_addr = ip;
+			else
+			{
+				struct sockaddr_in6 host_addr;
+				host_addr.sin6_addr = in6addr_any;
+				host_addr.sin6_port = 0;
+				host_addr.sin6_family = AF_INET6;
+				r = bind(sock, (struct sockaddr *)&host_addr, sizeof(host_addr));
+			}
 			if(r < 0)
 			{
 				CHIAKI_LOGE(regist->log, "Regist failed to bind socket");
