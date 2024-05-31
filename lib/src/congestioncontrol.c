@@ -26,6 +26,12 @@ static void *congestion_control_thread_func(void *user)
 		packet.lost = (uint16_t)lost;
 		uint64_t total = received + lost;
 		control->packet_loss = total > 0 ? (double)lost / total : 0;
+		if(control->packet_loss > 0.2)
+		{
+			CHIAKI_LOGW(control->takion->log, "Increasing received packets to reduce hit on stream quality");
+			lost = total * 0.2;
+			received = total - lost;
+		}
 		CHIAKI_LOGV(control->takion->log, "Sending Congestion Control Packet, received: %u, lost: %u",
 			(unsigned int)packet.received, (unsigned int)packet.lost);
 		chiaki_takion_send_congestion(control->takion, &packet);
