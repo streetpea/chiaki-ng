@@ -853,6 +853,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
+		session_sock = CHIAKI_INVALID_SOCKET;
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -877,6 +878,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	if(request_len < 0 || request_len >= sizeof(send_buf))
 	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
+		session_sock = CHIAKI_INVALID_SOCKET;
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -890,6 +892,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		{
 			CHIAKI_LOGE(session->log, "Failed to send session request");
 			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = CHIAKI_INVALID_SOCKET;
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			return CHIAKI_ERR_NETWORK;
 		}
@@ -916,6 +919,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
 		CHIAKI_SOCKET_CLOSE(session_sock);
+		session_sock = CHIAKI_INVALID_SOCKET;
 		return CHIAKI_ERR_NETWORK;
 	}
 	if(session->rudp)
@@ -938,6 +942,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	{
 		CHIAKI_LOGE(session->log, "Failed to parse session request response");
 		CHIAKI_SOCKET_CLOSE(session_sock);
+		session_sock = CHIAKI_INVALID_SOCKET;
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return CHIAKI_ERR_NETWORK;
 	}
@@ -1003,7 +1008,10 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 
 	chiaki_http_response_fini(&http_response);
 	if(!session->rudp)
+	{
 		CHIAKI_SOCKET_CLOSE(session_sock);
+		session_sock = CHIAKI_INVALID_SOCKET;
+	}
 	return r;
 }
 
