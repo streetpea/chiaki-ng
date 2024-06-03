@@ -71,7 +71,7 @@
 #define SELECT_CANDIDATE_TIMEOUT_SEC 0.5F
 #define SELECT_CANDIDATE_TRIES 20
 #define SELECT_CANDIDATE_CONNECTION_SEC 5
-#define RANDOM_ALLOCATION_SOCKS_NUMBER 25
+#define RANDOM_ALLOCATION_SOCKS_NUMBER 50
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -2326,8 +2326,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         err = CHIAKI_ERR_MEMORY;
                         goto cleanup;
                     }
-                    // check 64 port block near allocated STUN port
-                    int32_t port_check = candidate_stun->port - (candidate_stun->port % 64);
+                    int32_t port_check = candidate_stun->port;
                     // Setup RANDOM_ALLOCATION_SOCKS_NUMBER STUN candidates because we have a random allocation and usually 64 port blocks are minimum
                     for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
                     {
@@ -3289,7 +3288,7 @@ static ChiakiErrorCode check_candidates(
         }
         memcpy((struct sockaddr *)&addrs[i], addr_remote->ai_addr, addr_remote->ai_addrlen);
         lens[i] = addr_remote->ai_addrlen;
-
+        bool sent = false;
         switch(((struct sockaddr *)&addrs[i])->sa_family)
         {
             case AF_INET:
@@ -3303,7 +3302,7 @@ static ChiakiErrorCode check_candidates(
                         continue;
                     }
                 }
-                if(session->stun_random_allocation && (candidate->type == CANDIDATE_TYPE_STATIC || candidate->type == CANDIDATE_TYPE_STUN))
+                if(session->stun_random_allocation && ((candidate->type == CANDIDATE_TYPE_STATIC && !sent) || candidate->type == CANDIDATE_TYPE_STUN))
                 {
                     for (int j=0; j<RANDOM_ALLOCATION_SOCKS_NUMBER; j++)
                     {
@@ -3316,7 +3315,7 @@ static ChiakiErrorCode check_candidates(
                             socks[j] = CHIAKI_INVALID_SOCKET;
                             continue;
                         }
-
+                        sent = true;
                     }
                 }
                 break;
