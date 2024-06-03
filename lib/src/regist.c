@@ -307,7 +307,7 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 
-		struct sockaddr_in6 recv_addr = { 0 };
+		struct sockaddr_storage recv_addr = { 0 };
 		socklen_t recv_addr_size;
 		recv_addr_size = sizeof(recv_addr);
 		err = regist_search(regist, addrinfos, (struct sockaddr *)&recv_addr, &recv_addr_size);
@@ -419,7 +419,7 @@ fail:
 static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *recv_addr, socklen_t *recv_addr_size)
 {
 	CHIAKI_LOGI(regist->log, "Regist starting search");
-	struct sockaddr_in6 send_addr;
+	struct sockaddr_storage send_addr;
 	socklen_t send_addr_len = sizeof(send_addr);
 	chiaki_socket_t sock = regist_search_connect(regist, addrinfos, (struct sockaddr *)&send_addr, &send_addr_len);
 	if(CHIAKI_SOCKET_IS_INVALID(sock))

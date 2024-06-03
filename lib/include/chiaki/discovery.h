@@ -83,7 +83,7 @@ typedef struct chiaki_discovery_t
 {
 	ChiakiLog *log;
 	chiaki_socket_t socket;
-	struct sockaddr_in6 local_addr;
+	struct sockaddr_storage local_addr;
 } ChiakiDiscovery;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, ChiakiLog *log, sa_family_t family);
