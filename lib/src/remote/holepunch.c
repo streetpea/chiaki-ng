@@ -2296,11 +2296,15 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         memcpy(candidate_stun2->addr_mapped, "0.0.0.0", 8);
                         candidate_stun2->port_mapped = 0;
                         memcpy(candidate_stun2->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
+                        int32_t tmp = port_check;
+                        // skip well known ports 0-1024 unless current allocation is within that range since most routers don't (implies router uses those ports)
                         port_check += session->stun_allocation_increment;
-                        if(port_check < 0)
+                        if(port_check < 1024 && tmp > 1024)
+                            port_check = UINT16_MAX - (1024 - port_check);
+                        else if(port_check < 1)
                             port_check += UINT16_MAX;
-                        if(port_check > UINT16_MAX)
-                            port_check -= UINT16_MAX;
+                        else if(port_check > UINT16_MAX)
+                            port_check = port_check - UINT16_MAX + 1024;
                         candidate_stun2->port = port_check;
                     }
                     memcpy(&msg.conn_request->candidates[8], &original_candidates[1], sizeof(Candidate));
@@ -2331,8 +2335,9 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         candidate_stun2->port = port_check;
                         memcpy(candidate_stun2->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
                         port_check += 1;
+                        // use ports in IANA dynamic range if possible
                         if(port_check > UINT16_MAX)
-                            port_check = 1025;
+                            port_check = 49152;
                     }
                     memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER], &original_candidates[1], sizeof(Candidate));
                     memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER + 1], &original_candidates[2], sizeof(Candidate));
