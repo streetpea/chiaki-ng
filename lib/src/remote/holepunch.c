@@ -71,7 +71,8 @@
 #define SELECT_CANDIDATE_TIMEOUT_SEC 0.5F
 #define SELECT_CANDIDATE_TRIES 20
 #define SELECT_CANDIDATE_CONNECTION_SEC 5
-#define RANDOM_ALLOCATION_SOCKS_NUMBER 50
+#define RANDOM_ALLOCATION_GUESSES_NUMBER 50
+#define RANDOM_ALLOCATION_SOCKS_NUMBER 1000
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -2318,7 +2319,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 else
                 {
                     Candidate *tmp = NULL;
-                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * (RANDOM_ALLOCATION_SOCKS_NUMBER + 3));
+                    tmp = realloc(msg.conn_request->candidates, sizeof(Candidate) * (RANDOM_ALLOCATION_GUESSES_NUMBER + 3));
                     if(tmp)
                         msg.conn_request->candidates = tmp;
                     else
@@ -2327,8 +2328,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         goto cleanup;
                     }
                     int32_t port_check = candidate_stun->port;
-                    // Setup RANDOM_ALLOCATION_SOCKS_NUMBER STUN candidates because we have a random allocation and usually 64 port blocks are minimum
-                    for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
+                    // Setup RANDOM_ALLOCATION_GUESSES_NUMBER STUN candidates because we have a random allocation and usually 64 port blocks are minimum
+                    for(int i=0; i<RANDOM_ALLOCATION_GUESSES_NUMBER; i++)
                     {
                         Candidate *candidate_stun2 = &msg.conn_request->candidates[i];
                         candidate_stun2->type = CANDIDATE_TYPE_STUN;
@@ -2345,11 +2346,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         if(port_check > UINT16_MAX)
                             port_check -= UINT16_MAX;
                     }
-                    memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_SOCKS_NUMBER], &original_candidates[1], sizeof(Candidate));
-                    memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_SOCKS_NUMBER + 1], &original_candidates[2], sizeof(Candidate));
-                    candidate_remote = &msg.conn_request->candidates[RANDOM_ALLOCATION_SOCKS_NUMBER];
-                    candidate_local = &msg.conn_request->candidates[RANDOM_ALLOCATION_SOCKS_NUMBER + 1];
-                    msg.conn_request->num_candidates = RANDOM_ALLOCATION_SOCKS_NUMBER + 2;
+                    memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER], &original_candidates[1], sizeof(Candidate));
+                    memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER + 1], &original_candidates[2], sizeof(Candidate));
+                    candidate_remote = &msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER];
+                    candidate_local = &msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER + 1];
+                    msg.conn_request->num_candidates = RANDOM_ALLOCATION_GUESSES_NUMBER + 2;
                 }
             }
             else
