@@ -71,8 +71,8 @@
 #define SELECT_CANDIDATE_TIMEOUT_SEC 0.5F
 #define SELECT_CANDIDATE_TRIES 20
 #define SELECT_CANDIDATE_CONNECTION_SEC 5
-#define RANDOM_ALLOCATION_GUESSES_NUMBER 50
-#define RANDOM_ALLOCATION_SOCKS_NUMBER 1000
+#define RANDOM_ALLOCATION_GUESSES_NUMBER 75
+#define RANDOM_ALLOCATION_SOCKS_NUMBER 900
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -2242,14 +2242,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             memcpy(candidate_remote->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
             // Local port is used externally so don't make duplicate STUN candidate since STATIC candidate will have same ip and port number
             uint16_t stun_port = candidate_stun->port;
-            if(local_port == stun_port)
-            {
-                memcpy(&msg.conn_request->candidates[0], &msg.conn_request->candidates[1], sizeof(Candidate));
-                memcpy(&msg.conn_request->candidates[1], &msg.conn_request->candidates[2], sizeof(Candidate));
-                candidate_remote = &msg.conn_request->candidates[0];
-                candidate_local = &msg.conn_request->candidates[1];
-            }
-            else if(session->stun_allocation_increment != 0)
+            if(session->stun_allocation_increment != 0)
             {
                 Candidate original_candidates[3];
                 memcpy(original_candidates, msg.conn_request->candidates, sizeof(Candidate) * 3);
@@ -2355,9 +2348,19 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             }
             else
             {
-                msg.conn_request->num_candidates = 3;
-                candidate_remote = &msg.conn_request->candidates[1];
-                candidate_local = &msg.conn_request->candidates[2];
+                if(local_port == stun_port)
+                {
+                    memcpy(&msg.conn_request->candidates[0], &msg.conn_request->candidates[1], sizeof(Candidate));
+                    memcpy(&msg.conn_request->candidates[1], &msg.conn_request->candidates[2], sizeof(Candidate));
+                    candidate_remote = &msg.conn_request->candidates[0];
+                    candidate_local = &msg.conn_request->candidates[1];
+                }
+                else
+                {
+                    msg.conn_request->num_candidates = 3;
+                    candidate_remote = &msg.conn_request->candidates[1];
+                    candidate_local = &msg.conn_request->candidates[2];
+                }
             }
         }
         else
