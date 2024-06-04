@@ -2331,13 +2331,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         candidate_stun2->port = port_check;
                         memcpy(candidate_stun2->addr, candidate_stun->addr, sizeof(candidate_stun->addr));
                         port_check += 1;
-                        // don't use already allocated port since symmetric NAT won't reuse
-                        if(port_check == candidate_stun->port)
-                            port_check += 1;
-                        if(port_check < 0)
-                            port_check += UINT16_MAX;
                         if(port_check > UINT16_MAX)
-                            port_check -= UINT16_MAX;
+                            port_check = 1025;
                     }
                     memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER], &original_candidates[1], sizeof(Candidate));
                     memcpy(&msg.conn_request->candidates[RANDOM_ALLOCATION_GUESSES_NUMBER + 1], &original_candidates[2], sizeof(Candidate));
@@ -3259,7 +3254,7 @@ static ChiakiErrorCode check_candidates(
 #else
             int ttl = 2;
 #endif
-            if (setsockopt(socks[i], IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
+            if (setsockopt(socks[i], IPPROTO_IP, IP_TTL, (const CHIAKI_SOCKET_BUF_TYPE)&ttl, sizeof(ttl)) < 0)
             {
                 CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 CHIAKI_SOCKET_CLOSE(socks[i]);
@@ -3478,7 +3473,7 @@ static ChiakiErrorCode check_candidates(
 #else
                     int ttl = 64;
 #endif
-                    if (setsockopt(socks[j], IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
+                    if (setsockopt(socks[j], IPPROTO_IP, IP_TTL, (const CHIAKI_SOCKET_BUF_TYPE)&ttl, sizeof(ttl)) < 0)
                     {
                         CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                         CHIAKI_SOCKET_CLOSE(socks[j]);
