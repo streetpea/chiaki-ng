@@ -135,6 +135,9 @@ class Settings : public QObject
 		float GetZoomFactor() const;
 		void SetZoomFactor(float factor);
 
+		float GetPacketLossMax() const;
+		void SetPacketLossMax(float factor);
+
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);
 

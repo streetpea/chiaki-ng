@@ -85,6 +85,7 @@ typedef struct chiaki_connect_info_t
 	ChiakiHolepunchSession holepunch_session;
 	chiaki_socket_t *rudp_sock;
 	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
+	double packet_loss_max;
 } ChiakiConnectInfo;
 
 

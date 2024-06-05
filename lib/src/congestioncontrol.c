@@ -22,16 +22,16 @@ static void *congestion_control_thread_func(void *user)
 		uint64_t lost;
 		chiaki_packet_stats_get(control->stats, true, &received, &lost);
 		ChiakiTakionCongestionPacket packet = { 0 };
-		packet.received = (uint16_t)received;
-		packet.lost = (uint16_t)lost;
 		uint64_t total = received + lost;
 		control->packet_loss = total > 0 ? (double)lost / total : 0;
-		if(control->packet_loss > 0.2)
+		if(control->packet_loss > control->packet_loss_max)
 		{
 			CHIAKI_LOGW(control->takion->log, "Increasing received packets to reduce hit on stream quality");
-			lost = total * 0.2;
+			lost = total * control->packet_loss_max;
 			received = total - lost;
 		}
+		packet.received = (uint16_t)received;
+		packet.lost = (uint16_t)lost;
 		CHIAKI_LOGV(control->takion->log, "Sending Congestion Control Packet, received: %u, lost: %u",
 			(unsigned int)packet.received, (unsigned int)packet.lost);
 		chiaki_takion_send_congestion(control->takion, &packet);
@@ -41,10 +41,11 @@ static void *congestion_control_thread_func(void *user)
 	return NULL;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion, ChiakiPacketStats *stats)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_congestion_control_start(ChiakiCongestionControl *control, ChiakiTakion *takion, ChiakiPacketStats *stats, double packet_loss_max)
 {
 	control->takion = takion;
 	control->stats = stats;
+	control->packet_loss_max = packet_loss_max;
 	control->packet_loss = 0;
 
 	ChiakiErrorCode err = chiaki_bool_pred_cond_init(&control->stop_cond);

@@ -258,6 +258,18 @@ void QmlSettings::setSZoomFactor(float factor)
     emit sZoomFactorChanged();
 }
 
+int QmlSettings::packetLossMax() const
+{
+    return (settings->GetPacketLossMax() * 100);
+}
+
+void QmlSettings::setPacketLossMax(int packet_loss_max)
+{
+    float packet_loss = (float)packet_loss_max / (float)100;
+    settings->SetPacketLossMax(packet_loss);
+    emit packetLossMaxChanged();
+}
+
 int QmlSettings::videoPreset() const
 {
     return static_cast<int>(settings->GetPlaceboPreset());
