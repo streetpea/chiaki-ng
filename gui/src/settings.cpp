@@ -249,7 +249,7 @@ void Settings::SetAutoConnectHost(const QByteArray &mac)
 
 QString Settings::GetHardwareDecoder() const
 {
-	return settings.value("settings/hw_decoder").toString();
+	return settings.value("settings/hw_decoder", "auto").toString();
 }
 
 void Settings::SetHardwareDecoder(const QString &hw_decoder)

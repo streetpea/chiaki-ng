@@ -69,6 +69,10 @@ int real_main(int argc, char *argv[])
 	QString import_path = QFileInfo(argv[0]).dir().absolutePath() + "/qml";
 	qputenv("QML_IMPORT_PATH", import_path.toUtf8());
 #endif
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+	qputenv("ANV_VIDEO_DECODE", "1");
+	qputenv("RADV_PERFTEST", "video_decode");
+#endif
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos"))
 		qputenv("QT_IM_MODULE", "sdinput");

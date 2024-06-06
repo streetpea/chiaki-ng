@@ -368,6 +368,7 @@ QStringList QmlSettings::availableDecoders() const
         if (allowed.contains(name))
             out.append(name);
     }
+    out.append("auto");
     return out;
 }
 
