@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <settings.h>
+#include <QFile>
+#include <QUrl>
 #include <QKeySequence>
 #include <QCoreApplication>
 
@@ -81,6 +83,40 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
 	LoadManualHosts();
+}
+
+void Settings::ExportSettings(QString fileurl)
+{
+	// create file if it doesn't exist
+	QUrl url(fileurl);
+	QString filepath = url.toLocalFile();
+	QFile file(filepath);
+	file.open(QIODevice::ReadWrite);
+	file.close();
+	QSettings settings_backup(filepath, QSettings::IniFormat);
+	SaveRegisteredHosts(&settings_backup);
+	SaveManualHosts(&settings_backup);
+    QStringList keys = settings.allKeys();
+    for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
+    {
+        settings_backup.setValue( *i, settings.value( *i ) );
+    }
+}
+
+void Settings::ImportSettings(QString fileurl)
+{
+	QUrl url(fileurl);
+	QString filepath = url.toLocalFile();
+	QSettings settings_backup(filepath, QSettings::IniFormat);
+	LoadRegisteredHosts(&settings_backup);
+	LoadManualHosts(&settings_backup);
+	SaveRegisteredHosts();
+	SaveManualHosts();
+    QStringList keys = settings_backup.allKeys();
+    for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
+    {
+        settings.setValue( *i, settings_backup.value( *i ) );
+    }
 }
 
 uint32_t Settings::GetLogLevelMask()
@@ -419,36 +455,40 @@ void Settings::SetSuspendAction(SuspendAction action)
 	settings.setValue("settings/suspend_action", suspend_action_values[action]);
 }
 
-void Settings::LoadRegisteredHosts()
+void Settings::LoadRegisteredHosts(QSettings *qsettings)
 {
+	if(!qsettings)
+		qsettings = &settings;
 	registered_hosts.clear();
 	nickname_registered_hosts.clear();
 	ps4s_registered = 0;
 
-	int count = settings.beginReadArray("registered_hosts");
+	int count = qsettings->beginReadArray("registered_hosts");
 	for(int i=0; i<count; i++)
 	{
-		settings.setArrayIndex(i);
-		RegisteredHost host = RegisteredHost::LoadFromSettings(&settings);
+		qsettings->setArrayIndex(i);
+		RegisteredHost host = RegisteredHost::LoadFromSettings(qsettings);
 		registered_hosts[host.GetServerMAC()] = host;
 		nickname_registered_hosts[host.GetServerNickname()] = host;
 		if(!chiaki_target_is_ps5(host.GetTarget()))
 			ps4s_registered++;
 	}
-	settings.endArray();
+	qsettings->endArray();
 }
 
-void Settings::SaveRegisteredHosts()
+void Settings::SaveRegisteredHosts(QSettings *qsettings)
 {
-	settings.beginWriteArray("registered_hosts");
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("registered_hosts");
 	int i=0;
 	for(const auto &host : registered_hosts)
 	{
-		settings.setArrayIndex(i);
-		host.SaveToSettings(&settings);
+		qsettings->setArrayIndex(i);
+		host.SaveToSettings(qsettings);
 		i++;
 	}
-	settings.endArray();
+	qsettings->endArray();
 }
 
 void Settings::AddRegisteredHost(const RegisteredHost &host)
@@ -467,36 +507,39 @@ void Settings::RemoveRegisteredHost(const HostMAC &mac)
 	emit RegisteredHostsUpdated();
 }
 
-void Settings::LoadManualHosts()
+void Settings::LoadManualHosts(QSettings *qsettings)
 {
+	if(!qsettings)
+		qsettings = &settings;
 	manual_hosts.clear();
 
-	int count = settings.beginReadArray("manual_hosts");
+	int count = qsettings->beginReadArray("manual_hosts");
 	for(int i=0; i<count; i++)
 	{
-		settings.setArrayIndex(i);
-		ManualHost host = ManualHost::LoadFromSettings(&settings);
+		qsettings->setArrayIndex(i);
+		ManualHost host = ManualHost::LoadFromSettings(qsettings);
 		if(host.GetID() < 0)
 			continue;
 		if(manual_hosts_id_next <= host.GetID())
 			manual_hosts_id_next = host.GetID() + 1;
 		manual_hosts[host.GetID()] = host;
 	}
-	settings.endArray();
-
+	qsettings->endArray();
 }
 
-void Settings::SaveManualHosts()
+void Settings::SaveManualHosts(QSettings *qsettings)
 {
-	settings.beginWriteArray("manual_hosts");
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("manual_hosts");
 	int i=0;
 	for(const auto &host : manual_hosts)
 	{
-		settings.setArrayIndex(i);
-		host.SaveToSettings(&settings);
+		qsettings->setArrayIndex(i);
+		host.SaveToSettings(qsettings);
 		i++;
 	}
-	settings.endArray();
+	qsettings->endArray();
 }
 
 int Settings::SetManualHost(const ManualHost &host)

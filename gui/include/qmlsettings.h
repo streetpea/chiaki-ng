@@ -146,6 +146,8 @@ public:
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
     Q_INVOKABLE void clearKeyMapping();
+    Q_INVOKABLE void exportSettings(QString filepath);
+    Q_INVOKABLE void importSettings(QString filepath);
 
 signals:
     void resolutionChanged();

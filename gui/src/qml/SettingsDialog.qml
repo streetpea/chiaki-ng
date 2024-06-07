@@ -1,7 +1,9 @@
+import QtCore
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Controls.Material
+import QtQuick.Dialogs
 
 import org.streetpea.chiaki4deck
 
@@ -63,6 +65,11 @@ DialogView {
 
             TabButton {
                 text: qsTr("PSN")
+                focusPolicy: Qt.NoFocus
+            }
+
+            TabButton {
+                text: qsTr("Export/Import")
                 focusPolicy: Qt.NoFocus
             }
         }
@@ -654,7 +661,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 50
                     }
-                    columns: 3
+                    columns: 1
                     rowSpacing: 10
                     columnSpacing: 10
 
@@ -688,6 +695,63 @@ DialogView {
                     }
                 }
             }
+            Item {
+                // Import / Export Settings
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 50
+                    }
+                    columns: 2
+                    rowSpacing: 10
+                    columnSpacing: 20
+
+                    C.Button {
+                        id: exportButton
+                        firstInFocusChain: true
+                        text: qsTr("Export settings to file")
+                        onClicked: {
+                            exportDialog.open()
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        KeyNavigation.down: importButton
+                        KeyNavigation.right: importButton
+                    }
+
+                    C.Button {
+                        id: importButton
+                        lastInFocusChain: true
+                        text: qsTr("Import settings from file")
+                        onClicked: {
+                            importDialog.open()
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        KeyNavigation.up: exportButton
+                        KeyNavigation.left: exportButton
+                    }
+                }
+            }
+        }
+
+        FileDialog {
+            id: exportDialog
+            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
+            defaultSuffix: "ini"
+            onAccepted: Chiaki.settings.exportSettings(selectedFile)
+            nameFilters: ["Settings files (*.ini)"]
+            fileMode: FileDialog.SaveFile
+            acceptLabel: "Export To File"
+        }
+
+        FileDialog {
+            id: importDialog
+            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
+            defaultSuffix: "ini"
+            onAccepted: Chiaki.settings.importSettings(selectedFile)
+            nameFilters: ["Settings files (*.ini)"]
+            fileMode: FileDialog.OpenFile
+            acceptLabel: "Import From File"
         }
 
         Dialog {

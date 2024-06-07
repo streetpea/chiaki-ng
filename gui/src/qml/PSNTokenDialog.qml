@@ -93,6 +93,7 @@ DialogView {
                     }
                     onClicked: url.paste()
                     KeyNavigation.left: url
+                    KeyNavigation.up: url
                     lastInFocusChain: true
                 }
             }

@@ -443,3 +443,13 @@ QString QmlSettings::changeControllerKey(int button, int key)
     settings->SetControllerButtonMapping(button, qt_key);
     return QKeySequence(qt_key).toString();
 }
+
+void QmlSettings::exportSettings(QString filepath)
+{
+    settings->ExportSettings(filepath);
+}
+
+void QmlSettings::importSettings(QString filepath)
+{
+    settings->ImportSettings(filepath);
+}

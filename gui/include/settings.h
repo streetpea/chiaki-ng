@@ -69,14 +69,17 @@ class Settings : public QObject
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
-		void LoadRegisteredHosts();
-		void SaveRegisteredHosts();
+		void LoadRegisteredHosts(QSettings *qsettings = nullptr);
+		void SaveRegisteredHosts(QSettings *qsettings = nullptr);
 
-		void LoadManualHosts();
-		void SaveManualHosts();
+		void LoadManualHosts(QSettings *qsettings = nullptr);
+		void SaveManualHosts(QSettings *qsettings = nullptr);
 
 	public:
 		explicit Settings(const QString &conf, QObject *parent = nullptr);
+
+		void ExportSettings(QString fileurl);
+		void ImportSettings(QString fileurl);
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
