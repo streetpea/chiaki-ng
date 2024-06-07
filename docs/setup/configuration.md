@@ -291,13 +291,13 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
     === "PS5/1080P HDR"
 
-        Stream output can be up to 1080p with [HDR](#hdr-high-dynamic-range). Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
+        Stream output can be up to 1080p with [HDR](#hdr-high-dynamic-range). This is the recommended setting for a local connection to a PS5 from a device that supports HDR such as the Steam Deck OLED. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
 
         ![1080p Settings](images/1080P_SettingsHDR.png)
 
     === "PS5/1080P"
 
-        Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
+        Stream output can be up to 1080p. This is the recommended setting for a local connection to a PS5 from a device that doesn't support HDR like the ROG Ally. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
 
         ![1080p Settings](images/1080P_Settings.png)
 
@@ -307,9 +307,21 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
             
             However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
 
+    === "PS5/720P HDR"
+
+        This is the recommended setting for a remote connection for a device that supports HDR like the Steam Deck OLED to sustain high quality streaming.
+
+        ![720P PS5 HDR Settings](../images/720P_PS5HDRSettings.png)
+
+    === "PS5/720P"
+
+        This is the recommended setting for a remote connection for a device that doesn't supports HDR like the ROG Ally to sustain high quality streaming.
+
+        ![720P PS5 Settings](../images/720P_PS5Settings.png)
+
     === "PS4/720P"
 
-        For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup.
+        For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup. This is the recommended setting for use with the PS4 for local and remote connections.
 
         ![720p Settings](images/720P_Settings.png)
 

@@ -286,7 +286,7 @@ DialogView {
                             case 1: bitrate = 2000; break; // 360p
                             case 2: bitrate = 6000; break; // 540p
                             case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 15000; break; // 1080p
+                            case 4: bitrate = 30000; break; // 1080p
                             }
                             return qsTr("Automatic (%1)").arg(bitrate);
                         }
