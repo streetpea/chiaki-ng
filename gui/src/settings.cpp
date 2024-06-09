@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <settings.h>
+#include <QFile>
+#include <QUrl>
 #include <QKeySequence>
 #include <QCoreApplication>
 
@@ -71,16 +73,77 @@ static void MigrateSettings(QSettings *settings)
 	}
 }
 
+static void MigrateVideoProfile(QSettings *settings)
+{
+	if(settings->contains("settings/resolution"))
+	{
+		settings->setValue("settings/resolution_local_ps5", settings->value("settings/resolution"));
+		settings->remove("settings/resolution");
+	}
+	if(settings->contains("settings/fps"))
+	{
+		settings->setValue("settings/fps_local_ps5", settings->value("settings/fps"));
+		settings->remove("settings/fps");
+	}
+	if(settings->contains("settings/codec"))
+	{
+		settings->setValue("settings/codec_local_ps5", settings->value("settings/codec"));
+		settings->remove("settings/codec");
+	}
+	if(settings->contains("settings/bitrate"))
+	{
+		settings->setValue("settings/bitrate_local_ps5", settings->value("settings/bitrate"));
+		settings->remove("settings/bitrate");
+	}
+}
+
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	time_format("yyyy-MM-dd  HH:mm:ss"),
 	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf))
 {
 	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
+	MigrateVideoProfile(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
 	LoadManualHosts();
+}
+
+void Settings::ExportSettings(QString fileurl)
+{
+	// create file if it doesn't exist
+	QUrl url(fileurl);
+	QString filepath = url.toLocalFile();
+	QFile file(filepath);
+	file.open(QIODevice::ReadWrite);
+	file.close();
+	QSettings settings_backup(filepath, QSettings::IniFormat);
+	SaveRegisteredHosts(&settings_backup);
+	SaveManualHosts(&settings_backup);
+    QStringList keys = settings.allKeys();
+    for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
+    {
+        settings_backup.setValue( *i, settings.value( *i ) );
+    }
+	// set hw decoder to auto since it's recommended and a platform specific decoder could cause a crash if imported on another platform
+	settings_backup.setValue("settings/hw_decoder", "auto");
+}
+
+void Settings::ImportSettings(QString fileurl)
+{
+	QUrl url(fileurl);
+	QString filepath = url.toLocalFile();
+	QSettings settings_backup(filepath, QSettings::IniFormat);
+	LoadRegisteredHosts(&settings_backup);
+	LoadManualHosts(&settings_backup);
+	SaveRegisteredHosts();
+	SaveManualHosts();
+    QStringList keys = settings_backup.allKeys();
+    for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
+    {
+        settings.setValue( *i, settings_backup.value( *i ) );
+    }
 }
 
 uint32_t Settings::GetLogLevelMask()
@@ -98,17 +161,52 @@ static const QMap<ChiakiVideoResolutionPreset, QString> resolutions = {
 	{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p" }
 };
 
-static const ChiakiVideoResolutionPreset resolution_default = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+static const ChiakiVideoResolutionPreset resolution_default_ps4 = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+static const ChiakiVideoResolutionPreset resolution_default_ps5_local = CHIAKI_VIDEO_RESOLUTION_PRESET_1080p;
+static const ChiakiVideoResolutionPreset resolution_default_ps5_remote = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 
-ChiakiVideoResolutionPreset Settings::GetResolution() const
+ChiakiVideoResolutionPreset Settings::GetResolutionLocalPS4() const
 {
-	auto s = settings.value("settings/resolution", resolutions[resolution_default]).toString();
-	return resolutions.key(s, resolution_default);
+	auto s = settings.value("settings/resolution_local_ps4", resolutions[resolution_default_ps4]).toString();
+	return resolutions.key(s, resolution_default_ps4);
 }
 
-void Settings::SetResolution(ChiakiVideoResolutionPreset resolution)
+ChiakiVideoResolutionPreset Settings::GetResolutionRemotePS4() const
 {
-	settings.setValue("settings/resolution", resolutions[resolution]);
+	auto s = settings.value("settings/resolution_remote_ps4", resolutions[resolution_default_ps4]).toString();
+	return resolutions.key(s, resolution_default_ps4);
+}
+
+ChiakiVideoResolutionPreset Settings::GetResolutionLocalPS5() const
+{
+	auto s = settings.value("settings/resolution_local_ps5", resolutions[resolution_default_ps5_local]).toString();
+	return resolutions.key(s, resolution_default_ps5_local);
+}
+
+ChiakiVideoResolutionPreset Settings::GetResolutionRemotePS5() const
+{
+	auto s = settings.value("settings/resolution_remote_ps5", resolutions[resolution_default_ps5_remote]).toString();
+	return resolutions.key(s, resolution_default_ps5_remote);
+}
+
+void Settings::SetResolutionLocalPS4(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_local_ps4", resolutions[resolution]);
+}
+
+void Settings::SetResolutionRemotePS4(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_remote_ps4", resolutions[resolution]);
+}
+
+void Settings::SetResolutionLocalPS5(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_local_ps5", resolutions[resolution]);
+}
+
+void Settings::SetResolutionRemotePS5(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_remote_ps5", resolutions[resolution]);
 }
 
 static const QMap<ChiakiVideoFPSPreset, int> fps_values = {
@@ -118,25 +216,88 @@ static const QMap<ChiakiVideoFPSPreset, int> fps_values = {
 
 static const ChiakiVideoFPSPreset fps_default = CHIAKI_VIDEO_FPS_PRESET_60;
 
-ChiakiVideoFPSPreset Settings::GetFPS() const
+ChiakiVideoFPSPreset Settings::GetFPSLocalPS4() const
 {
-	auto v = settings.value("settings/fps", fps_values[fps_default]).toInt();
+	auto v = settings.value("settings/fps_local_ps4", fps_values[fps_default]).toInt();
 	return fps_values.key(v, fps_default);
 }
 
-void Settings::SetFPS(ChiakiVideoFPSPreset fps)
+ChiakiVideoFPSPreset Settings::GetFPSRemotePS4() const
 {
-	settings.setValue("settings/fps", fps_values[fps]);
+	auto v = settings.value("settings/fps_remote_ps4", fps_values[fps_default]).toInt();
+	return fps_values.key(v, fps_default);
 }
 
-unsigned int Settings::GetBitrate() const
+ChiakiVideoFPSPreset Settings::GetFPSLocalPS5() const
 {
-	return settings.value("settings/bitrate", 0).toUInt();
+	auto v = settings.value("settings/fps_local_ps5", fps_values[fps_default]).toInt();
+	return fps_values.key(v, fps_default);
 }
 
-void Settings::SetBitrate(unsigned int bitrate)
+ChiakiVideoFPSPreset Settings::GetFPSRemotePS5() const
 {
-	settings.setValue("settings/bitrate", bitrate);
+	auto v = settings.value("settings/fps_remote_ps5", fps_values[fps_default]).toInt();
+	return fps_values.key(v, fps_default);
+}
+
+void Settings::SetFPSLocalPS4(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_local_ps4", fps_values[fps]);
+}
+
+void Settings::SetFPSRemotePS4(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_remote_ps4", fps_values[fps]);
+}
+
+void Settings::SetFPSLocalPS5(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_local_ps5", fps_values[fps]);
+}
+
+void Settings::SetFPSRemotePS5(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_remote_ps5", fps_values[fps]);
+}
+
+unsigned int Settings::GetBitrateLocalPS4() const
+{
+	return settings.value("settings/bitrate_local_ps4", 0).toUInt();
+}
+
+unsigned int Settings::GetBitrateRemotePS4() const
+{
+	return settings.value("settings/bitrate_remote_ps4", 0).toUInt();
+}
+
+unsigned int Settings::GetBitrateLocalPS5() const
+{
+	return settings.value("settings/bitrate_local_ps5", 0).toUInt();
+}
+
+unsigned int Settings::GetBitrateRemotePS5() const
+{
+	return settings.value("settings/bitrate_remote_ps5", 0).toUInt();
+}
+
+void Settings::SetBitrateLocalPS4(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_local_ps4", bitrate);
+}
+
+void Settings::SetBitrateRemotePS4(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_remote_ps4", bitrate);
+}
+
+void Settings::SetBitrateLocalPS5(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_local_ps5", bitrate);
+}
+
+void Settings::SetBitrateRemotePS5(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_remote_ps5", bitrate);
 }
 
 static const QMap<ChiakiCodec, QString> codecs = {
@@ -145,18 +306,43 @@ static const QMap<ChiakiCodec, QString> codecs = {
 	{ CHIAKI_CODEC_H265_HDR, "h265_hdr" }
 };
 
-static const ChiakiCodec codec_default = CHIAKI_CODEC_H265;
+static const ChiakiCodec codec_default_ps5 = CHIAKI_CODEC_H265;
+static const ChiakiCodec codec_default_ps4 = CHIAKI_CODEC_H264;
 
-ChiakiCodec Settings::GetCodec() const
+ChiakiCodec Settings::GetCodecPS4() const
 {
-	auto v = settings.value("settings/codec", codecs[codec_default]).toString();
-	auto codec = codecs.key(v, codec_default);
+	auto v = settings.value("settings/codec_ps4", codecs[codec_default_ps4]).toString();
+	auto codec = codecs.key(v, codec_default_ps4);
 	return codec;
 }
 
-void Settings::SetCodec(ChiakiCodec codec)
+ChiakiCodec Settings::GetCodecLocalPS5() const
 {
-	settings.setValue("settings/codec", codecs[codec]);
+	auto v = settings.value("settings/codec_local_ps5", codecs[codec_default_ps5]).toString();
+	auto codec = codecs.key(v, codec_default_ps5);
+	return codec;
+}
+
+ChiakiCodec Settings::GetCodecRemotePS5() const
+{
+	auto v = settings.value("settings/codec_remote_ps5", codecs[codec_default_ps5]).toString();
+	auto codec = codecs.key(v, codec_default_ps5);
+	return codec;
+}
+
+void Settings::SetCodecPS4(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec_ps4", codecs[codec]);
+}
+
+void Settings::SetCodecLocalPS5(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec_local_ps5", codecs[codec]);
+}
+
+void Settings::SetCodecRemotePS5(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec_remote_ps5", codecs[codec]);
 }
 
 unsigned int Settings::GetAudioBufferSizeDefault() const
@@ -218,6 +404,16 @@ void Settings::SetZoomFactor(float factor)
 	settings.setValue("settings/zoom_factor", factor);
 }
 
+float Settings::GetPacketLossMax() const
+{
+	return settings.value("settings/packet_loss_max", 0.05).toFloat();
+}
+
+void Settings::SetPacketLossMax(float packet_loss_max)
+{
+	settings.setValue("settings/packet_loss_max", packet_loss_max);
+}
+
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
 	{ WindowType::Fullscreen, "Fullscreen" },
@@ -249,7 +445,7 @@ void Settings::SetAutoConnectHost(const QByteArray &mac)
 
 QString Settings::GetHardwareDecoder() const
 {
-	return settings.value("settings/hw_decoder").toString();
+	return settings.value("settings/hw_decoder", "auto").toString();
 }
 
 void Settings::SetHardwareDecoder(const QString &hw_decoder)
@@ -371,14 +567,47 @@ void Settings::SetPsnAccountId(QString account_id)
 	settings.setValue("settings/psn_account_id", account_id);
 }
 
-ChiakiConnectVideoProfile Settings::GetVideoProfile()
+ChiakiConnectVideoProfile Settings::GetVideoProfileLocalPS4()
 {
 	ChiakiConnectVideoProfile profile = {};
-	chiaki_connect_video_profile_preset(&profile, GetResolution(), GetFPS());
-	unsigned int bitrate = GetBitrate();
+	chiaki_connect_video_profile_preset(&profile, GetResolutionLocalPS4(), GetFPSLocalPS4());
+	unsigned int bitrate = GetBitrateLocalPS4();
 	if(bitrate)
 		profile.bitrate = bitrate;
-	profile.codec = GetCodec();
+	profile.codec = GetCodecPS4();
+	return profile;
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfileRemotePS4()
+{
+	ChiakiConnectVideoProfile profile = {};
+	chiaki_connect_video_profile_preset(&profile, GetResolutionRemotePS4(), GetFPSRemotePS4());
+	unsigned int bitrate = GetBitrateRemotePS4();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	profile.codec = GetCodecPS4();
+	return profile;
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfileLocalPS5()
+{
+	ChiakiConnectVideoProfile profile = {};
+	chiaki_connect_video_profile_preset(&profile, GetResolutionLocalPS5(), GetFPSLocalPS5());
+	unsigned int bitrate = GetBitrateLocalPS5();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	profile.codec = GetCodecLocalPS5();
+	return profile;
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfileRemotePS5()
+{
+	ChiakiConnectVideoProfile profile = {};
+	chiaki_connect_video_profile_preset(&profile, GetResolutionRemotePS5(), GetFPSRemotePS5());
+	unsigned int bitrate = GetBitrateRemotePS5();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	profile.codec = GetCodecRemotePS5();
 	return profile;
 }
 
@@ -419,36 +648,40 @@ void Settings::SetSuspendAction(SuspendAction action)
 	settings.setValue("settings/suspend_action", suspend_action_values[action]);
 }
 
-void Settings::LoadRegisteredHosts()
+void Settings::LoadRegisteredHosts(QSettings *qsettings)
 {
+	if(!qsettings)
+		qsettings = &settings;
 	registered_hosts.clear();
 	nickname_registered_hosts.clear();
 	ps4s_registered = 0;
 
-	int count = settings.beginReadArray("registered_hosts");
+	int count = qsettings->beginReadArray("registered_hosts");
 	for(int i=0; i<count; i++)
 	{
-		settings.setArrayIndex(i);
-		RegisteredHost host = RegisteredHost::LoadFromSettings(&settings);
+		qsettings->setArrayIndex(i);
+		RegisteredHost host = RegisteredHost::LoadFromSettings(qsettings);
 		registered_hosts[host.GetServerMAC()] = host;
 		nickname_registered_hosts[host.GetServerNickname()] = host;
 		if(!chiaki_target_is_ps5(host.GetTarget()))
 			ps4s_registered++;
 	}
-	settings.endArray();
+	qsettings->endArray();
 }
 
-void Settings::SaveRegisteredHosts()
+void Settings::SaveRegisteredHosts(QSettings *qsettings)
 {
-	settings.beginWriteArray("registered_hosts");
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("registered_hosts");
 	int i=0;
 	for(const auto &host : registered_hosts)
 	{
-		settings.setArrayIndex(i);
-		host.SaveToSettings(&settings);
+		qsettings->setArrayIndex(i);
+		host.SaveToSettings(qsettings);
 		i++;
 	}
-	settings.endArray();
+	qsettings->endArray();
 }
 
 void Settings::AddRegisteredHost(const RegisteredHost &host)
@@ -467,36 +700,39 @@ void Settings::RemoveRegisteredHost(const HostMAC &mac)
 	emit RegisteredHostsUpdated();
 }
 
-void Settings::LoadManualHosts()
+void Settings::LoadManualHosts(QSettings *qsettings)
 {
+	if(!qsettings)
+		qsettings = &settings;
 	manual_hosts.clear();
 
-	int count = settings.beginReadArray("manual_hosts");
+	int count = qsettings->beginReadArray("manual_hosts");
 	for(int i=0; i<count; i++)
 	{
-		settings.setArrayIndex(i);
-		ManualHost host = ManualHost::LoadFromSettings(&settings);
+		qsettings->setArrayIndex(i);
+		ManualHost host = ManualHost::LoadFromSettings(qsettings);
 		if(host.GetID() < 0)
 			continue;
 		if(manual_hosts_id_next <= host.GetID())
 			manual_hosts_id_next = host.GetID() + 1;
 		manual_hosts[host.GetID()] = host;
 	}
-	settings.endArray();
-
+	qsettings->endArray();
 }
 
-void Settings::SaveManualHosts()
+void Settings::SaveManualHosts(QSettings *qsettings)
 {
-	settings.beginWriteArray("manual_hosts");
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("manual_hosts");
 	int i=0;
 	for(const auto &host : manual_hosts)
 	{
-		settings.setArrayIndex(i);
-		host.SaveToSettings(&settings);
+		qsettings->setArrayIndex(i);
+		host.SaveToSettings(qsettings);
 		i++;
 	}
-	settings.endArray();
+	qsettings->endArray();
 }
 
 int Settings::SetManualHost(const ManualHost &host)

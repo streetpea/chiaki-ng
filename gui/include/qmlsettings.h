@@ -5,7 +5,10 @@
 class QmlSettings : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int resolution READ resolution WRITE setResolution NOTIFY resolutionChanged)
+    Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
+    Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
+    Q_PROPERTY(int resolutionLocalPS5 READ resolutionLocalPS5 WRITE setResolutionLocalPS5 NOTIFY resolutionLocalPS5Changed)
+    Q_PROPERTY(int resolutionRemotePS5 READ resolutionRemotePS5 WRITE setResolutionRemotePS5 NOTIFY resolutionRemotePS5Changed)
     Q_PROPERTY(int disconnectAction READ disconnectAction WRITE setDisconnectAction NOTIFY disconnectActionChanged)
     Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
@@ -21,9 +24,16 @@ class QmlSettings : public QObject
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
 #endif
-    Q_PROPERTY(int fps READ fps WRITE setFps NOTIFY fpsChanged)
-    Q_PROPERTY(int bitrate READ bitrate WRITE setBitrate NOTIFY bitrateChanged)
-    Q_PROPERTY(int codec READ codec WRITE setCodec NOTIFY codecChanged)
+    Q_PROPERTY(int fpsLocalPS4 READ fpsLocalPS4 WRITE setFpsLocalPS4 NOTIFY fpsLocalPS4Changed)
+    Q_PROPERTY(int fpsRemotePS4 READ fpsRemotePS4 WRITE setFpsRemotePS4 NOTIFY fpsRemotePS4Changed)
+    Q_PROPERTY(int fpsLocalPS5 READ fpsLocalPS5 WRITE setFpsLocalPS5 NOTIFY fpsLocalPS5Changed)
+    Q_PROPERTY(int fpsRemotePS5 READ fpsRemotePS5 WRITE setFpsRemotePS5 NOTIFY fpsRemotePS5Changed)
+    Q_PROPERTY(int bitrateLocalPS4 READ bitrateLocalPS4 WRITE setBitrateLocalPS4 NOTIFY bitrateLocalPS4Changed)
+    Q_PROPERTY(int bitrateRemotePS4 READ bitrateRemotePS4 WRITE setBitrateRemotePS4 NOTIFY bitrateRemotePS4Changed)
+    Q_PROPERTY(int bitrateLocalPS5 READ bitrateLocalPS5 WRITE setBitrateLocalPS5 NOTIFY bitrateLocalPS5Changed)
+    Q_PROPERTY(int bitrateRemotePS5 READ bitrateRemotePS5 WRITE setBitrateRemotePS5 NOTIFY bitrateRemotePS5Changed)
+    Q_PROPERTY(int codecLocalPS5 READ codecLocalPS5 WRITE setCodecLocalPS5 NOTIFY codecLocalPS5Changed)
+    Q_PROPERTY(int codecRemotePS5 READ codecRemotePS5 WRITE setCodecRemotePS5 NOTIFY codecRemotePS5Changed)
     Q_PROPERTY(int audioBufferSize READ audioBufferSize WRITE setAudioBufferSize NOTIFY audioBufferSizeChanged)
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
@@ -31,6 +41,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
+    Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
     Q_PROPERTY(QStringList availableDecoders READ availableDecoders CONSTANT)
@@ -47,8 +58,14 @@ class QmlSettings : public QObject
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
 
-    int resolution() const;
-    void setResolution(int resolution);
+    int resolutionLocalPS4() const;
+    void setResolutionLocalPS4(int resolution);
+    int resolutionRemotePS4() const;
+    void setResolutionRemotePS4(int resolution);
+    int resolutionLocalPS5() const;
+    void setResolutionLocalPS5(int resolution);
+    int resolutionRemotePS5() const;
+    void setResolutionRemotePS5(int resolution);
 
     int disconnectAction() const;
     void setDisconnectAction(int action);
@@ -87,14 +104,28 @@ public:
     void setEchoSuppressLevel(int level);
 #endif
 
-    int fps() const;
-    void setFps(int fps);
+    int fpsLocalPS4() const;
+    void setFpsLocalPS4(int fps);
+    int fpsRemotePS4() const;
+    void setFpsRemotePS4(int fps);
+    int fpsLocalPS5() const;
+    void setFpsLocalPS5(int fps);
+    int fpsRemotePS5() const;
+    void setFpsRemotePS5(int fps);
 
-    int bitrate() const;
-    void setBitrate(int bitrate);
+    int bitrateLocalPS4() const;
+    void setBitrateLocalPS4(int bitrate);
+    int bitrateRemotePS4() const;
+    void setBitrateRemotePS4(int bitrate);
+    int bitrateLocalPS5() const;
+    void setBitrateLocalPS5(int bitrate);
+    int bitrateRemotePS5() const;
+    void setBitrateRemotePS5(int bitrate);
 
-    int codec() const;
-    void setCodec(int codec);
+    int codecLocalPS5() const;
+    void setCodecLocalPS5(int codec);
+    int codecRemotePS5() const;
+    void setCodecRemotePS5(int codec);
 
     int audioBufferSize() const;
     void setAudioBufferSize(int size);
@@ -113,6 +144,9 @@ public:
 
     float sZoomFactor() const;
     void setSZoomFactor(float factor);
+
+    int packetLossMax() const;
+    void setPacketLossMax(int packet_loss_max);
 
     int videoPreset() const;
     void setVideoPreset(int preset);
@@ -146,9 +180,14 @@ public:
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
     Q_INVOKABLE void clearKeyMapping();
+    Q_INVOKABLE void exportSettings(QString fileurl);
+    Q_INVOKABLE void importSettings(QString fileurl);
 
 signals:
-    void resolutionChanged();
+    void resolutionLocalPS4Changed();
+    void resolutionRemotePS4Changed();
+    void resolutionLocalPS5Changed();
+    void resolutionRemotePS5Changed();
     void disconnectActionChanged();
     void suspendActionChanged();
     void logVerboseChanged();
@@ -164,9 +203,16 @@ signals:
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();
 #endif
-    void fpsChanged();
-    void bitrateChanged();
-    void codecChanged();
+    void fpsLocalPS4Changed();
+    void fpsRemotePS4Changed();
+    void fpsLocalPS5Changed();
+    void fpsRemotePS5Changed();
+    void bitrateLocalPS4Changed();
+    void bitrateRemotePS4Changed();
+    void bitrateLocalPS5Changed();
+    void bitrateRemotePS5Changed();
+    void codecLocalPS5Changed();
+    void codecRemotePS5Changed();
     void audioBufferSizeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
@@ -183,6 +229,7 @@ signals:
     void psnAuthTokenExpiryChanged();
     void psnAccountIdChanged();
     void controllerMappingChanged();
+    void packetLossMaxChanged();
 
 private:
     Settings *settings = {};

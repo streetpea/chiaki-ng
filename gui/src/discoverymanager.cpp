@@ -35,12 +35,15 @@ DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, nullptr);
 
 	service_active = false;
+	service_active_ipv6 = false;
 }
 
 DiscoveryManager::~DiscoveryManager()
 {
 	if(service_active)
 		chiaki_discovery_service_fini(&service);
+	if(service_active_ipv6)
+		chiaki_discovery_service_fini(&service_ipv6);
 	qDeleteAll(manual_services);
 }
 
@@ -59,18 +62,40 @@ void DiscoveryManager::SetActive(bool active)
 		options.cb = DiscoveryServiceHostsCallback;
 		options.cb_user = this;
 
-		sockaddr_in addr = {};
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = 0xffffffff; // 255.255.255.255
-		options.send_addr = reinterpret_cast<sockaddr *>(&addr);
-		options.send_addr_size = sizeof(addr);
+		struct sockaddr_in in_addr = {};
+		in_addr.sin_family = AF_INET;
+		in_addr.sin_addr.s_addr = 0xffffffff; // 255.255.255.255
+		struct sockaddr_storage addr;
+		memcpy(&addr, &in_addr, sizeof(in_addr));
+		options.send_addr = &addr;
+		options.send_addr_size = sizeof(in_addr);
+
+		ChiakiDiscoveryServiceOptions options_ipv6 = {};
+		options_ipv6.ping_ms = PING_MS;
+		options_ipv6.hosts_max = HOSTS_MAX;
+		options_ipv6.host_drop_pings = DROP_PINGS;
+		options_ipv6.cb = DiscoveryServiceHostsCallback;
+		options_ipv6.cb_user = this;
+		struct sockaddr_in6 in_addr_ipv6 = {};
+		in_addr_ipv6.sin6_family = AF_INET6;
+		inet_pton(AF_INET6, "FF02::1", &in_addr_ipv6.sin6_addr);
+		struct sockaddr_storage addr_ipv6;
+		memcpy(&addr_ipv6, &in_addr_ipv6, sizeof(in_addr_ipv6));
+		options_ipv6.send_addr = &addr_ipv6;
+		options_ipv6.send_addr_size = sizeof(in_addr_ipv6);
 
 		ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			service_active = false;
-			CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service");
+			CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service IPV4");
 			return;
+		}
+		err = chiaki_discovery_service_init(&service_ipv6, &options_ipv6, &log);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			service_active_ipv6 = false;
+			CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service IPV6");
 		}
 
 		UpdateManualServices();
@@ -78,6 +103,11 @@ void DiscoveryManager::SetActive(bool active)
 	else
 	{
 		chiaki_discovery_service_fini(&service);
+		if(service_active_ipv6)
+		{
+			chiaki_discovery_service_fini(&service_ipv6);
+			service_active_ipv6 = false;
+		}
 		qDeleteAll(manual_services);
 		manual_services.clear();
 
@@ -114,8 +144,12 @@ void DiscoveryManager::SendWakeup(const QString &host, const QByteArray &regist_
 		CHIAKI_LOGE(&log, "DiscoveryManager got invalid regist key for wakeup");
 		throw Exception("Invalid regist key");
 	}
-
-	ChiakiErrorCode err = chiaki_discovery_wakeup(&log, service_active ? &service.discovery : nullptr, host.toUtf8().constData(), credential, ps5);
+	char *ipv6 = strchr(host.toUtf8().data(), ':');
+	ChiakiErrorCode err;
+	if(ipv6)
+		err = chiaki_discovery_wakeup(&log, service_active_ipv6 ? &service_ipv6.discovery : nullptr, host.toUtf8().constData(), credential, ps5);
+	else
+		err = chiaki_discovery_wakeup(&log, service_active ? &service.discovery : nullptr, host.toUtf8().constData(), credential, ps5);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 		throw Exception(QString("Failed to send Packet: %1").arg(chiaki_error_string(err)));
@@ -171,15 +205,29 @@ void DiscoveryManager::UpdateManualServices()
 		options.cb = DiscoveryServiceHostsManualCallback;
 		options.cb_user = s;
 
-		sockaddr_in addr = {};
-		addr.sin_family = AF_INET;
-		options.send_addr = reinterpret_cast<sockaddr *>(&addr);
-		options.send_addr_size = sizeof(addr);
-
 		QByteArray host_utf8 = host.toUtf8();
 		options.send_host = host_utf8.data();
-
-		chiaki_discovery_service_init(&s->service, &options, &log);
+		char *ipv6 = strchr(options.send_host, ':');
+		struct sockaddr_storage addr;
+		if(ipv6)
+		{
+			addr.ss_family = AF_INET6;
+			options.send_addr = &addr;
+			options.send_addr_size = sizeof(struct sockaddr_in6);
+		}
+		else
+		{
+			addr.ss_family = AF_INET;
+			options.send_addr = &addr;
+			options.send_addr_size = sizeof(struct sockaddr_in);
+		}
+		ChiakiErrorCode err = chiaki_discovery_service_init(&s->service, &options, &log);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(&log, "DiscoveryManager failed to init manual discovery service for host: %s with error %s", qPrintable(host), chiaki_error_string(err));
+			manual_services.remove(host);
+			continue;
+		}
 	}
 }
 

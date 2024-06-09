@@ -2,7 +2,7 @@
 
 ## Remote Connection via PSN
 
-**Supports Both IPv4 and IPV6**
+**Supports IPV4 ONLY due to PlayStation itself only supporting IPV4 for remote play as of PS5**
 
 ### Overview
 
@@ -23,7 +23,7 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
 
 !!! Warning "Not All Networks Supported"
 
-    Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently with the message *Couldn't contact PlayStation over established connection, likely unsupported network type*, your network type is currently unsupported. If you are able to connect over the same wireless connection with the official remote play app and are willing to help the Chiaki4deck developers improve Chiaki4deck to support your network type please reach out to the dev team via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you are failing with *Connection over PSN failed closing ...*, please either add your logs to an appropriate existing issue or open a new issue on the Chiaki4deck Github.
+    Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently with the message *Couldn't contact PlayStation over established connection, likely unsupported network type*, your network type is currently unsupported. You will need to use [the manual instructions](#manual-remote-connection). If you are able to connect over the same wireless connection with the official remote play app and are willing to help the Chiaki4deck developers improve Chiaki4deck to support your network type please reach out to the dev team via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you are failing with *Connection over PSN failed closing ...*, please either add your logs to an appropriate existing issue or open a new issue on the Chiaki4deck Github.
 
 ### Setup
 
@@ -81,8 +81,6 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
     It may be hard to test if this feature is working properly for you at home (before using it remotely) if you don't have access to another network. In this case, you can use a cellular hotspot to test the connection.
 
 ## Manual Remote Connection
-
-**Supports IPv4 only**
 
 ### Set Static IP
 
@@ -152,7 +150,11 @@ On a computer connected to your router such as your Steam Deck (make sure to dis
 
 === "Automation"
 
-    Add your remote IP in the automation script when going through the next ([automation](automation.md){target="_blank" rel="noopener"}) section. Once setup on your local network, try to launch the PlayStation when connected to a different network such as a mobile hotspot.
+    The console selected for auto-connect will work with the manual remote connection out of the box for PS5. It will launch using the manual connection if it is discovered and the local connection is not discovered. For PS4, unfortunately, discovery doesn't work for remote connections so you will have to wake it up and start it manually from the menu.
+
+!!! Question "My Remote Connection isn't Working, What Do I do?"
+
+    If you have gone through the port forwarding and made sure everything is applied correctly and it still doesn't work, it is likely you are behind [CGNAT (carrier-grade NAT)](https://nfware.com/blog/what-is-the-difference-between-nat-and-cgnat#:~:text=CGNAT%20(Carrier%2DGrade%20NAT),a%20single%2C%20public%20IP%20address.){target="_blank" rel="noopener"}. This means the router that you would need to forward ports on is owned by the ISP and you can't access it to do so. (Note: There is a protocol called [PCP (Port Control Protocol)](https://en.wikipedia.org/wiki/Port_Control_Protocol){target="_blank" rel="noopener"} that allows you to access it but if port forwarding doesn't work that means either your ISP or router doesn't support it.) This means port forwarding won't work. You can try the remote connection via PSN as this can still work given you have a compatible network type. However, is that isn't working either you will need to setup a VPN on your home network to connect. See [this site](https://github.com/williampiat3/ImprovingPSRemotePlay?tab=readme-ov-file#install-a-vpn-server){target="_blank" rel="noopener"} for details on how to do setup a VPN using a raspberry PI with Chiaki4deck (replace Chiaki with Chiaki4deck).
 
 !!! Question "If my connection stops working, what should I do?"
 

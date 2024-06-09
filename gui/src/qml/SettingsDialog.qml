@@ -1,13 +1,20 @@
+import QtCore
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Controls.Material
+import QtQuick.Dialogs
 
 import org.streetpea.chiaki4deck
 
 import "controls" as C
 
 DialogView {
+    enum Console {
+        PS4,
+        PS5
+    }
+    property int selectedConsole: SettingsDialog.Console.PS5
     id: dialog
     title: qsTr("Settings")
     buttonVisible: false
@@ -47,6 +54,11 @@ DialogView {
             }
 
             TabButton {
+                text: qsTr("Stream")
+                focusPolicy: Qt.NoFocus
+            }
+
+            TabButton {
                 text: qsTr("Audio/Wifi")
                 focusPolicy: Qt.NoFocus
             }
@@ -62,7 +74,7 @@ DialogView {
             }
 
             TabButton {
-                text: qsTr("PSN")
+                text: qsTr("Config")
                 focusPolicy: Qt.NoFocus
             }
         }
@@ -242,77 +254,6 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Resolution:")
-                    }
-
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        firstInFocusChain: true
-                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
-                        currentIndex: Chiaki.settings.resolution - 1
-                        onActivated: (index) => Chiaki.settings.resolution = index + 1
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("FPS:")
-                    }
-
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        model: [qsTr("30 fps"), qsTr("60 fps")]
-                        currentIndex: (Chiaki.settings.fps / 30) - 1
-                        onActivated: (index) => Chiaki.settings.fps = (index + 1) * 30
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Bitrate:")
-                    }
-
-                    C.TextField {
-                        Layout.preferredWidth: 400
-                        text: Chiaki.settings.bitrate || ""
-                        placeholderText: {
-                            var bitrate = 0;
-                            switch (Chiaki.settings.resolution) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 15000; break; // 1080p
-                            }
-                            return qsTr("Automatic (%1)").arg(bitrate);
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrate = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrate = 0;
-                                text = "";
-                            }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
-                        }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Codec:")
-                    }
-
-                    C.ComboBox {
-                        id: codec
-                        Layout.preferredWidth: 400
-                        model: [qsTr("H264"), qsTr("H265 (PS5)"), qsTr("H265 HDR (PS5)")]
-                        currentIndex: Chiaki.settings.codec
-                        onActivated: (index) => Chiaki.settings.codec = index
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Hardware Decoder:")
                     }
 
@@ -352,6 +293,289 @@ DialogView {
                             case 2: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality; break;
                             }
                         }
+                    }
+                }
+            }
+
+            Item {
+                // Stream
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 20
+                    }
+                    columns: 3
+                    rowSpacing: 10
+                    columnSpacing: 20
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Settings for:")
+                    }
+
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        Layout.alignment: Qt.AlignLeft
+                        firstInFocusChain: true
+                        model: [qsTr("PS4"), qsTr("PS5")]
+                        currentIndex: selectedConsole
+                        onActivated: (index) => selectedConsole = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignCenter
+                        text: qsTr("Local")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignCenter
+                        text: qsTr("Remote")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Resolution:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        currentIndex: Chiaki.settings.resolutionLocalPS4 - 1
+                        onActivated: (index) => Chiaki.settings.resolutionLocalPS4 = index + 1
+                        visible: selectedConsole == SettingsDialog.Console.PS4
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        currentIndex: Chiaki.settings.resolutionRemotePS4 - 1
+                        onActivated: (index) => Chiaki.settings.resolutionRemotePS4 = index + 1
+                        visible: selectedConsole == SettingsDialog.Console.PS4
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        currentIndex: Chiaki.settings.resolutionLocalPS5 - 1
+                        onActivated: (index) => Chiaki.settings.resolutionLocalPS5 = index + 1
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        currentIndex: Chiaki.settings.resolutionRemotePS5 - 1
+                        onActivated: (index) => Chiaki.settings.resolutionRemotePS5 = index + 1
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("FPS:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        currentIndex: (Chiaki.settings.fpsLocalPS4 / 30) - 1
+                        onActivated: (index) => Chiaki.settings.fpsLocalPS4 = (index + 1) * 30
+                        visible: selectedConsole == SettingsDialog.Console.PS4
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        currentIndex: (Chiaki.settings.fpsRemotePS4 / 30) - 1
+                        onActivated: (index) => Chiaki.settings.fpsRemotePS4 = (index + 1) * 30
+                        visible: selectedConsole == SettingsDialog.Console.PS4
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        currentIndex: (Chiaki.settings.fpsLocalPS5 / 30) - 1
+                        onActivated: (index) => Chiaki.settings.fpsLocalPS5 = (index + 1) * 30
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        currentIndex: (Chiaki.settings.fpsRemotePS5 / 30) - 1
+                        onActivated: (index) => Chiaki.settings.fpsRemotePS5 = (index + 1) * 30
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Bitrate:")
+                    }
+
+                    C.TextField {
+                        Layout.preferredWidth: 400
+                        visible: selectedConsole == SettingsDialog.Console.PS4
+                        text: Chiaki.settings.bitrateLocalPS4 || ""
+                        placeholderText: {
+                            var bitrate = 0;
+                            switch (Chiaki.settings.resolutionLocalPS4) {
+                            case 1: bitrate = 2000; break; // 360p
+                            case 2: bitrate = 6000; break; // 540p
+                            case 3: bitrate = 10000; break; // 720p
+                            case 4: bitrate = 30000; break; // 1080p
+                            }
+                            return qsTr("Automatic (%1)").arg(bitrate);
+                        }
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.bitrateLocalPS4 = parseInt(text);
+                            } else {
+                                Chiaki.settings.bitrateLocalPS4 = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 2000 && num <= 99999;
+                        }
+                    }
+
+                    C.TextField {
+                        Layout.preferredWidth: 400
+                        visible: selectedConsole == SettingsDialog.Console.PS4
+                        lastInFocusChain: true
+                        text: Chiaki.settings.bitrateRemotePS4 || ""
+                        placeholderText: {
+                            var bitrate = 0;
+                            switch (Chiaki.settings.resolutionRemotePS4) {
+                            case 1: bitrate = 2000; break; // 360p
+                            case 2: bitrate = 6000; break; // 540p
+                            case 3: bitrate = 10000; break; // 720p
+                            case 4: bitrate = 30000; break; // 1080p
+                            }
+                            return qsTr("Automatic (%1)").arg(bitrate);
+                        }
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.bitrateRemotePS4 = parseInt(text);
+                            } else {
+                                Chiaki.settings.bitrateRemotePS4 = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 2000 && num <= 99999;
+                        }
+                    }
+
+                    C.TextField {
+                        Layout.preferredWidth: 400
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                        text: Chiaki.settings.bitrateLocalPS5 || ""
+                        placeholderText: {
+                            var bitrate = 0;
+                            switch (Chiaki.settings.resolutionLocalPS5) {
+                            case 1: bitrate = 2000; break; // 360p
+                            case 2: bitrate = 6000; break; // 540p
+                            case 3: bitrate = 10000; break; // 720p
+                            case 4: bitrate = 30000; break; // 1080p
+                            }
+                            return qsTr("Automatic (%1)").arg(bitrate);
+                        }
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.bitrateLocalPS5 = parseInt(text);
+                            } else {
+                                Chiaki.settings.bitrateLocalPS5 = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 2000 && num <= 99999;
+                        }
+                    }
+
+                    C.TextField {
+                        Layout.preferredWidth: 400
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                        text: Chiaki.settings.bitrateRemotePS5 || ""
+                        placeholderText: {
+                            var bitrate = 0;
+                            switch (Chiaki.settings.resolutionRemotePS5) {
+                            case 1: bitrate = 2000; break; // 360p
+                            case 2: bitrate = 6000; break; // 540p
+                            case 3: bitrate = 10000; break; // 720p
+                            case 4: bitrate = 30000; break; // 1080p
+                            }
+                            return qsTr("Automatic (%1)").arg(bitrate);
+                        }
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.bitrateRemotePS5 = parseInt(text);
+                            } else {
+                                Chiaki.settings.bitrateRemotePS5 = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 2000 && num <= 99999;
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Codec:")
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("H264"), qsTr("H265 (PS5)"), qsTr("H265 HDR (PS5)")]
+                        currentIndex: Chiaki.settings.codecLocalPS5
+                        onActivated: (index) => Chiaki.settings.codecLocalPS5 = index
+                        visible: selectedConsole == SettingsDialog.Console.PS5
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        lastInFocusChain: true
+                        model: [qsTr("H264"), qsTr("H265 (PS5)"), qsTr("H265 HDR (PS5)")]
+                        currentIndex: Chiaki.settings.codecRemotePS5
+                        onActivated: (index) => Chiaki.settings.codecRemotePS5 = index
+                        visible: selectedConsole == SettingsDialog.Console.PS5
                     }
                 }
             }
@@ -442,7 +666,6 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        lastInFocusChain: !checked
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
@@ -506,7 +729,6 @@ DialogView {
 
                     C.Slider {
                         Layout.preferredWidth: 250
-                        lastInFocusChain: true
                         from: 0
                         to: 100
                         stepSize: 1
@@ -520,6 +742,29 @@ DialogView {
                                 leftMargin: 10
                             }
                             text: qsTr("%1 % dropped packets").arg(parent.value)
+                        }
+                    }
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Packet Loss Reported Max:")
+                    }
+
+                    C.Slider {
+                        Layout.preferredWidth: 250
+                        lastInFocusChain: true
+                        from: 0
+                        to: 100
+                        stepSize: 1
+                        value: Chiaki.settings.packetLossMax
+                        onMoved: Chiaki.settings.packetLossMax = value
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
+                            }
+                            text: qsTr("%1 % packet loss").arg(parent.value)
                         }
                     }
                 }
@@ -647,15 +892,15 @@ DialogView {
             }
 
             Item {
-                // PSN Remote Connection Setup
+                // Config (PSN Remote Connection Setup and Import/Export)
                 GridLayout {
                     anchors {
                         top: parent.top
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 50
                     }
-                    columns: 3
-                    rowSpacing: 10
+                    columns: 1
+                    rowSpacing: 20
                     columnSpacing: 10
 
                     C.Button {
@@ -686,8 +931,51 @@ DialogView {
                         Material.roundedScale: Material.SmallScale
                         visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId
                     }
+
+                    C.Button {
+                        id: exportButton
+                        text: qsTr("Export settings to file")
+                        onClicked: {
+                            exportDialog.open()
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        KeyNavigation.down: importButton
+                        KeyNavigation.right: importButton
+                    }
+
+                    C.Button {
+                        id: importButton
+                        lastInFocusChain: true
+                        text: qsTr("Import settings from file")
+                        onClicked: {
+                            importDialog.open()
+                        }
+                        Material.roundedScale: Material.SmallScale
+                        KeyNavigation.up: exportButton
+                        KeyNavigation.left: exportButton
+                    }
                 }
             }
+        }
+
+        FileDialog {
+            id: exportDialog
+            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
+            defaultSuffix: "ini"
+            onAccepted: Chiaki.settings.exportSettings(selectedFile)
+            nameFilters: ["Settings files (*.ini)"]
+            fileMode: FileDialog.SaveFile
+            acceptLabel: "Export To File"
+        }
+
+        FileDialog {
+            id: importDialog
+            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
+            defaultSuffix: "ini"
+            onAccepted: Chiaki.settings.importSettings(selectedFile)
+            nameFilters: ["Settings files (*.ini)"]
+            fileMode: FileDialog.OpenFile
+            acceptLabel: "Import From File"
         }
 
         Dialog {

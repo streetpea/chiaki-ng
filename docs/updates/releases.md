@@ -61,9 +61,19 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.7.2
+
+Provides unique remote and local Stream Settings for each console (PS4/PS5)
+
+- Separate Local and Remote and PS4/PS5 settings so you can set appropriate settings for each type of connection
+- Enable more network types to work with remote connection via PSN (Note: some can only be made to work a % of the time due to limitations with remote play imposed by Sony)
+- Export/import option for settings to transfer across devices/platforms
+- Adds `auto` hw decoder option which is now the default. It chooses the best decoder for your platform from the available decoders
+- Make Chiaki4deck ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)
+
 ### 1.7.1
 
-Improves remote connection via PSN + adds PS4 support
+Improves + adds PS4 support to remote connection via PSN
 
 - remote connection via PSN now supports PS4 consoles
 - remote connection via PSN now supports more network types

@@ -603,6 +603,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_fini(RudpInstance *rudp)
 {
     chiaki_rudp_send_buffer_fini(&rudp->send_buffer);
     CHIAKI_SOCKET_CLOSE(rudp->sock);
+    rudp->sock = CHIAKI_INVALID_SOCKET;
     ChiakiErrorCode err = chiaki_mutex_fini(&rudp->counter_mutex);
     chiaki_stop_pipe_fini(&rudp->stop_pipe);
     if(rudp)

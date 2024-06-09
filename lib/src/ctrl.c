@@ -509,7 +509,10 @@ static void *ctrl_thread_func(void *user)
 
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	if(!ctrl->session->rudp)
+	{
 		CHIAKI_SOCKET_CLOSE(ctrl->sock);
+		ctrl->sock = CHIAKI_INVALID_SOCKET;
+	}
 
 	return NULL;
 }
@@ -643,7 +646,6 @@ CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *c
 		CHIAKI_LOGI(ctrl->session->log, "Error writing time to fallback session id");
 		return CHIAKI_ERR_UNKNOWN;
 	}
-	CHIAKI_LOGI(ctrl->session->log, "Seconds ARE: %s with length %d", fallback_session_id, len);
 	uint8_t rand_bytes[48];
 	ChiakiErrorCode err = chiaki_random_bytes_crypt(rand_bytes, 48);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -1085,6 +1087,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 				else
 					CHIAKI_LOGE(session->log, "Ctrl notif pipe signaled without should_stop during connect");
 				CHIAKI_SOCKET_CLOSE(sock);
+				sock = CHIAKI_INVALID_SOCKET;
 			}
 			else
 			{
@@ -1356,6 +1359,9 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 error:
 	if(!ctrl->session->rudp)
+	{
 		CHIAKI_SOCKET_CLOSE(ctrl->sock);
+		ctrl->sock = CHIAKI_INVALID_SOCKET;
+	}
 	return err;
 }

@@ -22,15 +22,48 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
 }
 
-int QmlSettings::resolution() const
+int QmlSettings::resolutionLocalPS4() const
 {
-    return settings->GetResolution();
+    return settings->GetResolutionLocalPS4();
 }
 
-void QmlSettings::setResolution(int resolution)
+void QmlSettings::setResolutionLocalPS4(int resolution)
 {
-    settings->SetResolution(static_cast<ChiakiVideoResolutionPreset>(resolution));
-    emit resolutionChanged();
+    settings->SetResolutionLocalPS4(static_cast<ChiakiVideoResolutionPreset>(resolution));
+    emit resolutionLocalPS4Changed();
+}
+
+int QmlSettings::resolutionRemotePS4() const
+{
+    return settings->GetResolutionRemotePS4();
+}
+
+void QmlSettings::setResolutionRemotePS4(int resolution)
+{
+    settings->SetResolutionRemotePS4(static_cast<ChiakiVideoResolutionPreset>(resolution));
+    emit resolutionRemotePS4Changed();
+}
+
+int QmlSettings::resolutionLocalPS5() const
+{
+    return settings->GetResolutionLocalPS5();
+}
+
+void QmlSettings::setResolutionLocalPS5(int resolution)
+{
+    settings->SetResolutionLocalPS5(static_cast<ChiakiVideoResolutionPreset>(resolution));
+    emit resolutionLocalPS5Changed();
+}
+
+int QmlSettings::resolutionRemotePS5() const
+{
+    return settings->GetResolutionRemotePS5();
+}
+
+void QmlSettings::setResolutionRemotePS5(int resolution)
+{
+    settings->SetResolutionRemotePS5(static_cast<ChiakiVideoResolutionPreset>(resolution));
+    emit resolutionRemotePS5Changed();
 }
 
 int QmlSettings::disconnectAction() const
@@ -159,37 +192,114 @@ void QmlSettings::setEchoSuppressLevel(int level)
 }
 #endif
 
-int QmlSettings::fps() const
+int QmlSettings::fpsLocalPS4() const
 {
-    return settings->GetFPS();
+    return settings->GetFPSLocalPS4();
 }
 
-void QmlSettings::setFps(int fps)
+void QmlSettings::setFpsLocalPS4(int fps)
 {
-    settings->SetFPS(static_cast<ChiakiVideoFPSPreset>(fps));
-    emit fpsChanged();
+    settings->SetFPSLocalPS4(static_cast<ChiakiVideoFPSPreset>(fps));
+    emit fpsLocalPS4Changed();
 }
 
-int QmlSettings::bitrate() const
+int QmlSettings::fpsRemotePS4() const
 {
-    return settings->GetBitrate();
+    return settings->GetFPSRemotePS4();
 }
 
-void QmlSettings::setBitrate(int bitrate)
+void QmlSettings::setFpsRemotePS4(int fps)
 {
-    settings->SetBitrate(bitrate);
-    emit bitrateChanged();
+    settings->SetFPSRemotePS4(static_cast<ChiakiVideoFPSPreset>(fps));
+    emit fpsRemotePS4Changed();
 }
 
-int QmlSettings::codec() const
+int QmlSettings::fpsLocalPS5() const
 {
-    return settings->GetCodec();
+    return settings->GetFPSLocalPS5();
 }
 
-void QmlSettings::setCodec(int codec)
+void QmlSettings::setFpsLocalPS5(int fps)
 {
-    settings->SetCodec(static_cast<ChiakiCodec>(codec));
-    emit codecChanged();
+    settings->SetFPSLocalPS5(static_cast<ChiakiVideoFPSPreset>(fps));
+    emit fpsLocalPS5Changed();
+}
+
+int QmlSettings::fpsRemotePS5() const
+{
+    return settings->GetFPSRemotePS5();
+}
+
+void QmlSettings::setFpsRemotePS5(int fps)
+{
+    settings->SetFPSRemotePS5(static_cast<ChiakiVideoFPSPreset>(fps));
+    emit fpsRemotePS5Changed();
+}
+
+int QmlSettings::bitrateLocalPS4() const
+{
+    return settings->GetBitrateLocalPS4();
+}
+
+void QmlSettings::setBitrateLocalPS4(int bitrate)
+{
+    settings->SetBitrateLocalPS4(bitrate);
+    emit bitrateLocalPS4Changed();
+}
+
+int QmlSettings::bitrateRemotePS4() const
+{
+    return settings->GetBitrateRemotePS4();
+}
+
+void QmlSettings::setBitrateRemotePS4(int bitrate)
+{
+    settings->SetBitrateRemotePS4(bitrate);
+    emit bitrateRemotePS4Changed();
+}
+
+int QmlSettings::bitrateLocalPS5() const
+{
+    return settings->GetBitrateLocalPS5();
+}
+
+void QmlSettings::setBitrateLocalPS5(int bitrate)
+{
+    settings->SetBitrateLocalPS5(bitrate);
+    emit bitrateLocalPS5Changed();
+}
+
+int QmlSettings::bitrateRemotePS5() const
+{
+    return settings->GetBitrateRemotePS5();
+}
+
+void QmlSettings::setBitrateRemotePS5(int bitrate)
+{
+    settings->SetBitrateRemotePS5(bitrate);
+    emit bitrateRemotePS5Changed();
+}
+
+int QmlSettings::codecLocalPS5() const
+{
+    return settings->GetCodecLocalPS5();
+}
+
+void QmlSettings::setCodecLocalPS5(int codec)
+{
+    settings->SetCodecLocalPS5(static_cast<ChiakiCodec>(codec));
+    emit codecLocalPS5Changed();
+}
+
+int QmlSettings::codecRemotePS5() const
+{
+    return settings->GetCodecRemotePS5();
+}
+
+void QmlSettings::setCodecRemotePS5(int codec)
+{
+    settings->SetCodecRemotePS5(static_cast<ChiakiCodec>(codec));
+    emit codecRemotePS5Changed();
 }
 
 int QmlSettings::audioBufferSize() const
@@ -256,6 +366,18 @@ void QmlSettings::setSZoomFactor(float factor)
 {
     settings->SetZoomFactor(factor);
     emit sZoomFactorChanged();
+}
+
+int QmlSettings::packetLossMax() const
+{
+    return (settings->GetPacketLossMax() * 100);
+}
+
+void QmlSettings::setPacketLossMax(int packet_loss_max)
+{
+    float packet_loss = (float)packet_loss_max / (float)100;
+    settings->SetPacketLossMax(packet_loss);
+    emit packetLossMaxChanged();
 }
 
 int QmlSettings::videoPreset() const
@@ -368,6 +490,7 @@ QStringList QmlSettings::availableDecoders() const
         if (allowed.contains(name))
             out.append(name);
     }
+    out.append("auto");
     return out;
 }
 
@@ -441,4 +564,59 @@ QString QmlSettings::changeControllerKey(int button, int key)
     Qt::Key qt_key = Qt::Key(key);
     settings->SetControllerButtonMapping(button, qt_key);
     return QKeySequence(qt_key).toString();
+}
+
+void QmlSettings::exportSettings(QString fileurl)
+{
+    settings->ExportSettings(fileurl);
+}
+
+void QmlSettings::importSettings(QString fileurl)
+{
+    settings->ImportSettings(fileurl);
+    resolutionLocalPS4Changed();
+    resolutionRemotePS4Changed();
+    resolutionLocalPS5Changed();
+    resolutionRemotePS5Changed();
+    disconnectActionChanged();
+    suspendActionChanged();
+    logVerboseChanged();
+    dualSenseChanged();
+    buttonsByPositionChanged();
+    startMicUnmutedChanged();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    verticalDeckChanged();
+    steamDeckHapticsChanged();
+#endif
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
+    speechProcessingChanged();
+    noiseSuppressLevelChanged();
+    echoSuppressLevelChanged();
+#endif
+    fpsLocalPS4Changed();
+    fpsRemotePS4Changed();
+    fpsLocalPS5Changed();
+    fpsRemotePS5Changed();
+    bitrateLocalPS4Changed();
+    bitrateRemotePS4Changed();
+    bitrateLocalPS5Changed();
+    bitrateRemotePS5Changed();
+    codecLocalPS5Changed();
+    codecRemotePS5Changed();
+    audioBufferSizeChanged();
+    audioOutDeviceChanged();
+    audioInDeviceChanged();
+    wifiDroppedNotifChanged();
+    decoderChanged();
+    windowTypeChanged();
+    sZoomFactorChanged();
+    videoPresetChanged();
+    autoConnectMacChanged();
+    audioDevicesChanged();
+    registeredHostsChanged();
+    psnAuthTokenChanged();
+    psnRefreshTokenChanged();
+    psnAuthTokenExpiryChanged();
+    psnAccountIdChanged();
+    controllerMappingChanged();
 }

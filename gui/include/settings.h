@@ -69,14 +69,17 @@ class Settings : public QObject
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
 
-		void LoadRegisteredHosts();
-		void SaveRegisteredHosts();
+		void LoadRegisteredHosts(QSettings *qsettings = nullptr);
+		void SaveRegisteredHosts(QSettings *qsettings = nullptr);
 
-		void LoadManualHosts();
-		void SaveManualHosts();
+		void LoadManualHosts(QSettings *qsettings = nullptr);
+		void SaveManualHosts(QSettings *qsettings = nullptr);
 
 	public:
 		explicit Settings(const QString &conf, QObject *parent = nullptr);
+
+		void ExportSettings(QString fileurl);
+		void ImportSettings(QString fileurl);
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
@@ -105,20 +108,42 @@ class Settings : public QObject
 		bool GetAutomaticConnect() const         { return settings.value("settings/automatic_connect", false).toBool(); }
 		void SetAutomaticConnect(bool autoconnect)    { settings.setValue("settings/automatic_connect", autoconnect); }
 
-		ChiakiVideoResolutionPreset GetResolution() const;
-		void SetResolution(ChiakiVideoResolutionPreset resolution);
+		ChiakiVideoResolutionPreset GetResolutionLocalPS4() const;
+		ChiakiVideoResolutionPreset GetResolutionRemotePS4() const;
+		ChiakiVideoResolutionPreset GetResolutionLocalPS5() const;
+		ChiakiVideoResolutionPreset GetResolutionRemotePS5() const;
+		void SetResolutionLocalPS4(ChiakiVideoResolutionPreset resolution);
+		void SetResolutionRemotePS4(ChiakiVideoResolutionPreset resolution);
+		void SetResolutionLocalPS5(ChiakiVideoResolutionPreset resolution);
+		void SetResolutionRemotePS5(ChiakiVideoResolutionPreset resolution);
 
 		/**
 		 * @return 0 if set to "automatic"
 		 */
-		ChiakiVideoFPSPreset GetFPS() const;
-		void SetFPS(ChiakiVideoFPSPreset fps);
+		ChiakiVideoFPSPreset GetFPSLocalPS4() const;
+		ChiakiVideoFPSPreset GetFPSRemotePS4() const;
+		ChiakiVideoFPSPreset GetFPSLocalPS5() const;
+		ChiakiVideoFPSPreset GetFPSRemotePS5() const;
+		void SetFPSLocalPS4(ChiakiVideoFPSPreset fps);
+		void SetFPSRemotePS4(ChiakiVideoFPSPreset fps);
+		void SetFPSLocalPS5(ChiakiVideoFPSPreset fps);
+		void SetFPSRemotePS5(ChiakiVideoFPSPreset fps);
 
-		unsigned int GetBitrate() const;
-		void SetBitrate(unsigned int bitrate);
+		unsigned int GetBitrateLocalPS4() const;
+		unsigned int GetBitrateRemotePS4() const;
+		unsigned int GetBitrateLocalPS5() const;
+		unsigned int GetBitrateRemotePS5() const;
+		void SetBitrateLocalPS4(unsigned int bitrate);
+		void SetBitrateRemotePS4(unsigned int bitrate);
+		void SetBitrateLocalPS5(unsigned int bitrate);
+		void SetBitrateRemotePS5(unsigned int bitrate);
 
-		ChiakiCodec GetCodec() const;
-		void SetCodec(ChiakiCodec codec);
+		ChiakiCodec GetCodecPS4() const;
+		ChiakiCodec GetCodecLocalPS5() const;
+		ChiakiCodec GetCodecRemotePS5() const;
+		void SetCodecPS4(ChiakiCodec codec);
+		void SetCodecLocalPS5(ChiakiCodec codec);
+		void SetCodecRemotePS5(ChiakiCodec codec);
 
 		Decoder GetDecoder() const;
 		void SetDecoder(Decoder decoder);
@@ -134,6 +159,9 @@ class Settings : public QObject
 
 		float GetZoomFactor() const;
 		void SetZoomFactor(float factor);
+
+		float GetPacketLossMax() const;
+		void SetPacketLossMax(float factor);
 
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);
@@ -185,7 +213,10 @@ class Settings : public QObject
 		void SetEchoSuppressLevel(int reduceby);
 #endif
 
-		ChiakiConnectVideoProfile GetVideoProfile();
+		ChiakiConnectVideoProfile GetVideoProfileLocalPS4();
+		ChiakiConnectVideoProfile GetVideoProfileRemotePS4();
+		ChiakiConnectVideoProfile GetVideoProfileLocalPS5();
+		ChiakiConnectVideoProfile GetVideoProfileRemotePS5();
 
 		DisconnectAction GetDisconnectAction();
 		void SetDisconnectAction(DisconnectAction action);

@@ -6,8 +6,8 @@ cd $(dirname "${BASH_SOURCE[0]}")/..
 cd "./$1"
 ROOT="`pwd`"
 
-SDL_VER=2.28.5
-URL=https://www.libsdl.org/release/SDL2-${SDL_VER}.tar.gz
+SDL_VER=2.30.3
+URL=https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VER}/SDL2-${SDL_VER}.tar.gz
 FILE=SDL2-${SDL_VER}.tar.gz
 DIR=SDL2-${SDL_VER}
 
@@ -21,7 +21,7 @@ cd "$DIR" || exit 1
 mkdir -p build && cd build || exit 1
 cmake \
 	-DCMAKE_INSTALL_PREFIX="/usr" \
-	-DSDL_ATOMIC=OFF \
+	-DSDL_ATOMIC=ON \
 	-DSDL_AUDIO=ON \
 	-DSDL_CPUINFO=ON \
 	-DSDL_EVENTS=ON \
@@ -35,7 +35,7 @@ cmake \
 	-DSDL_STATIC=OFF \
 	-DSDL_TEST=OFF \
 	-DSDL_THREADS=ON \
-	-DSDL_TIMERS=OFF \
+	-DSDL_TIMERS=ON \
 	-DSDL_VIDEO=OFF \
 	-DSDL_OSS=OFF \
 	-DSDL_ALSA=OFF \

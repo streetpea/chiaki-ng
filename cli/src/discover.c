@@ -137,7 +137,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	{
 		if(ai->ai_protocol != IPPROTO_UDP)
 			continue;
-		if(ai->ai_family != AF_INET) // TODO: IPv6
+		if(ai->ai_family != AF_INET || ai->ai_family != AF_INET6)
 			continue;
 
 		host_addr_len = ai->ai_addrlen;
@@ -158,12 +158,18 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	memset(&packet, 0, sizeof(packet));
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS4;
-	((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
+	if(host_addr->sa_family == AF_INET)
+		((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
+	else
+		((struct sockaddr_in6 *)host_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
 	err = chiaki_discovery_send(&discovery, &packet, host_addr, host_addr_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(log, "Failed to send discovery packet for PS4: %s", chiaki_error_string(err));
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS5;
-	((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
+	if(host_addr->sa_family == AF_INET)
+		((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
+	else
+		((struct sockaddr_in6 *)host_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
 	err = chiaki_discovery_send(&discovery, &packet, host_addr, host_addr_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(log, "Failed to send discovery packet for PS5: %s", chiaki_error_string(err));

@@ -8,6 +8,7 @@ ComboBox {
 
     Keys.onPressed: (event) => {
         switch (event.key) {
+        case Qt.Key_Left:
         case Qt.Key_Up:
             if (!popup.visible) {
                 let item = nextItemInFocusChain(false);
@@ -16,6 +17,7 @@ ComboBox {
                 event.accepted = true;
             }
             break;
+        case Qt.Key_Right:
         case Qt.Key_Down:
             if (!popup.visible) {
                 let item = nextItemInFocusChain();

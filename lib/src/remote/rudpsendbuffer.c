@@ -300,7 +300,7 @@ static void rudp_send_buffer_resend(ChiakiRudpSendBuffer *send_buffer)
 				i-= 1;
 				continue;
 			}
-			char packet_type[28] = {0};
+			char packet_type[29] = {0};
 			GetRudpPacketType(send_buffer, *((uint16_t *)(packet->buf + 6)), packet_type);
 			CHIAKI_LOGI(send_buffer->log, "rudp Send Buffer re-sending packet with seqnum %#lx and type %s, tries: %llu", (unsigned long)packet->seq_num, packet_type, (unsigned long long)packet->tries);
 			packet->last_send_ms = now;

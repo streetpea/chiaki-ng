@@ -37,6 +37,30 @@
 #define ECHO_QUEUE_MAX 40
 #endif
 
+static bool isLocalAddress(QString host)
+{
+    if(host.contains("."))
+    {
+        if(host.startsWith("10."))
+            return true;
+        else if(host.startsWith("192.168."))
+            return true;
+        for (int j = 16; j < 32; j++)
+        {
+            if(host.startsWith(QString("172.") + QString::number(j) + QString(".")))
+                return true;
+        }
+    }
+    else if(host.contains(":"))
+    {
+        if(host.startsWith("FC", Qt::CaseInsensitive))
+            return true;
+        if(host.startsWith("FD", Qt::CaseInsensitive))
+            return true;
+    }
+    return false;
+}
+
 StreamSessionConnectInfo::StreamSessionConnectInfo(
 		Settings *settings,
 		ChiakiTarget target,
@@ -58,7 +82,12 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
-	video_profile = settings->GetVideoProfile();
+	// local connection
+	if(duid.isEmpty() && isLocalAddress(host))
+		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileLocalPS5(): settings->GetVideoProfileLocalPS4();
+	// remote connection
+	else
+		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileRemotePS5(): settings->GetVideoProfileRemotePS4();
 	this->target = target;
 	this->host = host;
 	this->regist_key = regist_key;
@@ -72,6 +101,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->enable_dualsense = settings->GetDualSenseEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
+	this->packet_loss_max = settings->GetPacketLossMax();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
@@ -204,6 +234,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.video_profile_auto_downgrade = true;
 	chiaki_connect_info.enable_keyboard = false;
 	chiaki_connect_info.enable_dualsense = connect_info.enable_dualsense;
+	chiaki_connect_info.packet_loss_max = connect_info.packet_loss_max;
 
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)

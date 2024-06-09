@@ -62,7 +62,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryServi
 		}
 	}
 
-	err = chiaki_discovery_init(&service->discovery, log, service->options.send_addr->sa_family);
+	err = chiaki_discovery_init(&service->discovery, log, ((struct sockaddr *)service->options.send_addr)->sa_family);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_send_addr;
 
@@ -168,7 +168,7 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 		{
 			if(ai->ai_protocol != IPPROTO_UDP)
 				continue;
-			if(ai->ai_family != AF_INET) // TODO: IPv6
+			if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 				continue;
 			ok = true;
 			memcpy(service->options.send_addr, ai->ai_addr, ai->ai_addrlen);
@@ -189,24 +189,24 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	ChiakiDiscoveryPacket packet = { 0 };
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS4;
-	if(service->options.send_addr->sa_family == AF_INET)
+	if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET)
 		((struct sockaddr_in *)service->options.send_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
-	else if(service->options.send_addr->sa_family == AF_INET6)
+	else if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET6)
 		((struct sockaddr_in6 *)service->options.send_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
 	else
 	{
 		CHIAKI_LOGE(service->log, "Discovery Service send_addr has unknown sa_family");
 		return;
 	}
-	err = chiaki_discovery_send(&service->discovery, &packet, service->options.send_addr, service->options.send_addr_size);
+	err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)service->options.send_addr, service->options.send_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping for PS4");
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS5;
-	if(service->options.send_addr->sa_family == AF_INET)
+	if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET)
 		((struct sockaddr_in *)service->options.send_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
-	else // if(service->options.send_addr->sa_family == AF_INET6)
+	else if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET6)
 		((struct sockaddr_in6 *)service->options.send_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
-	err = chiaki_discovery_send(&service->discovery, &packet, service->options.send_addr, service->options.send_addr_size);
+	err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)service->options.send_addr, service->options.send_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping for PS5");
 }
