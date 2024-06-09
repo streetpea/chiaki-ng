@@ -101,6 +101,8 @@ void Settings::ExportSettings(QString fileurl)
     {
         settings_backup.setValue( *i, settings.value( *i ) );
     }
+	// set hw decoder to auto since it's recommended and a platform specific decoder could cause a crash if imported on another platform
+	settings_backup.setValue("settings/hw_decoder", "auto");
 }
 
 void Settings::ImportSettings(QString fileurl)

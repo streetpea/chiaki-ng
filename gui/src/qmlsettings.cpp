@@ -554,12 +554,57 @@ QString QmlSettings::changeControllerKey(int button, int key)
     return QKeySequence(qt_key).toString();
 }
 
-void QmlSettings::exportSettings(QString filepath)
+void QmlSettings::exportSettings(QString fileurl)
 {
-    settings->ExportSettings(filepath);
+    settings->ExportSettings(fileurl);
 }
 
-void QmlSettings::importSettings(QString filepath)
+void QmlSettings::importSettings(QString fileurl)
 {
-    settings->ImportSettings(filepath);
+    settings->ImportSettings(fileurl);
+    resolutionLocalPS4Changed();
+    resolutionRemotePS4Changed();
+    resolutionLocalPS5Changed();
+    resolutionRemotePS5Changed();
+    disconnectActionChanged();
+    suspendActionChanged();
+    logVerboseChanged();
+    dualSenseChanged();
+    buttonsByPositionChanged();
+    startMicUnmutedChanged();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    verticalDeckChanged();
+    steamDeckHapticsChanged();
+#endif
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
+    speechProcessingChanged();
+    noiseSuppressLevelChanged();
+    echoSuppressLevelChanged();
+#endif
+    fpsLocalPS4Changed();
+    fpsRemotePS4Changed();
+    fpsLocalPS5Changed();
+    fpsRemotePS5Changed();
+    bitrateLocalPS4Changed();
+    bitrateRemotePS4Changed();
+    bitrateLocalPS5Changed();
+    bitrateRemotePS5Changed();
+    codecLocalPS5Changed();
+    codecRemotePS5Changed();
+    audioBufferSizeChanged();
+    audioOutDeviceChanged();
+    audioInDeviceChanged();
+    wifiDroppedNotifChanged();
+    decoderChanged();
+    windowTypeChanged();
+    sZoomFactorChanged();
+    videoPresetChanged();
+    autoConnectMacChanged();
+    audioDevicesChanged();
+    registeredHostsChanged();
+    psnAuthTokenChanged();
+    psnRefreshTokenChanged();
+    psnAuthTokenExpiryChanged();
+    psnAccountIdChanged();
+    controllerMappingChanged();
 }
