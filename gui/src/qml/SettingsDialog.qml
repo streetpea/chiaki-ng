@@ -442,7 +442,6 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        lastInFocusChain: !checked
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
@@ -506,7 +505,6 @@ DialogView {
 
                     C.Slider {
                         Layout.preferredWidth: 250
-                        lastInFocusChain: true
                         from: 0
                         to: 100
                         stepSize: 1

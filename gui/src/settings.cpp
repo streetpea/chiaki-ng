@@ -220,7 +220,7 @@ void Settings::SetZoomFactor(float factor)
 
 float Settings::GetPacketLossMax() const
 {
-	return settings.value("settings/packet_loss_max", 1).toFloat();
+	return settings.value("settings/packet_loss_max", 0.05).toFloat();
 }
 
 void Settings::SetPacketLossMax(float packet_loss_max)
