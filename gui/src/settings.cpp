@@ -134,17 +134,52 @@ static const QMap<ChiakiVideoResolutionPreset, QString> resolutions = {
 	{ CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, "1080p" }
 };
 
-static const ChiakiVideoResolutionPreset resolution_default = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+static const ChiakiVideoResolutionPreset resolution_default_ps4 = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+static const ChiakiVideoResolutionPreset resolution_default_ps5_local = CHIAKI_VIDEO_RESOLUTION_PRESET_1080p;
+static const ChiakiVideoResolutionPreset resolution_default_ps5_remote = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 
-ChiakiVideoResolutionPreset Settings::GetResolution() const
+ChiakiVideoResolutionPreset Settings::GetResolutionLocalPS4() const
 {
-	auto s = settings.value("settings/resolution", resolutions[resolution_default]).toString();
-	return resolutions.key(s, resolution_default);
+	auto s = settings.value("settings/resolution_local_ps4", resolutions[resolution_default_ps4]).toString();
+	return resolutions.key(s, resolution_default_ps4);
 }
 
-void Settings::SetResolution(ChiakiVideoResolutionPreset resolution)
+ChiakiVideoResolutionPreset Settings::GetResolutionRemotePS4() const
 {
-	settings.setValue("settings/resolution", resolutions[resolution]);
+	auto s = settings.value("settings/resolution_remote_ps4", resolutions[resolution_default_ps4]).toString();
+	return resolutions.key(s, resolution_default_ps4);
+}
+
+ChiakiVideoResolutionPreset Settings::GetResolutionLocalPS5() const
+{
+	auto s = settings.value("settings/resolution_local_ps5", resolutions[resolution_default_ps5_local]).toString();
+	return resolutions.key(s, resolution_default_ps5_local);
+}
+
+ChiakiVideoResolutionPreset Settings::GetResolutionRemotePS5() const
+{
+	auto s = settings.value("settings/resolution_remote_ps5", resolutions[resolution_default_ps5_remote]).toString();
+	return resolutions.key(s, resolution_default_ps5_remote);
+}
+
+void Settings::SetResolutionLocalPS4(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_local_ps4", resolutions[resolution]);
+}
+
+void Settings::SetResolutionRemotePS4(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_remote_ps4", resolutions[resolution]);
+}
+
+void Settings::SetResolutionLocalPS5(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_local_ps5", resolutions[resolution]);
+}
+
+void Settings::SetResolutionRemotePS5(ChiakiVideoResolutionPreset resolution)
+{
+	settings.setValue("settings/resolution_remote_ps5", resolutions[resolution]);
 }
 
 static const QMap<ChiakiVideoFPSPreset, int> fps_values = {
@@ -154,25 +189,88 @@ static const QMap<ChiakiVideoFPSPreset, int> fps_values = {
 
 static const ChiakiVideoFPSPreset fps_default = CHIAKI_VIDEO_FPS_PRESET_60;
 
-ChiakiVideoFPSPreset Settings::GetFPS() const
+ChiakiVideoFPSPreset Settings::GetFPSLocalPS4() const
 {
-	auto v = settings.value("settings/fps", fps_values[fps_default]).toInt();
+	auto v = settings.value("settings/fps_local_ps4", fps_values[fps_default]).toInt();
 	return fps_values.key(v, fps_default);
 }
 
-void Settings::SetFPS(ChiakiVideoFPSPreset fps)
+ChiakiVideoFPSPreset Settings::GetFPSRemotePS4() const
 {
-	settings.setValue("settings/fps", fps_values[fps]);
+	auto v = settings.value("settings/fps_remote_ps4", fps_values[fps_default]).toInt();
+	return fps_values.key(v, fps_default);
 }
 
-unsigned int Settings::GetBitrate() const
+ChiakiVideoFPSPreset Settings::GetFPSLocalPS5() const
 {
-	return settings.value("settings/bitrate", 0).toUInt();
+	auto v = settings.value("settings/fps_local_ps5", fps_values[fps_default]).toInt();
+	return fps_values.key(v, fps_default);
 }
 
-void Settings::SetBitrate(unsigned int bitrate)
+ChiakiVideoFPSPreset Settings::GetFPSRemotePS5() const
 {
-	settings.setValue("settings/bitrate", bitrate);
+	auto v = settings.value("settings/fps_remote_ps5", fps_values[fps_default]).toInt();
+	return fps_values.key(v, fps_default);
+}
+
+void Settings::SetFPSLocalPS4(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_local_ps4", fps_values[fps]);
+}
+
+void Settings::SetFPSRemotePS4(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_remote_ps4", fps_values[fps]);
+}
+
+void Settings::SetFPSLocalPS5(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_local_ps5", fps_values[fps]);
+}
+
+void Settings::SetFPSRemotePS5(ChiakiVideoFPSPreset fps)
+{
+	settings.setValue("settings/fps_remote_ps5", fps_values[fps]);
+}
+
+unsigned int Settings::GetBitrateLocalPS4() const
+{
+	return settings.value("settings/bitrate_local_ps4", 0).toUInt();
+}
+
+unsigned int Settings::GetBitrateRemotePS4() const
+{
+	return settings.value("settings/bitrate_remote_ps4", 0).toUInt();
+}
+
+unsigned int Settings::GetBitrateLocalPS5() const
+{
+	return settings.value("settings/bitrate_local_ps5", 0).toUInt();
+}
+
+unsigned int Settings::GetBitrateRemotePS5() const
+{
+	return settings.value("settings/bitrate_remote_ps5", 0).toUInt();
+}
+
+void Settings::SetBitrateLocalPS4(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_local_ps4", bitrate);
+}
+
+void Settings::SetBitrateRemotePS4(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_remote_ps4", bitrate);
+}
+
+void Settings::SetBitrateLocalPS5(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_local_ps5", bitrate);
+}
+
+void Settings::SetBitrateRemotePS5(unsigned int bitrate)
+{
+	settings.setValue("settings/bitrate_remote_ps5", bitrate);
 }
 
 static const QMap<ChiakiCodec, QString> codecs = {
@@ -181,18 +279,43 @@ static const QMap<ChiakiCodec, QString> codecs = {
 	{ CHIAKI_CODEC_H265_HDR, "h265_hdr" }
 };
 
-static const ChiakiCodec codec_default = CHIAKI_CODEC_H265;
+static const ChiakiCodec codec_default_ps5 = CHIAKI_CODEC_H265;
+static const ChiakiCodec codec_default_ps4 = CHIAKI_CODEC_H264;
 
-ChiakiCodec Settings::GetCodec() const
+ChiakiCodec Settings::GetCodecPS4() const
 {
-	auto v = settings.value("settings/codec", codecs[codec_default]).toString();
-	auto codec = codecs.key(v, codec_default);
+	auto v = settings.value("settings/codec_ps4", codecs[codec_default_ps4]).toString();
+	auto codec = codecs.key(v, codec_default_ps4);
 	return codec;
 }
 
-void Settings::SetCodec(ChiakiCodec codec)
+ChiakiCodec Settings::GetCodecLocalPS5() const
 {
-	settings.setValue("settings/codec", codecs[codec]);
+	auto v = settings.value("settings/codec_local_ps5", codecs[codec_default_ps5]).toString();
+	auto codec = codecs.key(v, codec_default_ps5);
+	return codec;
+}
+
+ChiakiCodec Settings::GetCodecRemotePS5() const
+{
+	auto v = settings.value("settings/codec_remote_ps5", codecs[codec_default_ps5]).toString();
+	auto codec = codecs.key(v, codec_default_ps5);
+	return codec;
+}
+
+void Settings::SetCodecPS4(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec_ps4", codecs[codec]);
+}
+
+void Settings::SetCodecLocalPS5(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec_local_ps5", codecs[codec]);
+}
+
+void Settings::SetCodecRemotePS5(ChiakiCodec codec)
+{
+	settings.setValue("settings/codec_remote_ps5", codecs[codec]);
 }
 
 unsigned int Settings::GetAudioBufferSizeDefault() const
@@ -407,14 +530,47 @@ void Settings::SetPsnAccountId(QString account_id)
 	settings.setValue("settings/psn_account_id", account_id);
 }
 
-ChiakiConnectVideoProfile Settings::GetVideoProfile()
+ChiakiConnectVideoProfile Settings::GetVideoProfileLocalPS4()
 {
 	ChiakiConnectVideoProfile profile = {};
-	chiaki_connect_video_profile_preset(&profile, GetResolution(), GetFPS());
-	unsigned int bitrate = GetBitrate();
+	chiaki_connect_video_profile_preset(&profile, GetResolutionLocalPS4(), GetFPSLocalPS4());
+	unsigned int bitrate = GetBitrateLocalPS4();
 	if(bitrate)
 		profile.bitrate = bitrate;
-	profile.codec = GetCodec();
+	profile.codec = GetCodecPS4();
+	return profile;
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfileRemotePS4()
+{
+	ChiakiConnectVideoProfile profile = {};
+	chiaki_connect_video_profile_preset(&profile, GetResolutionRemotePS4(), GetFPSRemotePS4());
+	unsigned int bitrate = GetBitrateRemotePS4();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	profile.codec = GetCodecPS4();
+	return profile;
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfileLocalPS5()
+{
+	ChiakiConnectVideoProfile profile = {};
+	chiaki_connect_video_profile_preset(&profile, GetResolutionLocalPS5(), GetFPSLocalPS5());
+	unsigned int bitrate = GetBitrateLocalPS5();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	profile.codec = GetCodecLocalPS5();
+	return profile;
+}
+
+ChiakiConnectVideoProfile Settings::GetVideoProfileRemotePS5()
+{
+	ChiakiConnectVideoProfile profile = {};
+	chiaki_connect_video_profile_preset(&profile, GetResolutionRemotePS5(), GetFPSRemotePS5());
+	unsigned int bitrate = GetBitrateRemotePS5();
+	if(bitrate)
+		profile.bitrate = bitrate;
+	profile.codec = GetCodecRemotePS5();
 	return profile;
 }
 

@@ -58,7 +58,12 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
 	log_file = CreateLogFilename();
-	video_profile = settings->GetVideoProfile();
+	// local connection
+	if(duid.isEmpty() && isLocalAddress(host))
+		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileLocalPS5(): settings->GetVideoProfileLocalPS4();
+	// remote connection
+	else
+		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileRemotePS5(): settings->GetVideoProfileRemotePS4();
 	this->target = target;
 	this->host = host;
 	this->regist_key = regist_key;
@@ -84,6 +89,30 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->psn_token = settings->GetPsnAuthToken();
 	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = duid;
+}
+
+bool StreamSessionConnectInfo::isLocalAddress(QString host)
+{
+    if(host.contains("."))
+    {
+        if(host.startsWith("10."))
+            return true;
+        else if(host.startsWith("192.168."))
+            return true;
+        for (int j = 16; j < 32; j++)
+        {
+            if(host.startsWith(QString("172.") + QString::number(j) + QString(".")))
+                return true;
+        }
+    }
+    else if(host.contains(":"))
+    {
+        if(host.startsWith("FC", Qt::CaseInsensitive))
+            return true;
+        if(host.startsWith("FD", Qt::CaseInsensitive))
+            return true;
+    }
+    return false;
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);

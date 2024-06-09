@@ -261,7 +261,7 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
 2. Adjust the settings to your preferences. 
 
-    1. **General Settings** for Steam Deck
+    1. **General Settings**
 
         ![General Settings](images/MainSettings.png)
 
@@ -283,23 +283,23 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
             
             If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
 
-    2. **Audio/WiFi Settings** for Steam Deck
+    2. **Audio/WiFi Settings**
 
         ![Audio/Wifi Settings](images/AudioSettings.png)
     
-    3. Below are the **Video Settings** you'll want to try first with your PlayStation console (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+    3. **Video Settings**
 
-    === "PS5/1080P HDR"
+        ![Video Settings](images/VideoSettings.png)
 
-        Stream output can be up to 1080p with [HDR](#hdr-high-dynamic-range). This is the recommended setting for a local connection to a PS5 from a device that supports HDR such as the Steam Deck OLED. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
+    4. **Stream Settings**
 
-        ![1080p Settings](images/1080P_SettingsHDR.png)
+        (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
 
-    === "PS5/1080P"
+    === "PS5 HDR"
 
-        Stream output can be up to 1080p. This is the recommended setting for a local connection to a PS5 from a device that doesn't support HDR like the ROG Ally. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.
+        Stream output with [HDR](#hdr-high-dynamic-range). This are the recommended PS5 settings for a device that supports HDR such as the Steam Deck OLED.
 
-        ![1080p Settings](images/1080P_Settings.png)
+        ![PS5 HDR Settings](images/PS5_SettingsHDR.png)
 
         ???+ Question "Why 1080p if the Steam Deck is only 800p?"
 
@@ -307,23 +307,23 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
             
             However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
 
-    === "PS5/720P HDR"
+    === "PS5"
 
-        This is the recommended setting for a remote connection for a device that supports HDR like the Steam Deck OLED to sustain high quality streaming.
+        These are the recommended PS5 settings for a device that doesn't support HDR like the ROG Ally.
 
-        ![720P PS5 HDR Settings](../images/720P_PS5HDRSettings.png)
+        ![1080p Settings](images/PS5_SettingsSDR.png)
 
-    === "PS5/720P"
+        ???+ Question "Why 1080p if the Steam Deck is only 800p?"
 
-        This is the recommended setting for a remote connection for a device that doesn't supports HDR like the ROG Ally to sustain high quality streaming.
+            Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
+            
+            However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
 
-        ![720P PS5 Settings](../images/720P_PS5Settings.png)
+    === "PS4"
 
-    === "PS4/720P"
+        This is the recommended setting for a PS4. If you have a PS4 pro you can use 1080P instead.
 
-        For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup. This is the recommended setting for use with the PS4 for local and remote connections.
-
-        ![720p Settings](images/720P_Settings.png)
+        ![PS4 Settings](images/PS4_Settings.png)
 
 ### HDR (High Dynamic Range)
 
