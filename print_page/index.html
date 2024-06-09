@@ -1593,7 +1593,7 @@
 <p>Adjust the settings to your preferences. </p>
 <ol>
 <li>
-<p><strong>General Settings</strong> for Steam Deck</p>
+<p><strong>General Settings</strong></p>
 <p><img alt="General Settings" src="../setup/images/MainSettings.png" /></p>
 <div class="admonition tip">
 <p class="admonition-title">Enabling Experimental PlayStation 5 Features (PS5 Users Only)</p>
@@ -1614,22 +1614,23 @@
 </div>
 </li>
 <li>
-<p><strong>Audio/WiFi Settings</strong> for Steam Deck</p>
+<p><strong>Audio/WiFi Settings</strong></p>
 <p><img alt="Audio/Wifi Settings" src="../setup/images/AudioSettings.png" /></p>
 </li>
 <li>
-<p>Below are the <strong>Video Settings</strong> you'll want to try first with your PlayStation console (choose the <strong>PS5/1080p HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5/1080p</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4/720p</strong> if you have a PS4). If you are having issues with your PS5 connection, please try the <strong>PS4/720p</strong> settings with your PS5 since they require significantly less bandwidth from your wireless router.</p>
+<p><strong>Video Settings</strong></p>
+<p><img alt="Video Settings" src="../setup/images/VideoSettings.png" /></p>
+</li>
+<li>
+<p><strong>Stream Settings</strong></p>
+<p>(choose the <strong>PS5 HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4</strong> if you have a PS4). If you are having issues with your PS5 connection, please try switching to 720P following with its default bitrate of 10,000 with your PS5 since that requires significantly less bandwidth from your wireless router.</p>
 </li>
 </ol>
-<div class="tabbed-set tabbed-alternate" data-tabs="12:3"><input checked="checked" id="setup-configuration-__tabbed_12_1" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_2" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_3" name="setup-configuration-__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_12_1">PS5/1080P HDR</label><label for="setup-configuration-__tabbed_12_2">PS5/1080P</label><label for="setup-configuration-__tabbed_12_3">PS4/720P</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="12:3"><input checked="checked" id="setup-configuration-__tabbed_12_1" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_2" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_3" name="setup-configuration-__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_12_1">PS5 HDR</label><label for="setup-configuration-__tabbed_12_2">PS5</label><label for="setup-configuration-__tabbed_12_3">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p>Stream output can be up to 1080p with <a href="#setup-configuration-hdr-high-dynamic-range">HDR</a>. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
-<p><img alt="1080p Settings" src="../setup/images/1080P_SettingsHDR.png" /></p>
-</div>
-<div class="tabbed-block">
-<p>Stream output can be up to 1080p. Here are the settings that are currently working well for me. This results in a native-like experience for most games on my network/setup.</p>
-<p><img alt="1080p Settings" src="../setup/images/1080P_Settings.png" /></p>
+<p>Stream output with <a href="#setup-configuration-hdr-high-dynamic-range">HDR</a>. This are the recommended PS5 settings for a device that supports HDR such as the Steam Deck OLED.</p>
+<p><img alt="PS5 HDR Settings" src="../setup/images/PS5_SettingsHDR.png" /></p>
 <details class="question" open="open">
 <summary>Why 1080p if the Steam Deck is only 800p?</summary>
 <p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
@@ -1637,8 +1638,17 @@
 </details>
 </div>
 <div class="tabbed-block">
-<p>For PS4, the stream is limited to 720p. Using the defaults for most values works well here, resulting in native-like (albeit w/ a diminished resolution) experience for most games on my network/setup.</p>
-<p><img alt="720p Settings" src="../setup/images/720P_Settings.png" /></p>
+<p>These are the recommended PS5 settings for a device that doesn't support HDR like the ROG Ally.</p>
+<p><img alt="1080p Settings" src="../setup/images/PS5_SettingsSDR.png" /></p>
+<details class="question" open="open">
+<summary>Why 1080p if the Steam Deck is only 800p?</summary>
+<p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
+<p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
+</details>
+</div>
+<div class="tabbed-block">
+<p>This is the recommended setting for a PS4. If you have a PS4 pro you can use 1080P instead.</p>
+<p><img alt="PS4 Settings" src="../setup/images/PS4_Settings.png" /></p>
 </div>
 </div>
 </div>
@@ -3270,8 +3280,17 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-172">1.7.2<a class="headerlink" href="#updates-releases-172" title="Permanent link">&para;</a></h3>
+<p>Provides unique remote and local Stream Settings for each console (PS4/PS5)</p>
+<ul>
+<li>Separate Local and Remote and PS4/PS5 settings so you can set appropriate settings for each type of connection</li>
+<li>Enable more network types to work with remote connection via PSN (Note: some can only be made to work a % of the time due to limitations with remote play imposed by Sony)</li>
+<li>Export/import option for settings to transfer across devices/platforms</li>
+<li>Adds <code>auto</code> hw decoder option which is now the default. It chooses the best decoder for your platform from the available decoders</li>
+<li>Make Chiaki4deck ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)</li>
+</ul>
 <h3 id="updates-releases-171">1.7.1<a class="headerlink" href="#updates-releases-171" title="Permanent link">&para;</a></h3>
-<p>Improves remote connection via PSN + adds PS4 support</p>
+<p>Improves + adds PS4 support to remote connection via PSN</p>
 <ul>
 <li>remote connection via PSN now supports PS4 consoles</li>
 <li>remote connection via PSN now supports more network types</li>
