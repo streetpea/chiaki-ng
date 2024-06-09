@@ -73,12 +73,37 @@ static void MigrateSettings(QSettings *settings)
 	}
 }
 
+static void MigrateVideoProfile(QSettings *settings)
+{
+	if(settings->contains("settings/resolution"))
+	{
+		settings->setValue("settings/resolution_local_ps5", settings->value("settings/resolution"));
+		settings->remove("settings/resolution");
+	}
+	if(settings->contains("settings/fps"))
+	{
+		settings->setValue("settings/fps_local_ps5", settings->value("settings/fps"));
+		settings->remove("settings/fps");
+	}
+	if(settings->contains("settings/codec"))
+	{
+		settings->setValue("settings/codec_local_ps5", settings->value("settings/codec"));
+		settings->remove("settings/codec");
+	}
+	if(settings->contains("settings/bitrate"))
+	{
+		settings->setValue("settings/bitrate_local_ps5", settings->value("settings/bitrate"));
+		settings->remove("settings/bitrate");
+	}
+}
+
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	time_format("yyyy-MM-dd  HH:mm:ss"),
 	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf))
 {
 	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
+	MigrateVideoProfile(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();

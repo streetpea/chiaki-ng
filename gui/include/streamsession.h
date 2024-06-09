@@ -110,8 +110,6 @@ struct StreamSessionConnectInfo
 			bool fullscreen,
 			bool zoom,
 			bool stretch);
-
-	bool isLocalAddress(QString host);
 };
 
 struct MicBuf
