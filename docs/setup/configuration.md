@@ -293,7 +293,7 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
     4. **Stream Settings**
 
-        (choose the **PS5/1080p HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5/1080p** if you have a PS5 not connected to an HDR TV/monitor, and **PS4/720p** if you have a PS4). If you are having issues with your PS5 connection, please try the **PS4/720p** settings with your PS5 since they require significantly less bandwidth from your wireless router.
+        (choose the **PS5 HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5** if you have a PS5 not connected to an HDR TV/monitor, and **PS4** if you have a PS4). If you are having issues with your PS5 connection, please try switching to 720P following with its default bitrate of 10,000 with your PS5 since that requires significantly less bandwidth from your wireless router.
 
     === "PS5 HDR"
 

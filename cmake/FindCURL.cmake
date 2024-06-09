@@ -72,7 +72,11 @@ Hints
 #]=======================================================================]
 
 cmake_policy(PUSH)
-cmake_policy(SET CMP0159 NEW) # file(STRINGS) with REGEX updates CMAKE_MATCH_<n>
+if (CMAKE_VERSION VERSION_LESS 3.29)
+  message("Not setting CMP0159")
+else()
+  cmake_policy(SET CMP0159 NEW) # file(STRINGS) with REGEX updates CMAKE_MATCH_<n>
+endif()
 
 include(FindPackageHandleStandardArgs)
 

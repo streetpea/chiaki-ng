@@ -22,6 +22,18 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-6-09" version="1.7.2">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Separate Local and Remote and PS4/PS5 settings so you can set appropriate settings for each type of connection</li>
+          <li>Enable more network types to work with remote connection via PSN (Note: some can only be made to work a % of the time due to limitations with remote play imposed by Sony)</li>
+          <li>Export/import option for settings to transfer across devices/platforms</li>
+          <li>Adds auto hw decoder option which is now the default. It chooses the best decoder for your platform from the available decoders</li>
+          <li>Make Chiaki4deck ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-5-26" version="1.7.1">
       <description>
         <p>This release provides the following improvements:</p>
