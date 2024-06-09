@@ -440,7 +440,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
 {
     struct addrinfo* resolved;
     struct addrinfo hints;
-    struct sockaddr_in6 *server_addr;
+    struct sockaddr* server_addr;
     socklen_t server_addr_len;
     memset(&hints, 0, sizeof(hints));
     if(ipv4)
@@ -457,17 +457,11 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         CHIAKI_LOGE(log, "remote/stun.h: Failed to resolve STUN server '%s', error was " CHIAKI_SOCKET_ERROR_FMT, server->host, CHIAKI_SOCKET_ERROR_VALUE);
         return false;
     }
-
+    server_addr = resolved->ai_addr;
     if(ipv4)
-    {
-        server_addr = (struct sockaddr_in6*)resolved->ai_addr;
         server_addr_len = sizeof(struct sockaddr_in);
-    }
     else
-    {
-        server_addr = (struct sockaddr_in6*)resolved->ai_addr;
         server_addr_len = sizeof(struct sockaddr_in6);
-    }
 
     uint8_t binding_req[STUN_HEADER_SIZE];
     memset(binding_req, 0, sizeof(binding_req));
@@ -476,7 +470,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     *(int*)(&binding_req[4]) = htonl(STUN_MAGIC_COOKIE);
     chiaki_random_bytes_crypt(&binding_req[8], STUN_TRANSACTION_ID_LENGTH);
 
-    CHIAKI_SSIZET_TYPE sent = sendto(*sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, (struct sockaddr*)server_addr, server_addr_len);
+    CHIAKI_SSIZET_TYPE sent = sendto(*sock, (CHIAKI_SOCKET_BUF_TYPE)binding_req, sizeof(binding_req), 0, server_addr, server_addr_len);
     if (sent != sizeof(binding_req)) {
         CHIAKI_LOGE(log, "remote/stun.h: Failed to send STUN request, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         CHIAKI_SOCKET_CLOSE(*sock);

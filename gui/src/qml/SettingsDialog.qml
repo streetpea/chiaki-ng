@@ -666,7 +666,6 @@ DialogView {
                     }
 
                     C.CheckBox {
-                        lastInFocusChain: !checked
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
@@ -730,7 +729,6 @@ DialogView {
 
                     C.Slider {
                         Layout.preferredWidth: 250
-                        lastInFocusChain: true
                         from: 0
                         to: 100
                         stepSize: 1
@@ -744,6 +742,29 @@ DialogView {
                                 leftMargin: 10
                             }
                             text: qsTr("%1 % dropped packets").arg(parent.value)
+                        }
+                    }
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Packet Loss Reported Max:")
+                    }
+
+                    C.Slider {
+                        Layout.preferredWidth: 250
+                        lastInFocusChain: true
+                        from: 0
+                        to: 100
+                        stepSize: 1
+                        value: Chiaki.settings.packetLossMax
+                        onMoved: Chiaki.settings.packetLossMax = value
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
+                            }
+                            text: qsTr("%1 % packet loss").arg(parent.value)
                         }
                     }
                 }

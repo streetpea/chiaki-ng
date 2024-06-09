@@ -379,6 +379,16 @@ void Settings::SetZoomFactor(float factor)
 	settings.setValue("settings/zoom_factor", factor);
 }
 
+float Settings::GetPacketLossMax() const
+{
+	return settings.value("settings/packet_loss_max", 0.05).toFloat();
+}
+
+void Settings::SetPacketLossMax(float packet_loss_max)
+{
+	settings.setValue("settings/packet_loss_max", packet_loss_max);
+}
+
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
 	{ WindowType::Fullscreen, "Fullscreen" },

@@ -76,6 +76,7 @@ struct StreamSessionConnectInfo
 	QByteArray morning;
 	QString initial_login_pin;
 	ChiakiConnectVideoProfile video_profile;
+	double packet_loss_max;
 	unsigned int audio_buffer_size;
 	bool fullscreen;
 	bool zoom;

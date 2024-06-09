@@ -41,6 +41,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
+    Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
     Q_PROPERTY(QStringList availableDecoders READ availableDecoders CONSTANT)
@@ -144,6 +145,9 @@ public:
     float sZoomFactor() const;
     void setSZoomFactor(float factor);
 
+    int packetLossMax() const;
+    void setPacketLossMax(int packet_loss_max);
+
     int videoPreset() const;
     void setVideoPreset(int preset);
 
@@ -225,6 +229,7 @@ signals:
     void psnAuthTokenExpiryChanged();
     void psnAccountIdChanged();
     void controllerMappingChanged();
+    void packetLossMaxChanged();
 
 private:
     Settings *settings = {};

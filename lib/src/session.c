@@ -209,7 +209,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 		goto error_stop_pipe;
 	}
 
-	err = chiaki_stream_connection_init(&session->stream_connection, session);
+	err = chiaki_stream_connection_init(&session->stream_connection, session, connect_info->packet_loss_max);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection init failed");

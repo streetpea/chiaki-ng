@@ -33,7 +33,6 @@ struct ManualService
 	bool discovered = false;
 	DiscoveryHost discovery_host;
 	ChiakiDiscoveryService service;
-	ChiakiDiscoveryService service_ipv6;
 };
 
 class Settings;
@@ -49,6 +48,7 @@ class DiscoveryManager : public QObject
 		ChiakiDiscoveryService service;
 		ChiakiDiscoveryService service_ipv6;
 		bool service_active;
+		bool service_active_ipv6;
 		QList<DiscoveryHost> hosts;
 		Settings *settings = {};
 		QHash<QString, ManualService*> manual_services;
