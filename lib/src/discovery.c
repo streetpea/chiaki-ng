@@ -159,6 +159,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	{
 		memset(&discovery->local_addr, 0, sizeof(discovery->local_addr));
 		((struct sockaddr *)&discovery->local_addr)->sa_family = family;
+		socklen_t len = 0;
 		if(family == AF_INET6)
 		{
 #ifndef __SWITCH__
@@ -171,15 +172,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 			addr->sin6_addr = in6addr_any;
 #endif
 			addr->sin6_port = htons(port);
+			len = sizeof(struct sockaddr_in6);
 		}
 		else // AF_INET
 		{
 			struct sockaddr_in *addr = (struct sockaddr_in *)&discovery->local_addr;
 			addr->sin_addr.s_addr = htonl(INADDR_ANY);
 			addr->sin_port = htons(port);
+			len = sizeof(struct sockaddr_in);
 		}
 
-		r = bind(discovery->socket, (struct sockaddr *)&discovery->local_addr, sizeof(discovery->local_addr));
+		r = bind(discovery->socket, (struct sockaddr *)&discovery->local_addr, len);
 		if(r >= 0 || !port)
 			break;
 		if(port == CHIAKI_DISCOVERY_PORT_LOCAL_MAX)
