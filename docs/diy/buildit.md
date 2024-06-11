@@ -60,13 +60,19 @@
             sudo pacman-key --populate archlinux
             ```
 
-        4. Install dependencies
+        4. Populate keyring with Holo keys
+
+            ``` bash
+            sudo pacman-key --populate holo
+            ```
+
+        5. Install dependencies
 
             ``` bash
             sudo pacman -Syy && sudo pacman -S flatpak-builder
             ```
 
-        5. Re-enable read-only mode
+        6. Re-enable read-only mode
 
             ``` bash
             sudo steamos-readonly enable
@@ -85,7 +91,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"}, associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}, and base app.
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//6.6 flathub org.kde.Sdk//6.6 flathub io.qt.qtwebengine.BaseApp/x86_64/6.6
+    flatpak install -y flathub org.kde.Platform//6.7 flathub org.kde.Sdk//6.7
     ```
 
 2. Create a directory for your build files and switch into it

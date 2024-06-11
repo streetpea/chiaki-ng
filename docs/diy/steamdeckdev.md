@@ -42,13 +42,13 @@ This is for contributors that want to make/test updates to the codebase without 
 3. Install the SDK
 
     ``` bash
-    flatpak install org.kde.Sdk//6.6
+    flatpak install org.kde.Sdk//6.7
     ```
 
 4. Install the `Debug` extensions for the SDK
 
     ``` bash
-    flatpak install org.kde.Sdk.Debug//6.6
+    flatpak install org.kde.Sdk.Debug//6.7
     ```
 
 5. Install the `Debug` extension for the application build for debugging
