@@ -440,8 +440,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDisc
 	{
 		if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 			continue;
-		//if(ai->ai_protocol != IPPROTO_UDP)
-		//	continue;
 		if(ai->ai_addrlen > sizeof(addr))
 			continue;
 		memcpy(&addr, ai->ai_addr, ai->ai_addrlen);

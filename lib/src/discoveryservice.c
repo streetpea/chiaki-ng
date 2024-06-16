@@ -156,6 +156,10 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	if(service->options.send_host)
 	{
 		struct addrinfo *host_addrinfos;
+		struct addrinfo hints;
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_family = AF_UNSPEC;
 		int r = getaddrinfo(service->options.send_host, NULL, NULL, &host_addrinfos);
 		if(r != 0)
 		{
@@ -166,8 +170,6 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 		bool ok = false;
 		for(struct addrinfo *ai=host_addrinfos; ai; ai=ai->ai_next)
 		{
-			if(ai->ai_protocol != IPPROTO_UDP)
-				continue;
 			if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 				continue;
 			ok = true;
