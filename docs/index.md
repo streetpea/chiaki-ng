@@ -2,11 +2,15 @@
 
 !!! Abstract "Site Purpose"
 
-    This site serves as a guide to enable you to have the best experience with PlayStation Remote Play on the Steam Deck. Currently, it employs an updated Chiaki package with Steam Deck enhancements I have dubbed `chiaki4deck`. I have created the accompanying `chiaki4deck` flatpak as a means to provide [updates to Chiaki for Steam Deck users](updates/index.md){target="_blank" rel="noopener"}. I am contributing the updates upstream to the main Chiaki project with the hope that they are :fingers_crossed: added despite it currently being in maintenance mode.
+    This site serves to get you up and running with Chiaki4deck!
 
 ## Getting Started
 
 Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noopener"} and following each of the subsections to learn how to setup Chiaki for the best experience on your Steam Deck using `chiaki4deck`.
+
+## Supporting
+
+[Buy me a coffee](https://buymeacoffee.com/streetpea){target="_blank" rel="noopener"}
 
 ## Getting Updates
 
