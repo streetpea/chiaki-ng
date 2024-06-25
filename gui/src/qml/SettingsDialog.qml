@@ -903,9 +903,26 @@ DialogView {
                     rowSpacing: 20
                     columnSpacing: 10
 
+                    Label {
+                        text: {
+                            if(Chiaki.settings.currentProfile)
+                                qsTr("Current Profile: ") + Chiaki.settings.currentProfile
+                            else
+                                qsTr("Current Profile: default")
+                        }
+                    }
+
+                    C.Button {
+                        id: profile
+                        text: qsTr("Manage Profiles")
+                        onClicked: {
+                            showProfileDialog()
+                        }
+                        Material.roundedScale: Material.SmallScale
+                    }
+
                     C.Button {
                         id: openPsnLogin
-                        firstInFocusChain: true
                         text: qsTr("Login to PSN")
                         onClicked: {
                             showPSNTokenDialog(Chiaki.openPsnLink(), false)
@@ -920,7 +937,6 @@ DialogView {
                         leftPadding: 30
                         rightPadding: 30
                         bottomPadding: 26
-                        firstInFocusChain: true
                         text: qsTr("Clear PSN Token")
                         onClicked: {
                             Chiaki.settings.psnRefreshToken = ""

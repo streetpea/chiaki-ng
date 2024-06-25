@@ -10,6 +10,7 @@
     <file>RegistDialog.qml</file>
     <file>SteamShortcutDialog.qml</file>
     <file>SettingsDialog.qml</file>
+    <file>ProfileDialog.qml</file>
     <file>ConsolePinDialog.qml</file>
     <file>PSNLoginDialog.qml</file>
     <file>PSNTokenDialog.qml</file>

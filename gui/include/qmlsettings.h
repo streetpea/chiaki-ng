@@ -48,6 +48,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(QStringList availableAudioInDevices READ availableAudioInDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QStringList availableAudioOutDevices READ availableAudioOutDevices NOTIFY audioDevicesChanged)
     Q_PROPERTY(QVariantList registeredHosts READ registeredHosts NOTIFY registeredHostsChanged)
+    Q_PROPERTY(QStringList profiles READ profiles NOTIFY profilesChanged)
+    Q_PROPERTY(QString currentProfile READ currentProfile WRITE setCurrentProfile NOTIFY currentProfileChanged)
     Q_PROPERTY(QVariantList controllerMapping READ controllerMapping NOTIFY controllerMappingChanged)
     Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
     Q_PROPERTY(QString psnRefreshToken READ psnRefreshToken WRITE setPsnRefreshToken NOTIFY psnRefreshTokenChanged)
@@ -169,12 +171,19 @@ public:
     QString psnAccountId() const;
     void setPsnAccountId(const QString &account_id);
 
+    QString currentProfile() const;
+    void setCurrentProfile(const QString &profile);
+
+    void setSettings(Settings *new_settings);
+    void refreshAllKeys();
+
     QString logDirectory() const;
     QStringList availableDecoders() const;
     QStringList availableAudioOutDevices() const;
     QStringList availableAudioInDevices() const;
     QVariantList registeredHosts() const;
     QVariantList controllerMapping() const;
+    QStringList profiles() const;
 
     Q_INVOKABLE void deleteRegisteredHost(int index);
     Q_INVOKABLE void refreshAudioDevices();
@@ -182,6 +191,7 @@ public:
     Q_INVOKABLE void clearKeyMapping();
     Q_INVOKABLE void exportSettings(QString fileurl);
     Q_INVOKABLE void importSettings(QString fileurl);
+    Q_INVOKABLE void deleteProfile(QString profile);
 
 signals:
     void resolutionLocalPS4Changed();
@@ -230,6 +240,8 @@ signals:
     void psnAccountIdChanged();
     void controllerMappingChanged();
     void packetLossMaxChanged();
+    void currentProfileChanged();
+    void profilesChanged();
 
 private:
     Settings *settings = {};

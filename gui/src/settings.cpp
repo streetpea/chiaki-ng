@@ -99,7 +99,8 @@ static void MigrateVideoProfile(QSettings *settings)
 
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	time_format("yyyy-MM-dd  HH:mm:ss"),
-	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf))
+	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf)),
+	default_settings(QCoreApplication::organizationName(), QCoreApplication::applicationName())
 {
 	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
@@ -108,6 +109,11 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
 	LoadManualHosts();
+	default_settings.setFallbacksEnabled(false);
+	MigrateSettings(&default_settings);
+	MigrateVideoProfile(&default_settings);
+	default_settings.setValue("version", SETTINGS_VERSION);
+	LoadProfiles();
 }
 
 void Settings::ExportSettings(QString fileurl)
@@ -128,6 +134,7 @@ void Settings::ExportSettings(QString fileurl)
     }
 	// set hw decoder to auto since it's recommended and a platform specific decoder could cause a crash if imported on another platform
 	settings_backup.setValue("settings/hw_decoder", "auto");
+	settings_backup.setValue("settings/this_profile", GetCurrentProfile());
 }
 
 void Settings::ImportSettings(QString fileurl)
@@ -137,13 +144,29 @@ void Settings::ImportSettings(QString fileurl)
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	LoadRegisteredHosts(&settings_backup);
 	LoadManualHosts(&settings_backup);
-	SaveRegisteredHosts();
-	SaveManualHosts();
-    QStringList keys = settings_backup.allKeys();
-    for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
-    {
-        settings.setValue( *i, settings_backup.value( *i ) );
-    }
+	QString profile = settings_backup.value("this_profile").toString();
+	if(profile.isEmpty())
+	{
+		SaveRegisteredHosts();
+		SaveManualHosts();
+		QStringList keys = settings_backup.allKeys();
+		for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
+		{
+			settings.setValue( *i, settings_backup.value( *i ) );
+		}
+	}
+	else
+	{
+		QSettings profile_settings(QCoreApplication::organizationName(), QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
+		SaveRegisteredHosts(&profile_settings);
+		SaveManualHosts(&profile_settings);
+		QStringList keys = settings_backup.allKeys();
+		for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
+		{
+			profile_settings.setValue( *i, settings_backup.value( *i ) );
+		}
+		SetCurrentProfile(profile);
+	}
 }
 
 uint32_t Settings::GetLogLevelMask()
@@ -557,6 +580,23 @@ void Settings::SetPsnAuthTokenExpiry(QString expiry_date)
 	settings.setValue("settings/psn_auth_token_expiry", expiry_date);
 }
 
+QString Settings::GetCurrentProfile() const
+{
+	return default_settings.value("settings/current_profile").toString();
+}
+
+void Settings::SetCurrentProfile(QString profile)
+{
+	if(!profile.isEmpty() && !profiles.contains(profile))
+	{
+		profiles.append(profile);
+		SaveProfiles();
+		emit ProfilesUpdated();
+	}
+	default_settings.setValue("settings/current_profile", profile);
+	emit CurrentProfileChanged();
+}
+
 QString Settings::GetPsnAccountId() const
 {
 	return settings.value("settings/psn_account_id").toString();
@@ -646,6 +686,44 @@ SuspendAction Settings::GetSuspendAction()
 void Settings::SetSuspendAction(SuspendAction action)
 {
 	settings.setValue("settings/suspend_action", suspend_action_values[action]);
+}
+
+void Settings::LoadProfiles()
+{
+	profiles.clear();
+	int count = default_settings.beginReadArray("profiles");
+	for(int i = 0; i<count; i++)
+	{
+		default_settings.setArrayIndex(i);
+		profiles.append(default_settings.value("settings/profile_name").toString());
+	}
+	default_settings.endArray();
+}
+
+void Settings::SaveProfiles()
+{
+	default_settings.beginWriteArray("profiles");
+	for(int i = 0; i<profiles.size(); i++)
+	{
+		default_settings.setArrayIndex(i);
+		default_settings.setValue("settings/profile_name", profiles[i]);
+	}
+	default_settings.endArray();
+}
+
+void Settings::DeleteProfile(QString profile)
+{
+	QSettings delete_profile(QCoreApplication::organizationName(), QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
+	registered_hosts.clear();
+	manual_hosts.clear();
+	SaveRegisteredHosts(&delete_profile);
+	SaveManualHosts(&delete_profile);
+	delete_profile.remove("settings");
+	profiles.removeOne(profile);
+	SaveProfiles();
+	emit ProfilesUpdated();
+	LoadRegisteredHosts();
+	LoadManualHosts();
 }
 
 void Settings::LoadRegisteredHosts(QSettings *qsettings)

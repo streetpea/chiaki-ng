@@ -59,6 +59,10 @@ Item {
         stack.push(settingsDialogComponent);
     }
 
+    function showProfileDialog() {
+        stack.push(profileDialogComponent)
+    }
+
     function showConsolePinDialog(consoleIndex) {
         stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
     }
@@ -211,6 +215,11 @@ Item {
     Component {
         id: settingsDialogComponent
         SettingsDialog { }
+    }
+
+    Component {
+        id: profileDialogComponent
+        ProfileDialog { }
     }
 
     Component {
