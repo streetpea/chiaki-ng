@@ -43,7 +43,7 @@ DialogView {
             C.TextField {
                 id: name
                 Layout.preferredWidth: 400
-                placeholderText: qsTr("Chiaki4deck")
+                text: qsTr("Chiaki4deck ") + Chiaki.settings.currentProfile
                 firstInFocusChain: true
             }
 
@@ -54,6 +54,7 @@ DialogView {
 
             C.TextField {
                 id: options
+                text: Chiaki.settings.currentProfile ? qsTr("--profile=") + Chiaki.settings.currentProfile : ""
                 Layout.preferredWidth: 400
             }
         }
