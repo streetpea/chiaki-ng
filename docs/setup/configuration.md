@@ -357,6 +357,44 @@ If you have one console you want to connect to remotely or locally you can use t
 
 ![Auto-Connect Settings](images/AutoConnect.png)
 
+### Profiles
+
+You can switch between profiles in Chiaki4deck so if, for example you have 2 users that both use the same device you can create a profile for each user. You can see your current profile listed at Settings (Gear icon)->Config->Current profile. You can create, switch, and delete profiles via Settings (Gear icon)->Config->Manage Profiles.
+
+#### Creating a profile
+
+1. Open Settings (Gear icon on top right of main screen)
+2. Choose the `Config` tab
+3. Click the `Manage Profiles` button
+4. Choose `create new profile` from dropdown
+5. Type in the name of the profile
+6. Click `Create Profile` (this creates the new profile and switches to it)
+
+#### Deleting a Profile
+
+1. Open Settings (Gear icon on top right of main screen)
+2. Choose the `Config` tab
+3. Click the `Manage Profiles` button
+4. Choose profile to delete from dropdown
+5. Click delete checkbox
+6. Click `Delete Profile` (this deletes the profile)
+
+!!! Question "Why can't I delete the profile?"
+
+    You can't delete your currently selected profile or the default profile since the default profile needs to be able to be loaded and the current profile is in use.
+
+#### Switching Profiles
+
+1. Open Settings (Gear icon on top right of main screen)
+2. Choose the `Config` tab
+3. Click the `Manage Profiles` button
+4. Choose profile to switch to from the dropdown
+5. Click `Switch Profile`
+
+#### Creating Shortcuts Using a Profile
+
+To launch directly into a particular profile (instead of the last selected one) you can use the `--profile` option. This will automatically be filled in when creating a Steam shortcut using the given profile via the `Create Steam Shortcut` button. You can also manually include this in your options by adding `--profile=profile_name` to the appropriate place for your desktop shortcut (usually after the path to Chiaki4deck) or in Steam's case to the end of the `Launch Options` section.
+
 ## Performance of Chiaki/`chiaki4deck`
 
 ### My Experience

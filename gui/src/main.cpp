@@ -148,8 +148,13 @@ int real_main(int argc, char *argv[])
 
 	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
 
+	Settings alt_settings(parser.isSet(profile_option) ? "" : settings.GetCurrentProfile());
+	bool use_alt_settings = false;
+	if(!parser.isSet(profile_option))
+		use_alt_settings = true;
+
 	if(args.length() == 0)
-		return RunMain(app, &settings);
+		return RunMain(app, use_alt_settings ? &alt_settings : &settings);
 
 	if(args[0] == "list")
 	{
@@ -235,7 +240,7 @@ int real_main(int argc, char *argv[])
 		}
 		
 		StreamSessionConnectInfo connect_info(
-				&settings,
+				use_alt_settings ? &alt_settings : &settings,
 				target,
 				host,
 				regist_key,

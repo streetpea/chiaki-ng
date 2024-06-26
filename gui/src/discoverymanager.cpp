@@ -8,6 +8,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <iphlpapi.h>
 #else
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -69,6 +70,11 @@ void DiscoveryManager::SetActive(bool active)
 		memcpy(&addr, &in_addr, sizeof(in_addr));
 		options.send_addr = &addr;
 		options.send_addr_size = sizeof(in_addr);
+		options.send_host = nullptr;
+#ifdef _WIN32
+		options.win_broadcast_addrs = nullptr;
+		options.win_broadcast_num = 0;
+#endif
 
 		ChiakiDiscoveryServiceOptions options_ipv6 = {};
 		options_ipv6.ping_ms = PING_MS;
@@ -83,8 +89,101 @@ void DiscoveryManager::SetActive(bool active)
 		memcpy(&addr_ipv6, &in_addr_ipv6, sizeof(in_addr_ipv6));
 		options_ipv6.send_addr = &addr_ipv6;
 		options_ipv6.send_addr_size = sizeof(in_addr_ipv6);
+		options_ipv6.send_host = nullptr;
 
+#ifdef _WIN32
+		QList<int32_t> broadcast_addresses;
+		bool status = false;
+		uint8_t loc_address[4] = {0};
+		uint8_t loc_mask[4] = {0};
+		uint8_t loc_broadcast[4] = {0};
+		PIP_ADAPTER_INFO pAdapterInfo;
+		PIP_ADAPTER_INFO pAdapter = NULL;
+#define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
+#define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
+		DWORD dwRetVal = 0;
+		ULONG ulOutBufLen = sizeof (IP_ADAPTER_INFO);
+		pAdapterInfo = (IP_ADAPTER_INFO *) MALLOC(sizeof (IP_ADAPTER_INFO));
+		if (pAdapterInfo == NULL) {
+			CHIAKI_LOGE(&log, "Error allocating memory needed to call GetAdaptersinfo\n");
+			return;
+		}
+		if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
+			FREE(pAdapterInfo);
+			pAdapterInfo = (IP_ADAPTER_INFO *) MALLOC(ulOutBufLen);
+			if (pAdapterInfo == NULL) {
+				CHIAKI_LOGE(&log, "Error allocating memory needed to call GetAdaptersinfo\n");
+				return;
+			}
+		}
+
+		if ((dwRetVal = GetAdaptersInfo(pAdapterInfo, &ulOutBufLen)) == NO_ERROR) {
+			pAdapter = pAdapterInfo;
+			while (pAdapter) {
+				if(pAdapter->Type != IF_TYPE_IEEE80211 && pAdapter->Type != MIB_IF_TYPE_ETHERNET)
+				{
+					pAdapter = pAdapter->Next;
+					continue;
+				}
+				for(IP_ADDR_STRING *str = &pAdapter->IpAddressList; str != NULL; str = str->Next)
+				{
+					if(strcmp(str->IpAddress.String, "") == 0)
+					{
+						continue;
+					}
+					if(strcmp(str->IpAddress.String, "0.0.0.0") == 0)
+					{
+						continue;
+					}
+					inet_pton(AF_INET, str->IpAddress.String, &loc_address);
+					inet_pton(AF_INET, str->IpMask.String, &loc_mask);
+					for(int i = 0; i < 4; i++)
+					{
+						loc_broadcast[i] = loc_address[i] | ~loc_mask[i];
+					}
+					uint32_t final = 0;
+					memcpy(&final, &loc_broadcast, 4);
+					char address[INET_ADDRSTRLEN];
+					inet_ntop(AF_INET, &loc_broadcast, address, INET_ADDRSTRLEN);
+					if(!broadcast_addresses.contains(final))
+						broadcast_addresses.append(final);
+					status = true;
+				}
+				pAdapter = pAdapter->Next;
+			}
+		} else {
+			CHIAKI_LOGE(&log, "GetAdaptersInfo failed with error: %d\n", dwRetVal);
+
+		}
+		if (pAdapterInfo)
+			FREE(pAdapterInfo);
+
+		if(!status)
+		{
+			CHIAKI_LOGE(&log, "Couldn't find a valid local address!");
+		}
+#undef MALLOC
+#undef FREE
+		options.win_broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
+		if(!options.win_broadcast_addrs)
+		{
+			CHIAKI_LOGE(&log, "Error allocating memory for broadcast addresses!");
+			return;
+		}
+		for(int i = 0; i < broadcast_addresses.size(); i++)
+		{
+			struct sockaddr_in in_addr_broadcast = {};
+			in_addr_broadcast.sin_family = AF_INET;
+			in_addr_broadcast.sin_addr.s_addr = broadcast_addresses[i];
+			memcpy(&options.win_broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
+			options.win_broadcast_num++;
+		}
+#endif
 		ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
+#ifdef _WIN32
+		if(options.win_broadcast_addrs)
+			free(options.win_broadcast_addrs);
+#endif
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			service_active = false;

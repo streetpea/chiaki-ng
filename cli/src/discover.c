@@ -106,23 +106,6 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 		timeout_sec = atof(arguments.timeout);
 	}
 
-	ChiakiDiscovery discovery;
-	ChiakiErrorCode err = chiaki_discovery_init(&discovery, log, AF_INET); // TODO: IPv6
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "Discovery init failed");
-		return 1;
-	}
-
-	ChiakiDiscoveryThread thread;
-	err = chiaki_discovery_thread_start_oneshot(&thread, &discovery, discovery_cb, NULL);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "Discovery thread init failed");
-		chiaki_discovery_fini(&discovery);
-		return 1;
-	}
-
 	struct addrinfo *host_addrinfos;
 	int r = getaddrinfo(arguments.host, NULL, NULL, &host_addrinfos);
 	if(r != 0)
@@ -137,7 +120,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	{
 		if(ai->ai_protocol != IPPROTO_UDP)
 			continue;
-		if(ai->ai_family != AF_INET || ai->ai_family != AF_INET6)
+		if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 			continue;
 
 		host_addr_len = ai->ai_addrlen;
@@ -162,6 +145,23 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 		((struct sockaddr_in *)host_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
 	else
 		((struct sockaddr_in6 *)host_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
+
+	ChiakiDiscovery discovery;
+	ChiakiErrorCode err = chiaki_discovery_init(&discovery, log, host_addr->sa_family);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "Discovery init failed");
+		return 1;
+	}
+
+	ChiakiDiscoveryThread thread;
+	err = chiaki_discovery_thread_start_oneshot(&thread, &discovery, discovery_cb, NULL);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "Discovery thread init failed");
+		chiaki_discovery_fini(&discovery);
+		return 1;
+	}
 	err = chiaki_discovery_send(&discovery, &packet, host_addr, host_addr_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(log, "Failed to send discovery packet for PS4: %s", chiaki_error_string(err));

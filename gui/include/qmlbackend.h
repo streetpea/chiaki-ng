@@ -103,6 +103,8 @@ public:
 
     bool closeRequested();
 
+    void profileChanged();
+
     Q_INVOKABLE void deleteHost(int index);
     Q_INVOKABLE void wakeUpHost(int index);
     Q_INVOKABLE void addManualHost(int index, const QString &address);
@@ -185,6 +187,7 @@ private:
     StreamSessionConnectInfo session_info = {};
     SystemdInhibit *sleep_inhibit = {};
     bool resume_session = false;
+    bool settings_allocd = false;
     HostMAC auto_connect_mac = {};
     QString auto_connect_nickname = "";
     QMap<QString, PsnHost> psn_hosts;

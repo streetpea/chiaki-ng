@@ -61,10 +61,12 @@ class Settings : public QObject
 
 	private:
 		QSettings settings;
+		QSettings default_settings;
 		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
 		QMap<QString, RegisteredHost> nickname_registered_hosts;
+		QList<QString> profiles;
 		size_t ps4s_registered;
 		QMap<int, ManualHost> manual_hosts;
 		int manual_hosts_id_next;
@@ -74,6 +76,9 @@ class Settings : public QObject
 
 		void LoadManualHosts(QSettings *qsettings = nullptr);
 		void SaveManualHosts(QSettings *qsettings = nullptr);
+
+		void LoadProfiles();
+		void SaveProfiles();
 
 	public:
 		explicit Settings(const QString &conf, QObject *parent = nullptr);
@@ -197,6 +202,11 @@ class Settings : public QObject
 		QString GetPsnAuthTokenExpiry() const;
 		void SetPsnAuthTokenExpiry(QString expiry_date);
 
+		QString GetCurrentProfile() const;
+		void SetCurrentProfile(QString profile);
+
+		void DeleteProfile(QString profile);
+
 		QString GetPsnAccountId() const;
 		void SetPsnAccountId(QString account_id);
 
@@ -232,6 +242,7 @@ class Settings : public QObject
 		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
 		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
 		size_t GetPS4RegisteredHostsRegistered() const { return ps4s_registered; }
+		QList<QString> GetProfiles() const                          { return profiles; }
 
 		QList<ManualHost> GetManualHosts() const 					{ return manual_hosts.values(); }
 		int SetManualHost(const ManualHost &host);
@@ -247,6 +258,8 @@ class Settings : public QObject
 	signals:
 		void RegisteredHostsUpdated();
 		void ManualHostsUpdated();
+		void CurrentProfileChanged();
+		void ProfilesUpdated();
 };
 
 #endif // CHIAKI_SETTINGS_H

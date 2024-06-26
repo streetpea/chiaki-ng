@@ -45,6 +45,7 @@ class DiscoveryManager : public QObject
 
 	private:
 		ChiakiLog log;
+		QList<ChiakiDiscoveryService> services;
 		ChiakiDiscoveryService service;
 		ChiakiDiscoveryService service_ipv6;
 		bool service_active;

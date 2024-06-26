@@ -16,7 +16,6 @@
 #include <QPixmap>
 #include <QProcessEnvironment>
 #include <QDesktopServices>
-#include <QtConcurrent>
 
 #define PSN_DEVICES_TRIES 2
 #define MAX_PSN_RECONNECT_TRIES 6
@@ -114,6 +113,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     setConnectState(PsnConnectState::NotStarted);
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
+    connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
@@ -255,6 +255,130 @@ StreamSession *QmlBackend::qmlSession() const
 QList<QmlController*> QmlBackend::qmlControllers() const
 {
     return controllers.values();
+}
+
+void QmlBackend::profileChanged()
+{
+    QString profile = settings->GetCurrentProfile();
+    Settings *settings_copy = new Settings(profile);
+    if(settings_allocd)
+        delete settings;
+    settings_allocd = true;
+    settings = settings_copy;
+    connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
+    connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
+    connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
+    settings_qml->setSettings(settings);
+    discovery_manager.SetSettings(settings);
+    setDiscoveryEnabled(true);
+
+    auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
+    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
+    delete psn_reconnect_timer;
+    delete psn_auto_connect_timer;
+    psn_auto_connect_timer = new QTimer(this);
+    psn_auto_connect_timer->setSingleShot(true);
+    psn_reconnect_tries = 0;
+    psn_reconnect_timer = new QTimer(this);
+    if(autoConnect() && !auto_connect_nickname.isEmpty())
+    {
+        connect(psn_auto_connect_timer, &QTimer::timeout, this, [this, settings_copy]
+        {
+            int i = 0;
+            for (const auto &host : std::as_const(psn_hosts))
+            {
+                if(host.GetName() == auto_connect_nickname)
+                {
+                    int index = discovery_manager.GetHosts().size() + settings_copy->GetManualHosts().size() + i;
+                    connectToHost(index);
+                    return;
+                }
+                i++;
+            }
+            qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
+        });
+        psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+    }
+    connect(psn_reconnect_timer, &QTimer::timeout, this, [this, settings_copy]{
+        QString refresh = settings_copy->GetPsnRefreshToken();
+        if(refresh.isEmpty())
+        {
+            qCWarning(chiakiGui) << "No refresh token found, can't refresh PSN token to use PSN remote connection";
+            psn_reconnect_tries = 0;
+            resume_session = false;
+            psn_reconnect_timer->stop();
+            setConnectState(PsnConnectState::ConnectFailed);
+            return;
+        }
+        PSNToken *psnToken = new PSNToken(settings_copy, this);
+        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+            qCWarning(chiakiGui) << "Internet is currently down...waiting 5 seconds" << error;
+            psn_reconnect_tries++;
+            if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
+                return;
+            else
+            {
+                resume_session = false;
+                psn_reconnect_tries = 0;
+                psn_reconnect_timer->stop();
+                setConnectState(PsnConnectState::ConnectFailed);
+            }
+        });
+        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
+        });
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
+            resume_session = false;
+            psn_reconnect_tries = 0;
+            psn_reconnect_timer->stop();
+            createSession(session_info);
+        });
+        QString refresh_token = settings_copy->GetPsnRefreshToken();
+        psnToken->RefreshPsnToken(refresh_token);
+    });
+    delete sleep_inhibit;
+    sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
+    connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
+        qCInfo(chiakiGui) << "About to sleep";
+        if (session) {
+            if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
+                session->GoToBed();
+            session->Stop();
+            psnCancel(true);
+            resume_session = true;
+        }
+    });
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this, settings_copy]() {
+        qCInfo(chiakiGui) << "Resumed from sleep";
+        if (resume_session) {
+            qCInfo(chiakiGui) << "Resuming session...";
+            resume_session = false;
+            if(session_info.duid.isEmpty())
+            {
+                createSession({
+                    session_info.settings,
+                    session_info.target,
+                    session_info.host,
+                    session_info.regist_key,
+                    session_info.morning,
+                    session_info.initial_login_pin,
+                    session_info.duid,
+                    session_info.fullscreen,
+                    session_info.zoom,
+                    session_info.stretch,
+                });
+            }
+            else
+            {
+                emit showPsnView();
+                setConnectState(PsnConnectState::WaitingForInternet);
+                psn_reconnect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+            }
+        }
+    });
+    refreshPsnToken();
+    emit hostsChanged();
 }
 
 bool QmlBackend::discoveryEnabled() const
@@ -426,7 +550,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     {
         session_info.hw_decoder = QString();
 #if defined(Q_OS_LINUX)
-        if(availableDecoders.contains("vulkan"))
+        // don't use vulkan for flatpak for auto since vulkan hw decoder is broken in MESA on Steam Deck
+        if(availableDecoders.contains("vulkan") && QProcessEnvironment::systemEnvironment().value("FLATPAK_ID").isEmpty())
         {
             qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
             session_info.hw_decoder = "vulkan";

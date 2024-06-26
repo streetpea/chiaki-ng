@@ -20,6 +20,7 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
         QLoggingCategory::setFilterRules(QStringLiteral("chiaki.gui.debug=true"));
 
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
+    connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
 }
 
 int QmlSettings::resolutionLocalPS4() const
@@ -457,6 +458,17 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
     emit psnAccountIdChanged();
 }
 
+QString QmlSettings::currentProfile() const
+{
+    return settings->GetCurrentProfile();
+}
+
+void QmlSettings::setCurrentProfile(const QString &profile)
+{
+    settings->SetCurrentProfile(profile);
+    emit currentProfileChanged();
+}
+
 QString QmlSettings::logDirectory() const
 {
     return GetLogBaseDir();
@@ -517,6 +529,20 @@ QVariantList QmlSettings::registeredHosts() const
     return out;
 }
 
+QStringList QmlSettings::profiles() const
+{
+    QStringList out = settings->GetProfiles();
+    out.prepend("default");
+    out.append("create new profile");
+    return out;
+}
+
+void QmlSettings::deleteProfile(QString profile)
+{
+    if(!profile.isEmpty())
+        settings->DeleteProfile(profile);
+}
+
 QVariantList QmlSettings::controllerMapping() const
 {
     QVariantList out;
@@ -566,6 +592,66 @@ QString QmlSettings::changeControllerKey(int button, int key)
     return QKeySequence(qt_key).toString();
 }
 
+void QmlSettings::setSettings(Settings *new_settings)
+{
+    settings = new_settings;
+    connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
+    connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
+    refreshAllKeys();
+}
+
+void QmlSettings::refreshAllKeys()
+{
+    emit resolutionLocalPS4Changed();
+    emit resolutionRemotePS4Changed();
+    emit resolutionLocalPS5Changed();
+    emit resolutionRemotePS5Changed();
+    emit disconnectActionChanged();
+    emit suspendActionChanged();
+    emit logVerboseChanged();
+    emit dualSenseChanged();
+    emit buttonsByPositionChanged();
+    emit startMicUnmutedChanged();
+#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+    emit verticalDeckChanged();
+    emit steamDeckHapticsChanged();
+#endif
+#ifdef CHIAKI_GUI_ENABLE_SPEEX
+    emit speechProcessingChanged();
+    emit noiseSuppressLevelChanged();
+    emit echoSuppressLevelChanged();
+#endif
+    emit fpsLocalPS4Changed();
+    emit fpsRemotePS4Changed();
+    emit fpsLocalPS5Changed();
+    emit fpsRemotePS5Changed();
+    emit bitrateLocalPS4Changed();
+    emit bitrateRemotePS4Changed();
+    emit bitrateLocalPS5Changed();
+    emit bitrateRemotePS5Changed();
+    emit codecLocalPS5Changed();
+    emit codecRemotePS5Changed();
+    emit audioBufferSizeChanged();
+    emit audioOutDeviceChanged();
+    emit audioInDeviceChanged();
+    emit wifiDroppedNotifChanged();
+    emit decoderChanged();
+    emit windowTypeChanged();
+    emit sZoomFactorChanged();
+    emit videoPresetChanged();
+    emit autoConnectMacChanged();
+    emit audioDevicesChanged();
+    emit registeredHostsChanged();
+    emit psnAuthTokenChanged();
+    emit psnRefreshTokenChanged();
+    emit psnAuthTokenExpiryChanged();
+    emit psnAccountIdChanged();
+    emit controllerMappingChanged();
+    emit packetLossMaxChanged();
+    emit currentProfileChanged();
+    emit profilesChanged();
+}
+
 void QmlSettings::exportSettings(QString fileurl)
 {
     settings->ExportSettings(fileurl);
@@ -574,49 +660,5 @@ void QmlSettings::exportSettings(QString fileurl)
 void QmlSettings::importSettings(QString fileurl)
 {
     settings->ImportSettings(fileurl);
-    resolutionLocalPS4Changed();
-    resolutionRemotePS4Changed();
-    resolutionLocalPS5Changed();
-    resolutionRemotePS5Changed();
-    disconnectActionChanged();
-    suspendActionChanged();
-    logVerboseChanged();
-    dualSenseChanged();
-    buttonsByPositionChanged();
-    startMicUnmutedChanged();
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-    verticalDeckChanged();
-    steamDeckHapticsChanged();
-#endif
-#ifdef CHIAKI_GUI_ENABLE_SPEEX
-    speechProcessingChanged();
-    noiseSuppressLevelChanged();
-    echoSuppressLevelChanged();
-#endif
-    fpsLocalPS4Changed();
-    fpsRemotePS4Changed();
-    fpsLocalPS5Changed();
-    fpsRemotePS5Changed();
-    bitrateLocalPS4Changed();
-    bitrateRemotePS4Changed();
-    bitrateLocalPS5Changed();
-    bitrateRemotePS5Changed();
-    codecLocalPS5Changed();
-    codecRemotePS5Changed();
-    audioBufferSizeChanged();
-    audioOutDeviceChanged();
-    audioInDeviceChanged();
-    wifiDroppedNotifChanged();
-    decoderChanged();
-    windowTypeChanged();
-    sZoomFactorChanged();
-    videoPresetChanged();
-    autoConnectMacChanged();
-    audioDevicesChanged();
-    registeredHostsChanged();
-    psnAuthTokenChanged();
-    psnRefreshTokenChanged();
-    psnAuthTokenExpiryChanged();
-    psnAccountIdChanged();
-    controllerMappingChanged();
+    refreshAllKeys();
 }

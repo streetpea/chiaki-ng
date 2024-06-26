@@ -52,6 +52,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryServi
 	}
 	memcpy(service->options.send_addr, options->send_addr, service->options.send_addr_size);
 
+#ifdef _WIN32
+	service->options.win_broadcast_addrs = NULL;
+	service->options.win_broadcast_num = options->win_broadcast_num;
+	if(options->win_broadcast_num > 0)
+	{
+		service->options.win_broadcast_addrs = malloc(service->options.win_broadcast_num * sizeof(struct sockaddr_storage));
+		if(!service->options.win_broadcast_addrs)
+		{
+			err = CHIAKI_ERR_MEMORY;
+			goto error_state_mutex;
+		}
+		memcpy(service->options.win_broadcast_addrs, options->win_broadcast_addrs, service->options.win_broadcast_num * sizeof(struct sockaddr_storage));
+	}
+#endif
 	if(service->options.send_host)
 	{
 		service->options.send_host = strdup(service->options.send_host);
@@ -82,6 +96,9 @@ error_stop_cond:
 error_discovery:
 	chiaki_discovery_fini(&service->discovery);
 error_send_addr:
+#ifdef _WIN32
+	free(service->options.win_broadcast_addrs);
+#endif
 	free(service->options.send_addr);
 	free(service->options.send_host);
 error_state_mutex:
@@ -102,6 +119,10 @@ CHIAKI_EXPORT void chiaki_discovery_service_fini(ChiakiDiscoveryService *service
 	chiaki_mutex_fini(&service->state_mutex);
 	free(service->options.send_addr);
 	free(service->options.send_host);
+#ifdef _WIN32
+	if(service->options.win_broadcast_addrs)
+		free(service->options.win_broadcast_addrs);
+#endif
 
 	for(size_t i=0; i<service->hosts_count; i++)
 	{
@@ -156,6 +177,10 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	if(service->options.send_host)
 	{
 		struct addrinfo *host_addrinfos;
+		struct addrinfo hints;
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_family = AF_UNSPEC;
 		int r = getaddrinfo(service->options.send_host, NULL, NULL, &host_addrinfos);
 		if(r != 0)
 		{
@@ -166,8 +191,6 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 		bool ok = false;
 		for(struct addrinfo *ai=host_addrinfos; ai; ai=ai->ai_next)
 		{
-			if(ai->ai_protocol != IPPROTO_UDP)
-				continue;
 			if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 				continue;
 			ok = true;
@@ -187,10 +210,19 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 
 	CHIAKI_LOGV(service->log, "Discovery Service sending ping");
 	ChiakiDiscoveryPacket packet = { 0 };
+#ifdef _WIN32
+	bool send_extra_broadcast = false;
+#endif
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS4;
 	if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET)
+	{
 		((struct sockaddr_in *)service->options.send_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
+#ifdef _WIN32
+		if(((struct sockaddr_in *)service->options.send_addr)->sin_addr.s_addr == 0xffffffff)
+			send_extra_broadcast = true;
+#endif
+	}
 	else if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET6)
 		((struct sockaddr_in6 *)service->options.send_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
 	else
@@ -201,6 +233,18 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)service->options.send_addr, service->options.send_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping for PS4");
+#ifdef _WIN32
+	if(send_extra_broadcast)
+	{
+		for(int i = 0; i < service->options.win_broadcast_num; i++)
+		{
+			((struct sockaddr_in *)(&service->options.win_broadcast_addrs[i]))->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
+			err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)&service->options.win_broadcast_addrs[i], service->options.send_addr_size);
+			if(err != CHIAKI_ERR_SUCCESS)
+				CHIAKI_LOGE(service->log, "Discovery Service failed to send extra broadcast ping for PS4");
+		}
+	}
+#endif
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS5;
 	if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET)
 		((struct sockaddr_in *)service->options.send_addr)->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
@@ -209,6 +253,18 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)service->options.send_addr, service->options.send_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping for PS5");
+#ifdef _WIN32
+	if(send_extra_broadcast)
+	{
+		for(int i = 0; i < service->options.win_broadcast_num; i++)
+		{
+			((struct sockaddr_in *)(&service->options.win_broadcast_addrs[i]))->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
+			err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)&service->options.win_broadcast_addrs[i], service->options.send_addr_size);
+			if(err != CHIAKI_ERR_SUCCESS)
+				CHIAKI_LOGE(service->log, "Discovery Service failed to send extra broadcast ping for PS5");
+		}
+	}
+#endif
 }
 
 static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service)

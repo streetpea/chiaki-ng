@@ -8,10 +8,12 @@
   <project_license>AGPL-3.0-only</project_license>
   <developer_name>Street Pea</developer_name>
   <url type="homepage">https://streetpea.github.io/chiaki4deck</url>
-  <url type="help">https://github.com/streetpea/chiaki4deck/issues</url>
+  <url type="donation">https://buymeacoffee.com/streetpea</url>
+  <url type="help">https://streetpea.github.io/chiaki4deck/setup/</url>
+  <url type="bugtracker">https://buymeacoffee.com/streetpea</url>
   <description>
     <p>
-      Chiaki4deck is a fork of Chiaki, adding features for the Steam Deck. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
+      Chiaki4deck is a fork of Chiaki, adding new features and ongoing support as the original project (Chiaki) is in maintenance mode. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
     </p>
   </description>
   <screenshots>
@@ -22,6 +24,14 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-6-25" version="1.7.3">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Switch, create and delete profiles via Settings (Gear icon):Config:Manage Profiles.</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-6-09" version="1.7.2">
       <description>
         <p>This release provides the following improvements:</p>

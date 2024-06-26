@@ -61,6 +61,14 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.7.3
+
+Adds ability to create/delete and switch between different profiles (i.e., different users)
+
+- Switch, create and delete profiles via Settings (Gear icon)->Config->Manage Profiles. You can also make a shortcut launching from a specific profile with the --profile=profile_name option where profile_name is the given profile's name
+- Fix issue where discovery doesn't work in certain setups on Windows
+- Fix issue where autoconnect doesn't work with manually added connection on Windows
+
 ### 1.7.2
 
 Provides unique remote and local Stream Settings for each console (PS4/PS5)
