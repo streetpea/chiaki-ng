@@ -24,6 +24,14 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-6-25" version="1.7.3">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Switch, create and delete profiles via Settings (Gear icon):Config:Manage Profiles.</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-6-09" version="1.7.2">
       <description>
         <p>This release provides the following improvements:</p>

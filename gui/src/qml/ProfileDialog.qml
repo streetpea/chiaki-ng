@@ -8,9 +8,9 @@ import org.streetpea.chiaki4deck
 import "controls" as C
 
 DialogView {
-    property bool deleteTime: false
+
     buttonText: {
-        if(deleteTime)
+        if(deleteBox.visible && deleteBox.checked)
             qsTr(" x Delete Profile")
         else if(profileName.visible)
             qsTr("✓ Create Profile")
@@ -18,25 +18,15 @@ DialogView {
             qsTr("✓ Switch Profile")
     }
     buttonEnabled: {
-        if(deleteTime)
-        {
-            if(profileComboBox.model[profileComboBox.currentIndex] == "default" || profileComboBox.model[profileComboBox.currentIndex] == "create new profile" || profileComboBox.model[profileComboBox.currentIndex] == Chiaki.settings.currentProfile)
-            {
-                false
-                deleteTime = false
-                deleteBox.checked = false
-
-            }
-            else
-                true
-        }
+        if(deleteBox.visible && deleteBox.checked)
+            true
         else if(profileName.visible)
             profileName.text.trim();
         else
             !(profileComboBox.model[profileComboBox.currentIndex] == "default" && Chiaki.settings.currentProfile == "") && profileComboBox.model[profileComboBox.currentIndex] != Chiaki.settings.currentProfile
     }
     onAccepted: {
-        if(deleteTime)
+        if(deleteBox.visible && deleteBox.checked)
             Chiaki.settings.deleteProfile(profileComboBox.model[profileComboBox.currentIndex])
         else if(profileName.visible)
             Chiaki.settings.currentProfile = profileName.text.trim()
@@ -90,7 +80,6 @@ DialogView {
 
             C.CheckBox {
                 id: deleteBox
-                onToggled: deleteTime = checked
                 visible: profileComboBox.model[profileComboBox.currentIndex] != "default" && profileComboBox.model[profileComboBox.currentIndex] != "create new profile" && profileComboBox.model[profileComboBox.currentIndex] != Chiaki.settings.currentProfile
                 lastInFocusChain: true
             }
