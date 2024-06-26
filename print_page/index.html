@@ -1691,6 +1691,40 @@
 <h3 id="setup-configuration-auto-connect">Auto Connect<a class="headerlink" href="#setup-configuration-auto-connect" title="Permanent link">&para;</a></h3>
 <p>If you have one console you want to connect to remotely or locally you can use the auto-connect feature to launch it automatically on launch. If you have multiple consoles to launch into you can instead use the <a href="#setup-automation">automation section</a>.</p>
 <p><img alt="Auto-Connect Settings" src="../setup/images/AutoConnect.png" /></p>
+<h3 id="setup-configuration-profiles">Profiles<a class="headerlink" href="#setup-configuration-profiles" title="Permanent link">&para;</a></h3>
+<p>You can switch between profiles in Chiaki4deck so if, for example you have 2 users that both use the same device you can create a profile for each user. You can see your current profile listed at Settings (Gear icon)-&gt;Config-&gt;Current profile. You can create, switch, and delete profiles via Settings (Gear icon)-&gt;Config-&gt;Manage Profiles.</p>
+<h4 id="setup-configuration-creating-a-profile">Creating a profile<a class="headerlink" href="#setup-configuration-creating-a-profile" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Open Settings (Gear icon on top right of main screen)</li>
+<li>Choose the <code>Config</code> tab</li>
+<li>Click the <code>Manage Profiles</code> button</li>
+<li>Choose <code>create new profile</code> from dropdown</li>
+<li>Type in the name of the profile</li>
+<li>Click <code>Create Profile</code> (this creates the new profile and switches to it)</li>
+</ol>
+<h4 id="setup-configuration-deleting-a-profile">Deleting a Profile<a class="headerlink" href="#setup-configuration-deleting-a-profile" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Open Settings (Gear icon on top right of main screen)</li>
+<li>Choose the <code>Config</code> tab</li>
+<li>Click the <code>Manage Profiles</code> button</li>
+<li>Choose profile to delete from dropdown</li>
+<li>Click delete checkbox</li>
+<li>Click <code>Delete Profile</code> (this deletes the profile)</li>
+</ol>
+<div class="admonition question">
+<p class="admonition-title">Why can't I delete the profile?</p>
+<p>You can't delete your currently selected profile or the default profile since the default profile needs to be able to be loaded and the current profile is in use.</p>
+</div>
+<h4 id="setup-configuration-switching-profiles">Switching Profiles<a class="headerlink" href="#setup-configuration-switching-profiles" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Open Settings (Gear icon on top right of main screen)</li>
+<li>Choose the <code>Config</code> tab</li>
+<li>Click the <code>Manage Profiles</code> button</li>
+<li>Choose profile to switch to from the dropdown</li>
+<li>Click <code>Switch Profile</code></li>
+</ol>
+<h4 id="setup-configuration-creating-shortcuts-using-a-profile">Creating Shortcuts Using a Profile<a class="headerlink" href="#setup-configuration-creating-shortcuts-using-a-profile" title="Permanent link">&para;</a></h4>
+<p>To launch directly into a particular profile (instead of the last selected one) you can use the <code>--profile</code> option. This will automatically be filled in when creating a Steam shortcut using the given profile via the <code>Create Steam Shortcut</code> button. You can also manually include this in your options by adding <code>--profile=profile_name</code> to the appropriate place for your desktop shortcut (usually after the path to Chiaki4deck) or in Steam's case to the end of the <code>Launch Options</code> section.</p>
 <h2 id="setup-configuration-performance-of-chiakichiaki4deck">Performance of Chiaki/<code>chiaki4deck</code><a class="headerlink" href="#setup-configuration-performance-of-chiakichiaki4deck" title="Permanent link">&para;</a></h2>
 <h3 id="setup-configuration-my-experience">My Experience<a class="headerlink" href="#setup-configuration-my-experience" title="Permanent link">&para;</a></h3>
 <p>Ultimately, the performance will depend on the capability of your wireless router and which system (<span class="arithmatex">\(PS5 &gt; PS4 Pro &gt; PS4\)</span>) you are using. Here are some notes from my experience using <code>chiaki4deck</code> on my Steam Deck with a PS5 console and a relatively good (<span class="arithmatex">\(450 Mbps\)</span> for <span class="arithmatex">\(2.4GHz\)</span> / <span class="arithmatex">\(1,300 Mbps\)</span> for <span class="arithmatex">\(5GHz\)</span>) wireless router.</p>
@@ -3282,6 +3316,13 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-173">1.7.3<a class="headerlink" href="#updates-releases-173" title="Permanent link">&para;</a></h3>
+<p>Adds ability to create/delete and switch between different profiles (i.e., different users)</p>
+<ul>
+<li>Switch, create and delete profiles via Settings (Gear icon)-&gt;Config-&gt;Manage Profiles. You can also make a shortcut launching from a specific profile with the --profile=profile_name option where profile_name is the given profile's name</li>
+<li>Fix issue where discovery doesn't work in certain setups on Windows</li>
+<li>Fix issue where autoconnect doesn't work with manually added connection on Windows</li>
+</ul>
 <h3 id="updates-releases-172">1.7.2<a class="headerlink" href="#updates-releases-172" title="Permanent link">&para;</a></h3>
 <p>Provides unique remote and local Stream Settings for each console (PS4/PS5)</p>
 <ul>
