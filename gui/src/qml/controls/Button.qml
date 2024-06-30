@@ -19,7 +19,6 @@ Button {
     Keys.onPressed: (event) => {
         switch (event.key) {
         case Qt.Key_Up:
-        case Qt.Key_Left:
             if (!firstInFocusChain) {
                 let item = nextItemInFocusChain(false);
                 if (item)
@@ -28,7 +27,6 @@ Button {
             }
             break;
         case Qt.Key_Down:
-        case Qt.Key_Right:
             if (!lastInFocusChain) {
                 let item = nextItemInFocusChain();
                 if (item)
