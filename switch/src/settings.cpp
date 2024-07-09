@@ -245,10 +245,9 @@ int Settings::WriteFile()
 							<< "rp_regist_key = \"" << this->GetHostRPRegistKey(&it->second) << "\"\n"
 							<< "rp_key_type = " << rp_key_type << "\n";
 			}
-			if(it->second.haptic)
-				config_file << "haptic = "
-							<< std::to_string(this->GetHaptic(&it->second))
-							<< "\n";
+			config_file << "haptic = "
+						<< std::to_string(this->GetHaptic(&it->second))
+						<< "\n";
 
 			config_file << "\n";
 		} // for host
