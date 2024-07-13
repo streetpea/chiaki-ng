@@ -107,7 +107,16 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	}
 
 	struct addrinfo *host_addrinfos;
-	int r = getaddrinfo(arguments.host, NULL, NULL, &host_addrinfos);
+	// make hostname use ipv4 for now
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_socktype = SOCK_DGRAM;
+	char *ipv6 = strchr(arguments.host, ':');
+	if(ipv6)
+		hints.ai_family = AF_INET6;
+	else
+		hints.ai_family = AF_INET;
+	int r = getaddrinfo(arguments.host, NULL, &hints, &host_addrinfos);
 	if(r != 0)
 	{
 		CHIAKI_LOGE(log, "getaddrinfo failed");
