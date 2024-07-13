@@ -149,6 +149,10 @@ Rectangle {
             id: pinField
             implicitWidth: 200
             validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
+            Keys.onReturnPressed: {
+                if(sessionPinDialog.standardButton(Dialog.Ok).enabled)
+                    sessionPinDialog.standardButton(Dialog.Ok).clicked()
+            }
         }
     }
 
