@@ -180,8 +180,8 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 		struct addrinfo hints;
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_socktype = SOCK_DGRAM;
-		hints.ai_family = AF_UNSPEC;
-		int r = getaddrinfo(service->options.send_host, NULL, NULL, &host_addrinfos);
+		hints.ai_family = ((struct sockaddr *)service->options.send_addr)->sa_family;
+		int r = getaddrinfo(service->options.send_host, NULL, &hints, &host_addrinfos);
 		if(r != 0)
 		{
 			CHIAKI_LOGE(service->log, "getaddrinfo failed");

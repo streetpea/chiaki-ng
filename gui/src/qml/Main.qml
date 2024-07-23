@@ -173,7 +173,7 @@ Item {
             Chiaki.settings.psnAuthToken = ""
             Chiaki.settings.psnAuthTokenExpiry = ""
             Chiaki.settings.psnAccountId = ""
-            root.showPSNTokenDialog(qsTr(""), true);
+            root.showPSNTokenDialog(Chiaki.openPsnLink(), true);
         }
 
         function onError(title, text) {

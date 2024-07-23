@@ -2994,7 +2994,11 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
         return CHIAKI_ERR_NETWORK;
     }
 
+#if MINIUPNPC_API_VERSION >= 18
+    success = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip), NULL, 0);
+#else
     success = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip));
+#endif
     if (success != 1) {
         CHIAKI_LOGI(log, "Failed to discover internet gateway via UPnP: err=%d", err);
         err = CHIAKI_ERR_NETWORK;

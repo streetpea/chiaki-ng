@@ -104,7 +104,6 @@ error_mutex:
 
 CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder)
 {
-	avcodec_close(decoder->codec_context);
 	avcodec_free_context(&decoder->codec_context);
 	if(decoder->hw_device_ctx)
 		av_buffer_unref(&decoder->hw_device_ctx);
