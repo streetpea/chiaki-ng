@@ -61,6 +61,14 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 ## Releases (Newest First)
 
+### 1.7.4
+
+Small patch update
+
+- adds notification when psn creds expire
+- use ipv4 for hostnames as ps5/4 don't support using IPv6 for remote play
+- allow entering pin using enter key as alternative to selecting ok
+
 ### 1.7.3
 
 Adds ability to create/delete and switch between different profiles (i.e., different users)

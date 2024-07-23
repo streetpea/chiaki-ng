@@ -24,6 +24,16 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-7-22" version="1.7.4">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>adds notification when psn creds expire</li>
+          <li>use ipv4 for hostnames as ps5/4 don't support using IPv6 for remote play</li>
+          <li>allow entering pin using enter key as alternative to selecting ok</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-6-25" version="1.7.3">
       <description>
         <p>This release provides the following improvements:</p>
