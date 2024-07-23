@@ -550,8 +550,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     {
         session_info.hw_decoder = QString();
 #if defined(Q_OS_LINUX)
-        // don't use vulkan for flatpak for auto since vulkan hw decoder is broken in MESA on Steam Deck
-        if(availableDecoders.contains("vulkan") && QProcessEnvironment::systemEnvironment().value("FLATPAK_ID").isEmpty())
+        if(availableDecoders.contains("vulkan"))
         {
             qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
             session_info.hw_decoder = "vulkan";

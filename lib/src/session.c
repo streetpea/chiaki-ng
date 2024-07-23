@@ -222,7 +222,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	}
 	else
 	{
-		int r = getaddrinfo(connect_info->host, NULL, NULL, &session->connect_info.host_addrinfos);
+		// make hostname use ipv4 for now
+		struct addrinfo hints;
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_socktype = SOCK_DGRAM;
+		char *ipv6 = strchr(connect_info->host, ':');
+		if(ipv6)
+			hints.ai_family = AF_INET6;
+		else
+			hints.ai_family = AF_INET;
+		int r = getaddrinfo(connect_info->host, NULL, &hints, &session->connect_info.host_addrinfos);
 		if(r != 0)
 		{
 			chiaki_session_fini(session);

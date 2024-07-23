@@ -300,7 +300,15 @@ static void *regist_thread_func(void *user)
 	}
 	else
 	{
-		int r = getaddrinfo(regist->info.host, NULL, NULL, &addrinfos);
+		struct addrinfo hints;
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_socktype = SOCK_DGRAM;
+		char *ipv6 = strchr(regist->info.host, ':');
+		if(ipv6)
+			hints.ai_family = AF_INET6;
+		else
+			hints.ai_family = AF_INET;
+		int r = getaddrinfo(regist->info.host, NULL, &hints, &addrinfos);
 		if(r != 0)
 		{
 			CHIAKI_LOGE(regist->log, "Regist failed to getaddrinfo on %s", regist->info.host);

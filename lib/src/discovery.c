@@ -428,7 +428,16 @@ static void *discovery_thread_func_oneshot(void *user)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_wakeup(ChiakiLog *log, ChiakiDiscovery *discovery, const char *host, uint64_t user_credential, bool ps5)
 {
 	struct addrinfo *addrinfos;
-	int r = getaddrinfo(host, NULL, NULL, &addrinfos); // TODO: this blocks, use something else
+	// make hostname use ipv4 for now
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_socktype = SOCK_DGRAM;
+	char *ipv6 = strchr(host, ':');
+	if(ipv6)
+		hints.ai_family = AF_INET6;
+	else
+		hints.ai_family = AF_INET;
+	int r = getaddrinfo(host, NULL, &hints, &addrinfos); // TODO: this blocks, use something else
 	if(r != 0)
 	{
 		CHIAKI_LOGE(log, "DiscoveryManager failed to getaddrinfo for wakeup");

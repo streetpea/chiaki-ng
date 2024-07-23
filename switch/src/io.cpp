@@ -332,7 +332,6 @@ bool IO::FreeVideo()
 	// avcodec_alloc_context3(codec);
 	if(this->codec_context)
 	{
-		avcodec_close(this->codec_context);
 		avcodec_free_context(&this->codec_context);
 	}
 
