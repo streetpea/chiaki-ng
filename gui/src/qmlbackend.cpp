@@ -91,7 +91,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 {
     qt_msg_handler = qInstallMessageHandler(msg_handler);
 
-    const char *uri = "org.streetpea.chiaki4deck";
+    const char *uri = "org.streetpea.chiaking";
     qmlRegisterSingletonInstance(uri, 1, 0, "Chiaki", this);
     qmlRegisterUncreatableType<QmlMainWindow>(uri, 1, 0, "ChiakiWindow", {});
     qmlRegisterUncreatableType<QmlSettings>(uri, 1, 0, "ChiakiSettings", {});

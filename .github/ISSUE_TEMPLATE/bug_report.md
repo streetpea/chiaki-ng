@@ -30,7 +30,7 @@ If applicable, add screenshots to help explain your problem.
  - OS: [e.g. SteamOS]
  - Version [e.g. 22]
  - Device [e.g. Steam Deck]
- - Chiaki4deck Version [e.g. 1.6.2]
+ - chiaki-ng Version [e.g. 1.6.2]
 
 **Additional context**
 Add any other context about the problem here.

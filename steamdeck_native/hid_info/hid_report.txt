@@ -40,5 +40,5 @@ There are 3 types of reports that can be sent:
 2. output (used to send haptics data)
 3. feature (used to set features of Steam Deck [i.e., calibration, turning functions on & off, etc. by writing to registers])
 
-Only 1 & 2 are of immediate interest for chiaki4deck since 3 is handled by the Steam Deck functions.
+Only 1 & 2 are of immediate interest for chiaki-ng since 3 is handled by the Steam Deck functions.
 

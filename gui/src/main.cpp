@@ -61,8 +61,8 @@ int real_main(int argc, char *argv[])
 	QGuiApplication::setOrganizationName("Chiaki");
 	QGuiApplication::setApplicationName("Chiaki");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
-	QGuiApplication::setApplicationDisplayName("chiaki4deck");
-	QGuiApplication::setDesktopFileName("chiaki4deck");
+	QGuiApplication::setApplicationDisplayName("chiaki-ng");
+	QGuiApplication::setDesktopFileName("chiaki-ng");
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
@@ -85,7 +85,7 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-    SDL_SetHint(SDL_HINT_APP_NAME, "chiaki4deck");
+    SDL_SetHint(SDL_HINT_APP_NAME, "chiaki-ng");
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
@@ -100,7 +100,7 @@ int real_main(int argc, char *argv[])
 #ifdef Q_OS_MACOS
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
 #else
-	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaki4deck.svg"));
+	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking.svg"));
 #endif
 
 	QCommandLineParser parser;

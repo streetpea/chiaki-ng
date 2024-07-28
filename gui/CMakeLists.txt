@@ -53,9 +53,9 @@ set(SOURCE_FILES
 set(RESOURCE_FILES "")
 
 if(APPLE)
-	list(APPEND RESOURCE_FILES "chiaki4deck.icns")
+	list(APPEND RESOURCE_FILES "chiaking.icns")
 elseif(WIN32)
-	list(APPEND RESOURCE_FILES "chiaki4deck.rc")
+	list(APPEND RESOURCE_FILES "chiaking.rc")
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
@@ -123,16 +123,16 @@ endif()
 set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"
-		MACOSX_BUNDLE_BUNDLE_NAME Chiaki4deck
+		MACOSX_BUNDLE_BUNDLE_NAME chiaki-ng
 		MACOSX_BUNDLE_BUNDLE_VERSION ${CHIAKI_VERSION}
 		MACOSX_BUNDLE_COPYRIGHT "thestr4ng3r (AGPLv3)"
-		MACOSX_BUNDLE_GUI_IDENTIFIER "org.chiaki4deck.chiaki4deck"
-		MACOSX_BUNDLE_ICON_FILE chiaki4deck.icns
+		MACOSX_BUNDLE_GUI_IDENTIFIER "org.streetpea.chiaking"
+		MACOSX_BUNDLE_ICON_FILE chiaking.icns
 		RESOURCE "${RESOURCE_FILES}")
 
 install(TARGETS chiaki
 		RUNTIME DESTINATION bin
 		BUNDLE DESTINATION bin)
-install(FILES chiaki4deck.desktop DESTINATION share/applications)
-install(FILES chiaki4deck.png DESTINATION share/icons/hicolor/512x512/apps)
+install(FILES chiaking.desktop DESTINATION share/applications)
+install(FILES chiaking.png DESTINATION share/icons/hicolor/512x512/apps)
 install(FILES io.github.streetpea.Chiaki4deck.appdata.xml DESTINATION share/metainfo)

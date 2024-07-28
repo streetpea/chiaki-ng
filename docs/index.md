@@ -2,11 +2,11 @@
 
 !!! Abstract "Site Purpose"
 
-    This site serves to get you up and running with Chiaki4deck!
+    This site serves to get you up and running with chiaki-ng!
 
 ## Getting Started
 
-Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noopener"} and following each of the subsections to learn how to setup Chiaki for the best experience on your Steam Deck using `chiaki4deck`.
+Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noopener"} and following each of the subsections to learn how to setup Chiaki for the best experience on your Steam Deck using `chiaki-ng`.
 
 ## Supporting
 
@@ -14,23 +14,23 @@ Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noope
 
 ## Getting Updates
 
-Visit [chiaki4deck Releases](updates/releases.md){target="_blank" rel="noopener"} for instructions on updating to the newest release, with notes for each release.
+Visit [chiaki-ng Releases](updates/releases.md){target="_blank" rel="noopener"} for instructions on updating to the newest release, with notes for each release.
 
 ## Additional Information
 
 ### About Chiaki
 
-[Chiaki](https://git.sr.ht/~thestr4ng3r/chiaki){target="_blank" rel="noopener"} is a "Free and Open Source PlayStation Remote Play Client" licensed under the [GNU Affero General Public License version 3](https://www.gnu.org/licenses/agpl-3.0.html){target="_blank" rel="noopener"} (AGPL V3). This license enables anyone to share and modify the source code to add additional features on the condition that they make those publicly available (copy-left) and also license them under the same AGPL V3 license. This package currently has an official flatpak on flathub which you can install on the Steam Deck.
+[Chiaki](https://git.sr.ht/~thestr4ng3r/chiaki){target="_blank" rel="noopener"} is a "Free and Open Source PlayStation Remote Play Client" licensed under the [GNU Affero General Public License version 3](https://www.gnu.org/licenses/agpl-3.0.html){target="_blank" rel="noopener"} (AGPL V3). This license enables anyone to share and modify the source code to add additional features on the condition that they make those publicly available (copy-left) and also license them under the same AGPL V3 license.
 
-### About `chiaki4deck`
+### About `chiaki-ng`
 
-`chiaki4deck` aims to provide tips and tricks on using Chiaki with the Steam Deck. In the spirit of Chiaki being open source, I have made changes to the Chiaki project to optimize the experience on my Steam Deck and am sharing how to access and use those enhancements on this site. Furthermore, I have submitted a patch to bring the first set of completed updates to the "official" Chiaki repo. Additionally, I plan to submit future updates as patches and hope :fingers_crossed: they will be added despite the Chiaki project being in maintenance mode. If they are added, all of the `chiaki4deck` documentation here will also apply to the official Chiaki flatpak. 
+`chiaki-ng` aims to serve as a next generation of Chiaki bringing new features and changes to the existing project which is now in maintenance mode. Is is available on Linux, Windows, and MacOS.
 
-!!! Question "What is the `chiaki4deck` flatpak?"
+!!! Question "Where is `chiaki-ng` available?"
 
-    I have provided a flatpak with my updates named `chiaki4deck` (to distinguish it from the official Chiaki release to avoid confusion if users have both installed) as a solution for users that want an easy way to use these improvements on their Steam Deck. For installation instructions, see the [Installation section](setup/installation.md){target="_blank" rel="noopener"}
+    There is a flatpak on flathub for Linux (https://flathub.org/apps/io.github.streetpea.Chiaki4deck){target="_blank" rel="noopener"} as well as packages for Linux, Windows, and MacOS (amd64 and arm64) on the [releases page](https://github.com/streetpea/chiaki4deck/releases){target="_blank" rel="noopener"}. See the [Installation section](setup/installation.md){target="_blank" rel="noopener"} to get started.
     
-For users that want to build from source, I have also provided the updated source code on the accompanying GitHub repo (the link to the GitHub is on the top right [top left menu on mobile] of the site banner you see if you scroll to the top of any page). Instructions for this are in the [DIY section](diy/buildit.md){target="_blank" rel="noopener"}. As it stands, a lot of the documentation applies to the general Chiaki flatpak in addition to the `chiaki4deck` flatpak, but instructions are specifically tailored to `chiaki4deck` and the updates included therein. To use this documentation with the Chiaki flatpak replace `io.github.streetpea.Chiaki4deck` with `re.chiaki.Chiaki` where applicable and note that the features listed in the [Updates section](updates/done.md){target="_blank" rel="noopener"} will not work with that version (they only work with `chiaki4deck` until the main `Chiaki` flatpak gets an update.)
+For users that want to build from source, I have also provided the updated source code on the accompanying GitHub repo (the link to the GitHub is on the top right [top left menu on mobile] of the site banner you see if you scroll to the top of any page). Instructions for this are in the [DIY section](diy/buildit.md){target="_blank" rel="noopener"}. As it stands, a lot of the documentation applies to the general Chiaki flatpak in addition to the `chiaki-ng` flatpak, but instructions are specifically tailored to `chiaki-ng` and the updates included therein. To use this documentation with the Chiaki flatpak replace `io.github.streetpea.Chiaki4deck` with `re.chiaki.Chiaki` where applicable and note that the features listed in the [Updates section](updates/done.md){target="_blank" rel="noopener"} will not work with that version (they only work with `chiaki-ng` until the main `Chiaki` flatpak gets an update.)
 
 ## Submitting Documentation Updates
 
@@ -38,7 +38,7 @@ If you want to update the documentation to add helpful information of your own, 
 
 ## Making Suggestions for Improvements to the Documentation
 
-Please submit general issues to the [chiaki4deck GitHub](https://github.com/streetpea/chiaki4deck/issues){target="_blank" rel="noopener"} as well as specific issues related to a given page by clicking the :material-heart-broken: underneath "Was this page helpful?" and opening the feedback form for the page you think needs updating.
+Please submit general issues to the [chiaki-ng GitHub](https://github.com/streetpea/chiaki-ng/issues){target="_blank" rel="noopener"} as well as specific issues related to a given page by clicking the :material-heart-broken: underneath "Was this page helpful?" and opening the feedback form for the page you think needs updating.
 
 ## Acknowledgements
 
@@ -47,7 +47,7 @@ Please submit general issues to the [chiaki4deck GitHub](https://github.com/stre
     - Reddit users and others who have helped me in my personal Chiaki journey such as u/mintcu7000 with his getting started guide on Reddit
     - Egoistically for the RGB update patch
     - Florian Grill for his gracious help with reverse engineering the PlayStation remote play protocols
-    - SageLevi and Superwormy for creating Chiaki4deck artwork
+    - Kirin Ghost for creating chiaki-ng artwork
 
 * Thanks to the following open-source projects for inspiration around Steam Deck gyro and haptics:
     - [Steam Controller Singer](https://github.com/Roboron3042/SteamControllerSinger){target="_blank" rel="noopener"}

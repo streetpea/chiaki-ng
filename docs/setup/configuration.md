@@ -1,4 +1,4 @@
-# Configuring `chiaki4deck`
+# Configuring `chiaki-ng`
 
 ## Registering your PlayStation
 
@@ -6,17 +6,17 @@
 
     !!! Tip "Make sure you're on the right tab!"
     
-        If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the **New to Using Chiaki on Steam Deck Tab.** If you have set up the official Chiaki flatpak before (no, you don't have to uninstall `Chiaki` :wink:) and want to try `chiaki4deck`, you're in the right place! :tada:
+        If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the **New to Using Chiaki on Steam Deck Tab.** If you have set up the official Chiaki flatpak before (no, you don't have to uninstall `Chiaki` :wink:) and want to try `chiaki-ng`, you're in the right place! :tada:
 
-    1. Create initial file templates for `chiaki4deck`
+    1. Create initial file templates for `chiaki-ng`
 
-        1. Open `chiaki4deck` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run io.github.streetpea.Chiaki4deck` in the `konsole`.
+        1. Open `chiaki-ng` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run io.github.streetpea.chiaki-ng` in the `konsole`.
 
-            !!! Question "What if chiaki4deck doesn't appear in the `Games` section?"
+            !!! Question "What if chiaki-ng doesn't appear in the `Games` section?"
 
-                If `chiaki4deck` doesn't appear in the `Games` section, go to `All Applications` and search for `chiaki4deck` there. It should show up in the `Games` section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to `All Applications` works in all cases.
+                If `chiaki-ng` doesn't appear in the `Games` section, go to `All Applications` and search for `chiaki-ng` there. It should show up in the `Games` section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to `All Applications` works in all cases.
 
-        2. Close `chiaki4deck`
+        2. Close `chiaki-ng`
 
     2. Copy your configuration file from the Chiaki flatpak with the following `konsole` command
 
@@ -24,11 +24,11 @@
         cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
         ```
 
-    3. Open `chiaki4deck` again and you should see your registered console and settings from Chiaki now copied to `chiaki4deck`.
+    3. Open `chiaki-ng` again and you should see your registered console and settings from Chiaki now copied to `chiaki-ng`.
 
         !!! Question "What Did I Just Do?"
 
-            You just replaced the config file (flatpak stores config files for each app in `~/.var/app/appid/config` where `appid` is your app's appid) for `chiaki4deck` (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with `chiaki4deck` and can start using it as quickly as possible.
+            You just replaced the config file (flatpak stores config files for each app in `~/.var/app/appid/config` where `appid` is your app's appid) for `chiaki-ng` (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with `chiaki-ng` and can start using it as quickly as possible.
 
 === "New to Using Chiaki on Steam Deck"
 
@@ -96,7 +96,7 @@
             3. Enter your Account ID
             4. Copy your encoded id for Chiaki
 
-    4. Open `chiaki4deck` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
+    4. Open `chiaki-ng` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.chiaki-ng` via `konsole`) and your PlayStation system should be automatically discovered.
 
         ![Unregistered PS5](images/UnregisteredPS5.png)
 
@@ -184,7 +184,7 @@
 
     1. Put your console in rest mode
 
-    2. Open `chiaki4deck`
+    2. Open `chiaki-ng`
 
     3. Double click on the box with the console icon colored orange (**State: standby**). 
     
@@ -249,13 +249,13 @@
 
 ## Choosing your Remote Play Settings
 
-Here are different settings you can use for Chiaki/`chiaki4deck` depending on your network connection. The default configuration is for remote play on a home network only. This means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection. 
+Here are different settings you can use for Chiaki/`chiaki-ng` depending on your network connection. The default configuration is for remote play on a home network only. This means that it is dependent only on the performance / strength of your wireless router (or ethernet connection) [recommended to connect the PlayStation console via ethernet and Steam Deck via wi-fi to optimize performance and portability] and not on your Internet (World Wide Web) connection.
 
 !!! Question "What does that mean for me?"
 
     If you are in an area with bad Internet, as long as you have a good wireless router, you can get close to native performance.
 
-1. Open `chiaki4deck` and click the gear icon in the top right to open the settings menu
+1. Open `chiaki-ng` and click the gear icon in the top right to open the settings menu
 
     ![Open Settings](images/OpenSettings.png)
 
@@ -267,7 +267,7 @@ Here are different settings you can use for Chiaki/`chiaki4deck` depending on yo
 
         !!! Tip "Enabling Experimental PlayStation 5 Features (PS5 Users Only)"
 
-            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 
         !!! Info "Use Buttons by Position Instead of by Label"
 
@@ -341,9 +341,9 @@ HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For
 
 3. Enable HDR in your PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> HDR` and selecting either `Always On` or `On When Supported`.
 
-4. Select `H265 HDR (PS5 only)` as your codec option in `chiaki4deck`
+4. Select `H265 HDR (PS5 only)` as your codec option in `chiaki-ng`
 
-5. Launch `chiaki4deck` via gamescope (i.e., game mode on the Steam Deck)
+5. Launch `chiaki-ng` via gamescope (i.e., game mode on the Steam Deck)
 
 !!! Tip "Adjusting PS5 HDR for Steam Deck"
 
@@ -359,7 +359,7 @@ If you have one console you want to connect to remotely or locally you can use t
 
 ### Profiles
 
-You can switch between profiles in Chiaki4deck so if, for example you have 2 users that both use the same device you can create a profile for each user. You can see your current profile listed at Settings (Gear icon)->Config->Current profile. You can create, switch, and delete profiles via Settings (Gear icon)->Config->Manage Profiles.
+You can switch between profiles in chiaki-ng so if, for example you have 2 users that both use the same device you can create a profile for each user. You can see your current profile listed at Settings (Gear icon)->Config->Current profile. You can create, switch, and delete profiles via Settings (Gear icon)->Config->Manage Profiles.
 
 #### Creating a profile
 
@@ -393,21 +393,21 @@ You can switch between profiles in Chiaki4deck so if, for example you have 2 use
 
 #### Creating Shortcuts Using a Profile
 
-To launch directly into a particular profile (instead of the last selected one) you can use the `--profile` option. This will automatically be filled in when creating a Steam shortcut using the given profile via the `Create Steam Shortcut` button. You can also manually include this in your options by adding `--profile=profile_name` to the appropriate place for your desktop shortcut (usually after the path to Chiaki4deck) or in Steam's case to the end of the `Launch Options` section.
+To launch directly into a particular profile (instead of the last selected one) you can use the `--profile` option. This will automatically be filled in when creating a Steam shortcut using the given profile via the `Create Steam Shortcut` button. You can also manually include this in your options by adding `--profile=profile_name` to the appropriate place for your desktop shortcut (usually after the path to chiaki-ng) or in Steam's case to the end of the `Launch Options` section.
 
-## Performance of Chiaki/`chiaki4deck`
+## Performance of Chiaki/`chiaki-ng`
 
 ### My Experience
 
-Ultimately, the performance will depend on the capability of your wireless router and which system ($PS5 > PS4 Pro > PS4$) you are using. Here are some notes from my experience using `chiaki4deck` on my Steam Deck with a PS5 console and a relatively good ($450 Mbps$ for $2.4GHz$ / $1,300 Mbps$ for $5GHz$) wireless router.
+Ultimately, the performance will depend on the capability of your wireless router and which system ($PS5 > PS4 Pro > PS4$) you are using. Here are some notes from my experience using `chiaki-ng` on my Steam Deck with a PS5 console and a relatively good ($450 Mbps$ for $2.4GHz$ / $1,300 Mbps$ for $5GHz$) wireless router.
 
 !!! Example "My Wireless Connection by the Numbers"
 
-    I'm using the $5GHz$ band for `chiaki4deck` on my Steam Deck, meaning the total bandwidth for all devices on my local network is $1,300 Mbps$ (remember Internet connection itself doesn't matter since we're only using our wireless router for local streaming). Since I am using the settings in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), I'm using $30,000 Kbps$ or $30 Mbps$ out of the total of $1,300 Mbps$. This means I'm using about $2\%$ of my $5GHz$ band. In other words, I still have plenty of bandwidth for watching Netflix :zany_face: while I play on my Steam Deck!
+    I'm using the $5GHz$ band for `chiaki-ng` on my Steam Deck, meaning the total bandwidth for all devices on my local network is $1,300 Mbps$ (remember Internet connection itself doesn't matter since we're only using our wireless router for local streaming). Since I am using the settings in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), I'm using $30,000 Kbps$ or $30 Mbps$ out of the total of $1,300 Mbps$. This means I'm using about $2\%$ of my $5GHz$ band. In other words, I still have plenty of bandwidth for watching Netflix :zany_face: while I play on my Steam Deck!
 
 !!! Question "What Performance Can I Expect?"
 
-    I am currently getting close to native performance using `chiaki4deck` on my Steam Deck with my PS5. This gives me better performance than I get playing performance heavy games directly on Steam Deck (like that one game where the kid gets bit by a :spider:)
+    I am currently getting close to native performance using `chiaki-ng` on my Steam Deck with my PS5. This gives me better performance than I get playing performance heavy games directly on Steam Deck (like that one game where the kid gets bit by a :spider:)
 
     Benefits:
 
@@ -420,7 +420,7 @@ Ultimately, the performance will depend on the capability of your wireless route
 
     - occasional performance issues with certain games (specifically games with VSync enabled)
 
-!!! example "Games I've Played Successfully Using `chiaki4deck` So Far..."
+!!! example "Games I've Played Successfully Using `chiaki-ng` So Far..."
 
     - Stray
     - God of War (2018)
@@ -452,7 +452,7 @@ To fix these issues, try the following:
 
 1. If you are not using the settings listed in [Choosing Your Remote Play Settings](#choosing-your-remote-play-settings), try with those settings and see if that fixes it for you. The biggest of these is using a HW Decoder option for your system which should help significantly.
 
-2. If you are on Steam Deck OLED and you are using the Steam Deck after waking up from sleep, please trying turning the wifi off and then back on in the Steam Deck settings and see if this improves your performance (this is likely due to a WiFi driver issue with the Steam Deck OLED on certain networks so can't be fixed by Chiaki4deck)
+2. If you are on Steam Deck OLED and you are using the Steam Deck after waking up from sleep, please trying turning the wifi off and then back on in the Steam Deck settings and see if this improves your performance (this is likely due to a WiFi driver issue with the Steam Deck OLED on certain networks so can't be fixed by chiaki-ng)
 
 3. Switch to **720p** from 1080p
 
@@ -468,14 +468,14 @@ To fix these issues, try the following:
 
 6. **Turn off VSync** or the equivalent in games that use it
     
-    VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/`chiaki4deck`.
+    VSync should only be enabled on the client side while streaming and having it enabled in the game itself can cause issues since it requires some extra overhead and can't actually sync with your screen if you're streaming the game. This resulted in issues with white flashes for me while playing Genshin Impact and Sekiro. When I turned off VSync in the Genshin Impact settings, these flashes (which had happened multiple times a minute with VSync on) disappeared. This affects only a small number of games, but is something to watch out for if you randomly have an issue with one game while others run well with Chiaki/`chiaki-ng`.
 
 7. Switch framerate to **30fps**
 
     **30fps** requires less bandwidth than **60fps**. This will help if your wireless connection is the problem, especially since it's very easy to do. This can fix video artifacts (white / green flashes) and audio choppiness (both results of connection problems). I put this last because it is the biggest performance downgrade and most of the time you don't need to do this. However, switching to 30fps / 720p at the default settings is the most surefire way to fix connection issues and a last resort if the methods with virtually no downsides don't do the trick.
 
-## Chiaki/`chiaki4deck` via Internet (Outside of Home Connection)
+## Chiaki/`chiaki-ng` via Internet (Outside of Home Connection)
 
-!!! Info "Chiaki/`chiaki4deck` Outside of your Home Network"
+!!! Info "Chiaki/`chiaki-ng` Outside of your Home Network"
     
     You can also either the remote connection via PSN or open up ports to connect from the Internet, but the performance will not be as good, with increased input lag being the most noticeable downgrade. In this scenario, your connection will depend on both the Internet connection of your PlayStation console via the router and the Internet connection of your computer via your location (internet speeds themselves will apply). The farther away (more hops from your router) you get, the worse the performance will get. If you are still in the same state, it will likely still be relatively good. However, if you go cross-country or something like that, it can degrade significantly. Nevertheless, it can be very convenient to use while traveling, especially when playing less timing intensive games (i.e., games that would play well via cloud streaming). Setup is covered in the [remote connection section](remoteconnection.md){target="_blank" rel="noopener"}.

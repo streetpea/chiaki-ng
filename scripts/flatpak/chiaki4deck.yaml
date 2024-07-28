@@ -1,11 +1,11 @@
 app-id: io.github.streetpea.Chiaki4deck
-branch: chiaki4deck
+branch: chiaki-ng
 runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
 command: chiaki
-rename-icon: chiaki4deck
-rename-desktop-file: chiaki4deck.desktop
+rename-icon: chiaki-ng
+rename-desktop-file: chiaking.desktop
 separate-locales: false
 finish-args:
   - --share=network
@@ -265,13 +265,13 @@ modules:
       - ln -s libvulkan.so.1.x /app/lib/libvulkan.so.1
       - ln -s libvulkan.so.1 /app/lib/libvulkan.so
 
-  - name: chiaki4deck
+  - name: chiaki-ng
     buildsystem: cmake-ninja
     builddir: true
     sources:
       - type: git
-        url: https://github.com/streetpea/chiaki4deck.git
-        branch: chiaki4deck
+        url: https://github.com/streetpea/chiaki-ng.git
+        branch: chiaki-ng
     post-install:
       - "install -Dm755 ../scripts/psn-account-id.py /app/bin/psn-account-id"
       - "install -Dm755 ../scripts/vulkan-gamescope-layers/VkLayer_FROG_gamescope_wsi.x86_64.json /app/share/vulkan/implicit_layer.d/VkLayer_FROG_gamescope_wsi.x86_64.json"

@@ -1,6 +1,6 @@
 # Set Up Remote Play on Steam Deck
 
-This section covers how to set up PlayStation Remote Play (using Chiaki) on Steam Deck. It covers installing the `chiaki4deck` package, configuring an automatic (scripted) launch, and adding `chiaki4deck` to _Game Mode_ with icons and a custom controller configuration to boot. Please switch into _Desktop Mode_ for this process.
+This section covers how to set up PlayStation Remote Play (using Chiaki) on Steam Deck. It covers installing the `chiaki-ng` package, configuring an automatic (scripted) launch, and adding `chiaki-ng` to _Game Mode_ with icons and a custom controller configuration to boot. Please switch into _Desktop Mode_ for this process.
 
 !!! Tip "Open This Documentation on Your Steam Deck for Easy Copy/Pasting"
 

@@ -5,7 +5,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Dialogs
 
-import org.streetpea.chiaki4deck
+import org.streetpea.chiaking
 
 import "controls" as C
 
@@ -1180,14 +1180,14 @@ DialogView {
                     Layout.preferredWidth: 200
                     fillMode: Image.PreserveAspectFit
                     verticalAlignment: Image.AlignTop
-                    source: "qrc:icons/chiaki4deck.svg"
+                    source: "qrc:icons/chiaking-logo.svg"
                 }
 
                 Label {
                     Layout.preferredWidth: 400
                     verticalAlignment: Text.AlignTop
                     wrapMode: Text.Wrap
-                    text: "<h1>chiaki4deck</h1> by Street Pea, version %1
+                    text: "<h1>chiaki-ng</h1> by Street Pea, version %1
                         <h2>Fork of Chiaki</h2> by Florian Markl at version 2.1.1
 
                         <p>This program is free software: you can redistribute it and/or modify

@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
   <id>io.github.streetpea.Chiaki4deck</id>
-  <launchable type="desktop-id">chiaki4deck.desktop</launchable>
-  <name>Chiaki4deck</name>
+  <launchable type="desktop-id">chiaking.desktop</launchable>
+  <name>chiaki-ng</name>
   <summary>Free and Open Source Client for PlayStation Remote Play modified for Steam Deck</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <developer_name>Street Pea</developer_name>
-  <url type="homepage">https://streetpea.github.io/chiaki4deck</url>
+  <url type="homepage">https://streetpea.github.io/chiaki-ng</url>
   <url type="donation">https://buymeacoffee.com/streetpea</url>
-  <url type="help">https://streetpea.github.io/chiaki4deck/setup/</url>
-  <url type="bugtracker">https://github.com/streetpea/chiaki4deck/issues</url>
+  <url type="help">https://streetpea.github.io/chiaki-ng/setup/</url>
+  <url type="bugtracker">https://github.com/streetpea/chiaki-ng/issues</url>
   <description>
     <p>
-      Chiaki4deck is a fork of Chiaki, adding new features and ongoing support as the original project (Chiaki) is in maintenance mode. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
+      chiaki-ng is a fork of Chiaki, adding new features and ongoing support as the original project (Chiaki) is in maintenance mode. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
     </p>
   </description>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/streetpea/chiaki4deck/main/assets/screenshot.png</image>
+      <image>https://raw.githubusercontent.com/streetpea/chiaki-ng/main/assets/screenshot.png</image>
     </screenshot>
   </screenshots>
   <update_contact>streetpea@proton.me</update_contact>
@@ -50,7 +50,7 @@
           <li>Enable more network types to work with remote connection via PSN (Note: some can only be made to work a % of the time due to limitations with remote play imposed by Sony)</li>
           <li>Export/import option for settings to transfer across devices/platforms</li>
           <li>Adds auto hw decoder option which is now the default. It chooses the best decoder for your platform from the available decoders</li>
-          <li>Make Chiaki4deck ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)</li>
+          <li>Make chiaki-ng ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)</li>
         </ul>
       </description>
     </release>
@@ -150,7 +150,7 @@
     </release>
     <release date="2024-1-15" version="1.6.0">
       <description>
-        <p>This release brings a new user interface to Chiaki4deck including:</p>
+        <p>This release brings a new user interface to chiaki-ng including:</p>
         <ul>
           <li>New touch-friendly and controller navigable GUI</li>
           <li>Resume connection from sleep mode on Steam Deck.</li>
@@ -172,9 +172,9 @@
     </release>
     <release date="2023-12-10" version="1.5.0">
       <description>
-        <p>This release brings HDR to Chiaki4deck including:</p>
+        <p>This release brings HDR to chiaki-ng including:</p>
         <ul>
-          <li>Adds HDR support for Chiaki4deck perfect with the Steam Deck OLED.</li>
+          <li>Adds HDR support for chiaki-ng perfect with the Steam Deck OLED.</li>
           <li>New libplacebo vulkan renderer with better picture quality due to post-processing techniques like debanding (now the default renderer)</li>
           <li>Adds option to use controller by positional layout instead of button labels (particularly for Nintendo-style controllers)</li>
           <li>Adds launcher script for appimage</li>
