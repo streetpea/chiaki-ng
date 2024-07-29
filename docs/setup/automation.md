@@ -1,8 +1,8 @@
-# Automating `chiaki4deck` Launch
+# Automating `chiaki-ng` Launch
 
 !!!Tip "Use the Auto Connect Feature Instead if it Meets Your Needs"
 
-    Now that you have `chiaki4deck` configured, it's time to make it wake up your PlayStation and connect to it automatically. Note: If you only have 1 console please try the [autoconnect feature](configuration.md#auto-connect). Otherwise, proceed with this guide to setup a script to automatically launch your different systems.
+    Now that you have `chiaki-ng` configured, it's time to make it wake up your PlayStation and connect to it automatically. Note: If you only have 1 console please try the [autoconnect feature](configuration.md#auto-connect). Otherwise, proceed with this guide to setup a script to automatically launch your different systems.
 
 !!! Warning "Sleep Mode Required"
 
@@ -32,10 +32,10 @@
 
     === "Automated Instructions (Recommended)"
 
-        1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
+        1. Run the [gen-launcher script](https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/gen-launcher.sh){target="_blank" rel="noopener"} using the following command in your `konsole` and answer the prompts (you will need your IP address from step 2 above)
 
             ``` bash
-            bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
+            bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/gen-launcher.sh)
             ```
 
             !!! Question "What Do the Different Modes (i.e., fullscreen [uses Normal], zoom, stretch) Look Like?"
@@ -44,12 +44,12 @@
 
             !!! Tip "Connecting Outside of Your Local Network"
 
-                You can add an external IP or hostname in addition to your local one to connect from an external network. To do so, you need to set up port forwarding as detailed in the prior [remote connection section](remoteconnection.md){target="_blank" rel="noopener"}. Then, you can choose to setup an external IP/hostname as part of the setup script process. The automation will take your home network name (SSID) to check if you are home or not to use the correct IP/hostname automatically. The script will automatically detect your current SSID. Thus, if you are on your home network while running the setup script (`gen-launcher.sh`), it will detect your home ssid so you will just need to hit ++enter++. If not, you can enter ot manually (instead of using the default of your Steam Deck's current network's SSID). You can get your home SSID for manual entry via `iwgetid -r` from the `konsole` when connected to your home network or by looking in your network history on your Steam Deck (it will be the connection name for your home network such as `StreetPea-5G`). Of course, if you want to skip this now and setup the external address later, you can always rerun the automation or choose a placeholder external IP now and manually edit it to your desired IP/hostname later.
+                You can add an external IP or hostname in addition to your local one to connect from an external network. To do so, you need to set up port forwarding as detailed in the prior [remote connection section](remoteconnection.md){target="_blank" rel="noopener"}. Then, you can choose to setup an external IP/hostname as part of the setup script process. The automation will take your home network name (SSID) to check if you are home or not to use the correct IP/hostname automatically. The script will automatically detect your current SSID. Thus, if you are on your home network while running the setup script (`gen-launcher.sh`), it will detect your home ssid so you will just need to hit ++enter++. If not, you can enter ot manually (instead of using the default of your client device's [i.e., Steam Deck's] current network's SSID). You can get your home SSID for manual entry via `iwgetid -r` from the `konsole` when connected to your home network or by looking in your network history on your client device [i.e., Steam Deck] (it will be the connection name for your home network such as `StreetPea-5G`). Of course, if you want to skip this now and setup the external address later, you can always rerun the automation or choose a placeholder external IP now and manually edit it to your desired IP/hostname later.
 
             ???- example "Example Output [click to expand me]"
 
                 ``` bash
-                bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki4deck/main/scripts/gen-launcher.sh)
+                bash <(curl -sLo- https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/gen-launcher.sh)
 
                 1) PlayStation 4
                 2) PlayStation 5
@@ -101,7 +101,7 @@
                 Would you like to test the newly created script? (y/n):
                 y
                 sounds good, launching script now...
-                [I] Logging to file /home/deck/.var/app/io.github.streetpea.Chiaki4deck/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
+                [I] Logging to file /home/deck/.var/app/io.github.streetpea.chiaki-ng/data/Chiaki/Chiaki/log/chiaki_session_2023-01-06_08-33-49-583583.log
                 [I] Chiaki Version 2.1.1
                 [I] Using hardware decoder "vaapi"
                 Device Found
@@ -275,7 +275,7 @@
 
                 !!! Note "Chiaki Configuration File"
 
-                    This command is printing the Chiaki configuration file generated when you ran `chiaki4deck` for the first time. This is where the flatpak version of Chiaki saves your settings and details. In fact, all flatpaks store their details with the ~/.var/app/app_id pattern. If you want to look at the file itself and get the value you can open the file at `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf` and look for the remote play registration key [`rp_regist_key`].
+                    This command is printing the Chiaki configuration file generated when you ran `chiaki-ng` for the first time. This is where the flatpak version of Chiaki saves your settings and details. In fact, all flatpaks store their details with the ~/.var/app/app_id pattern. If you want to look at the file itself and get the value you can open the file at `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf` and look for the remote play registration key [`rp_regist_key`].
 
 
         3. Choose your [default launch option](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"} (fullscreen, zoom, or stretch)
@@ -401,7 +401,7 @@
 
                 === "Via GUI"
 
-                    The connection name/SSID for your home network in Steam Deck network settings such as `StreetPea-5G`.
+                    The connection name/SSID for your home network in the client device's [i.e., Steam Deck] network settings such as `StreetPea-5G`.
 
             2. `<local_addr>` with local PlayStation IP
 
@@ -533,7 +533,7 @@
     
         !!! success "We have liftoff! :rocket:"
 
-            Chiaki launched in your desired screen mode on your Steam Deck! Congratulations!
+            Chiaki launched in your desired screen mode on your client device [i.e., Steam Deck]! Congratulations!
 
     === "Your script didn't work..."
 
@@ -549,8 +549,8 @@
                 
                 3. Open your script at: `/home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh` and try to run each command individually to see what's causing your problem.
                 
-                4. If issues persist with this and `chiaki4deck` launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me)
+                4. If issues persist with this and `chiaki-ng` launches fine regularly via the application link, just not the automation, feel free to reach out. If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page. If you just need help, you can reach me via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me)
 
             === "Error in stream window"
  
-                Close `chiaki4deck` gracefully by closing any open dialog boxes and then using ++ctrl+q++ on the stream window. If `chiaki4deck` doesn't close gracefully, move your mouse to the top left corner of the stream window and a blue circle should highlight the corner of the screen. Click on it to see all of your windows and select the `konsole` window. Then, close the `konsole` window itself (click its `x` icon in the top right corner). Next, you can relaunch the script again to make sure it wasn't a one-time snafu. Note: Chiaki seems to perform better (audio/visual quality) in `Game Mode` vs. `Desktop Mode` for me. If issues persist, feel free to reach out via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page.
+                Close `chiaki-ng` gracefully by closing any open dialog boxes and then using ++ctrl+q++ on the stream window. If `chiaki-ng` doesn't close gracefully, move your mouse to the top left corner of the stream window and a blue circle should highlight the corner of the screen. Click on it to see all of your windows and select the `konsole` window. Then, close the `konsole` window itself (click its `x` icon in the top right corner). Next, you can relaunch the script again to make sure it wasn't a one-time snafu. Note: Chiaki seems to perform better (audio/visual quality) in `Game Mode` vs. `Desktop Mode` for me. If issues persist, feel free to reach out via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you think the documentation itself needs to be updated click the :material-heart-broken: underneath "Was this page helpful?" and open the feedback form for this page.

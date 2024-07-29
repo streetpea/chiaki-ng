@@ -1,13 +1,13 @@
-# `chiaki4deck` Releases
+# `chiaki-ng` Releases
 ## Moving to FlatHub
 
 !!! Caution "Legacy Repo Deprecation"
 
-    `Chiaki4deck` is now on flathub. If you previously installed `chiaki4deck` via the konsole the flatpak has changed to `io.github.streetpea.Chiaki4deck`. The old repo is now **deprecated** in favor of using Flathub since Flathub is added by default to the Steam Deck and the hosting is at no cost to the project (unlike the initial repo). While the software will still be accessible from the old repo, it is encouraged for users to switch over.
+    `chiaki-ng` is now on flathub. If you previously installed `chiaki-ng` via the konsole the flatpak has changed to `io.github.streetpea.chiaki-ng`. The old repo is now **deprecated** in favor of using Flathub since Flathub is added by default to the Steam Deck and the hosting is at no cost to the project (unlike the initial repo). While the software will still be accessible from the old repo, it is encouraged for users to switch over.
 
 To migrate to the flathub repo do the following:
 
-1. Move chiaki4deck's configuration files to their new location
+1. Move chiaki-ng's configuration files to their new location
 
     ``` bash
     mv ~/.var/app/re.chiaki.Chiaki4deck ~/.var/app/io.github.streetpea.Chiaki4deck
@@ -19,13 +19,13 @@ To migrate to the flathub repo do the following:
     sed -i 's/re.chiaki.Chiaki4deck/io.github.streetpea.Chiaki4deck/g' ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh 
     ```
 
-3. Uninstall the existing legacy `chiaki4deck` flatpak 
+3. Uninstall the existing legacy `chiaki-ng` flatpak
 
     ``` bash
     flatpak uninstall -y re.chiaki.Chiaki4deck
     ```
 
-4. Install chiaki4deck from flathub using Discover store app or
+4. Install chiaki-ng from flathub using Discover store app or
 
     ``` bash
     flatpak install -y --user flathub io.github.streetpea.Chiaki4deck
@@ -37,9 +37,9 @@ To migrate to the flathub repo do the following:
     /home/deck/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki-launcher.sh
     ```
 
-## Updating `chiaki4deck`
+## Updating `chiaki-ng`
 
-In order to update your already installed `chiaki4deck` to the newest version, either:
+In order to update your already installed `chiaki-ng` to the newest version, either:
 
 - Check for updates in `Discover` and update there
 
@@ -47,19 +47,26 @@ In order to update your already installed `chiaki4deck` to the newest version, e
 
 - Update via the `konsole` with:
 
-    === "Chiaki4deck Installed Via Discover Store"
+    === "chiaki-ng Installed Via Discover Store"
 
         ``` bash
         flatpak update -y io.github.streetpea.Chiaki4deck
         ```
 
-    === "Chiaki4deck Legacy Install Via Konsole"
+    === "chiaki-ng Legacy Install Via Konsole"
 
         ``` bash
         flatpak update --user -y re.chiaki.Chiaki4deck
         ```
 
 ## Releases (Newest First)
+
+### 1.8.0
+
+Name change to chiaki-ng
+
+- changes name and artwork for chiaki-ng
+- changes current profile when using --profile option
 
 ### 1.7.4
 
@@ -85,7 +92,7 @@ Provides unique remote and local Stream Settings for each console (PS4/PS5)
 - Enable more network types to work with remote connection via PSN (Note: some can only be made to work a % of the time due to limitations with remote play imposed by Sony)
 - Export/import option for settings to transfer across devices/platforms
 - Adds `auto` hw decoder option which is now the default. It chooses the best decoder for your platform from the available decoders
-- Make Chiaki4deck ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)
+- Make chiaki-ng ipv6 compatible (ipv6 not yet supported by remote play on the console [i.e., in Sony's PlayStation firmware] so can't be used yet)
 
 ### 1.7.1
 
@@ -198,7 +205,7 @@ Small patch release
 
 HDR support
 
-- Adds HDR support for Chiaki4deck perfect with the Steam Deck OLED ([see the configuration section](../setup/configuration.md#hdr-high-dynamic-range) for more details).
+- Adds HDR support for chiaki-ng perfect with the Steam Deck OLED ([see the configuration section](../setup/configuration.md#hdr-high-dynamic-range) for more details).
 - New libplacebo vulkan renderer with better picture quality due to post-processing techniques like debanding (now the default renderer)
 - Adds option to use controller by positional layout instead of button labels (particularly for Nintendo-style controllers)
 - Adds launcher script for appimage
@@ -215,8 +222,8 @@ Small patch release
 
 Mic support
 
-- Adds mic support to chiaki4deck
-- Noise suppression and echo cancelling for mic configurable in the chiaki4deck menu
+- Adds mic support to chiaki-ng
+- Noise suppression and echo cancelling for mic configurable in the chiaki-ng menu
 
 !!! Question "Why doesn't my bluetooth headset mic show up as an available microphone on Steam Deck?"
 
@@ -224,7 +231,7 @@ Mic support
 
 #### Update Actions for Existing Users
 
-1. [Updating `chiaki4deck`](#updating-chiaki4deck)
+1. [Updating `chiaki-ng`](#updating-chiaki-ng)
 
 2. [Optional] Switch to the new default control layout `chiaki4deck+ mic` which adds toggle mic mute to `L4`. Alternatively, you can manually add toggle mic mute to a button of your choice by mapping ++ctrl+m++ to that button.
 
@@ -240,7 +247,7 @@ Small patch release
 
 Small cosmetic release
 
-- Update icons and display name to `chiaki4deck`
+- Update icons and display name to `chiaki-ng`
 
 ### 1.3.2
 
@@ -259,7 +266,7 @@ Small patch release
 - Fixed gyro mapping regression (causing drift in some games [i.e., Dreams])
 - Updated HIDAPI (dependency) to 0.13.1 due to critical bug in release 0.13.0
 
-Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
+Install update following [updating `chiaki-ng`](#updating-chiaki-ng).
 
 ### 1.3.0
 
@@ -272,7 +279,7 @@ Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
 
 #### Update Actions for Existing Users
 
-1. [Updating `chiaki4deck`](#updating-chiaki4deck)
+1. [Updating `chiaki-ng`](#updating-chiaki-ng)
 
 2. [Optional] Enable the experimental PlayStation 5 features (enables PlayStation 5 haptics for Steam Deck and DualSense [via USB] and adaptive triggers for DualSense [via USB or bluetooth]).
 
@@ -280,7 +287,7 @@ Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
 
         ![Enable PlayStation 5 Features](images/EnablePlayStation5Features.png)
 
-    2. [If you are using a DualSense] Turn off Steam Input for the DualSense following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki4deck-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+    2. [If you are using a DualSense] Turn off Steam Input for the DualSense following the "Turning off Steam Input" tab in [this section](../setup/controlling.md#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 
 3. [Optional] Add an external IP/hostname to the automation by revisiting (running back through) the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}. Doing this will make the automation use your external address if you aren't connected to your home wireless network.
 
@@ -290,17 +297,17 @@ Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
     
 ### 1.2.0
 
-`chiaki4deck`'s 2nd update since initial release.
+`chiaki-ng`'s 2nd update since initial release.
 
 #### What You Need to Do to Update
 
-1. [Updating `chiaki4deck`](#updating-chiaki4deck)
+1. [Updating `chiaki-ng`](#updating-chiaki-ng)
 
-2. Updating your controller config to the new default (`chiaki4deck+`) and/or updating your custom controller layouts to take advantage of native touchscreen / trackpad controls. See the [Controller Options](../setup/controlling.md#default-controller-profile){target="_blank" rel="noopener"} section for details. 
+2. Updating your controller config to the new default (`chiaki-ng+`) and/or updating your custom controller layouts to take advantage of native touchscreen / trackpad controls. See the [Controller Options](../setup/controlling.md#default-controller-profile){target="_blank" rel="noopener"} section for details.
 
     - Using the Default Controller Profile (Recommended Starting Point):
     
-        Open the `chiaki4deck` [Controller Options](../setup/controlling.md#default-controller-profile){target="_blank" rel="noopener"} section, browsing the `COMMUNITY LAYOUTS` tab for the `chiaki4deck+` config, downloading it, and setting it as your new layout. 
+        Open the `chiaki-ng` [Controller Options](../setup/controlling.md#default-controller-profile){target="_blank" rel="noopener"} section, browsing the `COMMUNITY LAYOUTS` tab for the `chiaki4deck+` config, downloading it, and setting it as your new layout.
         
         [Approximate Time Estimate: 1 minute]
         
@@ -313,15 +320,15 @@ Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
 3. [OPTIONAL] If you have a PlayStation Login Passcode and want entering it to be automated, please revisit (run back through) the [Automation section](../setup/automation.md){target="_blank" rel="noopener"} (don't need to revisit any of the other sections). This is really quick if you use the "Automated Instructions (Recommended)" Tab. [Approximate Time Estimate: 5 minutes]
 
     !!! Success
-        Once your script is updated, since it will be in the same location as before, the Game Mode and controller setup will automatically carry over to this updated automation script. Thus, after revisiting the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}, you can immediately go back to using `chiaki4deck`.
+        Once your script is updated, since it will be in the same location as before, the Game Mode and controller setup will automatically carry over to this updated automation script. Thus, after revisiting the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}, you can immediately go back to using `chiaki-ng`.
 
 #### What you Get by Updating
 
-1. Full mapping for the PlayStation touchpad to the Steam Deck's touchscreen and trackpad (you can use either or switch between them if you so choose). See the [touchscreen](../setup/controlling.md#using-steam-deck-controller-touchscreen-in-your-custom-controller-profile){target="_blank" rel="noopener"} and [trackpad](../setup/controlling.md#default-chiaki4deck-layout-trackpad-mapping){target="_blank" rel="noopener"} mapping subsections of the [Controller Options](../setup/controlling.md#default-controller-profile){target="_blank" rel="noopener"} section for details.
+1. Full mapping for the PlayStation touchpad to the Steam Deck's touchscreen and trackpad (you can use either or switch between them if you so choose). See the [touchscreen](../setup/controlling.md#using-steam-deck-controller-touchscreen-in-your-custom-controller-profile){target="_blank" rel="noopener"} and [trackpad](../setup/controlling.md#default-chiaki-ng-layout-trackpad-mapping){target="_blank" rel="noopener"} mapping subsections of the [Controller Options](../setup/controlling.md#default-controller-profile){target="_blank" rel="noopener"} section for details.
 
     !!! note "General Touchscreen and Mouse Support"
         
-        This update adds general touchscreen and mouse support for the PlayStation touchpad. Thus, it's applicable beyond the Steam Deck. With regard to `chiaki4deck`, the Steam Deck is the focus / inspiration for the update.
+        This update adds general touchscreen and mouse support for the PlayStation touchpad. Thus, it's applicable beyond the Steam Deck. With regard to `chiaki-ng`, the Steam Deck is the focus / inspiration for the update.
 
 2. Updated RGB color mapping used in OpenGL widget to be more color accurate thanks to [Egoistically's](https://github.com/Egoistically){target="_blank" rel="noopener"} Chiaki fork. See [Updated RGB Mapping](done.md#updated-rgb-mapping){target="_blank" rel="noopener"} for details and a before and after comparison in Ghost of Tsushima.
 
@@ -331,22 +338,22 @@ Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
 
 ### 1.1.0
 
-`chiaki4deck`'s 1st update since initial release.
+`chiaki-ng`'s 1st update since initial release.
 
 #### What You Need to Do to Update
 
-1. [Updating `chiaki4deck`](#updating-chiaki4deck)
+1. [Updating `chiaki-ng`](#updating-chiaki-ng)
 
 2. Revisiting (running back through) the [Automation section](../setup/automation.md){target="_blank" rel="noopener"} (don't need to revisit any of the other sections). This is really quick if you use the "Automated Instructions (Recommended)" Tab. 
 
     !!! Success
-        Once your script is updated, since it will be in the same location as before, the Game Mode and controller setup will automatically carry over to this updated automation script. Thus, after revisiting the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}, you can immediately go back to using `chiaki4deck`.
+        Once your script is updated, since it will be in the same location as before, the Game Mode and controller setup will automatically carry over to this updated automation script. Thus, after revisiting the [Automation section](../setup/automation.md){target="_blank" rel="noopener"}, you can immediately go back to using `chiaki-ng`.
 
-3. *[If desired]* Visit the [Using a DualSense and/or DualShock4 Controller with `chiaki4deck`](../setup/controlling.md#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck){target="_blank" rel="noopener"} to see how to setup native touchpad and gyro controls when playing `chiaki4deck` with the DualShock4 and DualSense controllers.
+3. *[If desired]* Visit the [Using a DualSense and/or DualShock4 Controller with `chiaki-ng`](../setup/controlling.md#using-a-dualsense-andor-dualshock4-controller-with-chiaki-ng){target="_blank" rel="noopener"} to see how to setup native touchpad and gyro controls when playing `chiaki-ng` with the DualShock4 and DualSense controllers.
 
 #### What you Get by Updating
 
-1. PlayStation controller native touchpad + gyro controller support enabled for the flatpak with setup instructions in [Using a DualSense and/or DualShock4 Controller with `chiaki4deck`](../setup/controlling.md#using-a-dualsense-andor-dualshock4-controller-with-chiaki4deck){target="_blank" rel="noopener"}. This is great for when your using a TV or monitor with your Steam Deck.
+1. PlayStation controller native touchpad + gyro controller support enabled for the flatpak with setup instructions in [Using a DualSense and/or DualShock4 Controller with `chiaki-ng`](../setup/controlling.md#using-a-dualsense-andor-dualshock4-controller-with-chiaki-ng){target="_blank" rel="noopener"}. This is great for when your using a TV or monitor with your Steam Deck.
 
 2. Enhanced automated launch
 
@@ -364,7 +371,7 @@ Install update following [updating `chiaki4deck`](#updating-chiaki4deck).
 
 ### 1.0.0
 
-`chiaki4deck's` initial release including the following notable updates:
+`chiaki-ng's` initial release including the following notable updates:
 
 1. 3 view modes for non-standard screen sizes 
 

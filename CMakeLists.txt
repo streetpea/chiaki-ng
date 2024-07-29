@@ -37,12 +37,12 @@ tri_option(CHIAKI_USE_SYSTEM_NANOPB "Use system-provided nanopb instead of submo
 tri_option(CHIAKI_USE_SYSTEM_CURL "Use system-provided curl instead of submodule. Has to be built with experimental WebSocket support!" AUTO)
 
 set(CHIAKI_VERSION_MAJOR 1)
-set(CHIAKI_VERSION_MINOR 7)
-set(CHIAKI_VERSION_PATCH 4)
+set(CHIAKI_VERSION_MINOR 8)
+set(CHIAKI_VERSION_PATCH 0)
 set(CHIAKI_VERSION ${CHIAKI_VERSION_MAJOR}.${CHIAKI_VERSION_MINOR}.${CHIAKI_VERSION_PATCH})
 
-set(CPACK_PACKAGE_NAME "chiaki4deck")
-set(CPACK_PACKAGE_DESCRIPTION "Open Source PlayStation Remote Play client for Steam Deck")
+set(CPACK_PACKAGE_NAME "chiaki-ng")
+set(CPACK_PACKAGE_DESCRIPTION "Open Source PlayStation Remote Play client for Linux, Mac, and Windows")
 set(CPACK_PACKAGE_VERSION_MAJOR ${CHIAKI_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${CHIAKI_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${CHIAKI_VERSION_PATCH})

@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Controls.Material
 
-import org.streetpea.chiaki4deck
+import org.streetpea.chiaking
 
 Pane {
     padding: 0
@@ -312,7 +312,7 @@ Pane {
     Image {
         id: logoImage
         anchors.centerIn: parent
-        source: "qrc:/icons/chiaki4deck.svg"
+        source: "qrc:/icons/chiaking-logo-white.svg"
         sourceSize: Qt.size(Math.min(parent.width, parent.height) / 2, Math.min(parent.width, parent.height) / 2)
 
         PropertyAnimation {

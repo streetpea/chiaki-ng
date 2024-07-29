@@ -1,4 +1,4 @@
-# Set up chiaki4deck to work outside of your home network
+# Set up chiaki-ng to work outside of your home network
 
 ## Remote Connection via PSN
 
@@ -12,22 +12,22 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
 
     The remote connection via PSN requires you to login to PSN to generate an auth token used for contacting the PSN servers that serve as an initial go-between to initiate the direct connection to your PlayStation. 
     
-    This auth token is stored locally and used to connect with the PSN servers (this can be verified by looking at the code [if you want to be doubly sure] as Chiaki4deck is open source) and not used or stored anywhere outside of that.
+    This auth token is stored locally and used to connect with the PSN servers (this can be verified by looking at the code [if you want to be doubly sure] as chiaki-ng is open source) and not used or stored anywhere outside of that.
 
 ### Requirements
 
 1. Console must be updated to the latest firmware
 2. Console must be registered locally prior to using remote connection via PSN
 3. To see the remote connection via PSN tab for the given console, the console must not be available locally (otherwise you would want to use a local connection as it is faster and more efficient)
-4. Remote Connection via PSN for **PS4** only works with the main registered console for your PSN account (*Note: this is a limitation imposed by Sony not a limitation specific to Chiaki4deck*)
+4. Remote Connection via PSN for **PS4** only works with the main registered console for your PSN account (*Note: this is a limitation imposed by Sony not a limitation specific to chiaki-ng*)
 
 !!! Warning "Not All Networks Supported"
 
-    Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently with the message *Couldn't contact PlayStation over established connection, likely unsupported network type*, your network type is currently unsupported. You will need to use [the manual instructions](#manual-remote-connection). If you are able to connect over the same wireless connection with the official remote play app and are willing to help the Chiaki4deck developers improve Chiaki4deck to support your network type please reach out to the dev team via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you are failing with *Connection over PSN failed closing ...*, please either add your logs to an appropriate existing issue or open a new issue on the Chiaki4deck Github.
+    Not all network types are supported by UDP holepunching. For some networks, this process will fail and in that case you will have to use a manual remote connection with port forwarding. If you have tried 5 or so times and it has failed consistently with the message *Couldn't contact PlayStation over established connection, likely unsupported network type*, your network type is currently unsupported. You will need to use [the manual instructions](#manual-remote-connection). If you are able to connect over the same wireless connection with the official remote play app and are willing to help the chiaki-ng developers improve chiaki-ng to support your network type please reach out to the dev team via [Reddit](https://www.reddit.com/message/compose/?to=Street_Pea_6693){target="_blank" rel="noopener"} or [email](mailto:streetpea@proton.me). If you are failing with *Connection over PSN failed closing ...*, please either add your logs to an appropriate existing issue or open a new issue on the chiaki-ng Github.
 
 ### Setup
 
-1. Go to the Chiaki4deck settings page by hitting the gear icon from the main page
+1. Go to the chiaki-ng settings page by hitting the gear icon from the main page
 
     ![Go to Settings](images/GoToSettings.png)
 
@@ -41,7 +41,7 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
 
         If you get a `connection to the server timed out` message, keep on trying to login by hitting ++enter++ every few seconds until you get a different error message such as `Can't connect to the server` or you have tried for at least 20 seconds. If that doesn't work, please try refreshing the page and going through the process again. If you still can't find success, make an attempt using a different browser.
 
-        Unfortunately, we have no control over Sony's site (that gives out auth tokens to access their PSN servers for the remote connection over PSN setup) so we can only give tips on how best to handle the errors that may occur on the page and wish you the best in obtaining your token. Fortunately, once this token is obtained, Chiaki4deck will automatically refresh it as needed and only ask for you to create a new token in the event that PSN requires you to generate a new one using your login.
+        Unfortunately, we have no control over Sony's site (that gives out auth tokens to access their PSN servers for the remote connection over PSN setup) so we can only give tips on how best to handle the errors that may occur on the page and wish you the best in obtaining your token. Fortunately, once this token is obtained, chiaki-ng will automatically refresh it as needed and only ask for you to create a new token in the event that PSN requires you to generate a new one using your login.
 
 4. Copy your redirect url from the browser
 
@@ -57,7 +57,7 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
 
     !!! Danger "Error Message"
 
-        If you obtain an error with a link to Sony's oauth site, it is likely the code from the link has expired and you need to create a new code by logging in again and pasting the url into Chiaki4deck. The code usually expires within a few minutes. Otherwise, the error code should hopefully be self explanatory.
+        If you obtain an error with a link to Sony's oauth site, it is likely the code from the link has expired and you need to create a new code by logging in again and pasting the url into chiaki-ng. The code usually expires within a few minutes. Otherwise, the error code should hopefully be self explanatory.
 
 ### Initiating Connection
 
@@ -70,7 +70,7 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
     !!! Question "What if my console doesn't appear"
     
         1. Make sure the console is registered via the standard local registration
-        2. Make sure the console doesn't appear on your Chiaki4deck menu (i.e., make sure it's not available locally)
+        2. Make sure the console doesn't appear on your chiaki-ng menu (i.e., make sure it's not available locally)
         3. Hit the button to `Refresh PSN hosts` to query the PSN network again for the console.
 
 4. Wait for the connection to load
@@ -114,7 +114,7 @@ Forward the ports for your console on your router following [this port forwardin
 
 ### Find Router's IP
 
-On a computer connected to your router such as your Steam Deck (make sure to disconnect from a vpn first if you're connected to one to get the right IP) use one of the following:
+On a computer connected to your router such as your client device [i.e., Steam Deck] (make sure to disconnect from a vpn first if you're connected to one to get the right IP) use one of the following:
 
 === "Browser"
 
@@ -154,7 +154,7 @@ On a computer connected to your router such as your Steam Deck (make sure to dis
 
 !!! Question "My Remote Connection isn't Working, What Do I do?"
 
-    If you have gone through the port forwarding and made sure everything is applied correctly and it still doesn't work, it is likely you are behind [CGNAT (carrier-grade NAT)](https://nfware.com/blog/what-is-the-difference-between-nat-and-cgnat#:~:text=CGNAT%20(Carrier%2DGrade%20NAT),a%20single%2C%20public%20IP%20address.){target="_blank" rel="noopener"}. This means the router that you would need to forward ports on is owned by the ISP and you can't access it to do so. (Note: There is a protocol called [PCP (Port Control Protocol)](https://en.wikipedia.org/wiki/Port_Control_Protocol){target="_blank" rel="noopener"} that allows you to access it but if port forwarding doesn't work that means either your ISP or router doesn't support it.) This means port forwarding won't work. You can try the remote connection via PSN as this can still work given you have a compatible network type. However, is that isn't working either you will need to setup a VPN on your home network to connect. See [this site](https://github.com/williampiat3/ImprovingPSRemotePlay?tab=readme-ov-file#install-a-vpn-server){target="_blank" rel="noopener"} for details on how to do setup a VPN using a raspberry PI with Chiaki4deck (replace Chiaki with Chiaki4deck).
+    If you have gone through the port forwarding and made sure everything is applied correctly and it still doesn't work, it is likely you are behind [CGNAT (carrier-grade NAT)](https://nfware.com/blog/what-is-the-difference-between-nat-and-cgnat#:~:text=CGNAT%20(Carrier%2DGrade%20NAT),a%20single%2C%20public%20IP%20address.){target="_blank" rel="noopener"}. This means the router that you would need to forward ports on is owned by the ISP and you can't access it to do so. (Note: There is a protocol called [PCP (Port Control Protocol)](https://en.wikipedia.org/wiki/Port_Control_Protocol){target="_blank" rel="noopener"} that allows you to access it but if port forwarding doesn't work that means either your ISP or router doesn't support it.) This means port forwarding won't work. You can try the remote connection via PSN as this can still work given you have a compatible network type. However, is that isn't working either you will need to setup a VPN on your home network to connect. See [this site](https://github.com/williampiat3/ImprovingPSRemotePlay?tab=readme-ov-file#install-a-vpn-server){target="_blank" rel="noopener"} for details on how to do setup a VPN using a raspberry PI with chiaki-ng (replace Chiaki with chiaki-ng).
 
 !!! Question "If my connection stops working, what should I do?"
 

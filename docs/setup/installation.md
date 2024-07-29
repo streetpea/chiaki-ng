@@ -1,4 +1,4 @@
-# Installing `chiaki4deck`
+# Installing `chiaki-ng`
 
 !!! Tip "Copying from and Pasting into Konsole Windows"
 
@@ -10,9 +10,9 @@
 
         ![Open Discover](images/OpenDiscover.png)
 
-    2. Search for `chiaki4deck` in the search bar
+    2. Search for `chiaki-ng` in the search bar
 
-        ![Install chiaki4deck](images/InstallChiaki4deck.png)
+        ![Install chiaki-ng](images/InstallChiaki4deck.png)
 
     3. Click Install
 
@@ -24,9 +24,9 @@
         flatpak install -y io.github.streetpea.Chiaki4deck
         ```
 
-!!! Note "About `chiaki4deck`"
+!!! Note "About `chiaki-ng`"
 
-    This is a flatpak I created for `chiaki4deck` from [updated](../updates/done.md){target="_blank" rel="noopener"} Chiaki source code is available on Flathub. This is the recommended install as it is the most straightforward.
+    This is a flatpak I created for `chiaki-ng` from [updated](../updates/done.md){target="_blank" rel="noopener"} Chiaki source code is available on Flathub. This is the recommended install as it is the most straightforward.
     
     However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in [Building the flatpak yourself](../diy/buildit.md){target="_blank" rel="noopener"}.
 

@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 
-import org.streetpea.chiaki4deck
+import org.streetpea.chiaking
 
 Rectangle {
     id: view
@@ -164,11 +164,11 @@ Rectangle {
             switch(Chiaki.connectState)
             {
                 case Chiaki.PsnConnectState.LinkingConsole:
-                    infoLabel.text = qsTr("Linking Chiaki4deck with PlayStation console ...")
+                    infoLabel.text = qsTr("Linking chiaki-ng with PlayStation console ...")
                     view.allowClose = false
                     break
                 case Chiaki.PsnConnectState.DataConnectionStart:
-                    infoLabel.text = qsTr("Console Linked ... Establising data connection with console over PSN ...")
+                    infoLabel.text = qsTr("Console Linked ... Establishing data connection with console over PSN ...")
                     view.allowClose = true
                     break
                 case Chiaki.PsnConnectState.DataConnectionFinished:

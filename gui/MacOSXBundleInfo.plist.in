@@ -29,7 +29,7 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>For mic support, Chiaki4deck requires access to your microphone.</string>
+	<string>For mic support, chiaki-ng requires access to your microphone.</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.games</string>
 </dict>

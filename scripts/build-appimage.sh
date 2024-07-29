@@ -47,11 +47,11 @@ export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
 ./linuxdeploy-x86_64.AppImage \
     --appdir="${appdir}" \
     -e "${appdir}/usr/bin/chiaki" \
-    -d "${appdir}/usr/share/applications/chiaki4deck.desktop" \
+    -d "${appdir}/usr/share/applications/chiaking.desktop" \
     --plugin qt \
     --exclude-library='libva*' \
     --exclude-library='libvulkan*' \
     --exclude-library='libhidapi*' \
     --output appimage
 
-mv chiaki4deck-x86_64.AppImage Chiaki4deck.AppImage
+mv chiaki-ng-x86_64.AppImage chiaki-ng.AppImage

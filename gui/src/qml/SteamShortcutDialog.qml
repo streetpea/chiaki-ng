@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Controls.Material
 
-import org.streetpea.chiaki4deck
+import org.streetpea.chiaking
 
 import "controls" as C
 
@@ -43,7 +43,7 @@ DialogView {
             C.TextField {
                 id: name
                 Layout.preferredWidth: 400
-                text: Chiaki.settings.currentProfile ? qsTr("Chiaki4deck ") + Chiaki.settings.currentProfile: qsTr("Chiaki4deck")
+                text: Chiaki.settings.currentProfile ? qsTr("chiaki-ng ") + Chiaki.settings.currentProfile: qsTr("chiaki-ng")
                 firstInFocusChain: true
             }
 

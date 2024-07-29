@@ -1,9 +1,9 @@
 
-![chiaki4deck Logo](gui/chiaki4deck.png)
+![chiaki-ng Logo](gui/res/chiaking-logo.svg)
 
-# [chiaki4deck](https://streetpea.github.io/chiaki4deck/)
+# [chiaki-ng](https://streetpea.github.io/chiaki-ng/)
 
-An open source project looking to help users of the Steam Deck get the most out of Chiaki. [Click here to see the accompanying site for documentation, updates and more](https://streetpea.github.io/chiaki4deck/). 
+An open source project serving as the next-generation of Chiaki with improvements and ongoing support now that the original Chiaki project is in maintenance mode only. [Click here to see the accompanying site for documentation, updates and more](https://streetpea.github.io/chiaki-ng/).
 
 **Disclaimer:** This project is not endorsed or certified by Sony Interactive Entertainment LLC.
 
