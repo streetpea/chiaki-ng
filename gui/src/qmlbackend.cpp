@@ -14,6 +14,7 @@
 #include <QUrlQuery>
 #include <QGuiApplication>
 #include <QPixmap>
+#include <QImageReader>
 #include <QProcessEnvironment>
 #include <QDesktopServices>
 
@@ -1151,7 +1152,10 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
     QMap<QString, const QPixmap*> artwork;
     auto landscape = QPixmap(":/icons/steam_landscape.png");
     auto portrait = QPixmap(":/icons/steam_portrait.png");
-    auto hero = QPixmap(":/icons/steam_hero.png");
+    QImageReader reader;
+    reader.setAllocationLimit(512);
+    reader.setFileName(":/icons/steam_hero.png");
+    auto hero = QPixmap::fromImageReader(&reader);
     auto icon = QPixmap(":/icons/steam_icon.png");
     auto logo = QPixmap(":/icons/steam_logo.png");
     artwork.insert("landscape", &landscape);
