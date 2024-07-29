@@ -147,7 +147,8 @@ int real_main(int argc, char *argv[])
 	QStringList args = parser.positionalArguments();
 
 	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
-
+	if(parser.isSet(profile_option))
+		settings.SetCurrentProfile(parser.value(profile_option));
 	Settings alt_settings(parser.isSet(profile_option) ? "" : settings.GetCurrentProfile());
 	bool use_alt_settings = false;
 	if(!parser.isSet(profile_option))
