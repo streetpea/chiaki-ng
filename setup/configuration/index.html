@@ -1039,43 +1039,8 @@
 
 <h1 id="configuring-chiaki-ng">Configuring <code>chiaki-ng</code><a class="headerlink" href="#configuring-chiaki-ng" title="Permanent link">&para;</a></h1>
 <h2 id="registering-your-playstation">Registering your PlayStation<a class="headerlink" href="#registering-your-playstation" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Upgrading from Using Chiaki Flatpak on Steam Deck</label><label for="__tabbed_1_2">New to Using Chiaki on Steam Deck</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">New to Using Chiaki/chiaki-ng</label><label for="__tabbed_1_2">Upgrading from Using Chiaki Flatpak</label></div>
 <div class="tabbed-content">
-<div class="tabbed-block">
-<div class="admonition tip">
-<p class="admonition-title">Make sure you're on the right tab!</p>
-<p>If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the <strong>New to Using Chiaki on Steam Deck Tab.</strong> If you have set up the official Chiaki flatpak before (no, you don't have to uninstall <code>Chiaki</code> <img alt="😉" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f609.svg" title=":wink:" />) and want to try <code>chiaki-ng</code>, you're in the right place! <img alt="🎉" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f389.svg" title=":tada:" /></p>
-</div>
-<ol>
-<li>
-<p>Create initial file templates for <code>chiaki-ng</code></p>
-<ol>
-<li>
-<p>Open <code>chiaki-ng</code> by clicking the Steam icon in the bottom left and searching for it in the <code>Games</code> section via the graphical user interface (GUI) or by entering <code>flatpak run io.github.streetpea.chiaki-ng</code> in the <code>konsole</code>.</p>
-<div class="admonition question">
-<p class="admonition-title">What if chiaki-ng doesn't appear in the <code>Games</code> section?</p>
-<p>If <code>chiaki-ng</code> doesn't appear in the <code>Games</code> section, go to <code>All Applications</code> and search for <code>chiaki-ng</code> there. It should show up in the <code>Games</code> section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to <code>All Applications</code> works in all cases.</p>
-</div>
-</li>
-<li>
-<p>Close <code>chiaki-ng</code></p>
-</li>
-</ol>
-</li>
-<li>
-<p>Copy your configuration file from the Chiaki flatpak with the following <code>konsole</code> command</p>
-<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
-</code></pre></div>
-</li>
-<li>
-<p>Open <code>chiaki-ng</code> again and you should see your registered console and settings from Chiaki now copied to <code>chiaki-ng</code>.</p>
-<div class="admonition question">
-<p class="admonition-title">What Did I Just Do?</p>
-<p>You just replaced the config file (flatpak stores config files for each app in <code>~/.var/app/appid/config</code> where <code>appid</code> is your app's appid) for <code>chiaki-ng</code> (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with <code>chiaki-ng</code> and can start using it as quickly as possible.</p>
-</div>
-</li>
-</ol>
-</div>
 <div class="tabbed-block">
 <ol>
 <li>
@@ -1180,7 +1145,7 @@
 <p><img alt="Unregistered PS5" src="../images/UnregisteredPS5.png" /></p>
 <div class="admonition question">
 <p class="admonition-title">What if my PlayStation Console isn't Appearing?</p>
-<p>Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.</p>
+<p>Make sure your client device (i.e., Steam Deck) is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your client device (i.e., Steam Deck) and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.</p>
 </div>
 </li>
 <li>
@@ -1283,6 +1248,41 @@
 <li>
 <p>Click out of the dialog boxes and see that your console now shows registered</p>
 <p><img alt="Console Registered" src="../images/PS5Connected.png" /></p>
+</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<div class="admonition tip">
+<p class="admonition-title">Make sure you're on the right tab!</p>
+<p>If you haven't set up the Chiaki flatpak on your client device [i.e., Steam Deck], please switch to the <strong>New to Using Chiaki/chiaki-ng Tab.</strong> If you have set up the official Chiaki flatpak before (no, you don't have to uninstall <code>Chiaki</code> <img alt="😉" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f609.svg" title=":wink:" />) and want to try <code>chiaki-ng</code>, you're in the right place! <img alt="🎉" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f389.svg" title=":tada:" /></p>
+</div>
+<ol>
+<li>
+<p>Create initial file templates for <code>chiaki-ng</code></p>
+<ol>
+<li>
+<p>Open <code>chiaki-ng</code> by clicking the Steam icon in the bottom left and searching for it in the <code>Games</code> section via the graphical user interface (GUI) or by entering <code>flatpak run io.github.streetpea.chiaki-ng</code> in the <code>konsole</code>.</p>
+<div class="admonition question">
+<p class="admonition-title">What if chiaki-ng doesn't appear in the <code>Games</code> section?</p>
+<p>If <code>chiaki-ng</code> doesn't appear in the <code>Games</code> section, go to <code>All Applications</code> and search for <code>chiaki-ng</code> there. It should show up in the <code>Games</code> section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to <code>All Applications</code> works in all cases.</p>
+</div>
+</li>
+<li>
+<p>Close <code>chiaki-ng</code></p>
+</li>
+</ol>
+</li>
+<li>
+<p>Copy your configuration file from the Chiaki flatpak with the following <code>konsole</code> command</p>
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf<span class="w"> </span>~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
+</code></pre></div>
+</li>
+<li>
+<p>Open <code>chiaki-ng</code> again and you should see your registered console and settings from Chiaki now copied to <code>chiaki-ng</code>.</p>
+<div class="admonition question">
+<p class="admonition-title">What Did I Just Do?</p>
+<p>You just replaced the config file (flatpak stores config files for each app in <code>~/.var/app/appid/config</code> where <code>appid</code> is your app's appid) for <code>chiaki-ng</code> (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with <code>chiaki-ng</code> and can start using it as quickly as possible.</p>
+</div>
 </li>
 </ol>
 </div>
@@ -1451,7 +1451,7 @@
 <p>Stream output with <a href="#hdr-high-dynamic-range">HDR</a>. This are the recommended PS5 settings for a device that supports HDR such as the Steam Deck OLED.</p>
 <p><img alt="PS5 HDR Settings" src="../images/PS5_SettingsHDR.png" /></p>
 <details class="question" open="open">
-<summary>Why 1080p if the Steam Deck is only 800p?</summary>
+<summary>Why 1080p if the client device [i.e., Steam Deck] is only 800p?</summary>
 <p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
 <p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
 </details>
@@ -1460,7 +1460,7 @@
 <p>These are the recommended PS5 settings for a device that doesn't support HDR like the ROG Ally.</p>
 <p><img alt="1080p Settings" src="../images/PS5_SettingsSDR.png" /></p>
 <details class="question" open="open">
-<summary>Why 1080p if the Steam Deck is only 800p?</summary>
+<summary>Why 1080p if the client device [i.e., Steam Deck] is only 800p?</summary>
 <p>Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be <a href="https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878" rel="noopener" target="_blank">chroma-sub sampling</a>. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).</p>
 <p>However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.</p>
 </details>
@@ -1477,7 +1477,7 @@
 <p>HDR is now supported when you select the <code>H265 HDR (PS5 only)</code> codec option. For HDR to work you need to:</p>
 <ol>
 <li>
-<p>Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use <a href="https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/" rel="noopener" target="_blank">tonemapping</a> instead of outputting HDR)</p>
+<p>Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to your client device for streaming (non-HDR device will still work but use <a href="https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/" rel="noopener" target="_blank">tonemapping</a> instead of outputting HDR)</p>
 <details class="question" open="open">
 <summary>How do I know when HDR is active on my Steam Deck?</summary>
 <p>You can see when HDR is active by hitting the quick access button (3 dots button on the bottom right of the Steam Deck) going to the gear icon and looking at <code>BRIGHTNESS</code>. When HDR is active there will be a purple/blue banner to the right of the <code>BRIGHTNESS</code> label.</p>
@@ -1501,8 +1501,8 @@
 </li>
 </ol>
 <div class="admonition tip">
-<p class="admonition-title">Adjusting PS5 HDR for Steam Deck</p>
-<p>You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; Adjust HDR</code>. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via <a href="https://github.com/arshiatn" rel="noopener" target="_blank">arshiatn</a>) for an 1000 nits display you want to use 15-15-0 for the HDR settings. To set this in the <code>Adjust HDR set</code> move 15 steps (15 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 15 steps from the beginning for the 2<sup>nd</sup> test screen and 0 steps from the beginning on the last test screen. </p>
+<p class="admonition-title">Adjusting PS5 HDR for my client decice [i.e., Steam Deck]</p>
+<p>You can adjust the PS5 HDR settings for optimal viewing on the client device [i.e., Steam Deck] via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to <code>Settings -&gt; Screen and Video -&gt; Video Output -&gt; Adjust HDR</code>. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via <a href="https://github.com/arshiatn" rel="noopener" target="_blank">arshiatn</a>) for an 1000 nits display you want to use 15-15-0 for the HDR settings. To set this in the <code>Adjust HDR set</code> move 15 steps (15 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 15 steps from the beginning for the 2<sup>nd</sup> test screen and 0 steps from the beginning on the last test screen.</p>
 <p>Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.</p>
 </div>
 <h3 id="auto-connect">Auto Connect<a class="headerlink" href="#auto-connect" title="Permanent link">&para;</a></h3>
@@ -1635,7 +1635,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 28, 2024</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 29, 2024</span>
       
         <br>
         Created:
