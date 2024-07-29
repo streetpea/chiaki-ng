@@ -63,7 +63,7 @@
 
         !!! Tip "If You're missing `Chiaki-launcher.sh`, You Skipped the Automation Section"
 
-            `Chiaki-launcher.sh` is a script to launch Chiaki without the main gui, resulting in a much better experience on the Steam Deck ([click for details](../updates/done.md#enabled-automated-launch){target="_blank" rel="noopener"}) and makes it [easier to use the 3 games modes](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"}. If `Chiaki-launcher.sh` is missing, you almost certainly skipped the automation section. Don't worry, the fix is easy! :relaxed: Please complete the [Automation section](automation.md){target="_blank" rel="noopener"} now and come back here afterward. It should take you ~ 5 minutes. Luckily, :four_leaf_clover: there is a helper script that does most of the work for you! You simply answer a few questions I walk you through.
+            `Chiaki-launcher.sh` is a script to launch Chiaki without the main gui, resulting in a much better experience on the Steam Deck ([click for details](../updates/done.md#enabled-automated-launch-and-auto-connect){target="_blank" rel="noopener"}) and makes it [easier to use the 3 games modes](../updates/done.md#3-view-modes-for-non-standard-screen-sizes){target="_blank" rel="noopener"}. If `Chiaki-launcher.sh` is missing, you almost certainly skipped the automation section. Don't worry, the fix is easy! :relaxed: Please complete the [Automation section](automation.md){target="_blank" rel="noopener"} now and come back here afterward. It should take you ~ 5 minutes. Luckily, :four_leaf_clover: there is a helper script that does most of the work for you! You simply answer a few questions I walk you through.
 
         1. Choose `File type: All Files` at the bottom of the screen
 
@@ -92,7 +92,7 @@
 
     1. Acquire pictures to use for the game library in Steam
 
-        1. Get the images I used [here](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/assets/chiaki-ngImages.tar.xz){target="_blank" rel="noopener"} for `chiaki-ng` on my Steam Deck.
+        1. Get the official `chiaki-ng` images [here](https://raw.githubusercontent.com/streetpea/chiaki4deck/main/assets/chiaki-ngImages.tar.xz){target="_blank" rel="noopener"}.
 
         2. Extract the package to a folder of your choice (such as your `Documents` folder).
         
@@ -122,7 +122,7 @@
 
         ???+ example "Finished chiaki-ng Properties"
 
-            ![Finished chiaki-ng Properties](images/FinishedChiaki4DeckProperties.png)
+            ![Finished chiaki-ng Properties](images/Finishedchiaki-ngProperties.png)
 
     5. Go to your `Library` in Steam and select `chiaki-ng` from the left-hand list or one of the `Library` categories to go to `chiaki-ng`'s game page.
 
