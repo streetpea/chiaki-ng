@@ -61,6 +61,13 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.8.0
+
+Name change to chiaki-ng
+
+- changes name and artwork for chiaki-ng
+- changes current profile when using --profile option
+
 ### 1.7.4
 
 Small patch update

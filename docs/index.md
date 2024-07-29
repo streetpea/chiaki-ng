@@ -6,7 +6,7 @@
 
 ## Getting Started
 
-Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noopener"} and following each of the subsections to learn how to setup Chiaki for the best experience on your Steam Deck using `chiaki-ng`.
+Start by visiting the [Setup section](setup/index.md){target="_blank" rel="noopener"} and following each of the subsections to learn how to setup `chiaki-ng`.
 
 ## Supporting
 

@@ -24,6 +24,15 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-7-29" version="1.8.0">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>changes name and artwork for chiaki-ng</li>
+          <li>changes current profile when using --profile option</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-7-22" version="1.7.4">
       <description>
         <p>This release provides the following improvements:</p>

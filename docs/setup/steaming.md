@@ -11,7 +11,7 @@
         1. Fill in name for Steam Shortcut and optional launch options
     
             !!! Note "Launch Options"
-                In most cases, you can leave this blank. One scenario where you would fill this out is if you have multiple users on the same Steam Deck. In this case you can use `--profile user1` for one shortcut and `--profile user2` for another.
+                In most cases, you can leave this blank. One scenario where you would fill this out is if you have multiple users on the same client device [i.e., Steam Deck]. In this case you can use `--profile user1` for one shortcut and `--profile user2` for another.
 
         2. Create Steam Shortcut by hitting `Create` button
 

@@ -114,7 +114,7 @@ Forward the ports for your console on your router following [this port forwardin
 
 ### Find Router's IP
 
-On a computer connected to your router such as your Steam Deck (make sure to disconnect from a vpn first if you're connected to one to get the right IP) use one of the following:
+On a computer connected to your router such as your client device [i.e., Steam Deck] (make sure to disconnect from a vpn first if you're connected to one to get the right IP) use one of the following:
 
 === "Browser"
 

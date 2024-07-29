@@ -2,35 +2,7 @@
 
 ## Registering your PlayStation
 
-=== "Upgrading from Using Chiaki Flatpak on Steam Deck"
-
-    !!! Tip "Make sure you're on the right tab!"
-    
-        If you haven't set up the Chiaki flatpak on Steam Deck, please switch to the **New to Using Chiaki on Steam Deck Tab.** If you have set up the official Chiaki flatpak before (no, you don't have to uninstall `Chiaki` :wink:) and want to try `chiaki-ng`, you're in the right place! :tada:
-
-    1. Create initial file templates for `chiaki-ng`
-
-        1. Open `chiaki-ng` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run io.github.streetpea.chiaki-ng` in the `konsole`.
-
-            !!! Question "What if chiaki-ng doesn't appear in the `Games` section?"
-
-                If `chiaki-ng` doesn't appear in the `Games` section, go to `All Applications` and search for `chiaki-ng` there. It should show up in the `Games` section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to `All Applications` works in all cases.
-
-        2. Close `chiaki-ng`
-
-    2. Copy your configuration file from the Chiaki flatpak with the following `konsole` command
-
-        ``` bash
-        cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
-        ```
-
-    3. Open `chiaki-ng` again and you should see your registered console and settings from Chiaki now copied to `chiaki-ng`.
-
-        !!! Question "What Did I Just Do?"
-
-            You just replaced the config file (flatpak stores config files for each app in `~/.var/app/appid/config` where `appid` is your app's appid) for `chiaki-ng` (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with `chiaki-ng` and can start using it as quickly as possible.
-
-=== "New to Using Chiaki on Steam Deck"
+=== "New to Using Chiaki/chiaki-ng"
 
     1. Set up your PlayStation console for remote play
 
@@ -102,7 +74,7 @@
 
         !!! Question "What if my PlayStation Console isn't Appearing?"
         
-            Make sure your Steam Deck is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your Steam Deck and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.
+            Make sure your client device (i.e., Steam Deck) is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your client device (i.e., Steam Deck) and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.
 
     5. Register your PlayStation console
 
@@ -177,6 +149,34 @@
     7. Click out of the dialog boxes and see that your console now shows registered
 
         ![Console Registered](images/PS5Connected.png)
+
+=== "Upgrading from Using Chiaki Flatpak"
+
+    !!! Tip "Make sure you're on the right tab!"
+    
+        If you haven't set up the Chiaki flatpak on your client device [i.e., Steam Deck], please switch to the **New to Using Chiaki/chiaki-ng Tab.** If you have set up the official Chiaki flatpak before (no, you don't have to uninstall `Chiaki` :wink:) and want to try `chiaki-ng`, you're in the right place! :tada:
+
+    1. Create initial file templates for `chiaki-ng`
+
+        1. Open `chiaki-ng` by clicking the Steam icon in the bottom left and searching for it in the `Games` section via the graphical user interface (GUI) or by entering `flatpak run io.github.streetpea.chiaki-ng` in the `konsole`.
+
+            !!! Question "What if chiaki-ng doesn't appear in the `Games` section?"
+
+                If `chiaki-ng` doesn't appear in the `Games` section, go to `All Applications` and search for `chiaki-ng` there. It should show up in the `Games` section, but I've noticed that sometimes it only shows up in its appropriate section after a restart. Going to `All Applications` works in all cases.
+
+        2. Close `chiaki-ng`
+
+    2. Copy your configuration file from the Chiaki flatpak with the following `konsole` command
+
+        ``` bash
+        cp ~/.var/app/re.chiaki.Chiaki/config/Chiaki/Chiaki.conf ~/.var/app/io.github.streetpea.Chiaki4deck/config/Chiaki/Chiaki.conf
+        ```
+
+    3. Open `chiaki-ng` again and you should see your registered console and settings from Chiaki now copied to `chiaki-ng`.
+
+        !!! Question "What Did I Just Do?"
+
+            You just replaced the config file (flatpak stores config files for each app in `~/.var/app/appid/config` where `appid` is your app's appid) for `chiaki-ng` (which doesn't have your details yet) with the one for Chiaki (which you already went through the registration process and configured settings for) so that you don't have to go back through the same process with `chiaki-ng` and can start using it as quickly as possible.
 
 ## Testing your Connection
 
@@ -301,7 +301,7 @@ Here are different settings you can use for Chiaki/`chiaki-ng` depending on your
 
         ![PS5 HDR Settings](images/PS5_SettingsHDR.png)
 
-        ???+ Question "Why 1080p if the Steam Deck is only 800p?"
+        ???+ Question "Why 1080p if the client device [i.e., Steam Deck] is only 800p?"
 
             Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
             
@@ -313,7 +313,7 @@ Here are different settings you can use for Chiaki/`chiaki-ng` depending on your
 
         ![1080p Settings](images/PS5_SettingsSDR.png)
 
-        ???+ Question "Why 1080p if the Steam Deck is only 800p?"
+        ???+ Question "Why 1080p if the client device [i.e., Steam Deck] is only 800p?"
 
             Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
             
@@ -329,7 +329,7 @@ Here are different settings you can use for Chiaki/`chiaki-ng` depending on your
 
 HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For HDR to work you need to:
 
-1. Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to an LCD Steam Deck for streaming (non-HDR device will still work but use [tonemapping](https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/){target="_blank" rel="noopener"} instead of outputting HDR)
+1. Use an HDR device such as the Steam Deck OLED or an OLED monitor attached to your client device for streaming (non-HDR device will still work but use [tonemapping](https://mixinglight.com/color-grading-tutorials/whats-tone-mapping/){target="_blank" rel="noopener"} instead of outputting HDR)
     
     ???+ Question "How do I know when HDR is active on my Steam Deck?"
         You can see when HDR is active by hitting the quick access button (3 dots button on the bottom right of the Steam Deck) going to the gear icon and looking at `BRIGHTNESS`. When HDR is active there will be a purple/blue banner to the right of the `BRIGHTNESS` label.
@@ -345,9 +345,9 @@ HDR is now supported when you select the `H265 HDR (PS5 only)` codec option. For
 
 5. Launch `chiaki-ng` via gamescope (i.e., game mode on the Steam Deck)
 
-!!! Tip "Adjusting PS5 HDR for Steam Deck"
+!!! Tip "Adjusting PS5 HDR for my client decice [i.e., Steam Deck]"
 
-    You can adjust the PS5 HDR settings for optimal viewing on the Steam Deck via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> Adjust HDR`. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via [arshiatn](https://github.com/arshiatn){target="_blank" rel="noopener"}) for an 1000 nits display you want to use 15-15-0 for the HDR settings. To set this in the `Adjust HDR set` move 15 steps (15 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 15 steps from the beginning for the 2nd test screen and 0 steps from the beginning on the last test screen. 
+    You can adjust the PS5 HDR settings for optimal viewing on the client device [i.e., Steam Deck] via the system-wide PS5 settings (need to be connected directly to your PS5 and not via remote play to access this menu) by going to `Settings -> Screen and Video -> Video Output -> Adjust HDR`. You'll want to do this if your display brightness (i.e., nits) is different from the Steam Deck OLED's 1000 nits. According to the folks over at HDTVTest (via [arshiatn](https://github.com/arshiatn){target="_blank" rel="noopener"}) for an 1000 nits display you want to use 15-15-0 for the HDR settings. To set this in the `Adjust HDR set` move 15 steps (15 presses of the right key on the dpad of the PlayStation controller) for the first test screen, 15 steps from the beginning for the 2nd test screen and 0 steps from the beginning on the last test screen.
     
     Please note that this will also affect the settings for your connected display so if you are switching between remote play and TV play often keep that in mind. Certain games also have their own HDR settings you can adjust while remote playing in their respective game menus or when beginning the game.
 
