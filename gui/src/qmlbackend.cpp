@@ -192,7 +192,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
                 session->GoToBed();
             session->Stop();
-            psnCancel(true);
+            if(!session_info.duid.isEmpty())
+                psnCancel(true);
             resume_session = true;
         }
     });
