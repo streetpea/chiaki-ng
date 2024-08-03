@@ -184,7 +184,7 @@ PlayStation 5 haptics are mapped for both the DualSense controller (usb connecti
 If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab [here](#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 Once checked, haptics and adaptive triggers (DualSense only) will work in games that support them when streaming from a PlayStation 5. If the DualSense is plugged in via USB (either initially or plugged in during a gaming session), haptics will be directed to it. If you are using the Steam Deck and don't have a DualSense plugged in, haptics will be directed to it and played via the trackpads.
 
-## Microphone
+### Microphone
 
 Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation controller. (This is set to `L4` in the default chiaki4deck+ mic controller layout.) Then, use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki-ng menu.
 
@@ -294,3 +294,23 @@ While most users will want to just use `chiaki-ng` with the Steam Deck controlle
     !!! Note "Map it How you Want"
 
         Using Steam Input there are a variety of ways to map controls. Do whatever you like best. Additionally, you can use gyro controls for camera options with games that don't support native gyro by mapping the gyro `As joystick`. Make sure to set an appropriate condition for when it's used (i.e., `when holding R1` or `Always On`) in the gyro settings for the PlayStation controller configuration option of `chiaki-ng`. For example, I have done this in the [Steam Deck controller `chiaki-ng` control setting](#default-chiaki-ng-layout-mapping-full-view) and you can do it for your DualSense control scheme as well. However, when playing games that have native gyro support (such as Concrete Genie or The Last of Us) you will most likely want to either temporarily this option or make sure to set something to enable it that you won't hit accidentally. Otherwise, both the native gyro and the action you map will be done in-game which can make your camera move when you're trying to shake your flashlight, etc.
+
+### Enabling DualSense Haptics on MacOS
+
+In order to enable DualSense haptics on MacOS please do the following:
+
+1. Plug in your DualSense controller via usbc to your Mac
+2. Use ++command+space++ to bring up the spotlight search and begin to type `Audio MIDI Setup` and hit enter to bring up the Audio Midi Setup utility. 
+    ![Audio Midi Setup Spotlight Search](images/spotlight_search_audio_midi_setup.png)
+
+3. Select your DualSense Wireless Controller Output device in the Audio Midi Setup utility
+4. Click `Configure Speakers`
+
+    ![Configure DualSense Haptic speakers](images/configure_haptics_speaker_mac.png)
+
+5. Select `Quadrophonic` from the configuration dropdown
+6. Select Apply
+
+    ![Select Quadrophonic audio](images/configure_quadrophonic.png)
+
+7. Play your favorite PS5 game with haptic feedback on Mac via `chiaki-ng`!
