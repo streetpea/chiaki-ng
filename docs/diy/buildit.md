@@ -103,8 +103,34 @@
 3. Get the [flatpak manifest file](https://docs.flatpak.org/en/latest/manifests.html){target="_blank" rel="noopener"} for `chiaki-ng`
 
     ```
-    curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki-ng.yaml
+    curl -Lo chiaki-ng.yaml https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki4deck.yaml
     ```
+
+4. Get the patch files
+
+    1. 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+
+        ```
+        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+        ```
+
+    2. 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
+
+        ```
+        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_h264-Fixup-invalid-references.patch
+        ```
+
+    3. 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
+
+        ```
+        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
+        ```
+
+    4. 0001-vulkan-ignore-frames-without-hw-context.patch
+
+        ```
+        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-vulkan-ignore-frames-without-hw-context.patch
+        ```
 
 ### Create `gpg` Key for Signing your Builds and Repositories
 

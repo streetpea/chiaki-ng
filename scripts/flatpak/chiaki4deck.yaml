@@ -4,7 +4,7 @@ runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
 command: chiaki
-rename-icon: chiaki-ng
+rename-icon: chiaking
 rename-desktop-file: chiaking.desktop
 separate-locales: false
 finish-args:

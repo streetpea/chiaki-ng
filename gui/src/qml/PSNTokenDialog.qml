@@ -30,9 +30,17 @@ DialogView {
             }
         });
     }
+    StackView.onActivated: {
+        if(psnurl)
+        {
+            openurl.selectAll()
+            openurl.copy()
+        }
+    }
 
     Item {
         GridLayout {
+            id: linkgrid
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
@@ -43,33 +51,27 @@ DialogView {
             columnSpacing: 20
 
             Label {
-                text: qsTr("Open Web Browser with following link")
+                text: qsTr("Open Web Browser with copied URL")
                 visible: psnurl
             }
 
             TextField {
                 id: openurl
                 text: psnurl
-                visible: psnurl
-                KeyNavigation.right: copyUrl
+                visible: false
                 Layout.preferredWidth: 400
-                C.Button {
-                    id: copyUrl
-                    text: qsTr("Click to Copy URL")
-                    anchors {
-                        left: parent.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 10
-                    }
-                    onClicked: {
-                        openurl.selectAll()
-                        openurl.copy()
-                    }
-                    KeyNavigation.up: openurl
-                    KeyNavigation.left: openurl
-                    KeyNavigation.down: url
-                    KeyNavigation.right: url
+            }
+
+            C.Button {
+                id: copyUrl
+                text: qsTr("Click to Re-Copy URL")
+                onClicked: {
+                    openurl.selectAll()
+                    openurl.copy()
                 }
+                KeyNavigation.down: url
+                KeyNavigation.right: url
+                visible: psnurl
             }
 
             Label {
