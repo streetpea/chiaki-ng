@@ -192,7 +192,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
                 session->GoToBed();
             session->Stop();
-            psnCancel(true);
+            if(!session_info.duid.isEmpty())
+                psnCancel(true);
             resume_session = true;
         }
     });
@@ -1234,7 +1235,7 @@ QString QmlBackend::openPsnLink()
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
-    if(QDesktopServices::openUrl(url))
+    if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
     {
         qCWarning(chiakiGui) << "Launched browser.";
         return QString();

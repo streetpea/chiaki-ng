@@ -1104,8 +1104,7 @@ void StreamSession::ConnectHaptics()
 		return;
 	}
 #ifdef Q_OS_MACOS
-	// Haptics don't work on MacOS with coreaudio
-	return;
+	CHIAKI_LOGW(this->log.GetChiakiLog(), "If haptics aren't working, please configure your DualSense audio device as quadrophonic in Applications/Utitilities/Audio Midi Setup on your Mac");
 #endif
 	SDL_AudioSpec want, have;
 	SDL_zero(want);

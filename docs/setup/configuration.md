@@ -265,9 +265,9 @@ Here are different settings you can use for Chiaki/`chiaki-ng` depending on your
 
         ![General Settings](images/MainSettings.png)
 
-        !!! Tip "Enabling Experimental PlayStation 5 Features (PS5 Users Only)"
+        !!! Tip "Enabling PlayStation 5 Features (PS5 Users Only)"
 
-            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+            If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. On Mac, please follow the instructions [here](controlling.md#enabling-dualsense-haptics-on-macos){target="_blank" rel="noopener"} to enable haptics on MacOS. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in [this section](controlling.md#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 
         !!! Info "Use Buttons by Position Instead of by Label"
 

@@ -8,11 +8,13 @@ import org.streetpea.chiaking
 import "controls" as C
 
 DialogView {
+    property bool opening: false
     title: qsTr("Create Non-Steam Game")
     buttonText: qsTr("✓ Create")
-    buttonEnabled: name.text.trim()
+    buttonEnabled: name.text.trim() && !opening
     onAccepted: {
-        logDialog.open()
+        opening = true;
+        logDialog.open();
         Chiaki.createSteamShortcut(name.text.trim(), options.text.trim(), function(msg, ok, done) {
             if (!done)
                 logArea.text += msg + "\n";
@@ -20,6 +22,7 @@ DialogView {
             {
                 logArea.text += msg + "\n";
                 logDialog.standardButtons = Dialog.Close;
+                opening = false;
             }
         });
     }
