@@ -1598,8 +1598,8 @@
 <p><strong>General Settings</strong></p>
 <p><img alt="General Settings" src="../setup/images/MainSettings.png" /></p>
 <div class="admonition tip">
-<p class="admonition-title">Enabling Experimental PlayStation 5 Features (PS5 Users Only)</p>
-<p>If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki-ng-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.</p>
+<p class="admonition-title">Enabling PlayStation 5 Features (PS5 Users Only)</p>
+<p>If you want to enable haptics for Steam Deck and DualSense (must be attached via USB) and adaptive triggers for DualSense (USB or bluetooth), check the box that the red arrow is pointing to in the image above. On Mac, please follow the instructions <a href="#setup-controlling-enabling-dualsense-haptics-on-macos" rel="noopener" target="_blank">here</a> to enable haptics on MacOS. This is opt-in now since these features are currently experimental. Additionally, for the DualSense controller to work with these features in game mode, please disable Steam Input for the DualSense controller following the "Turning off Steam Input" tab in <a href="#setup-controlling-enabling-chiaki-ng-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">this section</a>.</p>
 </div>
 <div class="admonition info">
 <p class="admonition-title">Use Buttons by Position Instead of by Label</p>
@@ -3072,7 +3072,7 @@ flatpak<span class="w"> </span>run<span class="w"> </span>io.github.streetpea.Ch
 <p><img alt="Enable PlayStation 5 Features" src="../updates/images/EnablePlayStation5Features.png" /></p>
 <p>If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab <a href="#setup-controlling-enabling-chiaki-ng-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">here</a>.
 Once checked, haptics and adaptive triggers (DualSense only) will work in games that support them when streaming from a PlayStation 5. If the DualSense is plugged in via USB (either initially or plugged in during a gaming session), haptics will be directed to it. If you are using the Steam Deck and don't have a DualSense plugged in, haptics will be directed to it and played via the trackpads.</p>
-<h2 id="setup-controlling-microphone">Microphone<a class="headerlink" href="#setup-controlling-microphone" title="Permanent link">&para;</a></h2>
+<h3 id="setup-controlling-microphone">Microphone<a class="headerlink" href="#setup-controlling-microphone" title="Permanent link">&para;</a></h3>
 <p>Unmute microphone with either <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-m">M</kbd></span> or the mic button on the PlayStation controller. (This is set to <code>L4</code> in the default chiaki4deck+ mic controller layout.) Then, use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki-ng menu.</p>
 <div class="admonition note">
 <p class="admonition-title">Bluetooth headset microphones don't work on Steam Deck by default</p>
@@ -3245,7 +3245,33 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </div>
 </div>
 </div>
-</div></section><h1 class='nav-section-title-end'>Ended: Setup</h1>
+</div>
+<h3 id="setup-controlling-enabling-dualsense-haptics-on-macos">Enabling DualSense Haptics on MacOS<a class="headerlink" href="#setup-controlling-enabling-dualsense-haptics-on-macos" title="Permanent link">&para;</a></h3>
+<p>In order to enable DualSense haptics on MacOS please do the following:</p>
+<ol>
+<li>Plug in your DualSense controller via usbc to your Mac</li>
+<li>
+<p>Use <span class="keys"><kbd class="key-command">Cmd</kbd><span>+</span><kbd class="key-space">Space</kbd></span> to bring up the spotlight search and begin to type <code>Audio MIDI Setup</code> and hit enter to bring up the Audio Midi Setup utility. 
+    <img alt="Audio Midi Setup Spotlight Search" src="../setup/images/spotlight_search_audio_midi_setup.png" /></p>
+</li>
+<li>
+<p>Select your DualSense Wireless Controller Output device in the Audio Midi Setup utility</p>
+</li>
+<li>
+<p>Click <code>Configure Speakers</code></p>
+<p><img alt="Configure DualSense Haptic speakers" src="../setup/images/configure_haptics_speaker_mac.png" /></p>
+</li>
+<li>
+<p>Select <code>Quadrophonic</code> from the configuration dropdown</p>
+</li>
+<li>
+<p>Select Apply</p>
+<p><img alt="Select Quadrophonic audio" src="../setup/images/configure_quadrophonic.png" /></p>
+</li>
+<li>
+<p>Play your favorite PS5 game with haptic feedback on Mac via <code>chiaki-ng</code>!</p>
+</li>
+</ol></section><h1 class='nav-section-title-end'>Ended: Setup</h1>
                         <h1 class='nav-section-title' id='section-updates'>
                             Updates <a class='headerlink' href='#section-updates' title='Permanent link'>↵</a>
                         </h1>
@@ -3312,6 +3338,16 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ul>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-181">1.8.1<a class="headerlink" href="#updates-releases-181" title="Permanent link">&para;</a></h3>
+<p>Small patch update</p>
+<ul>
+<li>enable haptic feedback for DualSense on MacOS (see <a href="#updates-releases-controlling.md-enabling-dualsense-haptics-on-macos" rel="noopener" target="_blank">enabling haptic feedback for DualSense on MacOS</a>)</li>
+<li>fix issue where sleeping your client device on Linux would cause chiaki-ng to crash</li>
+<li>give user link to use in a browser when using psn login in game mode on Steam Deck</li>
+<li>creating Steam shortcut improvements (i.e., add a timestamp to the backup file so multiple can be saved and not allowing creating another shortcut while currently creating one)</li>
+<li>scale the official Steam icons for chiaki-ng used in the create a Steam shortcut button to the appropriate sizes to fix pause will scrolling through Steam menu with chiaki-ng added as a non-steam game in Steam big-picture mode</li>
+<li>changes MacOS icons to give them the "MacOS" style (i.e., rounded edges, etc.)</li>
+</ul>
 <h3 id="updates-releases-180">1.8.0<a class="headerlink" href="#updates-releases-180" title="Permanent link">&para;</a></h3>
 <p>Name change to chiaki-ng</p>
 <ul>
@@ -3843,8 +3879,33 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 <li>
 <p>Get the <a href="https://docs.flatpak.org/en/latest/manifests.html" rel="noopener" target="_blank">flatpak manifest file</a> for <code>chiaki-ng</code></p>
-<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki-ng.yaml
+<div class="highlight"><pre><span></span><code>curl -Lo chiaki-ng.yaml https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki4deck.yaml
 </code></pre></div>
+</li>
+<li>
+<p>Get the patch files</p>
+<ol>
+<li>
+<p>0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+</code></pre></div>
+</li>
+<li>
+<p>0001-lavc-vaapi_h264-Fixup-invalid-references.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_h264-Fixup-invalid-references.patch
+</code></pre></div>
+</li>
+<li>
+<p>0001-lavc-vaapi_hevc-Fixup-invalid-references.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
+</code></pre></div>
+</li>
+<li>
+<p>0001-vulkan-ignore-frames-without-hw-context.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-vulkan-ignore-frames-without-hw-context.patch
+</code></pre></div>
+</li>
+</ol>
 </li>
 </ol>
 <h3 id="diy-buildit-create-gpg-key-for-signing-your-builds-and-repositories">Create <code>gpg</code> Key for Signing your Builds and Repositories<a class="headerlink" href="#diy-buildit-create-gpg-key-for-signing-your-builds-and-repositories" title="Permanent link">&para;</a></h3>

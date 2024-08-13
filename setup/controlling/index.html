@@ -629,18 +629,12 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
+          <li class="md-nav__item">
   <a href="#microphone" class="md-nav__link">
     Microphone
   </a>
   
-    <nav class="md-nav" aria-label="Microphone">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
   <a href="#standard-button-mappings-these-directly-map-and-dont-need-to-be-specifically-set" class="md-nav__link">
@@ -665,6 +659,13 @@
           <li class="md-nav__item">
   <a href="#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4" class="md-nav__link">
     Enabling chiaki-ng to Work with DualSense / DualShock 4
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enabling-dualsense-haptics-on-macos" class="md-nav__link">
+    Enabling DualSense Haptics on MacOS
   </a>
   
 </li>
@@ -1013,18 +1014,12 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
+          <li class="md-nav__item">
   <a href="#microphone" class="md-nav__link">
     Microphone
   </a>
   
-    <nav class="md-nav" aria-label="Microphone">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
   <a href="#standard-button-mappings-these-directly-map-and-dont-need-to-be-specifically-set" class="md-nav__link">
@@ -1049,6 +1044,13 @@
           <li class="md-nav__item">
   <a href="#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4" class="md-nav__link">
     Enabling chiaki-ng to Work with DualSense / DualShock 4
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enabling-dualsense-haptics-on-macos" class="md-nav__link">
+    Enabling DualSense Haptics on MacOS
   </a>
   
 </li>
@@ -1320,7 +1322,7 @@
 <p><img alt="Enable PlayStation 5 Features" src="../../updates/images/EnablePlayStation5Features.png" /></p>
 <p>If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab <a href="#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4" rel="noopener" target="_blank">here</a>.
 Once checked, haptics and adaptive triggers (DualSense only) will work in games that support them when streaming from a PlayStation 5. If the DualSense is plugged in via USB (either initially or plugged in during a gaming session), haptics will be directed to it. If you are using the Steam Deck and don't have a DualSense plugged in, haptics will be directed to it and played via the trackpads.</p>
-<h2 id="microphone">Microphone<a class="headerlink" href="#microphone" title="Permanent link">&para;</a></h2>
+<h3 id="microphone">Microphone<a class="headerlink" href="#microphone" title="Permanent link">&para;</a></h3>
 <p>Unmute microphone with either <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-m">M</kbd></span> or the mic button on the PlayStation controller. (This is set to <code>L4</code> in the default chiaki4deck+ mic controller layout.) Then, use the microphone as normal. You can choose your microphone in the Steam Deck settings as well as choosing between audio inputs in the chiaki-ng menu.</p>
 <div class="admonition note">
 <p class="admonition-title">Bluetooth headset microphones don't work on Steam Deck by default</p>
@@ -1494,13 +1496,39 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </div>
 </div>
 </div>
+<h3 id="enabling-dualsense-haptics-on-macos">Enabling DualSense Haptics on MacOS<a class="headerlink" href="#enabling-dualsense-haptics-on-macos" title="Permanent link">&para;</a></h3>
+<p>In order to enable DualSense haptics on MacOS please do the following:</p>
+<ol>
+<li>Plug in your DualSense controller via usbc to your Mac</li>
+<li>
+<p>Use <span class="keys"><kbd class="key-command">Cmd</kbd><span>+</span><kbd class="key-space">Space</kbd></span> to bring up the spotlight search and begin to type <code>Audio MIDI Setup</code> and hit enter to bring up the Audio Midi Setup utility. 
+    <img alt="Audio Midi Setup Spotlight Search" src="../images/spotlight_search_audio_midi_setup.png" /></p>
+</li>
+<li>
+<p>Select your DualSense Wireless Controller Output device in the Audio Midi Setup utility</p>
+</li>
+<li>
+<p>Click <code>Configure Speakers</code></p>
+<p><img alt="Configure DualSense Haptic speakers" src="../images/configure_haptics_speaker_mac.png" /></p>
+</li>
+<li>
+<p>Select <code>Quadrophonic</code> from the configuration dropdown</p>
+</li>
+<li>
+<p>Select Apply</p>
+<p><img alt="Select Quadrophonic audio" src="../images/configure_quadrophonic.png" /></p>
+</li>
+<li>
+<p>Play your favorite PS5 game with haptic feedback on Mac via <code>chiaki-ng</code>!</p>
+</li>
+</ol>
 
   <hr>
 <div class="md-source-file">
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 28, 2024</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">August 3, 2024</span>
       
         <br>
         Created:

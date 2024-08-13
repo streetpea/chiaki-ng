@@ -1003,8 +1003,33 @@
 </li>
 <li>
 <p>Get the <a href="https://docs.flatpak.org/en/latest/manifests.html" rel="noopener" target="_blank">flatpak manifest file</a> for <code>chiaki-ng</code></p>
-<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki-ng.yaml
+<div class="highlight"><pre><span></span><code>curl -Lo chiaki-ng.yaml https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki4deck.yaml
 </code></pre></div>
+</li>
+<li>
+<p>Get the patch files</p>
+<ol>
+<li>
+<p>0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
+</code></pre></div>
+</li>
+<li>
+<p>0001-lavc-vaapi_h264-Fixup-invalid-references.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_h264-Fixup-invalid-references.patch
+</code></pre></div>
+</li>
+<li>
+<p>0001-lavc-vaapi_hevc-Fixup-invalid-references.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
+</code></pre></div>
+</li>
+<li>
+<p>0001-vulkan-ignore-frames-without-hw-context.patch</p>
+<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-vulkan-ignore-frames-without-hw-context.patch
+</code></pre></div>
+</li>
+</ol>
 </li>
 </ol>
 <h3 id="create-gpg-key-for-signing-your-builds-and-repositories">Create <code>gpg</code> Key for Signing your Builds and Repositories<a class="headerlink" href="#create-gpg-key-for-signing-your-builds-and-repositories" title="Permanent link">&para;</a></h3>
@@ -1056,7 +1081,7 @@
   <small>
     
       Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">July 28, 2024</span>
+      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">August 4, 2024</span>
       
         <br>
         Created:
