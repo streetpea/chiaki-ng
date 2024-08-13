@@ -65,7 +65,7 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 Small patch update
 
-- enable haptic feedback for DualSense on MacOS (see [enabling haptic feedback for DualSense on MacOS](controlling.md#enabling-dualsense-haptics-on-macos){target="_blank" rel="noopener"})
+- enable haptic feedback for DualSense on MacOS (see [enabling haptic feedback for DualSense on MacOS](../setup/controlling.md#enabling-dualsense-haptics-on-macos){target="_blank" rel="noopener"})
 - fix issue where sleeping your client device on Linux would cause chiaki-ng to crash
 - give user link to use in a browser when using psn login in game mode on Steam Deck
 - creating Steam shortcut improvements (i.e., add a timestamp to the backup file so multiple can be saved and not allowing creating another shortcut while currently creating one)
