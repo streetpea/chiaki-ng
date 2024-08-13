@@ -73,7 +73,7 @@ DialogView {
             standardButtons: Dialog.Cancel
             Material.roundedScale: Material.MediumScale
             onOpened: logArea.forceActiveFocus()
-            onClosed: stack.pop()
+            onClosed: restartDialog.open()
 
             Flickable {
                 id: logFlick
@@ -91,6 +91,40 @@ DialogView {
                     wrapMode: TextEdit.Wrap
                     Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
                     Keys.onEscapePressed: logDialog.close()
+                }
+            }
+        }
+
+        Dialog {
+            id: restartDialog
+            parent: Overlay.overlay
+            x: Math.round((root.width - width) / 2)
+            y: Math.round((root.height - height) / 2)
+            title: qsTr("Please Restart Steam")
+            modal: true
+            closePolicy: Popup.NoAutoClose
+            standardButtons: Dialog.Close
+            Material.roundedScale: Material.MediumScale
+            onOpened: restartArea.forceActiveFocus()
+            onClosed: stack.pop()
+
+            Flickable {
+                id: restartFlick
+                implicitWidth: 600
+                implicitHeight: 25
+                clip: true
+                contentWidth: restartArea.contentWidth
+                contentHeight: restartArea.contentHeight
+                flickableDirection: Flickable.AutoFlickIfNeeded
+                ScrollIndicator.vertical: ScrollIndicator { }
+
+                Label {
+                    id: restartArea
+                    width: restartFlick.width
+                    text: "In order for " + name.text.trim() + " to appear in Steam, Steam must be restarted!"
+                    wrapMode: TextEdit.Wrap
+                    Keys.onReturnPressed: if (restartDialog.standardButtons == Dialog.Close) restartDialog.close()
+                    Keys.onEscapePressed: restartDialog.close()
                 }
             }
         }
