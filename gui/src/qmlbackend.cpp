@@ -11,6 +11,11 @@
 #include "steamtools.h"
 #endif
 
+#if defined(CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE) && defined(Q_OS_LINUX)
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 #include <QUrlQuery>
 #include <QGuiApplication>
 #include <QPixmap>
@@ -1229,13 +1234,39 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 }
 #endif
 
+#if defined(CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE) && defined(Q_OS_LINUX)
+static bool runSteamUrl(const QString &url)
+{
+    const QString file_name = QDir::home().filePath(".steam/steam.pipe");
+    int fd = open(qPrintable(file_name), O_WRONLY | O_NONBLOCK);
+    if (fd < 0) {
+        qWarning() << "Failed to open" << file_name << "for writing";
+        return false;
+    }
+    QByteArray buf = url.toUtf8();
+    buf.append('\n');
+    write(fd, buf.constData(), buf.size());
+    close(fd);
+    return true;
+}
+#endif
+
 QString QmlBackend::openPsnLink()
 {
     size_t duid_size = CHIAKI_DUID_STR_SIZE;
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
-    if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
+    bool result;
+#if defined(CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE) && defined(Q_OS_LINUX)
+    if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
+        result = runSteamUrl(QString("steam://openurl/") + url.toString());
+    else
+        result = QDesktopServices::openUrl(url);
+#else
+    result = QDesktopServices::openUrl(url);
+#endif
+    if (result)
     {
         qCWarning(chiakiGui) << "Launched browser.";
         return QString();
