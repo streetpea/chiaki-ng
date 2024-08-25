@@ -217,6 +217,7 @@ void Settings::ImportSettings(QString fileurl)
 	QString profile = settings_backup.value("this_profile").toString();
 	if(profile.isEmpty())
 	{
+		settings.clear();
 		SaveRegisteredHosts();
 		SaveManualHosts();
 		QStringList keys = settings_backup.allKeys();
@@ -228,6 +229,7 @@ void Settings::ImportSettings(QString fileurl)
 	else
 	{
 		QSettings profile_settings(QCoreApplication::organizationName(), QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
+		profile_settings.clear();
 		SaveRegisteredHosts(&profile_settings);
 		SaveManualHosts(&profile_settings);
 		QStringList keys = settings_backup.allKeys();
@@ -244,6 +246,7 @@ void Settings::ImportPlaceboSettings(QString fileurl)
 	QUrl url(fileurl);
 	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
+	placebo_settings.clear();
 	QStringList keys = settings_backup.allKeys();
 	for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
 	{
