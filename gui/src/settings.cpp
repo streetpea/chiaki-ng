@@ -73,6 +73,36 @@ static void MigrateSettings(QSettings *settings)
 	}
 }
 
+static void InitializePlaceboSettings(QSettings *settings)
+{
+	settings->beginGroup("placebo_settings");
+	if(!settings->contains("upscaler"))
+	{
+		settings->setValue("upscaler", "ewa_lanczossharp");
+	}
+	if(!settings->contains("deband"))
+	{
+		settings->setValue("deband", true);
+	}
+	if(!settings->contains("peak_detect_preset"))
+	{
+		settings->setValue("peak_detect_preset", "high_quality");
+	}
+	if(!settings->contains("color_map_preset"))
+	{
+		settings->setValue("color_map_preset", "high_quality");
+	}
+	if(!settings->contains("contrast_recovery"))
+	{
+		settings->setValue("contrast_recovery", 0.3);
+	}
+	if(!settings->contains("peak_percentile"))
+	{
+		settings->setValue("peak_percentile", 99.995);
+	}
+	settings->endGroup();
+}
+
 static void MigrateVideoProfile(QSettings *settings)
 {
 	if(settings->contains("settings/resolution"))
@@ -115,6 +145,7 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	MigrateVideoProfile(&default_settings);
 	default_settings.setValue("version", SETTINGS_VERSION);
 	LoadProfiles();
+	InitializePlaceboSettings(&placebo_settings);
 }
 
 void Settings::ExportSettings(QString fileurl)
@@ -756,7 +787,7 @@ static const QMap<PlaceboUpscaler, QString> placebo_upscaler_values = {
 	{ PlaceboUpscaler::EwaLanczos4Sharpest, "ewa_lanczos4sharpest" },
 };
 
-static const PlaceboUpscaler placebo_upscaler_default = PlaceboUpscaler::EwaLanczosSharp;
+static const PlaceboUpscaler placebo_upscaler_default = PlaceboUpscaler::Lanczos;
 
 PlaceboUpscaler Settings::GetPlaceboUpscaler() const
 {
@@ -1071,17 +1102,17 @@ static const QMap<PlaceboPeakDetectionPreset, QString> placebo_peak_detection_pr
 	{ PlaceboPeakDetectionPreset::HighQuality, "high_quality" },
 };
 
-static const PlaceboPeakDetectionPreset placebo_peak_detection_preset_default = PlaceboPeakDetectionPreset::HighQuality;
+static const PlaceboPeakDetectionPreset placebo_peak_detection_preset_default = PlaceboPeakDetectionPreset::None;
 
 PlaceboPeakDetectionPreset Settings::GetPlaceboPeakDetectionPreset() const
 {
-	auto v = placebo_settings.value("placebo_settings/peak_detection_preset", placebo_peak_detection_preset_values[placebo_peak_detection_preset_default]).toString();
+	auto v = placebo_settings.value("placebo_settings/peak_detect_preset", placebo_peak_detection_preset_values[placebo_peak_detection_preset_default]).toString();
 	return placebo_peak_detection_preset_values.key(v, placebo_peak_detection_preset_default);
 }
 
 void Settings::SetPlaceboPeakDetectionPreset(PlaceboPeakDetectionPreset preset)
 {
-	placebo_settings.setValue("placebo_settings/peak_detection_preset", placebo_peak_detection_preset_values[preset]);
+	placebo_settings.setValue("placebo_settings/peak_detect_preset", placebo_peak_detection_preset_values[preset]);
 }
 
 float Settings::GetPlaceboPeakDetectionPeakSmoothingPeriod() const
@@ -1160,7 +1191,7 @@ static const QMap<PlaceboColorMappingPreset, QString> placebo_color_mapping_pres
 	{ PlaceboColorMappingPreset::HighQuality, "high_quality" },
 };
 
-static const PlaceboColorMappingPreset placebo_color_mapping_default = PlaceboColorMappingPreset::HighQuality;
+static const PlaceboColorMappingPreset placebo_color_mapping_default = PlaceboColorMappingPreset::None;
 
 PlaceboColorMappingPreset Settings::GetPlaceboColorMappingPreset() const
 {
@@ -1480,7 +1511,7 @@ void Settings::SetPlaceboToneMappingToneLutSize(int size)
 
 float Settings::GetPlaceboToneMappingContrastRecovery() const
 {
-	return placebo_settings.value("placebo_settings/contrast_recovery", 0.3).toFloat();
+	return placebo_settings.value("placebo_settings/contrast_recovery", 0.0).toFloat();
 }
 
 void Settings::SetPlaceboToneMappingContrastRecovery(float recovery)
