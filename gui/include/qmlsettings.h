@@ -56,6 +56,68 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
+    Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
+    Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
+    Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
+    Q_PROPERTY(int placeboPlaneDownscaler READ placeboPlaneDownscaler WRITE setPlaceboPlaneDownscaler NOTIFY placeboPlaneDownscalerChanged)
+    Q_PROPERTY(int placeboFrameMixer READ placeboFrameMixer WRITE setPlaceboFrameMixer NOTIFY placeboFrameMixerChanged)
+    Q_PROPERTY(int placeboAntiringingStrength READ placeboAntiringingStrength WRITE setPlaceboAntiringingStrength NOTIFY placeboAntiringingStrengthChanged)
+    Q_PROPERTY(bool placeboDebandEnabled READ placeboDebandEnabled WRITE setPlaceboDebandEnabled NOTIFY placeboDebandEnabledChanged)
+    Q_PROPERTY(int placeboDebandPreset READ placeboDebandPreset WRITE setPlaceboDebandPreset NOTIFY placeboDebandPresetChanged)
+    Q_PROPERTY(int placeboDebandIterations READ placeboDebandIterations WRITE setPlaceboDebandIterations NOTIFY placeboDebandIterationsChanged)
+    Q_PROPERTY(float placeboDebandThreshold READ placeboDebandThreshold WRITE setPlaceboDebandThreshold NOTIFY placeboDebandThresholdChanged)
+    Q_PROPERTY(float placeboDebandRadius READ placeboDebandRadius WRITE setPlaceboDebandRadius NOTIFY placeboDebandRadiusChanged)
+    Q_PROPERTY(float placeboDebandGrain READ placeboDebandGrain WRITE setPlaceboDebandGrain NOTIFY placeboDebandGrainChanged)
+    Q_PROPERTY(bool placeboSigmoidEnabled READ placeboSigmoidEnabled WRITE setPlaceboSigmoidEnabled NOTIFY placeboSigmoidEnabledChanged)
+    Q_PROPERTY(int placeboSigmoidPreset READ placeboSigmoidPreset WRITE setPlaceboSigmoidPreset NOTIFY placeboSigmoidPresetChanged)
+    Q_PROPERTY(float placeboSigmoidCenter READ placeboSigmoidCenter WRITE setPlaceboSigmoidCenter NOTIFY placeboSigmoidCenterChanged)
+    Q_PROPERTY(float placeboSigmoidSlope READ placeboSigmoidSlope WRITE setPlaceboSigmoidSlope NOTIFY placeboSigmoidSlopeChanged)
+    Q_PROPERTY(bool placeboColorAdjustmentEnabled READ placeboColorAdjustmentEnabled WRITE setPlaceboColorAdjustmentEnabled NOTIFY placeboColorAdjustmentEnabledChanged)
+    Q_PROPERTY(int placeboColorAdjustmentPreset READ placeboColorAdjustmentPreset WRITE setPlaceboColorAdjustmentPreset NOTIFY placeboColorAdjustmentPresetChanged)
+    Q_PROPERTY(float placeboColorAdjustmentBrightness READ placeboColorAdjustmentBrightness WRITE setPlaceboColorAdjustmentBrightness NOTIFY placeboColorAdjustmentBrightnessChanged)
+    Q_PROPERTY(float placeboColorAdjustmentContrast READ placeboColorAdjustmentContrast WRITE setPlaceboColorAdjustmentContrast NOTIFY placeboColorAdjustmentContrastChanged)
+    Q_PROPERTY(float placeboColorAdjustmentSaturation READ placeboColorAdjustmentSaturation WRITE setPlaceboColorAdjustmentSaturation NOTIFY placeboColorAdjustmentSaturationChanged)
+    Q_PROPERTY(float placeboColorAdjustmentHue READ placeboColorAdjustmentHue WRITE setPlaceboColorAdjustmentHue NOTIFY placeboColorAdjustmentHueChanged)
+    Q_PROPERTY(float placeboColorAdjustmentGamma READ placeboColorAdjustmentGamma WRITE setPlaceboColorAdjustmentGamma NOTIFY placeboColorAdjustmentGammaChanged)
+    Q_PROPERTY(float placeboColorAdjustmentTemperature READ placeboColorAdjustmentTemperature WRITE setPlaceboColorAdjustmentTemperature NOTIFY placeboColorAdjustmentTemperatureChanged)
+    Q_PROPERTY(bool placeboPeakDetectionEnabled READ placeboPeakDetectionEnabled WRITE setPlaceboPeakDetectionEnabled NOTIFY placeboPeakDetectionEnabledChanged)
+    Q_PROPERTY(int placeboPeakDetectionPreset READ placeboPeakDetectionPreset WRITE setPlaceboPeakDetectionPreset NOTIFY placeboPeakDetectionPresetChanged)
+    Q_PROPERTY(float placeboPeakDetectionPeakSmoothingPeriod READ placeboPeakDetectionPeakSmoothingPeriod WRITE setPlaceboPeakDetectionPeakSmoothingPeriod NOTIFY placeboPeakDetectionPeakSmoothingPeriodChanged)
+    Q_PROPERTY(float placeboPeakDetectionSceneThresholdLow READ placeboPeakDetectionSceneThresholdLow WRITE setPlaceboPeakDetectionSceneThresholdLow NOTIFY placeboPeakDetectionSceneThresholdLowChanged)
+    Q_PROPERTY(float placeboPeakDetectionSceneThresholdHigh READ placeboPeakDetectionSceneThresholdHigh WRITE setPlaceboPeakDetectionSceneThresholdHigh NOTIFY placeboPeakDetectionSceneThresholdHighChanged)
+    Q_PROPERTY(float placeboPeakDetectionPeakPercentile READ placeboPeakDetectionPeakPercentile WRITE setPlaceboPeakDetectionPeakPercentile NOTIFY placeboPeakDetectionPeakPercentileChanged)
+    Q_PROPERTY(float placeboPeakDetectionBlackCutoff READ placeboPeakDetectionBlackCutoff WRITE setPlaceboPeakDetectionBlackCutoff NOTIFY placeboPeakDetectionBlackCutoffChanged)
+    Q_PROPERTY(bool placeboPeakDetectionAllowDelayedPeak READ placeboPeakDetectionAllowDelayedPeak WRITE setPlaceboPeakDetectionAllowDelayedPeak NOTIFY placeboPeakDetectionAllowDelayedPeakChanged)
+    Q_PROPERTY(bool placeboColorMappingEnabled READ placeboColorMappingEnabled WRITE setPlaceboColorMappingEnabled NOTIFY placeboColorMappingEnabledChanged)
+    Q_PROPERTY(int placeboColorMappingPreset READ placeboColorMappingPreset WRITE setPlaceboColorMappingPreset NOTIFY placeboColorMappingPresetChanged)
+    Q_PROPERTY(int placeboGamutMappingFunction READ placeboGamutMappingFunction WRITE setPlaceboGamutMappingFunction NOTIFY placeboGamutMappingFunctionChanged)
+    Q_PROPERTY(float placeboGamutMappingPerceptualDeadzone READ placeboGamutMappingPerceptualDeadzone WRITE setPlaceboGamutMappingPerceptualDeadzone NOTIFY placeboGamutMappingPerceptualDeadzoneChanged)
+    Q_PROPERTY(float placeboGamutMappingPerceptualStrength READ placeboGamutMappingPerceptualStrength WRITE setPlaceboGamutMappingPerceptualStrength NOTIFY placeboGamutMappingPerceptualStrengthChanged)
+    Q_PROPERTY(float placeboGamutMappingColorimetricGamma READ placeboGamutMappingColorimetricGamma WRITE setPlaceboGamutMappingColorimetricGamma NOTIFY placeboGamutMappingColorimetricGammaChanged)
+    Q_PROPERTY(float placeboGamutMappingSoftClipKnee READ placeboGamutMappingSoftClipKnee WRITE setPlaceboGamutMappingSoftClipKnee NOTIFY placeboGamutMappingSoftClipKneeChanged)
+    Q_PROPERTY(float placeboGamutMappingSoftClipDesat READ placeboGamutMappingSoftClipDesat WRITE setPlaceboGamutMappingSoftClipDesat NOTIFY placeboGamutMappingSoftClipDesatChanged)
+    Q_PROPERTY(int placeboGamutMappingLut3dSizeI READ placeboGamutMappingLut3dSizeI WRITE setPlaceboGamutMappingLut3dSizeI NOTIFY placeboGamutMappingLut3dSizeIChanged)
+    Q_PROPERTY(int placeboGamutMappingLut3dSizeC READ placeboGamutMappingLut3dSizeC WRITE setPlaceboGamutMappingLut3dSizeC NOTIFY placeboGamutMappingLut3dSizeCChanged)
+    Q_PROPERTY(int placeboGamutMappingLut3dSizeH READ placeboGamutMappingLut3dSizeH WRITE setPlaceboGamutMappingLut3dSizeH NOTIFY placeboGamutMappingLut3dSizeHChanged)
+    Q_PROPERTY(bool placeboGamutMappingLut3dTricubicEnabled READ placeboGamutMappingLut3dTricubicEnabled WRITE setPlaceboGamutMappingLut3dTricubicEnabled NOTIFY placeboGamutMappingLut3dTricubicEnabledChanged)
+    Q_PROPERTY(bool placeboGamutMappingGamutExpansionEnabled READ placeboGamutMappingGamutExpansionEnabled WRITE setPlaceboGamutMappingGamutExpansionEnabled NOTIFY placeboGamutMappingGamutExpansionEnabledChanged)
+    Q_PROPERTY(int placeboToneMappingFunction READ placeboToneMappingFunction WRITE setPlaceboToneMappingFunction NOTIFY placeboToneMappingFunctionChanged)
+    Q_PROPERTY(float placeboToneMappingKneeAdaptation READ placeboToneMappingKneeAdaptation WRITE setPlaceboToneMappingKneeAdaptation NOTIFY placeboToneMappingKneeAdaptationChanged)
+    Q_PROPERTY(float placeboToneMappingKneeMinimum READ placeboToneMappingKneeMinimum WRITE setPlaceboToneMappingKneeMinimum NOTIFY placeboToneMappingKneeMinimumChanged)
+    Q_PROPERTY(float placeboToneMappingKneeMaximum READ placeboToneMappingKneeMaximum WRITE setPlaceboToneMappingKneeMaximum NOTIFY placeboToneMappingKneeMaximumChanged)
+    Q_PROPERTY(float placeboToneMappingKneeDefault READ placeboToneMappingKneeDefault WRITE setPlaceboToneMappingKneeDefault NOTIFY placeboToneMappingKneeDefaultChanged)
+    Q_PROPERTY(float placeboToneMappingKneeOffset READ placeboToneMappingKneeOffset WRITE setPlaceboToneMappingKneeOffset NOTIFY placeboToneMappingKneeOffsetChanged)
+    Q_PROPERTY(float placeboToneMappingSlopeTuning READ placeboToneMappingSlopeTuning WRITE setPlaceboToneMappingSlopeTuning NOTIFY placeboToneMappingSlopeTuningChanged)
+    Q_PROPERTY(float placeboToneMappingSlopeOffset READ placeboToneMappingSlopeOffset WRITE setPlaceboToneMappingSlopeOffset NOTIFY placeboToneMappingSlopeOffsetChanged)
+    Q_PROPERTY(float placeboToneMappingSplineContrast READ placeboToneMappingSplineContrast WRITE setPlaceboToneMappingSplineContrast NOTIFY placeboToneMappingSplineContrastChanged)
+    Q_PROPERTY(float placeboToneMappingReinhardContrast READ placeboToneMappingReinhardContrast WRITE setPlaceboToneMappingReinhardContrast NOTIFY placeboToneMappingReinhardContrastChanged)
+    Q_PROPERTY(float placeboToneMappingLinearKnee READ placeboToneMappingLinearKnee WRITE setPlaceboToneMappingLinearKnee NOTIFY placeboToneMappingLinearKneeChanged)
+    Q_PROPERTY(float placeboToneMappingExposure READ placeboToneMappingExposure WRITE setPlaceboToneMappingExposure NOTIFY placeboToneMappingExposureChanged)
+    Q_PROPERTY(bool placeboToneMappingInverseToneMappingEnabled READ placeboToneMappingInverseToneMappingEnabled WRITE setPlaceboToneMappingInverseToneMappingEnabled NOTIFY placeboToneMappingInverseToneMappingEnabledChanged)
+    Q_PROPERTY(int placeboToneMappingMetadata READ placeboToneMappingMetadata WRITE setPlaceboToneMappingMetadata NOTIFY placeboToneMappingMetadataChanged)
+    Q_PROPERTY(int placeboToneMappingToneLutSize READ placeboToneMappingToneLutSize WRITE setPlaceboToneMappingToneLutSize NOTIFY placeboToneMappingToneLutSizeChanged)
+    Q_PROPERTY(float placeboToneMappingContrastRecovery READ placeboToneMappingContrastRecovery WRITE setPlaceboToneMappingContrastRecovery NOTIFY placeboToneMappingContrastRecoveryChanged)
+    Q_PROPERTY(float placeboToneMappingContrastSmoothness READ placeboToneMappingContrastSmoothness WRITE setPlaceboToneMappingContrastSmoothness NOTIFY placeboToneMappingContrastSmoothnessChanged)
 
 public:
     QmlSettings(Settings *settings, QObject *parent = nullptr);
@@ -159,6 +221,192 @@ public:
     uint wifiDroppedNotif() const;
     void setWifiDroppedNotif(uint percent);
 
+    int placeboUpscaler() const;
+    void setPlaceboUpscaler(int upscaler);
+
+    int placeboPlaneUpscaler() const;
+    void setPlaceboPlaneUpscaler(int upscaler);
+
+    int placeboDownscaler() const;
+    void setPlaceboDownscaler(int downscaler);
+
+    int placeboPlaneDownscaler() const;
+    void setPlaceboPlaneDownscaler(int downscaler);
+
+    int placeboFrameMixer() const;
+    void setPlaceboFrameMixer(int mixer);
+
+    int placeboAntiringingStrength() const;
+    void setPlaceboAntiringingStrength(int strength);
+
+    bool placeboDebandEnabled() const;
+    void setPlaceboDebandEnabled(bool enabled);
+
+    int placeboDebandPreset() const;
+    void setPlaceboDebandPreset(int preset);
+
+    int placeboDebandIterations() const;
+    void setPlaceboDebandIterations(int iterations);
+
+    float placeboDebandThreshold() const;
+    void setPlaceboDebandThreshold(float threshold);
+
+    float placeboDebandRadius() const;
+    void setPlaceboDebandRadius(float radius);
+
+    float placeboDebandGrain() const;
+    void setPlaceboDebandGrain(float grain);
+
+    bool placeboSigmoidEnabled() const;
+    void setPlaceboSigmoidEnabled(bool enabled);
+
+    int placeboSigmoidPreset() const;
+    void setPlaceboSigmoidPreset(int preset);
+
+    float placeboSigmoidCenter() const;
+    void setPlaceboSigmoidCenter(float center);
+
+    float placeboSigmoidSlope() const;
+    void setPlaceboSigmoidSlope(float slope);
+
+    bool placeboColorAdjustmentEnabled() const;
+    void setPlaceboColorAdjustmentEnabled(bool enabled);
+
+    int placeboColorAdjustmentPreset() const;
+    void setPlaceboColorAdjustmentPreset(int preset);
+
+    float placeboColorAdjustmentBrightness() const;
+    void setPlaceboColorAdjustmentBrightness(float brightness);
+
+    float placeboColorAdjustmentContrast() const;
+    void setPlaceboColorAdjustmentContrast(float contrast);
+
+    float placeboColorAdjustmentSaturation() const;
+    void setPlaceboColorAdjustmentSaturation(float saturation);
+
+    float placeboColorAdjustmentHue() const;
+    void setPlaceboColorAdjustmentHue(float hue);
+
+    float placeboColorAdjustmentGamma() const;
+    void setPlaceboColorAdjustmentGamma(float gamma);
+
+    float placeboColorAdjustmentTemperature() const;
+    void setPlaceboColorAdjustmentTemperature(float temperature);
+
+    bool placeboPeakDetectionEnabled() const;
+    void setPlaceboPeakDetectionEnabled(bool enabled);
+
+    int placeboPeakDetectionPreset() const;
+    void setPlaceboPeakDetectionPreset(int preset);
+
+    float placeboPeakDetectionPeakSmoothingPeriod() const;
+    void setPlaceboPeakDetectionPeakSmoothingPeriod(float period);
+
+    float placeboPeakDetectionSceneThresholdLow() const;
+    void setPlaceboPeakDetectionSceneThresholdLow(float threshold_low);
+
+    float placeboPeakDetectionSceneThresholdHigh() const;
+    void setPlaceboPeakDetectionSceneThresholdHigh(float threshold_high);
+
+    float placeboPeakDetectionPeakPercentile() const;
+    void setPlaceboPeakDetectionPeakPercentile(float percentile);
+
+    float placeboPeakDetectionBlackCutoff() const;
+    void setPlaceboPeakDetectionBlackCutoff(float cutoff);
+
+    bool placeboPeakDetectionAllowDelayedPeak() const;
+    void setPlaceboPeakDetectionAllowDelayedPeak(bool allowed);
+
+    bool placeboColorMappingEnabled() const;
+    void setPlaceboColorMappingEnabled(bool enabled);
+
+    int placeboColorMappingPreset() const;
+    void setPlaceboColorMappingPreset(int preset);
+
+    int placeboGamutMappingFunction() const;
+    void setPlaceboGamutMappingFunction(int function);
+
+    float placeboGamutMappingPerceptualDeadzone() const;
+    void setPlaceboGamutMappingPerceptualDeadzone(float deadzone);
+
+    float placeboGamutMappingPerceptualStrength() const;
+    void setPlaceboGamutMappingPerceptualStrength(float strength);
+
+    float placeboGamutMappingColorimetricGamma() const;
+    void setPlaceboGamutMappingColorimetricGamma(float gamma);
+
+    float placeboGamutMappingSoftClipKnee() const;
+    void setPlaceboGamutMappingSoftClipKnee(float knee);
+
+    float placeboGamutMappingSoftClipDesat() const;
+    void setPlaceboGamutMappingSoftClipDesat(float desat);
+
+    int placeboGamutMappingLut3dSizeI() const;
+    void setPlaceboGamutMappingLut3dSizeI(int size);
+
+    int placeboGamutMappingLut3dSizeC() const;
+    void setPlaceboGamutMappingLut3dSizeC(int size);
+
+    int placeboGamutMappingLut3dSizeH() const;
+    void setPlaceboGamutMappingLut3dSizeH(int size);
+
+    bool placeboGamutMappingLut3dTricubicEnabled() const;
+    void setPlaceboGamutMappingLut3dTricubicEnabled(bool enabled);
+
+    bool placeboGamutMappingGamutExpansionEnabled() const;
+    void setPlaceboGamutMappingGamutExpansionEnabled(bool enabled);
+
+    int placeboToneMappingFunction() const;
+    void setPlaceboToneMappingFunction(int function);
+
+    float placeboToneMappingKneeAdaptation() const;
+    void setPlaceboToneMappingKneeAdaptation(float adaptation);
+
+    float placeboToneMappingKneeMinimum() const;
+    void setPlaceboToneMappingKneeMinimum(float min);
+
+    float placeboToneMappingKneeMaximum() const;
+    void setPlaceboToneMappingKneeMaximum(float max);
+
+    float placeboToneMappingKneeDefault() const;
+    void setPlaceboToneMappingKneeDefault(float default_knee);
+
+    float placeboToneMappingKneeOffset() const;
+    void setPlaceboToneMappingKneeOffset(float offset);
+
+    float placeboToneMappingSlopeTuning() const;
+    void setPlaceboToneMappingSlopeTuning(float tuning);
+
+    float placeboToneMappingSlopeOffset() const;
+    void setPlaceboToneMappingSlopeOffset(float offset);
+
+    float placeboToneMappingSplineContrast() const;
+    void setPlaceboToneMappingSplineContrast(float contrast);
+
+    float placeboToneMappingReinhardContrast() const;
+    void setPlaceboToneMappingReinhardContrast(float contrast);
+
+    float placeboToneMappingLinearKnee() const;
+    void setPlaceboToneMappingLinearKnee(float knee);
+
+    float placeboToneMappingExposure() const;
+    void setPlaceboToneMappingExposure(float exposure);
+
+    bool placeboToneMappingInverseToneMappingEnabled() const;
+    void setPlaceboToneMappingInverseToneMappingEnabled(bool enabled);
+
+    int placeboToneMappingMetadata() const;
+    void setPlaceboToneMappingMetadata(int metadata);
+
+    int placeboToneMappingToneLutSize() const;
+    void setPlaceboToneMappingToneLutSize(int size);
+
+    float placeboToneMappingContrastRecovery() const;
+    void setPlaceboToneMappingContrastRecovery(float recovery);
+
+    float placeboToneMappingContrastSmoothness() const;
+    void setPlaceboToneMappingContrastSmoothness(float smoothness);
+
     QString psnAuthToken() const;
     void setPsnAuthToken(const QString &auth_token);
 
@@ -176,6 +424,7 @@ public:
 
     void setSettings(Settings *new_settings);
     void refreshAllKeys();
+    void refreshAllPlaceboKeys();
 
     QString logDirectory() const;
     QStringList availableDecoders() const;
@@ -190,7 +439,9 @@ public:
     Q_INVOKABLE QString changeControllerKey(int button, int key);
     Q_INVOKABLE void clearKeyMapping();
     Q_INVOKABLE void exportSettings(QString fileurl);
+    Q_INVOKABLE void exportPlaceboSettings(QString fileurl);
     Q_INVOKABLE void importSettings(QString fileurl);
+    Q_INVOKABLE void importPlaceboSettings(QString fileurl);
     Q_INVOKABLE void deleteProfile(QString profile);
 
 signals:
@@ -242,6 +493,68 @@ signals:
     void packetLossMaxChanged();
     void currentProfileChanged();
     void profilesChanged();
+    void placeboUpscalerChanged();
+    void placeboPlaneUpscalerChanged();
+    void placeboDownscalerChanged();
+    void placeboPlaneDownscalerChanged();
+    void placeboFrameMixerChanged();
+    void placeboAntiringingStrengthChanged();
+    void placeboDebandEnabledChanged();
+    void placeboDebandPresetChanged();
+    void placeboDebandIterationsChanged();
+    void placeboDebandThresholdChanged();
+    void placeboDebandRadiusChanged();
+    void placeboDebandGrainChanged();
+    void placeboSigmoidEnabledChanged();
+    void placeboSigmoidPresetChanged();
+    void placeboSigmoidCenterChanged();
+    void placeboSigmoidSlopeChanged();
+    void placeboColorAdjustmentEnabledChanged();
+    void placeboColorAdjustmentPresetChanged();
+    void placeboColorAdjustmentBrightnessChanged();
+    void placeboColorAdjustmentContrastChanged();
+    void placeboColorAdjustmentSaturationChanged();
+    void placeboColorAdjustmentHueChanged();
+    void placeboColorAdjustmentGammaChanged();
+    void placeboColorAdjustmentTemperatureChanged();
+    void placeboPeakDetectionEnabledChanged();
+    void placeboPeakDetectionPresetChanged();
+    void placeboPeakDetectionPeakSmoothingPeriodChanged();
+    void placeboPeakDetectionSceneThresholdLowChanged();
+    void placeboPeakDetectionSceneThresholdHighChanged();
+    void placeboPeakDetectionPeakPercentileChanged();
+    void placeboPeakDetectionBlackCutoffChanged();
+    void placeboPeakDetectionAllowDelayedPeakChanged();
+    void placeboColorMappingEnabledChanged();
+    void placeboColorMappingPresetChanged();
+    void placeboGamutMappingFunctionChanged();
+    void placeboGamutMappingPerceptualDeadzoneChanged();
+    void placeboGamutMappingPerceptualStrengthChanged();
+    void placeboGamutMappingColorimetricGammaChanged();
+    void placeboGamutMappingSoftClipKneeChanged();
+    void placeboGamutMappingSoftClipDesatChanged();
+    void placeboGamutMappingLut3dSizeIChanged();
+    void placeboGamutMappingLut3dSizeCChanged();
+    void placeboGamutMappingLut3dSizeHChanged();
+    void placeboGamutMappingLut3dTricubicEnabledChanged();
+    void placeboGamutMappingGamutExpansionEnabledChanged();
+    void placeboToneMappingFunctionChanged();
+    void placeboToneMappingKneeAdaptationChanged();
+    void placeboToneMappingKneeMinimumChanged();
+    void placeboToneMappingKneeMaximumChanged();
+    void placeboToneMappingKneeDefaultChanged();
+    void placeboToneMappingKneeOffsetChanged();
+    void placeboToneMappingSlopeTuningChanged();
+    void placeboToneMappingSlopeOffsetChanged();
+    void placeboToneMappingSplineContrastChanged();
+    void placeboToneMappingReinhardContrastChanged();
+    void placeboToneMappingLinearKneeChanged();
+    void placeboToneMappingExposureChanged();
+    void placeboToneMappingInverseToneMappingEnabledChanged();
+    void placeboToneMappingMetadataChanged();
+    void placeboToneMappingToneLutSizeChanged();
+    void placeboToneMappingContrastRecoveryChanged();
+    void placeboToneMappingContrastSmoothnessChanged();
 
 private:
     Settings *settings = {};

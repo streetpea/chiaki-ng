@@ -295,6 +295,19 @@ DialogView {
                             }
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Custom Renderer Settings")
+                        visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
+                    }
+
+                    C.Button {
+                        id: customRendererSettings
+                        text: qsTr("Open")
+                        onClicked: root.showPlaceboSettingsDialog()
+                        Material.roundedScale: Material.SmallScale
+                    }
                 }
             }
 

@@ -82,12 +82,14 @@ private:
 
 QmlMainWindow::QmlMainWindow(Settings *settings)
     : QWindow()
+    , settings(settings)
 {
     init(settings);
 }
 
 QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     : QWindow()
+    , settings(connect_info.settings)
 {
     init(connect_info.settings);
     backend->createSession(connect_info);
@@ -237,6 +239,11 @@ void QmlMainWindow::setVideoPreset(VideoPreset preset)
 {
     video_preset = preset;
     emit videoPresetChanged();
+}
+
+void QmlMainWindow::setSettings(Settings *new_settings)
+{
+    settings = new_settings;
 }
 
 void QmlMainWindow::show()
@@ -520,17 +527,7 @@ void QmlMainWindow::init(Settings *settings)
 
     this->renderparams_opts = pl_options_alloc(this->placebo_log);
     pl_options_reset(this->renderparams_opts, &pl_render_high_quality_params);
-
-    this->renderparams_watcher = new QFileSystemWatcher(this);
-    this->renderparams_watcher->addPath(render_params_path());
     this->renderparams_changed = true;
-    connect(
-        this->renderparams_watcher,
-        &QFileSystemWatcher::fileChanged, this,
-        [this](const QString &path) {
-            this->renderparams_changed = true;
-            this->renderparams_watcher->addPath(render_params_path());
-        });
 
 
     switch (settings->GetPlaceboPreset()) {
@@ -575,6 +572,11 @@ void QmlMainWindow::scheduleUpdate()
 
     if (!update_timer->isActive())
         update_timer->start(has_video ? 50 : 10);
+}
+
+void QmlMainWindow::updatePlacebo()
+{
+    renderparams_changed = true;
 }
 
 void QmlMainWindow::createSwapchain()
@@ -812,15 +814,21 @@ void QmlMainWindow::render()
     case VideoPreset::Custom:
         if (renderparams_changed) {
             renderparams_changed = false;
-            QFile paramsFile(render_params_path());
-            bool loaded = false;
-            if (paramsFile.open(QIODevice::ReadOnly)) {
-                QByteArray paramsData = paramsFile.readAll();
-                if (!pl_options_load(this->renderparams_opts, paramsData.constData())) {
-                    qCCritical(chiakiGui) << "Failed to load custom render params!";
-                } else {
-                    qCInfo(chiakiGui) << "Updated custom render parameters.";
+            QMap<QString, QString> paramsData = settings->GetPlaceboValues();
+            QMapIterator<QString, QString> i(paramsData);
+            bool invalid_render_params = false;
+            while (i.hasNext()) {
+                i.next();
+                if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
+                {
+                    invalid_render_params = true;
+                    qCCritical(chiakiGui) << "Failed to load custom render param: " << i.key() << " with value: " << i.value();
                 }
+            }
+            if (invalid_render_params)
+                qCInfo(chiakiGui) << "Updated custom render parameters with one or more invalid parameters.";
+            else {
+                qCInfo(chiakiGui) << "Updated custom render parameters successfully.";
             }
         }
         render_params = &(this->renderparams_opts->params);

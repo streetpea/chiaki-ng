@@ -59,6 +59,14 @@ Item {
         stack.push(settingsDialogComponent);
     }
 
+    function showPlaceboSettingsDialog() {
+        stack.push(placeboSettingsDialogComponent);
+    }
+
+    function showPlaceboColorMappingDialog() {
+        stack.push(placeboColorMappingDialogComponent);
+    }
+
     function showProfileDialog() {
         stack.push(profileDialogComponent)
     }
@@ -215,6 +223,16 @@ Item {
     Component {
         id: settingsDialogComponent
         SettingsDialog { }
+    }
+
+    Component {
+        id: placeboSettingsDialogComponent
+        PlaceboSettingsDialog { }
+    }
+
+    Component {
+        id: placeboColorMappingDialogComponent
+        PlaceboColorMappingDialog { }
     }
 
     Component {

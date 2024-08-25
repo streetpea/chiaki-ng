@@ -9,6 +9,7 @@
 
 #include <QSettings>
 #include <QList>
+#include <QMap>
 
 enum class ControllerButtonExt
 {
@@ -56,6 +57,102 @@ enum class WindowType {
 	Stretch
 };
 
+enum class PlaceboUpscaler {
+	None,
+	Nearest,
+	Bilinear,
+	Oversample,
+	Bicubic,
+	Gaussian,
+	CatmullRom,
+	Lanczos,
+	EwaLanczos,
+	EwaLanczosSharp,
+	EwaLanczos4Sharpest
+};
+
+enum class PlaceboDownscaler {
+	None,
+	Box,
+	Hermite,
+	Bilinear,
+	Bicubic,
+	Gaussian,
+	CatmullRom,
+	Mitchell,
+	Lanczos
+};
+
+enum class PlaceboFrameMixer {
+	None,
+	Oversample,
+	Hermite,
+	Linear,
+	Cubic
+};
+
+enum class PlaceboDebandPreset {
+	None,
+	Default
+};
+
+enum class PlaceboSigmoidPreset {
+	None,
+	Default
+};
+
+enum class PlaceboColorAdjustmentPreset {
+	None,
+	Neutral
+};
+
+enum class PlaceboPeakDetectionPreset {
+	None,
+	Default,
+	HighQuality
+};
+
+enum class PlaceboColorMappingPreset {
+	None,
+	Default,
+	HighQuality
+};
+
+enum class PlaceboGamutMappingFunction {
+	Clip,
+	Perceptual,
+	SoftClip,
+	Relative,
+	Saturation,
+	Absolute,
+	Desaturate,
+	Darken,
+	Highlight,
+	Linear
+};
+
+enum class PlaceboToneMappingFunction {
+	Clip,
+	Spline,
+	St209440,
+	St209410,
+	Bt2390,
+	Bt2446a,
+	Reinhard,
+	Mobius,
+	Hable,
+	Gamma,
+	Linear,
+	LinearLight
+};
+
+enum class PlaceboToneMappingMetadata {
+	Any,
+	None,
+	Hdr10,
+	Hdr10Plus,
+	CieY
+};
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -63,6 +160,7 @@ class Settings : public QObject
 	private:
 		QSettings settings;
 		QSettings default_settings;
+		QSettings placebo_settings;
 		QString time_format;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
@@ -86,6 +184,11 @@ class Settings : public QObject
 
 		void ExportSettings(QString fileurl);
 		void ImportSettings(QString fileurl);
+
+		void ExportPlaceboSettings(QString fileurl);
+		void ImportPlaceboSettings(QString fileurl);
+
+		QMap<QString, QString> GetPlaceboValues();
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
@@ -235,6 +338,194 @@ class Settings : public QObject
 		SuspendAction GetSuspendAction();
 		void SetSuspendAction(SuspendAction action);
 
+		PlaceboUpscaler GetPlaceboUpscaler() const;
+		void SetPlaceboUpscaler(PlaceboUpscaler upscaler);
+
+		PlaceboUpscaler GetPlaceboPlaneUpscaler() const;
+		void SetPlaceboPlaneUpscaler(PlaceboUpscaler upscaler);
+		
+		PlaceboDownscaler GetPlaceboDownscaler() const;
+		void SetPlaceboDownscaler(PlaceboDownscaler downscaler);
+
+		PlaceboDownscaler GetPlaceboPlaneDownscaler() const;
+		void SetPlaceboPlaneDownscaler(PlaceboDownscaler downscaler);
+
+		PlaceboFrameMixer GetPlaceboFrameMixer() const;
+		void SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer);
+
+		int GetPlaceboAntiringingStrength() const;
+		void SetPlaceboAntiringingStrength(int strength);
+
+		bool GetPlaceboDebandEnabled() const;
+		void SetPlaceboDebandEnabled(bool enabled);
+
+		PlaceboDebandPreset GetPlaceboDebandPreset() const;
+		void SetPlaceboDebandPreset(PlaceboDebandPreset preset);
+
+		int GetPlaceboDebandIterations() const;
+		void SetPlaceboDebandIterations(int iterations);
+
+		float GetPlaceboDebandThreshold() const;
+		void SetPlaceboDebandThreshold(float threshold);
+
+		float GetPlaceboDebandRadius() const;
+		void SetPlaceboDebandRadius(float radius);
+		
+		float GetPlaceboDebandGrain() const;
+		void SetPlaceboDebandGrain(float grain);
+		
+		bool GetPlaceboSigmoidEnabled() const;
+		void SetPlaceboSigmoidEnabled(bool enabled);
+
+		PlaceboSigmoidPreset GetPlaceboSigmoidPreset() const;
+		void SetPlaceboSigmoidPreset(PlaceboSigmoidPreset preset);
+		
+		float GetPlaceboSigmoidCenter() const;
+		void SetPlaceboSigmoidCenter(float center);
+
+		float GetPlaceboSigmoidSlope() const;
+		void SetPlaceboSigmoidSlope(float slope);
+
+		bool GetPlaceboColorAdjustmentEnabled() const;
+		void SetPlaceboColorAdjustmentEnabled(bool enabled);
+
+		PlaceboColorAdjustmentPreset GetPlaceboColorAdjustmentPreset() const;
+		void SetPlaceboColorAdjustmentPreset(PlaceboColorAdjustmentPreset preset);
+
+		float GetPlaceboColorAdjustmentBrightness() const;
+		void SetPlaceboColorAdjustmentBrightness(float brightness);
+
+		float GetPlaceboColorAdjustmentContrast() const;
+		void SetPlaceboColorAdjustmentContrast(float contrast);
+
+		float GetPlaceboColorAdjustmentSaturation() const;
+		void SetPlaceboColorAdjustmentSaturation(float saturation);
+
+		float GetPlaceboColorAdjustmentHue() const;
+		void SetPlaceboColorAdjustmentHue(float hue);
+
+		float GetPlaceboColorAdjustmentGamma() const;
+		void SetPlaceboColorAdjustmentGamma(float gamma);
+
+		float GetPlaceboColorAdjustmentTemperature() const;
+		void SetPlaceboColorAdjustmentTemperature(float temperature);
+
+		bool GetPeakDetectionEnabled() const;
+		void SetPeakDetectionEnabled(bool enabled);
+
+		PlaceboPeakDetectionPreset GetPlaceboPeakDetectionPreset() const;
+		void SetPlaceboPeakDetectionPreset(PlaceboPeakDetectionPreset preset);
+
+		float GetPlaceboPeakDetectionPeakSmoothingPeriod() const;
+		void SetPlaceboPeakDetectionPeakSmoothingPeriod(float period);
+
+		float GetPlaceboPeakDetectionSceneThresholdLow() const;
+		void SetPlaceboPeakDetectionSceneThresholdLow(float threshold_low);
+
+		float GetPlaceboPeakDetectionSceneThresholdHigh() const;
+		void SetPlaceboPeakDetectionSceneThresholdHigh(float threshold_high);
+
+		float GetPlaceboPeakDetectionPeakPercentile() const;
+		void SetPlaceboPeakDetectionPeakPercentile(float percentile);
+
+		float GetPlaceboPeakDetectionBlackCutoff() const;
+		void SetPlaceboPeakDetectionBlackCutoff(float cutoff);
+
+		bool GetPlaceboPeakDetectionAllowDelayedPeak() const;
+		void SetPlaceboPeakDetectionAllowDelayedPeak(bool allowed);
+
+		bool GetPlaceboColorMappingEnabled() const;
+		void SetPlaceboColorMappingEnabled(bool enabled);
+
+		PlaceboColorMappingPreset GetPlaceboColorMappingPreset() const;
+		void SetPlaceboColorMappingPreset(PlaceboColorMappingPreset preset);
+
+		PlaceboGamutMappingFunction GetPlaceboGamutMappingFunction() const;
+		void SetPlaceboGamutMappingFunction(PlaceboGamutMappingFunction function);
+
+		float GetPlaceboGamutMappingPerceptualDeadzone() const;
+		void SetPlaceboGamutMappingPerceptualDeadzone(float deadzone);
+
+		float GetPlaceboGamutMappingPerceptualStrength() const;
+		void SetPlaceboGamutMappingPerceptualStrength(float strength);
+
+		float GetPlaceboGamutMappingColorimetricGamma() const;
+		void SetPlaceboGamutMappingColorimetricGamma(float gamma);
+
+		float GetPlaceboGamutMappingSoftClipKnee() const;
+		void SetPlaceboGamutMappingSoftClipKnee(float knee);
+
+		float GetPlaceboGamutMappingSoftClipDesat() const;
+		void SetPlaceboGamutMappingSoftClipDesat(float strength);
+
+		int GetPlaceboGamutMappingLut3dSizeI() const;
+		void SetPlaceboGamutMappingLut3dSizeI(int size);
+
+		int GetPlaceboGamutMappingLut3dSizeC() const;
+		void SetPlaceboGamutMappingLut3dSizeC(int size);
+
+		int GetPlaceboGamutMappingLut3dSizeH() const;
+		void SetPlaceboGamutMappingLut3dSizeH(int size);
+
+		bool GetPlaceboGamutMappingLut3dTricubicEnabled() const;
+		void SetPlaceboGamutMappingLut3dTricubicEnabled(bool enabled);
+
+		bool GetPlaceboGamutMappingGamutExpansionEnabled() const;
+		void SetPlaceboGamutMappingGamutExpansionEnabled(bool enabled);
+
+		PlaceboToneMappingFunction GetPlaceboToneMappingFunction() const;
+		void SetPlaceboToneMappingFunction(PlaceboToneMappingFunction function);
+
+		float GetPlaceboToneMappingKneeAdaptation() const;
+		void SetPlaceboToneMappingKneeAdaptation(float knee);
+
+		float GetPlaceboToneMappingKneeMinimum() const;
+		void SetPlaceboToneMappingKneeMinimum(float knee);
+
+		float GetPlaceboToneMappingKneeMaximum() const;
+		void SetPlaceboToneMappingKneeMaximum(float knee);
+
+		float GetPlaceboToneMappingKneeDefault() const;
+		void SetPlaceboToneMappingKneeDefault(float knee);
+
+		float GetPlaceboToneMappingKneeOffset() const;
+		void SetPlaceboToneMappingKneeOffset(float knee);
+
+		float GetPlaceboToneMappingSlopeTuning() const;
+		void SetPlaceboToneMappingSlopeTuning(float slope);
+
+		float GetPlaceboToneMappingSlopeOffset() const;
+		void SetPlaceboToneMappingSlopeOffset(float offset);
+
+		float GetPlaceboToneMappingSplineContrast() const;
+		void SetPlaceboToneMappingSplineContrast(float contrast);
+
+		float GetPlaceboToneMappingReinhardContrast() const;
+		void SetPlaceboToneMappingReinhardContrast(float contrast);
+
+		float GetPlaceboToneMappingLinearKnee() const;
+		void SetPlaceboToneMappingLinearKnee(float knee);
+
+		float GetPlaceboToneMappingExposure() const;
+		void SetPlaceboToneMappingExposure(float exposure);
+
+		bool GetPlaceboToneMappingInverseToneMappingEnabled() const;
+		void SetPlaceboToneMappingInverseToneMappingEnabled(bool enabled);
+
+		PlaceboToneMappingMetadata GetPlaceboToneMappingMetadata() const;
+		void SetPlaceboToneMappingMetadata(PlaceboToneMappingMetadata function);
+
+		int GetPlaceboToneMappingToneLutSize() const;
+		void SetPlaceboToneMappingToneLutSize(int size);
+
+		float GetPlaceboToneMappingContrastRecovery() const;
+		void SetPlaceboToneMappingContrastRecovery(float recovery);
+
+		float GetPlaceboToneMappingContrastSmoothness() const;
+		void SetPlaceboToneMappingContrastSmoothness(float smoothness);
+
+		void PlaceboSettingsApply();
+
 		QList<RegisteredHost> GetRegisteredHosts() const			{ return registered_hosts.values(); }
 		void AddRegisteredHost(const RegisteredHost &host);
 		void RemoveRegisteredHost(const HostMAC &mac);
@@ -261,6 +552,7 @@ class Settings : public QObject
 		void ManualHostsUpdated();
 		void CurrentProfileChanged();
 		void ProfilesUpdated();
+		void PlaceboSettingsUpdated();
 };
 
 #endif // CHIAKI_SETTINGS_H

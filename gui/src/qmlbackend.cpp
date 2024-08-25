@@ -272,6 +272,7 @@ void QmlBackend::profileChanged()
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     settings_qml->setSettings(settings);
     discovery_manager.SetSettings(settings);
+    window->setSettings(settings);
     setDiscoveryEnabled(true);
 
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
@@ -1235,6 +1236,21 @@ QString QmlBackend::openPsnLink()
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
+    if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
+    {
+        qCWarning(chiakiGui) << "Launched browser.";
+        return QString();
+    }
+    else
+    {
+        qCWarning(chiakiGui) << "Could not launch browser.";
+        return QString(url.toEncoded());
+    }
+}
+
+QString QmlBackend::openPlaceboOptionsLink()
+{
+    QUrl url = QUrl("https://libplacebo.org/options/");
     if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
     {
         qCWarning(chiakiGui) << "Launched browser.";
