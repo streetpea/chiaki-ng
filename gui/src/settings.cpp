@@ -872,12 +872,12 @@ void Settings::SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer)
 	placebo_settings.setValue("placebo_settings/frame_mixer", placebo_frame_mixer_values[frame_mixer]);
 }
 
-int Settings::GetPlaceboAntiringingStrength() const
+float Settings::GetPlaceboAntiringingStrength() const
 {
-	return placebo_settings.value("placebo_settings/antiringing_strength", 0.0).toInt();
+	return placebo_settings.value("placebo_settings/antiringing_strength", 0.0).toFloat();
 }
 
-void Settings::SetPlaceboAntiringingStrength(int strength)
+void Settings::SetPlaceboAntiringingStrength(float strength)
 {
 	placebo_settings.setValue("placebo_settings/antiringing_strength", strength);
 }

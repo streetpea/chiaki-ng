@@ -809,7 +809,7 @@ DialogView {
                         Layout.preferredWidth: 250
                         from: 0.0
                         to: 100.0
-                        stepSize: 0.1
+                        stepSize: 0.001
                         value: Chiaki.settings.placeboPeakDetectionPeakPercentile
                         onMoved: Chiaki.settings.placeboPeakDetectionPeakPercentile = value
                         visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)

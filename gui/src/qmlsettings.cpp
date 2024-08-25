@@ -519,11 +519,11 @@ void QmlSettings::setPlaceboFrameMixer(int mixer)
     emit placeboFrameMixerChanged();
 }
 
-int QmlSettings::placeboAntiringingStrength() const
+float QmlSettings::placeboAntiringingStrength() const
 {
     return settings->GetPlaceboAntiringingStrength();
 }
-void QmlSettings::setPlaceboAntiringingStrength(int strength)
+void QmlSettings::setPlaceboAntiringingStrength(float strength)
 {
     settings->SetPlaceboAntiringingStrength(strength);
     emit placeboAntiringingStrengthChanged();

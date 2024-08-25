@@ -353,8 +353,8 @@ class Settings : public QObject
 		PlaceboFrameMixer GetPlaceboFrameMixer() const;
 		void SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer);
 
-		int GetPlaceboAntiringingStrength() const;
-		void SetPlaceboAntiringingStrength(int strength);
+		float GetPlaceboAntiringingStrength() const;
+		void SetPlaceboAntiringingStrength(float strength);
 
 		bool GetPlaceboDebandEnabled() const;
 		void SetPlaceboDebandEnabled(bool enabled);

@@ -61,7 +61,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
     Q_PROPERTY(int placeboPlaneDownscaler READ placeboPlaneDownscaler WRITE setPlaceboPlaneDownscaler NOTIFY placeboPlaneDownscalerChanged)
     Q_PROPERTY(int placeboFrameMixer READ placeboFrameMixer WRITE setPlaceboFrameMixer NOTIFY placeboFrameMixerChanged)
-    Q_PROPERTY(int placeboAntiringingStrength READ placeboAntiringingStrength WRITE setPlaceboAntiringingStrength NOTIFY placeboAntiringingStrengthChanged)
+    Q_PROPERTY(float placeboAntiringingStrength READ placeboAntiringingStrength WRITE setPlaceboAntiringingStrength NOTIFY placeboAntiringingStrengthChanged)
     Q_PROPERTY(bool placeboDebandEnabled READ placeboDebandEnabled WRITE setPlaceboDebandEnabled NOTIFY placeboDebandEnabledChanged)
     Q_PROPERTY(int placeboDebandPreset READ placeboDebandPreset WRITE setPlaceboDebandPreset NOTIFY placeboDebandPresetChanged)
     Q_PROPERTY(int placeboDebandIterations READ placeboDebandIterations WRITE setPlaceboDebandIterations NOTIFY placeboDebandIterationsChanged)
@@ -236,8 +236,8 @@ public:
     int placeboFrameMixer() const;
     void setPlaceboFrameMixer(int mixer);
 
-    int placeboAntiringingStrength() const;
-    void setPlaceboAntiringingStrength(int strength);
+    float placeboAntiringingStrength() const;
+    void setPlaceboAntiringingStrength(float strength);
 
     bool placeboDebandEnabled() const;
     void setPlaceboDebandEnabled(bool enabled);
