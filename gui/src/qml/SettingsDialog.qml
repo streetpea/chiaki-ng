@@ -255,25 +255,6 @@ DialogView {
                         }
                     }
                 }
-
-                C.Button {
-                    id: aboutButton
-                    anchors {
-                        right: parent.right
-                        rightMargin: 290
-                        top: parent.top
-                        topMargin: 50
-                    }
-                    lastInFocusChain: true
-                    implicitWidth: 200
-                    topPadding: 26
-                    leftPadding: 30
-                    rightPadding: 30
-                    bottomPadding: 26
-                    text: qsTr("About %1").arg(Qt.application.name)
-                    onClicked: aboutDialog.open()
-                    Material.roundedScale: Material.SmallScale
-                }
             }
 
             Item {
@@ -1232,20 +1213,24 @@ DialogView {
                             exportDialog.open()
                         }
                         Material.roundedScale: Material.SmallScale
-                        KeyNavigation.down: importButton
-                        KeyNavigation.right: importButton
                     }
 
                     C.Button {
                         id: importButton
-                        lastInFocusChain: true
                         text: qsTr("Import settings from file")
                         onClicked: {
                             importDialog.open()
                         }
                         Material.roundedScale: Material.SmallScale
-                        KeyNavigation.up: exportButton
-                        KeyNavigation.left: exportButton
+                    }
+
+                    C.Button {
+                        id: aboutButton
+                        lastInFocusChain: true
+                        implicitWidth: 200
+                        text: qsTr("About %1").arg(Qt.application.displayName)
+                        onClicked: aboutDialog.open()
+                        Material.roundedScale: Material.SmallScale
                     }
                 }
             }
