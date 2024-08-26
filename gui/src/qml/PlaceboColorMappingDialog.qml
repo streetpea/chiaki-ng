@@ -37,7 +37,8 @@ DialogView {
         LinearLight
     }
     id: dialog
-    title: qsTr("Placebo Renderer Color Mapping Settings")
+    title: qsTr("Color Mapping Settings")
+    header: qsTr("* Defaults in () to right of value or marked with (Default)")
     buttonVisible: false
     Keys.onPressed: (event) => {
         if (event.modifiers)
@@ -108,7 +109,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -123,6 +124,11 @@ DialogView {
                         model: [qsTr("Clip"), qsTr("Perceptual"), qsTr("Soft Clip"), qsTr("Relative"), qsTr("Saturation"), qsTr("Absolute"), qsTr("Desaturate"), qsTr("Darken"), qsTr("Highlight"), qsTr("Linear")]
                         currentIndex: Chiaki.settings.placeboGamutMappingFunction
                         onActivated: index => Chiaki.settings.placeboGamutMappingFunction = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Perceptual)")
                     }
 
                     Label {
@@ -147,6 +153,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                        visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Perceptual
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.30)")
                         visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Perceptual
                     }
 
@@ -178,6 +190,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.80)")
+                        visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Perceptual
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Colorimetric Gamma:")
                         visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Relative || Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Absolute || Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Darken
                     }
@@ -199,6 +217,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.80)")
+                        visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Relative || Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Absolute || Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Darken
                     }
 
                     Label {
@@ -228,6 +252,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.70)")
+                        visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.Perceptual || Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.SoftClip
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Soft Clip Desaturation:")
                         visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.SoftClip
                     }
@@ -250,6 +280,12 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.35)")
+                        visible: Chiaki.settings.placeboGamutMappingFunction == PlaceboColorMappingDialog.GamutMappingFunction.SoftClip
+                    }
                 }
             }
 
@@ -261,7 +297,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -290,6 +326,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(48)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("LUT 3D Size C:")
                     }
 
@@ -309,6 +350,11 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(32)")
                     }
 
                     Label {
@@ -336,6 +382,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(256)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("LUT 3D Tricubic Enabled:")
                     }
 
@@ -343,6 +394,11 @@ DialogView {
                         text: qsTr("Enable Tricubic Interpolation for 3DLUTs")
                         checked: Chiaki.settings.placeboGamutMappingLut3dTricubicEnabled
                         onToggled: Chiaki.settings.placeboGamutMappingLut3dTricubicEnabled = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
                     }
 
                     Label {
@@ -355,6 +411,11 @@ DialogView {
                         checked: Chiaki.settings.placeboGamutMappingGamutExpansionEnabled
                         onToggled: Chiaki.settings.placeboGamutMappingGamutExpansionEnabled = checked
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
                 }
             }
 
@@ -366,7 +427,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -381,6 +442,11 @@ DialogView {
                         model: [qsTr("Clip"), qsTr("Spline"), qsTr("St2094-40"), qsTr("St-2094-10"), qsTr("Bt2390"), qsTr("Bt2446a"), qsTr("Reinhard"), qsTr("Mobius"), qsTr("Hable"), qsTr("Gamma"), qsTr("Linear"), qsTr("Linear Light")]
                         currentIndex: Chiaki.settings.placeboToneMappingFunction
                         onActivated: index => Chiaki.settings.placeboToneMappingFunction = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Spline)")
                     }
 
                     Label {
@@ -411,6 +477,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.4)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Spline || Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.St209440 || Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.St209410
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Knee Minimum:")
                         visible: kneeadaptation.visible
                     }
@@ -432,6 +504,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.1)")
+                        visible: kneeadaptation.visible
                     }
 
                     Label {
@@ -461,6 +539,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.8)")
+                        visible: kneeadaptation.visible
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Knee Default:")
                     }
 
@@ -480,6 +564,11 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.4)")
                     }
 
                     Label {
@@ -506,6 +595,12 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.0)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Bt2390
+                    }
                 }
             }
 
@@ -517,9 +612,9 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
-                    columnSpacing: 20
+                    columnSpacing: 100
 
                     Label {
                         Layout.alignment: Qt.AlignRight
@@ -537,6 +632,7 @@ DialogView {
                         visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Spline
 
                         Label {
+                            id: slopeTuningLabel
                             anchors {
                                 left: parent.right
                                 verticalCenter: parent.verticalCenter
@@ -544,6 +640,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.5)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Spline
                     }
 
                     Label {
@@ -573,6 +675,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.2)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Spline
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Spline Contrast:")
                         visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Spline
                     }
@@ -594,6 +702,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.5)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Spline
                     }
 
                     Label {
@@ -623,6 +737,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.5)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Reinhard
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Linear Knee:")
                         visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Mobius || Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Gamma
                     }
@@ -644,6 +764,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.3)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Mobius || Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Gamma
                     }
 
                     Label {
@@ -670,6 +796,12 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.0)")
+                        visible: Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.Linear || Chiaki.settings.placeboToneMappingFunction == PlaceboColorMappingDialog.ToneMappingFunction.LinearLight
+                    }
                 }
             }
             
@@ -681,7 +813,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -698,6 +830,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Tone-mapping Metadata:")
                     }
 
@@ -707,6 +844,11 @@ DialogView {
                         model: [qsTr("Any"), qsTr("None"), qsTr("HDR10"), qsTr("HDR10 Plus"), qsTr("Cie_y")]
                         currentIndex: Chiaki.settings.placeboToneMappingMetadata
                         onActivated: index => Chiaki.settings.placeboToneMappingMetadata = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Any)")
                     }
 
                     Label {
@@ -734,6 +876,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(256)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Contrast Recovery:")
                     }
 
@@ -757,6 +904,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.3)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Contrast Smoothness:")
                     }
 
@@ -776,6 +928,11 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(3.5)")
                     }
                 }
             }

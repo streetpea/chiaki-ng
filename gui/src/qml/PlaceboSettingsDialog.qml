@@ -17,6 +17,7 @@ DialogView {
     }
     property string options_url: ""
     title: qsTr("Placebo Renderer Settings")
+    header: qsTr("* Defaults in () to right of value or marked with (Default)")
     buttonVisible: false
     Keys.onPressed: (event) => {
         if (event.modifiers)
@@ -178,7 +179,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -197,6 +198,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(EwaLanczosSharp)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Plane Upscaler:")
                     }
 
@@ -206,6 +212,11 @@ DialogView {
                         model: [qsTr("Chosen Upscaler"), qsTr("Nearest"), qsTr("Bilinear"), qsTr("Oversample"), qsTr("Bicubic"), qsTr("Gaussian"), qsTr("Catmull Rom"), qsTr("Lanczos"), qsTr("EwaLanczos"), qsTr("EwaLanczosSharp"), qsTr("EwaLanczosSharpest")]
                         currentIndex: Chiaki.settings.placeboPlaneUpscaler
                         onActivated: index => Chiaki.settings.placeboPlaneUpscaler = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Chosen Upscaler)")
                     }
 
                     Label {
@@ -223,6 +234,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Hermite)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Plane Downscaler:")
                     }
 
@@ -236,6 +252,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Chosen Downscaler)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Frame Mixer:")
                     }
 
@@ -244,6 +265,11 @@ DialogView {
                         model: [qsTr("None"), qsTr("Oversample"), qsTr("Hermite"), qsTr("Linear"), qsTr("Cubic")]
                         currentIndex: Chiaki.settings.placeboFrameMixer
                         onActivated: index => Chiaki.settings.placeboFrameMixer = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Oversample)")
                     }
 
                     Label {
@@ -268,6 +294,11 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.0)")
+                    }
                 }
             }
 
@@ -279,7 +310,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -294,6 +325,12 @@ DialogView {
                         onToggled: Chiaki.settings.placeboDebandEnabled = checked
                     }
 
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Deband Preset:")
@@ -305,6 +342,12 @@ DialogView {
                         model: [qsTr("Custom"), qsTr("Default")]
                         currentIndex: Chiaki.settings.placeboDebandPreset
                         onActivated: index => Chiaki.settings.placeboDebandPreset = index
+                        visible: Chiaki.settings.placeboDebandEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Custom)")
                         visible: Chiaki.settings.placeboDebandEnabled
                     }
 
@@ -335,6 +378,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1)")
+                        visible: Chiaki.settings.placeboDebandEnabled && (Chiaki.settings.placeboDebandPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Deband Threshold:")
                         visible: Chiaki.settings.placeboDebandEnabled && (Chiaki.settings.placeboDebandPreset == 0)
                     }
@@ -356,6 +405,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(3.0)")
+                        visible: Chiaki.settings.placeboDebandEnabled && (Chiaki.settings.placeboDebandPreset == 0)
                     }
 
                     Label {
@@ -385,6 +440,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(16.0)")
+                        visible: Chiaki.settings.placeboDebandEnabled && (Chiaki.settings.placeboDebandPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Deband Grain:")
                         visible: Chiaki.settings.placeboDebandEnabled && (Chiaki.settings.placeboDebandPreset == 0)
                     }
@@ -407,6 +468,12 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(4.0)")
+                        visible: Chiaki.settings.placeboDebandEnabled && (Chiaki.settings.placeboDebandPreset == 0)
+                    }
                 }
             }
 
@@ -418,7 +485,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -435,6 +502,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Sigmoid Preset:")
                         visible: Chiaki.settings.placeboSigmoidEnabled
                     }
@@ -444,6 +516,12 @@ DialogView {
                         model: [qsTr("Custom"), qsTr("Default")]
                         currentIndex: Chiaki.settings.placeboSigmoidPreset
                         onActivated: index => Chiaki.settings.placeboSigmoidPreset = index
+                        visible: Chiaki.settings.placeboSigmoidEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Custom)")
                         visible: Chiaki.settings.placeboSigmoidEnabled
                     }
 
@@ -474,6 +552,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.75)")
+                        visible: Chiaki.settings.placeboSigmoidEnabled && (Chiaki.settings.placeboSigmoidPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Sigmoid Slope:")
                         visible: Chiaki.settings.placeboSigmoidEnabled && (Chiaki.settings.placeboSigmoidPreset == 0)
                     }
@@ -496,6 +580,12 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(6.5)")
+                        visible: Chiaki.settings.placeboSigmoidEnabled && (Chiaki.settings.placeboSigmoidPreset == 0)
+                    }
                 }
             }
 
@@ -507,7 +597,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -524,6 +614,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Color Adjustment Preset:")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled
                     }
@@ -533,6 +628,12 @@ DialogView {
                         model: [qsTr("Custom"), qsTr("Neutral")]
                         currentIndex: Chiaki.settings.placeboColorAdjustmentPreset
                         onActivated: index => Chiaki.settings.placeboColorAdjustmentPreset = index
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Custom)")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled
                     }
 
@@ -563,6 +664,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.0)")
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Contrast:")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
@@ -584,6 +691,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.0)")
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
 
                     Label {
@@ -613,6 +726,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.0)")
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Hue:")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
@@ -634,6 +753,12 @@ DialogView {
                             }
                             text: qsTr("%1").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.0)")
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
 
                     Label {
@@ -663,6 +788,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.0)")
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Temperature:")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
@@ -685,6 +816,12 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.0)")
+                        visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
+                    }
                 }
             }
 
@@ -696,7 +833,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -713,6 +850,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Peak Detection Preset:")
                         visible: Chiaki.settings.placeboPeakDetectionEnabled
                     }
@@ -722,6 +864,12 @@ DialogView {
                         model: [qsTr("Custom"), qsTr("Default"), qsTr("High Quality")]
                         currentIndex: Chiaki.settings.placeboPeakDetectionPreset
                         onActivated: index => Chiaki.settings.placeboPeakDetectionPreset = index
+                        visible: Chiaki.settings.placeboPeakDetectionEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(High Quality)")
                         visible: Chiaki.settings.placeboPeakDetectionEnabled
                     }
 
@@ -752,6 +900,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(20.0)")
+                        visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Scene Threshold Low:")
                         visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
                     }
@@ -774,6 +928,13 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1.0)")
+                        visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
+                    }
+
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Scene Threshold High:")
@@ -798,7 +959,13 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
-    
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(3.0)")
+                        visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
+                    }
+
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Peak Percentile:")
@@ -826,6 +993,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(99.995)")
+                        visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Black Cutoff:")
                         visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
                     }
@@ -848,16 +1021,29 @@ DialogView {
                             text: qsTr("%1").arg(parent.value)
                         }
                     }
-                     Label {
+
+                    Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Allow Delayed Peak:")
+                        text: qsTr("(1.0)")
                         visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
                     }
+
+                    Label {
+                    Layout.alignment: Qt.AlignRight
+                    text: qsTr("Allow Delayed Peak:")
+                    visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
+                    }   
 
                     C.CheckBox {
                         text: qsTr("Enable 1-Frame Delayed Peak")
                         checked: Chiaki.settings.placeboPeakDetectionAllowDelayedPeak
                         onToggled: Chiaki.settings.placeboPeakDetectionAllowDelayedPeak = checked
+                        visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
                         visible: Chiaki.settings.placeboPeakDetectionEnabled && (Chiaki.settings.placeboPeakDetectionPreset == 0)
                     }
                 }
@@ -871,7 +1057,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -888,6 +1074,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Color Mapping Preset:")
                         visible: Chiaki.settings.placeboColorMappingEnabled
                     }
@@ -897,6 +1088,12 @@ DialogView {
                         model: [qsTr("Custom"), qsTr("Default"), qsTr("High Quality")]
                         currentIndex: Chiaki.settings.placeboColorMappingPreset
                         onActivated: index => Chiaki.settings.placeboColorMappingPreset = index
+                        visible: Chiaki.settings.placeboColorMappingEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(High Quality)")
                         visible: Chiaki.settings.placeboColorMappingEnabled
                     }
 

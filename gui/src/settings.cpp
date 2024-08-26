@@ -904,13 +904,16 @@ static const PlaceboDebandPreset placebo_deband_preset_default = PlaceboDebandPr
 
 PlaceboDebandPreset Settings::GetPlaceboDebandPreset() const
 {
-	auto v = placebo_settings.value("placebo_settings/placebo_deband_preset", placebo_deband_preset_values[placebo_deband_preset_default]).toString();
+	auto v = placebo_settings.value("placebo_settings/deband_preset", placebo_deband_preset_values[placebo_deband_preset_default]).toString();
 	return placebo_deband_preset_values.key(v, placebo_deband_preset_default);
 }
 
 void Settings::SetPlaceboDebandPreset(PlaceboDebandPreset preset)
 {
-	placebo_settings.setValue("placebo_settings/placebo_deband_preset", placebo_deband_preset_values[preset]);
+	if(placebo_deband_preset_values[preset].isEmpty())
+		placebo_settings.remove("placebo_settings/deband_preset");
+	else
+		placebo_settings.setValue("placebo_settings/deband_preset", placebo_deband_preset_values[preset]);
 }
 
 int Settings::GetPlaceboDebandIterations() const
@@ -978,7 +981,10 @@ PlaceboSigmoidPreset Settings::GetPlaceboSigmoidPreset() const
 
 void Settings::SetPlaceboSigmoidPreset(PlaceboSigmoidPreset preset)
 {
-	placebo_settings.setValue("placebo_settings/sigmoid_preset", placebo_sigmoid_preset_values[preset]);
+	if(placebo_sigmoid_preset_values[preset].isEmpty())
+		placebo_settings.remove("placebo_settings/sigmoid_preset");
+	else
+		placebo_settings.setValue("placebo_settings/sigmoid_preset", placebo_sigmoid_preset_values[preset]);
 }
 
 float Settings::GetPlaceboSigmoidCenter() const
@@ -1026,7 +1032,10 @@ PlaceboColorAdjustmentPreset Settings::GetPlaceboColorAdjustmentPreset() const
 
 void Settings::SetPlaceboColorAdjustmentPreset(PlaceboColorAdjustmentPreset preset)
 {
-	placebo_settings.setValue("placebo_settings/color_adjustment_preset", placebo_color_adjustment_preset_values[preset]);
+	if(placebo_color_adjustment_preset_values[preset].isEmpty())
+		placebo_settings.remove("placebo_settings/color_adjustment_preset");
+	else
+		placebo_settings.setValue("placebo_settings/color_adjustment_preset", placebo_color_adjustment_preset_values[preset]);
 }
 
 float Settings::GetPlaceboColorAdjustmentBrightness() const
@@ -1115,7 +1124,10 @@ PlaceboPeakDetectionPreset Settings::GetPlaceboPeakDetectionPreset() const
 
 void Settings::SetPlaceboPeakDetectionPreset(PlaceboPeakDetectionPreset preset)
 {
-	placebo_settings.setValue("placebo_settings/peak_detect_preset", placebo_peak_detection_preset_values[preset]);
+	if(placebo_peak_detection_preset_values[preset].isEmpty())
+		placebo_settings.remove("placebo_settings/peak_detect_preset");
+	else
+		placebo_settings.setValue("placebo_settings/peak_detect_preset", placebo_peak_detection_preset_values[preset]);
 }
 
 float Settings::GetPlaceboPeakDetectionPeakSmoothingPeriod() const
@@ -1204,7 +1216,10 @@ PlaceboColorMappingPreset Settings::GetPlaceboColorMappingPreset() const
 
 void Settings::SetPlaceboColorMappingPreset(PlaceboColorMappingPreset preset)
 {
-	placebo_settings.setValue("placebo_settings/color_map_preset", placebo_color_mapping_preset_values[preset]);
+	if(placebo_color_mapping_preset_values[preset].isEmpty())
+		placebo_settings.remove("placebo_settings/color_map_preset");
+	else
+		placebo_settings.setValue("placebo_settings/color_map_preset", placebo_color_mapping_preset_values[preset]);
 }
 
 static const QMap<PlaceboGamutMappingFunction, QString> placebo_gamut_mapping_function_values = {

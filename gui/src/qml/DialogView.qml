@@ -5,6 +5,7 @@ import QtQuick.Controls.Material
 
 Item {
     id: dialog
+    property alias header: headerLabel.text
     property alias title: titleLabel.text
     property alias buttonText: okButton.text
     property alias buttonEnabled: okButton.enabled
@@ -98,6 +99,20 @@ Item {
             verticalAlignment: Qt.AlignVCenter
             font.bold: true
             font.pixelSize: 26
+        }
+
+        Label {
+            id: headerLabel
+            anchors {
+                top: parent.top
+                left: titleLabel.right
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+            horizontalAlignment: Qt.AlignHCenter
+            verticalAlignment: Qt.AlignVCenter
+            font.bold: true
+            font.pixelSize: 14
         }
     }
 
