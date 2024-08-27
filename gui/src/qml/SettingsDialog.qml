@@ -174,6 +174,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(Unchecked)")
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
                     }
 
                     Label {
@@ -213,6 +214,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(Unchecked)")
+                        visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
 
                     Label {
@@ -905,6 +907,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(Unchecked)")
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
                     Label {
