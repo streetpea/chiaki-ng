@@ -9,8 +9,22 @@ This section covers how to set up PlayStation Remote Play (using `chiaki-ng`) on
     ![Copy](images/CopyExample.png)
 
     and pasting with ++ctrl+v++ or right-click->paste in regular windows and ++ctrl+shift+v++ or right-click->paste in `konsole` windows.
-    
-???+ example "Switching into _Desktop Mode_"
+
+???- example "Enabling Keyboard Navigation on MacOS"
+
+    1. Open `System Preferences` and go to the keyboard Settings
+
+    2. Enable Keyboard Navigation
+
+        ![Enable Keyboard Navigation MacOS](images/EnableMacOSKeyNavigation.jpg)
+
+    ???+ Tip "MacOS Versions Prior to Sonoma"
+
+        For MacOS versions prior to Sonoma, you will have to go to the shortcuts tab to enable keyboard navigation.
+
+        ![Enable Keyboard Navigation Older MacOS](images/EnableMacOSKeyboardNavigationOlder.png)
+
+???+ example "Switching into _Desktop Mode_ on Steam Deck"
 
     1. Hit the `Steam` button on your Steam Deck
 
