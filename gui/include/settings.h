@@ -410,8 +410,8 @@ class Settings : public QObject
 		float GetPlaceboColorAdjustmentTemperature() const;
 		void SetPlaceboColorAdjustmentTemperature(float temperature);
 
-		bool GetPeakDetectionEnabled() const;
-		void SetPeakDetectionEnabled(bool enabled);
+		bool GetPlaceboPeakDetectionEnabled() const;
+		void SetPlaceboPeakDetectionEnabled(bool enabled);
 
 		PlaceboPeakDetectionPreset GetPlaceboPeakDetectionPreset() const;
 		void SetPlaceboPeakDetectionPreset(PlaceboPeakDetectionPreset preset);

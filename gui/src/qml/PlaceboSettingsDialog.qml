@@ -291,13 +291,13 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(2))
                         }
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(0.0)")
+                        text: qsTr("(0.00)")
                     }
                 }
             }
@@ -403,7 +403,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -434,7 +434,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -465,7 +465,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -546,7 +546,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(2))
                         }
                     }
 
@@ -577,7 +577,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -658,13 +658,13 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(2))
                         }
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(0.0)")
+                        text: qsTr("(0.00)")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
 
@@ -689,7 +689,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -720,7 +720,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -751,13 +751,13 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(2))
                         }
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(0.0)")
+                        text: qsTr("(0.00)")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
 
@@ -782,7 +782,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -813,13 +813,13 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(3))
                         }
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(0.0)")
+                        text: qsTr("(0.000)")
                         visible: Chiaki.settings.placeboColorAdjustmentEnabled && (Chiaki.settings.placeboColorAdjustmentPreset == 0)
                     }
                 }
@@ -894,7 +894,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -925,7 +925,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -956,7 +956,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 
@@ -987,7 +987,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(3))
                         }
                     }
 
@@ -1018,7 +1018,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1").arg(parent.value)
+                            text: qsTr(parent.value.toFixed(1))
                         }
                     }
 

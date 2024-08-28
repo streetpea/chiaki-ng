@@ -711,11 +711,11 @@ void QmlSettings::setPlaceboColorAdjustmentTemperature(float temperature)
 
 bool QmlSettings::placeboPeakDetectionEnabled() const
 {
-    return settings->GetPeakDetectionEnabled();
+    return settings->GetPlaceboPeakDetectionEnabled();
 }
 void QmlSettings::setPlaceboPeakDetectionEnabled(bool enabled)
 {
-    settings->SetPeakDetectionEnabled(enabled);
+    settings->SetPlaceboPeakDetectionEnabled(enabled);
     emit placeboPeakDetectionEnabledChanged();
 }
 
