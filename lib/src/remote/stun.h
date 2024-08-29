@@ -17,7 +17,7 @@
 #include <chiaki/sock.h>
 #include <chiaki/random.h>
 
-#define STUN_REPLY_TIMEOUT_SEC 1
+#define STUN_REPLY_TIMEOUT_SEC 5
 
 #define STUN_HEADER_SIZE 20
 #define STUN_MSG_TYPE_BINDING_REQUEST 0x0001
