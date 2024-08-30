@@ -116,6 +116,7 @@ QmlMainWindow::~QmlMainWindow()
     render_thread->quit();
     render_thread->wait();
     delete render_thread->parent();
+    delete render_thread;
 
     delete quick_item;
     delete quick_window;

@@ -23,6 +23,8 @@ CHIAKI_EXPORT void chiaki_opus_encoder_fini(ChiakiOpusEncoder *encoder)
 {
 	free(encoder->opus_frame_buf);
 	chiaki_audio_sender_free(encoder->audio_sender);
+	if(encoder->opus_encoder)
+		opus_encoder_destroy(encoder->opus_encoder);
 }
 
 CHIAKI_EXPORT void chiaki_opus_encoder_header(ChiakiAudioHeader *header, ChiakiOpusEncoder *encoder, ChiakiSession *session)

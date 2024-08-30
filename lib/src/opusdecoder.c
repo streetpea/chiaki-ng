@@ -29,6 +29,8 @@ CHIAKI_EXPORT void chiaki_opus_decoder_init(ChiakiOpusDecoder *decoder, ChiakiLo
 CHIAKI_EXPORT void chiaki_opus_decoder_fini(ChiakiOpusDecoder *decoder)
 {
 	free(decoder->pcm_buf);
+	if(decoder->opus_decoder)
+		opus_decoder_destroy(decoder->opus_decoder);
 }
 
 CHIAKI_EXPORT void chiaki_opus_decoder_get_sink(ChiakiOpusDecoder *decoder, ChiakiAudioSink *sink)

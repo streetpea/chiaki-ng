@@ -52,14 +52,10 @@ void DiscoveryManager::SetActive(bool active)
 {
 	if(service_active == active && service_active_ipv6 == active)
 		return;
-	bool service_uninitialized = !service_active;
-	bool service_ipv6_unintialized = !service_active_ipv6;
-	service_active = active;
-	service_active_ipv6 = active;
 
 	if(active)
 	{
-		if(service_uninitialized)
+		if(!service_active)
 		{
 			ChiakiDiscoveryServiceOptions options = {};
 			options.ping_ms = PING_MS;
@@ -180,8 +176,10 @@ void DiscoveryManager::SetActive(bool active)
 				CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service IPV4");
 				return;
 			}
+			else
+				service_active = true;
 		}
-		if(service_ipv6_unintialized)
+		if(!service_active_ipv6)
 		{
 			ChiakiDiscoveryServiceOptions options_ipv6 = {};
 			options_ipv6.ping_ms = PING_MS;
@@ -204,6 +202,8 @@ void DiscoveryManager::SetActive(bool active)
 				service_active_ipv6 = false;
 				CHIAKI_LOGE(&log, "DiscoveryManager failed to init Discovery Service IPV6");
 			}
+			else
+				service_active_ipv6 = true;
 		}
 
 		UpdateManualServices();
