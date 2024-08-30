@@ -52,14 +52,14 @@ void DiscoveryManager::SetActive(bool active)
 {
 	if(service_active == active && service_active_ipv6 == active)
 		return;
-	bool service_unitialized = !service_active;
+	bool service_uninitialized = !service_active;
 	bool service_ipv6_unintialized = !service_active_ipv6;
 	service_active = active;
 	service_active_ipv6 = active;
 
 	if(active)
 	{
-		if(service_unitialized)
+		if(service_uninitialized)
 		{
 			ChiakiDiscoveryServiceOptions options = {};
 			options.ping_ms = PING_MS;
@@ -287,7 +287,7 @@ void DiscoveryManager::DiscoveryServiceHosts(QList<DiscoveryHost> hosts)
 
 void DiscoveryManager::UpdateManualServices()
 {
-	if(!settings || !service_active)
+	if(!settings || (!service_active && !service_active_ipv6))
 		return;
 
 	QSet<QString> hosts;

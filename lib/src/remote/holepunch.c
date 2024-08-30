@@ -442,7 +442,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     headers = curl_slist_append(headers, oauth_header);
 
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
@@ -502,7 +502,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     }
     CHIAKI_LOGV(log, console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? "PS5 devices: ": "PS4 devices: ");
     const char *json_str = json_object_to_json_string_ext(clients, JSON_C_TO_STRING_PRETTY);
-        CHIAKI_LOGV(log, "chiaki_holepunch_list_devices: retrieved devices \n%s", json_str);
+    CHIAKI_LOGV(log, "chiaki_holepunch_list_devices: retrieved devices \n%s", json_str);
     size_t num_clients = json_object_array_length(clients);
     *devices = malloc(sizeof(ChiakiHolepunchDeviceInfo) * num_clients);
     if(!(*devices))
@@ -1073,7 +1073,7 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
 
     curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_URL, user_profile_url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
@@ -2093,8 +2093,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if (getsockname(session->ipv4_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
     {
         CHIAKI_LOGE(session->log, "send_offer: Binding socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-        CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
-        session->ipv4_sock = CHIAKI_INVALID_SOCKET;
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
+        {
+            CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
+            session->ipv4_sock = CHIAKI_INVALID_SOCKET;
+        }
         return CHIAKI_ERR_UNKNOWN;
     }
 
@@ -2158,10 +2161,16 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if(!msg.conn_request->candidates)
     {
         free(msg.conn_request);
-        CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
-        CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
-        session->ipv4_sock = CHIAKI_INVALID_SOCKET;
-        session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
+        {
+            CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
+            session->ipv4_sock = CHIAKI_INVALID_SOCKET;
+        }
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+        {
+            CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+            session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+        }
         return CHIAKI_ERR_MEMORY;
     }
 
@@ -2396,8 +2405,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 if (setsockopt(session->ipv6_sock, SOL_SOCKET, SO_RCVTIMEO, (const CHIAKI_SOCKET_BUF_TYPE)&timeout, sizeof(timeout)) < 0)
                 {
                     CHIAKI_LOGE(session->log, "send_offer: Failed to unset socket timeout, error was " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                    CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
-                    session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+                    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+                    {
+                        CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+                        session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+                    }
                 }
                 else
                     msg.conn_request->num_candidates++;
@@ -3226,7 +3238,7 @@ static ChiakiErrorCode check_candidates(
         for (int i=0; i < RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
         {
             socks[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-            if (CHIAKI_SOCKET_IS_INVALID(socks[i]))
+            if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
             {
                 CHIAKI_LOGE(session->log, "send_offer: Creating ipv4 socket %d failed", i);
                 CHIAKI_SOCKET_CLOSE(socks[i]);
@@ -3244,16 +3256,22 @@ static ChiakiErrorCode check_candidates(
             if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
             {
                 CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                CHIAKI_SOCKET_CLOSE(socks[i]);
-                socks[i] = CHIAKI_INVALID_SOCKET;
+                if (CHIAKI_SOCKET_IS_INVALID(socks[i]))
+                {
+                    CHIAKI_SOCKET_CLOSE(socks[i]);
+                    socks[i] = CHIAKI_INVALID_SOCKET;
+                }
                 continue;
             }
 #else
             if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
             {
                 CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                CHIAKI_SOCKET_CLOSE(socks[i]);
-                socks[i] = CHIAKI_INVALID_SOCKET;
+                if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
+                {
+                    CHIAKI_SOCKET_CLOSE(socks[i]);
+                    socks[i] = CHIAKI_INVALID_SOCKET;
+                }
                 continue;
             }
 #endif
@@ -3266,8 +3284,11 @@ static ChiakiErrorCode check_candidates(
             if (setsockopt(socks[i], IPPROTO_IP, IP_TTL, (const CHIAKI_SOCKET_BUF_TYPE)&ttl, sizeof(ttl)) < 0)
             {
                 CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                CHIAKI_SOCKET_CLOSE(socks[i]);
-                socks[i] = CHIAKI_INVALID_SOCKET;
+                if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
+                {
+                    CHIAKI_SOCKET_CLOSE(socks[i]);
+                    socks[i] = CHIAKI_INVALID_SOCKET;
+                }
                 continue;
             }
             bind(socks[i], (struct sockaddr*)&client_addr, client_addr_len);
@@ -3275,8 +3296,11 @@ static ChiakiErrorCode check_candidates(
             if(err != CHIAKI_ERR_SUCCESS)
             {
                 CHIAKI_LOGE(session->log, "Failed to set ipv4 socket %d to non-blocking: %s", i, chiaki_error_string(err));
-                CHIAKI_SOCKET_CLOSE(socks[i]);
-                socks[i] = CHIAKI_INVALID_SOCKET;
+                if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
+                {
+                    CHIAKI_SOCKET_CLOSE(socks[i]);
+                    socks[i] = CHIAKI_INVALID_SOCKET;
+                }
                 continue;
             }
         }
@@ -3319,8 +3343,11 @@ static ChiakiErrorCode check_candidates(
                         if (sendto(socks[j], (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                         {
                             CHIAKI_LOGW(session->log, "check_candidate: Sending request for socket %d failed for %s:%d with error, closing socket: " CHIAKI_SOCKET_ERROR_FMT, j, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
-                            CHIAKI_SOCKET_CLOSE(socks[j]);
-                            socks[j] = CHIAKI_INVALID_SOCKET;
+                            if (!CHIAKI_SOCKET_IS_INVALID(socks[j]))
+                            {
+                                CHIAKI_SOCKET_CLOSE(socks[j]);
+                                socks[j] = CHIAKI_INVALID_SOCKET;
+                            }
                             continue;
                         }
                         sent = true;
@@ -3485,8 +3512,11 @@ static ChiakiErrorCode check_candidates(
                     if (setsockopt(socks[j], IPPROTO_IP, IP_TTL, (const CHIAKI_SOCKET_BUF_TYPE)&ttl, sizeof(ttl)) < 0)
                     {
                         CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
-                        CHIAKI_SOCKET_CLOSE(socks[j]);
-                        socks[j] = CHIAKI_INVALID_SOCKET;
+                        if (!CHIAKI_SOCKET_IS_INVALID(socks[j]))
+                        {
+                            CHIAKI_SOCKET_CLOSE(socks[j]);
+                            socks[j] = CHIAKI_INVALID_SOCKET;
+                        }
                         err = CHIAKI_ERR_UNKNOWN;
                         goto cleanup_sockets;
                     }
@@ -4755,7 +4785,7 @@ static ChiakiErrorCode get_stun_servers(Session *session)
     };
 
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
@@ -4828,7 +4858,7 @@ static ChiakiErrorCode get_stun_servers(Session *session)
     }
 
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL_IPV6);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);

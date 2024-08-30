@@ -510,8 +510,11 @@ static void *ctrl_thread_func(void *user)
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	if(!ctrl->session->rudp)
 	{
-		CHIAKI_SOCKET_CLOSE(ctrl->sock);
-		ctrl->sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(ctrl->sock))
+		{
+			CHIAKI_SOCKET_CLOSE(ctrl->sock);
+			ctrl->sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 
 	return NULL;
@@ -1086,8 +1089,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 					CHIAKI_LOGI(session->log, "Ctrl requested to stop while connecting");
 				else
 					CHIAKI_LOGE(session->log, "Ctrl notif pipe signaled without should_stop during connect");
-				CHIAKI_SOCKET_CLOSE(sock);
-				sock = CHIAKI_INVALID_SOCKET;
+				if(!CHIAKI_SOCKET_IS_INVALID(sock))
+				{
+					CHIAKI_SOCKET_CLOSE(sock);
+					sock = CHIAKI_INVALID_SOCKET;
+				}
 			}
 			else
 			{
@@ -1360,8 +1366,11 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 error:
 	if(!ctrl->session->rudp)
 	{
-		CHIAKI_SOCKET_CLOSE(ctrl->sock);
-		ctrl->sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(ctrl->sock))
+		{
+			CHIAKI_SOCKET_CLOSE(ctrl->sock);
+			ctrl->sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 	return err;
 }
