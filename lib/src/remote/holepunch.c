@@ -513,8 +513,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     *device_count = num_clients;
     for (size_t i = 0; i < num_clients; i++)
     {
-        ChiakiHolepunchDeviceInfo *device = *devices + i * sizeof(ChiakiHolepunchDeviceInfo);
-        device->type = console_type;
+        ChiakiHolepunchDeviceInfo device;
+        device.type = console_type;
 
         json_object *client = json_object_array_get_idx(clients, i);
         json_object *duid;
@@ -529,7 +529,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_devices;
         }
-        hex_to_bytes(json_object_get_string(duid), device->device_uid, sizeof(device->device_uid));
+        hex_to_bytes(json_object_get_string(duid), device.device_uid, sizeof(device.device_uid));
 
         json_object *device_json;
         if (!json_object_object_get_ex(client, "device", &device_json))
@@ -556,14 +556,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_devices;
         }
-        device->remoteplay_enabled = false;
+        device.remoteplay_enabled = false;
         size_t num_enabled_features = json_object_array_length(enabled_features);
         for (size_t j = 0; j < num_enabled_features; j++)
         {
             json_object *feature = json_object_array_get_idx(enabled_features, j);
             if (json_object_is_type(feature, json_type_string) && strcmp(json_object_get_string(feature), "remotePlay") == 0)
             {
-                device->remoteplay_enabled = true;
+                device.remoteplay_enabled = true;
                 break;
             }
         }
@@ -580,7 +580,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_devices;
         }
-        strncpy(device->device_name, json_object_get_string(device_name), sizeof(device->device_name));
+        strncpy(device.device_name, json_object_get_string(device_name), sizeof(device.device_name));
+        (*devices)[i] = device;
     }
 
 cleanup_devices:
