@@ -20,10 +20,8 @@ typedef struct chiaki_discovery_service_options_t
 	uint64_t ping_initial_ms;
 	struct sockaddr_storage *send_addr;
 	size_t send_addr_size;
-#ifdef _WIN32
-	struct sockaddr_storage *win_broadcast_addrs;
-	size_t win_broadcast_num;
-#endif
+	struct sockaddr_storage *broadcast_addrs;
+	size_t broadcast_num;
 	char *send_host;
 	ChiakiDiscoveryServiceCb cb;
 	void *cb_user;

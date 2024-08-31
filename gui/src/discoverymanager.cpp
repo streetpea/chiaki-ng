@@ -14,6 +14,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <net/if.h>
+#include <ifaddrs.h>
 #endif
 
 #define PING_MS		500
@@ -72,14 +74,11 @@ void DiscoveryManager::SetActive(bool active)
 			options.send_addr = &addr;
 			options.send_addr_size = sizeof(in_addr);
 			options.send_host = nullptr;
-#ifdef _WIN32
-			options.win_broadcast_addrs = nullptr;
-			options.win_broadcast_num = 0;
-#endif
-
-#ifdef _WIN32
+			options.broadcast_addrs = nullptr;
+			options.broadcast_num = 0;
 			QList<int32_t> broadcast_addresses;
 			bool status = false;
+#ifdef _WIN32
 			uint8_t loc_address[4] = {0};
 			uint8_t loc_mask[4] = {0};
 			uint8_t loc_broadcast[4] = {0};
@@ -150,8 +149,8 @@ void DiscoveryManager::SetActive(bool active)
 			}
 #undef MALLOC
 #undef FREE
-			options.win_broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
-			if(!options.win_broadcast_addrs)
+			options.broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
+			if(!options.broadcast_addrs)
 			{
 				CHIAKI_LOGE(&log, "Error allocating memory for broadcast addresses!");
 				return;
@@ -161,15 +160,69 @@ void DiscoveryManager::SetActive(bool active)
 				struct sockaddr_in in_addr_broadcast = {};
 				in_addr_broadcast.sin_family = AF_INET;
 				in_addr_broadcast.sin_addr.s_addr = broadcast_addresses[i];
-				memcpy(&options.win_broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
-				options.win_broadcast_num++;
+				memcpy(&options.broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
+				options.broadcast_num++;
 			}
+#else
+			struct ifaddrs *local_addrs, *current_addr;
+			struct sockaddr_in *res4 = NULL;
+
+			struct addrinfo hints;
+			memset(&hints, 0, sizeof hints);
+			hints.ai_family = AF_INET;
+			hints.ai_socktype = SOCK_DGRAM;
+
+			if(getifaddrs(&local_addrs) != 0)
+			{
+				CHIAKI_LOGE(&log, "Couldn't get local address");
+				return;
+			}
+			for (current_addr = local_addrs; current_addr != NULL; current_addr = current_addr->ifa_next)
+			{
+				if (current_addr->ifa_addr == NULL)
+					continue;
+				if (!(current_addr->ifa_flags & IFF_UP))
+					continue;
+				if (0 != (current_addr->ifa_flags & IFF_LOOPBACK))
+					continue;
+				if (!(current_addr->ifa_flags & IFF_BROADCAST))
+					continue;
+				switch (current_addr->ifa_addr->sa_family)
+				{
+					case AF_INET:
+						res4 = (struct sockaddr_in *)current_addr->ifa_broadaddr;
+						if(!broadcast_addresses.contains(res4->sin_addr.s_addr))
+							broadcast_addresses.append(res4->sin_addr.s_addr);
+						break;
+					default:
+						continue;
+				}
+				status = true;
+			}
+			if(!status)
+			{
+				CHIAKI_LOGE(&log, "Couldn't find a valid external address!");
+				return;
+			}
+			freeifaddrs(local_addrs);
 #endif
+			options.broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
+			if(!options.broadcast_addrs)
+			{
+				CHIAKI_LOGE(&log, "Error allocating memory for broadcast addresses!");
+				return;
+			}
+			for(int i = 0; i < broadcast_addresses.size(); i++)
+			{
+				struct sockaddr_in in_addr_broadcast = {};
+				in_addr_broadcast.sin_family = AF_INET;
+				in_addr_broadcast.sin_addr.s_addr = broadcast_addresses[i];
+				memcpy(&options.broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
+				options.broadcast_num++;
+			}
 			ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
-#ifdef _WIN32
-			if(options.win_broadcast_addrs)
-				free(options.win_broadcast_addrs);
-#endif
+			if(options.broadcast_addrs)
+				free(options.broadcast_addrs);
 			if(err != CHIAKI_ERR_SUCCESS)
 			{
 				service_active = false;
