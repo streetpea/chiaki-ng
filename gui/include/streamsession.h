@@ -83,7 +83,7 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
-	bool rumble_haptics;
+	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool start_mic_unmuted;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -183,7 +183,7 @@ class StreamSession : public QObject
 		QMap<int, uint8_t> touch_tracker;
 		int8_t mouse_touch_id;
 		QElapsedTimer double_tap_timer;
-		bool rumble_haptics;
+		RumbleHapticsIntensity rumble_haptics_intensity;
 		bool start_mic_unmuted;
 		bool session_started;
 

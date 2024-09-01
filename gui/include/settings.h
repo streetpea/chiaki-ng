@@ -24,6 +24,16 @@ enum class ControllerButtonExt
 	ANALOG_STICK_RIGHT_Y_DOWN = (1 << 25),
 };
 
+enum class RumbleHapticsIntensity
+{
+	Off,
+	VeryWeak,
+	Weak,
+	Normal,
+	Strong,
+	VeryStrong
+};
+
 enum class DisconnectAction
 {
 	AlwaysNothing,
@@ -197,8 +207,8 @@ class Settings : public QObject
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();
 
-		bool GetRumbleHapticsEnabled() const		{ return settings.value("settings/rumble_haptics_enabled", true).toBool(); }
-		void SetRumbleHapticsEnabled(bool enabled)	{ settings.setValue("settings/rumble_haptics_enabled", enabled); }
+		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
+		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
 
 		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
 		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }

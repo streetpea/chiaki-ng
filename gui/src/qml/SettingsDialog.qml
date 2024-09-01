@@ -139,18 +139,19 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Rumble Haptics:")
+                        text: qsTr("Rumble Haptics")
                     }
 
-                    C.CheckBox {
-                        text: qsTr("Emulate haptics with rumble if controller doesn't support haptics (PS5 games only)")
-                        checked: Chiaki.settings.rumbleHaptics
-                        onToggled: Chiaki.settings.rumbleHaptics = checked
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Off"), qsTr("Very Weak"), qsTr("Weak"), qsTr("Normal"), qsTr("Strong"), qsTr("Very Strong")]
+                        currentIndex: Chiaki.settings.rumbleHapticsIntensity
+                        onActivated: (index) => Chiaki.settings.rumbleHapticsIntensity = index;
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Checked)")
+                        text: qsTr("(Normal)")
                     }
 
                     Label {

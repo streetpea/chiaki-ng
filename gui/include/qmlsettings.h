@@ -12,7 +12,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int disconnectAction READ disconnectAction WRITE setDisconnectAction NOTIFY disconnectActionChanged)
     Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
-    Q_PROPERTY(bool rumbleHaptics READ rumbleHaptics WRITE setRumbleHaptics NOTIFY rumbleHapticsChanged)
+    Q_PROPERTY(int rumbleHapticsIntensity READ rumbleHapticsIntensity WRITE setRumbleHapticsIntensity NOTIFY rumbleHapticsIntensityChanged)
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     Q_PROPERTY(bool steamDeckHaptics READ steamDeckHaptics WRITE setSteamDeckHaptics NOTIFY steamDeckHapticsChanged)
     Q_PROPERTY(bool verticalDeck READ verticalDeck WRITE setVerticalDeck NOTIFY verticalDeckChanged)
@@ -140,8 +140,8 @@ public:
     bool logVerbose() const;
     void setLogVerbose(bool verbose);
 
-    bool rumbleHaptics() const;
-    void setRumbleHaptics(bool rumbleHatpics);
+    int rumbleHapticsIntensity() const;
+    void setRumbleHapticsIntensity(int intensity);
 
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     bool steamDeckHaptics() const;
@@ -452,7 +452,7 @@ signals:
     void disconnectActionChanged();
     void suspendActionChanged();
     void logVerboseChanged();
-    void rumbleHapticsChanged();
+    void rumbleHapticsIntensityChanged();
     void buttonsByPositionChanged();
     void startMicUnmutedChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE

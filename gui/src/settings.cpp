@@ -254,6 +254,28 @@ uint32_t Settings::GetLogLevelMask()
 	return mask;
 }
 
+static const QMap<RumbleHapticsIntensity, QString> intensities = {
+	{ RumbleHapticsIntensity::Off, "Off" },
+	{ RumbleHapticsIntensity::VeryWeak, "Very weak"},
+	{ RumbleHapticsIntensity::Weak, "Weak" },
+	{ RumbleHapticsIntensity::Normal, "Normal" },
+	{ RumbleHapticsIntensity::Strong, "Strong" },
+	{ RumbleHapticsIntensity::VeryStrong, "Very Strong" }
+};
+
+static const RumbleHapticsIntensity intensity_default = RumbleHapticsIntensity::Normal;
+
+RumbleHapticsIntensity Settings::GetRumbleHapticsIntensity() const
+{
+	auto s = settings.value("settings/rumble_haptics_intensity", intensities[intensity_default]).toString();
+	return intensities.key(s, intensity_default);
+}
+
+void Settings::SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity)
+{
+	settings.setValue("settings/rumble_haptics_intensity", intensities[intensity]);
+}
+
 static const QMap<ChiakiVideoResolutionPreset, QString> resolutions = {
 	{ CHIAKI_VIDEO_RESOLUTION_PRESET_360p, "360p" },
 	{ CHIAKI_VIDEO_RESOLUTION_PRESET_540p, "540p" },

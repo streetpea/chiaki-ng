@@ -101,15 +101,15 @@ void QmlSettings::setLogVerbose(bool verbose)
     emit logVerboseChanged();
 }
 
-bool QmlSettings::rumbleHaptics() const
+int QmlSettings::rumbleHapticsIntensity() const
 {
-    return settings->GetRumbleHapticsEnabled();
+    return static_cast<int>(settings->GetRumbleHapticsIntensity());
 }
 
-void QmlSettings::setRumbleHaptics(bool rumbleHaptics)
+void QmlSettings::setRumbleHapticsIntensity(int intensity)
 {
-    settings->SetRumbleHapticsEnabled(rumbleHaptics);
-    emit rumbleHapticsChanged();
+    settings->SetRumbleHapticsIntensity(static_cast<RumbleHapticsIntensity>(intensity));
+    emit rumbleHapticsIntensityChanged();
 }
 
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -1229,7 +1229,7 @@ void QmlSettings::refreshAllKeys()
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
-    emit rumbleHapticsChanged();
+    emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();
     emit startMicUnmutedChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE

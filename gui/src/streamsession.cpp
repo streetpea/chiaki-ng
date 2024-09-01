@@ -99,7 +99,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = true;
-	this->rumble_haptics = settings->GetRumbleHapticsEnabled();
+	this->rumble_haptics_intensity = settings->GetRumbleHapticsIntensity();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
@@ -164,7 +164,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	mic_authorization = false;
 #endif
 	allow_unmute = false;
-	rumble_haptics = false;
+	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -389,7 +389,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		if(sdeck)
 			QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
 #endif
-		rumble_haptics = connect_info.rumble_haptics;
+		rumble_haptics_intensity = connect_info.rumble_haptics_intensity;
 	}
 	UpdateGamepads();
 
@@ -1332,7 +1332,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	}
 #endif
-	if(rumble_haptics && haptics_output == 0)
+	if((rumble_haptics_intensity != RumbleHapticsIntensity::Off) && haptics_output == 0)
 	{
 
 		int16_t amplitudel = 0, amplituder = 0;
@@ -1351,6 +1351,41 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		uint16_t left = 0, right = 0;
 		left = suml / buf_count;
 		right = sumr / buf_count;
+		uint32_t temp_left = 0;
+		uint32_t temp_right = 0;
+		switch(rumble_haptics_intensity)
+		{
+			case RumbleHapticsIntensity::VeryWeak:
+				left /= 50;
+				right /= 50;
+				break;
+			case RumbleHapticsIntensity::Weak:
+				left /=25;
+				right /=25;
+				break;
+			case RumbleHapticsIntensity::Normal:
+				break;
+			case RumbleHapticsIntensity::Strong:
+				temp_left = left * 1.5;
+				temp_right = right * 1.5;
+				if(temp_left > UINT16_MAX)
+					temp_left = UINT16_MAX;
+				if(temp_right > UINT16_MAX)
+					temp_right = UINT16_MAX;
+				left = temp_left;
+				right = temp_right;
+				break;
+			case RumbleHapticsIntensity::VeryStrong:
+				temp_left = left * 2;
+				temp_right = right * 2;
+				if(temp_left > UINT16_MAX)
+					temp_left = UINT16_MAX;
+				if(temp_right > UINT16_MAX)
+					temp_right = UINT16_MAX;
+				left = temp_left;
+				right = temp_right;
+				break;
+		}
 		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
 			{
