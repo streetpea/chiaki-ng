@@ -139,13 +139,13 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("PS5 Features:")
+                        text: qsTr("Rumble Haptics:")
                     }
 
                     C.CheckBox {
-                        text: qsTr("Haptics + adaptive triggers (DS), PS5 Rumble (others)")
-                        checked: Chiaki.settings.dualSense
-                        onToggled: Chiaki.settings.dualSense = checked
+                        text: qsTr("Emulate haptics with rumble if controller doesn't support haptics (PS5 games only)")
+                        checked: Chiaki.settings.rumbleHaptics
+                        onToggled: Chiaki.settings.rumbleHaptics = checked
                     }
 
                     Label {
@@ -156,7 +156,7 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Haptics:")
-                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined")
                     }
 
                     C.CheckBox {
@@ -168,13 +168,13 @@ DialogView {
                                 false
                         }
                         onToggled: Chiaki.settings.steamDeckHaptics = checked
-                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined")
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(Unchecked)")
-                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined")
                     }
 
                     Label {

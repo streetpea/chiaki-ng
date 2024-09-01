@@ -98,7 +98,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->zoom = zoom;
 	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
-	this->enable_dualsense = settings->GetDualSenseEnabled();
+	this->enable_dualsense = true;
+	this->rumble_haptics = settings->GetRumbleHapticsEnabled();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
@@ -163,7 +164,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	mic_authorization = false;
 #endif
 	allow_unmute = false;
-	rumbleHaptics = false;
+	rumble_haptics = false;
 	input_block = 0;
 	ChiakiErrorCode err;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -388,7 +389,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		if(sdeck)
 			QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
 #endif
-		rumbleHaptics = true;
+		rumble_haptics = connect_info.rumble_haptics;
 	}
 	UpdateGamepads();
 
@@ -1331,7 +1332,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	}
 #endif
-	if(rumbleHaptics && haptics_output == 0)
+	if(rumble_haptics && haptics_output == 0)
 	{
 
 		int16_t amplitudel = 0, amplituder = 0;
