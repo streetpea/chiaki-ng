@@ -48,4 +48,4 @@ jobs:
           name: chiaki-ng-macos_arm64-Release
           path: chiaki-ng.dmg
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7

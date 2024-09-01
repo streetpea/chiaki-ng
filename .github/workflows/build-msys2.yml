@@ -160,6 +160,6 @@ jobs:
           name: chiaki-ng-win_x64-MSYS2-Release
           path: chiaki-ng-Win.zip
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           
 
