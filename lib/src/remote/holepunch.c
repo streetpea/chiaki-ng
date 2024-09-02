@@ -2958,9 +2958,7 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
     {
         if (current_addr->ifa_addr == NULL)
             continue;
-        if (!(current_addr->ifa_flags & IFF_UP))
-            continue;
-        if (0 != (current_addr->ifa_flags & IFF_LOOPBACK))
+        if ((current_addr->ifa_flags & (IFF_UP|IFF_RUNNING|IFF_LOOPBACK)) != (IFF_UP|IFF_RUNNING))
             continue;
         switch (current_addr->ifa_addr->sa_family)
         {

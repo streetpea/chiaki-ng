@@ -142,27 +142,8 @@ void DiscoveryManager::SetActive(bool active)
 			}
 			if (pAdapterInfo)
 				FREE(pAdapterInfo);
-
-			if(!status)
-			{
-				CHIAKI_LOGE(&log, "Couldn't find a valid local address!");
-			}
 #undef MALLOC
 #undef FREE
-			options.broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
-			if(!options.broadcast_addrs)
-			{
-				CHIAKI_LOGE(&log, "Error allocating memory for broadcast addresses!");
-				return;
-			}
-			for(int i = 0; i < broadcast_addresses.size(); i++)
-			{
-				struct sockaddr_in in_addr_broadcast = {};
-				in_addr_broadcast.sin_family = AF_INET;
-				in_addr_broadcast.sin_addr.s_addr = broadcast_addresses[i];
-				memcpy(&options.broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
-				options.broadcast_num++;
-			}
 #else
 			struct ifaddrs *local_addrs, *current_addr;
 			struct sockaddr_in *res4 = NULL;
@@ -181,11 +162,7 @@ void DiscoveryManager::SetActive(bool active)
 			{
 				if (current_addr->ifa_addr == NULL)
 					continue;
-				if (!(current_addr->ifa_flags & IFF_UP))
-					continue;
-				if (0 != (current_addr->ifa_flags & IFF_LOOPBACK))
-					continue;
-				if (!(current_addr->ifa_flags & IFF_BROADCAST))
+				if ((current_addr->ifa_flags & (IFF_UP|IFF_RUNNING|IFF_LOOPBACK|IFF_BROADCAST)) != (IFF_UP|IFF_RUNNING|IFF_BROADCAST))
 					continue;
 				switch (current_addr->ifa_addr->sa_family)
 				{
@@ -199,27 +176,27 @@ void DiscoveryManager::SetActive(bool active)
 				}
 				status = true;
 			}
-			if(!status)
-			{
-				CHIAKI_LOGE(&log, "Couldn't find a valid external address!");
-				return;
-			}
 			freeifaddrs(local_addrs);
 #endif
-			options.broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
-			if(!options.broadcast_addrs)
+			if(status)
 			{
-				CHIAKI_LOGE(&log, "Error allocating memory for broadcast addresses!");
-				return;
+				options.broadcast_addrs = (struct sockaddr_storage *)malloc(broadcast_addresses.size() * sizeof(struct sockaddr_storage));
+				if(!options.broadcast_addrs)
+				{
+					CHIAKI_LOGE(&log, "Error allocating memory for broadcast addresses!");
+					return;
+				}
+				for(int i = 0; i < broadcast_addresses.size(); i++)
+				{
+					struct sockaddr_in in_addr_broadcast = {};
+					in_addr_broadcast.sin_family = AF_INET;
+					in_addr_broadcast.sin_addr.s_addr = broadcast_addresses[i];
+					memcpy(&options.broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
+					options.broadcast_num++;
+				}
 			}
-			for(int i = 0; i < broadcast_addresses.size(); i++)
-			{
-				struct sockaddr_in in_addr_broadcast = {};
-				in_addr_broadcast.sin_family = AF_INET;
-				in_addr_broadcast.sin_addr.s_addr = broadcast_addresses[i];
-				memcpy(&options.broadcast_addrs[i], &in_addr_broadcast, sizeof(in_addr_broadcast));
-				options.broadcast_num++;
-			}
+			else
+				CHIAKI_LOGW(&log, "No external broadcast addresses found!");
 			ChiakiErrorCode err = chiaki_discovery_service_init(&service, &options, &log);
 			if(options.broadcast_addrs)
 				free(options.broadcast_addrs);
@@ -285,6 +262,7 @@ void DiscoveryManager::SetActive(bool active)
 void DiscoveryManager::SetSettings(Settings *settings)
 {
 	this->settings = settings;
+	chiaki_log_set_level(&log, settings->GetLogLevelMask());
 	connect(settings, &Settings::ManualHostsUpdated, this, &DiscoveryManager::UpdateManualServices);
 	connect(settings, &Settings::RegisteredHostsUpdated, this, &DiscoveryManager::UpdateManualServices);
 	UpdateManualServices();

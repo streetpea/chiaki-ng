@@ -32,6 +32,11 @@ CHIAKI_EXPORT void chiaki_log_init(ChiakiLog *log, uint32_t level_mask, ChiakiLo
 	log->user = user;
 }
 
+CHIAKI_EXPORT void chiaki_log_set_level(ChiakiLog *log, uint32_t level_mask)
+{
+	log->level_mask = level_mask;
+}
+
 CHIAKI_EXPORT void chiaki_log_cb_print(ChiakiLogLevel level, const char *msg, void *user)
 {
 	(void)user;
