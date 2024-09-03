@@ -67,7 +67,7 @@ jobs:
 
       - name: Build libbplacebo
         run: |
-          scripts/build-libplacebo.sh
+          scripts/build-libplacebo-windows.sh
 
       - name: Setup ffmpeg
         run: |

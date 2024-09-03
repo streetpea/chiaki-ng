@@ -217,6 +217,7 @@ void Settings::ImportSettings(QString fileurl)
 		{
 			settings.setValue( *i, settings_backup.value( *i ) );
 		}
+		SetCurrentProfile(profile);
 	}
 	else
 	{

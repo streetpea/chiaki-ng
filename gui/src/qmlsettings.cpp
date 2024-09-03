@@ -1346,7 +1346,6 @@ void QmlSettings::exportSettings(QString fileurl)
 void QmlSettings::importSettings(QString fileurl)
 {
     settings->ImportSettings(fileurl);
-    refreshAllKeys();
 }
 
 void QmlSettings::exportPlaceboSettings(QString fileurl)
