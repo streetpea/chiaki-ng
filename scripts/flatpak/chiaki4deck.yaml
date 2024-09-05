@@ -1,5 +1,5 @@
 app-id: io.github.streetpea.Chiaki4deck
-branch: chiaki-ng
+branch: chiaki4deck
 runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
@@ -271,7 +271,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/streetpea/chiaki-ng.git
-        branch: chiaki-ng
+        branch: chiaki4deck
     post-install:
       - "install -Dm755 ../scripts/psn-account-id.py /app/bin/psn-account-id"
       - "install -Dm755 ../scripts/vulkan-gamescope-layers/VkLayer_FROG_gamescope_wsi.x86_64.json /app/share/vulkan/implicit_layer.d/VkLayer_FROG_gamescope_wsi.x86_64.json"
