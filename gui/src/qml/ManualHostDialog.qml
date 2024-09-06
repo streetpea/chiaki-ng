@@ -10,7 +10,7 @@ import "controls" as C
 DialogView {
     title: qsTr("Add Manual Console")
     buttonText: qsTr("✓ Add")
-    buttonEnabled: hostField.text.trim()
+    buttonEnabled: hostField.text.trim() && (consoleCombo.model[consoleCombo.currentIndex].index != -1)
     onAccepted: {
         Chiaki.addManualHost(consoleCombo.model[consoleCombo.currentIndex].index, hostField.text.trim());
         close();
@@ -50,19 +50,25 @@ DialogView {
                 textRole: "name"
                 model: {
                     let m = [];
-                    m.push({
-                        name: qsTr("Register on first Connection"),
-                        index: -1,
-                    });
-                    for (let i = 0; i < Chiaki.hosts.length; ++i) {
-                        let host = Chiaki.hosts[i];
-                        if (!host.registered)
-                            continue;
+                    if(Chiaki.settings.registeredHosts.length > 0)
+                    {
+                        m.push({
+                            name: qsTr("Select an Option"),
+                            index: -1,
+                        });
+                    }
+                    let i = 0;
+                    for (; i < Chiaki.settings.registeredHosts.length; ++i) {
+                        let host = Chiaki.settings.registeredHosts[i];
                         m.push({
                             name: "%1 (%2)".arg(host.mac).arg(host.name),
                             index: i,
                         });
                     }
+                    m.push({
+                        name: qsTr("Register on first Connection"),
+                        index: i,
+                    });
                     return m;
                 }
             }
