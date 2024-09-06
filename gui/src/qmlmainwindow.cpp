@@ -656,7 +656,7 @@ void QmlMainWindow::resizeSwapchain()
     struct pl_tex_params tex_params = {
         .w = swapchain_size.width(),
         .h = swapchain_size.height(),
-        .format = pl_find_fmt(placebo_vulkan->gpu, PL_FMT_UNORM, 4, 0, 0, PL_FMT_CAP_RENDERABLE),
+        .format = pl_find_fmt(placebo_vulkan->gpu, PL_FMT_UNORM, 4, 8, 8, PL_FMT_CAP_RENDERABLE),
         .sampleable = true,
         .renderable = true,
     };
