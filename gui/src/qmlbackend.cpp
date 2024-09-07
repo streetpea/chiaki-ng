@@ -422,12 +422,24 @@ QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
     QList<QString> discovered_nicknames;
+    QList<ManualHost> discovered_manual_hosts;
     size_t registered_discovered_ps4s = 0;
+    auto manual_hosts = settings->GetManualHosts();
     for (const auto &host : discovery_manager.GetHosts()) {
         QVariantMap m;
         bool registered = settings->GetRegisteredHostRegistered(host.GetHostMAC());
         m["discovered"] = true;
-        m["manual"] = false;
+        bool manual = false;
+        for(int i = 0; i < manual_hosts.length(); i++)
+        {
+            auto manual_host = manual_hosts.at(i);
+            if(manual_host.GetRegistered() && manual_host.GetMAC() == host.GetHostMAC() && manual_host.GetHost() == host.host_addr)
+            {
+                manual = true;
+                discovered_manual_hosts.append(manual_host);
+            }
+        }
+        m["manual"] = manual;
         m["name"] = host.host_name;
         m["duid"] = "";
         m["address"] = host.host_addr;
@@ -437,6 +449,7 @@ QVariantList QmlBackend::hosts() const
         m["app"] = host.running_app_name;
         m["titleId"] = host.running_app_titleid;
         m["registered"] = registered;
+        m["display"] = true;
         discovered_nicknames.append(host.host_name);
         out.append(m);
         if(!host.ps5 && registered)
@@ -450,6 +463,7 @@ QVariantList QmlBackend::hosts() const
         m["duid"] = "";
         m["address"] = host.GetHost();
         m["registered"] = false;
+        m["display"] = discovered_manual_hosts.contains(host) ? false : true;
         if (host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC())) {
             auto registered = settings->GetRegisteredHost(host.GetMAC());
             m["registered"] = true;
@@ -474,6 +488,7 @@ QVariantList QmlBackend::hosts() const
             continue;
         m["discovered"] = false;
         m["manual"] = false;
+        m["display"] = true;
         m["name"] = host.GetName();
         m["duid"] = host.GetDuid();
         m["address"] = "";
@@ -742,9 +757,10 @@ bool QmlBackend::closeRequested()
 void QmlBackend::deleteHost(int index)
 {
     auto server = displayServerAt(index);
-    if (!server.valid || server.discovered)
+    auto id = server.manual_host.GetID();
+    if (!server.valid || (id < 0))
         return;
-    settings->RemoveManualHost(server.manual_host.GetID());
+    settings->RemoveManualHost(id);
 }
 
 void QmlBackend::wakeUpHost(int index)
@@ -992,19 +1008,29 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
     if (index < 0)
         return {};
     auto discovered = discovery_manager.GetHosts();
+    auto manual = settings->GetManualHosts();
     if (index < discovered.size()) {
         DisplayServer server;
         server.valid = true;
         server.discovered = true;
         server.discovery_host = discovered.at(index);
-        server.registered = settings->GetRegisteredHostRegistered(server.discovery_host.GetHostMAC());
+        auto host_mac = server.discovery_host.GetHostMAC();
+        server.registered = settings->GetRegisteredHostRegistered(host_mac);
         server.duid = QString();
         if (server.registered)
-            server.registered_host = settings->GetRegisteredHost(server.discovery_host.GetHostMAC());
+            server.registered_host = settings->GetRegisteredHost(host_mac);
+        for (int i = 0; i < manual.size(); i++)
+        {
+            auto manual_host = manual.at(i);
+            if(manual_host.GetRegistered() && manual_host.GetMAC() == host_mac && manual_host.GetHost() == server.discovery_host.host_addr)
+            {
+                server.manual_host = manual_host;
+                break;
+            }
+        }
         return server;
     }
     index -= discovered.size();
-    auto manual = settings->GetManualHosts();
     if (index < manual.size()) {
         DisplayServer server;
         server.valid = true;

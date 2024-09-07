@@ -137,7 +137,7 @@ Pane {
             }
 
             function deleteHost() {
-                if (!modelData.discovered && !modelData.duid)
+                if (modelData.manual)
                     root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
             }
 
@@ -146,6 +146,7 @@ Pane {
             }
 
             RowLayout {
+                visible: modelData.display
                 anchors {
                     fill: parent
                     leftMargin: 30
@@ -178,7 +179,16 @@ Pane {
                             t += "\n" + qsTr("Remote Connection via PSN");
                         } 
                         else
-                            t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
+                            t += "\n";
+                            if(modelData.discovered)
+                            {
+                                if(modelData.manual)
+                                    t += qsTr("discovered + manual")
+                                else
+                                    t += qsTr("discovered");
+                            }
+                            else
+                                t += qsTr("manual");
                         return t;
                     }
                 }
@@ -211,7 +221,7 @@ Pane {
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
                         focusPolicy: Qt.NoFocus
-                        visible: !modelData.discovered && !modelData.duid
+                        visible: modelData.manual
                         onClicked: delegate.deleteHost()
                         Material.roundedScale: Material.SmallScale
 
