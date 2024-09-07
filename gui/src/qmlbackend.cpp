@@ -462,6 +462,7 @@ QVariantList QmlBackend::hosts() const
         m["name"] = host.GetHost();
         m["duid"] = "";
         m["address"] = host.GetHost();
+        m["state"] = "unknown";
         m["registered"] = false;
         m["display"] = discovered_manual_hosts.contains(host) ? false : true;
         if (host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC())) {
