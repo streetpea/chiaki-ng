@@ -767,13 +767,11 @@ void QmlBackend::setConsolePin(int index, QString console_pin)
 void QmlBackend::addManualHost(int index, const QString &address)
 {
     HostMAC hmac;
-    if (index >= 0) {
-        auto server = displayServerAt(index);
-        if (!server.valid)
-            return;
-        hmac = server.registered_host.GetServerMAC();
-    }
-    ManualHost host(-1, address, index >= 0, hmac);
+    QList<RegisteredHost> registered_hosts = settings->GetRegisteredHosts();
+    bool registered = (index >= 0 && (index < registered_hosts.length()));
+    if (registered)
+        hmac = registered_hosts.at(index).GetServerMAC();
+    ManualHost host(-1, address, registered, hmac);
     settings->SetManualHost(host);
 }
 
