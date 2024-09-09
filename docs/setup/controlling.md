@@ -127,11 +127,16 @@ You can create your own controller profile by mapping the relevant buttons. The 
 
 ### Special Button Mappings (You need to assign these yourself)
 
+!!! Warning "MacOS Commands not Controls"
+
+    For Macos shortcuts replace ++ctrl++ with ++cmd++ for all sequences below.
+
 | Function | Button | Description                                                                 |
 | ---------|--------|-----------------------------------------------------------------------------|
 | `Quit`   |  ++ctrl+q++ | Close `chiaki-ng` cleanly, putting console in sleep mode if desired  |
 | `Zoom`   |  ++ctrl+z++ | Toggle between zoom (zoomed in to eliminate borders, cutting off edge of screen) and non-zoom (black borders) |
 | `Stretch`| ++ctrl+s++  | Toggle between stretch (stretched to eliminate borders, distorting aspect ratio of image), and non-stretch (black borders with default aspect ratio) |
+| `Full Screen` | ++f11++ / `Double Click` | Toggle between full screen and regular mode (Note: Double click for fullscreen toggle needs to be enabled in video settings.)|
 | `PlayStation Button`| ++esc++ | The PlayStation / home button as it normally functions on a PlayStation controller |
 | `Share Button` | ++f++ | The Share button on the PS5 controller used for taking screenshots, videos, etc. stored on your PS5 and uploaded to the PlayStation app on your phone if you so choose. |
 | `Touchpad Click` | ++t++, mouse ++right-button++, tapping border (top, bottom, left or right 5%) of the touchscreen | These actions will all result in a touchpad click. For games that separate the touchpad into multiple regions, they work in conjunction with either the current mouse location (location of finger on Steam Deck trackpad) or current finger location (which edge of the touchscreen you tapped) to delineate which region you are using (most games just have one region for touchpad click though). |

@@ -227,6 +227,9 @@ class Settings : public QObject
 		bool GetAutomaticConnect() const         { return settings.value("settings/automatic_connect", false).toBool(); }
 		void SetAutomaticConnect(bool autoconnect)    { settings.setValue("settings/automatic_connect", autoconnect); }
 
+		bool GetFullscreenDoubleClickEnabled() const	   { return settings.value("settings/fullscreen_doubleclick", false).toBool(); }
+		void SetFullscreenDoubleClickEnabled(bool enabled) { settings.setValue("settings/fullscreen_doubleclick", enabled); }
+
 		ChiakiVideoResolutionPreset GetResolutionLocalPS4() const;
 		ChiakiVideoResolutionPreset GetResolutionRemotePS4() const;
 		ChiakiVideoResolutionPreset GetResolutionLocalPS5() const;

@@ -136,6 +136,17 @@ void QmlSettings::setVerticalDeck(bool vertical)
 }
 #endif
 
+bool QmlSettings::fullscreenDoubleClick() const
+{
+    return settings->GetFullscreenDoubleClickEnabled();
+}
+
+void QmlSettings::setFullscreenDoubleClick(bool enabled)
+{
+    settings->SetFullscreenDoubleClickEnabled(enabled);
+    emit fullscreenDoubleClickChanged();
+}
+
 bool QmlSettings::buttonsByPosition() const
 {
     return settings->GetButtonsByPosition();
@@ -1241,6 +1252,7 @@ void QmlSettings::refreshAllKeys()
     emit noiseSuppressLevelChanged();
     emit echoSuppressLevelChanged();
 #endif
+    emit fullscreenDoubleClickChanged();
     emit fpsLocalPS4Changed();
     emit fpsRemotePS4Changed();
     emit fpsLocalPS5Changed();

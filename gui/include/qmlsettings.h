@@ -24,6 +24,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
 #endif
+    Q_PROPERTY(bool fullscreenDoubleClick READ fullscreenDoubleClick WRITE setFullscreenDoubleClick NOTIFY fullscreenDoubleClickChanged)
     Q_PROPERTY(int fpsLocalPS4 READ fpsLocalPS4 WRITE setFpsLocalPS4 NOTIFY fpsLocalPS4Changed)
     Q_PROPERTY(int fpsRemotePS4 READ fpsRemotePS4 WRITE setFpsRemotePS4 NOTIFY fpsRemotePS4Changed)
     Q_PROPERTY(int fpsLocalPS5 READ fpsLocalPS5 WRITE setFpsLocalPS5 NOTIFY fpsLocalPS5Changed)
@@ -167,6 +168,8 @@ public:
     int echoSuppressLevel() const;
     void setEchoSuppressLevel(int level);
 #endif
+    bool fullscreenDoubleClick() const;
+    void setFullscreenDoubleClick(bool enabled);
 
     int fpsLocalPS4() const;
     void setFpsLocalPS4(int fps);
@@ -464,6 +467,7 @@ signals:
     void noiseSuppressLevelChanged();
     void echoSuppressLevelChanged();
 #endif
+    void fullscreenDoubleClickChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();
     void fpsLocalPS5Changed();

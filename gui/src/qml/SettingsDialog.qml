@@ -308,6 +308,21 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Toggle Fullscreen on Double-click:")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.fullscreenDoubleClick
+                        onToggled: Chiaki.settings.fullscreenDoubleClick = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Render Preset:")
                     }
 
@@ -342,6 +357,7 @@ DialogView {
                         text: qsTr("Open")
                         onClicked: root.showPlaceboSettingsDialog()
                         Material.roundedScale: Material.SmallScale
+                        visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
                     }
                 }
             }

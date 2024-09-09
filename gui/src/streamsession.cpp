@@ -1334,7 +1334,6 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #endif
 	if((rumble_haptics_intensity != RumbleHapticsIntensity::Off) && haptics_output == 0)
 	{
-
 		int16_t amplitudel = 0, amplituder = 0;
 		int32_t suml = 0, sumr = 0;
 		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples

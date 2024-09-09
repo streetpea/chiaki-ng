@@ -949,6 +949,8 @@ bool QmlMainWindow::event(QEvent *event)
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::MouseButtonDblClick:
+        if(!settings->GetFullscreenDoubleClickEnabled())
+            break;
         if (session && !grab_input) {
             if (windowState() != Qt::WindowFullScreen)
                 showFullScreen();
