@@ -244,7 +244,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gen_key_stream(ChiakiGKCrypt *gkcry
 		return CHIAKI_ERR_UNKNOWN;
 	}
 #endif
-	int counter_offset = (int)(key_pos / CHIAKI_GKCRYPT_BLOCK_SIZE);
+	uint64_t counter_offset = (key_pos / CHIAKI_GKCRYPT_BLOCK_SIZE);
 
 	for(uint8_t *cur = buf, *end = buf + buf_size; cur < end; cur += CHIAKI_GKCRYPT_BLOCK_SIZE)
 		counter_add(cur, gkcrypt->iv, counter_offset++);

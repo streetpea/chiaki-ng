@@ -953,8 +953,6 @@ static void *takion_thread_func(void *user)
 		takion_handle_packet(takion, resized_buf, received_size);
 	}
 
-	// chiaki_congestion_control_stop(&congestion_control);
-
 	chiaki_takion_send_buffer_fini(&takion->send_buffer);
 
 error_reoder_queue:
