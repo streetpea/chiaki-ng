@@ -89,6 +89,11 @@ bool QmlController::isSteamDeck() const
     return controller->IsSteamDeck();
 }
 
+bool QmlController::isDualSenseEdge() const
+{
+    return controller->IsDualSenseEdge();
+}
+
 void QmlController::sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
     QKeyEvent press(QEvent::KeyPress, key, modifiers);

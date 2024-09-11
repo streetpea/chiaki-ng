@@ -8,6 +8,7 @@ class QmlController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool dualSense READ isDualSense CONSTANT)
+    Q_PROPERTY(bool dualSenseEdge READ isDualSenseEdge CONSTANT)
     Q_PROPERTY(bool steamDeck READ isSteamDeck CONSTANT)
 
 public:
@@ -15,6 +16,7 @@ public:
     ~QmlController();
 
     bool isDualSense() const;
+    bool isDualSenseEdge() const;
     bool isSteamDeck() const;
 
 private:

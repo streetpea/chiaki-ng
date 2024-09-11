@@ -20,6 +20,7 @@
 #define STEAMDECK_HAPTIC_INTERVAL_MS 10 // check every interval
 #define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 4 // send packets every interval * packets per analysis
 #define STEAMDECK_HAPTIC_SAMPLING_RATE 3000
+#define DUALSENSE_EDGE_HAPTICS_MULTIPLE 0.87f
 // DualShock4 touchpad is 1920 x 942
 #define PS4_TOUCHPAD_MAX_X 1920.0f
 #define PS4_TOUCHPAD_MAX_Y 942.0f
@@ -160,6 +161,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connected = false;
 	muted = true;
 	mic_connected = false;
+	edge_haptics = false;
 #ifdef Q_OS_MACOS
 	mic_authorization = false;
 #endif
@@ -167,9 +169,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
 	ChiakiErrorCode err;
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     haptics_sdeck = 0;
-#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
 	{
@@ -743,12 +743,10 @@ void StreamSession::UpdateGamepads()
 			{
 				DisconnectHaptics();
 			}
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 			if (!controller->IsSteamDeck())
 			{
 				haptics_sdeck++;
 			}
-#endif
 			controller->Unref();
 		}
 	}
@@ -771,15 +769,19 @@ void StreamSession::UpdateGamepads()
 			if (controller->IsDualSense())
 			{
 				controller->SetDualsenseMic(muted);
+				if(this->haptics_output > 0)
+					return;
+				if (controller->IsDualSenseEdge())
+					edge_haptics = true;
+				else
+					edge_haptics = false;
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 			if (!controller->IsSteamDeck())
 			{
 				haptics_sdeck--;
 			}
-#endif
 		}
 	}
 	
@@ -1388,10 +1390,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
 			{
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 				if(haptics_sdeck < 1 && controller->IsSteamDeck())
 					continue;
-#endif
 				if(left > right)
 					controller->SetHapticRumble(left, left, 10);
 				else
@@ -1410,6 +1410,24 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	// Remix to 4 channels
 	for (int i=0; i < buf_size; i+=4)
 	{
+		// multiply DualSense edge haptics by 2
+		if(edge_haptics)
+		{
+			int32_t amplitudel = *(chiaki_unaligned_int16_t *)(buf + i);
+			amplitudel *= DUALSENSE_EDGE_HAPTICS_MULTIPLE;
+			if(amplitudel > INT16_MAX)
+				amplitudel = INT16_MAX;
+			if(amplitudel < -INT16_MAX)
+				amplitudel = -INT16_MAX;
+			*(chiaki_unaligned_int16_t *)(buf + i) = (int16_t)amplitudel;
+			int32_t amplituder = *(chiaki_unaligned_int16_t *)(buf + i + 2);
+			amplituder *= DUALSENSE_EDGE_HAPTICS_MULTIPLE;
+			if(amplituder > INT16_MAX)
+				amplituder = INT16_MAX;
+			if(amplituder < -INT16_MAX)
+				amplituder = -INT16_MAX;
+			*(chiaki_unaligned_int16_t *)(buf + i + 2) = (int16_t)amplituder;
+		}
 		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
 	}

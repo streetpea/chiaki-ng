@@ -80,6 +80,7 @@ class Controller : public QObject
 		ChiakiControllerState state;
 		bool is_dualsense;
 		bool is_steamdeck;
+		bool is_dualsense_edge;
 		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -102,6 +103,7 @@ class Controller : public QObject
 		void SetDualsenseMic(bool on);
 		void SetHapticRumble(uint16_t left, uint16_t right, int ms);
 		bool IsDualSense();
+		bool IsDualSenseEdge();
 		bool IsSteamDeck();
 
 	signals:
