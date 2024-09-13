@@ -73,13 +73,18 @@ static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
 	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
 });
 
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-static QSet<QPair<int16_t, int16_t>> chiaki_steamdeck_controller_ids({
+static QSet<QPair<int16_t, int16_t>> chiaki_handheld_controller_ids({
 	// in format (vendor id, product id)
 	QPair<int16_t, int16_t>(0x28de, 0x1205), // Steam Deck
-	QPair<int16_t, int16_t>(0x28de, 0x11ff) // Steam Virtual Controller
+	QPair<int16_t, int16_t>(0x0b05, 0x1abe), // Rog Ally
+	QPair<int16_t, int16_t>(0x17ef, 0x6182), // Legion Go
+	QPair<int16_t, int16_t>(0x0db0, 0x1901), // MSI Claw
 });
-#endif
+
+static QSet<QPair<int16_t, int16_t>> chiaki_steam_virtual_controller_ids({
+	// in format (vendor id, product id)
+	QPair<int16_t, int16_t>(0x28de, 0x11ff), // Steam Virtual Controller
+});
 
 static ControllerManager *instance = nullptr;
 
@@ -252,7 +257,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 }
 
 Controller::Controller(int device_id, ControllerManager *manager)
-: QObject(manager), ref(0), is_dualsense(false), is_steamdeck(false)
+: QObject(manager), ref(0), is_dualsense(false), is_handheld(false), is_steam_virtual(false)
 {
 	this->id = device_id;
 	this->manager = manager;
@@ -275,10 +280,8 @@ Controller::Controller(int device_id, ControllerManager *manager)
 #endif
 			auto controller_id = QPair<int16_t, int16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-			is_steamdeck = chiaki_steamdeck_controller_ids.contains(controller_id);
-			//printf("\nVendor ID: %x \nProduct ID: %x\n", controller_id.first, controller_id.second);
-#endif
+			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
+			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(controller_id);
 			break;
 		}
 	}
@@ -612,12 +615,22 @@ bool Controller::IsDualSense()
 	return false;
 }
 
-bool Controller::IsSteamDeck()
+bool Controller::IsHandheld()
 {
-#ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return false;
-	return is_steamdeck;
+	return is_handheld;
+#endif
+	return false;
+}
+
+bool Controller::IsSteamVirtual()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return false;
+	return is_steam_virtual;
 #endif
 	return false;
 }

@@ -150,6 +150,7 @@ class StreamSession : public QObject
 		double average_packet_loss = 0;
 		QList<double> packet_loss_history;
 		bool cant_display = false;
+		int haptics_handheld;
 
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -164,7 +165,6 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		SDeck *sdeck;
 		ChiakiControllerState sdeck_state;
-		int haptics_sdeck;
 		QQueue<haptic_packet_t> sdeck_hapticl;
 		QQueue<haptic_packet_t> sdeck_hapticr;
 		int16_t * sdeck_haptics_senderl;

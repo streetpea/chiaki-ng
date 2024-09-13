@@ -8,14 +8,16 @@ class QmlController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool dualSense READ isDualSense CONSTANT)
-    Q_PROPERTY(bool steamDeck READ isSteamDeck CONSTANT)
+    Q_PROPERTY(bool handheld READ isHandheld CONSTANT)
+    Q_PROPERTY(bool steamVirtual READ isSteamVirtual CONSTANT)
 
 public:
     QmlController(Controller *controller, QObject *target, QObject *parent = nullptr);
     ~QmlController();
 
     bool isDualSense() const;
-    bool isSteamDeck() const;
+    bool isHandheld() const;
+    bool isSteamVirtual() const;
 
 private:
     void sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);

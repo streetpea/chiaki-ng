@@ -84,9 +84,14 @@ bool QmlController::isDualSense() const
     return controller->IsDualSense();
 }
 
-bool QmlController::isSteamDeck() const
+bool QmlController::isHandheld() const
 {
-    return controller->IsSteamDeck();
+    return controller->IsHandheld();
+}
+
+bool QmlController::isSteamVirtual() const
+{
+    return controller->IsSteamVirtual();
 }
 
 void QmlController::sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers)

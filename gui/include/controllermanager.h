@@ -79,7 +79,8 @@ class Controller : public QObject
 		ChiakiOrientationTracker orientation_tracker;
 		ChiakiControllerState state;
 		bool is_dualsense;
-		bool is_steamdeck;
+		bool is_handheld;
+		bool is_steam_virtual;
 		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -102,7 +103,8 @@ class Controller : public QObject
 		void SetDualsenseMic(bool on);
 		void SetHapticRumble(uint16_t left, uint16_t right, int ms);
 		bool IsDualSense();
-		bool IsSteamDeck();
+		bool IsHandheld();
+		bool IsSteamVirtual();
 
 	signals:
 		void StateChanged();
