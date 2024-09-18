@@ -1393,7 +1393,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
 			{
-				if(haptics_handheld < 1 && controller->IsHandheld())
+				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtual())))
 					continue;
 				if(left > right)
 					controller->SetHapticRumble(left, left, 10);

@@ -1457,7 +1457,6 @@ void QmlBackend::controllerMappingQuit()
     setControllerMappingInProgress(false);
     emit currentControllerTypeChanged();
     emit currentControllerMappingChanged();
-    qCInfo(chiakiGui) << "Controller mapping quit";
 }
 
 void QmlBackend::controllerMappingButtonQuit()
