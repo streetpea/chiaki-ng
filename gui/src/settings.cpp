@@ -140,6 +140,7 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
 	LoadManualHosts();
+	LoadControllerMappings();
 	default_settings.setFallbacksEnabled(false);
 	MigrateSettings(&default_settings);
 	MigrateVideoProfile(&default_settings);
@@ -1671,14 +1672,17 @@ void Settings::DeleteProfile(QString profile)
 	QSettings delete_profile(QCoreApplication::organizationName(), QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
 	registered_hosts.clear();
 	manual_hosts.clear();
+	controller_mappings.clear();
 	SaveRegisteredHosts(&delete_profile);
 	SaveManualHosts(&delete_profile);
+	SaveControllerMappings(&delete_profile);
 	delete_profile.remove("settings");
 	profiles.removeOne(profile);
 	SaveProfiles();
 	emit ProfilesUpdated();
 	LoadRegisteredHosts();
 	LoadManualHosts();
+	LoadControllerMappings();
 }
 
 void Settings::LoadRegisteredHosts(QSettings *qsettings)
@@ -1700,6 +1704,7 @@ void Settings::LoadRegisteredHosts(QSettings *qsettings)
 			ps4s_registered++;
 	}
 	qsettings->endArray();
+	emit RegisteredHostsUpdated();
 }
 
 void Settings::SaveRegisteredHosts(QSettings *qsettings)
@@ -1751,6 +1756,7 @@ void Settings::LoadManualHosts(QSettings *qsettings)
 		manual_hosts[host.GetID()] = host;
 	}
 	qsettings->endArray();
+	emit ManualHostsUpdated();
 }
 
 void Settings::SaveManualHosts(QSettings *qsettings)
@@ -1787,6 +1793,53 @@ void Settings::RemoveManualHost(int id)
 	emit ManualHostsUpdated();
 }
 
+void Settings::SetControllerMapping(const QString &guid, const QString &mapping)
+{
+	controller_mappings.insert(guid, mapping);
+	SaveControllerMappings();
+	emit ControllerMappingsUpdated();
+}
+
+void Settings::RemoveControllerMapping(const QString &guid)
+{
+	controller_mappings.remove(guid);
+	SaveControllerMappings();
+	emit ControllerMappingsUpdated();
+}
+
+void Settings::LoadControllerMappings(QSettings *qsettings)
+{
+	if(!qsettings)
+		qsettings = &settings;
+	controller_mappings.clear();
+
+	int count = qsettings->beginReadArray("controller_mappings");
+	for(int i=0; i<count; i++)
+	{
+		qsettings->setArrayIndex(i);
+		controller_mappings.insert(qsettings->value("guid").toString(), qsettings->value("controller_mapping").toString());
+	}
+	qsettings->endArray();
+	emit ControllerMappingsUpdated();
+}
+
+void Settings::SaveControllerMappings(QSettings *qsettings)
+{
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("controller_mappings");
+	int i=0;
+	QMapIterator<QString, QString> j(controller_mappings);
+	while (j.hasNext()) {
+		qsettings->setArrayIndex(i);
+		j.next();
+		qsettings->setValue("guid", j.key());
+		qsettings->setValue("controller_mapping", j.value());
+		i++;
+	}
+	qsettings->endArray();
+}
+
 QString Settings::GetChiakiControllerButtonName(int button)
 {
 	switch(button)
@@ -1817,6 +1870,11 @@ QString Settings::GetChiakiControllerButtonName(int button)
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y_DOWN)  : return tr("Left Stick Down");
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN) : return tr("Right Stick Left");
 		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN) : return tr("Right Stick Down");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X) : return tr("Left Stick X");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y) : return tr("Left Stick Y");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X) : return tr("Right Stick X");
+		case static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y) : return tr("Right Stick Y");
+		case static_cast<int>(ControllerButtonExt::MISC1) : return tr("MIC");
 		default: return "Unknown";
 	}
 }

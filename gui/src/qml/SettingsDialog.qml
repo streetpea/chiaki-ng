@@ -15,6 +15,7 @@ DialogView {
         PS5
     }
     property int selectedConsole: SettingsDialog.Console.PS5
+    property bool quitControllerMapping: true
     id: dialog
     title: qsTr("Settings")
     header: qsTr("* Defaults in () to right of value or marked with (Default)")
@@ -71,6 +72,11 @@ DialogView {
 
             TabButton {
                 text: qsTr("Keys")
+                focusPolicy: Qt.NoFocus
+            }
+
+            TabButton {
+                text: qsTr("Controllers")
                 focusPolicy: Qt.NoFocus
             }
 
@@ -1125,6 +1131,7 @@ DialogView {
 
             Item {
                 // Keys
+                id: controllerMapping
                 GridLayout {
                     anchors {
                         top: parent.top
@@ -1170,6 +1177,39 @@ DialogView {
             }
 
             Item {
+                // Controller Mapping
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 20
+                    }
+                    columns: 1
+                    rowSpacing: 20
+                    columnSpacing: 20
+
+
+                    C.Button {
+                        id: controllerMappingChange
+                        firstInFocusChain: true
+                        text: "Change Controller Mapping"
+                        onClicked: controllerMappingDialog.show({
+                            reset: false
+                        });
+                    }
+
+                    C.Button {
+                        id: controllerMappingReset
+                        lastInFocusChain: true
+                        text: "Reset Controller Mapping"
+                        onClicked: controllerMappingDialog.show({
+                            reset: true
+                        });
+                    }
+                }
+            }
+
+            Item {
                 // Config (PSN Remote Connection Setup and Import/Export)
                 GridLayout {
                     anchors {
@@ -1194,7 +1234,7 @@ DialogView {
                         id: profile
                         text: qsTr("Manage Profiles")
                         onClicked: {
-                            showProfileDialog()
+                            root.showProfileDialog()
                         }
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1203,7 +1243,7 @@ DialogView {
                         id: openPsnLogin
                         text: qsTr("Login to PSN")
                         onClicked: {
-                            showPSNTokenDialog(Chiaki.openPsnLink(), false)
+                            root.showPSNTokenDialog(Chiaki.openPsnLink(), false)
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
@@ -1349,6 +1389,120 @@ DialogView {
                     keyDialog.buttonCallback(name);
                     keyDialog.close();
                 }
+            }
+        }
+
+        Dialog {
+            id: controllerMappingDialog
+            property bool resetFocus: true
+            property bool resetMapping: false
+            parent: Overlay.overlay
+            x: Math.round((root.width - width) / 2)
+            y: Math.round((root.height - height) / 2)
+            title: qsTr("Controller Capture")
+            modal: true
+            standardButtons: Dialog.Close
+            closePolicy: Popup.CloseOnPressOutside
+            onOpened: {
+                controllerLabel.forceActiveFocus();
+                Chiaki.creatingControllerMapping(true);
+            }
+            onClosed: {
+                if(resetFocus)
+                {
+                    if(resetMapping)
+                        controllerMappingReset.forceActiveFocus(Qt.TabFocusReason);
+                    else
+                        controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                    focus = false;
+                }
+                else
+                {
+                    resetFocus = true;
+                    focus = false;
+                }
+                if(quitControllerMapping)
+                    Chiaki.controllerMappingQuit();
+                else
+                    quitControllerMapping = true;
+            }
+            Material.roundedScale: Material.MediumScale
+
+            function show(opts) {
+                resetMapping = opts.reset;
+                open();
+            }
+            Label {
+                id: controllerLabel
+                text: qsTr("Choose the controller by pressing any button on the controller")
+            }
+        }
+
+        Dialog {
+            id: steamControllerMappingDialog
+            property bool resetMapping: false
+            parent: Overlay.overlay
+            x: Math.round((root.width - width) / 2)
+            y: Math.round((root.height - height) / 2)
+            title: qsTr("Controller Managed by Steam")
+            modal: true
+            standardButtons: Dialog.Close
+            closePolicy: Popup.NoAutoClose
+            onOpened: {
+                steamLabel.forceActiveFocus();
+            }
+            onClosed: {
+                if(resetMapping)
+                    controllerMappingReset.forceActiveFocus(Qt.TabFocusReason);
+                else
+                    controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                focus = false;
+            }
+            Material.roundedScale: Material.MediumScale
+
+            Label {
+                id: steamLabel
+                wrapMode: TextEdit.Wrap
+                text: qsTr("This controller is managed by Steam. Please use Steam to map controller or disable Steam Input for the controller before mapping here.")
+                Keys.onReturnPressed: steamControllerMappingDialog.close();
+                Keys.onEscapePressed: steamControllerMappingDialog.close();
+            }
+        }
+
+        Connections {
+            target: Chiaki
+
+            function onControllerMappingInProgressChanged()
+            {
+                if(Chiaki.controllerMappingInProgress)
+                {
+                    if(controllerMappingDialog.resetMapping)
+                    {
+                        if(!Chiaki.controllerMappingDefaultMapping)
+                        {
+                            quitControllerMapping = false;
+                            Chiaki.controllerMappingReset();
+                        }
+                        controllerMappingDialog.close();
+                    }
+                    else
+                    {
+                        controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                        root.showControllerMappingDialog();
+                        quitControllerMapping = false;
+                        controllerMappingDialog.resetFocus = false;
+                        controllerMappingDialog.close();
+                    }
+                }
+            }
+
+            function onControllerMappingSteamControllerSelected()
+            {
+                controllerMappingDialog.resetFocus = false;
+                quitControllerMapping = false;
+                steamControllerMappingDialog.resetMapping = controllerMappingDialog.resetMapping;
+                controllerMappingDialog.close();
+                steamControllerMappingDialog.open();
             }
         }
     }

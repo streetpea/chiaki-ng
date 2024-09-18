@@ -121,7 +121,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
     updateControllers();
-
+    updateControllerMappings();
+    connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
     auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
     psn_auto_connect_timer = new QTimer(this);
@@ -270,6 +271,7 @@ void QmlBackend::profileChanged()
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
+    connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
     settings_qml->setSettings(settings);
     discovery_manager.SetSettings(settings);
     window->setSettings(settings);
@@ -523,7 +525,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             if(session)
             {
                 delete session;
-                session = NULL;
+                session = nullptr;
             }
             break;
         case CHIAKI_ERR_HOST_UNREACH:
@@ -531,7 +533,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             if(session)
             {
                 delete session;
-                session = NULL;
+                session = nullptr;
             }
             break;
         default:
@@ -539,7 +541,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             if(session)
             {
                 delete session;
-                session = NULL;
+                session = nullptr;
             }
             break;
     }
@@ -1107,6 +1109,11 @@ void QmlBackend::updateControllers()
             it++;
             continue;
         }
+        if(it.key() == controller_mapping_id)
+        {
+            controller_mapping_controller = nullptr;
+            controllerMappingQuit();
+        }
         it.value()->deleteLater();
         it = controllers.erase(it);
         changed = true;
@@ -1118,10 +1125,362 @@ void QmlBackend::updateControllers()
         if (!controller)
             continue;
         controllers[id] = new QmlController(controller, window, this);
+        connect(controller, &Controller::UpdatingControllerMapping, this, &QmlBackend::controllerMappingUpdate);
+        connect(controller, &Controller::NewButtonMapping, this, &QmlBackend::controllerMappingChangeButton);
         changed = true;
     }
     if (changed)
         emit controllersChanged();
+}
+
+void QmlBackend::setControllerMappingDefaultMapping(bool is_default_mapping)
+{
+    if(controller_mapping_default_mapping != is_default_mapping)
+    {
+        controller_mapping_default_mapping = is_default_mapping;
+        emit controllerMappingDefaultMappingChanged();
+    }
+}
+
+void QmlBackend::setControllerMappingAltered(bool altered)
+{
+    if(controller_mapping_altered != altered)
+    {
+        controller_mapping_altered = altered;
+        emit controllerMappingAlteredChanged();
+    }
+}
+
+void QmlBackend::setControllerMappingInProgress(bool is_in_progress)
+{
+    if(controller_mapping_in_progress != is_in_progress)
+    {
+        controller_mapping_in_progress = is_in_progress;
+        emit controllerMappingInProgressChanged();
+    }
+}
+
+void QmlBackend::setEnableAnalogStickMapping(bool enabled)
+{
+    if(enable_analog_stick_mapping != enabled)
+    {
+        if(controller_mapping_in_progress && controller_mapping_controller)
+            controller_mapping_controller->EnableAnalogStickMapping(enabled);
+        enable_analog_stick_mapping = enabled;
+        emit enableAnalogStickMappingChanged();
+    }
+}
+
+QVariantList QmlBackend::currentControllerMapping() const
+{
+    QVariantList out;
+    if(!controller_mapping_in_progress)
+        return out;
+	QMap<int, QStringList> result =
+	{
+		{CHIAKI_CONTROLLER_BUTTON_CROSS     , controller_mapping_controller_mappings.contains("a") ? controller_mapping_controller_mappings.value("a") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_MOON      , controller_mapping_controller_mappings.contains("b") ? controller_mapping_controller_mappings.value("b") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_BOX       , controller_mapping_controller_mappings.contains("x") ? controller_mapping_controller_mappings.value("x") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_PYRAMID   , controller_mapping_controller_mappings.contains("y") ? controller_mapping_controller_mappings.value("y") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT , controller_mapping_controller_mappings.contains("dpleft") ? controller_mapping_controller_mappings.value("dpleft") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT, controller_mapping_controller_mappings.contains("dpright") ? controller_mapping_controller_mappings.value("dpright") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_UP   , controller_mapping_controller_mappings.contains("dpup") ? controller_mapping_controller_mappings.value("dpup") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN , controller_mapping_controller_mappings.contains("dpdown") ? controller_mapping_controller_mappings.value("dpdown") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_L1        , controller_mapping_controller_mappings.contains("leftshoulder") ? controller_mapping_controller_mappings.value("leftshoulder") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_R1        , controller_mapping_controller_mappings.contains("rightshoulder") ? controller_mapping_controller_mappings.value("rightshoulder") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_L3        , controller_mapping_controller_mappings.contains("leftstick") ? controller_mapping_controller_mappings.value("leftstick") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_R3        , controller_mapping_controller_mappings.contains("rightstick") ? controller_mapping_controller_mappings.value("rightstick") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_OPTIONS   , controller_mapping_controller_mappings.contains("start") ? controller_mapping_controller_mappings.value("start") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_SHARE     , controller_mapping_controller_mappings.contains("back") ? controller_mapping_controller_mappings.value("back") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_TOUCHPAD  , controller_mapping_controller_mappings.contains("touchpad") ? controller_mapping_controller_mappings.value("touchpad") : QStringList()},
+		{CHIAKI_CONTROLLER_BUTTON_PS        , controller_mapping_controller_mappings.contains("guide") ? controller_mapping_controller_mappings.value("guide") : QStringList()},
+		{CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 , controller_mapping_controller_mappings.contains("lefttrigger") ? controller_mapping_controller_mappings.value("lefttrigger") : QStringList()},
+		{CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 , controller_mapping_controller_mappings.contains("righttrigger") ? controller_mapping_controller_mappings.value("righttrigger") : QStringList()},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X)   , controller_mapping_controller_mappings.contains("leftx") ? controller_mapping_controller_mappings.value("leftx") : QStringList()},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y)   , controller_mapping_controller_mappings.contains("lefty") ? controller_mapping_controller_mappings.value("lefty") : QStringList()},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X)  , controller_mapping_controller_mappings.contains("rightx") ? controller_mapping_controller_mappings.value("rightx") : QStringList()},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y)  , controller_mapping_controller_mappings.contains("righty") ? controller_mapping_controller_mappings.value("righty") : QStringList()},
+        {static_cast<int>(ControllerButtonExt::MISC1)   ,      controller_mapping_controller_mappings.contains("misc1") ? controller_mapping_controller_mappings.value("misc1") : QStringList()},
+	};
+
+    for (auto it = result.cbegin(); it != result.cend(); ++it) {
+        QVariantMap m;
+        m["buttonName"] = Settings::GetChiakiControllerButtonName(it.key());
+        m["buttonValue"] = it.key();
+        m["physicalButton"] = it.value();
+        out.append(m);
+    }
+    return out;
+}
+
+void QmlBackend::updateControllerMappings()
+{
+    if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
+        return;
+    QMap<QString,QString> controller_mappings = settings->GetControllerMappings();
+    QStringList mapping_guids = controller_mappings.keys();
+    for(int i=0; i<mapping_guids.length(); i++)
+    {
+        QString guid = mapping_guids.at(i);
+        if(!controller_mapping_original_controller_mappings.contains(guid))
+        {
+            SDL_JoystickGUID real_guid = SDL_JoystickGetGUIDFromString(guid.toUtf8().constData());
+            char *mapping = SDL_GameControllerMappingForGUID(real_guid);
+            QString original_controller_mapping(mapping);
+            SDL_free(mapping);
+            if(original_controller_mapping.isEmpty())
+            {
+                qCWarning(chiakiGui) << "Error retrieving controller mapping " << SDL_GetError();
+                return;
+            }
+            controller_mapping_original_controller_mappings.insert(guid, original_controller_mapping);
+        }
+        int result = SDL_GameControllerAddMapping(controller_mappings.value(guid).toUtf8().constData());
+        switch(result)
+        {
+            case -1:
+                qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << guid << " with error: " << SDL_GetError();
+                break;
+            case 0:
+                qCInfo(chiakiGui) << "Updated controller mapping updated for guid: " << guid;
+                break;
+            case 1:
+                qCInfo(chiakiGui) << "Added controller mapping for guid: " << guid;
+                break;
+            default:
+                qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << guid;
+        }
+    }
+}
+
+void QmlBackend::creatingControllerMapping(bool creating_controller_mapping)
+{
+    ControllerManager::GetInstance()->creatingControllerMapping(creating_controller_mapping);
+}
+
+void QmlBackend::controllerMappingChangeButton(QString button)
+{
+    if(!controller_mapping_in_progress || !controller_mapping_controller)
+        return;
+    QStringList mapping_selection = controller_mapping_applied_controller_mappings.value(button);
+	QMap<QString, int> button_map =
+	{
+		{"a", CHIAKI_CONTROLLER_BUTTON_CROSS},
+		{"b", CHIAKI_CONTROLLER_BUTTON_MOON},
+		{"x", CHIAKI_CONTROLLER_BUTTON_BOX},
+		{"y", CHIAKI_CONTROLLER_BUTTON_PYRAMID},
+		{"dpleft", CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT},
+		{"dpright", CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT},
+		{"dpup", CHIAKI_CONTROLLER_BUTTON_DPAD_UP},
+		{"dpdown", CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN},
+		{"leftshoulder", CHIAKI_CONTROLLER_BUTTON_L1},
+		{"rightshoulder", CHIAKI_CONTROLLER_BUTTON_R1},
+		{"leftstick", CHIAKI_CONTROLLER_BUTTON_L3},
+		{"rightstick", CHIAKI_CONTROLLER_BUTTON_R3},
+		{"start", CHIAKI_CONTROLLER_BUTTON_OPTIONS},
+		{"back", CHIAKI_CONTROLLER_BUTTON_SHARE},
+		{"touchpad", CHIAKI_CONTROLLER_BUTTON_TOUCHPAD},
+		{"guide", CHIAKI_CONTROLLER_BUTTON_PS},
+		{"lefttrigger", CHIAKI_CONTROLLER_ANALOG_BUTTON_L2},
+		{"righttrigger", CHIAKI_CONTROLLER_ANALOG_BUTTON_R2},
+		{"leftx", static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X)},
+		{"lefty", static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y)},
+		{"rightx", static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X)},
+		{"righty", static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y)},
+        {"misc1", static_cast<int>(ControllerButtonExt::MISC1)},
+	};
+    int chiaki_button_value = button_map.value(button);
+    QString chiaki_button_name = Settings::GetChiakiControllerButtonName(chiaki_button_value);
+    emit controllerMappingButtonSelected(mapping_selection, chiaki_button_value, chiaki_button_name);
+}
+
+void QmlBackend::updateButton(int chiaki_button, QString physical_button, int new_index)
+{
+	QMap<int, QString> button_map =
+	{
+		{CHIAKI_CONTROLLER_BUTTON_CROSS     , "a"},
+		{CHIAKI_CONTROLLER_BUTTON_MOON      , "b"},
+		{CHIAKI_CONTROLLER_BUTTON_BOX       , "x"},
+		{CHIAKI_CONTROLLER_BUTTON_PYRAMID   , "y"},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT , "dpleft"},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT, "dpright"},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_UP   , "dpup"},
+		{CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN , "dpdown"},
+		{CHIAKI_CONTROLLER_BUTTON_L1        , "leftshoulder"},
+		{CHIAKI_CONTROLLER_BUTTON_R1        , "rightshoulder"},
+		{CHIAKI_CONTROLLER_BUTTON_L3        , "leftstick"},
+		{CHIAKI_CONTROLLER_BUTTON_R3        , "rightstick"},
+		{CHIAKI_CONTROLLER_BUTTON_OPTIONS   , "start"},
+		{CHIAKI_CONTROLLER_BUTTON_SHARE     , "back"},
+		{CHIAKI_CONTROLLER_BUTTON_TOUCHPAD  , "touchpad"},
+		{CHIAKI_CONTROLLER_BUTTON_PS        , "guide"},
+		{CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 , "lefttrigger"},
+		{CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 , "righttrigger"},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X)   , "leftx"},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y)   , "lefty"},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X)  , "rightx"},
+		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y)  , "righty"},
+        {static_cast<int>(ControllerButtonExt::MISC1)   , "misc1"},
+	};
+    QString button = button_map.value(chiaki_button);
+    QString old_mapping = controller_mapping_physical_button_mappings.contains(physical_button) ? controller_mapping_physical_button_mappings.value(physical_button) : QString();
+    if(button == old_mapping)
+        return;
+    if(!old_mapping.isEmpty())
+    {
+        QStringList old_mapping_buttons = controller_mapping_controller_mappings.value(old_mapping);
+        if(old_mapping_buttons.length() > 1)
+        {
+            old_mapping_buttons.removeOne(physical_button);
+            controller_mapping_controller_mappings.insert(old_mapping, old_mapping_buttons);
+        }
+        else
+            controller_mapping_controller_mappings.remove(old_mapping);
+    }
+    QStringList new_mapping_buttons = controller_mapping_controller_mappings.value(button);
+    if(new_mapping_buttons.length() > new_index)
+    {
+        controller_mapping_physical_button_mappings.insert(new_mapping_buttons.at(new_index), QString());
+        new_mapping_buttons.remove(new_index);
+    }
+    new_mapping_buttons.append(physical_button);
+    controller_mapping_controller_mappings.insert(button, new_mapping_buttons);
+    controller_mapping_physical_button_mappings.insert(physical_button, button);
+    if(controller_mapping_controller_mappings == controller_mapping_applied_controller_mappings)
+        setControllerMappingAltered(false);
+    else
+        setControllerMappingAltered(true);
+    emit currentControllerMappingChanged();
+}
+
+void QmlBackend::controllerMappingUpdate(Controller *controller)
+{
+    if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
+        return;
+    controller_mapping_controller = controller;
+    if(controller->IsSteamVirtual())
+    {
+        controllerMappingQuit();
+        emit controllerMappingSteamControllerSelected();
+        return;
+    }
+    controller_mapping_id = controller->GetDeviceID();
+    char *mapping = SDL_GameControllerMapping(controller->GetController());
+    QString original_controller_mapping(mapping);
+    qCInfo(chiakiGui) << "Original controller mapping: " << original_controller_mapping;
+    SDL_free(mapping);
+    if(original_controller_mapping.isEmpty())
+    {
+        qCWarning(chiakiGui) << "Error retrieving controller mapping " << SDL_GetError();
+        return;
+    }
+	QStringList mapping_results = original_controller_mapping.split(u',');
+	controller_mapping_controller_guid = mapping_results.takeFirst();
+    if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid))
+    {
+        setControllerMappingDefaultMapping(true);
+        controller_mapping_original_controller_mappings.insert(controller_mapping_controller_guid, original_controller_mapping);
+    }
+    controller_mapping_controller->EnableAnalogStickMapping(enable_analog_stick_mapping);
+	controller_mapping_controller_type = mapping_results.takeFirst();
+    for(int i=0; i<mapping_results.length(); i++)
+    {
+        QString individual_mapping = mapping_results.at(i);
+        QStringList individual_mapping_list = individual_mapping.split(u':');
+        if(individual_mapping_list.length() < 2)
+            continue;
+        QString key = individual_mapping_list.takeFirst();
+        if(controller_mapping_controller_mappings.contains(key))
+        {
+            auto update_list = controller_mapping_controller_mappings.value(key);
+            individual_mapping_list += update_list;
+        }
+        controller_mapping_controller_mappings.insert(key, individual_mapping_list);
+        for(int j = 0; j < individual_mapping_list.length(); j++)
+        {
+            controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
+        }
+    }
+    controller_mapping_applied_controller_mappings = controller_mapping_controller_mappings;
+    emit currentControllerTypeChanged();
+    emit currentControllerMappingChanged();
+    setControllerMappingInProgress(true);
+}
+
+void QmlBackend::controllerMappingSelectButton()
+{
+    if(controller_mapping_in_progress && controller_mapping_controller)
+        controller_mapping_controller->IsUpdatingMappingButton(true);
+}
+
+void QmlBackend::controllerMappingReset()
+{
+    if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid) || SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0 || !settings->GetControllerMappings().keys().contains(controller_mapping_controller_guid))
+        return;
+
+    settings->RemoveControllerMapping(controller_mapping_controller_guid);
+    int result = SDL_GameControllerAddMapping(controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid).toUtf8().constData());
+    switch(result)
+    {
+        case -1:
+            qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << controller_mapping_controller_guid << " with error: " << SDL_GetError();
+            break;
+        case 0:
+            qCInfo(chiakiGui) << "Updated controller mapping updated for guid: " << controller_mapping_controller_guid;
+            break;
+        case 1:
+            qCInfo(chiakiGui) << "Added controller mapping for guid: " << controller_mapping_controller_guid;
+            break;
+        default:
+            qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << controller_mapping_controller_guid;
+            break;
+    }
+    controllerMappingQuit();
+}
+
+void QmlBackend::controllerMappingQuit()
+{
+    if(controller_mapping_in_progress && controller_mapping_controller)
+        controller_mapping_controller->IsUpdatingMappingButton(false);
+    else
+        creatingControllerMapping(false);
+    setEnableAnalogStickMapping(false);
+    controller_mapping_controller = nullptr;
+    setControllerMappingDefaultMapping(false);
+    setControllerMappingAltered(false);
+    controller_mapping_id = -1;
+    controller_mapping_controller_guid.clear();
+    controller_mapping_controller_type.clear();
+    controller_mapping_controller_mappings.clear();
+    controller_mapping_applied_controller_mappings.clear();
+    controller_mapping_physical_button_mappings.clear();
+    setControllerMappingInProgress(false);
+    emit currentControllerTypeChanged();
+    emit currentControllerMappingChanged();
+    qCInfo(chiakiGui) << "Controller mapping quit";
+}
+
+void QmlBackend::controllerMappingButtonQuit()
+{
+    if(controller_mapping_in_progress && controller_mapping_controller)
+        controller_mapping_controller->IsUpdatingMappingButton(false);
+}
+
+void QmlBackend::controllerMappingApply()
+{
+    QString new_controller_mapping = controller_mapping_controller_guid + "," + controller_mapping_controller_type;
+    QMapIterator<QString, QStringList> i(controller_mapping_controller_mappings);
+    while (i.hasNext()) {
+        i.next();
+        auto physical_buttons = i.value();
+        for(int j = 0; j < physical_buttons.length(); j++)
+            new_controller_mapping += "," + (i.key() + ":" + physical_buttons.at(j));
+    }
+    // if user actually reset to default manually, remove mapping from settings else add
+    if(new_controller_mapping == controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid))
+        settings->RemoveControllerMapping(controller_mapping_controller_guid);
+    else
+        settings->SetControllerMapping(controller_mapping_controller_guid, new_controller_mapping);
 }
 
 void QmlBackend::updateDiscoveryHosts()
@@ -1340,10 +1699,10 @@ void QmlBackend::updatePsnHosts()
     if(psn_token.isEmpty())
         return;
 
-    ChiakiHolepunchDeviceInfo *device_info_ps5 = NULL;
+    ChiakiHolepunchDeviceInfo *device_info_ps5 = nullptr;
     size_t num_devices_ps5 = 0;
     ChiakiLog backend_log;
-    chiaki_log_init(&backend_log, settings->GetLogLevelMask(), chiaki_log_cb_print, NULL);
+    chiaki_log_init(&backend_log, settings->GetLogLevelMask(), chiaki_log_cb_print, nullptr);
     for(int i = 0; i < PSN_DEVICES_TRIES; i++)
     {
         ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);

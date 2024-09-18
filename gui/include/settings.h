@@ -22,6 +22,11 @@ enum class ControllerButtonExt
 	ANALOG_STICK_RIGHT_X_DOWN = (1 << 23),
 	ANALOG_STICK_RIGHT_Y_UP = (1 << 24),
 	ANALOG_STICK_RIGHT_Y_DOWN = (1 << 25),
+	ANALOG_STICK_LEFT_X = (1 << 26),
+	ANALOG_STICK_LEFT_Y = (1 << 27),
+	ANALOG_STICK_RIGHT_X = (1 << 28),
+	ANALOG_STICK_RIGHT_Y = (1 << 29),
+	MISC1 = (1 << 30),
 };
 
 enum class RumbleHapticsIntensity
@@ -175,6 +180,7 @@ class Settings : public QObject
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
 		QMap<QString, RegisteredHost> nickname_registered_hosts;
+		QMap<QString, QString> controller_mappings;
 		QList<QString> profiles;
 		size_t ps4s_registered;
 		QMap<int, ManualHost> manual_hosts;
@@ -183,8 +189,12 @@ class Settings : public QObject
 		void LoadRegisteredHosts(QSettings *qsettings = nullptr);
 		void SaveRegisteredHosts(QSettings *qsettings = nullptr);
 
+
 		void LoadManualHosts(QSettings *qsettings = nullptr);
 		void SaveManualHosts(QSettings *qsettings = nullptr);
+
+		void LoadControllerMappings(QSettings *qsettings = nullptr);
+		void SaveControllerMappings(QSettings *qsettings = nullptr);
 
 		void LoadProfiles();
 		void SaveProfiles();
@@ -555,6 +565,10 @@ class Settings : public QObject
 		bool GetManualHostExists(int id)							{ return manual_hosts.contains(id); }
 		ManualHost GetManualHost(int id) const						{ return manual_hosts[id]; }
 
+		QMap<QString, QString> GetControllerMappings() const		{ return controller_mappings; }
+		void SetControllerMapping(const QString &guid, const QString &mapping);
+		void RemoveControllerMapping(const QString &guid);
+
 		static QString GetChiakiControllerButtonName(int);
 		void SetControllerButtonMapping(int, Qt::Key);
 		QMap<int, Qt::Key> GetControllerMapping();
@@ -563,6 +577,7 @@ class Settings : public QObject
 	signals:
 		void RegisteredHostsUpdated();
 		void ManualHostsUpdated();
+		void ControllerMappingsUpdated();
 		void CurrentProfileChanged();
 		void ProfilesUpdated();
 		void PlaceboSettingsUpdated();

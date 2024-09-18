@@ -83,6 +83,10 @@ Item {
         stack.push(psnTokenDialogComponent, {psnurl: psnurl, expired: expired});
     }
 
+    function showControllerMappingDialog() {
+        stack.push(controllerMappingDialogComponent)
+    }
+
     Component.onCompleted: {
         if (Chiaki.session)
             stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
@@ -258,5 +262,10 @@ Item {
     Component {
         id: registDialogComponent
         RegistDialog { }
+    }
+
+    Component {
+        id: controllerMappingDialogComponent
+        ControllerMappingDialog { }
     }
 }
