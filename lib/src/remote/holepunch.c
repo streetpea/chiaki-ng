@@ -4246,6 +4246,12 @@ static ChiakiErrorCode wait_for_session_message(
             CHIAKI_LOGE(session->log, "Failed to parse holepunch session message");
             return err;
         }
+        if(msg->action & SESSION_MESSAGE_ACTION_TERMINATE)
+        {
+            CHIAKI_LOGW(session->log, "Holepunch session received Terminate message, terminating %d", msg->action);
+            err = CHIAKI_ERR_CANCELED;
+            return err;
+        }
         if (!(msg->action & types))
         {
             CHIAKI_LOGV(session->log, "Ignoring holepunch session message with action %d", msg->action);
