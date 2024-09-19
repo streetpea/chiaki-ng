@@ -10,13 +10,11 @@ separate-locales: false
 finish-args:
   - --share=network
   - --share=ipc
-  - --socket=fallback-x11
-  - --socket=wayland
+  - --socket=x11
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
   - --env=DBUS_FATAL_WARNINGS=0
-  - --env=RADV_PERFTEST=video_decode
   - --env=QML_DISABLE_DISK_CACHE=1
   - --env=SDL_AUDIODRIVER=pipewire
   - --talk-name=org.freedesktop.ScreenSaver
