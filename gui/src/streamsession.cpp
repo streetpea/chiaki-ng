@@ -1393,7 +1393,11 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
 			{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtual())))
+#else
+				if(haptics_handheld < 1 && controller->IsHandheld())
+#endif
 					continue;
 				if(left > right)
 					controller->SetHapticRumble(left, left, 10);
