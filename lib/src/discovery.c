@@ -202,8 +202,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 	if(r < 0)
 	{
 		CHIAKI_LOGE(discovery->log, "Discovery failed to bind");
-		CHIAKI_SOCKET_CLOSE(discovery->socket);
-		discovery->socket = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(discovery->socket))
+		{
+			CHIAKI_SOCKET_CLOSE(discovery->socket);
+			discovery->socket = CHIAKI_INVALID_SOCKET;
+		}
 		return CHIAKI_ERR_NETWORK;
 	}
 
@@ -224,8 +227,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 
 CHIAKI_EXPORT void chiaki_discovery_fini(ChiakiDiscovery *discovery)
 {
-	CHIAKI_SOCKET_CLOSE(discovery->socket);
-	discovery->socket = CHIAKI_INVALID_SOCKET;
+	if(!CHIAKI_SOCKET_IS_INVALID(discovery->socket))
+	{
+		CHIAKI_SOCKET_CLOSE(discovery->socket);
+		discovery->socket = CHIAKI_INVALID_SOCKET;
+	}
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, ChiakiDiscoveryPacket *packet, struct sockaddr *addr, size_t addr_size)

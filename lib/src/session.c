@@ -796,8 +796,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			{
 				CHIAKI_LOGI(session->log, "Session stopped while connecting for session request");
 				session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
-				CHIAKI_SOCKET_CLOSE(session_sock);
-				session_sock = CHIAKI_INVALID_SOCKET;
+				if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+				{
+					CHIAKI_SOCKET_CLOSE(session_sock);
+					session_sock = CHIAKI_INVALID_SOCKET;
+				}
 				free(sa);
 				break;
 			}
@@ -808,8 +811,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 					session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_CONNECTION_REFUSED;
 				else
 					session->quit_reason = CHIAKI_QUIT_REASON_NONE;
-				CHIAKI_SOCKET_CLOSE(session_sock);
-				session_sock = CHIAKI_INVALID_SOCKET;
+				if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+				{
+					CHIAKI_SOCKET_CLOSE(session_sock);
+					session_sock = CHIAKI_INVALID_SOCKET;
+				}
 				free(sa);
 				continue;
 			}
@@ -861,8 +867,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	ChiakiErrorCode err = format_hex(regist_key_hex, sizeof(regist_key_hex), (uint8_t *)session->connect_info.regist_key, regist_key_len);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		CHIAKI_SOCKET_CLOSE(session_sock);
-		session_sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+		{
+			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = CHIAKI_INVALID_SOCKET;
+		}
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -886,8 +895,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			path, session->connect_info.hostname, port, regist_key_hex, rp_version_str ? rp_version_str : "");
 	if(request_len < 0 || request_len >= sizeof(send_buf))
 	{
-		CHIAKI_SOCKET_CLOSE(session_sock);
-		session_sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+		{
+			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = CHIAKI_INVALID_SOCKET;
+		}
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -900,8 +912,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		if(sent < 0)
 		{
 			CHIAKI_LOGE(session->log, "Failed to send session request");
-			CHIAKI_SOCKET_CLOSE(session_sock);
-			session_sock = CHIAKI_INVALID_SOCKET;
+			if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+			{
+				CHIAKI_SOCKET_CLOSE(session_sock);
+				session_sock = CHIAKI_INVALID_SOCKET;
+			}
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 			return CHIAKI_ERR_NETWORK;
 		}
@@ -927,8 +942,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 			CHIAKI_LOGE(session->log, "Failed to receive session request response");
 			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		}
-		CHIAKI_SOCKET_CLOSE(session_sock);
-		session_sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+		{
+			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = CHIAKI_INVALID_SOCKET;
+		}
 		return CHIAKI_ERR_NETWORK;
 	}
 	if(session->rudp)
@@ -950,7 +968,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(session->log, "Failed to parse session request response");
-		CHIAKI_SOCKET_CLOSE(session_sock);
+		if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+		{
+			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = CHIAKI_INVALID_SOCKET;
+		}
 		session_sock = CHIAKI_INVALID_SOCKET;
 		session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
 		return CHIAKI_ERR_NETWORK;
@@ -1018,8 +1040,11 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	chiaki_http_response_fini(&http_response);
 	if(!session->rudp)
 	{
-		CHIAKI_SOCKET_CLOSE(session_sock);
-		session_sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
+		{
+			CHIAKI_SOCKET_CLOSE(session_sock);
+			session_sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 	return r;
 }

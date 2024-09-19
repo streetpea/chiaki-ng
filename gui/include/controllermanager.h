@@ -31,6 +31,7 @@ class ControllerManager : public QObject
 		QSet<SDL_JoystickID> available_controllers;
 #endif
 		QMap<int, Controller *> open_controllers;
+		bool creating_controller_mapping;
 
 		void ControllerClosed(Controller *controller);
 
@@ -47,6 +48,7 @@ class ControllerManager : public QObject
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();
 		void SetButtonsByPos();
+		void creatingControllerMapping(bool creating_controller_mapping);
 		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);
 
@@ -78,8 +80,11 @@ class Controller : public QObject
 		int id;
 		ChiakiOrientationTracker orientation_tracker;
 		ChiakiControllerState state;
+		bool updating_mapping_button;
+		bool enable_analog_stick_mapping;
 		bool is_dualsense;
-		bool is_steamdeck;
+		bool is_handheld;
+		bool is_steam_virtual;
 		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -95,18 +100,27 @@ class Controller : public QObject
 
 		bool IsConnected();
 		int GetDeviceID();
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+		SDL_GameController *GetController() { return controller; };
+#endif
 		QString GetName();
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
 		void SetDualsenseMic(bool on);
 		void SetHapticRumble(uint16_t left, uint16_t right, int ms);
+		void StartUpdatingMapping();
+		void IsUpdatingMappingButton(bool is_updating_mapping_button);
+		void EnableAnalogStickMapping(bool enabled);
 		bool IsDualSense();
-		bool IsSteamDeck();
+		bool IsHandheld();
+		bool IsSteamVirtual();
 
 	signals:
 		void StateChanged();
 		void MicButtonPush();
+		void NewButtonMapping(QString button);
+		void UpdatingControllerMapping(Controller* controller);
 };
 
 /* PS5 trigger effect documentation:

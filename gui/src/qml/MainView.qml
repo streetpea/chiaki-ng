@@ -9,8 +9,16 @@ Pane {
     padding: 0
 
     StackView.onActivated: forceActiveFocus()
-    Keys.onUpPressed: hostsView.decrementCurrentIndex()
-    Keys.onDownPressed: hostsView.incrementCurrentIndex()
+    Keys.onUpPressed: {
+        hostsView.decrementCurrentIndex()
+            while(hostsView.currentItem && !hostsView.currentItem.visible)
+                hostsView.decrementCurrentIndex()
+    }
+    Keys.onDownPressed: {
+        hostsView.incrementCurrentIndex()
+            while(hostsView.currentItem && !hostsView.currentItem.visible)
+                hostsView.incrementCurrentIndex()
+    }
     Keys.onMenuPressed: settingsButton.clicked()
     Keys.onReturnPressed: if (hostsView.currentItem) hostsView.currentItem.connectToHost()
     Keys.onYesPressed: if (hostsView.currentItem) hostsView.currentItem.wakeUpHost()
@@ -112,6 +120,7 @@ Pane {
 
     ListView {
         id: hostsView
+        keyNavigationWraps: true
         anchors {
             top: toolBar.bottom
             left: parent.left
@@ -122,9 +131,10 @@ Pane {
         clip: true
         model: Chiaki.hosts
         delegate: ItemDelegate {
+            visible: modelData.display
             id: delegate
             width: parent ? parent.width : 0
-            height: 180
+            height: modelData.display ? 180 : 0
             highlighted: ListView.isCurrentItem
             onClicked: connectToHost()
 
@@ -137,7 +147,7 @@ Pane {
             }
 
             function deleteHost() {
-                if (!modelData.discovered && !modelData.duid)
+                if (modelData.manual)
                     root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
             }
 
@@ -178,7 +188,18 @@ Pane {
                             t += "\n" + qsTr("Remote Connection via PSN");
                         } 
                         else
-                            t += "\n" + (modelData.discovered ? qsTr("discovered") : qsTr("manual"));
+                        {
+                            t += "\n";
+                            if(modelData.discovered)
+                            {
+                                if(modelData.manual)
+                                    t += qsTr("discovered + manual")
+                                else
+                                    t += qsTr("discovered");
+                            }
+                            else
+                                t += qsTr("manual");
+                        }
                         return t;
                     }
                 }
@@ -187,9 +208,11 @@ Pane {
                     Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                     text: {
                         let t = "";
-                        if (!modelData.discovered)
+                        if(modelData.duid)
                             return t;
                         t += qsTr("State: %1").arg(modelData.state);
+                        if(!modelData.discovered)
+                            return t;
                         if (modelData.app)
                             t += "\n" + qsTr("App: %1").arg(modelData.app);
                         if (modelData.titleId)
@@ -211,7 +234,7 @@ Pane {
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
                         focusPolicy: Qt.NoFocus
-                        visible: !modelData.discovered && !modelData.duid
+                        visible: modelData.manual
                         onClicked: delegate.deleteHost()
                         Material.roundedScale: Material.SmallScale
 

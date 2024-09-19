@@ -55,6 +55,13 @@ static QString shader_cache_path()
     return path;
 }
 
+
+static const char *render_params_path()
+{
+    static QString path = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/Chiaki/pl_render_params.conf";
+    return qPrintable(path);
+}
+
 class RenderControl : public QQuickRenderControl
 {
 public:
@@ -75,12 +82,14 @@ private:
 
 QmlMainWindow::QmlMainWindow(Settings *settings)
     : QWindow()
+    , settings(settings)
 {
     init(settings);
 }
 
 QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     : QWindow()
+    , settings(connect_info.settings)
 {
     init(connect_info.settings);
     backend->createSession(connect_info);
@@ -107,6 +116,7 @@ QmlMainWindow::~QmlMainWindow()
     render_thread->quit();
     render_thread->wait();
     delete render_thread->parent();
+    delete render_thread;
 
     delete quick_item;
     delete quick_window;
@@ -134,6 +144,7 @@ QmlMainWindow::~QmlMainWindow()
     pl_renderer_destroy(&placebo_renderer);
     pl_vulkan_destroy(&placebo_vulkan);
     pl_vk_inst_destroy(&placebo_vk_inst);
+    pl_options_free(&renderparams_opts);
     pl_log_destroy(&placebo_log);
 }
 
@@ -229,6 +240,11 @@ void QmlMainWindow::setVideoPreset(VideoPreset preset)
 {
     video_preset = preset;
     emit videoPresetChanged();
+}
+
+void QmlMainWindow::setSettings(Settings *new_settings)
+{
+    settings = new_settings;
 }
 
 void QmlMainWindow::show()
@@ -510,12 +526,20 @@ void QmlMainWindow::init(Settings *settings)
         dropped_frames_current = 0;
     });
 
+    this->renderparams_opts = pl_options_alloc(this->placebo_log);
+    pl_options_reset(this->renderparams_opts, &pl_render_high_quality_params);
+    this->renderparams_changed = true;
+
+
     switch (settings->GetPlaceboPreset()) {
     case PlaceboPreset::Fast:
         setVideoPreset(VideoPreset::Fast);
         break;
     case PlaceboPreset::Default:
         setVideoPreset(VideoPreset::Default);
+        break;
+    case PlaceboPreset::Custom:
+        setVideoPreset(VideoPreset::Custom);
         break;
     case PlaceboPreset::HighQuality:
     default:
@@ -549,6 +573,11 @@ void QmlMainWindow::scheduleUpdate()
 
     if (!update_timer->isActive())
         update_timer->start(has_video ? 50 : 10);
+}
+
+void QmlMainWindow::updatePlacebo()
+{
+    renderparams_changed = true;
 }
 
 void QmlMainWindow::createSwapchain()
@@ -627,7 +656,7 @@ void QmlMainWindow::resizeSwapchain()
     struct pl_tex_params tex_params = {
         .w = swapchain_size.width(),
         .h = swapchain_size.height(),
-        .format = pl_find_fmt(placebo_vulkan->gpu, PL_FMT_UNORM, 4, 0, 0, PL_FMT_CAP_RENDERABLE),
+        .format = pl_find_fmt(placebo_vulkan->gpu, PL_FMT_UNORM, 4, 8, 8, PL_FMT_CAP_RENDERABLE),
         .sampleable = true,
         .renderable = true,
     };
@@ -783,6 +812,28 @@ void QmlMainWindow::render()
     case VideoPreset::HighQuality:
         render_params = &pl_render_high_quality_params;
         break;
+    case VideoPreset::Custom:
+        if (renderparams_changed) {
+            renderparams_changed = false;
+            QMap<QString, QString> paramsData = settings->GetPlaceboValues();
+            QMapIterator<QString, QString> i(paramsData);
+            bool invalid_render_params = false;
+            while (i.hasNext()) {
+                i.next();
+                if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
+                {
+                    invalid_render_params = true;
+                    qCCritical(chiakiGui) << "Failed to load custom render param: " << i.key() << " with value: " << i.value();
+                }
+            }
+            if (invalid_render_params)
+                qCInfo(chiakiGui) << "Updated custom render parameters with one or more invalid parameters.";
+            else {
+                qCInfo(chiakiGui) << "Updated custom render parameters successfully.";
+            }
+        }
+        render_params = &(this->renderparams_opts->params);
+        break;
     }
 
     if (current_frame.num_planes) {
@@ -898,6 +949,8 @@ bool QmlMainWindow::event(QEvent *event)
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::MouseButtonDblClick:
+        if(!settings->GetFullscreenDoubleClickEnabled())
+            break;
         if (session && !grab_input) {
             if (windowState() != Qt::WindowFullScreen)
                 showFullScreen();

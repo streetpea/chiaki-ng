@@ -59,6 +59,14 @@ Item {
         stack.push(settingsDialogComponent);
     }
 
+    function showPlaceboSettingsDialog() {
+        stack.push(placeboSettingsDialogComponent);
+    }
+
+    function showPlaceboColorMappingDialog() {
+        stack.push(placeboColorMappingDialogComponent);
+    }
+
     function showProfileDialog() {
         stack.push(profileDialogComponent)
     }
@@ -73,6 +81,10 @@ Item {
 
     function showPSNTokenDialog(psnurl, expired) {
         stack.push(psnTokenDialogComponent, {psnurl: psnurl, expired: expired});
+    }
+
+    function showControllerMappingDialog() {
+        stack.push(controllerMappingDialogComponent)
     }
 
     Component.onCompleted: {
@@ -218,6 +230,16 @@ Item {
     }
 
     Component {
+        id: placeboSettingsDialogComponent
+        PlaceboSettingsDialog { }
+    }
+
+    Component {
+        id: placeboColorMappingDialogComponent
+        PlaceboColorMappingDialog { }
+    }
+
+    Component {
         id: profileDialogComponent
         ProfileDialog { }
     }
@@ -240,5 +262,10 @@ Item {
     Component {
         id: registDialogComponent
         RegistDialog { }
+    }
+
+    Component {
+        id: controllerMappingDialogComponent
+        ControllerMappingDialog { }
     }
 }

@@ -66,7 +66,10 @@ int real_main(int argc, char *argv[])
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
-	QString import_path = QFileInfo(argv[0]).dir().absolutePath() + "/qml";
+	const size_t cSize = strlen(argv[0])+1;
+	wchar_t wc[cSize];
+	mbstowcs (wc, argv[0], cSize);
+	QString import_path = QFileInfo(QString::fromWCharArray(wc)).dir().absolutePath() + "/qml";
 	qputenv("QML_IMPORT_PATH", import_path.toUtf8());
 #endif
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)

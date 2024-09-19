@@ -1,5 +1,5 @@
 app-id: re.chiaki.Chiaki4deck
-branch: chiaki-ng
+branch: chiaki4deck
 runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
@@ -10,13 +10,11 @@ separate-locales: false
 finish-args:
   - --share=network
   - --share=ipc
-  - --socket=fallback-x11
-  - --socket=wayland
+  - --socket=x11
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
   - --env=DBUS_FATAL_WARNINGS=0
-  - --env=RADV_PERFTEST=video_decode
   - --env=QML_DISABLE_DISK_CACHE=1
   - --env=SDL_AUDIODRIVER=pipewire
   - --talk-name=org.freedesktop.ScreenSaver
@@ -43,7 +41,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/haasn/libplacebo
-        commit: c320f61e601caef2be081ce61138e5d51c1be21d
+        branch: v7.349.0
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
     modules:
@@ -113,8 +111,8 @@ modules:
       - --enable-hwaccel=hevc_vulkan
     sources:
       - type: archive
-        url: https://ffmpeg.org/releases/ffmpeg-6.1.1.tar.xz
-        sha256: 8684f4b00f94b85461884c3719382f1261f0d9eb3d59640a1f4ac0873616f968
+        url: https://ffmpeg.org/releases/ffmpeg-6.1.2.tar.xz
+        sha256: 3b624649725ecdc565c903ca6643d41f33bd49239922e45c9b1442c63dca4e38
       - type: patch
         path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
       - type: patch
@@ -195,7 +193,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.28.5
+        tag: release-2.30.7
 
   - name: python3-requests
     buildsystem: simple
@@ -271,7 +269,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/streetpea/chiaki-ng.git
-        branch: chiaki-ng
+        branch: chiaki4deck
     post-install:
       - "install -Dm755 ../scripts/psn-account-id.py /app/bin/psn-account-id"
       - "install -Dm755 ../scripts/vulkan-gamescope-layers/VkLayer_FROG_gamescope_wsi.x86_64.json /app/share/vulkan/implicit_layer.d/VkLayer_FROG_gamescope_wsi.x86_64.json"

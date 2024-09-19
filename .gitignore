@@ -17,6 +17,7 @@ appdir
 /SDL2-*
 /opus*
 /ffmpeg*
+/libplacebo*
 /sdl2-*
 /protoc*
 /openssl*

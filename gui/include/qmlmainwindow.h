@@ -1,6 +1,7 @@
 #pragma once
 
 #include "streamsession.h"
+#include "settings.h"
 
 #include <QMutex>
 #include <QWindow>
@@ -55,7 +56,8 @@ public:
     enum class VideoPreset {
         Fast,
         Default,
-        HighQuality
+        HighQuality,
+        Custom
     };
     Q_ENUM(VideoPreset);
 
@@ -63,6 +65,7 @@ public:
     QmlMainWindow(const StreamSessionConnectInfo &connect_info);
     ~QmlMainWindow();
     void updateWindowType(WindowType type);
+    void setSettings(Settings *new_settings);
 
     bool hasVideo() const;
     int droppedFrames() const;
@@ -81,6 +84,7 @@ public:
 
     Q_INVOKABLE void grabInput();
     Q_INVOKABLE void releaseInput();
+    Q_INVOKABLE void updatePlacebo();
 
     void show();
     void presentFrame(AVFrame *frame, int32_t frames_lost);
@@ -120,6 +124,7 @@ private:
     VideoMode video_mode = VideoMode::Normal;
     float zoom_factor = 0;
     VideoPreset video_preset = VideoPreset::HighQuality;
+    Settings *settings = {};
 
     QmlBackend *backend = {};
     StreamSession *session = {};
@@ -154,6 +159,8 @@ private:
     bool quick_frame = false;
     bool quick_need_sync = false;
     std::atomic<bool> quick_need_render = {false};
+    pl_options renderparams_opts = {};
+    bool renderparams_changed = false;
 
     struct {
         PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;

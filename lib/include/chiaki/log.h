@@ -34,6 +34,7 @@ typedef struct chiaki_log_t
 } ChiakiLog;
 
 CHIAKI_EXPORT void chiaki_log_init(ChiakiLog *log, uint32_t level_mask, ChiakiLogCb cb, void *user);
+CHIAKI_EXPORT void chiaki_log_set_level(ChiakiLog *log, uint32_t level_mask);
 
 /**
  * Logging callback (ChiakiLogCb) that prints to stdout

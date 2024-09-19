@@ -402,8 +402,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	return CHIAKI_ERR_SUCCESS;
 
 error_sock:
-	CHIAKI_SOCKET_CLOSE(takion->sock);
-	takion->sock = CHIAKI_INVALID_SOCKET;
+	if(!CHIAKI_SOCKET_IS_INVALID(takion->sock))
+	{
+		CHIAKI_SOCKET_CLOSE(takion->sock);
+		takion->sock = CHIAKI_INVALID_SOCKET;
+	}
 error_pipe:
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
 error_seq_num_local_mutex:
@@ -950,8 +953,6 @@ static void *takion_thread_func(void *user)
 		takion_handle_packet(takion, resized_buf, received_size);
 	}
 
-	// chiaki_congestion_control_stop(&congestion_control);
-
 	chiaki_takion_send_buffer_fini(&takion->send_buffer);
 
 error_reoder_queue:
@@ -966,8 +967,11 @@ beach:
 	}
 	if(takion->close_socket)
 	{
-		CHIAKI_SOCKET_CLOSE(takion->sock);
-		takion->sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(takion->sock))
+		{
+			CHIAKI_SOCKET_CLOSE(takion->sock);
+			takion->sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 	return NULL;
 }

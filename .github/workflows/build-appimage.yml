@@ -31,4 +31,4 @@ jobs:
           name: chiaki-ng.AppImage
           path: chiaki-ng/appimage/chiaki-ng.AppImage
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7

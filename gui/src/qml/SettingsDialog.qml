@@ -15,8 +15,10 @@ DialogView {
         PS5
     }
     property int selectedConsole: SettingsDialog.Console.PS5
+    property bool quitControllerMapping: true
     id: dialog
     title: qsTr("Settings")
+    header: qsTr("* Defaults in () to right of value or marked with (Default)")
     buttonVisible: false
     Keys.onPressed: (event) => {
         if (event.modifiers)
@@ -74,6 +76,11 @@ DialogView {
             }
 
             TabButton {
+                text: qsTr("Controllers")
+                focusPolicy: Qt.NoFocus
+            }
+
+            TabButton {
                 text: qsTr("Config")
                 focusPolicy: Qt.NoFocus
             }
@@ -97,7 +104,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -116,6 +123,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Ask)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Action On Suspend:")
                     }
 
@@ -128,19 +140,30 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("PS5 Features:")
+                        text: qsTr("(Do Nothing)")
                     }
 
-                    C.CheckBox {
-                        text: qsTr("Haptics + adaptive triggers (DS), PS5 Rumble (others)")
-                        checked: Chiaki.settings.dualSense
-                        onToggled: Chiaki.settings.dualSense = checked
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Rumble Haptics")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Off"), qsTr("Very Weak"), qsTr("Weak"), qsTr("Normal"), qsTr("Strong"), qsTr("Very Strong")]
+                        currentIndex: Chiaki.settings.rumbleHapticsIntensity
+                        onActivated: (index) => Chiaki.settings.rumbleHapticsIntensity = index;
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Normal)")
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Haptics:")
-                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined")
                     }
 
                     C.CheckBox {
@@ -152,7 +175,13 @@ DialogView {
                                 false
                         }
                         onToggled: Chiaki.settings.steamDeckHaptics = checked
-                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined") && (Chiaki.settings.dualSense === true)
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                        visible: (typeof Chiaki.settings.steamDeckHaptics !== "undefined")
                     }
 
                     Label {
@@ -164,6 +193,11 @@ DialogView {
                         text: qsTr("Use buttons by position instead of by label")
                         checked: Chiaki.settings.buttonsByPosition
                         onToggled: Chiaki.settings.buttonsByPosition = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
                     }
 
                     Label {
@@ -186,6 +220,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                        visible: typeof Chiaki.settings.verticalDeck !== "undefined"
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Verbose Logging:")
                     }
 
@@ -193,6 +233,11 @@ DialogView {
                         text: qsTr("Warning: Don't enable for regular use")
                         checked: Chiaki.settings.logVerbose
                         onToggled: Chiaki.settings.logVerbose = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
                     }
 
                     Label {
@@ -219,25 +264,6 @@ DialogView {
                         }
                     }
                 }
-
-                C.Button {
-                    id: aboutButton
-                    anchors {
-                        right: parent.right
-                        rightMargin: 100
-                        top: parent.top
-                        topMargin: 50
-                    }
-                    lastInFocusChain: true
-                    implicitWidth: 200
-                    topPadding: 26
-                    leftPadding: 30
-                    rightPadding: 30
-                    bottomPadding: 26
-                    text: qsTr("About %1").arg(Qt.application.name)
-                    onClicked: aboutDialog.open()
-                    Material.roundedScale: Material.SmallScale
-                }
             }
 
             Item {
@@ -248,7 +274,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
 
@@ -266,6 +292,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Auto)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Window Type:")
                     }
 
@@ -278,12 +309,32 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Selected Resolution)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Toggle Fullscreen on Double-click:")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.fullscreenDoubleClick
+                        onToggled: Chiaki.settings.fullscreenDoubleClick = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Render Preset:")
                     }
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality")]
+                        model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality"), qsTr("Custom")]
                         currentIndex: Chiaki.settings.videoPreset
                         onActivated: (index) => {
                             Chiaki.settings.videoPreset = index;
@@ -291,8 +342,28 @@ DialogView {
                             case 0: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Fast; break;
                             case 1: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default; break;
                             case 2: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality; break;
+                            case 3: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom; break;
                             }
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(High Quality)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Custom Renderer Settings")
+                        visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
+                    }
+
+                    C.Button {
+                        id: customRendererSettings
+                        text: qsTr("Open")
+                        onClicked: root.showPlaceboSettingsDialog()
+                        Material.roundedScale: Material.SmallScale
+                        visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
                     }
                 }
             }
@@ -382,7 +453,7 @@ DialogView {
                     C.ComboBox {
                         id: resolutionLocalPS4
                         Layout.preferredWidth: 400
-                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolutionLocalPS4 - 1
                         onActivated: (index) => Chiaki.settings.resolutionLocalPS4 = index + 1
                         visible: selectedConsole == SettingsDialog.Console.PS4
@@ -400,7 +471,7 @@ DialogView {
                     C.ComboBox {
                         id: resolutionRemotePS4
                         Layout.preferredWidth: 400
-                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolutionRemotePS4 - 1
                         onActivated: (index) => Chiaki.settings.resolutionRemotePS4 = index + 1
                         visible: selectedConsole == SettingsDialog.Console.PS4
@@ -418,7 +489,7 @@ DialogView {
                     C.ComboBox {
                         id: resolutionLocalPS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (Default)")]
                         currentIndex: Chiaki.settings.resolutionLocalPS5 - 1
                         onActivated: (index) => Chiaki.settings.resolutionLocalPS5 = index + 1
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -436,7 +507,7 @@ DialogView {
                     C.ComboBox {
                         id: resolutionRemotePS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (PS5 and PS4 Pro)")]
+                        model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p")]
                         currentIndex: Chiaki.settings.resolutionRemotePS5 - 1
                         onActivated: (index) => Chiaki.settings.resolutionRemotePS5 = index + 1
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -459,7 +530,7 @@ DialogView {
                     C.ComboBox {
                         id: fpsLocalPS4
                         Layout.preferredWidth: 400
-                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        model: [qsTr("30 fps"), qsTr("60 fps (Default)")]
                         currentIndex: (Chiaki.settings.fpsLocalPS4 / 30) - 1
                         onActivated: (index) => Chiaki.settings.fpsLocalPS4 = (index + 1) * 30
                         visible: selectedConsole == SettingsDialog.Console.PS4
@@ -477,7 +548,7 @@ DialogView {
                     C.ComboBox {
                         id: fpsRemotePS4
                         Layout.preferredWidth: 400
-                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        model: [qsTr("30 fps"), qsTr("60 fps (Default)")]
                         currentIndex: (Chiaki.settings.fpsRemotePS4 / 30) - 1
                         onActivated: (index) => Chiaki.settings.fpsRemotePS4 = (index + 1) * 30
                         visible: selectedConsole == SettingsDialog.Console.PS4
@@ -495,7 +566,7 @@ DialogView {
                     C.ComboBox {
                         id: fpsLocalPS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        model: [qsTr("30 fps"), qsTr("60 fps (Default)")]
                         currentIndex: (Chiaki.settings.fpsLocalPS5 / 30) - 1
                         onActivated: (index) => Chiaki.settings.fpsLocalPS5 = (index + 1) * 30
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -513,7 +584,7 @@ DialogView {
                     C.ComboBox {
                         id: fpsRemotePS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("30 fps"), qsTr("60 fps")]
+                        model: [qsTr("30 fps"), qsTr("60 fps (Default)")]
                         currentIndex: (Chiaki.settings.fpsRemotePS5 / 30) - 1
                         onActivated: (index) => Chiaki.settings.fpsRemotePS5 = (index + 1) * 30
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -697,7 +768,7 @@ DialogView {
                     C.ComboBox {
                         id: codecLocalPS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("H264"), qsTr("H265 (PS5)"), qsTr("H265 HDR (PS5)")]
+                        model: [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
                         currentIndex: Chiaki.settings.codecLocalPS5
                         onActivated: (index) => Chiaki.settings.codecLocalPS5 = index
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -721,7 +792,7 @@ DialogView {
                     C.ComboBox {
                         id: codecRemotePS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("H264"), qsTr("H265 (PS5)"), qsTr("H265 HDR (PS5)")]
+                        model: [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
                         currentIndex: Chiaki.settings.codecRemotePS5
                         onActivated: (index) => Chiaki.settings.codecRemotePS5 = index
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -753,7 +824,7 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 2
+                    columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
                     onVisibleChanged: if (visible) Chiaki.settings.refreshAudioDevices()
@@ -776,6 +847,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Auto)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Input Device:")
                     }
 
@@ -787,6 +863,11 @@ DialogView {
                         model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
                         currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
                         onActivated: (index) => Chiaki.settings.audioInDevice = index ? model[index] : ""
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Auto)")
                     }
 
                     Label {
@@ -813,6 +894,10 @@ DialogView {
                         }
                     }
 
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(5760)")
+                    }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
@@ -826,6 +911,11 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Speech Processing:")
                         visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
@@ -834,6 +924,12 @@ DialogView {
                         text: qsTr("Noise suppression + echo cancellation")
                         checked: Chiaki.settings.speechProcessing
                         onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
+                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
                         visible: typeof Chiaki.settings.speechProcessing !== "undefined"
                     }
 
@@ -864,6 +960,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(6 dB)")
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Echo To Suppress:")
                         visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                     }
@@ -889,6 +991,12 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("(30 dB)")
+                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Wifi Instability Notification Triggers:")
                     }
 
@@ -906,9 +1014,15 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1 % dropped packets").arg(parent.value)
+                            text: qsTr("%1% dropped packets").arg(parent.value)
                         }
                     }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(3%)")
+                    }
+
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("Packet Loss Reported Max:")
@@ -929,8 +1043,13 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: qsTr("%1 % packet loss").arg(parent.value)
+                            text: qsTr("%1% packet loss").arg(parent.value)
                         }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(5%)")
                     }
                 }
             }
@@ -1012,6 +1131,7 @@ DialogView {
 
             Item {
                 // Keys
+                id: controllerMapping
                 GridLayout {
                     anchors {
                         top: parent.top
@@ -1057,6 +1177,39 @@ DialogView {
             }
 
             Item {
+                // Controller Mapping
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 20
+                    }
+                    columns: 1
+                    rowSpacing: 20
+                    columnSpacing: 20
+
+
+                    C.Button {
+                        id: controllerMappingChange
+                        firstInFocusChain: true
+                        text: "Change Controller Mapping"
+                        onClicked: controllerMappingDialog.show({
+                            reset: false
+                        });
+                    }
+
+                    C.Button {
+                        id: controllerMappingReset
+                        lastInFocusChain: true
+                        text: "Reset Controller Mapping"
+                        onClicked: controllerMappingDialog.show({
+                            reset: true
+                        });
+                    }
+                }
+            }
+
+            Item {
                 // Config (PSN Remote Connection Setup and Import/Export)
                 GridLayout {
                     anchors {
@@ -1081,7 +1234,7 @@ DialogView {
                         id: profile
                         text: qsTr("Manage Profiles")
                         onClicked: {
-                            showProfileDialog()
+                            root.showProfileDialog()
                         }
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1090,7 +1243,7 @@ DialogView {
                         id: openPsnLogin
                         text: qsTr("Login to PSN")
                         onClicked: {
-                            showPSNTokenDialog(Chiaki.openPsnLink(), false)
+                            root.showPSNTokenDialog(Chiaki.openPsnLink(), false)
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
@@ -1120,20 +1273,24 @@ DialogView {
                             exportDialog.open()
                         }
                         Material.roundedScale: Material.SmallScale
-                        KeyNavigation.down: importButton
-                        KeyNavigation.right: importButton
                     }
 
                     C.Button {
                         id: importButton
-                        lastInFocusChain: true
                         text: qsTr("Import settings from file")
                         onClicked: {
                             importDialog.open()
                         }
                         Material.roundedScale: Material.SmallScale
-                        KeyNavigation.up: exportButton
-                        KeyNavigation.left: exportButton
+                    }
+
+                    C.Button {
+                        id: aboutButton
+                        lastInFocusChain: true
+                        implicitWidth: 200
+                        text: qsTr("About %1").arg(Qt.application.displayName)
+                        onClicked: aboutDialog.open()
+                        Material.roundedScale: Material.SmallScale
                     }
                 }
             }
@@ -1232,6 +1389,120 @@ DialogView {
                     keyDialog.buttonCallback(name);
                     keyDialog.close();
                 }
+            }
+        }
+
+        Dialog {
+            id: controllerMappingDialog
+            property bool resetFocus: true
+            property bool resetMapping: false
+            parent: Overlay.overlay
+            x: Math.round((root.width - width) / 2)
+            y: Math.round((root.height - height) / 2)
+            title: qsTr("Controller Capture")
+            modal: true
+            standardButtons: Dialog.Close
+            closePolicy: Popup.CloseOnPressOutside
+            onOpened: {
+                controllerLabel.forceActiveFocus();
+                Chiaki.creatingControllerMapping(true);
+            }
+            onClosed: {
+                if(resetFocus)
+                {
+                    if(resetMapping)
+                        controllerMappingReset.forceActiveFocus(Qt.TabFocusReason);
+                    else
+                        controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                    focus = false;
+                }
+                else
+                {
+                    resetFocus = true;
+                    focus = false;
+                }
+                if(quitControllerMapping)
+                    Chiaki.controllerMappingQuit();
+                else
+                    quitControllerMapping = true;
+            }
+            Material.roundedScale: Material.MediumScale
+
+            function show(opts) {
+                resetMapping = opts.reset;
+                open();
+            }
+            Label {
+                id: controllerLabel
+                text: qsTr("Choose the controller by pressing any button on the controller")
+            }
+        }
+
+        Dialog {
+            id: steamControllerMappingDialog
+            property bool resetMapping: false
+            parent: Overlay.overlay
+            x: Math.round((root.width - width) / 2)
+            y: Math.round((root.height - height) / 2)
+            title: qsTr("Controller Managed by Steam")
+            modal: true
+            standardButtons: Dialog.Close
+            closePolicy: Popup.NoAutoClose
+            onOpened: {
+                steamLabel.forceActiveFocus();
+            }
+            onClosed: {
+                if(resetMapping)
+                    controllerMappingReset.forceActiveFocus(Qt.TabFocusReason);
+                else
+                    controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                focus = false;
+            }
+            Material.roundedScale: Material.MediumScale
+
+            Label {
+                id: steamLabel
+                wrapMode: TextEdit.Wrap
+                text: qsTr("This controller is managed by Steam. Please use Steam to map controller or disable Steam Input for the controller before mapping here.")
+                Keys.onReturnPressed: steamControllerMappingDialog.close();
+                Keys.onEscapePressed: steamControllerMappingDialog.close();
+            }
+        }
+
+        Connections {
+            target: Chiaki
+
+            function onControllerMappingInProgressChanged()
+            {
+                if(Chiaki.controllerMappingInProgress)
+                {
+                    if(controllerMappingDialog.resetMapping)
+                    {
+                        if(!Chiaki.controllerMappingDefaultMapping)
+                        {
+                            quitControllerMapping = false;
+                            Chiaki.controllerMappingReset();
+                        }
+                        controllerMappingDialog.close();
+                    }
+                    else
+                    {
+                        controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                        root.showControllerMappingDialog();
+                        quitControllerMapping = false;
+                        controllerMappingDialog.resetFocus = false;
+                        controllerMappingDialog.close();
+                    }
+                }
+            }
+
+            function onControllerMappingSteamControllerSelected()
+            {
+                controllerMappingDialog.resetFocus = false;
+                quitControllerMapping = false;
+                steamControllerMappingDialog.resetMapping = controllerMappingDialog.resetMapping;
+                controllerMappingDialog.close();
+                steamControllerMappingDialog.open();
             }
         }
     }

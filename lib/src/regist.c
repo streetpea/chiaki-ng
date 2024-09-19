@@ -399,8 +399,11 @@ static void *regist_thread_func(void *user)
 fail_socket:
 	if(!psn)
 	{
-		CHIAKI_SOCKET_CLOSE(sock);
-		sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(sock))
+		{
+			CHIAKI_SOCKET_CLOSE(sock);
+			sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 fail_addrinfos:
 	if(!psn)
@@ -495,8 +498,11 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 	}
 
 done:
-	CHIAKI_SOCKET_CLOSE(sock);
-	sock = CHIAKI_INVALID_SOCKET;
+	if(!CHIAKI_SOCKET_IS_INVALID(sock))
+	{
+		CHIAKI_SOCKET_CLOSE(sock);
+		sock = CHIAKI_INVALID_SOCKET;
+	}
 	return err;
 }
 
@@ -578,8 +584,11 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 		break;
 
 connect_fail:
-		CHIAKI_SOCKET_CLOSE(sock);
-		sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(sock))
+		{
+			CHIAKI_SOCKET_CLOSE(sock);
+			sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 
 	return sock;
@@ -602,8 +611,11 @@ static chiaki_socket_t regist_request_connect(ChiakiRegist *regist, const struct
 #else
 		CHIAKI_LOGE(regist->log, "Regist connect failed: %s", strerror(errsv));
 #endif
-		CHIAKI_SOCKET_CLOSE(sock);
-		sock = CHIAKI_INVALID_SOCKET;
+		if(!CHIAKI_SOCKET_IS_INVALID(sock))
+		{
+			CHIAKI_SOCKET_CLOSE(sock);
+			sock = CHIAKI_INVALID_SOCKET;
+		}
 	}
 
 	return sock;

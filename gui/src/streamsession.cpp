@@ -98,7 +98,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->zoom = zoom;
 	this->stretch = stretch;
 	this->enable_keyboard = false; // TODO: from settings
-	this->enable_dualsense = settings->GetDualSenseEnabled();
+	this->enable_dualsense = true;
+	this->rumble_haptics_intensity = settings->GetRumbleHapticsIntensity();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
@@ -142,11 +143,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	audio_out(0),
 	audio_in(0),
 	haptics_output(0),
+	haptics_handheld(0),
 	session_started(false),
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
-	haptics_sdeck(0),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	echo_resampler_buf(nullptr),
@@ -163,12 +164,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	mic_authorization = false;
 #endif
 	allow_unmute = false;
-	rumbleHaptics = false;
+	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
 	ChiakiErrorCode err;
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-    haptics_sdeck = 0;
-#endif
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
 	{
@@ -386,9 +384,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		// Connect Steam Deck haptics with a delay to give other potential haptics time to set up
 		if(sdeck)
+		{
+			haptics_handheld++;
 			QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
+		}
 #endif
-		rumbleHaptics = true;
+		rumble_haptics_intensity = connect_info.rumble_haptics_intensity;
 	}
 	UpdateGamepads();
 
@@ -471,12 +472,12 @@ StreamSession::~StreamSession()
 		free(sdeck_haptics_senderr);
 		sdeck_haptics_senderr = nullptr;
 	}
+#endif
 	if(mic_buf.buf)
 	{
 		free(mic_buf.buf);
 		mic_buf.buf = nullptr;
 	}
-#endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	if(speech_processing_enabled)
 	{
@@ -742,12 +743,10 @@ void StreamSession::UpdateGamepads()
 			{
 				DisconnectHaptics();
 			}
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-			if (!controller->IsSteamDeck())
+			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
 			{
-				haptics_sdeck++;
+				haptics_handheld++;
 			}
-#endif
 			controller->Unref();
 		}
 	}
@@ -767,18 +766,26 @@ void StreamSession::UpdateGamepads()
 			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
 			connect(controller, &Controller::MicButtonPush, this, &StreamSession::ToggleMute);
 			controllers[controller_id] = controller;
+			if(controller->IsHandheld())
+			{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+				// let sdeck handle haptics bc sdeck works even if Steam is running whereas checking via SDL only works if Steam is not running
+				if(!sdeck)
+					haptics_handheld++;
+#else
+				haptics_handheld++;
+#endif
+			}
 			if (controller->IsDualSense())
 			{
 				controller->SetDualsenseMic(muted);
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-			if (!controller->IsSteamDeck())
+			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
 			{
-				haptics_sdeck--;
+				haptics_handheld--;
 			}
-#endif
 		}
 	}
 	
@@ -1139,7 +1146,6 @@ void StreamSession::ConnectHaptics()
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 void StreamSession::ConnectSdeckHaptics()
 {
-	haptics_sdeck++;
 	if(!enable_steamdeck_haptics)
 		return;
 	sdeck_last_haptic = chiaki_time_now_monotonic_ms();
@@ -1305,7 +1311,7 @@ void StreamSession::SetMicAuthorization(Authorization authorization)
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	if(sdeck && haptics_sdeck > 0 && enable_steamdeck_haptics)
+	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
 		if(buf_size != 120)
 		{
@@ -1331,9 +1337,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	}
 #endif
-	if(rumbleHaptics && haptics_output == 0)
+	if((rumble_haptics_intensity != RumbleHapticsIntensity::Off) && haptics_output == 0)
 	{
-
 		int16_t amplitudel = 0, amplituder = 0;
 		int32_t suml = 0, sumr = 0;
 		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples
@@ -1350,13 +1355,50 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		uint16_t left = 0, right = 0;
 		left = suml / buf_count;
 		right = sumr / buf_count;
+		uint32_t temp_left = 0;
+		uint32_t temp_right = 0;
+		switch(rumble_haptics_intensity)
+		{
+			case RumbleHapticsIntensity::VeryWeak:
+				left /= 50;
+				right /= 50;
+				break;
+			case RumbleHapticsIntensity::Weak:
+				left /=25;
+				right /=25;
+				break;
+			case RumbleHapticsIntensity::Normal:
+				break;
+			case RumbleHapticsIntensity::Strong:
+				temp_left = left * 1.5;
+				temp_right = right * 1.5;
+				if(temp_left > UINT16_MAX)
+					temp_left = UINT16_MAX;
+				if(temp_right > UINT16_MAX)
+					temp_right = UINT16_MAX;
+				left = temp_left;
+				right = temp_right;
+				break;
+			case RumbleHapticsIntensity::VeryStrong:
+				temp_left = left * 2;
+				temp_right = right * 2;
+				if(temp_left > UINT16_MAX)
+					temp_left = UINT16_MAX;
+				if(temp_right > UINT16_MAX)
+					temp_right = UINT16_MAX;
+				left = temp_left;
+				right = temp_right;
+				break;
+		}
 		QMetaObject::invokeMethod(this, [this, left, right]() {
 			for(auto controller : controllers)
 			{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-				if(haptics_sdeck < 1 && controller->IsSteamDeck())
-					continue;
+				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtual())))
+#else
+				if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
+					continue;
 				if(left > right)
 					controller->SetHapticRumble(left, left, 10);
 				else

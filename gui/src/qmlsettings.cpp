@@ -101,15 +101,15 @@ void QmlSettings::setLogVerbose(bool verbose)
     emit logVerboseChanged();
 }
 
-bool QmlSettings::dualSense() const
+int QmlSettings::rumbleHapticsIntensity() const
 {
-    return settings->GetDualSenseEnabled();
+    return static_cast<int>(settings->GetRumbleHapticsIntensity());
 }
 
-void QmlSettings::setDualSense(bool dualSense)
+void QmlSettings::setRumbleHapticsIntensity(int intensity)
 {
-    settings->SetDualSenseEnabled(dualSense);
-    emit dualSenseChanged();
+    settings->SetRumbleHapticsIntensity(static_cast<RumbleHapticsIntensity>(intensity));
+    emit rumbleHapticsIntensityChanged();
 }
 
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -135,6 +135,17 @@ void QmlSettings::setVerticalDeck(bool vertical)
     emit verticalDeckChanged();
 }
 #endif
+
+bool QmlSettings::fullscreenDoubleClick() const
+{
+    return settings->GetFullscreenDoubleClickEnabled();
+}
+
+void QmlSettings::setFullscreenDoubleClick(bool enabled)
+{
+    settings->SetFullscreenDoubleClickEnabled(enabled);
+    emit fullscreenDoubleClickChanged();
+}
 
 bool QmlSettings::buttonsByPosition() const
 {
@@ -469,6 +480,626 @@ void QmlSettings::setCurrentProfile(const QString &profile)
     emit currentProfileChanged();
 }
 
+int QmlSettings::placeboUpscaler() const
+{
+    return static_cast<int>(settings->GetPlaceboUpscaler());
+}
+void QmlSettings::setPlaceboUpscaler(int upscaler)
+{
+    settings->SetPlaceboUpscaler(static_cast<PlaceboUpscaler>(upscaler));
+    emit placeboUpscalerChanged();
+}
+
+int QmlSettings::placeboPlaneUpscaler() const
+{
+    return static_cast<int>(settings->GetPlaceboPlaneUpscaler());
+}
+void QmlSettings::setPlaceboPlaneUpscaler(int upscaler)
+{
+    settings->SetPlaceboPlaneUpscaler(static_cast<PlaceboUpscaler>(upscaler));
+    emit placeboPlaneUpscalerChanged();
+}
+
+int QmlSettings::placeboDownscaler() const
+{
+    return static_cast<int>(settings->GetPlaceboDownscaler());
+}
+void QmlSettings::setPlaceboDownscaler(int downscaler)
+{
+    settings->SetPlaceboDownscaler(static_cast<PlaceboDownscaler>(downscaler));
+    emit placeboDownscalerChanged();
+}
+
+int QmlSettings::placeboPlaneDownscaler() const
+{
+    return static_cast<int>(settings->GetPlaceboPlaneDownscaler());
+}
+void QmlSettings::setPlaceboPlaneDownscaler(int downscaler)
+{
+    settings->SetPlaceboPlaneDownscaler(static_cast<PlaceboDownscaler>(downscaler));
+    emit placeboPlaneDownscalerChanged();
+}
+
+int QmlSettings::placeboFrameMixer() const
+{
+    return static_cast<int>(settings->GetPlaceboFrameMixer());
+}
+void QmlSettings::setPlaceboFrameMixer(int mixer)
+{
+    settings->SetPlaceboFrameMixer(static_cast<PlaceboFrameMixer>(mixer));
+    emit placeboFrameMixerChanged();
+}
+
+float QmlSettings::placeboAntiringingStrength() const
+{
+    return settings->GetPlaceboAntiringingStrength();
+}
+void QmlSettings::setPlaceboAntiringingStrength(float strength)
+{
+    settings->SetPlaceboAntiringingStrength(strength);
+    emit placeboAntiringingStrengthChanged();
+}
+
+bool QmlSettings::placeboDebandEnabled() const
+{
+    return settings->GetPlaceboDebandEnabled();
+}
+void QmlSettings::setPlaceboDebandEnabled(bool enabled)
+{
+    settings->SetPlaceboDebandEnabled(enabled);
+    emit placeboDebandEnabledChanged();
+}
+
+int QmlSettings::placeboDebandPreset() const
+{
+    return static_cast<int>(settings->GetPlaceboDebandPreset());
+}
+void QmlSettings::setPlaceboDebandPreset(int preset)
+{
+    settings->SetPlaceboDebandPreset(static_cast<PlaceboDebandPreset>(preset));
+    emit placeboDebandPresetChanged();
+}
+
+int QmlSettings::placeboDebandIterations() const
+{
+    return settings->GetPlaceboDebandIterations();
+}
+void QmlSettings::setPlaceboDebandIterations(int iterations)
+{
+    settings->SetPlaceboDebandIterations(iterations);
+    emit placeboDebandIterationsChanged();
+}
+
+float QmlSettings::placeboDebandThreshold() const
+{
+    return settings->GetPlaceboDebandThreshold();
+}
+void QmlSettings::setPlaceboDebandThreshold(float threshold)
+{
+    settings->SetPlaceboDebandThreshold(threshold);
+    emit placeboDebandThresholdChanged();
+}
+
+float QmlSettings::placeboDebandRadius() const
+{
+    return settings->GetPlaceboDebandRadius();
+}
+void QmlSettings::setPlaceboDebandRadius(float radius)
+{
+    settings->SetPlaceboDebandRadius(radius);
+    emit placeboDebandRadiusChanged();
+}
+
+float QmlSettings::placeboDebandGrain() const
+{
+    return settings->GetPlaceboDebandGrain();
+}
+void QmlSettings::setPlaceboDebandGrain(float grain)
+{
+    settings->SetPlaceboDebandGrain(grain);
+    emit placeboDebandGrainChanged();
+}
+
+bool QmlSettings::placeboSigmoidEnabled() const
+{
+    return settings->GetPlaceboSigmoidEnabled();
+}
+void QmlSettings::setPlaceboSigmoidEnabled(bool enabled)
+{
+    settings->SetPlaceboSigmoidEnabled(enabled);
+    emit placeboSigmoidEnabledChanged();
+}
+
+int QmlSettings::placeboSigmoidPreset() const
+{
+    return static_cast<int>(settings->GetPlaceboSigmoidPreset());
+}
+void QmlSettings::setPlaceboSigmoidPreset(int preset)
+{
+    settings->SetPlaceboSigmoidPreset(static_cast<PlaceboSigmoidPreset>(preset));
+    emit placeboSigmoidPresetChanged();
+}
+
+float QmlSettings::placeboSigmoidCenter() const
+{
+    return settings->GetPlaceboSigmoidCenter();
+}
+void QmlSettings::setPlaceboSigmoidCenter(float center)
+{
+    settings->SetPlaceboSigmoidCenter(center);
+    emit placeboSigmoidCenterChanged();
+}
+
+float QmlSettings::placeboSigmoidSlope() const
+{
+    return settings->GetPlaceboSigmoidSlope();
+}
+void QmlSettings::setPlaceboSigmoidSlope(float slope)
+{
+    settings->SetPlaceboSigmoidSlope(slope);
+    emit placeboSigmoidSlopeChanged();
+}
+
+bool QmlSettings::placeboColorAdjustmentEnabled() const
+{
+    return settings->GetPlaceboColorAdjustmentEnabled();
+}
+void QmlSettings::setPlaceboColorAdjustmentEnabled(bool enabled)
+{
+    settings->SetPlaceboColorAdjustmentEnabled(enabled);
+    emit placeboColorAdjustmentEnabledChanged();
+}
+
+int QmlSettings::placeboColorAdjustmentPreset() const
+{
+    return static_cast<int>(settings->GetPlaceboColorAdjustmentPreset());
+}
+void QmlSettings::setPlaceboColorAdjustmentPreset(int preset)
+{
+    settings->SetPlaceboColorAdjustmentPreset(static_cast<PlaceboColorAdjustmentPreset>(preset));
+    emit placeboColorAdjustmentPresetChanged();
+}
+
+float QmlSettings::placeboColorAdjustmentBrightness() const
+{
+    return settings->GetPlaceboColorAdjustmentBrightness();
+}
+void QmlSettings::setPlaceboColorAdjustmentBrightness(float brightness)
+{
+    settings->SetPlaceboColorAdjustmentBrightness(brightness);
+    emit placeboColorAdjustmentBrightnessChanged();
+}
+
+float QmlSettings::placeboColorAdjustmentContrast() const
+{
+    return settings->GetPlaceboColorAdjustmentContrast();
+}
+void QmlSettings::setPlaceboColorAdjustmentContrast(float contrast)
+{
+    settings->SetPlaceboColorAdjustmentContrast(contrast);
+    emit placeboColorAdjustmentContrastChanged();
+}
+
+float QmlSettings::placeboColorAdjustmentSaturation() const
+{
+    return settings->GetPlaceboColorAdjustmentSaturation();
+}
+void QmlSettings::setPlaceboColorAdjustmentSaturation(float saturation)
+{
+    settings->SetPlaceboColorAdjustmentSaturation(saturation);
+    emit placeboColorAdjustmentSaturationChanged();
+}
+
+float QmlSettings::placeboColorAdjustmentHue() const
+{
+    return settings->GetPlaceboColorAdjustmentHue();
+}
+void QmlSettings::setPlaceboColorAdjustmentHue(float hue)
+{
+    settings->SetPlaceboColorAdjustmentHue(hue);
+    emit placeboColorAdjustmentHueChanged();
+}
+
+float QmlSettings::placeboColorAdjustmentGamma() const
+{
+    return settings->GetPlaceboColorAdjustmentGamma();
+}
+void QmlSettings::setPlaceboColorAdjustmentGamma(float gamma)
+{
+    settings->SetPlaceboColorAdjustmentGamma(gamma);
+    emit placeboColorAdjustmentGammaChanged();
+}
+
+float QmlSettings::placeboColorAdjustmentTemperature() const
+{
+    return settings->GetPlaceboColorAdjustmentTemperature();
+}
+void QmlSettings::setPlaceboColorAdjustmentTemperature(float temperature)
+{
+    settings->SetPlaceboColorAdjustmentTemperature(temperature);
+    emit placeboColorAdjustmentTemperatureChanged();
+}
+
+bool QmlSettings::placeboPeakDetectionEnabled() const
+{
+    return settings->GetPlaceboPeakDetectionEnabled();
+}
+void QmlSettings::setPlaceboPeakDetectionEnabled(bool enabled)
+{
+    settings->SetPlaceboPeakDetectionEnabled(enabled);
+    emit placeboPeakDetectionEnabledChanged();
+}
+
+int QmlSettings::placeboPeakDetectionPreset() const
+{
+    return static_cast<int>(settings->GetPlaceboPeakDetectionPreset());
+}
+void QmlSettings::setPlaceboPeakDetectionPreset(int preset)
+{
+    settings->SetPlaceboPeakDetectionPreset(static_cast<PlaceboPeakDetectionPreset>(preset));
+    emit placeboPeakDetectionPresetChanged();
+}
+
+float QmlSettings::placeboPeakDetectionPeakSmoothingPeriod() const
+{
+    return settings->GetPlaceboPeakDetectionPeakSmoothingPeriod();
+}
+void QmlSettings::setPlaceboPeakDetectionPeakSmoothingPeriod(float period)
+{
+    settings->SetPlaceboPeakDetectionPeakSmoothingPeriod(period);
+    emit placeboPeakDetectionPeakSmoothingPeriodChanged();
+}
+
+float QmlSettings::placeboPeakDetectionSceneThresholdLow() const
+{
+    return settings->GetPlaceboPeakDetectionSceneThresholdLow();
+}
+void QmlSettings::setPlaceboPeakDetectionSceneThresholdLow(float threshold_low)
+{
+    settings->SetPlaceboPeakDetectionSceneThresholdLow(threshold_low);
+    emit placeboPeakDetectionSceneThresholdLowChanged();
+}
+
+float QmlSettings::placeboPeakDetectionSceneThresholdHigh() const
+{
+    return settings->GetPlaceboPeakDetectionSceneThresholdHigh();
+}
+void QmlSettings::setPlaceboPeakDetectionSceneThresholdHigh(float threshold_high)
+{
+    settings->SetPlaceboPeakDetectionSceneThresholdHigh(threshold_high);
+    emit placeboPeakDetectionSceneThresholdHighChanged();
+}
+
+float QmlSettings::placeboPeakDetectionPeakPercentile() const
+{
+    return settings->GetPlaceboPeakDetectionPeakPercentile();
+}
+void QmlSettings::setPlaceboPeakDetectionPeakPercentile(float percentile)
+{
+    settings->SetPlaceboPeakDetectionPeakPercentile(percentile);
+    emit placeboPeakDetectionPeakPercentileChanged();
+}
+
+float QmlSettings::placeboPeakDetectionBlackCutoff() const
+{
+    return settings->GetPlaceboPeakDetectionBlackCutoff();
+}
+void QmlSettings::setPlaceboPeakDetectionBlackCutoff(float cutoff)
+{
+    settings->SetPlaceboPeakDetectionBlackCutoff(cutoff);
+    emit placeboPeakDetectionBlackCutoffChanged();
+}
+
+bool QmlSettings::placeboPeakDetectionAllowDelayedPeak() const
+{
+    return settings->GetPlaceboPeakDetectionAllowDelayedPeak();
+}
+void QmlSettings::setPlaceboPeakDetectionAllowDelayedPeak(bool allowed)
+{
+    settings->SetPlaceboPeakDetectionAllowDelayedPeak(allowed);
+    emit placeboPeakDetectionAllowDelayedPeakChanged();
+}
+
+bool QmlSettings::placeboColorMappingEnabled() const
+{
+    return settings->GetPlaceboColorMappingEnabled();
+}
+void QmlSettings::setPlaceboColorMappingEnabled(bool enabled)
+{
+    settings->SetPlaceboColorMappingEnabled(enabled);
+    emit placeboColorMappingEnabledChanged();
+}
+
+int QmlSettings::placeboColorMappingPreset() const
+{
+    return static_cast<int>(settings->GetPlaceboColorMappingPreset());
+}
+void QmlSettings::setPlaceboColorMappingPreset(int preset)
+{
+    settings->SetPlaceboColorMappingPreset(static_cast<PlaceboColorMappingPreset>(preset));
+    emit placeboColorMappingPresetChanged();
+}
+
+int QmlSettings::placeboGamutMappingFunction() const
+{
+    return static_cast<int>(settings->GetPlaceboGamutMappingFunction());
+}
+void QmlSettings::setPlaceboGamutMappingFunction(int function)
+{
+    settings->SetPlaceboGamutMappingFunction(static_cast<PlaceboGamutMappingFunction>(function));
+    emit placeboGamutMappingFunctionChanged();
+}
+
+float QmlSettings::placeboGamutMappingPerceptualDeadzone() const
+{
+    return settings->GetPlaceboGamutMappingPerceptualDeadzone();
+}
+void QmlSettings::setPlaceboGamutMappingPerceptualDeadzone(float deadzone)
+{
+    settings->SetPlaceboGamutMappingPerceptualDeadzone(deadzone);
+    emit placeboGamutMappingPerceptualDeadzoneChanged();
+}
+
+float QmlSettings::placeboGamutMappingPerceptualStrength() const
+{
+    return settings->GetPlaceboGamutMappingPerceptualStrength();
+}
+void QmlSettings::setPlaceboGamutMappingPerceptualStrength(float strength)
+{
+    settings->SetPlaceboGamutMappingPerceptualStrength(strength);
+    emit placeboGamutMappingPerceptualStrengthChanged();
+}
+
+float QmlSettings::placeboGamutMappingColorimetricGamma() const
+{
+    return settings->GetPlaceboGamutMappingColorimetricGamma();
+}
+void QmlSettings::setPlaceboGamutMappingColorimetricGamma(float gamma)
+{
+    settings->SetPlaceboGamutMappingColorimetricGamma(gamma);
+    emit placeboGamutMappingColorimetricGammaChanged();
+}
+
+float QmlSettings::placeboGamutMappingSoftClipKnee() const
+{
+    return settings->GetPlaceboGamutMappingSoftClipKnee();
+}
+void QmlSettings::setPlaceboGamutMappingSoftClipKnee(float knee)
+{
+    settings->SetPlaceboGamutMappingSoftClipKnee(knee);
+    emit placeboGamutMappingSoftClipKneeChanged();
+}
+
+float QmlSettings::placeboGamutMappingSoftClipDesat() const
+{
+    return settings->GetPlaceboGamutMappingSoftClipDesat();
+}
+void QmlSettings::setPlaceboGamutMappingSoftClipDesat(float desat)
+{
+    settings->SetPlaceboGamutMappingSoftClipDesat(desat);
+    emit placeboGamutMappingSoftClipDesatChanged();
+}
+
+int QmlSettings::placeboGamutMappingLut3dSizeI() const
+{
+    return settings->GetPlaceboGamutMappingLut3dSizeI();
+}
+void QmlSettings::setPlaceboGamutMappingLut3dSizeI(int size)
+{
+    settings->SetPlaceboGamutMappingLut3dSizeI(size);
+    emit placeboGamutMappingLut3dSizeIChanged();
+}
+
+int QmlSettings::placeboGamutMappingLut3dSizeC() const
+{
+    return settings->GetPlaceboGamutMappingLut3dSizeC();
+}
+void QmlSettings::setPlaceboGamutMappingLut3dSizeC(int size)
+{
+    settings->SetPlaceboGamutMappingLut3dSizeC(size);
+    emit placeboGamutMappingLut3dSizeCChanged();
+}
+
+int QmlSettings::placeboGamutMappingLut3dSizeH() const
+{
+    return settings->GetPlaceboGamutMappingLut3dSizeH();
+}
+void QmlSettings::setPlaceboGamutMappingLut3dSizeH(int size)
+{
+    settings->SetPlaceboGamutMappingLut3dSizeH(size);
+    emit placeboGamutMappingLut3dSizeHChanged();
+}
+
+bool QmlSettings::placeboGamutMappingLut3dTricubicEnabled() const
+{
+    return settings->GetPlaceboGamutMappingLut3dTricubicEnabled();
+}
+void QmlSettings::setPlaceboGamutMappingLut3dTricubicEnabled(bool enabled)
+{
+    settings->SetPlaceboGamutMappingLut3dTricubicEnabled(enabled);
+    emit placeboGamutMappingLut3dTricubicEnabledChanged();
+}
+
+bool QmlSettings::placeboGamutMappingGamutExpansionEnabled() const
+{
+    return settings->GetPlaceboGamutMappingGamutExpansionEnabled();
+}
+void QmlSettings::setPlaceboGamutMappingGamutExpansionEnabled(bool enabled)
+{
+    settings->SetPlaceboGamutMappingGamutExpansionEnabled(enabled);
+    emit placeboGamutMappingGamutExpansionEnabledChanged();
+}
+
+int QmlSettings::placeboToneMappingFunction() const
+{
+    return static_cast<int>(settings->GetPlaceboToneMappingFunction());
+}
+void QmlSettings::setPlaceboToneMappingFunction(int function)
+{
+    settings->SetPlaceboToneMappingFunction(static_cast<PlaceboToneMappingFunction>(function));
+    emit placeboToneMappingFunctionChanged();
+}
+
+float QmlSettings::placeboToneMappingKneeAdaptation() const
+{
+    return settings->GetPlaceboToneMappingKneeAdaptation();
+}
+void QmlSettings::setPlaceboToneMappingKneeAdaptation(float adaptation)
+{
+    settings->SetPlaceboToneMappingKneeAdaptation(adaptation);
+    emit placeboToneMappingKneeAdaptationChanged();
+}
+
+float QmlSettings::placeboToneMappingKneeMinimum() const
+{
+    return settings->GetPlaceboToneMappingKneeMinimum();
+}
+void QmlSettings::setPlaceboToneMappingKneeMinimum(float min)
+{
+    settings->SetPlaceboToneMappingKneeMinimum(min);
+    emit placeboToneMappingKneeMinimumChanged();
+}
+
+float QmlSettings::placeboToneMappingKneeMaximum() const
+{
+    return settings->GetPlaceboToneMappingKneeMaximum();
+}
+void QmlSettings::setPlaceboToneMappingKneeMaximum(float max)
+{
+    settings->SetPlaceboToneMappingKneeMaximum(max);
+    emit placeboToneMappingKneeMaximumChanged();
+}
+
+float QmlSettings::placeboToneMappingKneeDefault() const
+{
+    return settings->GetPlaceboToneMappingKneeDefault();
+}
+void QmlSettings::setPlaceboToneMappingKneeDefault(float default_knee)
+{
+    settings->SetPlaceboToneMappingKneeDefault(default_knee);
+    emit placeboToneMappingKneeDefaultChanged();
+}
+
+float QmlSettings::placeboToneMappingKneeOffset() const
+{
+    return settings->GetPlaceboToneMappingKneeOffset();
+}
+void QmlSettings::setPlaceboToneMappingKneeOffset(float offset)
+{
+    settings->SetPlaceboToneMappingKneeOffset(offset);
+    emit placeboToneMappingKneeOffsetChanged();
+}
+
+float QmlSettings::placeboToneMappingSlopeTuning() const
+{
+    return settings->GetPlaceboToneMappingSlopeTuning();
+}
+void QmlSettings::setPlaceboToneMappingSlopeTuning(float tuning)
+{
+    settings->SetPlaceboToneMappingSlopeTuning(tuning);
+    emit placeboToneMappingSlopeTuningChanged();
+}
+
+float QmlSettings::placeboToneMappingSlopeOffset() const
+{
+    return settings->GetPlaceboToneMappingSlopeOffset();
+}
+void QmlSettings::setPlaceboToneMappingSlopeOffset(float offset)
+{
+    settings->SetPlaceboToneMappingSlopeOffset(offset);
+    emit placeboToneMappingSlopeOffsetChanged();
+}
+
+float QmlSettings::placeboToneMappingSplineContrast() const
+{
+    return settings->GetPlaceboToneMappingSplineContrast();
+}
+void QmlSettings::setPlaceboToneMappingSplineContrast(float contrast)
+{
+    settings->SetPlaceboToneMappingSplineContrast(contrast);
+    emit placeboToneMappingSplineContrastChanged();
+}
+
+float QmlSettings::placeboToneMappingReinhardContrast() const
+{
+    return settings->GetPlaceboToneMappingReinhardContrast();
+}
+void QmlSettings::setPlaceboToneMappingReinhardContrast(float contrast)
+{
+    settings->SetPlaceboToneMappingReinhardContrast(contrast);
+    emit placeboToneMappingReinhardContrastChanged();
+}
+
+float QmlSettings::placeboToneMappingLinearKnee() const
+{
+    return settings->GetPlaceboToneMappingLinearKnee();
+}
+void QmlSettings::setPlaceboToneMappingLinearKnee(float knee)
+{
+    settings->SetPlaceboToneMappingLinearKnee(knee);
+    emit placeboToneMappingLinearKneeChanged();
+}
+
+float QmlSettings::placeboToneMappingExposure() const
+{
+    return settings->GetPlaceboToneMappingExposure();
+}
+void QmlSettings::setPlaceboToneMappingExposure(float exposure)
+{
+    settings->SetPlaceboToneMappingExposure(exposure);
+    emit placeboToneMappingExposureChanged();
+}
+
+bool QmlSettings::placeboToneMappingInverseToneMappingEnabled() const
+{
+    return settings->GetPlaceboToneMappingInverseToneMappingEnabled();
+}
+void QmlSettings::setPlaceboToneMappingInverseToneMappingEnabled(bool enabled)
+{
+    settings->SetPlaceboToneMappingInverseToneMappingEnabled(enabled);
+    emit placeboToneMappingInverseToneMappingEnabledChanged();
+}
+
+int QmlSettings::placeboToneMappingMetadata() const
+{
+    return static_cast<int>(settings->GetPlaceboToneMappingMetadata());
+}
+void QmlSettings::setPlaceboToneMappingMetadata(int metadata)
+{
+    settings->SetPlaceboToneMappingMetadata(static_cast<PlaceboToneMappingMetadata>(metadata));
+    emit placeboToneMappingMetadataChanged();
+}
+
+int QmlSettings::placeboToneMappingToneLutSize() const
+{
+    return settings->GetPlaceboToneMappingToneLutSize();
+}
+void QmlSettings::setPlaceboToneMappingToneLutSize(int size)
+{
+    settings->SetPlaceboToneMappingToneLutSize(size);
+    emit placeboToneMappingToneLutSizeChanged();
+}
+
+float QmlSettings::placeboToneMappingContrastRecovery() const
+{
+    return settings->GetPlaceboToneMappingContrastRecovery();
+}
+void QmlSettings::setPlaceboToneMappingContrastRecovery(float recovery)
+{
+    settings->SetPlaceboToneMappingContrastRecovery(recovery);
+    emit placeboToneMappingContrastRecoveryChanged();
+}
+
+float QmlSettings::placeboToneMappingContrastSmoothness() const
+{
+    return settings->GetPlaceboToneMappingContrastSmoothness();
+}
+void QmlSettings::setPlaceboToneMappingContrastSmoothness(float smoothness)
+{
+    settings->SetPlaceboToneMappingContrastSmoothness(smoothness);
+    emit placeboToneMappingContrastSmoothnessChanged();
+}
+
 QString QmlSettings::logDirectory() const
 {
     return GetLogBaseDir();
@@ -609,7 +1240,7 @@ void QmlSettings::refreshAllKeys()
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
-    emit dualSenseChanged();
+    emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();
     emit startMicUnmutedChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -621,6 +1252,7 @@ void QmlSettings::refreshAllKeys()
     emit noiseSuppressLevelChanged();
     emit echoSuppressLevelChanged();
 #endif
+    emit fullscreenDoubleClickChanged();
     emit fpsLocalPS4Changed();
     emit fpsRemotePS4Changed();
     emit fpsLocalPS5Changed();
@@ -650,6 +1282,72 @@ void QmlSettings::refreshAllKeys()
     emit packetLossMaxChanged();
     emit currentProfileChanged();
     emit profilesChanged();
+    refreshAllPlaceboKeys();
+}
+
+void QmlSettings::refreshAllPlaceboKeys()
+{
+    emit placeboUpscalerChanged();
+    emit placeboPlaneUpscalerChanged();
+    emit placeboDownscalerChanged();
+    emit placeboPlaneDownscalerChanged();
+    emit placeboFrameMixerChanged();
+    emit placeboAntiringingStrengthChanged();
+    emit placeboDebandEnabledChanged();
+    emit placeboDebandPresetChanged();
+    emit placeboDebandIterationsChanged();
+    emit placeboDebandThresholdChanged();
+    emit placeboDebandRadiusChanged();
+    emit placeboDebandGrainChanged();
+    emit placeboSigmoidEnabledChanged();
+    emit placeboSigmoidPresetChanged();
+    emit placeboSigmoidCenterChanged();
+    emit placeboSigmoidSlopeChanged();
+    emit placeboColorAdjustmentEnabledChanged();
+    emit placeboColorAdjustmentPresetChanged();
+    emit placeboColorAdjustmentBrightnessChanged();
+    emit placeboColorAdjustmentContrastChanged();
+    emit placeboColorAdjustmentSaturationChanged();
+    emit placeboColorAdjustmentHueChanged();
+    emit placeboColorAdjustmentGammaChanged();
+    emit placeboColorAdjustmentTemperatureChanged();
+    emit placeboPeakDetectionEnabled();
+    emit placeboPeakDetectionPresetChanged();
+    emit placeboPeakDetectionPeakSmoothingPeriodChanged();
+    emit placeboPeakDetectionSceneThresholdLowChanged();
+    emit placeboPeakDetectionSceneThresholdHighChanged();
+    emit placeboPeakDetectionPeakPercentileChanged();
+    emit placeboPeakDetectionBlackCutoffChanged();
+    emit placeboPeakDetectionAllowDelayedPeakChanged();
+    emit placeboColorMappingEnabledChanged();
+    emit placeboColorMappingPresetChanged();
+    emit placeboGamutMappingFunctionChanged();
+    emit placeboGamutMappingPerceptualDeadzoneChanged();
+    emit placeboGamutMappingPerceptualStrengthChanged();
+    emit placeboGamutMappingColorimetricGammaChanged();
+    emit placeboGamutMappingSoftClipKneeChanged();
+    emit placeboGamutMappingSoftClipDesatChanged();
+    emit placeboGamutMappingLut3dSizeIChanged();
+    emit placeboGamutMappingLut3dSizeCChanged();
+    emit placeboGamutMappingLut3dSizeHChanged();
+    emit placeboGamutMappingLut3dTricubicEnabledChanged();
+    emit placeboGamutMappingGamutExpansionEnabledChanged();
+    emit placeboToneMappingFunctionChanged();
+    emit placeboToneMappingKneeAdaptationChanged();
+    emit placeboToneMappingKneeMinimumChanged();
+    emit placeboToneMappingKneeMaximumChanged();
+    emit placeboToneMappingKneeDefaultChanged();
+    emit placeboToneMappingKneeOffsetChanged();
+    emit placeboToneMappingSlopeTuningChanged();
+    emit placeboToneMappingSlopeOffsetChanged();
+    emit placeboToneMappingSplineContrastChanged();
+    emit placeboToneMappingReinhardContrastChanged();
+    emit placeboToneMappingLinearKneeChanged();
+    emit placeboToneMappingExposureChanged();
+    emit placeboToneMappingInverseToneMappingEnabledChanged();
+    emit placeboToneMappingMetadataChanged();
+    emit placeboToneMappingToneLutSizeChanged();
+    emit placeboToneMappingContrastRecoveryChanged();
 }
 
 void QmlSettings::exportSettings(QString fileurl)
@@ -660,5 +1358,15 @@ void QmlSettings::exportSettings(QString fileurl)
 void QmlSettings::importSettings(QString fileurl)
 {
     settings->ImportSettings(fileurl);
-    refreshAllKeys();
+}
+
+void QmlSettings::exportPlaceboSettings(QString fileurl)
+{
+    settings->ExportPlaceboSettings(fileurl);
+}
+
+void QmlSettings::importPlaceboSettings(QString fileurl)
+{
+    settings->ImportPlaceboSettings(fileurl);
+    refreshAllPlaceboKeys();
 }

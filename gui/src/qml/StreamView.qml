@@ -286,9 +286,9 @@ Item {
                         if(parent.value === -1)
                             qsTr("No Black Bars")
                         else if(parent.value >= 0)
-                            qsTr("%1 x").arg(parent.value + 1)
+                            qsTr((parent.value + 1).toFixed(2)) + qsTr(" x")
                         else
-                            qsTr("%1 x").arg(parent.value)
+                            qsTr(parent.value.toFixed(2)) + qsTr(" x")
                     }
 
                 }
