@@ -41,7 +41,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/haasn/libplacebo
-        branch: v7.349.0
+        tag: v7.349.0
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
     modules:

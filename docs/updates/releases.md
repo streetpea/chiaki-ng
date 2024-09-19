@@ -69,7 +69,7 @@ Brings ability to set controller mappings for chiaki-ng
 
     !!!Note "Controllers mapped via Steam"
 
-        Controlled mapped via Steam should be mapped directly in the Steam UI gamepad configurator as opposed to this menu. If you try to map a controller that is mapped via Steam in this menu it will give you a notification that it should be mapped via Steam.
+        Controllers mapped via Steam should be mapped directly in the Steam UI gamepad configurator as opposed to this menu. If you try to map a controller that is mapped via Steam in this menu it will give you a notification that it should be mapped via Steam.
 
 - adds Custom renderer option which allows you to configure your renderer options very granularly with the options at https://libplacebo.org/options/
 - add defaults to all settings so users are aware of the defaults/which settings they've changed
@@ -83,8 +83,6 @@ Brings ability to set controller mappings for chiaki-ng
 - fix decimal points turning into scientific notation numbers in QSliders
 - properly terminate ipv6 discovery service
 - ping all network interfaces on Linux and MacOS allowing discovery of previously undiscoverable consoles
-
-
 
 ### 1.8.1
 
