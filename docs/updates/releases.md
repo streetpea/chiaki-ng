@@ -61,6 +61,31 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.0
+
+Brings ability to set controller mappings for chiaki-ng
+
+- adds **Controllers** section to chiaki-ng settings which allows you to configure the mapping for your controller (especially nice for mapping Xbox and Switch controllers to PlayStation inputs)
+
+    !!!Note "Controllers mapped via Steam"
+
+        Controlled mapped via Steam should be mapped directly in the Steam UI gamepad configurator as opposed to this menu. If you try to map a controller that is mapped via Steam in this menu it will give you a notification that it should be mapped via Steam.
+
+- adds Custom renderer option which allows you to configure your renderer options very granularly with the options at https://libplacebo.org/options/
+- add defaults to all settings so users are aware of the defaults/which settings they've changed
+- add different haptic rumble intensity settings for users to configure if the default is not to their liking
+- for manual connection show 1 pane with all relevant information instead of 2 panes when console is discovered + allow user to choose between registered consoles (regardless of whether or not they are currently discovered) + make PS5 default console type
+- disable double click by default and allow re-enabling via the **Video** section of the Settings
+- fix crash when user has more than 1 PS5 registered with PSN
+- fix crash that could happen when a user uses the wake from sleep feature
+- fix corrupt stream that could occur after several hours of streaming
+- fix launching from a path with non-ascii characters on Windows
+- fix decimal points turning into scientific notation numbers in QSliders
+- properly terminate ipv6 discovery service
+- ping all network interfaces on Linux and MacOS allowing discovery of previously undiscoverable consoles
+
+
+
 ### 1.8.1
 
 Small patch update
