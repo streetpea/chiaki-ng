@@ -725,6 +725,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
     else
     {
+        setDiscoveryEnabled(false);
         emit showPsnView();
         setConnectState(PsnConnectState::InitiatingConnection);
         emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
@@ -1383,6 +1384,8 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
     }
     controller_mapping_controller->EnableAnalogStickMapping(enable_analog_stick_mapping);
 	controller_mapping_controller_type = mapping_results.takeFirst();
+    if(controller_mapping_controller_type == "*")
+        controller_mapping_controller_type = controller_mapping_controller->GetName().split(u'(').takeFirst().trimmed();
     for(int i=0; i<mapping_results.length(); i++)
     {
         QString individual_mapping = mapping_results.at(i);

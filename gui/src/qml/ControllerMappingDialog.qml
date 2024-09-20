@@ -11,7 +11,7 @@ DialogView {
     id: dialog
     property bool finalClosing: false
     property bool quitButtonMapping: true
-    title: Chiaki.currentControllerType + qsTr(" Mapping")
+    title: Chiaki.currentControllerType
     buttonText: qsTr("✓ Update Controller Mapping")
     buttonEnabled: Chiaki.controllerMappingAltered
     onAccepted: {
