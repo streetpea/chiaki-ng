@@ -374,6 +374,7 @@ DialogView {
             }
 
             ColumnLayout {
+                spacing: 20
                 Label {
                     id: chooseButtonLabel
                     Layout.preferredWidth: 400

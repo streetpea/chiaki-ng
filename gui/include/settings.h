@@ -213,6 +213,8 @@ class Settings : public QObject
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
 
+		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
+		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();

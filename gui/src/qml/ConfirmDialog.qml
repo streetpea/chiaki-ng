@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Controls.Material
+import "controls" as C
 
 Dialog {
     id: dialog
@@ -13,7 +14,7 @@ Dialog {
     y: Math.round((root.height - height) / 2)
     modal: true
     Material.roundedScale: Material.MediumScale
-    onOpened: label.forceActiveFocus()
+    onOpened: yesButton.forceActiveFocus(Qt.TabFocusReason)
     onAccepted: {
         restoreFocus();
         callback();
@@ -44,11 +45,13 @@ Dialog {
             Layout.alignment: Qt.AlignCenter
             spacing: 20
 
-            Button {
-                focusPolicy: Qt.NoFocus
+            C.Button {
+                id: yesButton
                 text: qsTr("Yes")
                 flat: true
                 leftPadding: 50
+                KeyNavigation.priority: BeforeItem
+                KeyNavigation.right: noButton
                 onClicked: dialog.accept()
                 Material.roundedScale: Material.SmallScale
 
@@ -65,8 +68,10 @@ Dialog {
                 }
             }
 
-            Button {
-                focusPolicy: Qt.NoFocus
+            C.Button {
+                id: noButton
+                KeyNavigation.priority: BeforeItem
+                KeyNavigation.left: yesButton
                 text: qsTr("No")
                 flat: true
                 leftPadding: 50

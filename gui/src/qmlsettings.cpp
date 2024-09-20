@@ -23,6 +23,17 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
 }
 
+bool QmlSettings::remotePlayAsk() const
+{
+    return settings->GetRemotePlayAsk();
+}
+
+void QmlSettings::setRemotePlayAsk(bool asked)
+{
+    settings->SetRemotePlayAsk(asked);
+    emit remotePlayAskChanged();
+}
+
 int QmlSettings::resolutionLocalPS4() const
 {
     return settings->GetResolutionLocalPS4();
@@ -1233,6 +1244,7 @@ void QmlSettings::setSettings(Settings *new_settings)
 
 void QmlSettings::refreshAllKeys()
 {
+    emit remotePlayAskChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
     emit resolutionLocalPS5Changed();
