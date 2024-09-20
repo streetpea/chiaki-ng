@@ -15,7 +15,7 @@ jobs:
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
-      libplacebo_tag: 5c1e6da21f108a27b11fad97fd491ddee06ede3c
+      libplacebo_tag: v7.349.0
 
     defaults:
       run:
