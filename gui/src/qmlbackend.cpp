@@ -1383,6 +1383,8 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
     }
     controller_mapping_controller->EnableAnalogStickMapping(enable_analog_stick_mapping);
 	controller_mapping_controller_type = mapping_results.takeFirst();
+    if(controller_mapping_controller_type == "*")
+        controller_mapping_controller_type = controller_mapping_controller->GetName().split(u'(').takeFirst().trimmed();
     for(int i=0; i<mapping_results.length(); i++)
     {
         QString individual_mapping = mapping_results.at(i);
