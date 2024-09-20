@@ -725,6 +725,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
     else
     {
+        setDiscoveryEnabled(false);
         emit showPsnView();
         setConnectState(PsnConnectState::InitiatingConnection);
         emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
