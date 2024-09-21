@@ -50,7 +50,7 @@ Dialog {
                 text: qsTr("Yes")
                 flat: true
                 leftPadding: 50
-                KeyNavigation.priority: BeforeItem
+                KeyNavigation.priority: KeyNavigation.BeforeItem
                 KeyNavigation.right: noButton
                 onClicked: dialog.accept()
                 Material.roundedScale: Material.SmallScale
@@ -70,7 +70,7 @@ Dialog {
 
             C.Button {
                 id: noButton
-                KeyNavigation.priority: BeforeItem
+                KeyNavigation.priority: KeyNavigation.BeforeItem
                 KeyNavigation.left: yesButton
                 text: qsTr("No")
                 flat: true

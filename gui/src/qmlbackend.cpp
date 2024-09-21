@@ -1413,7 +1413,11 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
             controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
         }
     }
-    if((controller_mapping_controller_type == "Xbox One Controller" || controller_mapping_controller_type == "Xbox Series Controller") && !controller_mapping_physical_button_mappings.contains("b11"))
+    QStringList xbox_share_button_controllers;
+    xbox_share_button_controllers.append("Xbox One Controller");
+    xbox_share_button_controllers.append("Xbox Series X Controller");
+    xbox_share_button_controllers.append("Xbox Wireless Controller");
+    if((xbox_share_button_controllers.contains(controller_mapping_controller_type)) && !controller_mapping_physical_button_mappings.contains("b11"))
     {
         if(controller_mapping_controller_mappings.contains("misc1"))
         {
