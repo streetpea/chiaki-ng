@@ -2425,6 +2425,15 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                 }
             }
         }
+        else
+        {
+            CHIAKI_LOGI(session->log, "IPV6 NOT supported by your PlayStation console. Skipping IPV6 connection");
+            if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+            {
+                CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+                session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+            }
+        }
     }
     else
     {
