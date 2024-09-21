@@ -65,6 +65,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
 static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *port, StunServer *passed_servers, size_t num_passed_servers, chiaki_socket_t *sock, bool ipv4)
 {
     // Try servers preferred by user (i.e., known to be online)
+    bool ipv6_tried = false;
     if(num_passed_servers > 0)
     {
        for (int i = 0; i < num_passed_servers; i++)
@@ -74,24 +75,36 @@ static bool stun_get_external_address(ChiakiLog *log, char *address, uint16_t *p
             if (stun_get_external_address_from_server(log, &passed_servers[i], address, port, sock, ipv4))
                 return true;
             CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", passed_servers[i].host, passed_servers[i].port);
+            // Only try 1 IPV6 server
+            if(!ipv4)
+            {
+                ipv6_tried = true;
+                break;
+            }
         }
     }
-    // Shuffle order of servers other than moonlight server
-    size_t num_servers = sizeof(STUN_SERVERS) / sizeof(StunServer);
-    for (int i = num_servers - 1; i > 1; i--) {
-        int j = 1 + chiaki_random_32() % (i - 1);
-        StunServer temp = STUN_SERVERS[i];
-        STUN_SERVERS[i] = STUN_SERVERS[j];
-        STUN_SERVERS[j] = temp;
-    }
-    // Try other servers
-    for (int i = 0; i < num_servers; i++) {
-        if(CHIAKI_SOCKET_IS_INVALID(*sock))
-            return false;
-        if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], address, port, sock, ipv4)) {
-            return true;
+    if(ipv4 || !ipv6_tried)
+    {
+        // Shuffle order of servers other than moonlight server
+        size_t num_servers = sizeof(STUN_SERVERS) / sizeof(StunServer);
+        for (int i = num_servers - 1; i > 1; i--) {
+            int j = 1 + chiaki_random_32() % (i - 1);
+            StunServer temp = STUN_SERVERS[i];
+            STUN_SERVERS[i] = STUN_SERVERS[j];
+            STUN_SERVERS[j] = temp;
         }
-        CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+        // Try other servers
+        for (int i = 0; i < num_servers; i++) {
+            if(CHIAKI_SOCKET_IS_INVALID(*sock))
+                return false;
+            if (stun_get_external_address_from_server(log, &STUN_SERVERS[i], address, port, sock, ipv4)) {
+                return true;
+            }
+            CHIAKI_LOGW(log, "Failed to get external address from %s:%d, retrying with another STUN server...", STUN_SERVERS[i].host, STUN_SERVERS[i].port);
+            // Only try 1 IPV6 server
+            if(!ipv4)
+                break;
+        }
     }
     CHIAKI_LOGE(log, "Failed to get external address from any STUN server.");
     return false;
