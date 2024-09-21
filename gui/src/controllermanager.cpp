@@ -708,6 +708,18 @@ int Controller::GetDeviceID()
 #endif
 }
 
+QString Controller::GetType()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return QString();
+	SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
+	return QString("%1").arg(SDL_JoystickName(js));
+#else
+	return QString();
+#endif
+}
+
 QString Controller::GetName()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER

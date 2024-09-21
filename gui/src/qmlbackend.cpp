@@ -1376,6 +1376,11 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
         return;
     }
 	QStringList mapping_results = original_controller_mapping.split(u',');
+    if(mapping_results.length() < 2)
+    {
+        qCWarning(chiakiGui) << "Received invalid Mapping List";
+        return;
+    }
 	controller_mapping_controller_guid = mapping_results.takeFirst();
     if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid))
     {
@@ -1385,7 +1390,11 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
     controller_mapping_controller->EnableAnalogStickMapping(enable_analog_stick_mapping);
 	controller_mapping_controller_type = mapping_results.takeFirst();
     if(controller_mapping_controller_type == "*")
-        controller_mapping_controller_type = controller_mapping_controller->GetName().split(u'(').takeFirst().trimmed();
+    {
+        controller_mapping_controller_type = controller_mapping_controller->GetType();
+        if(controller_mapping_controller_type.isEmpty())
+            controller_mapping_controller_type = QString("Unidentified Controller");
+    }
     for(int i=0; i<mapping_results.length(); i++)
     {
         QString individual_mapping = mapping_results.at(i);
