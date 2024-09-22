@@ -1141,12 +1141,61 @@ DialogView {
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 10
+
                     Button {
-                        focusPolicy: Qt.NoFocus
                         text: "Reset All Keys"
+                        Layout.alignment: Qt.AlignCenter
+                        property bool firstInFocusChain: true
+                        property bool lastInFocusChain: false
                         onClicked: Chiaki.settings.clearKeyMapping()
+                        Material.roundedScale: Material.SmallScale
+                        Material.background: visualFocus ? Material.accent : undefined
+
+                        Component.onDestruction: {
+                            if (visualFocus) {
+                                let item = nextItemInFocusChain();
+                                if (item)
+                                    item.forceActiveFocus(Qt.TabFocusReason);
+                            }
+                        }
+                        Keys.onPressed: (event) => {
+                            switch (event.key) {
+                            case Qt.Key_Down:
+                                if (!lastInFocusChain) {
+                                    let item = nextItemInFocusChain();
+                                    if (item)
+                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                    for(var i = 0; i < 3; i++)
+                                    {
+                                        let item2 = item.nextItemInFocusChain();
+                                        if (item)
+                                        {
+                                            item.forceActiveFocus(Qt.TabFocusReason);
+                                            item = item2;
+                                        }
+                                    }
+                                    event.accepted = true;
+                                }
+                                break;
+                            case Qt.Key_Right:
+                                if (!lastInFocusChain) {
+                                    let item = nextItemInFocusChain();
+                                    if (item)
+                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                    event.accepted = true;
+                                }
+                                break;
+                            case Qt.Key_Return:
+                                if (visualFocus) {
+                                    clicked();
+                                }
+                                event.accepted = true;
+                                break;
+                            }
+                        }
                     }
                     Repeater {
+                        id: chiakiKeys
                         model: Chiaki.settings.controllerMapping
 
                         RowLayout {
@@ -1159,16 +1208,86 @@ DialogView {
                             }
 
                             Button {
+                                property bool firstInFocusChain: false
+                                property bool lastInFocusChain: index == (chiakiKeys.count - 1)
                                 Layout.preferredWidth: 170
                                 Layout.preferredHeight: 52
-                                focusPolicy: Qt.NoFocus
                                 text: modelData.keyName
                                 Material.roundedScale: Material.SmallScale
+                                Material.background: visualFocus ? Material.accent : undefined
+                                Component.onDestruction: {
+                                    if (visualFocus) {
+                                        let item = nextItemInFocusChain();
+                                        if (item)
+                                            item.forceActiveFocus(Qt.TabFocusReason);
+                                    }
+                                }
                                 onClicked: {
                                     keyDialog.show({
                                         value: modelData.buttonValue,
+                                        mappingIndex: index,
                                         callback: (name) => text = name,
                                     });
+                                }
+                                Keys.onPressed: (event) => {
+                                    switch (event.key) {
+                                        case Qt.Key_Left:
+                                            if (!firstInFocusChain && (((index + 1)% 3) != 0)) {
+                                                let item = nextItemInFocusChain(false);
+                                                if (item)
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Right:
+                                            if  (!lastInFocusChain && ((index - 1) % 3) != 0) {
+                                                let item = nextItemInFocusChain();
+                                                if (item)
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Up:
+                                            if (!firstInFocusChain && index > 1)
+                                            {
+                                                let item = nextItemInFocusChain(false);
+                                                if (item)
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                for(var i = 0; i < 3; i++)
+                                                {
+                                                    let item2 = item.nextItemInFocusChain(false);
+                                                    if (item)
+                                                    {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        item = item2;
+                                                    }
+                                                }
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Down:
+                                            if (!lastInFocusChain && index < (chiakiKeys.count - 3)) {
+                                                let item = nextItemInFocusChain();
+                                                if (item)
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                for(var i = 0; i < 3; i++)
+                                                {
+                                                    let item2 = item.nextItemInFocusChain();
+                                                    if (item)
+                                                    {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        item = item2;
+                                                    }
+                                                }
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Return:
+                                            if (visualFocus) {
+                                                clicked();
+                                            }
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -1361,8 +1480,10 @@ DialogView {
 
         Dialog {
             id: keyDialog
+            focus: false
             property int buttonValue
             property var buttonCallback
+            property var keysIndex
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)
             y: Math.round((root.height - height) / 2)
@@ -1371,12 +1492,23 @@ DialogView {
             standardButtons: Dialog.Close
             closePolicy: Popup.CloseOnPressOutside
             onOpened: keyLabel.forceActiveFocus()
-            onClosed: dialog.forceActiveFocus()
+            onClosed: {
+                let item = chiakiKeys.itemAt(keysIndex)
+                if(item)
+                {
+                    let item2 = item.children[1];
+                    if(item2)
+                        item2.forceActiveFocus(Qt.TabFocusReason);
+                }
+                keyLabel.focus = false;
+                focus = false;
+            }
             Material.roundedScale: Material.MediumScale
 
             function show(opts) {
                 buttonValue = opts.value;
                 buttonCallback = opts.callback;
+                keysIndex = opts.mappingIndex;
                 open();
             }
 
