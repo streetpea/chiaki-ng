@@ -6,7 +6,7 @@ on:
 jobs:
   build-mac_x64:
     name: Build macOSX x86_64 version
-    runs-on: macos-latest
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
         with:
@@ -49,11 +49,11 @@ jobs:
           name: chiaki-ng-macos_x86_64-Release
           path: chiaki-ng.dmg
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   build-mac_arm64:
     name: Build macOSX arm64 version
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v3
         with:
