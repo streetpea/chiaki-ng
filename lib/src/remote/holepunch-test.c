@@ -38,6 +38,8 @@ int main(int argc, char **argv)
         if (token_len > 0)
         {
             oauth_token = calloc(1, token_len + 1);
+            if(!oauth_token)
+                return 1;
             memcpy(oauth_token, token_buf, token_len);
             oauth_token[token_len] = '\0';
         }

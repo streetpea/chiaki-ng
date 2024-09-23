@@ -102,7 +102,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_encode(uint8_t *frame_buf, size_t unit_
 	{
 		coding_ptrs[i] = calloc(unit_size, sizeof(uint8_t));
 		if(!coding_ptrs[i])
+		{
+			for(size_t j=0; j<i; j++)
+				free(coding_ptrs[j]);
 			goto error_coding_ptrs;
+		}
 	}
 
 	for(size_t i=0; i<k; i++)
@@ -117,8 +121,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_fec_encode(uint8_t *frame_buf, size_t unit_
 	for(int i=0; i<m; i++)
 		memcpy(frame_buf + k * unit_size + i * unit_size, coding_ptrs[i], unit_size);
 
-for(int i=0; i<m; i++)
-	free(coding_ptrs[i]);
+	for(int i=0; i<m; i++)
+		free(coding_ptrs[i]);
 error_coding_ptrs:
 	free(coding_ptrs);
 error_data_ptrs:

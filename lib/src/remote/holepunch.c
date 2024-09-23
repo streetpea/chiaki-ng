@@ -1074,7 +1074,7 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
 
     curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
     curl_easy_setopt(curl, CURLOPT_URL, user_profile_url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
@@ -2093,10 +2093,9 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             return CHIAKI_ERR_UNKNOWN;
         }
 #endif
-    bind(session->ipv4_sock, (struct sockaddr*)&client_addr, client_addr_len);
-    if (getsockname(session->ipv4_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
+    if (bind(session->ipv4_sock, (struct sockaddr*)&client_addr, client_addr_len) < 0)
     {
-        CHIAKI_LOGE(session->log, "send_offer: Binding socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+        CHIAKI_LOGE(session->log, "send_offer: Binding ipv4 socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
         {
             CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
@@ -2143,6 +2142,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if (bind(session->ipv6_sock, (struct sockaddr*)&client_addr_ipv6, client_addr_ipv6_len) < 0)
     {
         CHIAKI_LOGE(session->log, "send_offer: Binding ipv6 socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+        {
+            CHIAKI_SOCKET_CLOSE(session->ipv6_sock);
+            session->ipv6_sock = CHIAKI_INVALID_SOCKET;
+        }
         return CHIAKI_ERR_UNKNOWN;
     }
 
@@ -2464,7 +2468,8 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
         if(err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "Failed to set ipv6 socket to non-blocking: %s", chiaki_error_string(err));
-            return CHIAKI_ERR_UNKNOWN;
+            err = CHIAKI_ERR_UNKNOWN;
+            goto cleanup;
         }
     }
     memcpy(candidate_remote->addr_mapped, "0.0.0.0", 8);
@@ -2556,6 +2561,7 @@ static ChiakiErrorCode http_create_session(Session *session)
     CURL* curl = curl_easy_init();
     if(!curl)
     {
+        free(response_data.data);
         CHIAKI_LOGE(session->log, "Curl could not init");
         return CHIAKI_ERR_MEMORY;
     }
@@ -2685,6 +2691,7 @@ static ChiakiErrorCode http_start_session(Session *session)
     CURL *curl = curl_easy_init();
     if(!curl)
     {
+        free(response_data.data);
         CHIAKI_LOGE(session->log, "Curl could not init");
         return CHIAKI_ERR_MEMORY;
     }
@@ -2776,6 +2783,7 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
     CURL *curl = curl_easy_init();
     if(!curl)
     {
+        free(response_data.data);
         CHIAKI_LOGE(session->log, "Curl could not init");
         return CHIAKI_ERR_MEMORY;
     }
@@ -2837,6 +2845,7 @@ static ChiakiErrorCode deleteSession(Session *session)
     CURL *curl = curl_easy_init();
     if(!curl)
     {
+        free(response_data.data);
         CHIAKI_LOGE(session->log, "Curl could not init");
         return CHIAKI_ERR_MEMORY;
     }
@@ -2873,8 +2882,8 @@ static ChiakiErrorCode deleteSession(Session *session)
 
 cleanup:
     curl_easy_cleanup(curl);
+    free(response_data.data);
     return err;
-
 }
 
 /**
@@ -3253,11 +3262,9 @@ static ChiakiErrorCode check_candidates(
         for (int i=0; i < RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
         {
             socks[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-            if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
+            if (CHIAKI_SOCKET_IS_INVALID(socks[i]))
             {
                 CHIAKI_LOGE(session->log, "send_offer: Creating ipv4 socket %d failed", i);
-                CHIAKI_SOCKET_CLOSE(socks[i]);
-                socks[i] = CHIAKI_INVALID_SOCKET;
                 continue;
             }
             struct sockaddr_in client_addr;
@@ -3682,6 +3689,7 @@ static ChiakiErrorCode check_candidates(
         received_response = true;
         responses_received[i]++;
         responses = responses_received[i];
+        CHIAKI_LOGV(session->log, "Received response %d", responses);
         if(responses > 2)
         {
             selected_sock = candidate_sock;
@@ -4484,6 +4492,7 @@ static ChiakiErrorCode session_message_parse(
         if(!msg->conn_request->candidates)
         {
             free(msg->conn_request);
+            msg->conn_request = NULL;
             err = CHIAKI_ERR_MEMORY;
             goto cleanup;
         }
@@ -4615,6 +4624,8 @@ static ChiakiErrorCode session_message_serialize(
                 break;
             default:
                 CHIAKI_LOGE(session->log, "Undefined candidate type %d", candidate.type);
+                free(candidate_str);
+                free(candidates_json);
                 return CHIAKI_ERR_INVALID_DATA;
         }
         memset(candidate_str, 0, candidate_str_len);
@@ -4879,7 +4890,7 @@ static ChiakiErrorCode get_stun_servers(Session *session)
     }
 
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
     curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL_IPV6);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);

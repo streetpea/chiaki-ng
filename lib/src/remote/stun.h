@@ -182,8 +182,8 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
     if(port4 == 0)
     {
         size_t num_servers = sizeof(STUN_SERVERS) / sizeof(StunServer);
-        for (int i = num_servers; i > 0; i--) {
-            int j = chiaki_random_32() % i;
+        for (int i = num_servers - 1; i > 0; i--) {
+            int j = (chiaki_random_32() % (i - 1)) + 1;
             StunServer temp = STUN_SERVERS[i];
             STUN_SERVERS[i] = STUN_SERVERS[j];
             STUN_SERVERS[j] = temp;

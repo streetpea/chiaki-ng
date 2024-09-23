@@ -173,6 +173,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(!stream_connection->audio_receiver)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Audio Receiver");
+		if(!socket)
+			free(takion_info.sa);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -349,7 +351,8 @@ err_haptics_receiver:
 err_audio_receiver:
 	chiaki_audio_receiver_free(stream_connection->audio_receiver);
 	stream_connection->audio_receiver = NULL;
-
+	if(!socket)
+		free(takion_info.sa);
 	return err;
 }
 

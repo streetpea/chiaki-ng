@@ -564,7 +564,8 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		uint8_t buf_size = 8 + payload_size;
 		uint8_t buf[buf_size];
 		memcpy(buf, header, 8);
-		memcpy(buf + 8, enc, payload_size);
+		if(payload_size > 0)
+			memcpy(buf + 8, enc, payload_size);
 		ChiakiErrorCode err;
 		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -1061,6 +1062,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			((struct sockaddr_in6 *)sa)->sin6_port = htons(SESSION_CTRL_PORT);
 		else
 		{
+			free(sa);
 			CHIAKI_LOGE(session->log, "Ctrl got invalid sockaddr");
 			return CHIAKI_ERR_INVALID_DATA;
 		}
@@ -1068,6 +1070,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		chiaki_socket_t sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
 		if(CHIAKI_SOCKET_IS_INVALID(sock))
 		{
+			free(sa);
 			CHIAKI_LOGE(session->log, "Session ctrl socket creation failed.");
 			ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 			return CHIAKI_ERR_NETWORK;
