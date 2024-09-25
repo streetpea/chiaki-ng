@@ -520,6 +520,12 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         return false;
     }
 
+    if(received < STUN_HEADER_SIZE)
+    {
+        CHIAKI_LOGE(log, "remote/stun.h: Received message is too small");
+        return false;
+    }
+
 
     if (*(uint16_t*)(&binding_resp[0]) != htons(STUN_MSG_TYPE_BINDING_RESPONSE)) {
         CHIAKI_LOGE(log, "remote/stun.h: Received STUN response with invalid message type");
@@ -529,7 +535,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     // Verify length stored in binding_resp[2] is correct
     size_t expected_size = ntohs(*(uint16_t*)(&binding_resp[2])) + STUN_HEADER_SIZE;
     if (received != ntohs(*(uint16_t*)(&binding_resp[2])) + STUN_HEADER_SIZE) {
-        CHIAKI_LOGE(log, "remote/stun.h: Received STUN response with invalid length: %d received, %d expected", received, expected_size);
+        CHIAKI_LOGE(log, "remote/stun.h: Received STUN response with invalid length: %d received, %zu expected", received, expected_size);
         return false;
     }
 

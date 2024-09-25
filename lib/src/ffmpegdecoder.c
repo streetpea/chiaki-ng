@@ -20,16 +20,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 		ChiakiCodec codec, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user)
 {
+	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	chiaki_mutex_lock(&decoder->mutex);
 	decoder->log = log;
 	decoder->frame_available_cb = frame_available_cb;
 	decoder->frame_available_cb_user = frame_available_cb_user;
 	decoder->hdr_enabled = codec == CHIAKI_CODEC_H265_HDR;
 	decoder->frames_lost = 0;
 	decoder->frame_recovered = false;
-
-	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
-	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
 	decoder->hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -91,13 +91,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 		CHIAKI_LOGE(log, "Failed to open codec context");
 		goto error_codec_context;
 	}
-
+	chiaki_mutex_unlock(&decoder->mutex);
 	return CHIAKI_ERR_SUCCESS;
 error_codec_context:
 	if(decoder->hw_device_ctx)
 		av_buffer_unref(&decoder->hw_device_ctx);
 	avcodec_free_context(&decoder->codec_context);
 error_mutex:
+	chiaki_mutex_unlock(&decoder->mutex);
 	chiaki_mutex_fini(&decoder->mutex);
 	return CHIAKI_ERR_UNKNOWN;
 }

@@ -485,7 +485,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 			goto done;
 		}
 
-		CHIAKI_LOGV(regist->log, "Regist received packet: %d >= %d", n, res_size);
+		CHIAKI_LOGV(regist->log, "Regist received packet: %d >= %zu", n, res_size);
 		chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, n);
 
 		if(n >= res_size && !memcmp(buf, res, res_size))
@@ -648,8 +648,7 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 		err = chiaki_rudp_send_recv(regist->info.rudp, &message, NULL, 0, remote_counter, ACK, FINISH, 0, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(regist->log, "REGIST - Failed to finish rudp");
-			return err;
+			CHIAKI_LOGW(regist->log, "REGIST - Failed to finish rudp, continuing...");
 		}
 		chiaki_rudp_message_pointers_free(&message);
 	}
@@ -710,7 +709,7 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 	{
 		if(buf_filled_size < content_size + header_size)
 		{
-			CHIAKI_LOGE(regist->log, "Received %lu which is less than content + header of size %lu", buf_filled_size, content_size + header_size);
+			CHIAKI_LOGE(regist->log, "Received %zu which is less than content + header of size %zu", buf_filled_size, content_size + header_size);
 			return CHIAKI_ERR_NETWORK;
 		}
 	}
@@ -843,7 +842,7 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 		else if(strcmp(header->key, "RP-SupportCmd") == 0)
 		{
 			uint32_t support_cmd = (uint32_t)strtoul(header->value, NULL, 0);
-			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %llu", support_cmd);
+			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %lu", support_cmd);
 		}
 		else
 		{

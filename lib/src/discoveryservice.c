@@ -292,8 +292,8 @@ static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service)
 		}
 
 		change = true;
-
-		i--;
+		if(i > 0)
+			i--;
 		service->hosts_count--;
 	}
 

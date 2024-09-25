@@ -128,6 +128,10 @@ static void ctrl_message_received_switch_to_stream_connection(ChiakiCtrl *ctrl, 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
+	ChiakiErrorCode err = chiaki_mutex_init(&ctrl->notif_mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	chiaki_mutex_lock(&ctrl->notif_mutex);
 	ctrl->session = session;
 
 	ctrl->should_stop = false;
@@ -141,18 +145,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->keyboard_text_counter = 0;
 	ctrl->sock = CHIAKI_INVALID_SOCKET;
 
-	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
+	err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
+		goto error_mutex;
 
-	err = chiaki_mutex_init(&ctrl->notif_mutex, false);
-	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_notif_pipe;
-
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	return err;
+
+error_mutex:
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	chiaki_mutex_fini(&ctrl->notif_mutex);
-error_notif_pipe:
-	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
 	return err;
 }
 
@@ -530,7 +532,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
 
 	uint8_t *enc = NULL;
-	if(payload && payload_size)
+	if(payload && payload_size > 0)
 	{
 		ChiakiErrorCode err;
 		enc = malloc(payload_size);
@@ -564,7 +566,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		uint8_t buf_size = 8 + payload_size;
 		uint8_t buf[buf_size];
 		memcpy(buf, header, 8);
-		if(payload_size > 0)
+		if(enc)
 			memcpy(buf + 8, enc, payload_size);
 		ChiakiErrorCode err;
 		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size);
@@ -1005,7 +1007,12 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 		if(strcmp(header->key, "RP-Server-Type") == 0)
 		{
 			size_t server_type_size = sizeof(response->rp_server_type);
-			chiaki_base64_decode(header->value, strlen(header->value) + 1, response->rp_server_type, &server_type_size);
+			ChiakiErrorCode err = chiaki_base64_decode(header->value, strlen(header->value) + 1, response->rp_server_type, &server_type_size);
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				response->success = false;
+				return;
+			}
 			response->server_type_valid = server_type_size == sizeof(response->rp_server_type);
 		}
 		else if(strcmp(header->key, "RP-Prohibit") == 0)

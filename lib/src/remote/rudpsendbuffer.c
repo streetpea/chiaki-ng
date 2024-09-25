@@ -17,6 +17,7 @@
 #define RUDP_DATA_RESEND_TIMEOUT_MS 400
 #define RUDP_DATA_RESEND_WAKEUP_TIMEOUT_MS (RUDP_DATA_RESEND_TIMEOUT_MS/2)
 #define RUDP_DATA_RESEND_TRIES_MAX 10
+#define RUDP_SEND_BUFFER_SIZE 16
 
 #endif
 
@@ -35,6 +36,10 @@ static void *rudp_send_buffer_thread_func(void *user);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_init(ChiakiRudpSendBuffer *send_buffer, ChiakiRudp rudp, ChiakiLog *log, size_t size)
 {
+	ChiakiErrorCode err = chiaki_mutex_init(&send_buffer->mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_packets;
+	chiaki_mutex_lock(&send_buffer->mutex);
 	send_buffer->rudp = rudp;
 	send_buffer->log = log;
 
@@ -45,11 +50,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_init(ChiakiRudpSendBuffer 
 	send_buffer->packets_count = 0;
 
 	send_buffer->should_stop = false;
-
-	ChiakiErrorCode err = chiaki_mutex_init(&send_buffer->mutex, false);
-	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_packets;
-
+	chiaki_mutex_unlock(&send_buffer->mutex);
 	err = chiaki_cond_init(&send_buffer->cond);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_mutex;
@@ -188,7 +189,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_ack(ChiakiRudpSendBuffer *
 	{
 		if(send_buffer->packets[i].seq_num == seq_num || chiaki_seq_num_16_lt(send_buffer->packets[i].seq_num, seq_num))
 		{
-			if(acked_seq_nums)
+			if(acked_seq_nums && acked_seq_nums_count)
 				acked_seq_nums[(*acked_seq_nums_count)++] = send_buffer->packets[i].seq_num;
 
 			free(send_buffer->packets[i].buf);
@@ -292,12 +293,13 @@ static void rudp_send_buffer_resend(ChiakiRudpSendBuffer *send_buffer)
 			if(packet->tries >= RUDP_DATA_RESEND_TRIES_MAX)
 			{
 				CHIAKI_LOGI(send_buffer->log, "Hit max retries of %d tries giving up on packet with seqnum %#lx", RUDP_DATA_RESEND_TRIES_MAX, (unsigned long)packet->seq_num);
-				ChiakiSeqNum16 ack_seq_nums;
+				ChiakiSeqNum16 ack_seq_nums[RUDP_SEND_BUFFER_SIZE];
 				size_t ack_seq_nums_count;
 				chiaki_mutex_unlock(&send_buffer->mutex);
-				chiaki_rudp_send_buffer_ack(send_buffer, packet->seq_num, &ack_seq_nums, &ack_seq_nums_count);
+				chiaki_rudp_send_buffer_ack(send_buffer, packet->seq_num, ack_seq_nums, &ack_seq_nums_count);
 				chiaki_mutex_lock(&send_buffer->mutex);
-				i-= 1;
+				if(i > 0)
+					i-= 1;
 				continue;
 			}
 			char packet_type[29] = {0};

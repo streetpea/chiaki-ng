@@ -175,6 +175,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Audio Receiver");
 		if(!socket)
 			free(takion_info.sa);
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -198,8 +199,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
 	err = chiaki_takion_connect(&stream_connection->takion, &takion_info, socket);
-	if(!socket)
-		free(takion_info.sa);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{

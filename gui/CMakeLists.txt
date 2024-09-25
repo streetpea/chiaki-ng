@@ -120,6 +120,7 @@ if(APPLE)
 	target_link_libraries(chiaki "-framework AVFoundation")
 endif()
 
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalyzer")
 set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"

@@ -181,5 +181,6 @@ if(CHIAKI_LIB_ENABLE_OPUS)
 	target_link_libraries(chiaki-lib ${Opus_LIBRARIES})
 endif()
 
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fanalyzer")
 add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch-test.c)
 target_link_libraries(holepunch-test chiaki-lib)

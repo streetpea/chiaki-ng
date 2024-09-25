@@ -1023,7 +1023,7 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 
 	if(memcmp(mac_expected, mac, sizeof(mac)) != 0)
 	{
-		CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for packet type %#x with key_pos %#lx", base_type, key_pos);
+		CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for packet type %#x with key_pos %#llx", base_type, key_pos);
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_ERROR, buf, buf_size);
 		CHIAKI_LOGD(takion->log, "GMAC:");
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, mac, sizeof(mac));
@@ -1209,7 +1209,7 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 {
 	if(buf_size != 0xc)
 	{
-		CHIAKI_LOGE(takion->log, "Takion received data ack with size %#x != %#x", buf_size, 0xc);
+		CHIAKI_LOGE(takion->log, "Takion received data ack with size %zx != %zx", buf_size, 0xc);
 		return;
 	}
 
@@ -1332,7 +1332,7 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 
 	if(received_size < sizeof(message))
 	{
-		CHIAKI_LOGE(takion->log, "Takion received packet of size %#x while expecting init ack packet of exactly %#x", received_size, sizeof(message));
+		CHIAKI_LOGE(takion->log, "Takion received packet of size %#zu while expecting init ack packet of exactly %lu", received_size, sizeof(message));
 		return CHIAKI_ERR_INVALID_RESPONSE;
 	}
 
@@ -1387,7 +1387,7 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 
 	if(received_size < sizeof(message))
 	{
-		CHIAKI_LOGE(takion->log, "Takion received packet of size %#x while expecting cookie ack packet of exactly %#x", received_size, sizeof(message));
+		CHIAKI_LOGE(takion->log, "Takion received packet of size %#zu while expecting cookie ack packet of exactly %#x", received_size, sizeof(message));
 		return CHIAKI_ERR_INVALID_RESPONSE;
 	}
 
