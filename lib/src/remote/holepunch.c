@@ -421,6 +421,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     char platform[4];
     if (console_type != CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5) {
         CHIAKI_LOGW(log, "Only PS5 is supported by the list devices function!");
+        curl_easy_cleanup(curl);
         return CHIAKI_ERR_INVALID_DATA;
     }
     snprintf(platform, sizeof(platform), "%s", "PS5");

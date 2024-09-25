@@ -1,25 +1,22 @@
 #include <string.h>
 #include <time.h>
-#include <netdb.h>
 #include <sys/types.h>
+#include <assert.h>
+#include <stdio.h>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
+#include <unistd.h
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <assert.h>
-
-#include <curl/curl.h>
-#include <json-c/json_object.h>
-#include <json-c/json_tokener.h>
-#include <json-c/json_pointer.h>
-// TODO: Make UPnP optional
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnpcommands.h>
+#include <netdb.h>
+#endif
 
 #include <chiaki/remote/holepunch.h>
-#include <chiaki/stoppipe.h>
-#include <chiaki/thread.h>
-#include <chiaki/base64.h>
-#include <chiaki/random.h>
-#include <chiaki/sock.h>
 #include "../utils.h"
 
 // ================================================================================================
