@@ -10,7 +10,7 @@
 #endif
 #include <windows.h>
 #else
-#include <unistd.h
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netdb.h>

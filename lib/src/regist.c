@@ -416,7 +416,8 @@ fail:
 	}
 	else if(success)
 	{
-		host.console_pin = regist->info.console_pin;
+		if(regist->info.console_pin != 0)
+			host.console_pin = regist->info.console_pin;
 		ChiakiRegistEvent event = { 0 };
 		event.type = CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS;
 		event.registered_host = &host;
@@ -485,7 +486,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 			goto done;
 		}
 
-		CHIAKI_LOGV(regist->log, "Regist received packet: %d >= %zu", n, res_size);
+		CHIAKI_LOGV(regist->log, "Regist received packet: %zd >= %zu", n, res_size);
 		chiaki_log_hexdump(regist->log, CHIAKI_LOG_VERBOSE, buf, n);
 
 		if(n >= res_size && !memcmp(buf, res, res_size))

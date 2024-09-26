@@ -105,9 +105,12 @@ error_mutex:
 
 CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder)
 {
+	chiaki_mutex_lock(&decoder->mutex);
 	avcodec_free_context(&decoder->codec_context);
 	if(decoder->hw_device_ctx)
 		av_buffer_unref(&decoder->hw_device_ctx);
+	chiaki_mutex_unlock(&decoder->mutex);
+	chiaki_mutex_fini(&decoder->mutex);
 }
 
 CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)

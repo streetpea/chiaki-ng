@@ -323,8 +323,6 @@ static bool slice_set_reference_frame_h265(ChiakiBitstream *bitstream, uint8_t *
 	struct vl_rbsp rbsp;
 	vl_rbsp_init(&rbsp, &vlc, ~0);
 	unsigned first_slice_segment_in_pic_flag = vl_rbsp_u(&rbsp, 1);
-	if(nal_unit_type == 20)
-		vl_rbsp_u(&rbsp, 1); // no_output_of_prior_pics_flag
 
 	vl_rbsp_ue(&rbsp); // slice_pic_parameter_set_id
 	if(!first_slice_segment_in_pic_flag)

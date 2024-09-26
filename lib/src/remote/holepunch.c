@@ -3723,7 +3723,12 @@ static ChiakiErrorCode check_candidates(
         int responses = responses_received[i];
         if(memcmp(response_buf + 0x4b, request_id[responses], sizeof(request_id[responses])) != 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID %10x from %s:%d", request_id, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID from %s:%d", candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Request ID expected:");
+            chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, request_id[responses], 5);
+            CHIAKI_LOGE(session->log, "check_candidate: Request ID received:");
+            chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf + 0x4b, 5);
+            CHIAKI_LOGE(session->log, "check_candidate: Full response received:");
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
             continue;
         }

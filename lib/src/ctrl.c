@@ -524,7 +524,8 @@ static void *ctrl_thread_func(void *user)
 
 static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size)
 {
-	assert(payload_size == 0 || payload);
+	if(!(payload_size == 0 || payload))
+		return CHIAKI_ERR_INVALID_DATA;
 
 	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending message type %x, size %llx\n",
 			(unsigned int)type, (unsigned long long)payload_size);
@@ -532,7 +533,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
 
 	uint8_t *enc = NULL;
-	if(payload && payload_size > 0)
+	if(payload)
 	{
 		ChiakiErrorCode err;
 		enc = malloc(payload_size);
@@ -924,7 +925,11 @@ static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size
 
 static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
-	assert(payload_size >= sizeof(CtrlKeyboardOpenMessage));
+	if(payload_size < sizeof(CtrlKeyboardOpenMessage))
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Ctrl received invalid message keyboard open with payload size %zu while expected size is at least %zu", payload_size, sizeof(CtrlKeyboardOpenMessage));
+		return;
+	}
 
 	CtrlKeyboardOpenMessage *msg = (CtrlKeyboardOpenMessage *)payload;
 	msg->text_length = ntohl(msg->text_length);
@@ -959,7 +964,11 @@ static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payl
 
 static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
-	assert(payload_size >= sizeof(CtrlKeyboardTextResponseMessage));
+	if(payload_size < sizeof(CtrlKeyboardTextResponseMessage))
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Ctrl received invalid message keyboard text change with payload size %zu while expected size is at least %zu", payload_size, sizeof(CtrlKeyboardTextResponseMessage));
+		return;
+	}
 
 	CtrlKeyboardTextResponseMessage *msg = (CtrlKeyboardTextResponseMessage *)payload;
 	msg->text_length1 = ntohl(msg->text_length1);

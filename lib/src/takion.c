@@ -508,7 +508,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uin
 			memcpy(key_pos_tmp, buf + key_pos_offset, sizeof(uint32_t));
 			memset(buf + key_pos_offset, 0, sizeof(uint32_t));
 		}
-		chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
+		ChiakiErrorCode err = chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
 		if(base_type == TAKION_PACKET_TYPE_CONTROL || base_type == TAKION_PACKET_TYPE_CONGESTION)
 			memcpy(buf + key_pos_offset, key_pos_tmp, sizeof(uint32_t));
 	}
@@ -1209,7 +1211,7 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 {
 	if(buf_size != 0xc)
 	{
-		CHIAKI_LOGE(takion->log, "Takion received data ack with size %zx != %zx", buf_size, 0xc);
+		CHIAKI_LOGE(takion->log, "Takion received data ack with size %zx != %#x", buf_size, 0xc);
 		return;
 	}
 
@@ -1332,7 +1334,7 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 
 	if(received_size < sizeof(message))
 	{
-		CHIAKI_LOGE(takion->log, "Takion received packet of size %#zu while expecting init ack packet of exactly %lu", received_size, sizeof(message));
+		CHIAKI_LOGE(takion->log, "Takion received packet of size %zu while expecting init ack packet of exactly %zu", received_size, sizeof(message));
 		return CHIAKI_ERR_INVALID_RESPONSE;
 	}
 
@@ -1387,7 +1389,7 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 
 	if(received_size < sizeof(message))
 	{
-		CHIAKI_LOGE(takion->log, "Takion received packet of size %#zu while expecting cookie ack packet of exactly %#x", received_size, sizeof(message));
+		CHIAKI_LOGE(takion->log, "Takion received packet of size %zu while expecting cookie ack packet of exactly %zu", received_size, sizeof(message));
 		return CHIAKI_ERR_INVALID_RESPONSE;
 	}
 
