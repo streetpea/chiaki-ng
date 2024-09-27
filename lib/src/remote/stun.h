@@ -304,6 +304,8 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                 if(allocation_increment1 != (*allocation_increment))
                 {
                     *random_allocation = true;
+                    if(*allocation_increment == 0)
+                        *allocation_increment = allocation_increment1;
                     CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
                 }
             }
@@ -329,6 +331,8 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                         if(allocation_increment1 != (*allocation_increment))
                         {
                             *random_allocation = true;
+                            if(*allocation_increment == 0)
+                                *allocation_increment = allocation_increment1;
                             CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
                         }
                     }
@@ -358,6 +362,8 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                             if(allocation_increment1 != (*allocation_increment))
                             {
                                 *random_allocation = true;
+                                if(*allocation_increment == 0)
+                                    *allocation_increment = allocation_increment1;
                                 CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
                             }
                         }
@@ -397,6 +403,8 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
                 if(allocation_increment1 != (*allocation_increment))
                 {
                     *random_allocation = true;
+                    if(*allocation_increment == 0)
+                        *allocation_increment = allocation_increment1;
                     CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
                 }
             }
@@ -413,6 +421,8 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
             if(allocation_increment1 != (*allocation_increment))
             {
                 *random_allocation = true;
+                if(*allocation_increment == 0)
+                    *allocation_increment = allocation_increment1;
                 CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement0: %d, Increment1: %d", *allocation_increment, allocation_increment1);
             }
         }
@@ -441,7 +451,10 @@ CHIAKI_EXPORT bool stun_port_allocation_test(ChiakiLog *log, char *address, uint
             {
                 *random_allocation = true;
                 CHIAKI_LOGW(log, "Got different allocation increment calculations from different ports.\nIncrement 0: %d, Increment 1: %d, Increment 2: %d", increment0, increment1, increment2);
-                *allocation_increment = increment0;
+                if(increment0 != 0)
+                    *allocation_increment = increment0;
+                else
+                    *allocation_increment = increment1;
             }
         }
     }

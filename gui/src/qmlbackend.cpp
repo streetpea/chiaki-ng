@@ -238,6 +238,7 @@ QmlBackend::~QmlBackend()
     delete psn_reconnect_timer;
     psn_connection_thread.quit();
     psn_connection_thread.wait();
+    delete psn_connection_thread.parent();
 }
 
 QmlMainWindow *QmlBackend::qmlWindow() const
@@ -1597,6 +1598,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
     {
         if (cb.isCallable())
             cb.call({QString("[E] Steam does not exist, cannot create Steam Shortcut"), false, true});
+        delete steam_tools;
         return;
     }
 
@@ -1641,6 +1643,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
         if (cb.isCallable())
             cb.call({QString("[I] Updated Steam entry: ") + QString(newShortcut.getAppName().toStdString().c_str()), true, true});
     }
+    delete steam_tools;
 }
 #endif
 

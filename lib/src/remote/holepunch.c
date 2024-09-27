@@ -72,7 +72,7 @@
 #define SELECT_CANDIDATE_TRIES 20
 #define SELECT_CANDIDATE_CONNECTION_SEC 5
 #define RANDOM_ALLOCATION_GUESSES_NUMBER 75
-#define RANDOM_ALLOCATION_SOCKS_NUMBER 900
+#define RANDOM_ALLOCATION_SOCKS_NUMBER 250
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -2118,6 +2118,17 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
     if (bind(session->ipv4_sock, (struct sockaddr*)&client_addr, client_addr_len) < 0)
     {
         CHIAKI_LOGE(session->log, "send_offer: Binding ipv4 socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
+        {
+            CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
+            session->ipv4_sock = CHIAKI_INVALID_SOCKET;
+        }
+        err = CHIAKI_ERR_UNKNOWN;
+        goto cleanup_socket;
+    }
+    if(getsockname(session->ipv4_sock, (struct sockaddr*)&client_addr, &client_addr_len) < 0)
+    {
+        CHIAKI_LOGE(session->log, "send_offer: Getting ipv4 socket name failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
         if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
         {
             CHIAKI_SOCKET_CLOSE(session->ipv4_sock);
