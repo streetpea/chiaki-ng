@@ -739,7 +739,7 @@ void StreamSession::UpdateGamepads()
 		{
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d disconnected", controller->GetDeviceID());
 			controllers.remove(controller_id);
-			if (controller->IsDualSense())
+			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
 				DisconnectHaptics();
 			}
@@ -779,8 +779,18 @@ void StreamSession::UpdateGamepads()
 			if (controller->IsDualSense())
 			{
 				controller->SetDualsenseMic(muted);
+				if(this->haptics_output > 0)
+					return;
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
+			}
+			if (controller->IsDualSenseEdge())
+			{
+				controller->SetDualsenseMic(muted);
+				if(this->haptics_output > 0)
+					return;
+				// Connect haptics audio device with a delay to give the sound system time to set up
+				QTimer::singleShot(15000, this, &StreamSession::ConnectHaptics);
 			}
 			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
 			{

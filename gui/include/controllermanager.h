@@ -85,6 +85,7 @@ class Controller : public QObject
 		bool is_dualsense;
 		bool is_handheld;
 		bool is_steam_virtual;
+		bool is_dualsense_edge;
 		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -116,6 +117,7 @@ class Controller : public QObject
 		bool IsDualSense();
 		bool IsHandheld();
 		bool IsSteamVirtual();
+		bool IsDualSenseEdge();
 
 	signals:
 		void StateChanged();

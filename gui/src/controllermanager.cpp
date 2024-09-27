@@ -70,6 +70,10 @@ static QSet<QString> chiaki_motion_controller_guids({
 static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
 	// in format (vendor id, product id)
 	QPair<int16_t, int16_t>(0x054c, 0x0ce6), // DualSense controller
+});
+
+static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_edge_controller_ids({
+	// in format (vendor id, product id)
 	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
 });
 
@@ -278,8 +282,8 @@ void ControllerManager::ControllerClosed(Controller *controller)
 
 Controller::Controller(int device_id, ControllerManager *manager)
 : QObject(manager), ref(0), micbutton_push(false), is_dualsense(false),
-  updating_mapping_button(false), is_handheld(false), is_steam_virtual(false),
-  enable_analog_stick_mapping(false)
+  is_dualsense_edge(false), updating_mapping_button(false), is_handheld(false),
+  is_steam_virtual(false), enable_analog_stick_mapping(false)
 {
 	this->id = device_id;
 	this->manager = manager;
@@ -303,6 +307,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(controller_id);
+			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
 			break;
 		}
 	}
@@ -802,6 +807,16 @@ bool Controller::IsDualSense()
 	if(!controller)
 		return false;
 	return is_dualsense;
+#endif
+	return false;
+}
+
+bool Controller::IsDualSenseEdge()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return false;
+	return is_dualsense_edge;
 #endif
 	return false;
 }
