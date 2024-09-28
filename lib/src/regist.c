@@ -13,6 +13,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -843,7 +844,7 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 		else if(strcmp(header->key, "RP-SupportCmd") == 0)
 		{
 			uint32_t support_cmd = (uint32_t)strtoul(header->value, NULL, 0);
-			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %zu", support_cmd);
+			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %"PRIu32, support_cmd);
 		}
 		else
 		{

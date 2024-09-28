@@ -586,7 +586,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         if (family == STUN_MAPPED_ADDR_FAMILY_IPV4) {
             if (attr_length != 8) {
                  CHIAKI_LOGE(log, "remote/stun.h: Received STUN_MAPPED_ADDR_FAMILY_IPV4 with invalid data!");
-                 CHIAKI_LOGE(log, "remote/stun.h: Expected atribute length: 8. Received attribute length %lu", attr_length);
+                 CHIAKI_LOGE(log, "remote/stun.h: Expected atribute length: 8. Received attribute length %u", attr_length);
                  return false;
             }
             if (xored) {

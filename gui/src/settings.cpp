@@ -231,7 +231,7 @@ void Settings::ImportSettings(QString fileurl)
 		{
 			profile_settings.setValue( *i, settings_backup.value( *i ) );
 		}
-		SetCurrentProfile(profile);
+		SetCurrentProfile(std::move(profile));
 	}
 }
 

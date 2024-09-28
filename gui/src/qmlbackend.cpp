@@ -550,7 +550,12 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
 
 void QmlBackend::psnSessionStart()
 {
-    session->Start();
+    try {
+        session->Start();
+    } catch (const Exception &e) {
+        emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+        return;
+    }
 
     sleep_inhibit->inhibit();
 }
@@ -719,7 +724,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     if(connect_info.duid.isEmpty())
     {
-        session->Start();
+        try {
+            session->Start();
+        } catch (const Exception &e) {
+            emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+            return;
+        }
         emit sessionChanged(session);
 
         sleep_inhibit->inhibit();
@@ -1722,7 +1732,7 @@ void QmlBackend::refreshAuth()
     });
     connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
     QString refresh_token = settings->GetPsnRefreshToken();
-    psnToken->RefreshPsnToken(refresh_token);
+    psnToken->RefreshPsnToken(std::move(refresh_token));
 }
 
 void QmlBackend::updatePsnHosts()

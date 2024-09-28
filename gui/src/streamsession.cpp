@@ -1006,7 +1006,6 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 			}
 			else
 			{
-				memcpy((uint8_t *)mic_buf.buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
 				speex_preprocess_run(preprocess_state, (int16_t *)mic_buf.buf);
 				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
 				if(SDL_ConvertAudio(&cvt) != 0)

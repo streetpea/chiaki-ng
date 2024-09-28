@@ -193,7 +193,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 		goto cleanup;
 	}
 	chiaki_discovery_fini(&discovery);
-
+	free(host_addr);
 	return 0;
 
 cleanup:

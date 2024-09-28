@@ -444,14 +444,26 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     headers = curl_slist_append(headers, "Accept-Language: jp");
     headers = curl_slist_append(headers, oauth_header);
 
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     if (res != CURLE_OK)
     {
@@ -460,10 +472,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
             long http_code = 0;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Fetching device list from %s failed with HTTP code %ld", url, http_code);
-            CHIAKI_LOGV(log, "Response Body: %.*s.", response_data.size, response_data.data);
+            CHIAKI_LOGV(log, "Response Body: %.*s.", (int)response_data.size, response_data.data);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Fetching device list from %s failed with CURL error %d", url, res);
+            CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Fetching device list from %s failed with CURL error %s", url, curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -1078,18 +1090,32 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
     headers = curl_slist_append(headers, "User-Agent: RpNetHttpUtilImpl");
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_URL, user_profile_url);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, user_profile_url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
-    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Received JSON:\n%.*s", response_data.size, response_data.data);
+    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Received JSON:\n%.*s", (int)response_data.size, response_data.data);
     if (res != CURLE_OK)
     {
         if (res == CURLE_HTTP_RETURNED_ERROR)
@@ -1097,10 +1123,10 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
             long http_code = 0;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Retrieving profile information for PS4 wakeup command failed with HTTP code %ld.", http_code);
-            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", (int)response_data.size, response_data.data);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Retrieving profile information for PS4 wakeup command failed with CURL error %d.", res);
+            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Retrieving profile information for PS4 wakeup command failed with CURL error %s", curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -1210,20 +1236,36 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
     headers = curl_slist_append(headers, "User-Agent: RpNetHttpUtilImpl");
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, envelope_buf);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, envelope_buf);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_POSTFIELDS failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_ps4_session_wakeup: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
     CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Sending JSON:\n%s", envelope_buf);
 
     res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
-    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Received JSON:\n%.*s", response_data.size, response_data.data);
+    CHIAKI_LOGV(session->log, "http_ps4_session_wakeup: Received JSON:\n%.*s", (int)response_data.size, response_data.data);
     if (res != CURLE_OK)
     {
         if (res == CURLE_HTTP_RETURNED_ERROR)
@@ -1232,12 +1274,12 @@ static ChiakiErrorCode http_ps4_session_wakeup(Session *session)
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with HTTP code %ld.", http_code);
             CHIAKI_LOGV(session->log, "Request Body: %s.", envelope_buf);
-            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", (int)response_data.size, response_data.data);
             if(http_code == 404)
                 CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Please make sure PS4 is registered to your account and on or in rest mode.");
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with CURL error %d.", res);
+            CHIAKI_LOGE(session->log, "http_ps4_session_wakeup: Waking up ps4 console failed with CURL error %s", curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup_json;
@@ -1657,15 +1699,29 @@ static ChiakiErrorCode get_websocket_fqdn(Session *session, char **fqdn)
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, session->oauth_header);
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_URL, ws_fqdn_api_url);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, ws_fqdn_api_url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_websocket_fqdn: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     if (res != CURLE_OK)
@@ -1677,7 +1733,7 @@ static ChiakiErrorCode get_websocket_fqdn(Session *session, char **fqdn)
             CHIAKI_LOGE(session->log, "get_websocket_fqdn: Fetching websocket FQDN from %s failed with HTTP code %ld", ws_fqdn_api_url, http_code);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "get_websocket_fqdn: Fetching websocket FQDN from %s failed with CURL error %d", ws_fqdn_api_url, res);
+            CHIAKI_LOGE(session->log, "get_websocket_fqdn: Fetching websocket FQDN from %s failed with CURL error %s", ws_fqdn_api_url, curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -1822,14 +1878,26 @@ static void* websocket_thread_func(void *user) {
     headers = curl_slist_append(headers, "X-PSN-PROTOCOL-VERSION: 2.1");
     headers = curl_slist_append(headers, "X-PSN-RECONNECTION: false");
 
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_URL, ws_url);
-    curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_SHAREfailed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, ws_url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_CONNECT_ONLY failed with CURL error %s", curl_easy_strerror(res));
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     if (res != CURLE_OK)
     {
@@ -1839,7 +1907,7 @@ static void* websocket_thread_func(void *user) {
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "websocket_thread_func: Connecting to push notification WebSocket %s failed with HTTP code %ld", ws_url, http_code);
         } else {
-            CHIAKI_LOGE(session->log, "websocket_thread_func: Connecting to push notification WebSocket %s failed with CURL error %d", ws_url, res);
+            CHIAKI_LOGE(session->log, "websocket_thread_func: Connecting to push notification WebSocket %s failed with CURL error %s", ws_url, curl_easy_strerror(res));
         }
         goto cleanup;
     }
@@ -1858,7 +1926,7 @@ static void* websocket_thread_func(void *user) {
     curl_socket_t sockfd;
     res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
     if(res != CURLE_OK) {
-        CHIAKI_LOGE(session->log, "websocket_thread_func: Getting active socket failed with CURL error %d", res);
+        CHIAKI_LOGE(session->log, "websocket_thread_func: Getting active socket failed with CURL error %s", curl_easy_strerror(res));
         goto cleanup;
     }
     fd_set fds;
@@ -1902,7 +1970,7 @@ static void* websocket_thread_func(void *user) {
             res = curl_ws_send(curl, buf, 0, &wlen, 0, CURLWS_PING);
             if (res != CURLE_OK)
             {
-                CHIAKI_LOGE(session->log, "websocket_thread_func: Sending WebSocket PING failed with CURL error %d.", res);
+                CHIAKI_LOGE(session->log, "websocket_thread_func: Sending WebSocket PING failed with CURL error %s.", curl_easy_strerror(res));
                 goto cleanup_json;
             }
             CHIAKI_LOGV(session->log, "websocket_thread_func: PING.");
@@ -1931,7 +1999,7 @@ static void* websocket_thread_func(void *user) {
                     continue;
             } else
             {
-                CHIAKI_LOGE(session->log, "websocket_thread_func: Receiving WebSocket frame failed with CURL error %d", res);
+                CHIAKI_LOGE(session->log, "websocket_thread_func: Receiving WebSocket frame failed with CURL error %s", curl_easy_strerror(res));
                 goto cleanup_json;
             }
         }
@@ -1948,7 +2016,7 @@ static void* websocket_thread_func(void *user) {
             res = curl_ws_send(curl, buf, rlen, &wlen, 0, CURLWS_PONG);
             if (res != CURLE_OK)
             {
-                CHIAKI_LOGE(session->log, "websocket_thread_func: Sending WebSocket PONG failed with CURL error %d", res);
+                CHIAKI_LOGE(session->log, "websocket_thread_func: Sending WebSocket PONG failed with CURL error %s", curl_easy_strerror(res));
                 goto cleanup_json;
             }
             CHIAKI_LOGV(session->log, "websocket_thread_func: Sent PONG.");
@@ -2279,7 +2347,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
 
             if (getaddrinfo(candidate->addr, service_remote, &hints, &addr_remote) != 0)
             {
-                CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_LOGE(session->log, "check_candidates: getaddrinfo failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                 err = CHIAKI_ERR_UNKNOWN;
                     continue;
             }
@@ -2333,11 +2401,11 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
                         {
                             case AF_INET:
                                 if (sendto(session->ipv4_sock, (CHIAKI_SOCKET_BUF_TYPE) request, sizeof(request), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
-                                    CHIAKI_LOGW(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                                    CHIAKI_LOGW(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                                 break;
                             case AF_INET6:
                                 if (sendto(session->ipv6_sock, (CHIAKI_SOCKET_BUF_TYPE) request, sizeof(request), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
-                                    CHIAKI_LOGW(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                                    CHIAKI_LOGW(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                                 break;
                             default:
                                 CHIAKI_LOGW(session->log, "Unsupported address family, skipping...");
@@ -2609,17 +2677,33 @@ static ChiakiErrorCode http_create_session(Session *session)
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_URL, session_create_url);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, session_create_json);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, session_create_url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, session_create_json);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_POSTFIELDS failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_create_session: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     if (res != CURLE_OK)
     {
@@ -2630,7 +2714,7 @@ static ChiakiErrorCode http_create_session(Session *session)
             CHIAKI_LOGE(session->log, "http_create_session: Creating holepunch session failed with HTTP code %ld", http_code);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "http_create_session: Creating holepunch session failed with CURL error %d", res);
+            CHIAKI_LOGE(session->log, "http_create_session: Creating holepunch session failed with CURL error %s", curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -2751,20 +2835,36 @@ static ChiakiErrorCode http_start_session(Session *session)
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
     headers = curl_slist_append(headers, "User-Agent: RpNetHttpUtilImpl");
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_URL, session_command_url);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, envelope_buf);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, session_command_url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, envelope_buf);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_POSTFIELDS failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_start_session: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
     CHIAKI_LOGV(session->log, "http_start_session: Sending JSON:\n%s", envelope_buf);
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
-    CHIAKI_LOGV(session->log, "http_start_session: Received JSON:\n%.*s", response_data.size, response_data.data);
+    CHIAKI_LOGV(session->log, "http_start_session: Received JSON:\n%.*s", (int)response_data.size, response_data.data);
     if (res != CURLE_OK)
     {
         if (res == CURLE_HTTP_RETURNED_ERROR)
@@ -2773,10 +2873,10 @@ static ChiakiErrorCode http_start_session(Session *session)
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "http_start_session: Starting holepunch session failed with HTTP code %ld.", http_code);
             CHIAKI_LOGV(session->log, "Request Body: %s.", envelope_buf);
-            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", (int)response_data.size, response_data.data);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "http_start_session: Starting holepunch session failed with CURL error %d.", res);
+            CHIAKI_LOGE(session->log, "http_start_session: Starting holepunch session failed with CURL error %s.", curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -2842,16 +2942,32 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, msg_buf);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, msg_buf);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_POSTFIELDS failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_send_session_message: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     if (res != CURLE_OK)
     {
@@ -2863,7 +2979,7 @@ static ChiakiErrorCode http_send_session_message(Session *session, SessionMessag
             CHIAKI_LOGV(session->log, "Request Body: %s.", msg_buf);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "http_send_session_message: Sending holepunch session message failed with CURL error %d.", res);
+            CHIAKI_LOGE(session->log, "http_send_session_message: Sending holepunch session message failed with CURL error %s.", curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -2906,16 +3022,32 @@ static ChiakiErrorCode deleteSession(Session *session)
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, "Content-Type: application/json; charset=utf-8");
 
-    curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_CUSTOMREQUEST failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "delete_session: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     if (res != CURLE_OK)
     {
@@ -2926,7 +3058,7 @@ static ChiakiErrorCode deleteSession(Session *session)
             CHIAKI_LOGE(session->log, "http_send_session_message: Sending holepunch session message failed with HTTP code %ld.", http_code);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "http_send_session_message: Sending holepunch session message failed with CURL error %d.", res);
+            CHIAKI_LOGE(session->log, "http_send_session_message: Sending holepunch session message failed with CURL error %s.", curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -3397,7 +3529,7 @@ static ChiakiErrorCode check_candidates(
 
         if (getaddrinfo(candidate->addr, service_remote, &hints, &addr_remote) != 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: getaddrinfo failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+            CHIAKI_LOGE(session->log, "check_candidates: getaddrinfo failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_UNKNOWN;
             continue;
         }
@@ -3411,7 +3543,7 @@ static ChiakiErrorCode check_candidates(
                 {
                     if (sendto(session->ipv4_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                     {
-                        CHIAKI_LOGW(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                        CHIAKI_LOGW(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                         err = CHIAKI_ERR_NETWORK;
                         freeaddrinfo(addr_remote);
                         continue;
@@ -3425,7 +3557,7 @@ static ChiakiErrorCode check_candidates(
                             continue;
                         if (sendto(socks[j], (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                         {
-                            CHIAKI_LOGW(session->log, "check_candidate: Sending request for socket %d failed for %s:%d with error, closing socket: " CHIAKI_SOCKET_ERROR_FMT, j, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                            CHIAKI_LOGW(session->log, "check_candidates: Sending request for socket %d failed for %s:%d with error, closing socket: " CHIAKI_SOCKET_ERROR_FMT, j, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                             if (!CHIAKI_SOCKET_IS_INVALID(socks[j]))
                             {
                                 CHIAKI_SOCKET_CLOSE(socks[j]);
@@ -3442,7 +3574,7 @@ static ChiakiErrorCode check_candidates(
                 {
                     if (sendto(session->ipv6_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                     {
-                        CHIAKI_LOGW(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                        CHIAKI_LOGW(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                         err = CHIAKI_ERR_NETWORK;
                         freeaddrinfo(addr_remote);
                         continue;
@@ -3500,7 +3632,7 @@ static ChiakiErrorCode check_candidates(
 	    if (ret < 0 && errno != EINTR)
 #endif
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Select failed with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+            CHIAKI_LOGE(session->log, "check_candidates: Select failed with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         } else if (ret == 0)
@@ -3519,7 +3651,7 @@ static ChiakiErrorCode check_candidates(
                         FD_SET(session->ipv6_sock, &fds);
                     Candidate *candidate = NULL;
                     chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
-                    CHIAKI_LOGI(session->log, "check_candidate: Resending requests to all candidates TRY %d... waiting for 1st response", retry_counter);
+                    CHIAKI_LOGI(session->log, "check_candidates: Resending requests to all candidates TRY %d... waiting for 1st response", retry_counter);
                     for (int i=0; i < num_candidates + extra_addresses_used; i++)
                     {
                         if(((struct sockaddr *)&addrs[i])->sa_family == AF_INET)
@@ -3528,7 +3660,7 @@ static ChiakiErrorCode check_candidates(
                             sock = session->ipv6_sock;
                         else
                         {
-                            CHIAKI_LOGE(session->log, "check_candidate: Got an address with an unsupported address family %d, skipping ...", ((struct sockaddr *)&addrs[i])->sa_family);
+                            CHIAKI_LOGE(session->log, "check_candidates: Got an address with an unsupported address family %d, skipping ...", ((struct sockaddr *)&addrs[i])->sa_family);
                             continue;
                         }
                         if(CHIAKI_SOCKET_IS_INVALID(sock))
@@ -3536,7 +3668,7 @@ static ChiakiErrorCode check_candidates(
                         candidate = &candidates[i];
                         if (sendto(sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                         {
-                            CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                            CHIAKI_LOGE(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                             continue;
                         }
                         if(session->stun_random_allocation && (candidate->type == CANDIDATE_TYPE_STATIC || candidate->type == CANDIDATE_TYPE_STUN))
@@ -3558,7 +3690,7 @@ static ChiakiErrorCode check_candidates(
                     continue;
                 }
                 // No responsive candidate within timeout, terminate with error
-                CHIAKI_LOGE(session->log, "check_candidate: Select timed out");
+                CHIAKI_LOGE(session->log, "check_candidates: Select timed out");
                 err = CHIAKI_ERR_HOST_UNREACH;
                 goto cleanup_sockets;
             }
@@ -3606,7 +3738,7 @@ static ChiakiErrorCode check_candidates(
                     break;
                 }
             }
-            CHIAKI_LOGE(session->log, "check_candidate: Select returned an invalid socket!");
+            CHIAKI_LOGE(session->log, "check_candidates: Select returned an invalid socket!");
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
         }
@@ -3625,7 +3757,7 @@ static ChiakiErrorCode check_candidates(
         CHIAKI_SSIZET_TYPE response_len = recvfrom(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) response_buf, sizeof(response_buf), 0, recv_address, &recv_len);
         if (response_len < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Receiving response failed with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+            CHIAKI_LOGE(session->log, "check_candidates: Receiving response failed with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
             free(recv_address);
             continue;
         }
@@ -3633,7 +3765,7 @@ static ChiakiErrorCode check_candidates(
         {
             if (!inet_ntop(AF_INET, &(((struct sockaddr_in *)recv_address)->sin_addr), recv_address_string, sizeof(recv_address_string)))
             {
-                CHIAKI_LOGE(session->log, "check_candidate: Couldn't retrieve address from recv address!");
+                CHIAKI_LOGE(session->log, "check_candidates: Couldn't retrieve address from recv address!");
                 free(recv_address);
                 continue;
             }
@@ -3643,7 +3775,7 @@ static ChiakiErrorCode check_candidates(
         {
             if (!inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)recv_address)->sin6_addr), recv_address_string, sizeof(recv_address_string)))
             {
-                CHIAKI_LOGE(session->log, "check_candidate: Couldn't retrieve address from recv address!");
+                CHIAKI_LOGE(session->log, "check_candidates: Couldn't retrieve address from recv address!");
                 free(recv_address);
                 continue;
             }
@@ -3651,7 +3783,7 @@ static ChiakiErrorCode check_candidates(
         }
         else
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Got an address with an unsupported address family %d, skipping ...", recv_address->sa_family);
+            CHIAKI_LOGE(session->log, "check_candidates: Got an address with an unsupported address family %d, skipping ...", recv_address->sa_family);
             free(recv_address);
             continue;
         }
@@ -3669,7 +3801,7 @@ static ChiakiErrorCode check_candidates(
         {
             if(extra_addresses_used >= EXTRA_CANDIDATE_ADDRESSES)
             {
-                CHIAKI_LOGI(session->log, "check_candidate: Received more than %d extra candidates skipping this one", EXTRA_CANDIDATE_ADDRESSES);
+                CHIAKI_LOGI(session->log, "check_candidates: Received more than %d extra candidates skipping this one", EXTRA_CANDIDATE_ADDRESSES);
                 free(recv_address);
                 continue;
             }
@@ -3692,23 +3824,23 @@ static ChiakiErrorCode check_candidates(
                 }
                 else
                 {
-                    CHIAKI_LOGE(session->log, "check_candidate: Got an address with an unsupported address family %d, skipping ...", recv_address->sa_family);
+                    CHIAKI_LOGE(session->log, "check_candidates: Got an address with an unsupported address family %d, skipping ...", recv_address->sa_family);
                     free(recv_address);
                     continue;
                 }
                 memcpy((struct sockaddr *)&addrs[i], recv_address, recv_len);
                 lens[i] = recv_len;
                 extra_addresses_used++;
-                CHIAKI_LOGI(session->log, "check_candidate: Received new candidate at %s:%d", candidate->addr, candidate->port);
+                CHIAKI_LOGI(session->log, "check_candidates: Received new candidate at %s:%d", candidate->addr, candidate->port);
             }
             free(recv_address);
         }
-        CHIAKI_LOGV(session->log, "check_candidate: Received data from %s:%d", candidate->addr, candidate->port);
+        CHIAKI_LOGV(session->log, "check_candidates: Received data from %s:%d", candidate->addr, candidate->port);
         if (response_len != sizeof(response_buf))
         {
             if(candidate->type == CANDIDATE_TYPE_DERIVED)
                 continue;
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected size %ld from %s:%d", response_len, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidates: Received response of unexpected size %zd from %s:%d", response_len, candidate->addr, candidate->port);
             err = CHIAKI_ERR_NETWORK;
             goto cleanup_sockets;
         }
@@ -3724,7 +3856,7 @@ static ChiakiErrorCode check_candidates(
             {
                 if (sendto(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[0], sizeof(request_buf[0]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
                 {
-                    CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                    CHIAKI_LOGE(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                     goto cleanup_sockets;
                 }
             }
@@ -3732,7 +3864,7 @@ static ChiakiErrorCode check_candidates(
         }
         if (msg_type != MSG_TYPE_RESP)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidates: Received response of unexpected type %"PRIu32" from %s:%d", msg_type, candidate->addr, candidate->port);
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
             err = CHIAKI_ERR_UNKNOWN;
             if(candidate->type == CANDIDATE_TYPE_DERIVED)
@@ -3743,12 +3875,12 @@ static ChiakiErrorCode check_candidates(
         int responses = responses_received[i];
         if(memcmp(response_buf + 0x4b, request_id[responses], sizeof(request_id[responses])) != 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response with unexpected request ID from %s:%d", candidate->addr, candidate->port);
-            CHIAKI_LOGE(session->log, "check_candidate: Request ID expected:");
+            CHIAKI_LOGE(session->log, "check_candidates: Received response with unexpected request ID from %s:%d", candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidates: Request ID expected:");
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, request_id[responses], 5);
-            CHIAKI_LOGE(session->log, "check_candidate: Request ID received:");
+            CHIAKI_LOGE(session->log, "check_candidates: Request ID received:");
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf + 0x4b, 5);
-            CHIAKI_LOGE(session->log, "check_candidate: Full response received:");
+            CHIAKI_LOGE(session->log, "check_candidates: Full response received:");
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, response_buf, 88);
             continue;
         }
@@ -3762,7 +3894,7 @@ static ChiakiErrorCode check_candidates(
             selected_candidate = candidate;
             if (connect(selected_sock, (struct sockaddr *)&addrs[i], lens[i]) < 0)
             {
-                CHIAKI_LOGE(session->log, "check_candidate: Connecting socket failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, selected_candidate->addr, selected_candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_LOGE(session->log, "check_candidates: Connecting socket failed for %s:%d with error " CHIAKI_SOCKET_ERROR_FMT, selected_candidate->addr, selected_candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                 err = CHIAKI_ERR_NETWORK;
                 goto cleanup_sockets;
             }
@@ -3774,7 +3906,7 @@ static ChiakiErrorCode check_candidates(
         {
             if (sendto(candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[responses], sizeof(request_buf[responses]), 0, (struct sockaddr *)&addrs[i], lens[i]) < 0)
             {
-                CHIAKI_LOGE(session->log, "check_candidate: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_LOGE(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                 err = CHIAKI_ERR_NETWORK;
                     continue;
             }
@@ -3937,7 +4069,7 @@ static ChiakiErrorCode send_response_ps(Session *session, uint8_t *req, chiaki_s
 
         if (send(*sock, (CHIAKI_SOCKET_BUF_TYPE) confirm_buf, sizeof(confirm_buf), 0) < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Sending confirmation failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+            CHIAKI_LOGE(session->log, "check_candidates: Sending confirmation failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             return CHIAKI_ERR_NETWORK;
         }
         CHIAKI_LOGI(session->log, "Sent response to %s:%d", candidate->addr, candidate->port);
@@ -3990,7 +4122,7 @@ static ChiakiErrorCode send_responseto_ps(Session *session, uint8_t *req, chiaki
 
         if (sendto(*sock, (CHIAKI_SOCKET_BUF_TYPE) confirm_buf, sizeof(confirm_buf), 0, addr, len) < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Sending confirmation failed for %s:%d with error: %s", candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+            CHIAKI_LOGE(session->log, "check_candidates: Sending confirmation failed for %s:%d with error: %s", candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             return CHIAKI_ERR_NETWORK;
         }
         CHIAKI_LOGI(session->log, "Sent response to %s:%d", candidate->addr, candidate->port);
@@ -4024,12 +4156,12 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         len = recv(*sock, (CHIAKI_SOCKET_BUF_TYPE) req, sizeof(req), 0);
         if (len < 0)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Receiving response from %s:%d failed with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
+            CHIAKI_LOGE(session->log, "check_candidates: Receiving response from %s:%d failed with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
             continue;
         }
         if (len != sizeof(req))
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %zd from %s:%d", len, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidates: Received request of unexpected size %zd from %s:%d", len, candidate->addr, candidate->port);
             return CHIAKI_ERR_NETWORK;
         }
         uint32_t msg_type = ntohl(*(uint32_t*)(req));
@@ -4040,7 +4172,7 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         }
         else if(msg_type != MSG_TYPE_REQ)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %zu from %s:%d", msg_type, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidates: Received response of unexpected type %"PRIu32" from %s:%d", msg_type, candidate->addr, candidate->port);
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, req, 88);
             err = CHIAKI_ERR_UNKNOWN;
             return err;
@@ -4922,13 +5054,23 @@ static ChiakiErrorCode get_stun_servers(Session *session)
         .size = 0,
     };
 
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
-    CURLcode res = curl_easy_perform(curl);
+    res = curl_easy_perform(curl);
     if (res != CURLE_OK)
     {
         if (res == CURLE_HTTP_RETURNED_ERROR)
@@ -4936,10 +5078,10 @@ static ChiakiErrorCode get_stun_servers(Session *session)
             long http_code = 0;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "Getting stun servers from %s failed with HTTP code %ld", STUN_HOSTS_URL, http_code);
-            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", (int)response_data.size, response_data.data);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "Getting stun servers from %s failed with CURL error %d", STUN_HOSTS_URL, res);
+            CHIAKI_LOGE(session->log, "Getting stun servers from %s failed with CURL error %s", STUN_HOSTS_URL, curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -4995,11 +5137,21 @@ static ChiakiErrorCode get_stun_servers(Session *session)
         return CHIAKI_ERR_MEMORY;
     }
 
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL_IPV6);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, STUN_HOSTS_URL_IPV6);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "get_stun_servers: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
 
     res = curl_easy_perform(curl);
     if (res != CURLE_OK)
@@ -5009,10 +5161,10 @@ static ChiakiErrorCode get_stun_servers(Session *session)
             long http_code = 0;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             CHIAKI_LOGE(session->log, "Getting IPV6 stun servers from %s failed with HTTP code %ld", STUN_HOSTS_URL, http_code);
-            CHIAKI_LOGV(session->log, "Response Body: %.*s.", response_data.size, response_data.data);
+            CHIAKI_LOGV(session->log, "Response Body: %.*s.", (int)response_data.size, response_data.data);
             err = CHIAKI_ERR_HTTP_NONOK;
         } else {
-            CHIAKI_LOGE(session->log, "Getting IPV6 stun servers from %s failed with CURL error %d", STUN_HOSTS_URL, res);
+            CHIAKI_LOGE(session->log, "Getting IPV6 stun servers from %s failed with CURL error %s", STUN_HOSTS_URL, curl_easy_strerror(res));
             err = CHIAKI_ERR_NETWORK;
         }
         goto cleanup;
@@ -5073,8 +5225,8 @@ cleanup:
 static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
 {
     CHIAKI_LOGV(log, "-----------------CONNECTION REQUEST---------------------");
-    CHIAKI_LOGV(log, "sid: %zu", req->sid);
-    CHIAKI_LOGV(log, "peer_sid: %zu", req->peer_sid);
+    CHIAKI_LOGV(log, "sid: %"PRIu32, req->sid);
+    CHIAKI_LOGV(log, "peer_sid: %"PRIu32, req->peer_sid);
     char skey[25];
     ChiakiErrorCode err = chiaki_base64_encode(req->skey, sizeof(req->skey), skey, sizeof(skey));
     if(err != CHIAKI_ERR_SUCCESS)

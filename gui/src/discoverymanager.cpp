@@ -322,7 +322,7 @@ void DiscoveryManager::UpdateManualServices()
 		return;
 
 	QSet<QString> hosts;
-	for(auto host : settings->GetManualHosts())
+	for(const auto &host : settings->GetManualHosts())
 		if(settings->GetRegisteredHostRegistered(host.GetMAC()))
 			hosts.insert(host.GetHost());
 
