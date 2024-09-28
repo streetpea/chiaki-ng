@@ -755,13 +755,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     ChiakiErrorCode err = get_websocket_fqdn(session, &session->ws_fqdn);
     if (err != CHIAKI_ERR_SUCCESS)
         goto cleanup_curlsh;
+    chiaki_mutex_lock(&session->state_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
+        chiaki_mutex_unlock(&session->state_mutex);
         goto cleanup_curlsh;
     }
+    chiaki_mutex_unlock(&session->state_mutex);
 
     err = chiaki_thread_create(&session->ws_thread, websocket_thread_func, session);
     if (err != CHIAKI_ERR_SUCCESS)
@@ -776,15 +779,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         err = chiaki_cond_wait(&session->state_cond, &session->state_mutex);
         assert(err == CHIAKI_ERR_SUCCESS);
     }
-    chiaki_mutex_unlock(&session->state_mutex);
 
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
+        chiaki_mutex_unlock(&session->state_mutex);
         goto cleanup_thread;
     }
+    chiaki_mutex_unlock(&session->state_mutex);
     err = http_create_session(session);
     if (err != CHIAKI_ERR_SUCCESS)
         goto cleanup_thread;
@@ -948,6 +952,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             return err;
         }
     }
+    chiaki_mutex_lock(&session->state_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
@@ -955,6 +960,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         err = CHIAKI_ERR_CANCELED;
         return err;
     }
+    chiaki_mutex_unlock(&session->state_mutex);
 
     // FIXME: We're currently not using a shared timeout for both  notifications, i.e. if the first one
     //        takes 29 secs arrive, and the second one takes 15 secs, we're not going to time out despite
@@ -4495,16 +4501,21 @@ static ChiakiErrorCode wait_for_session_message(
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "Timed out waiting for holepunch session message notification.");
+            if(msg)
+                session_message_free(msg);
             return err;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "Failed to wait for holepunch session message notification.");
+            if(msg)
+                session_message_free(msg);
             return err;
         }
         if(session->main_should_stop)
         {
             session->main_should_stop = false;
+            session_message_free(msg);
             err = CHIAKI_ERR_CANCELED;
             return err;
         }

@@ -137,6 +137,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 		if(!host_addr)
 			break;
 		memcpy(host_addr, ai->ai_addr, host_addr_len);
+		break;
 	}
 	freeaddrinfo(host_addrinfos);
 

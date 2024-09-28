@@ -305,16 +305,16 @@ static void discovery_service_host_received(ChiakiDiscoveryHost *host, void *use
 {
 	ChiakiDiscoveryService *service = user;
 
+	ChiakiErrorCode err = chiaki_mutex_lock(&service->state_mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
+
 	if(!host->host_id)
 	{
 		CHIAKI_LOGE(service->log, "Discovery Service received host without id");
+		chiaki_mutex_unlock(&service->state_mutex);
 		return;
 	}
-
 	CHIAKI_LOGV(service->log, "Discovery Service Received host with id %s", host->host_id);
-
-	ChiakiErrorCode err = chiaki_mutex_lock(&service->state_mutex);
-	assert(err == CHIAKI_ERR_SUCCESS);
 
 	bool change = false;
 

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <inttypes.h>
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -603,7 +604,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         } else if (family == STUN_MAPPED_ADDR_FAMILY_IPV6) {
             if (attr_length != 20) {
                  CHIAKI_LOGE(log, "remote/stun.h: Received STUN_MAPPED_ADDR_FAMILY_IPV6 with invalid data!");
-                 CHIAKI_LOGE(log, "remote/stun.h: Expected atribute length: 20. Received attribute length %lu", attr_length);
+                 CHIAKI_LOGE(log, "remote/stun.h: Expected atribute length: 20. Received attribute length %"PRId16, attr_length);
                  return false;
             }
             if (xored) {

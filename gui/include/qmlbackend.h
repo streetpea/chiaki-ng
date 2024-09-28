@@ -23,7 +23,7 @@ public:
 signals:
     void log(ChiakiLogLevel level, const QString &msg);
     void failed();
-    void success(RegisteredHost host);
+    void success(const RegisteredHost& host);
 
 private:
     static void log_cb(ChiakiLogLevel level, const char *msg, void *user);

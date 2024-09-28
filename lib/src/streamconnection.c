@@ -342,8 +342,10 @@ close_takion:
 	CHIAKI_LOGI(session->log, "StreamConnection closed takion");
 
 err_video_receiver:
+	chiaki_mutex_lock(&stream_connection->state_mutex);
 	chiaki_video_receiver_free(stream_connection->video_receiver);
 	stream_connection->video_receiver = NULL;
+	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 err_haptics_receiver:
 	chiaki_audio_receiver_free(stream_connection->haptics_receiver);

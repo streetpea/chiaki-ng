@@ -127,7 +127,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 	if(senkusha->should_stop)
 	{
 		err = CHIAKI_ERR_CANCELED;
-		goto quit;
+		QUIT(quit);
 	}
 
 	ChiakiTakionConnectInfo takion_info;
