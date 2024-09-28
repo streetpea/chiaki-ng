@@ -148,10 +148,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 				return err;
 		}
 
-		int received;
+		CHIAKI_SSIZET_TYPE received;
 		do
 		{
-			received = (int)recv(sock, buf, (int)buf_size, 0);
+			received = recv(sock, buf, (int)buf_size, 0);
 #if _WIN32
 		} while(false);
 #else

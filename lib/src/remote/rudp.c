@@ -400,7 +400,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_select_recv(RudpInstance *rudp, size_t
 		return err;
 	}
 
-	int received_sz = recv(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
+	CHIAKI_SSIZET_TYPE received_sz = recv(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
 	if(received_sz <= 8)
 	{
 		if(received_sz < 0)
@@ -420,7 +420,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_select_recv(RudpInstance *rudp, size_t
 CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_recv_only(RudpInstance *rudp, size_t buf_size,  RudpMessage *message)
 {
     uint8_t buf[buf_size];
-	int received_sz = recv(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
+	CHIAKI_SSIZET_TYPE received_sz = recv(rudp->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, buf_size, 0);
 	if(received_sz <= 8)
 	{
 		if(received_sz < 0)
@@ -593,7 +593,7 @@ CHIAKI_EXPORT void chiaki_rudp_print_message(RudpInstance *rudp, RudpMessage *me
     CHIAKI_LOGI(rudp->log, "-----Rudp Message Data ---");
     if(message->data)
         chiaki_log_hexdump(rudp->log, CHIAKI_LOG_INFO, message->data, message->data_size);
-    CHIAKI_LOGI(rudp->log, "Rudp Message Remote Counter: %lu", message->remote_counter);
+    CHIAKI_LOGI(rudp->log, "Rudp Message Remote Counter: %u", message->remote_counter);
     if(message->subMessage)
         chiaki_rudp_print_message(rudp, message->subMessage);
 }

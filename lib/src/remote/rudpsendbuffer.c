@@ -38,14 +38,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_init(ChiakiRudpSendBuffer 
 {
 	ChiakiErrorCode err = chiaki_mutex_init(&send_buffer->mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_packets;
+		return err;
 	chiaki_mutex_lock(&send_buffer->mutex);
 	send_buffer->rudp = rudp;
 	send_buffer->log = log;
 
 	send_buffer->packets = calloc(size, sizeof(ChiakiRudpSendBufferPacket));
 	if(!send_buffer->packets)
-		return CHIAKI_ERR_MEMORY;
+	{
+		chiaki_mutex_unlock(&send_buffer->mutex);
+		err = CHIAKI_ERR_MEMORY;
+		goto error_mutex;
+	}
 	send_buffer->packets_size = size;
 	send_buffer->packets_count = 0;
 
@@ -53,7 +57,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_init(ChiakiRudpSendBuffer 
 	chiaki_mutex_unlock(&send_buffer->mutex);
 	err = chiaki_cond_init(&send_buffer->cond);
 	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_mutex;
+		goto error_packets;
 
 	err = chiaki_thread_create(&send_buffer->thread, rudp_send_buffer_thread_func, send_buffer);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -64,10 +68,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rudp_send_buffer_init(ChiakiRudpSendBuffer 
 	return CHIAKI_ERR_SUCCESS;
 error_cond:
 	chiaki_cond_fini(&send_buffer->cond);
-error_mutex:
-	chiaki_mutex_fini(&send_buffer->mutex);
 error_packets:
 	free(send_buffer->packets);
+error_mutex:
+	chiaki_mutex_fini(&send_buffer->mutex);
 	return err;
 }
 

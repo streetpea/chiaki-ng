@@ -302,7 +302,7 @@ const QList<DiscoveryHost> DiscoveryManager::GetHosts() const
 {
 	QList<DiscoveryHost> ret = hosts;
 	QSet<QString> discovered_hosts;
-	for(auto host : std::as_const(ret))
+	for(const auto &host : std::as_const(ret))
 		discovered_hosts.insert(host.host_addr);
 	for(auto s : std::as_const(manual_services))
 		if(s->discovered && !discovered_hosts.contains(s->discovery_host.host_addr))
@@ -327,11 +327,11 @@ void DiscoveryManager::UpdateManualServices()
 			hosts.insert(host.GetHost());
 
 	const auto keys = manual_services.keys();
-	for(auto key : keys)
+	for(const auto &key : keys)
 		if(!hosts.contains(key))
 			delete manual_services.take(key);
 
-	for(auto host : std::as_const(hosts))
+	for(const auto &host : std::as_const(hosts))
 	{
 		if(manual_services.contains(host))
 			continue;
@@ -399,7 +399,7 @@ static QList<DiscoveryHost> CreateHostsList(ChiakiDiscoveryHost *hosts, size_t h
 		DiscoveryHost o = {};
 		o.ps5 = chiaki_discovery_host_is_ps5(h);
 		o.state = h->state;
-		o.host_request_port = o.host_request_port;
+		o.host_request_port = h->host_request_port;
 #define CONVERT_STRING(name) if(h->name) { o.name = QString::fromLocal8Bit(h->name); }
 		CHIAKI_DISCOVERY_HOST_STRING_FOREACH(CONVERT_STRING)
 #undef CONVERT_STRING

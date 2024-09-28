@@ -171,7 +171,7 @@ void ControllerManager::UpdateAvailableControllers()
 
 	if(current_controllers != available_controllers)
 	{
-		available_controllers = current_controllers;
+		available_controllers = std::move(current_controllers);
 		emit AvailableControllersUpdated();
 	}
 #endif
@@ -514,28 +514,28 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 				emit NewButtonMapping("paddle1");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE2:
 			if(updating_mapping_button)
 			{
 				emit NewButtonMapping("paddle2");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE3:
 			if(updating_mapping_button)
 			{
 				emit NewButtonMapping("paddle3");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE4:
 			if(updating_mapping_button)
 			{
 				emit NewButtonMapping("paddle4");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 		case SDL_CONTROLLER_BUTTON_TOUCHPAD:
 			if(updating_mapping_button)
@@ -560,6 +560,7 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 		{
 			micbutton_push = false;
 			emit MicButtonPush();
+			return false;
 		}
 		else
 			state.buttons &= ~ps_btn;

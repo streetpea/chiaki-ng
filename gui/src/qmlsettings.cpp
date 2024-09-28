@@ -1182,7 +1182,7 @@ QStringList QmlSettings::profiles() const
 void QmlSettings::deleteProfile(QString profile)
 {
     if(!profile.isEmpty())
-        settings->DeleteProfile(profile);
+        settings->DeleteProfile(std::move(profile));
 }
 
 QVariantList QmlSettings::controllerMapping() const
@@ -1364,21 +1364,21 @@ void QmlSettings::refreshAllPlaceboKeys()
 
 void QmlSettings::exportSettings(QString fileurl)
 {
-    settings->ExportSettings(fileurl);
+    settings->ExportSettings(std::move(fileurl));
 }
 
 void QmlSettings::importSettings(QString fileurl)
 {
-    settings->ImportSettings(fileurl);
+    settings->ImportSettings(std::move(fileurl));
 }
 
 void QmlSettings::exportPlaceboSettings(QString fileurl)
 {
-    settings->ExportPlaceboSettings(fileurl);
+    settings->ExportPlaceboSettings(std::move(fileurl));
 }
 
 void QmlSettings::importPlaceboSettings(QString fileurl)
 {
-    settings->ImportPlaceboSettings(fileurl);
+    settings->ImportPlaceboSettings(std::move(fileurl));
     refreshAllPlaceboKeys();
 }

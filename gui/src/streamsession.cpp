@@ -89,10 +89,10 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	else
 		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileRemotePS5(): settings->GetVideoProfileRemotePS4();
 	this->target = target;
-	this->host = host;
-	this->regist_key = regist_key;
-	this->morning = morning;
-	this->initial_login_pin = initial_login_pin;
+	this->host = std::move(host);
+	this->regist_key = std::move(regist_key);
+	this->morning = std::move(morning);
+	this->initial_login_pin = std::move(initial_login_pin);
 	audio_buffer_size = settings->GetAudioBufferSize();
 	this->fullscreen = fullscreen;
 	this->zoom = zoom;
@@ -114,7 +114,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 #endif
 	this->psn_token = settings->GetPsnAuthToken();
 	this->psn_account_id = settings->GetPsnAccountId();
-	this->duid = duid;
+	this->duid = std::move(duid);
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -1045,7 +1045,6 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 			}
 			else
 			{
-				memcpy((uint8_t *)mic_buf.buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
 				speex_preprocess_run(preprocess_state, (int16_t *)mic_buf.buf);
 				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
 				if(SDL_ConvertAudio(&cvt) != 0)
@@ -1325,7 +1324,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		if(buf_size != 120)
 		{
-			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %u", buf_size);
+			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
 			return;
 		}
 		int16_t amplitudel = 0, amplituder = 0;
@@ -1496,7 +1495,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			uint8_t data_right[10];
 			memcpy(data_right, event->trigger_effects.right, 10);
 			uint8_t type_right = event->trigger_effects.type_right;
-			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
+			QMetaObject::invokeMethod(this, [this, &type_left, &data_left, &type_right, &data_right]() {
 				for(auto controller : controllers)
 					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);
 			});

@@ -184,6 +184,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Haptics Receiver");
 		err = CHIAKI_ERR_UNKNOWN;
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		goto err_audio_receiver;
 	}
 
@@ -192,6 +193,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Video Receiver");
 		err = CHIAKI_ERR_UNKNOWN;
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		goto err_haptics_receiver;
 	}
 

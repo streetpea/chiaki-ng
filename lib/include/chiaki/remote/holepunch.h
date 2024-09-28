@@ -40,11 +40,6 @@ extern "C" {
 #endif
 
 #define DUID_PREFIX "0000000700410080"
-#ifdef _WIN32
-#define CHIAKI_SSIZET_TYPE int
-#else
-#define CHIAKI_SSIZET_TYPE ssize_t
-#endif
 
 #define CHIAKI_DUID_STR_SIZE 49
 

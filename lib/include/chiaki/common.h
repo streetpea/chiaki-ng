@@ -29,6 +29,12 @@ typedef int16_t chiaki_unaligned_int16_t;
 
 #define CHIAKI_EXPORT
 
+#ifdef _WIN32
+#define CHIAKI_SSIZET_TYPE int
+#else
+#define CHIAKI_SSIZET_TYPE ssize_t
+#endif
+
 #define CHIAKI_NEW(t) ((t*)malloc(sizeof(t)))
 
 typedef enum

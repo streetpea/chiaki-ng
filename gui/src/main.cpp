@@ -10,6 +10,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
 #include <QGuiApplication>
+#include <QtTypes>
 
 #ifdef CHIAKI_ENABLE_CLI
 #include <chiaki-cli.h>
@@ -209,7 +210,7 @@ int real_main(int argc, char *argv[])
 			regist_key = parser.value(regist_key_option).toUtf8();
 			if(regist_key.length() > sizeof(ChiakiConnectInfo::regist_key))
 			{
-				printf("Given regist key is too long (expected size <=%llu, got %d)\n",
+				printf("Given regist key is too long (expected size <=%llu, got " PRIdQSIZETYPE")\n",
 					(unsigned long long)sizeof(ChiakiConnectInfo::regist_key),
 					regist_key.length());
 				return 1;
@@ -218,7 +219,7 @@ int real_main(int argc, char *argv[])
 			morning = QByteArray::fromBase64(parser.value(morning_option).toUtf8());
 			if(morning.length() != sizeof(ChiakiConnectInfo::morning))
 			{
-				printf("Given morning has invalid size (expected %llu, got %d)\n",
+				printf("Given morning has invalid size (expected %llu, got " PRIdQSIZETYPE")\n",
 					(unsigned long long)sizeof(ChiakiConnectInfo::morning),
 					morning.length());
 				printf("Given morning has invalid size (expected %llu)", (unsigned long long)sizeof(ChiakiConnectInfo::morning));
@@ -240,7 +241,7 @@ int real_main(int argc, char *argv[])
 			initial_login_passcode = parser.value(passcode_option);
 			if(initial_login_passcode.length() != 4)
 			{
-				printf("Login passcode must be 4 digits. You entered %d digits)\n", initial_login_passcode.length());
+				printf("Login passcode must be 4 digits. You entered " PRIdQSIZETYPE "digits)\n", initial_login_passcode.length());
 				return 1;
 			}
 		}
@@ -248,10 +249,10 @@ int real_main(int argc, char *argv[])
 		StreamSessionConnectInfo connect_info(
 				use_alt_settings ? &alt_settings : &settings,
 				target,
-				host,
-				regist_key,
-				morning,
-				initial_login_passcode,
+				std::move(host),
+				std::move(regist_key),
+				std::move(morning),
+				std::move(initial_login_passcode),
 				QString(),
 				parser.isSet(fullscreen_option),
 				parser.isSet(zoom_option),

@@ -1012,7 +1012,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             const char *custom_data1 = json_object_get_string(custom_data1_json);
             if (strlen(custom_data1) != 32)
             {
-                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: \"customData1\" has unexpected length, got %d, expected 32", strlen(custom_data1));
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: \"customData1\" has unexpected length, got %zu, expected 32", strlen(custom_data1));
                 err = CHIAKI_ERR_UNKNOWN;
                 break;
             }
@@ -3316,7 +3316,7 @@ static ChiakiErrorCode check_candidates(
             socks[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
             if (CHIAKI_SOCKET_IS_INVALID(socks[i]))
             {
-                CHIAKI_LOGE(session->log, "send_offer: Creating ipv4 socket %d failed", i);
+                CHIAKI_LOGE(session->log, "check_candidates: Creating ipv4 socket %d failed", i);
                 continue;
             }
             struct sockaddr_in client_addr;
@@ -3329,7 +3329,7 @@ static ChiakiErrorCode check_candidates(
 #if defined(SO_REUSEPORT)
             if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEPORT, (const void *)&enable, sizeof(int)) < 0)
             {
-                CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_LOGE(session->log, "check_candidates: setsockopt(SO_REUSEPORT) failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 if (CHIAKI_SOCKET_IS_INVALID(socks[i]))
                 {
                     CHIAKI_SOCKET_CLOSE(socks[i]);
@@ -3340,7 +3340,7 @@ static ChiakiErrorCode check_candidates(
 #else
             if (setsockopt(socks[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&enable, sizeof(int)) < 0)
             {
-                CHIAKI_LOGE(session->log, "setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_LOGE(session->log, "check_candidates: setsockopt(SO_REUSEADDR) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
                 {
                     CHIAKI_SOCKET_CLOSE(socks[i]);
@@ -3357,7 +3357,7 @@ static ChiakiErrorCode check_candidates(
 #endif
             if (setsockopt(socks[i], IPPROTO_IP, IP_TTL, (const CHIAKI_SOCKET_BUF_TYPE)&ttl, sizeof(ttl)) < 0)
             {
-                CHIAKI_LOGE(session->log, "setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                CHIAKI_LOGE(session->log, "check_candidates: setsockopt(IP_TTL) failed with error" CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
                 if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
                 {
                     CHIAKI_SOCKET_CLOSE(socks[i]);
@@ -3365,11 +3365,20 @@ static ChiakiErrorCode check_candidates(
                 }
                 continue;
             }
-            bind(socks[i], (struct sockaddr*)&client_addr, client_addr_len);
+            if(bind(socks[i], (struct sockaddr*)&client_addr, client_addr_len) < 0)
+            {
+                CHIAKI_LOGE(session->log, "check_candidates: Binding ipv4 socket failed with error " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                if(!CHIAKI_SOCKET_IS_INVALID(socks[i]))
+                {
+                    CHIAKI_SOCKET_CLOSE(socks[i]);
+                    socks[i] = CHIAKI_INVALID_SOCKET;
+                }
+                continue;
+            }
             err = chiaki_socket_set_nonblock(socks[i], true);
             if(err != CHIAKI_ERR_SUCCESS)
             {
-                CHIAKI_LOGE(session->log, "Failed to set ipv4 socket %d to non-blocking: %s", i, chiaki_error_string(err));
+                CHIAKI_LOGE(session->log, "check_candidates: Failed to set ipv4 socket %d to non-blocking: %s", i, chiaki_error_string(err));
                 if (!CHIAKI_SOCKET_IS_INVALID(socks[i]))
                 {
                     CHIAKI_SOCKET_CLOSE(socks[i]);
@@ -4020,7 +4029,7 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         }
         if (len != sizeof(req))
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %ld from %s:%d", len, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received request of unexpected size %zd from %s:%d", len, candidate->addr, candidate->port);
             return CHIAKI_ERR_NETWORK;
         }
         uint32_t msg_type = ntohl(*(uint32_t*)(req));
@@ -4031,7 +4040,7 @@ static ChiakiErrorCode receive_request_send_response_ps(Session *session, chiaki
         }
         else if(msg_type != MSG_TYPE_REQ)
         {
-            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %lu from %s:%d", msg_type, candidate->addr, candidate->port);
+            CHIAKI_LOGE(session->log, "check_candidate: Received response of unexpected type %zu from %s:%d", msg_type, candidate->addr, candidate->port);
             chiaki_log_hexdump(session->log, CHIAKI_LOG_ERROR, req, 88);
             err = CHIAKI_ERR_UNKNOWN;
             return err;
@@ -5064,8 +5073,8 @@ cleanup:
 static void print_session_request(ChiakiLog *log, ConnectionRequest *req)
 {
     CHIAKI_LOGV(log, "-----------------CONNECTION REQUEST---------------------");
-    CHIAKI_LOGV(log, "sid: %lu", req->sid);
-    CHIAKI_LOGV(log, "peer_sid: %lu", req->peer_sid);
+    CHIAKI_LOGV(log, "sid: %zu", req->sid);
+    CHIAKI_LOGV(log, "peer_sid: %zu", req->peer_sid);
     char skey[25];
     ChiakiErrorCode err = chiaki_base64_encode(req->skey, sizeof(req->skey), skey, sizeof(skey));
     if(err != CHIAKI_ERR_SUCCESS)

@@ -96,7 +96,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	{
 		if(packet->adaptive_stream_index >= video_receiver->profiles_count)
 		{
-			CHIAKI_LOGE(video_receiver->log, "Packet has invalid adaptive stream index %lu >= %lu",
+			CHIAKI_LOGE(video_receiver->log, "Packet has invalid adaptive stream index %zu >= %zu",
 					(unsigned int)packet->adaptive_stream_index,
 					(unsigned int)video_receiver->profiles_count);
 			return;

@@ -184,7 +184,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             createSession(session_info);
         });
         QString refresh_token = settings->GetPsnRefreshToken();
-        psnToken->RefreshPsnToken(refresh_token);
+        psnToken->RefreshPsnToken(std::move(refresh_token));
     });
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
@@ -341,7 +341,7 @@ void QmlBackend::profileChanged()
             createSession(session_info);
         });
         QString refresh_token = settings_copy->GetPsnRefreshToken();
-        psnToken->RefreshPsnToken(refresh_token);
+        psnToken->RefreshPsnToken(std::move(refresh_token));
     });
     delete sleep_inhibit;
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
@@ -435,7 +435,7 @@ QVariantList QmlBackend::hosts() const
         bool manual = false;
         for(int i = 0; i < manual_hosts.length(); i++)
         {
-            auto manual_host = manual_hosts.at(i);
+            const auto &manual_host = manual_hosts.at(i);
             if(manual_host.GetRegistered() && manual_host.GetMAC() == host.GetHostMAC() && manual_host.GetHost() == host.host_addr)
             {
                 manual = true;
@@ -686,7 +686,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         setDiscoveryEnabled(true);
     });
 
-    connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
+    connect(session, &StreamSession::LoginPINRequested, this, [this, &connect_info](bool incorrect) {
         if (!connect_info.initial_login_pin.isEmpty() && incorrect == false)
             session->SetLoginPIN(connect_info.initial_login_pin);
         else
@@ -781,7 +781,7 @@ void QmlBackend::setConsolePin(int index, QString console_pin)
     auto server = displayServerAt(index);
     if (!server.valid)
         return;
-    server.registered_host.SetConsolePin(server.registered_host, console_pin);
+    server.registered_host.SetConsolePin(server.registered_host, std::move(console_pin));
     settings->AddRegisteredHost(server.registered_host);
 }
 
@@ -833,7 +833,7 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
 
         regist_dialog_server = {};
     });
-    connect(regist, &QmlRegist::success, this, [this, host, callback](RegisteredHost rhost) {
+    connect(regist, &QmlRegist::success, this, [this, host, callback](const RegisteredHost &rhost) {
         QJSValue cb = callback;
         if (cb.isCallable())
             cb.call({QString(), true, true});
@@ -891,7 +891,7 @@ void QmlBackend::connectToHost(int index)
         StreamSessionConnectInfo info(
                 settings,
                 server.registered_host.GetTarget(),
-                host,
+                std::move(host),
                 server.registered_host.GetRPRegistKey(),
                 server.registered_host.GetRPKey(),
                 server.registered_host.GetConsolePin(),
@@ -932,11 +932,11 @@ void QmlBackend::connectToHost(int index)
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
                 qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
             });
-            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
+            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, &info]() {
                 createSession(info);
             });
             QString refresh_token = settings->GetPsnRefreshToken();
-            psnToken->RefreshPsnToken(refresh_token);
+            psnToken->RefreshPsnToken(std::move(refresh_token));
         }
         else
             createSession(info);
@@ -1026,10 +1026,10 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
             server.registered_host = settings->GetRegisteredHost(host_mac);
         for (int i = 0; i < manual.size(); i++)
         {
-            auto manual_host = manual.at(i);
+            const auto &manual_host = manual.at(i);
             if(manual_host.GetRegistered() && manual_host.GetMAC() == host_mac && manual_host.GetHost() == server.discovery_host.host_addr)
             {
-                server.manual_host = manual_host;
+                server.manual_host = std::move(manual_host);
                 break;
             }
         }
@@ -1072,7 +1072,7 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
             {
                 server.valid = true;
                 server.discovered = false;
-                server.psn_host = psn_host;
+                server.psn_host = std::move(psn_host);
                 server.duid = i.key();
                 server.registered = true;
                 server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
@@ -1293,7 +1293,7 @@ void QmlBackend::controllerMappingChangeButton(QString button)
 	};
     int chiaki_button_value = button_map.value(button);
     QString chiaki_button_name = Settings::GetChiakiControllerButtonName(chiaki_button_value);
-    emit controllerMappingButtonSelected(mapping_selection, chiaki_button_value, chiaki_button_name);
+    emit controllerMappingButtonSelected(std::move(mapping_selection), chiaki_button_value, std::move(chiaki_button_name));
 }
 
 void QmlBackend::updateButton(int chiaki_button, QString physical_button, int new_index)
@@ -1502,7 +1502,7 @@ void QmlBackend::controllerMappingApply()
     QMapIterator<QString, QStringList> i(controller_mapping_controller_mappings);
     while (i.hasNext()) {
         i.next();
-        auto physical_buttons = i.value();
+        const auto &physical_buttons = i.value();
         for(int j = 0; j < physical_buttons.length(); j++)
             new_controller_mapping += "," + (i.key() + ":" + physical_buttons.at(j));
     }
@@ -1517,7 +1517,7 @@ void QmlBackend::updateDiscoveryHosts()
 {
     if (session && session->IsConnecting()) {
         // Wakeup console that we are currently connecting to
-        for (auto host : discovery_manager.GetHosts()) {
+        for (const auto &host : discovery_manager.GetHosts()) {
             if (host.state != CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
                 continue;
             if (host.host_addr != session_info.host)
@@ -1581,13 +1581,13 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
     artwork.insert("icon", &icon);
     artwork.insert("logo", &logo);
     
-    auto infoLambda = [this, callback](const QString &infoMessage) {
+    auto infoLambda = [callback](const QString &infoMessage) {
         QJSValue icb = callback;
         if (icb.isCallable())
             icb.call({infoMessage, true, false});
     };
 
-    auto errorLambda = [this, callback](const QString &errorMessage) {
+    auto errorLambda = [callback](const QString &errorMessage) {
         QJSValue icb = callback;
         if (icb.isCallable())
             icb.call({errorMessage, false, true});
@@ -1609,7 +1609,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
         QString flatpakId = env.value("FLATPAK_ID");
         launchOptions.prepend(QString("run %1 ").arg(flatpakId));
     }
-    SteamShortcutEntry newShortcut = steam_tools->buildShortcutEntry(shortcutName, executable, launchOptions, artwork);
+    SteamShortcutEntry newShortcut = steam_tools->buildShortcutEntry(std::move(shortcutName), std::move(executable), std::move(launchOptions), std::move(artwork));
 
     QVector<SteamShortcutEntry> shortcuts = steam_tools->parseShortcuts();
     bool found = false;
@@ -1631,8 +1631,8 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
             cb.call({QString("[I] Adding Steam entry ") + QString(newShortcut.getAppName().toStdString().c_str()), false, true});
         shortcuts.append(newShortcut);
     }
-    steam_tools->updateShortcuts(shortcuts);
-    steam_tools->updateControllerConfig(newShortcut.getAppName(), controller_layout_workshop_id);
+    steam_tools->updateShortcuts(std::move(shortcuts));
+    steam_tools->updateControllerConfig(newShortcut.getAppName(), std::move(controller_layout_workshop_id));
     if (!found)
     {
         if (cb.isCallable())
@@ -1682,7 +1682,7 @@ QString QmlBackend::openPlaceboOptionsLink()
 
 void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
 {
-    QJSValue cb = callback;
+    const QJSValue &cb = callback;
     if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
     {
         if (cb.isCallable())
@@ -1698,11 +1698,11 @@ void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
     }
     PSNAccountID *psnId = new PSNAccountID(settings, this);
     connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
-    connect(psnId, &PSNAccountID::AccountIDError, [this, cb](const QString &error) {
+    connect(psnId, &PSNAccountID::AccountIDError, this, [&cb](const QString &error) {
         if (cb.isCallable())
             cb.call({error, false, true});
     });
-    connect(psnId, &PSNAccountID::AccountIDResponse, this, [cb]() {
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, [&cb]() {
         if (cb.isCallable())
             cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
     });

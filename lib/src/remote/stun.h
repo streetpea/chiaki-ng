@@ -584,6 +584,11 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
         bool xored = attr_type == STUN_ATTRIB_XOR_MAPPED_ADDRESS;
         uint8_t family = binding_resp[response_pos + 5];
         if (family == STUN_MAPPED_ADDR_FAMILY_IPV4) {
+            if (attr_length != 8) {
+                 CHIAKI_LOGE(log, "remote/stun.h: Received STUN_MAPPED_ADDR_FAMILY_IPV4 with invalid data!");
+                 CHIAKI_LOGE(log, "remote/stun.h: Expected atribute length: 8. Received attribute length %lu", attr_length);
+                 return false;
+            }
             if (xored) {
                 uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (uint16_t)(htonl(STUN_MAGIC_COOKIE));
                 *port = ntohs(xored_port);
@@ -596,6 +601,11 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
                 inet_ntop(AF_INET, &addr, address, INET_ADDRSTRLEN);
             }
         } else if (family == STUN_MAPPED_ADDR_FAMILY_IPV6) {
+            if (attr_length != 20) {
+                 CHIAKI_LOGE(log, "remote/stun.h: Received STUN_MAPPED_ADDR_FAMILY_IPV6 with invalid data!");
+                 CHIAKI_LOGE(log, "remote/stun.h: Expected atribute length: 20. Received attribute length %lu", attr_length);
+                 return false;
+            }
             if (xored) {
                 uint16_t xored_port = *(uint16_t*)(&binding_resp[response_pos + 6]) ^ (uint16_t)(htonl(STUN_MAGIC_COOKIE));
                 *port = ntohs(xored_port);

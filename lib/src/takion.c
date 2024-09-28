@@ -989,7 +989,7 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 		return err;
 	}
 
-	int received_sz = recv(takion->sock, buf, *buf_size, 0);
+	CHIAKI_SSIZET_TYPE received_sz = recv(takion->sock, buf, *buf_size, 0);
 	if(received_sz <= 0)
 	{
 		if(received_sz < 0)
@@ -1664,7 +1664,7 @@ static ChiakiErrorCode takion_read_extra_sock_messages(ChiakiTakion *takion)
 		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, false, 200);
 		if(err != CHIAKI_ERR_SUCCESS)
 			return err;
-        int len = recv(takion->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, sizeof(buf), 0);
+        CHIAKI_SSIZET_TYPE len = recv(takion->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, sizeof(buf), 0);
         if (len < 0)
             return CHIAKI_ERR_NETWORK;
 	}

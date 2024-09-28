@@ -218,7 +218,7 @@ void Settings::ImportSettings(QString fileurl)
 		{
 			settings.setValue( *i, settings_backup.value( *i ) );
 		}
-		SetCurrentProfile(profile);
+		SetCurrentProfile(std::move(profile));
 	}
 	else
 	{
@@ -1780,7 +1780,7 @@ int Settings::SetManualHost(const ManualHost &host)
 	if(id < 0)
 		id = manual_hosts_id_next++;
 	ManualHost save_host(id, host);
-	manual_hosts[id] = save_host;
+	manual_hosts[id] = std::move(save_host);
 	SaveManualHosts();
 	emit ManualHostsUpdated();
 	return id;

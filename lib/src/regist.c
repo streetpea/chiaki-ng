@@ -475,7 +475,7 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 		}
 
 		uint8_t buf[0x100];
-		int n = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)buf, sizeof(buf) - 1, 0, recv_addr, recv_addr_size);
+		CHIAKI_SSIZET_TYPE n = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)buf, sizeof(buf) - 1, 0, recv_addr, recv_addr_size);
 		if(n <= 0)
 		{
 			if(n < 0)
@@ -726,7 +726,7 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 				return err;
 			}
 
-			int received = recv(sock,  (CHIAKI_SOCKET_BUF_TYPE)buf + buf_filled_size, (content_size + header_size) - buf_filled_size, 0);
+			CHIAKI_SSIZET_TYPE received = recv(sock,  (CHIAKI_SOCKET_BUF_TYPE)buf + buf_filled_size, (content_size + header_size) - buf_filled_size, 0);
 			if(received <= 0)
 			{
 				CHIAKI_LOGE(regist->log, "Regist failed to receive response content");
@@ -843,7 +843,7 @@ static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, Chiak
 		else if(strcmp(header->key, "RP-SupportCmd") == 0)
 		{
 			uint32_t support_cmd = (uint32_t)strtoul(header->value, NULL, 0);
-			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %lu", support_cmd);
+			CHIAKI_LOGI(regist->log, "RP-Support Cmd: %zu", support_cmd);
 		}
 		else
 		{

@@ -402,7 +402,7 @@ static void *ctrl_thread_func(void *user)
 			break;
 		}
 
-		int received = 0;
+		CHIAKI_SSIZET_TYPE received = 0;
 		if(ctrl->session->rudp)
 		{
 			RudpMessage message;
