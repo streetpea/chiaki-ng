@@ -345,7 +345,7 @@ static ChiakiErrorCode get_websocket_fqdn(
     Session *session, char **fqdn);
 static inline size_t curl_write_cb(
     void* ptr, size_t size, size_t nmemb, void* userdata);
-static void hex_to_bytes(const char* hex_str, uint8_t* bytes, size_t max_len);
+static ChiakiErrorCode hex_to_bytes(const char* hex_str, uint8_t* bytes, size_t max_len);
 static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t max_len);
 static void random_uuidv4(char* out);
 static void *websocket_thread_func(void *user);
@@ -544,7 +544,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_devices;
         }
-        hex_to_bytes(json_object_get_string(duid), device.device_uid, sizeof(device.device_uid));
+        err = hex_to_bytes(json_object_get_string(duid), device.device_uid, sizeof(device.device_uid));
+        if(err != CHIAKI_ERR_SUCCESS)
+        {
+            CHIAKI_LOGE(log, "chiaki_holepunch_list_devices: Could not convert duid to bytes");
+            err = CHIAKI_ERR_UNKNOWN;
+            goto cleanup_json;
+        }
 
         json_object *device_json;
         if (!json_object_object_get_ex(client, "device", &device_json))
@@ -903,16 +909,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
     Session* session, const uint8_t* device_uid,
     ChiakiHolepunchConsoleType console_type)
 {
+    chiaki_mutex_lock(&session->state_mutex);
     if (!(session->state & SESSION_STATE_CREATED))
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Holepunch session not created yet");
+        chiaki_mutex_unlock(&session->state_mutex);
         return CHIAKI_ERR_UNINITIALIZED;
     }
     if (session->state & SESSION_STATE_STARTED)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Holepunch session already started");
+        chiaki_mutex_unlock(&session->state_mutex);
         return CHIAKI_ERR_UNKNOWN;
     }
+    chiaki_mutex_unlock(&session->state_mutex);
     ChiakiErrorCode err;
     session->console_type = console_type;
     if(console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4)
@@ -997,7 +1007,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             }
 
             uint8_t duid_bytes[32];
-            hex_to_bytes(member_duid, duid_bytes, sizeof(duid_bytes));
+            ChiakiErrorCode err = hex_to_bytes(member_duid, duid_bytes, sizeof(duid_bytes));
+            if(err != CHIAKI_ERR_SUCCESS)
+            {
+                CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Could not convert member duid to bytes");
+                err = CHIAKI_ERR_UNKNOWN;
+                break;
+            }
             // We don't have duid beforehand for PS4
             if(console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4)
                 memcpy(session->console_uid, duid_bytes, sizeof(duid_bytes));
@@ -1303,18 +1319,22 @@ cleanup:
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* session, ChiakiHolepunchPortType port_type)
 {
+    chiaki_mutex_lock(&session->state_mutex);
     if (port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL
         && !(session->state & SESSION_STATE_CUSTOMDATA1_RECEIVED))
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: customData1 not received yet.");
+        chiaki_mutex_unlock(&session->state_mutex);
         return CHIAKI_ERR_UNKNOWN;
     }
     else if (port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_DATA
         && !(session->state & SESSION_STATE_CTRL_ESTABLISHED))
     {
+        chiaki_mutex_unlock(&session->state_mutex);
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Control port not open yet.");
         return CHIAKI_ERR_UNKNOWN;
     }
+    chiaki_mutex_unlock(&session->state_mutex);
 
     ChiakiErrorCode err;
     Candidate *local_candidates = NULL;
@@ -1808,14 +1828,16 @@ static inline size_t curl_write_cb(
     return realsize;
 }
 
-static void hex_to_bytes(const char* hex_str, uint8_t* bytes, size_t max_len) {
+static ChiakiErrorCode hex_to_bytes(const char* hex_str, uint8_t* bytes, size_t max_len) {
     size_t len = strlen(hex_str);
     if (len > max_len * 2) {
         len = max_len * 2;
     }
     for (size_t i = 0; i < len; i += 2) {
-        sscanf(hex_str + i, "%2hhx", &bytes[i / 2]);
+        if(sscanf(hex_str + i, "%2hhx", &bytes[i / 2]) != 1)
+            return CHIAKI_ERR_INVALID_DATA;
     }
+    return CHIAKI_ERR_SUCCESS;
 }
 
 static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t max_len) {
@@ -2051,6 +2073,7 @@ static void* websocket_thread_func(void *user) {
 
             // Automatically ACK OFFER session messages if we're not currently explicitly
             // waiting on offers
+            chiaki_mutex_lock(&session->state_mutex);
             bool should_ack_offers =
                 // We're not expecting any offers after receiving one for the control port and before it's established, afterwards we expect
                 // one for the data port, so we don't auto-ACK in between
@@ -2058,6 +2081,7 @@ static void* websocket_thread_func(void *user) {
                  && !(session->state & SESSION_STATE_CTRL_ESTABLISHED))
                  // At this point all offers were received and we don't care for new ones anymore
                 || session->state & SESSION_STATE_DATA_OFFER_RECEIVED;
+            chiaki_mutex_unlock(&session->state_mutex);
             if (should_ack_offers && notif->type == NOTIFICATION_TYPE_SESSION_MESSAGE_CREATED)
             {
                 SessionMessage *msg = NULL;
