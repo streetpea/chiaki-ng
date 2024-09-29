@@ -99,6 +99,11 @@ bool QmlController::isDualSenseEdge() const
     return controller->IsDualSenseEdge();
 }
 
+QString QmlController::GetGUID() const
+{
+    return controller->GetGUIDString();
+}
+
 void QmlController::sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
     QKeyEvent press(QEvent::KeyPress, key, modifiers);

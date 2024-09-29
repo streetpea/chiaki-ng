@@ -123,6 +123,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     updateControllers();
     updateControllerMappings();
     connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
+    connect(this, &QmlBackend::controllersChanged, this, &QmlBackend::updateControllerMappings);
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
     auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
     psn_auto_connect_timer = new QTimer(this);
@@ -1126,6 +1127,9 @@ void QmlBackend::updateControllers()
             controller_mapping_controller = nullptr;
             controllerMappingQuit();
         }
+        QString guid = it.value()->GetGUID();
+        if(current_controller_guids.contains(guid))
+            current_controller_guids.removeOne(guid);
         it.value()->deleteLater();
         it = controllers.erase(it);
         changed = true;
@@ -1137,6 +1141,9 @@ void QmlBackend::updateControllers()
         if (!controller)
             continue;
         controllers[id] = new QmlController(controller, window, this);
+        QString guid = controller->GetGUIDString();
+        if(!current_controller_guids.contains(guid))
+            current_controller_guids.append(guid);
         connect(controller, &Controller::UpdatingControllerMapping, this, &QmlBackend::controllerMappingUpdate);
         connect(controller, &Controller::NewButtonMapping, this, &QmlBackend::controllerMappingChangeButton);
         changed = true;
@@ -1234,15 +1241,17 @@ void QmlBackend::updateControllerMappings()
     for(int i=0; i<mapping_guids.length(); i++)
     {
         QString guid = mapping_guids.at(i);
+        if(!current_controller_guids.contains(guid))
+            continue;
         if(!controller_mapping_original_controller_mappings.contains(guid))
         {
-            SDL_JoystickGUID real_guid = SDL_JoystickGetGUIDFromString(guid.toUtf8().constData());
-            char *mapping = SDL_GameControllerMappingForGUID(real_guid);
+            const SDL_JoystickGUID real_guid = SDL_JoystickGetGUIDFromString(guid.toUtf8().constData());
+            const char *mapping = SDL_GameControllerMappingForGUID(real_guid);
             QString original_controller_mapping(mapping);
-            SDL_free(mapping);
+            SDL_free((char *)mapping);
             if(original_controller_mapping.isEmpty())
             {
-                qCWarning(chiakiGui) << "Error retrieving controller mapping " << SDL_GetError();
+                qCWarning(chiakiGui) << "Error retrieving controller mapping of GUID " << guid << "with error: " << SDL_GetError();
                 return;
             }
             controller_mapping_original_controller_mappings.insert(guid, original_controller_mapping);
@@ -1254,7 +1263,7 @@ void QmlBackend::updateControllerMappings()
                 qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << guid << " with error: " << SDL_GetError();
                 break;
             case 0:
-                qCInfo(chiakiGui) << "Updated controller mapping updated for guid: " << guid;
+                qCInfo(chiakiGui) << "Updated controller mapping for guid: " << guid;
                 break;
             case 1:
                 qCInfo(chiakiGui) << "Added controller mapping for guid: " << guid;
@@ -1377,10 +1386,10 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
         return;
     }
     controller_mapping_id = controller->GetDeviceID();
-    char *mapping = SDL_GameControllerMapping(controller->GetController());
+    const char *mapping = SDL_GameControllerMapping(controller->GetController());
     QString original_controller_mapping(mapping);
     qCInfo(chiakiGui) << "Original controller mapping: " << original_controller_mapping;
-    SDL_free(mapping);
+    SDL_free((char *)mapping);
     if(original_controller_mapping.isEmpty())
     {
         qCWarning(chiakiGui) << "Error retrieving controller mapping " << SDL_GetError();
@@ -1467,7 +1476,7 @@ void QmlBackend::controllerMappingReset()
             qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << controller_mapping_controller_guid << " with error: " << SDL_GetError();
             break;
         case 0:
-            qCInfo(chiakiGui) << "Updated controller mapping updated for guid: " << controller_mapping_controller_guid;
+            qCInfo(chiakiGui) << "Updated controller mapping for guid: " << controller_mapping_controller_guid;
             break;
         case 1:
             qCInfo(chiakiGui) << "Added controller mapping for guid: " << controller_mapping_controller_guid;

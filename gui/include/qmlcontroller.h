@@ -20,6 +20,7 @@ public:
     bool isHandheld() const;
     bool isSteamVirtual() const;
     bool isDualSenseEdge() const;
+    QString GetGUID() const;
 
 private:
     void sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);

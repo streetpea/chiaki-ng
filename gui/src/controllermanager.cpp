@@ -726,6 +726,21 @@ QString Controller::GetType()
 #endif
 }
 
+QString Controller::GetGUIDString()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return QString();
+	SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
+	char guid_str[256];
+	SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
+	SDL_JoystickGetGUIDString(guid, guid_str, sizeof(guid_str));
+	return QString("%1").arg(guid_str);
+#else
+	return QString();
+#endif
+}
+
 QString Controller::GetName()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
