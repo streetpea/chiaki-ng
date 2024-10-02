@@ -135,11 +135,18 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_init(ChiakiOrientationTracker *tra
 }
 
 CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *tracker,
-		float gx, float gy, float gz, float ax, float ay, float az, uint32_t timestamp_us)
+		float gx, float gy, float gz, float ax, float ay, float az,
+		ChiakiAccelNewZero *accel_zero, bool accel_zero_applied, uint32_t timestamp_us)
 {
 	tracker->gyro_x = gx;
 	tracker->gyro_y = gy;
 	tracker->gyro_z = gz;
+	if(!accel_zero_applied)
+	{
+		ax -= accel_zero->accel_x;
+		ay -= accel_zero->accel_y;
+		az -= accel_zero->accel_z;
+	}
 	tracker->accel_x = ax;
 	tracker->accel_y = ay;
 	tracker->accel_z = az;
@@ -173,4 +180,21 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOr
 	state->orient_x = COS_NEG_1_4_PI * tracker->orient.x + SIN_NEG_1_4_PI * tracker->orient.w;
 	state->orient_y = COS_NEG_1_4_PI * tracker->orient.y - SIN_NEG_1_4_PI * tracker->orient.z;
 	state->orient_z = COS_NEG_1_4_PI * tracker->orient.z + SIN_NEG_1_4_PI * tracker->orient.y;
+}
+
+CHIAKI_EXPORT void chiaki_accel_new_zero_set_inactive(ChiakiAccelNewZero *accel_zero)
+{
+	accel_zero->accel_x = 0.0f;
+	accel_zero->accel_y = 0.0f;
+	accel_zero->accel_z = 0.0f;
+}
+
+CHIAKI_EXPORT void chiaki_accel_new_zero_set_active(ChiakiAccelNewZero *accel_zero, float accel_x, float accel_y, float accel_z, bool real_gyro)
+{
+	accel_zero->accel_x = accel_x;
+	if(real_gyro)
+		accel_zero->accel_y = accel_y;
+	else
+		accel_zero->accel_y = accel_y - 1.0f;
+	accel_zero->accel_z = accel_z;
 }

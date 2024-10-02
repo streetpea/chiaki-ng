@@ -91,6 +91,9 @@ class Controller : public QObject
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		QMap<QPair<Sint64, Sint64>, uint8_t> touch_ids;
 		SDL_GameController *controller;
+		ChiakiAccelNewZero accel_zero;
+		ChiakiAccelNewZero real_accel;
+		uint32_t last_motion_timestamp;
 #endif
 
 	public:
@@ -119,6 +122,7 @@ class Controller : public QObject
 		bool IsHandheld();
 		bool IsSteamVirtual();
 		bool IsDualSenseEdge();
+		void resetMotionControls();
 
 	signals:
 		void StateChanged();

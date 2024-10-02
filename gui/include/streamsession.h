@@ -19,7 +19,9 @@
 
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 #include <sdeck.h>
+#include <chiaki/orientation.h>
 #endif
+
 // Using Q_OS_MACOS instead of __APPLE__ doesn't work for the necessary enums to be included
 #ifdef __APPLE__
 #include <macMicPermission.h>
@@ -159,6 +161,7 @@ class StreamSession : public QObject
 		ChiakiControllerState setsu_state;
 		SetsuDevice *setsu_motion_device;
 		ChiakiOrientationTracker orient_tracker;
+		ChiakiAccelNewZero setsu_accel_zero, setsu_real_accel;
 		bool orient_dirty;
 #endif
 
@@ -174,6 +177,7 @@ class StreamSession : public QObject
 		bool sdeck_skipl, sdeck_skipr;
 		bool enable_steamdeck_haptics;
 		ChiakiOrientationTracker sdeck_orient_tracker;
+		ChiakiAccelNewZero *accel_zero sdeck_accel_zero, sdeck_real_accel;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
 #endif

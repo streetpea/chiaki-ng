@@ -10,6 +10,7 @@
 #include <chiaki/video.h>
 
 #include <string.h>
+#include <inttypes.h>
 #include <assert.h>
 #ifndef _WIN32
 #include <unistd.h>
@@ -47,6 +48,7 @@ static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user);
 static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_protobuf(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
+static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection);
 static ChiakiErrorCode stream_connection_send_controller_connection(ChiakiStreamConnection *stream_connection);
@@ -407,6 +409,9 @@ static void stream_connection_takion_data(ChiakiStreamConnection *stream_connect
 		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE:
 			stream_connection_takion_data_rumble(stream_connection, buf, buf_size);
 			break;
+		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_PAD_INFO:
+			stream_connection_takion_data_pad_info(stream_connection, buf, buf_size);
+			break;
 		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_TRIGGER_EFFECTS:
 			stream_connection_takion_data_trigger_effects(stream_connection, buf, buf_size);
 			break;
@@ -464,6 +469,58 @@ static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection
 	event.trigger_effects.type_right = buf[2];
 	memcpy(&event.trigger_effects.left, buf + 5, 10);
 	memcpy(&event.trigger_effects.right, buf + 15, 10);
+	chiaki_session_send_event(stream_connection->session, &event);
+}
+
+static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
+{
+	if(buf_size != 0x19 && buf_size != 0x11)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection got pad info with size %#llx not equal to 0x19 or 0x11",
+				(unsigned long long)buf_size);
+		return;
+	}
+	const uint8_t orient_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
+	const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
+	if(buf_size == 0x19)
+	{
+		// sequence number of feedback packet this is responding to
+		uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
+		int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
+		uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
+		// check if orient reset typre is used
+		if(!memcmp(buf + 8, orient_reset, 4) == 0)
+		{
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to gyro reset, ignoring");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
+			return;
+		}
+		if(!memcmp(buf + 12, unknown0, 13) == 0)
+		{
+			CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 12, 13);
+			return;
+		}
+		CHIAKI_LOGI(stream_connection->log, "StreamConnection received orientation reset request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+	}
+	else
+	{
+		// check if orient reset typre is used
+		if(!memcmp(buf, orient_reset, 4) == 0)
+		{
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to gyro reset, ignoring");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
+			return;
+		}
+		if(!memcmp(buf + 4, unknown0, 13) == 0)
+		{
+			CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 4, 13);
+			return;
+		}
+	}
+	ChiakiEvent event = { 0 };
+	event.type = CHIAKI_EVENT_ORIENT_RESET;
 	chiaki_session_send_event(stream_connection->session, &event);
 }
 

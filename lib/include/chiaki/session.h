@@ -155,6 +155,7 @@ typedef enum {
 	CHIAKI_EVENT_RUMBLE,
 	CHIAKI_EVENT_QUIT,
 	CHIAKI_EVENT_TRIGGER_EFFECTS,
+	CHIAKI_EVENT_ORIENT_RESET,
 } ChiakiEventType;
 
 typedef struct chiaki_event_t

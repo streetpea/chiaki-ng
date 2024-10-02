@@ -288,6 +288,8 @@ Controller::Controller(int device_id, ControllerManager *manager)
 	this->id = device_id;
 	this->manager = manager;
 	chiaki_orientation_tracker_init(&this->orientation_tracker);
+	chiaki_accel_new_zero_set_inactive(&this->accel_zero);
+	chiaki_accel_new_zero_set_inactive(&this->real_accel);
 	chiaki_controller_state_set_idle(&this->state);
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -308,6 +310,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(controller_id);
 			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
+			last_motion_timestamp = 0;
 			break;
 		}
 	}
@@ -628,25 +631,34 @@ inline bool Controller::HandleAxisEvent(SDL_ControllerAxisEvent event) {
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 inline bool Controller::HandleSensorEvent(SDL_ControllerSensorEvent event)
 {
+	float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
 	switch(event.sensor)
 	{
 		case SDL_SENSOR_ACCEL:
-			state.accel_x = event.data[0] / SDL_STANDARD_GRAVITY;
-			state.accel_y = event.data[1] / SDL_STANDARD_GRAVITY;
-			state.accel_z = event.data[2] / SDL_STANDARD_GRAVITY;
+			accel_x = event.data[0] / SDL_STANDARD_GRAVITY;
+			accel_y = event.data[1] / SDL_STANDARD_GRAVITY;
+			accel_z = event.data[2] / SDL_STANDARD_GRAVITY;
+			chiaki_accel_new_zero_set_active(&this->real_accel,
+			accel_x, accel_y, accel_z, true);
+			chiaki_orientation_tracker_update(
+				&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
+				accel_x, accel_y, accel_z, &accel_zero, false, event.timestamp * 1000);
 			break;
 		case SDL_SENSOR_GYRO:
-			state.gyro_x = event.data[0];
-			state.gyro_y = event.data[1];
-			state.gyro_z = event.data[2];
+			gyro_x = event.data[0];
+			gyro_y = event.data[1];
+			gyro_z = event.data[2];
+			chiaki_orientation_tracker_update(
+				&orientation_tracker, gyro_x, gyro_y, gyro_z,
+				state.accel_x, state.accel_y, state.accel_z, &accel_zero, true, event.timestamp * 1000);
 			break;
 		default:
 			return false;
 	}
-	chiaki_orientation_tracker_update(
-		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
-		state.accel_x, state.accel_y, state.accel_z, event.timestamp * 1000);
+	last_motion_timestamp = event.timestamp * 1000;
 	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
+	if(IsDualSense())
+		printf("sdeck.accel_x: %f, sdeck.accel_y: %f, sdeck.accel_z: %f\n", state.accel_x, state.accel_y, state.accel_z);
 	return true;
 }
 
@@ -855,4 +867,18 @@ bool Controller::IsSteamVirtual()
 	return is_steam_virtual;
 #endif
 	return false;
+}
+
+void Controller::resetMotionControls()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
+	chiaki_orientation_tracker_init(&orientation_tracker);
+	chiaki_orientation_tracker_update(
+		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
+		state.accel_x, state.accel_y, state.accel_z, &accel_zero, false, last_motion_timestamp);
+	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
+#endif
 }
