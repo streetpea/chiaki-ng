@@ -129,6 +129,9 @@ public:
 
     void profileChanged();
 
+    bool zeroCopy()        { return !disable_zero_copy; };
+    void disableZeroCopy() { disable_zero_copy = true; };
+
     Q_INVOKABLE void deleteHost(int index);
     Q_INVOKABLE void wakeUpHost(int index);
     Q_INVOKABLE void addManualHost(int index, const QString &address);
@@ -229,6 +232,7 @@ private:
     SystemdInhibit *sleep_inhibit = {};
     bool controller_mapping_default_mapping = false;
     bool controller_mapping_altered = false;
+    bool disable_zero_copy = false;
     Controller *controller_mapping_controller = {};
     QList<QString> current_controller_guids = {};
     int controller_mapping_id = -1;
