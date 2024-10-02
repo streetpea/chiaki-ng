@@ -774,7 +774,14 @@ void QmlMainWindow::render()
             .tex = tex,
         };
         if (!pl_map_avframe_ex(placebo_vulkan->gpu, &current_frame, &avparams))
+        {
             qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
+            if(backend && backend->zeroCopy())
+            {
+                qCInfo(chiakiGui) << "Mapping frame failed, trying without zero copy!";
+                backend->disableZeroCopy();
+            }
+        }
         av_frame_free(&frame);
     }
 
