@@ -657,8 +657,6 @@ inline bool Controller::HandleSensorEvent(SDL_ControllerSensorEvent event)
 	}
 	last_motion_timestamp = event.timestamp * 1000;
 	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
-	if(IsDualSense())
-		printf("sdeck.accel_x: %f, sdeck.accel_y: %f, sdeck.accel_z: %f\n", state.accel_x, state.accel_y, state.accel_z);
 	return true;
 }
 
