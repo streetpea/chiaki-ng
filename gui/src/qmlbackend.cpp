@@ -657,7 +657,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             AV_PIX_FMT_VAAPI,
 #endif
         };
-        if (frame->hw_frames_ctx && !zero_copy_formats.contains(frame->format)) {
+        if (frame->hw_frames_ctx && (!zero_copy_formats.contains(frame->format) || disable_zero_copy)) {
             AVFrame *sw_frame = av_frame_alloc();
             if (av_hwframe_transfer_data(sw_frame, frame, 0) < 0) {
                 qCWarning(chiakiGui) << "Failed to transfer frame from hardware";
