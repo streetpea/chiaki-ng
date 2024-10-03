@@ -480,7 +480,7 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 				(unsigned long long)buf_size);
 		return;
 	}
-	const uint8_t orient_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
+	const uint8_t motion_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
 	const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
 	if(buf_size == 0x19)
 	{
@@ -488,10 +488,10 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
 		int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
 		uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
-		// check if orient reset typre is used
-		if(!memcmp(buf + 8, orient_reset, 4) == 0)
+		// check if motion reset type is used
+		if(!memcmp(buf + 8, motion_reset, 4) == 0)
 		{
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to gyro reset, ignoring");
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset, ignoring");
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
 			return;
 		}
@@ -501,14 +501,14 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 12, 13);
 			return;
 		}
-		CHIAKI_LOGI(stream_connection->log, "StreamConnection received orientation reset request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+		CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
 	}
 	else
 	{
-		// check if orient reset typre is used
-		if(!memcmp(buf, orient_reset, 4) == 0)
+		// check if motion reset type is used
+		if(!memcmp(buf, motion_reset, 4) == 0)
 		{
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to gyro reset, ignoring");
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset, ignoring");
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
 			return;
 		}
@@ -520,7 +520,7 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		}
 	}
 	ChiakiEvent event = { 0 };
-	event.type = CHIAKI_EVENT_ORIENT_RESET;
+	event.type = CHIAKI_EVENT_MOTION_RESET;
 	chiaki_session_send_event(stream_connection->session, &event);
 }
 

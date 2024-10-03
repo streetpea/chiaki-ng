@@ -177,7 +177,7 @@ class StreamSession : public QObject
 		bool sdeck_skipl, sdeck_skipr;
 		bool enable_steamdeck_haptics;
 		ChiakiOrientationTracker sdeck_orient_tracker;
-		ChiakiAccelNewZero *accel_zero sdeck_accel_zero, sdeck_real_accel;
+		ChiakiAccelNewZero sdeck_accel_zero, sdeck_real_accel;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
 #endif

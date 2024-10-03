@@ -48,7 +48,7 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_update(ChiakiOrientationTracker *t
 CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOrientationTracker *tracker,
 		ChiakiControllerState *state);
 CHIAKI_EXPORT void chiaki_accel_new_zero_set_inactive(ChiakiAccelNewZero *accel_zero);
-CHIAKI_EXPORT void chiaki_accel_new_zero_set_active(ChiakiAccelNewZero *accel_zero, float accel_x, float accel_y, float accel_z, bool real_gyro);
+CHIAKI_EXPORT void chiaki_accel_new_zero_set_active(ChiakiAccelNewZero *accel_zero, float accel_x, float accel_y, float accel_z, bool real_accel);
 
 #ifdef __cplusplus
 }

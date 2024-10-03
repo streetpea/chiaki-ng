@@ -185,14 +185,14 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOr
 CHIAKI_EXPORT void chiaki_accel_new_zero_set_inactive(ChiakiAccelNewZero *accel_zero)
 {
 	accel_zero->accel_x = 0.0f;
-	accel_zero->accel_y = 0.0f;
+	accel_zero->accel_y = 1.0f;
 	accel_zero->accel_z = 0.0f;
 }
 
-CHIAKI_EXPORT void chiaki_accel_new_zero_set_active(ChiakiAccelNewZero *accel_zero, float accel_x, float accel_y, float accel_z, bool real_gyro)
+CHIAKI_EXPORT void chiaki_accel_new_zero_set_active(ChiakiAccelNewZero *accel_zero, float accel_x, float accel_y, float accel_z, bool real_accel)
 {
 	accel_zero->accel_x = accel_x;
-	if(real_gyro)
+	if(real_accel)
 		accel_zero->accel_y = accel_y;
 	else
 		accel_zero->accel_y = accel_y - 1.0f;

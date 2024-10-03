@@ -369,7 +369,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 			sdeck_read(sdeck, SessionSDeckCb, this);
 			if(sdeck_orient_dirty)
 			{
-				chiaki_orientation_tracker_apply_to_controller_state(&sdeck_orient_tracker, &sdeck_accel_zero, &sdeck_state);
+				chiaki_orientation_tracker_apply_to_controller_state(&sdeck_orient_tracker, &sdeck_state);
 				SendFeedbackState();
 				sdeck_orient_dirty = false;
 			}
@@ -836,7 +836,6 @@ void StreamSession::SendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-
 	chiaki_session_set_controller_state(&session, &state);
 }
 
@@ -1487,8 +1486,8 @@ void StreamSession::Event(ChiakiEvent *event)
 			});
 			break;
 		}
-		case CHIAKI_EVENT_ORIENT_RESET: {
-			CHIAKI_LOGI(GetChiakiLog(), "Resetting motion control orientation.");
+		case CHIAKI_EVENT_MOTION_RESET: {
+			CHIAKI_LOGI(GetChiakiLog(), "Resetting motion controls...");
 			QMetaObject::invokeMethod(this, [this]() {
 				for(auto controller : controllers)
 
@@ -1500,12 +1499,12 @@ void StreamSession::Event(ChiakiEvent *event)
 			chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
 			chiaki_orientation_tracker_init(&sdeck_orient_tracker);
 #endif
-			break;
-		}
 #if CHIAKI_GUI_ENABLE_SETSU
 			chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
 			chiaki_orientation_tracker_init(&orient_tracker);
 #endif
+			break;
+		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
 			uint8_t type_left = event->trigger_effects.type_left;
 			uint8_t data_left[10];
@@ -1544,7 +1543,6 @@ void StreamSession::HandleSDeckEvent(SDeckEvent *event)
 					event->motion.gyro_x, event->motion.gyro_y, event->motion.gyro_z,
 					event->motion.accel_x, event->motion.accel_y, event->motion.accel_z,
 					&sdeck_accel_zero, false, chiaki_time_now_monotonic_us());
-				SendFeedbackState();
 			}
 			else // swap y with z axis to use roll instead of yaw
 			{
