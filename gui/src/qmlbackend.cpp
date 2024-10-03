@@ -943,7 +943,7 @@ void QmlBackend::connectToHost(int index)
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
                 qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
             });
-            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, &info]() {
+            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
                 createSession(info);
             });
             QString refresh_token = settings->GetPsnRefreshToken();
@@ -1701,7 +1701,7 @@ QString QmlBackend::openPlaceboOptionsLink()
 
 void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
 {
-    const QJSValue &cb = callback;
+    const QJSValue cb = callback;
     if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
     {
         if (cb.isCallable())
@@ -1717,11 +1717,11 @@ void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
     }
     PSNAccountID *psnId = new PSNAccountID(settings, this);
     connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
-    connect(psnId, &PSNAccountID::AccountIDError, this, [&cb](const QString &error) {
+    connect(psnId, &PSNAccountID::AccountIDError, this, [cb](const QString &error) {
         if (cb.isCallable())
             cb.call({error, false, true});
     });
-    connect(psnId, &PSNAccountID::AccountIDResponse, this, [&cb]() {
+    connect(psnId, &PSNAccountID::AccountIDResponse, this, [cb]() {
         if (cb.isCallable())
             cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
     });
