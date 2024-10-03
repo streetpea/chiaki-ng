@@ -1490,7 +1490,6 @@ void StreamSession::Event(ChiakiEvent *event)
 			CHIAKI_LOGI(GetChiakiLog(), "Resetting motion controls...");
 			QMetaObject::invokeMethod(this, [this]() {
 				for(auto controller : controllers)
-
 					controller->resetMotionControls();
 			});
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -1512,7 +1511,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			uint8_t data_right[10];
 			memcpy(data_right, event->trigger_effects.right, 10);
 			uint8_t type_right = event->trigger_effects.type_right;
-			QMetaObject::invokeMethod(this, [this, &type_left, &data_left, &type_right, &data_right]() {
+			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
 				for(auto controller : controllers)
 					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);
 			});

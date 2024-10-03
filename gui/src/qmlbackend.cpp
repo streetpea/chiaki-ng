@@ -692,7 +692,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         setDiscoveryEnabled(true);
     });
 
-    connect(session, &StreamSession::LoginPINRequested, this, [this, &connect_info](bool incorrect) {
+    connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
         if (!connect_info.initial_login_pin.isEmpty() && incorrect == false)
             session->SetLoginPIN(connect_info.initial_login_pin);
         else
