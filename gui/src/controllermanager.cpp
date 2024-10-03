@@ -288,8 +288,8 @@ Controller::Controller(int device_id, ControllerManager *manager)
 	this->id = device_id;
 	this->manager = manager;
 	chiaki_orientation_tracker_init(&this->orientation_tracker);
-	chiaki_accel_new_zero_set_inactive(&this->accel_zero);
-	chiaki_accel_new_zero_set_inactive(&this->real_accel);
+	chiaki_accel_new_zero_set_inactive(&this->accel_zero, false);
+	chiaki_accel_new_zero_set_inactive(&this->real_accel, true);
 	chiaki_controller_state_set_idle(&this->state);
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -867,16 +867,19 @@ bool Controller::IsSteamVirtual()
 	return false;
 }
 
-void Controller::resetMotionControls()
+void Controller::resetMotionControls(bool reset)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
+	if(reset)
+		chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
+	else
+		chiaki_accel_new_zero_set_inactive(&accel_zero, false); 
 	chiaki_orientation_tracker_init(&orientation_tracker);
 	chiaki_orientation_tracker_update(
 		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
-		state.accel_x, state.accel_y, state.accel_z, &accel_zero, false, last_motion_timestamp);
+		real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, &accel_zero, false, last_motion_timestamp);
 	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
 #endif
 }

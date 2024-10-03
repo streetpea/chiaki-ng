@@ -122,7 +122,7 @@ class Controller : public QObject
 		bool IsHandheld();
 		bool IsSteamVirtual();
 		bool IsDualSenseEdge();
-		void resetMotionControls();
+		void resetMotionControls(bool reset);
 
 	signals:
 		void StateChanged();

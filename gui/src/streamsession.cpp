@@ -330,8 +330,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_motion_device = nullptr;
 	chiaki_controller_state_set_idle(&setsu_state);
-	chiaki_accel_new_zero_set_inactive(&setsu_accel_zero);
-	chiaki_accel_new_zero_set_inactive(&setsu_real_accel);
+	chiaki_accel_new_zero_set_inactive(&setsu_accel_zero, false);
+	chiaki_accel_new_zero_set_inactive(&setsu_real_accel, true);
 	setsu_ids=QMap<QPair<QString, SetsuTrackingId>, uint8_t>();
 	orient_dirty = true;
 	chiaki_orientation_tracker_init(&orient_tracker);
@@ -359,8 +359,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	{
 		CHIAKI_LOGI(GetChiakiLog(), "Connected Steam Deck ... gyro online\n\n");
 		vertical_sdeck = connect_info.vertical_sdeck;
-		chiaki_accel_new_zero_set_inactive(&sdeck_accel_zero);
-		chiaki_accel_new_zero_set_inactive(&sdeck_real_accel);
+		chiaki_accel_new_zero_set_inactive(&sdeck_accel_zero, false);
+		chiaki_accel_new_zero_set_inactive(&sdeck_real_accel, true);
 		chiaki_orientation_tracker_init(&sdeck_orient_tracker);
 		sdeck_orient_dirty = true;
 
@@ -1487,22 +1487,40 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 		}
 		case CHIAKI_EVENT_MOTION_RESET: {
-			CHIAKI_LOGI(GetChiakiLog(), "Resetting motion controls...");
-			QMetaObject::invokeMethod(this, [this]() {
+			bool reset = event->data_motion.motion_reset;
+			if(reset)
+				CHIAKI_LOGI(GetChiakiLog(), "Resetting motion controls...");
+			else
+				CHIAKI_LOGI(GetChiakiLog(), "Returning motion controls to normal...");
+			QMetaObject::invokeMethod(this, [this, reset]() {
 				for(auto controller : controllers)
-					controller->resetMotionControls();
+					controller->resetMotionControls(reset);
 			});
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-			if(!sdeck)
-				return;
-			chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
-			chiaki_orientation_tracker_init(&sdeck_orient_tracker);
+			if(sdeck)
+			{
+				if(reset)
+					chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
+				else
+					chiaki_accel_new_zero_set_inactive(&sdeck_accel_zero, false);
+				chiaki_orientation_tracker_init(&sdeck_orient_tracker);
+				chiaki_orientation_tracker_update(
+					&sdeck_orient_tracker, sdeck_state.gyro_x, sdeck_state.gyro_y, sdeck_state.gyro_z,
+					sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, &sdeck_accel_zero, false, chiaki_time_now_monotonic_us());
+				chiaki_orientation_tracker_apply_to_controller_state(&sdeck_orient_tracker, &sdeck_state);
+			}
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
-			chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
+			if(reset)
+				chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
+			else
+				chiaki_accel_new_zero_set_inactive(&setsu_accel_zero, false);
 			chiaki_orientation_tracker_init(&orient_tracker);
+			chiaki_orientation_tracker_update(
+				&orient_tracker, setsu_state.gyro_x, setsu_state.gyro_y, setsu_state.gyro_z,
+				setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, &setsu_accel_zero, false, chiaki_time_now_monotonic_us());
+			chiaki_orientation_tracker_apply_to_controller_state(&orient_tracker, &setsu_state);
 #endif
-			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
 			uint8_t type_left = event->trigger_effects.type_left;

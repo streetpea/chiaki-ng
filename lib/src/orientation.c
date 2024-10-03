@@ -182,10 +182,13 @@ CHIAKI_EXPORT void chiaki_orientation_tracker_apply_to_controller_state(ChiakiOr
 	state->orient_z = COS_NEG_1_4_PI * tracker->orient.z + SIN_NEG_1_4_PI * tracker->orient.y;
 }
 
-CHIAKI_EXPORT void chiaki_accel_new_zero_set_inactive(ChiakiAccelNewZero *accel_zero)
+CHIAKI_EXPORT void chiaki_accel_new_zero_set_inactive(ChiakiAccelNewZero *accel_zero, bool real_accel)
 {
 	accel_zero->accel_x = 0.0f;
-	accel_zero->accel_y = 1.0f;
+	if(real_accel)
+		accel_zero->accel_y = 1.0f;
+	else
+		accel_zero->accel_y = 0.0f;
 	accel_zero->accel_z = 0.0f;
 }
 

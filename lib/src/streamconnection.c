@@ -474,53 +474,69 @@ static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection
 
 static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
-	if(buf_size != 0x19 && buf_size != 0x11)
-	{
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection got pad info with size %#llx not equal to 0x19 or 0x11",
-				(unsigned long long)buf_size);
-		return;
-	}
+	bool reset = false;
 	const uint8_t motion_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
-	const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
-	if(buf_size == 0x19)
+	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
+	// const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
+
+	switch(buf_size)
 	{
-		// sequence number of feedback packet this is responding to
-		uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
-		int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
-		uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
-		// check if motion reset type is used
-		if(!memcmp(buf + 8, motion_reset, 4) == 0)
+		case 0x19:
 		{
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset, ignoring");
+			// sequence number of feedback packet this is responding to
+			uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
+			// int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
+			uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
+			// check if motion reset type is used
+			if(memcmp(buf + 8, motion_reset, 4) == 0)
+			{
+				reset = true;
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+				break;
+			}
+			if(memcmp(buf + 8, motion_normal, 4) == 0)
+			{
+				reset = false;
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+				break;
+			}
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
 			return;
+			// if(!memcmp(buf + 12, unknown0, 13) == 0)
+			// {
+			// 	CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
+			// 	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 12, 13);
+			// 	return;
+			// }
 		}
-		if(!memcmp(buf + 12, unknown0, 13) == 0)
+		case 0x11:
 		{
-			CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
-			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 12, 13);
-			return;
-		}
-		CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
-	}
-	else
-	{
-		// check if motion reset type is used
-		if(!memcmp(buf, motion_reset, 4) == 0)
-		{
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset, ignoring");
+			// check if motion reset type is used
+			if(memcmp(buf, motion_reset, 4) == 0)
+			{
+				reset = true;
+				break;
+			}
+			if(memcmp(buf, motion_normal, 4) == 0)
+			{
+				reset = false;
+				break;
+			}
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
 			return;
 		}
-		if(!memcmp(buf + 4, unknown0, 13) == 0)
+		default:
 		{
-			CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
-			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 4, 13);
+			CHIAKI_LOGE(stream_connection->log, "StreamConnection got pad info with size %#llx not equal to 0x19 or 0x11",
+					(unsigned long long)buf_size);
 			return;
 		}
 	}
 	ChiakiEvent event = { 0 };
 	event.type = CHIAKI_EVENT_MOTION_RESET;
+	event.data_motion.motion_reset = reset;
 	chiaki_session_send_event(stream_connection->session, &event);
 }
 
