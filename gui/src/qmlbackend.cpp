@@ -1128,8 +1128,8 @@ void QmlBackend::updateControllers()
             controllerMappingQuit();
         }
         QString guid = it.value()->GetGUID();
-        if(current_controller_guids.contains(guid))
-            current_controller_guids.removeOne(guid);
+        if(controller_guids_to_update.contains(guid))
+            controller_guids_to_update.removeOne(guid);
         it.value()->deleteLater();
         it = controllers.erase(it);
         changed = true;
@@ -1142,8 +1142,7 @@ void QmlBackend::updateControllers()
             continue;
         controllers[id] = new QmlController(controller, window, this);
         QString guid = controller->GetGUIDString();
-        if(!current_controller_guids.contains(guid))
-            current_controller_guids.append(guid);
+        controller_guids_to_update.append(guid);
         connect(controller, &Controller::UpdatingControllerMapping, this, &QmlBackend::controllerMappingUpdate);
         connect(controller, &Controller::NewButtonMapping, this, &QmlBackend::controllerMappingChangeButton);
         changed = true;
@@ -1241,7 +1240,7 @@ void QmlBackend::updateControllerMappings()
     for(int i=0; i<mapping_guids.length(); i++)
     {
         QString guid = mapping_guids.at(i);
-        if(!current_controller_guids.contains(guid))
+        if(!controller_guids_to_update.contains(guid))
             continue;
         if(!controller_mapping_original_controller_mappings.contains(guid))
         {
@@ -1270,7 +1269,9 @@ void QmlBackend::updateControllerMappings()
                 break;
             default:
                 qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << guid;
+                break;
         }
+        controller_guids_to_update.removeOne(guid);
     }
 }
 
@@ -1364,7 +1365,10 @@ void QmlBackend::updateButton(int chiaki_button, QString physical_button, int ne
         controller_mapping_physical_button_mappings.insert(new_mapping_buttons.at(new_index), QString());
         new_mapping_buttons.remove(new_index);
     }
-    new_mapping_buttons.append(physical_button);
+    if(new_index == 0)
+        new_mapping_buttons.prepend(physical_button);
+    else
+        new_mapping_buttons.append(physical_button);
     controller_mapping_controller_mappings.insert(button, new_mapping_buttons);
     controller_mapping_physical_button_mappings.insert(physical_button, button);
     if(controller_mapping_controller_mappings == controller_mapping_applied_controller_mappings)
@@ -1425,7 +1429,7 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
         if(controller_mapping_controller_mappings.contains(key))
         {
             auto update_list = controller_mapping_controller_mappings.value(key);
-            individual_mapping_list += update_list;
+            individual_mapping_list = update_list + individual_mapping_list;
         }
         controller_mapping_controller_mappings.insert(key, individual_mapping_list);
         for(int j = 0; j < individual_mapping_list.length(); j++)
