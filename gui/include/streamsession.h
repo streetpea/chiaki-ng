@@ -88,7 +88,6 @@ struct StreamSessionConnectInfo
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool start_mic_unmuted;
-	QMap<QString, QString> controller_mappings;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
 	bool enable_steamdeck_haptics;
@@ -154,8 +153,6 @@ class StreamSession : public QObject
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
-		QList<QString> controller_guids_to_update;
-		QMap<QString, QString> controller_mappings;
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
 		Setsu *setsu;
@@ -224,7 +221,6 @@ class StreamSession : public QObject
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
 		ChiakiErrorCode InitiatePsnConnection(QString psn_token);
-		void updateControllerMappings();
 #ifdef Q_OS_MACOS
 		void SetMicAuthorization(Authorization authorization);
 #endif

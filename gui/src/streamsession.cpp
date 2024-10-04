@@ -103,7 +103,6 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
-	this->controller_mappings = settings->GetControllerMappings();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
@@ -225,7 +224,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 	host = connect_info.host;
 	QByteArray host_str = connect_info.host.toUtf8();
-	controller_mappings = connect_info.controller_mappings;
 
 	ChiakiConnectInfo chiaki_connect_info = {};
 	chiaki_connect_info.ps5 = chiaki_target_is_ps5(connect_info.target);
@@ -740,9 +738,6 @@ void StreamSession::UpdateGamepads()
 		if(!controller->IsConnected())
 		{
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d disconnected", controller->GetDeviceID());
-			QString guid = controller->GetGUIDString();
-			if(controller_guids_to_update.contains(guid))
-				controller_guids_to_update.removeOne(guid);
 			controllers.remove(controller_id);
 			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
@@ -762,18 +757,15 @@ void StreamSession::UpdateGamepads()
 		if(!controllers.contains(controller_id))
 		{
 			auto controller = ControllerManager::GetInstance()->OpenController(controller_id);
-			QString guid = controller->GetGUIDString();
 			if(!controller)
 			{
 				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open controller %d", controller_id);
 				continue;
 			}
-			controller_guids_to_update.append(guid);
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", controller_id, controller->GetName().toLocal8Bit().constData());
 			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
 			connect(controller, &Controller::MicButtonPush, this, &StreamSession::ToggleMute);
 			controllers[controller_id] = controller;
-			updateControllerMappings();
 			if(controller->IsHandheld())
 			{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -784,11 +776,15 @@ void StreamSession::UpdateGamepads()
 				haptics_handheld++;
 #endif
 			}
+			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
+			{
+				haptics_handheld--;
+			}
 			if (controller->IsDualSense())
 			{
 				controller->SetDualsenseMic(muted);
 				if(this->haptics_output > 0)
-					return;
+					continue;
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
 			}
@@ -796,49 +792,14 @@ void StreamSession::UpdateGamepads()
 			{
 				controller->SetDualsenseMic(muted);
 				if(this->haptics_output > 0)
-					return;
+					continue;
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(15000, this, &StreamSession::ConnectHaptics);
 			}
-			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
-			{
-				haptics_handheld--;
-			}
 		}
 	}
-	
 	SendFeedbackState();
 #endif
-}
-
-void StreamSession::updateControllerMappings()
-{
-    if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
-        return;
-    QStringList mapping_guids = controller_mappings.keys();
-    for(int i=0; i<mapping_guids.length(); i++)
-    {
-        QString guid = mapping_guids.at(i);
-        if(!controller_guids_to_update.contains(guid))
-            continue;
-        int result = SDL_GameControllerAddMapping(controller_mappings.value(guid).toUtf8().constData());
-        switch(result)
-        {
-            case -1:
-                CHIAKI_LOGE(GetChiakiLog(), "Error setting controller mapping for guid: %s with error: %s", guid.toUtf8().constData(), SDL_GetError());
-                break;
-            case 0:
-                CHIAKI_LOGI(GetChiakiLog(), "Updated controller mapping for guid: %s", guid.toUtf8().constData());
-                break;
-            case 1:
-                CHIAKI_LOGI(GetChiakiLog(), "Added controller mapping for guid: %s", guid.toUtf8().constData());
-                break;
-            default:
-                CHIAKI_LOGW(GetChiakiLog(), "Unidentified problem mapping for guid: %s", guid.toUtf8().constData());
-                break;
-        }
-        controller_guids_to_update.removeOne(guid);
-    }
 }
 
 void StreamSession::SendFeedbackState()
