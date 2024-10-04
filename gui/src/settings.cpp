@@ -160,6 +160,7 @@ void Settings::ExportSettings(QString fileurl)
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	SaveRegisteredHosts(&settings_backup);
 	SaveManualHosts(&settings_backup);
+	SaveControllerMappings(&settings_backup);
     QStringList keys = settings.allKeys();
     for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
     {
@@ -207,12 +208,14 @@ void Settings::ImportSettings(QString fileurl)
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	LoadRegisteredHosts(&settings_backup);
 	LoadManualHosts(&settings_backup);
+	LoadControllerMappings(&settings_backup);
 	QString profile = settings_backup.value("this_profile").toString();
 	if(profile.isEmpty())
 	{
 		settings.clear();
 		SaveRegisteredHosts();
 		SaveManualHosts();
+		SaveControllerMappings();
 		QStringList keys = settings_backup.allKeys();
 		for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
 		{
@@ -226,6 +229,7 @@ void Settings::ImportSettings(QString fileurl)
 		profile_settings.clear();
 		SaveRegisteredHosts(&profile_settings);
 		SaveManualHosts(&profile_settings);
+		SaveControllerMappings(&profile_settings);
 		QStringList keys = settings_backup.allKeys();
 		for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
 		{
@@ -1793,16 +1797,16 @@ void Settings::RemoveManualHost(int id)
 	emit ManualHostsUpdated();
 }
 
-void Settings::SetControllerMapping(const QString &guid, const QString &mapping)
+void Settings::SetControllerMapping(const QString &vidpid, const QString &mapping)
 {
-	controller_mappings.insert(guid, mapping);
+	controller_mappings.insert(vidpid, mapping);
 	SaveControllerMappings();
 	emit ControllerMappingsUpdated();
 }
 
-void Settings::RemoveControllerMapping(const QString &guid)
+void Settings::RemoveControllerMapping(const QString &vidpid)
 {
-	controller_mappings.remove(guid);
+	controller_mappings.remove(vidpid);
 	SaveControllerMappings();
 	emit ControllerMappingsUpdated();
 }
@@ -1817,7 +1821,10 @@ void Settings::LoadControllerMappings(QSettings *qsettings)
 	for(int i=0; i<count; i++)
 	{
 		qsettings->setArrayIndex(i);
-		controller_mappings.insert(qsettings->value("guid").toString(), qsettings->value("controller_mapping").toString());
+		QString vidpid = qsettings->value("vidpid").toString();
+		if(vidpid.isEmpty())
+			vidpid = qsettings->value("guid").toString();
+		controller_mappings.insert(vidpid, qsettings->value("controller_mapping").toString());
 	}
 	qsettings->endArray();
 	emit ControllerMappingsUpdated();
@@ -1833,7 +1840,7 @@ void Settings::SaveControllerMappings(QSettings *qsettings)
 	while (j.hasNext()) {
 		qsettings->setArrayIndex(i);
 		j.next();
-		qsettings->setValue("guid", j.key());
+		qsettings->setValue("vidpid", j.key());
 		qsettings->setValue("controller_mapping", j.value());
 		i++;
 	}

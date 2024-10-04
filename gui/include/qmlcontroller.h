@@ -21,6 +21,7 @@ public:
     bool isSteamVirtual() const;
     bool isDualSenseEdge() const;
     QString GetGUID() const;
+    QString GetVIDPID() const;
 
 private:
     void sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);

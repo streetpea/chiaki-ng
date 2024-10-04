@@ -568,8 +568,8 @@ class Settings : public QObject
 		ManualHost GetManualHost(int id) const						{ return manual_hosts[id]; }
 
 		QMap<QString, QString> GetControllerMappings() const		{ return controller_mappings; }
-		void SetControllerMapping(const QString &guid, const QString &mapping);
-		void RemoveControllerMapping(const QString &guid);
+		void SetControllerMapping(const QString &vidpid, const QString &mapping);
+		void RemoveControllerMapping(const QString &vidpid);
 
 		static QString GetChiakiControllerButtonName(int);
 		void SetControllerButtonMapping(int, Qt::Key);

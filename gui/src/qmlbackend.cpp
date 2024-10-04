@@ -1117,6 +1117,7 @@ bool QmlBackend::sendWakeup(const QString &host, const QByteArray &regist_key, b
 void QmlBackend::updateControllers()
 {
     bool changed = false;
+    QMap<QString,QString> controller_mappings = settings->GetControllerMappings();
     for (auto it = controllers.begin(); it != controllers.end();) {
         if (ControllerManager::GetInstance()->GetAvailableControllers().contains(it.key())) {
             it++;
@@ -1127,9 +1128,8 @@ void QmlBackend::updateControllers()
             controller_mapping_controller = nullptr;
             controllerMappingQuit();
         }
+        QString vidpid = it.value()->GetVIDPID();
         QString guid = it.value()->GetGUID();
-        if(controller_guids_to_update.contains(guid))
-            controller_guids_to_update.removeOne(guid);
         it.value()->deleteLater();
         it = controllers.erase(it);
         changed = true;
@@ -1141,8 +1141,24 @@ void QmlBackend::updateControllers()
         if (!controller)
             continue;
         controllers[id] = new QmlController(controller, window, this);
+        QString vidpid = controller->GetVIDPIDString();
         QString guid = controller->GetGUIDString();
-        controller_guids_to_update.append(guid);
+        QStringList existing_vidpid;
+        if(controller_guids_to_update.contains(vidpid))
+            existing_vidpid.append(controller_guids_to_update.value(vidpid));
+        existing_vidpid.append(guid);
+        controller_guids_to_update.insert(vidpid, existing_vidpid);
+        // replace old guid with new vid/pid
+        if(controller_mappings.contains(guid))
+        {
+            QString old_mapping = controller_mappings.value(guid);
+            qsizetype guid_string_length = old_mapping.indexOf(",") + 1;
+            old_mapping.remove(0, guid_string_length);
+            settings->RemoveControllerMapping(guid);
+            settings->SetControllerMapping(vidpid, old_mapping);
+            qCInfo(chiakiGui) << "Migrated controller mapping from platform-specific GUID: " << guid << " to platform-agnostic VID/PID: " << vidpid;
+        }
+        controller_guids_to_update.insert(vidpid, existing_vidpid);
         connect(controller, &Controller::UpdatingControllerMapping, this, &QmlBackend::controllerMappingUpdate);
         connect(controller, &Controller::NewButtonMapping, this, &QmlBackend::controllerMappingChangeButton);
         changed = true;
@@ -1236,42 +1252,49 @@ void QmlBackend::updateControllerMappings()
     if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
         return;
     QMap<QString,QString> controller_mappings = settings->GetControllerMappings();
-    QStringList mapping_guids = controller_mappings.keys();
-    for(int i=0; i<mapping_guids.length(); i++)
+    QStringList mapping_vidpids = controller_mappings.keys();
+    for(int i=0; i<mapping_vidpids.length(); i++)
     {
-        QString guid = mapping_guids.at(i);
-        if(!controller_guids_to_update.contains(guid))
+        QString vidpid = mapping_vidpids.at(i);
+        if(!controller_guids_to_update.contains(vidpid))
             continue;
-        if(!controller_mapping_original_controller_mappings.contains(guid))
+        QStringList guids_to_update = controller_guids_to_update.value(vidpid);
+        for(int j=0; j<guids_to_update.length(); j++)
         {
-            const SDL_JoystickGUID real_guid = SDL_JoystickGetGUIDFromString(guid.toUtf8().constData());
-            const char *mapping = SDL_GameControllerMappingForGUID(real_guid);
-            QString original_controller_mapping(mapping);
-            SDL_free((char *)mapping);
-            if(original_controller_mapping.isEmpty())
+            QString guid = guids_to_update.at(j);
+            if(!controller_mapping_original_controller_mappings.contains(guid))
             {
-                qCWarning(chiakiGui) << "Error retrieving controller mapping of GUID " << guid << "with error: " << SDL_GetError();
-                return;
+                const SDL_JoystickGUID real_guid = SDL_JoystickGetGUIDFromString(guid.toUtf8().constData());
+                const char *mapping = SDL_GameControllerMappingForGUID(real_guid);
+                QString original_controller_mapping(mapping);
+                SDL_free((char *)mapping);
+                if(original_controller_mapping.isEmpty())
+                {
+                    qCWarning(chiakiGui) << "Error retrieving controller mapping of GUID " << guid << "with error: " << SDL_GetError();
+                    return;
+                }
+                controller_mapping_original_controller_mappings.insert(guid, original_controller_mapping);
             }
-            controller_mapping_original_controller_mappings.insert(guid, original_controller_mapping);
+            QString controller_mapping_to_add = controller_mappings.value(vidpid);
+            controller_mapping_to_add.prepend(QString("%1,").arg(guid));
+            int result = SDL_GameControllerAddMapping(controller_mapping_to_add.toUtf8().constData());
+            switch(result)
+            {
+                case -1:
+                    qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << guid << " with error: " << SDL_GetError();
+                    break;
+                case 0:
+                    qCInfo(chiakiGui) << "Updated controller mapping for guid: " << guid;
+                    break;
+                case 1:
+                    qCInfo(chiakiGui) << "Added controller mapping for guid: " << guid;
+                    break;
+                default:
+                    qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << guid;
+                    break;
+            }
         }
-        int result = SDL_GameControllerAddMapping(controller_mappings.value(guid).toUtf8().constData());
-        switch(result)
-        {
-            case -1:
-                qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << guid << " with error: " << SDL_GetError();
-                break;
-            case 0:
-                qCInfo(chiakiGui) << "Updated controller mapping for guid: " << guid;
-                break;
-            case 1:
-                qCInfo(chiakiGui) << "Added controller mapping for guid: " << guid;
-                break;
-            default:
-                qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << guid;
-                break;
-        }
-        controller_guids_to_update.removeOne(guid);
+        controller_guids_to_update.remove(vidpid);
     }
 }
 
@@ -1397,15 +1420,20 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
     if(original_controller_mapping.isEmpty())
     {
         qCWarning(chiakiGui) << "Error retrieving controller mapping " << SDL_GetError();
+        controller_mapping_id = -1;
+        controller_mapping_controller = nullptr;
         return;
     }
 	QStringList mapping_results = original_controller_mapping.split(u',');
     if(mapping_results.length() < 2)
     {
         qCWarning(chiakiGui) << "Received invalid Mapping List";
+        controller_mapping_id = -1;
+        controller_mapping_controller = nullptr;
         return;
     }
 	controller_mapping_controller_guid = mapping_results.takeFirst();
+    controller_mapping_controller_vid_pid = controller_mapping_controller->GetVIDPIDString();
     if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid))
     {
         setControllerMappingDefaultMapping(true);
@@ -1469,10 +1497,10 @@ void QmlBackend::controllerMappingSelectButton()
 
 void QmlBackend::controllerMappingReset()
 {
-    if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid) || SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0 || !settings->GetControllerMappings().keys().contains(controller_mapping_controller_guid))
+    if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid) || SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0 || !settings->GetControllerMappings().keys().contains(controller_mapping_controller_vid_pid))
         return;
 
-    settings->RemoveControllerMapping(controller_mapping_controller_guid);
+    settings->RemoveControllerMapping(controller_mapping_controller_vid_pid);
     int result = SDL_GameControllerAddMapping(controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid).toUtf8().constData());
     switch(result)
     {
@@ -1504,6 +1532,7 @@ void QmlBackend::controllerMappingQuit()
     setControllerMappingAltered(false);
     controller_mapping_id = -1;
     controller_mapping_controller_guid.clear();
+    controller_mapping_controller_vid_pid.clear();
     controller_mapping_controller_type.clear();
     controller_mapping_controller_mappings.clear();
     controller_mapping_applied_controller_mappings.clear();
@@ -1521,7 +1550,7 @@ void QmlBackend::controllerMappingButtonQuit()
 
 void QmlBackend::controllerMappingApply()
 {
-    QString new_controller_mapping = controller_mapping_controller_guid + "," + controller_mapping_controller_type;
+    QString new_controller_mapping = controller_mapping_controller_type;
     QMapIterator<QString, QStringList> i(controller_mapping_controller_mappings);
     while (i.hasNext()) {
         i.next();
@@ -1533,7 +1562,7 @@ void QmlBackend::controllerMappingApply()
     if(new_controller_mapping == controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid))
         settings->RemoveControllerMapping(controller_mapping_controller_guid);
     else
-        settings->SetControllerMapping(controller_mapping_controller_guid, new_controller_mapping);
+        settings->SetControllerMapping(controller_mapping_controller_vid_pid, new_controller_mapping);
 }
 
 void QmlBackend::updateDiscoveryHosts()

@@ -766,6 +766,18 @@ QString Controller::GetName()
 #endif
 }
 
+QString Controller::GetVIDPIDString()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return QString();
+	QString vid_pid = QString("%1:%2").arg(SDL_GameControllerGetVendor(controller)).arg(SDL_GameControllerGetProduct(controller));
+	return vid_pid;
+#else
+	return QString();
+#endif
+}
+
 ChiakiControllerState Controller::GetState()
 {
 	return state;

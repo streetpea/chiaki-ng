@@ -234,9 +234,10 @@ private:
     bool controller_mapping_altered = false;
     bool disable_zero_copy = false;
     Controller *controller_mapping_controller = {};
-    QList<QString> controller_guids_to_update = {};
+    QMap<QString, QStringList> controller_guids_to_update = {};
     int controller_mapping_id = -1;
     QString controller_mapping_controller_guid = "";
+    QString controller_mapping_controller_vid_pid = "";
     QString controller_mapping_controller_type = "";
     QMap<QString, QStringList> controller_mapping_controller_mappings = {};
     QMap<QString, QStringList> controller_mapping_applied_controller_mappings = {};

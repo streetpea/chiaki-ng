@@ -108,6 +108,7 @@ class Controller : public QObject
 		SDL_GameController *GetController() { return controller; };
 #endif
 		QString GetName();
+		QString GetVIDPIDString();
 		QString GetType();
 		QString GetGUIDString();
 		ChiakiControllerState GetState();
