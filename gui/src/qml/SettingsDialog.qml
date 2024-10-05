@@ -1415,6 +1415,33 @@ DialogView {
             }
         }
 
+        Item {
+            Timer {
+                id: openTimer
+                interval: 100
+                running: false
+                onTriggered: {
+                    if(controllerMappingDialog.resetMapping)
+                    {
+                        if(!Chiaki.controllerMappingDefaultMapping)
+                        {
+                            quitControllerMapping = false;
+                            Chiaki.controllerMappingReset();
+                        }
+                        controllerMappingDialog.close();
+                    }
+                    else
+                    {
+                        controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
+                        root.showControllerMappingDialog();
+                        quitControllerMapping = false;
+                        controllerMappingDialog.resetFocus = false;
+                        controllerMappingDialog.close();
+                    }
+                }
+            }
+        }
+
         FileDialog {
             id: exportDialog
             currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
@@ -1607,25 +1634,7 @@ DialogView {
             function onControllerMappingInProgressChanged()
             {
                 if(Chiaki.controllerMappingInProgress)
-                {
-                    if(controllerMappingDialog.resetMapping)
-                    {
-                        if(!Chiaki.controllerMappingDefaultMapping)
-                        {
-                            quitControllerMapping = false;
-                            Chiaki.controllerMappingReset();
-                        }
-                        controllerMappingDialog.close();
-                    }
-                    else
-                    {
-                        controllerMappingChange.forceActiveFocus(Qt.TabFocusReason);
-                        root.showControllerMappingDialog();
-                        quitControllerMapping = false;
-                        controllerMappingDialog.resetFocus = false;
-                        controllerMappingDialog.close();
-                    }
-                }
+                    openTimer.start();
             }
 
             function onControllerMappingSteamControllerSelected()

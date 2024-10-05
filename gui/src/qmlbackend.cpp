@@ -270,6 +270,8 @@ void QmlBackend::profileChanged()
         delete settings;
     settings_allocd = true;
     settings = settings_copy;
+    emit hostsChanged();
+    updateControllerMappings();
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
@@ -1405,6 +1407,8 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
 {
     if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
         return;
+    if(controller_mapping_in_progress)
+        return;
     controller_mapping_controller = controller;
     if(controller->IsSteamVirtual())
     {
@@ -1498,8 +1502,10 @@ void QmlBackend::controllerMappingSelectButton()
 void QmlBackend::controllerMappingReset()
 {
     if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid) || SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0 || !settings->GetControllerMappings().keys().contains(controller_mapping_controller_vid_pid))
+    {
+        controllerMappingQuit();
         return;
-
+    }
     settings->RemoveControllerMapping(controller_mapping_controller_vid_pid);
     int result = SDL_GameControllerAddMapping(controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid).toUtf8().constData());
     switch(result)
@@ -1558,11 +1564,36 @@ void QmlBackend::controllerMappingApply()
         for(int j = 0; j < physical_buttons.length(); j++)
             new_controller_mapping += "," + (i.key() + ":" + physical_buttons.at(j));
     }
-    // if user actually reset to default manually, remove mapping from settings else add
+    // if user actually reset to default manually, reset mapping, else add
     if(new_controller_mapping == controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid))
-        settings->RemoveControllerMapping(controller_mapping_controller_guid);
+    {
+        settings->RemoveControllerMapping(controller_mapping_controller_vid_pid);
+        int result = SDL_GameControllerAddMapping(controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid).toUtf8().constData());
+        switch(result)
+        {
+            case -1:
+                qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << controller_mapping_controller_guid << " with error: " << SDL_GetError();
+                break;
+            case 0:
+                qCInfo(chiakiGui) << "Updated controller mapping for guid: " << controller_mapping_controller_guid;
+                break;
+            case 1:
+                qCInfo(chiakiGui) << "Added controller mapping for guid: " << controller_mapping_controller_guid;
+                break;
+            default:
+                qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << controller_mapping_controller_guid;
+                break;
+        }
+    }
     else
+    {
+        QStringList existing_vidpid;
+        if(controller_guids_to_update.contains(controller_mapping_controller_vid_pid))
+            existing_vidpid.append(controller_guids_to_update.value(controller_mapping_controller_vid_pid));
+        existing_vidpid.append(controller_mapping_controller_guid);
+        controller_guids_to_update.insert(controller_mapping_controller_vid_pid, existing_vidpid);
         settings->SetControllerMapping(controller_mapping_controller_vid_pid, new_controller_mapping);
+    }
 }
 
 void QmlBackend::updateDiscoveryHosts()
