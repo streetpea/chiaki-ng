@@ -187,6 +187,7 @@ signals:
     void sessionStopDialogRequested();
     void registDialogRequested(const QString &host, bool ps5);
     void psnLoginAccountIdDone(const QString &accountId);
+    void psnLoginAccountIdError(const QString &error);
 
 private:
     struct DisplayServer {

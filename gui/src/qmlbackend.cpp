@@ -993,12 +993,15 @@ QUrl QmlBackend::psnLoginUrl() const
 bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
 {
     if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
+    {
+        emit psnLoginAccountIdError(QString("Redirect URL invalid does not start with:\n") + QString::fromStdString(PSNAuth::REDIRECT_PAGE));
         return false;
+    }
 
     const QString code = QUrlQuery(url).queryItemValue("code");
     if (code.isEmpty()) {
         qCWarning(chiakiGui) << "Invalid code from redirect url";
-        emit psnLoginAccountIdDone({});
+        emit psnLoginAccountIdError("Redirect URL invalid");
         return false;
     }
     PSNAccountID *psnId = new PSNAccountID(settings, this);
@@ -1008,7 +1011,8 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
     });
     connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
     connect(psnId, &PSNAccountID::AccountIDError, [this](const QString &error) {
-        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+        qCWarning(chiakiGui) << "Could not retrieve psn token or account Id!" << error;
+        emit psnLoginAccountIdError(error);
     });
     psnId->GetPsnAccountId(code);
     emit psnTokenChanged();
@@ -1736,6 +1740,7 @@ QString QmlBackend::openPsnLink()
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
+    return QString(url.toEncoded());
     if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
     {
         qCWarning(chiakiGui) << "Launched browser.";

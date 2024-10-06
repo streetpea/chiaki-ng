@@ -26,8 +26,6 @@ DialogView {
                 logArea.text += msg + "\n";
             else
                 logDialog.standardButtons = Dialog.Close;
-            if (ok && done)
-                stack.pop();
         });
         if (registerOk) {
             logArea.text = "";
@@ -81,6 +79,10 @@ DialogView {
                 visible: !ps4_7.checked
                 placeholderText: qsTr("base64")
                 Layout.preferredWidth: 400 - loginButton.width - 10
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.up: hostField
+                KeyNavigation.right: loginButton
+                KeyNavigation.down: pin
 
                 C.Button {
                     id: loginButton
@@ -95,6 +97,11 @@ DialogView {
                     onClicked: stack.push(psnLoginDialogComponent, {login: true, callback: (id) => accountId.text = id})
                     visible: !Chiaki.settings.psnAccountId
                     Material.roundedScale: Material.SmallScale
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
+                    KeyNavigation.up: hostField
+                    KeyNavigation.left: accountId
+                    KeyNavigation.right: lookupButton
+                    KeyNavigation.down: pin
                 }
                 C.Button {
                     id: lookupButton
@@ -109,6 +116,11 @@ DialogView {
                     onClicked: stack.push(psnLoginDialogComponent, {login: false, callback: (id) => accountId.text = id})
                     visible: !Chiaki.settings.psnAccountId
                     Material.roundedScale: Material.SmallScale
+                    KeyNavigation.up: hostField
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
+                    KeyNavigation.left: loginButton
+                    KeyNavigation.right: lookupButton
+                    KeyNavigation.down: pin
                 }
             }
 
@@ -121,6 +133,8 @@ DialogView {
                 id: pin
                 validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
                 Layout.preferredWidth: 400
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.up: accountId
             }
 
             Label {
@@ -196,7 +210,7 @@ DialogView {
             standardButtons: Dialog.Cancel
             Material.roundedScale: Material.MediumScale
             onOpened: logArea.forceActiveFocus()
-            onClosed: hostField.forceActiveFocus(Qt.TabFocus)
+            onClosed: stack.pop();
 
             Flickable {
                 id: logFlick

@@ -36,6 +36,7 @@ DialogView {
             openurl.selectAll()
             openurl.copy()
         }
+        pasteUrl.forceActiveFocus(Qt.TabFocusReason)
     }
 
     Item {
@@ -69,8 +70,9 @@ DialogView {
                     openurl.selectAll()
                     openurl.copy()
                 }
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.up: copyUrl
                 KeyNavigation.down: url
-                KeyNavigation.right: url
                 visible: psnurl
             }
 
@@ -81,10 +83,20 @@ DialogView {
             TextField {
                 id: url
                 Layout.preferredWidth: 400
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
+                KeyNavigation.up: {
+                    if(psnurl)
+                        copyUrl
+                    else
+                        url
+                }
+                KeyNavigation.down: url
                 KeyNavigation.right: pasteUrl
-                KeyNavigation.left: copyUrl
-                KeyNavigation.up: copyUrl
-                KeyNavigation.down: pasteUrl
                 C.Button {
                     id: pasteUrl
                     text: qsTr("Click to Paste URL")
@@ -94,9 +106,15 @@ DialogView {
                         leftMargin: 10
                     }
                     onClicked: url.paste()
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
                     KeyNavigation.left: url
-                    KeyNavigation.up: url
-                    lastInFocusChain: true
+                    KeyNavigation.up: {
+                        if(psnurl)
+                            copyUrl
+                        else
+                            pasteUrl
+                    }
+                    KeyNavigation.down: pasteUrl
                 }
             }
         }
