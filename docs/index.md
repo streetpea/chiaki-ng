@@ -1,4 +1,4 @@
-# PlayStation Remote Play on Steam Deck
+# PlayStation Remote Play for Everyone
 
 !!! Abstract "Site Purpose"
 
