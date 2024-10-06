@@ -42,6 +42,7 @@ static void MigrateSettingsTo2(QSettings *settings)
 		i++;
 	}
 	settings->endArray();
+
 	QString hw_decoder = settings->value("settings/hw_decode_engine").toString();
 	settings->remove("settings/hw_decode_engine");
 	if(hw_decoder != "none")
@@ -127,6 +128,57 @@ static void MigrateVideoProfile(QSettings *settings)
 	}
 }
 
+static void MigrateControllerMappings(QSettings *settings)
+{
+	QList<QMap<QString, QString>> mappings;
+	int count = settings->beginReadArray("controller_mappings");
+	for(int i=0; i<count; i++)
+	{
+		settings->setArrayIndex(i);
+		QMap<QString, QString> mapping;
+		for(QString k : settings->allKeys())
+			mapping.insert(k, settings->value(k).toString());
+		mappings.append(mapping);
+	}
+	settings->endArray();
+
+	settings->beginWriteArray("controller_mappings");
+	int i=0;
+	for(const auto &mapping : mappings)
+	{
+		settings->setArrayIndex(i);
+		for(auto it = mapping.constBegin(); it != mapping.constEnd(); it++)
+		{
+			QString k = it.key();
+			// change old guid field to new vidpid
+			if(k == "guid")
+			{
+				k = "vidpid";
+				settings->remove("guid");
+				if(settings->value("vidpid").toString().isEmpty())
+					settings->setValue(k, it.value());
+			}
+			if(k == "vidpid")
+			{
+				// move decimal vid/pid to hexadecimal vid/pid
+				if(it.value().contains(":") && !it.value().contains("x"))
+				{
+					QStringList ids = it.value().split(u':');
+					if(ids.length() == 2)
+					{
+						auto vid = ids.at(0).toUInt();
+						auto pid = ids.at(1).toUInt();
+						QString vid_pid = QString("0x%1:0x%2").arg(vid, 4, 16, QChar('0')).arg(pid, 4, 16, QChar('0'));
+						settings->setValue(k, vid_pid);
+					}
+				}
+			}
+		}
+		i++;
+	}
+	settings->endArray();
+}
+
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	time_format("yyyy-MM-dd  HH:mm:ss"),
 	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf)),
@@ -136,6 +188,7 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
 	MigrateVideoProfile(&settings);
+	MigrateControllerMappings(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
@@ -1822,8 +1875,6 @@ void Settings::LoadControllerMappings(QSettings *qsettings)
 	{
 		qsettings->setArrayIndex(i);
 		QString vidpid = qsettings->value("vidpid").toString();
-		if(vidpid.isEmpty())
-			vidpid = qsettings->value("guid").toString();
 		controller_mappings.insert(vidpid, qsettings->value("controller_mapping").toString());
 	}
 	qsettings->endArray();
