@@ -79,7 +79,12 @@ DialogView {
                 visible: !ps4_7.checked
                 placeholderText: qsTr("base64")
                 Layout.preferredWidth: 400 - loginButton.width - 10
-                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
                 KeyNavigation.up: hostField
                 KeyNavigation.right: loginButton
                 KeyNavigation.down: pin
@@ -133,7 +138,12 @@ DialogView {
                 id: pin
                 validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
                 Layout.preferredWidth: 400
-                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
                 KeyNavigation.up: accountId
             }
 
