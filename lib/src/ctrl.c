@@ -666,14 +666,15 @@ CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *c
 		CHIAKI_LOGE(ctrl->session->log, "Couldn't base64 encode rand_bytes for fallback session Id with error: %s", chiaki_error_string(err));
 		return err;
 	}
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	if(ctrl->session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGW(ctrl->session->log, "Aleady received session Id don't need fallback.");
+		chiaki_mutex_unlock(&ctrl->session->state_mutex);
 		return err;
 	}
 	memcpy(ctrl->session->session_id, fallback_session_id, sizeof(fallback_session_id));
-	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id %s", fallback_session_id);
-	chiaki_mutex_lock(&ctrl->session->state_mutex);
+	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id %s", ctrl->session->session_id);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
@@ -763,11 +764,14 @@ CHIAKI_EXPORT void ctrl_enable_features(ChiakiCtrl *ctrl)
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	if(ctrl->session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGW(ctrl->session->log, "Received another Session Id Message");
+		chiaki_mutex_unlock(&ctrl->session->state_mutex);
 		return;
 	}
+	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 
 	if(payload_size < 2)
 	{
@@ -814,10 +818,10 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 		return;
 	}
 
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	memcpy(ctrl->session->session_id, payload, payload_size);
 	ctrl->session->session_id[payload_size] = '\0';
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl received valid Session Id: %s", ctrl->session->session_id);
-	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
