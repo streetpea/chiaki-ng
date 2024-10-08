@@ -281,7 +281,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 }
 
 Controller::Controller(int device_id, ControllerManager *manager)
-: QObject(manager), ref(0), micbutton_push(false), is_dualsense(false),
+: QObject(manager), ref(0), last_motion_timestamp(0), micbutton_push(false), is_dualsense(false),
   is_dualsense_edge(false), updating_mapping_button(false), is_handheld(false),
   is_steam_virtual(false), enable_analog_stick_mapping(false)
 {
@@ -310,7 +310,6 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(controller_id);
 			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
-			last_motion_timestamp = 0;
 			break;
 		}
 	}

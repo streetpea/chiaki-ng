@@ -1740,7 +1740,6 @@ QString QmlBackend::openPsnLink()
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
-    return QString(url.toEncoded());
     if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
     {
         qCWarning(chiakiGui) << "Launched browser.";

@@ -276,6 +276,7 @@ typedef struct session_t
 
     SessionState state;
     ChiakiMutex state_mutex;
+    ChiakiMutex stop_mutex;
     ChiakiCond state_cond;
 
     chiaki_socket_t ipv4_sock;
@@ -697,10 +698,8 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
         free(session);
         return NULL;
     }
-    session->ws_thread_should_stop = false;
     session->ws_open = false;
     session->online_id = NULL;
-    session->main_should_stop = false;
     memset(&session->session_id, 0, sizeof(session->session_id));
     memset(&session->console_uid, 0, sizeof(session->console_uid));
     memset(&session->hashed_id_console, 0, sizeof(session->hashed_id_console));
@@ -730,11 +729,18 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     assert(err == CHIAKI_ERR_SUCCESS);
     err = chiaki_mutex_init(&session->state_mutex, false);
     assert(err == CHIAKI_ERR_SUCCESS);
+    err = chiaki_mutex_init(&session->stop_mutex, false);
+    assert(err == CHIAKI_ERR_SUCCESS);
     err = chiaki_cond_init(&session->state_cond);
     assert(err == CHIAKI_ERR_SUCCESS);
 
     session->curl_share = curl_share_init();
     assert(session->curl_share != NULL);
+
+    chiaki_mutex_lock(&session->stop_mutex);
+    session->main_should_stop = false;
+    session->ws_thread_should_stop = false;
+    chiaki_mutex_unlock(&session->stop_mutex);
 
     chiaki_mutex_lock(&session->state_mutex);
     session->state = SESSION_STATE_INIT;
@@ -755,16 +761,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     ChiakiErrorCode err = get_websocket_fqdn(session, &session->ws_fqdn);
     if (err != CHIAKI_ERR_SUCCESS)
         goto cleanup_curlsh;
-    chiaki_mutex_lock(&session->state_mutex);
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
-        chiaki_mutex_unlock(&session->state_mutex);
+        chiaki_mutex_unlock(&session->stop_mutex);
         goto cleanup_curlsh;
     }
-    chiaki_mutex_unlock(&session->state_mutex);
+    chiaki_mutex_unlock(&session->stop_mutex);
 
     err = chiaki_thread_create(&session->ws_thread, websocket_thread_func, session);
     if (err != CHIAKI_ERR_SUCCESS)
@@ -779,27 +785,32 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         err = chiaki_cond_wait(&session->state_cond, &session->state_mutex);
         assert(err == CHIAKI_ERR_SUCCESS);
     }
+    chiaki_mutex_unlock(&session->state_mutex);
 
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
-        chiaki_mutex_unlock(&session->state_mutex);
         goto cleanup_thread;
     }
-    chiaki_mutex_unlock(&session->state_mutex);
+    chiaki_mutex_unlock(&session->stop_mutex);
     err = http_create_session(session);
     if (err != CHIAKI_ERR_SUCCESS)
         goto cleanup_thread;
     CHIAKI_LOGV(session->log, "chiaki_holepunch_session_create: Sent holepunch session creation request");
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup_thread;
     }
+    chiaki_mutex_unlock(&session->stop_mutex);
 
     // FIXME: We're currently not using a shared timeout for both  notifications, i.e. if the first one
     //        takes 29 secs arrive, and the second one takes 15 secs, we're not going to time out despite
@@ -870,13 +881,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_thread;
         }
+        chiaki_mutex_lock(&session->stop_mutex);
         if(session->main_should_stop)
         {
             session->main_should_stop = false;
+            chiaki_mutex_unlock(&session->stop_mutex);
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
             err = CHIAKI_ERR_CANCELED;
             goto cleanup_thread;
         }
+        chiaki_mutex_unlock(&session->stop_mutex);
         log_session_state(session);
         finished = (session->state & SESSION_STATE_CREATED) &&
                         (session->state & SESSION_STATE_CLIENT_JOINED);
@@ -886,7 +900,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     return err;
 
 cleanup_thread:
+    chiaki_mutex_lock(&session->stop_mutex);
     session->ws_thread_should_stop = true;
+    chiaki_mutex_unlock(&session->stop_mutex);
     chiaki_thread_join(&session->ws_thread, NULL);
 cleanup_curlsh:
     curl_share_cleanup(session->curl_share);
@@ -905,6 +921,7 @@ cleanup_curlsh:
     chiaki_stop_pipe_fini(&session->select_pipe);
     chiaki_cond_fini(&session->notif_cond);
     chiaki_mutex_fini(&session->state_mutex);
+    chiaki_mutex_fini(&session->stop_mutex);
     chiaki_cond_fini(&session->state_cond);
     return err;
 }
@@ -952,15 +969,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             return err;
         }
     }
-    chiaki_mutex_lock(&session->state_mutex);
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
         err = CHIAKI_ERR_CANCELED;
         return err;
     }
-    chiaki_mutex_unlock(&session->state_mutex);
+    chiaki_mutex_unlock(&session->stop_mutex);
 
     // FIXME: We're currently not using a shared timeout for both  notifications, i.e. if the first one
     //        takes 29 secs arrive, and the second one takes 15 secs, we're not going to time out despite
@@ -1065,13 +1083,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             break;
         }
         clear_notification(session, notif);
+        chiaki_mutex_lock(&session->stop_mutex);
         if(session->main_should_stop)
         {
             session->main_should_stop = false;
+            chiaki_mutex_unlock(&session->stop_mutex);
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_start: canceled");
             err = CHIAKI_ERR_CANCELED;
             return err;
         }
+        chiaki_mutex_unlock(&session->stop_mutex);
         finished = (session->state & SESSION_STATE_CONSOLE_JOINED) &&
                    (session->state & SESSION_STATE_CUSTOMDATA1_RECEIVED);
         log_session_state(session);
@@ -1399,13 +1420,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Couldn't send holepunch session message");
         goto cleanup;
     }
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
+    chiaki_mutex_unlock(&session->stop_mutex);
 
     // Send our own OFFER
     const int our_offer_req_id = session->local_req_id;
@@ -1452,13 +1476,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
             port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL ? "control" : "data");
         goto cleanup;
     }
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
+    chiaki_mutex_unlock(&session->stop_mutex);
 
     err = send_accept(session, session->local_req_id, &selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
@@ -1466,13 +1493,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to send ACCEPT message.");
         goto cleanup;
     }
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup;
     }
+    chiaki_mutex_unlock(&session->stop_mutex);
     session->local_req_id++;
 
     SessionMessage *msg = NULL;
@@ -1507,13 +1537,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Couldn't send holepunch session message");
         goto cleanup_msg;
     }
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup_msg;
     }
+    chiaki_mutex_unlock(&session->stop_mutex);
     memcpy(session->ps_ip, selected_candidate.addr, sizeof(session->ps_ip));
 
     chiaki_mutex_lock(&session->state_mutex);
@@ -1532,13 +1565,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     }
     chiaki_mutex_unlock(&session->state_mutex);
 
+    chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
         err = CHIAKI_ERR_CANCELED;
         goto cleanup_msg;
     }
+    chiaki_mutex_unlock(&session->stop_mutex);
     ChiakiErrorCode pserr = receive_request_send_response_ps(session, &sock, &selected_candidate, WAIT_RESPONSE_TIMEOUT_SEC);
     if(!(pserr == CHIAKI_ERR_SUCCESS || pserr == CHIAKI_ERR_TIMEOUT))
     {
@@ -1615,7 +1651,9 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
             }
             clear_notification(session, notif);
         }
+        chiaki_mutex_lock(&session->stop_mutex);
         session->ws_thread_should_stop = true;
+        chiaki_mutex_unlock(&session->stop_mutex);
         chiaki_stop_pipe_stop(&session->select_pipe);
         chiaki_thread_join(&session->ws_thread, NULL);
     }
@@ -1670,6 +1708,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 
 CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session, bool stop_thread)
 {
+    chiaki_mutex_lock(&session->stop_mutex);
     if(stop_thread)
     {
         session->ws_thread_should_stop = true;
@@ -1678,6 +1717,7 @@ CHIAKI_EXPORT void chiaki_holepunch_main_thread_cancel(Session *session, bool st
     else
         CHIAKI_LOGI(session->log, "Canceling establishing connection over PSN");
     session->main_should_stop = true;
+    chiaki_mutex_unlock(&session->stop_mutex);
     chiaki_cond_signal(&session->notif_cond);
     chiaki_cond_signal(&session->state_cond);
 }
@@ -1983,8 +2023,10 @@ static void* websocket_thread_func(void *user) {
     size_t rlen;
     size_t wlen;
     bool expecting_pong = false;
+    chiaki_mutex_lock(&session->stop_mutex);
     while (!session->ws_thread_should_stop)
     {
+        chiaki_mutex_unlock(&session->stop_mutex);
         now = chiaki_time_now_monotonic_us();
 
         if (expecting_pong && now - last_ping_sent > 5LL * SECOND_US)
@@ -2123,9 +2165,11 @@ static void* websocket_thread_func(void *user) {
                 goto cleanup_json;
             }
         }
+        chiaki_mutex_lock(&session->stop_mutex);
     }
 
 cleanup_json:
+    chiaki_mutex_unlock(&session->stop_mutex);
     json_tokener_free(tok);
     free(buf);
 cleanup:
@@ -4423,12 +4467,15 @@ static ChiakiErrorCode wait_for_notification(
                     goto cleanup;
                 }
             }
+            chiaki_mutex_lock(&session->stop_mutex);
             if(session->main_should_stop)
             {
+                chiaki_mutex_unlock(&session->stop_mutex);
                 session->main_should_stop = false;
                 err = CHIAKI_ERR_CANCELED;
                 goto cleanup;
             }
+            chiaki_mutex_unlock(&session->stop_mutex);
             assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
         Notification *notif;
@@ -4501,24 +4548,22 @@ static ChiakiErrorCode wait_for_session_message(
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "Timed out waiting for holepunch session message notification.");
-            if(msg)
-                session_message_free(msg);
             return err;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "Failed to wait for holepunch session message notification.");
-            if(msg)
-                session_message_free(msg);
             return err;
         }
+        chiaki_mutex_lock(&session->stop_mutex);
         if(session->main_should_stop)
         {
             session->main_should_stop = false;
-            session_message_free(msg);
+            chiaki_mutex_unlock(&session->stop_mutex);
             err = CHIAKI_ERR_CANCELED;
             return err;
         }
+        chiaki_mutex_unlock(&session->stop_mutex);
         json_object *payload = session_message_get_payload(session->log, notif->json);
         err = session_message_parse(session->log, payload, &msg);
         json_object_put(payload);
@@ -4578,12 +4623,15 @@ static ChiakiErrorCode wait_for_session_message_ack(
             CHIAKI_LOGE(session->log, "wait_for_session_message_ack: Failed to wait for holepunch session connection offer ACK notification.");
             return err;
         }
+        chiaki_mutex_lock(&session->stop_mutex);
         if(session->main_should_stop)
         {
             session->main_should_stop = false;
+            chiaki_mutex_unlock(&session->stop_mutex);
             err = CHIAKI_ERR_CANCELED;
             return err;
         }
+        chiaki_mutex_unlock(&session->stop_mutex);
         if (msg->req_id != req_id)
         {
             CHIAKI_LOGE(session->log, "wait_for_session_message_ack: Got ACK for unexpected request ID %d", msg->req_id);

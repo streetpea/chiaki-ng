@@ -491,13 +491,13 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			if(memcmp(buf + 8, motion_reset, 4) == 0)
 			{
 				reset = true;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
 				break;
 			}
 			if(memcmp(buf + 8, motion_normal, 4) == 0)
 			{
 				reset = false;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum"PRIu16 ", " PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
 				break;
 			}
 			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
