@@ -4467,16 +4467,16 @@ static ChiakiErrorCode wait_for_notification(
                     goto cleanup;
                 }
             }
+            assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
             chiaki_mutex_lock(&session->stop_mutex);
             if(session->main_should_stop)
             {
-                chiaki_mutex_unlock(&session->stop_mutex);
                 session->main_should_stop = false;
+                chiaki_mutex_unlock(&session->stop_mutex);
                 err = CHIAKI_ERR_CANCELED;
                 goto cleanup;
             }
             chiaki_mutex_unlock(&session->stop_mutex);
-            assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
         }
         Notification *notif;
         if(last_known)
