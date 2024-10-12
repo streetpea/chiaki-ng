@@ -765,9 +765,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     if(session->main_should_stop)
     {
         session->main_should_stop = false;
+        chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
-        chiaki_mutex_unlock(&session->stop_mutex);
         goto cleanup_curlsh;
     }
     chiaki_mutex_unlock(&session->stop_mutex);

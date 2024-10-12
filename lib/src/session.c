@@ -29,7 +29,6 @@
 #define SESSION_PORT					9295
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
-#define STREAM_CONNECTION_SWITCH_EXPECT_TIMEOUT_MS 2000
 
 static void *session_thread_func(void *arg);
 static void regist_cb(ChiakiRegistEvent *event, void *user);
