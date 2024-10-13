@@ -155,7 +155,10 @@ Pane {
             }
 
             function wakeUpHost() {
-                Chiaki.wakeUpHost(index);
+                if (modelData.discovered)
+                    Chiaki.wakeUpHost(index, modelData.name);
+                else
+                    Chiaki.wakeUpHost(index);
             }
 
             function deleteHost() {

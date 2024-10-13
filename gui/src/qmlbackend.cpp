@@ -21,6 +21,7 @@
 #define PSN_DEVICES_TRIES 2
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
+#define WAKEUP_PSN_IGNORE_SECONDS 10
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -491,6 +492,11 @@ QVariantList QmlBackend::hosts() const
             if (discovered_nicknames.at(i) == host.GetName())
                 discovered = true;
         }
+        for (int i = 0; i < waking_nicknames.size(); ++i)
+        {
+            if (waking_nicknames.at(i) == host.GetName())
+                discovered = true;
+        }
         if(discovered)
             continue;
         m["discovered"] = false;
@@ -781,11 +787,19 @@ void QmlBackend::deleteHost(int index)
     settings->RemoveManualHost(id);
 }
 
-void QmlBackend::wakeUpHost(int index)
+void QmlBackend::wakeUpHost(int index, QString nickname)
 {
     auto server = displayServerAt(index);
     if (!server.valid)
         return;
+    if (!nickname.isEmpty())
+    {
+        waking_nicknames.append(nickname);
+        QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
+            waking_nicknames.removeOne(nickname);
+            emit hostsChanged();
+        });
+    }
     sendWakeup(server);
 }
 

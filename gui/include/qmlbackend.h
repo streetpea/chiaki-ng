@@ -133,7 +133,7 @@ public:
     void disableZeroCopy() { disable_zero_copy = true; };
 
     Q_INVOKABLE void deleteHost(int index);
-    Q_INVOKABLE void wakeUpHost(int index);
+    Q_INVOKABLE void wakeUpHost(int index, QString nickname = QString());
     Q_INVOKABLE void addManualHost(int index, const QString &address);
     Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback);
     Q_INVOKABLE void connectToHost(int index);
@@ -227,6 +227,7 @@ private:
     QThread psn_connection_thread;
     PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
+    QList<QString> waking_nicknames;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;
     StreamSessionConnectInfo session_info = {};
