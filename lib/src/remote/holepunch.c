@@ -944,6 +944,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
         return CHIAKI_ERR_UNKNOWN;
     }
     chiaki_mutex_unlock(&session->state_mutex);
+    ChiakiErrorCode err_stun = get_stun_servers(session);
+    if(err_stun != CHIAKI_ERR_SUCCESS)
+    {
+        CHIAKI_LOGW(session->log, "Getting stun servers returned error %s", chiaki_error_string(err_stun));
+    }
     ChiakiErrorCode err;
     session->console_type = console_type;
     if(console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4)
@@ -3378,11 +3383,6 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
     // run STUN test if it hasn't been run yet
     if(session->stun_allocation_increment == -1)
     {
-        ChiakiErrorCode err = get_stun_servers(session);
-        if(err != CHIAKI_ERR_SUCCESS)
-        {
-            CHIAKI_LOGW(session->log, "Getting stun servers returned error %s", chiaki_error_string(err));
-        }
         if (!stun_port_allocation_test(session->log, address, port, &session->stun_allocation_increment, &session->stun_random_allocation, session->stun_server_list, session->num_stun_servers, sock))
         {
             CHIAKI_LOGE(session->log, "get_client_addr_remote_stun: Failed to get external address");

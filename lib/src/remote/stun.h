@@ -548,7 +548,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
 
     // Verify length stored in binding_resp[2] is correct
     size_t expected_size = ntohs(*(uint16_t*)(&binding_resp[2])) + STUN_HEADER_SIZE;
-    if (received != ntohs(*(uint16_t*)(&binding_resp[2])) + STUN_HEADER_SIZE) {
+    if (received != expected_size) {
         CHIAKI_LOGE(log, "remote/stun.h: Received STUN response with invalid length: %zd received, %zu expected", received, expected_size);
         return false;
     }
@@ -566,12 +566,12 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     //uint16_t response_attrs_length = ntohs(*(uint16_t*)(&binding_resp[2]));
     uint16_t response_pos = STUN_HEADER_SIZE;
     // Check we can read 4 bytes of attribute data
-    while (response_pos < (received - 4))
+    while (response_pos < (received - 3))
     {
         uint16_t attr_type = ntohs(*(uint16_t*)(&binding_resp[response_pos]));
         uint16_t attr_length = ntohs(*(uint16_t*)(&binding_resp[response_pos + 2]));
         // check that the whole advertised message has been received
-        if(response_pos >= (received - (sizeof(attr_type) + sizeof(attr_length) + attr_length)))
+        if(response_pos > (received - (sizeof(attr_type) + sizeof(attr_length) + attr_length)))
         {
             CHIAKI_LOGE(log, "remote/stun.h: Received STUN response with invalid data");
             return false;
