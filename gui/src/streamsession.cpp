@@ -26,6 +26,7 @@
 // DualSense touchpad is 1919 x 1079
 #define PS5_TOUCHPAD_MAX_X 1919.0f
 #define PS5_TOUCHPAD_MAX_Y 1079.0f
+#define SESSION_RETRY_SECONDS 20
 
 #define MICROPHONE_SAMPLES 480
 #ifdef Q_OS_LINUX
@@ -796,7 +797,11 @@ void StreamSession::UpdateGamepads()
 				if(this->haptics_output > 0)
 					continue;
 				// Connect haptics audio device with a delay to give the sound system time to set up
-				QTimer::singleShot(15000, this, &StreamSession::ConnectHaptics);
+				QTimer::singleShot(1000, this, [this]{
+					ConnectHaptics();
+					if(!this->haptics_output > 0)
+						QTimer::singleShot(14000, this, &StreamSession::ConnectHaptics);
+				});
 			}
 		}
 	}
@@ -1460,9 +1465,9 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
-			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 20 * 1000)
+			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < SESSION_RETRY_SECONDS * 1000)
 			{
-				QTimer::singleShot(1 * 1000, this, &StreamSession::Start);
+				QTimer::singleShot(1000, this, &StreamSession::Start);
 				return;
 			}
 			connected = false;
