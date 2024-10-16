@@ -649,10 +649,9 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 		RudpMessage message;
 		err = chiaki_rudp_send_recv(regist->info.rudp, &message, NULL, 0, remote_counter, ACK, FINISH, 0, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
 			CHIAKI_LOGW(regist->log, "REGIST - Failed to finish rudp, continuing...");
-		}
-		chiaki_rudp_message_pointers_free(&message);
+		else
+			chiaki_rudp_message_pointers_free(&message);
 	}
 
 	CHIAKI_LOGV(regist->log, "Regist response HTTP header:");

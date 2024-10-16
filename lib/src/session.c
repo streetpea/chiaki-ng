@@ -962,10 +962,9 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 		RudpMessage message;
 		err = chiaki_rudp_send_recv(session->rudp, &message, NULL, 0, remote_counter, ACK, FINISH, 0, 3);
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
 			CHIAKI_LOGW(session->log, "SESSION START THREAD - Failed to finish rudp, continuing...");
-		}
-		chiaki_rudp_message_pointers_free(&message);
+		else
+			chiaki_rudp_message_pointers_free(&message);
 	}
 
 	ChiakiHttpResponse http_response;

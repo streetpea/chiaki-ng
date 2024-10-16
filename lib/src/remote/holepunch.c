@@ -77,6 +77,7 @@
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
 #define EXTRA_CANDIDATE_ADDRESSES 3
+#define ENABLE_IPV6 false
 
 static const char oauth_header_fmt[] = "Authorization: Bearer %s";
 
@@ -2588,7 +2589,7 @@ static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local
             goto cleanup;
         }
         // Only PS5 supports ipv6
-        if(session->console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5)
+        if(session->console_type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 && ENABLE_IPV6)
         {
             Candidate *candidate_stun_ipv6 = &msg.conn_request->candidates[msg.conn_request->num_candidates];
             candidate_stun_ipv6->type = CANDIDATE_TYPE_STUN;
