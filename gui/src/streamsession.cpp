@@ -1460,9 +1460,9 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit ConnectedChanged();
 			break;
 		case CHIAKI_EVENT_QUIT:
-			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 10 * 1000)
+			if(!connected && !holepunch_session && chiaki_quit_reason_is_error(event->quit.reason) && connect_timer.elapsed() < 20 * 1000)
 			{
-				QTimer::singleShot(1000, this, &StreamSession::Start);
+				QTimer::singleShot(1 * 1000, this, &StreamSession::Start);
 				return;
 			}
 			connected = false;
