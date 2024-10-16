@@ -80,11 +80,13 @@
 #define ENABLE_IPV6 false
 
 static const char oauth_header_fmt[] = "Authorization: Bearer %s";
+static const char session_id_header_fmt[] = "X-PSN-SESSION-MANAGER-SESSION-IDS: %s";
 
 // Endpoints we're using
 static const char device_list_url_fmt[] = "https://web.np.playstation.com/api/cloudAssistedNavigation/v2/users/me/clients?platform=%s&includeFields=device&limit=10&offset=0";
 static const char ws_fqdn_api_url[] = "https://mobile-pushcl.np.communication.playstation.net/np/serveraddr?version=2.1&fields=keepAliveStatus&keepAliveStatusType=3";
 static const char session_create_url[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions";
+static const char session_view_url[] = "https://web.np.playstation.com/api/sessionManager/v1/remotePlaySessions?view=v1.0";
 static const char user_profile_url[] = "https://asm.np.community.playstation.net/asm/v1/apps/me/baseUrls/userProfile";
 static const char wakeup_url_fmt[] = "%s/v1/users/%s/remoteConsole/wakeUp?platform=PS4";
 static const char session_command_url[] = "https://web.np.playstation.com/api/cloudAssistedNavigation/v2/users/me/commands";
@@ -226,6 +228,7 @@ typedef struct session_t
 {
     // TODO: Clean this up, how much of this stuff do we really need?
     char* oauth_header;
+    char* session_id_header;
     uint8_t console_uid[32];
     ChiakiHolepunchConsoleType console_type;
 
@@ -343,6 +346,7 @@ typedef struct session_message_t
 } SessionMessage;
 
 static ChiakiErrorCode make_oauth2_header(char** out, const char* token);
+static ChiakiErrorCode make_session_id_header(char ** out, const char* session_id);
 static ChiakiErrorCode get_websocket_fqdn(
     Session *session, char **fqdn);
 static inline size_t curl_write_cb(
@@ -355,6 +359,7 @@ static NotificationType parse_notification_type(ChiakiLog *log, json_object* jso
 static ChiakiErrorCode send_offer(Session *session, int req_id, Candidate *local_console_candidate, Candidate *local_candidates, Candidate *candidates_received, size_t num_candidates);
 static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *selected_candidate);
 static ChiakiErrorCode http_create_session(Session *session);
+static ChiakiErrorCode http_check_session(Session *session, bool viewurl);
 static ChiakiErrorCode http_start_session(Session *session);
 static ChiakiErrorCode http_send_session_message(Session *session, SessionMessage *msg, bool short_msg);
 static ChiakiErrorCode http_ps4_session_wakeup(Session *session);
@@ -690,6 +695,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     if(!session)
         return NULL;
     make_oauth2_header(&session->oauth_header, psn_oauth2_token);
+    session->session_id_header = NULL;
     session->log = log;
 
     session->ws_fqdn = NULL;
@@ -838,7 +844,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Failed to wait for holepunch session creation notifications.");
             goto cleanup_thread;
         }
-
         chiaki_mutex_lock(&session->state_mutex);
         if (notif->type == NOTIFICATION_TYPE_SESSION_CREATED)
         {
@@ -892,6 +897,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
             goto cleanup_thread;
         }
         chiaki_mutex_unlock(&session->stop_mutex);
+        http_check_session(session, true);
         log_session_state(session);
         finished = (session->state & SESSION_STATE_CREATED) &&
                         (session->state & SESSION_STATE_CLIENT_JOINED);
@@ -909,6 +915,8 @@ cleanup_curlsh:
     curl_share_cleanup(session->curl_share);
     if (session->oauth_header)
         free(session->oauth_header);
+    if(session->session_id_header)
+        free(session->session_id_header);
     if (session->ws_fqdn)
         free(session->ws_fqdn);
     if (session->ws_notification_queue)
@@ -1099,6 +1107,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
             return err;
         }
         chiaki_mutex_unlock(&session->stop_mutex);
+        http_check_session(session, false);
         finished = (session->state & SESSION_STATE_CONSOLE_JOINED) &&
                    (session->state & SESSION_STATE_CUSTOMDATA1_RECEIVED);
         log_session_state(session);
@@ -1466,6 +1475,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to wait for ACK of our connection offer.");
         goto cleanup;
     }
+    http_check_session(session, true);
 
     // Find candidate that we can use to connect to the console
     chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
@@ -1684,6 +1694,8 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
     }
     if (session->oauth_header)
         free(session->oauth_header);
+    if(session->session_id_header)
+        free(session->session_id_header);
     if (session->online_id)
         free(session->online_id);
     if (session->curl_share)
@@ -1743,6 +1755,16 @@ static ChiakiErrorCode make_oauth2_header(char** out, const char* token)
     if(!(*out))
         return CHIAKI_ERR_MEMORY;
     snprintf(*out, oauth_header_len, oauth_header_fmt, token);
+    return CHIAKI_ERR_SUCCESS;
+}
+
+static ChiakiErrorCode make_session_id_header(char **out, const char* session_id)
+{
+    size_t session_id_header_len = sizeof(session_id_header_fmt) + strlen(session_id) + 1;
+    *out = malloc(session_id_header_len);
+    if(!(*out))
+        return CHIAKI_ERR_MEMORY;
+    snprintf(*out, session_id_header_len, session_id_header_fmt, session_id);
     return CHIAKI_ERR_SUCCESS;
 }
 
@@ -2842,6 +2864,7 @@ static ChiakiErrorCode http_create_session(Session *session)
         goto cleanup_json;
     }
     memcpy(session->session_id, json_object_get_string(session_id_json), 36);
+    make_session_id_header(&session->session_id_header, session->session_id);
 
     session->account_id = json_object_get_int64(account_id_json);
 
@@ -2857,6 +2880,93 @@ cleanup:
     return err;
 }
 
+/**
+ * Checks a session on the PSN server.
+ *
+ * @param session The Session instance.
+ * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
+*/
+static ChiakiErrorCode http_check_session(Session *session, bool viewurl)
+{
+    HttpResponseData response_data = {
+        .data = malloc(0),
+        .size = 0,
+    };
+
+    CURL* curl = curl_easy_init();
+    if(!curl)
+    {
+        free(response_data.data);
+        CHIAKI_LOGE(session->log, "Curl could not init");
+        return CHIAKI_ERR_MEMORY;
+    }
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, session->oauth_header);
+    headers = curl_slist_append(headers, session->session_id_header);
+
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_SHARE, session->curl_share);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_SHARE failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_URL, viewurl ? session_view_url : session_create_url);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_URL failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_HTTPHEADER failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_WRITEFUNCTION failed with CURL error %s", curl_easy_strerror(res));
+    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&response_data);
+    if(res != CURLE_OK)
+        CHIAKI_LOGW(session->log, "http_check_session: CURL setopt CURLOPT_WRITEDATA failed with CURL error %s", curl_easy_strerror(res));
+
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+    res = curl_easy_perform(curl);
+    curl_slist_free_all(headers);
+    if (res != CURLE_OK)
+    {
+        if (res == CURLE_HTTP_RETURNED_ERROR)
+        {
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            CHIAKI_LOGE(session->log, "http_check_session: Creating holepunch session failed with HTTP code %ld", http_code);
+            err = CHIAKI_ERR_HTTP_NONOK;
+        } else {
+            CHIAKI_LOGE(session->log, "http_check_session: Creating holepunch session failed with CURL error %s", curl_easy_strerror(res));
+            err = CHIAKI_ERR_NETWORK;
+        }
+        goto cleanup;
+    }
+    json_tokener *tok = json_tokener_new();
+    if(!tok)
+    {
+        CHIAKI_LOGE(session->log, "http_check_session: Couldn't create new json tokener");
+        goto cleanup;
+    }
+    json_object *json = json_tokener_parse_ex(tok, response_data.data, response_data.size);
+    if (json == NULL)
+    {
+        CHIAKI_LOGE(session->log, "http_check_session: Parsing JSON failed");
+        err = CHIAKI_ERR_UNKNOWN;
+        goto cleanup_json_tokener;
+    }
+    const char *json_str = json_object_to_json_string_ext(json, JSON_C_TO_STRING_PRETTY);
+    CHIAKI_LOGV(session->log, "http_check_session: retrieved session data \n%s", json_str);
+
+    json_object_put(json);
+    cleanup_json_tokener:
+        json_tokener_free(tok);
+    cleanup:
+        free(response_data.data);
+        curl_easy_cleanup(curl);
+        return err;
+}
 /**
  * Starts a session on the PSN server. Session must have been created before.
  *
