@@ -250,6 +250,7 @@ int real_main(int argc, char *argv[])
 				use_alt_settings ? &alt_settings : &settings,
 				target,
 				std::move(host),
+				QString(),
 				std::move(regist_key),
 				std::move(morning),
 				std::move(initial_login_passcode),

@@ -65,6 +65,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		Settings *settings,
 		ChiakiTarget target,
 		QString host,
+		QString nickname,
 		QByteArray regist_key,
 		QByteArray morning,
 		QString initial_login_pin,
@@ -89,6 +90,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	else
 		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileRemotePS5(): settings->GetVideoProfileRemotePS4();
 	this->target = target;
+	this->nickname = std::move(nickname);
 	this->host = std::move(host);
 	this->regist_key = std::move(regist_key);
 	this->morning = std::move(morning);

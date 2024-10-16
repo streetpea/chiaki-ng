@@ -22,6 +22,7 @@
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
 #define WAKEUP_PSN_IGNORE_SECONDS 10
+#define WAKEUP_WAIT_SECONDS 25
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -131,6 +132,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     psn_auto_connect_timer->setSingleShot(true);
     psn_reconnect_tries = 0;
     psn_reconnect_timer = new QTimer(this);
+    wakeup_start_timer = new QTimer(this);
+    wakeup_start_timer->setSingleShot(true);
     if(autoConnect() && !auto_connect_nickname.isEmpty())
     {
         connect(psn_auto_connect_timer, &QTimer::timeout, this, [this, settings]
@@ -188,6 +191,19 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         QString refresh_token = settings->GetPsnRefreshToken();
         psnToken->RefreshPsnToken(std::move(refresh_token));
     });
+    connect(wakeup_start_timer, &QTimer::timeout, this, [this]
+    {
+        wakeup_nickname.clear();
+        wakeup_start = false;
+        chiaki_log_mutex.lock();
+        chiaki_log_ctx = nullptr;
+        chiaki_log_mutex.unlock();
+
+        session->deleteLater();
+        session = nullptr;
+        emit wakeupStartFailed();
+    });
+    psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
         qCInfo(chiakiGui) << "About to sleep";
@@ -211,6 +227,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                     session_info.settings,
                     session_info.target,
                     session_info.host,
+                    session_info.nickname,
                     session_info.regist_key,
                     session_info.morning,
                     session_info.initial_login_pin,
@@ -371,6 +388,7 @@ void QmlBackend::profileChanged()
                     session_info.settings,
                     session_info.target,
                     session_info.host,
+                    session_info.nickname,
                     session_info.regist_key,
                     session_info.morning,
                     session_info.initial_login_pin,
@@ -492,9 +510,9 @@ QVariantList QmlBackend::hosts() const
             if (discovered_nicknames.at(i) == host.GetName())
                 discovered = true;
         }
-        for (int i = 0; i < waking_nicknames.size(); ++i)
+        for (int i = 0; i < waking_sleeping_nicknames.size(); ++i)
         {
-            if (waking_nicknames.at(i) == host.GetName())
+            if (waking_sleeping_nicknames.at(i) == host.GetName())
                 discovered = true;
         }
         if(discovered)
@@ -733,15 +751,24 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     if(connect_info.duid.isEmpty())
     {
-        try {
-            session->Start();
-        } catch (const Exception &e) {
-            emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
-            return;
+        if(!wakeup_nickname.isEmpty())
+        {
+            wakeup_start = true;
+            wakeup_start_timer->start(WAKEUP_WAIT_SECONDS * 1000);
+            emit wakeupStartInitiated();
         }
-        emit sessionChanged(session);
+        else
+        {
+            try {
+                session->Start();
+            } catch (const Exception &e) {
+                emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+                return;
+            }
+            emit sessionChanged(session);
 
-        sleep_inhibit->inhibit();
+            sleep_inhibit->inhibit();
+        }
     }
     else
     {
@@ -794,9 +821,9 @@ void QmlBackend::wakeUpHost(int index, QString nickname)
         return;
     if (!nickname.isEmpty())
     {
-        waking_nicknames.append(nickname);
+        waking_sleeping_nicknames.append(nickname);
         QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
-            waking_nicknames.removeOne(nickname);
+            waking_sleeping_nicknames.removeOne(nickname);
             emit hostsChanged();
         });
     }
@@ -878,7 +905,7 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     return true;
 }
 
-void QmlBackend::connectToHost(int index)
+void QmlBackend::connectToHost(int index, QString nickname)
 {
     auto server = displayServerAt(index);
     if (!server.valid)
@@ -890,8 +917,26 @@ void QmlBackend::connectToHost(int index)
         return;
     }
 
-    if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && !sendWakeup(server))
-        return;
+    if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+    {
+        if(!sendWakeup(server))
+        {
+            qCWarning(chiakiGui) << "Couldn't wakeup server";
+            return;
+        }
+        if(nickname.isEmpty())
+        {
+            qCWarning(chiakiGui) << "No nickname given for registered connection, not connecting...";
+            return;
+        }
+        waking_sleeping_nicknames.append(nickname);
+        QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
+            waking_sleeping_nicknames.removeOne(nickname);
+            emit hostsChanged();
+        });
+        wakeup_nickname = nickname;
+
+    }
 
     bool fullscreen = false, zoom = false, stretch = false;
     switch (settings->GetWindowType()) {
@@ -919,6 +964,7 @@ void QmlBackend::connectToHost(int index)
                 settings,
                 server.registered_host.GetTarget(),
                 std::move(host),
+                std::move(nickname),
                 server.registered_host.GetRPRegistKey(),
                 server.registered_host.GetRPKey(),
                 server.registered_host.GetConsolePin(),
@@ -933,6 +979,7 @@ void QmlBackend::connectToHost(int index)
         StreamSessionConnectInfo info(
                 settings,
                 server.psn_host.GetTarget(),
+                QString(),
                 QString(),
                 QByteArray(),
                 QByteArray(),
@@ -974,6 +1021,15 @@ void QmlBackend::stopSession(bool sleep)
 {
     if (!session)
         return;
+
+    if (!session_info.nickname.isEmpty())
+    {
+        waking_sleeping_nicknames.append(session_info.nickname);
+        QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this]{
+            waking_sleeping_nicknames.removeOne(session_info.nickname);
+            emit hostsChanged();
+        });
+    }
 
     if (sleep)
         session->GoToBed();
@@ -1036,6 +1092,12 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
 void QmlBackend::stopAutoConnect()
 {
     auto_connect_mac = {};
+    if(!wakeup_nickname.isEmpty())
+    {
+        wakeup_start_timer->stop();
+        wakeup_start = false;
+        wakeup_nickname.clear();
+    }
     emit autoConnectChanged();
 }
 
@@ -1616,20 +1678,45 @@ void QmlBackend::controllerMappingApply()
 
 void QmlBackend::updateDiscoveryHosts()
 {
-    if (session && session->IsConnecting()) {
-        // Wakeup console that we are currently connecting to
-        for (const auto &host : discovery_manager.GetHosts()) {
-            if (host.state != CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
-                continue;
-            if (host.host_addr != session_info.host)
-                continue;
-            if (host.ps5 != chiaki_target_is_ps5(session_info.target))
-                continue;
-            if (!settings->GetRegisteredHostRegistered(host.GetHostMAC()))
-                continue;
-            auto registered = settings->GetRegisteredHost(host.GetHostMAC());
-            if (registered.GetRPRegistKey() == session_info.regist_key) {
+    // Wakeup console that we are currently connecting to
+    for (const auto &host : discovery_manager.GetHosts()) {
+        if (host.host_addr != session_info.host)
+            continue;
+        if (host.ps5 != chiaki_target_is_ps5(session_info.target))
+            continue;
+        if (!settings->GetRegisteredHostRegistered(host.GetHostMAC()))
+            continue;
+        auto registered = settings->GetRegisteredHost(host.GetHostMAC());
+        if (registered.GetRPRegistKey() == session_info.regist_key) {
+            if(wakeup_start && host.host_name == wakeup_nickname && host.state == CHIAKI_DISCOVERY_HOST_STATE_READY)
+            {
+                wakeup_nickname.clear();
+                wakeup_start = false;
+                wakeup_start_timer->stop();
+                bool session_start_succeeded = true;
+
+                try {
+                    session->Start();
+                } catch (const Exception &e) {
+                    emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+                    session_start_succeeded = false;
+                }
+                if(session_start_succeeded)
+                {
+                    emit sessionChanged(session);
+                    sleep_inhibit->inhibit();
+                }
+            }
+            else if(host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && session && session->IsConnecting())
+            {
                 sendWakeup(host.host_addr, registered.GetRPRegistKey(), host.ps5);
+                QString nickname = host.host_name;
+                wakeup_nickname = nickname;
+                waking_sleeping_nicknames.append(nickname);
+                QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
+                    waking_sleeping_nicknames.removeOne(nickname);
+                    emit hostsChanged();
+                });
                 break;
             }
         }
@@ -1640,7 +1727,7 @@ void QmlBackend::updateDiscoveryHosts()
             if (discovery_manager.GetHosts().at(i).GetHostMAC() != auto_connect_mac)
                 continue;
             psn_auto_connect_timer->stop();
-            connectToHost(i);
+            connectToHost(i, discovery_manager.GetHosts().at(i).host_name);
             break;
         }
     }

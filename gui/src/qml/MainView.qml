@@ -151,13 +151,14 @@ Pane {
             onClicked: connectToHost()
 
             function connectToHost() {
-                Chiaki.connectToHost(index);
+                if(modelData.discovered)
+                    Chiaki.connectToHost(index, modelData.name);
+                else
+                    Chiaki.connectToHost(index);
             }
 
             function wakeUpHost() {
-                if (modelData.discovered)
-                    Chiaki.wakeUpHost(index, modelData.name);
-                else
+                if(!modelData.discovered && !modelData.duid)
                     Chiaki.wakeUpHost(index);
             }
 
@@ -273,7 +274,7 @@ Pane {
                         flat: true
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
-                        visible: modelData.registered && !modelData.duid && (!modelData.discovered || modelData.state == "standby")
+                        visible: modelData.registered && !modelData.duid && !modelData.discovered
                         focusPolicy: Qt.NoFocus
                         onClicked: delegate.wakeUpHost()
                         Material.roundedScale: Material.SmallScale

@@ -136,7 +136,7 @@ public:
     Q_INVOKABLE void wakeUpHost(int index, QString nickname = QString());
     Q_INVOKABLE void addManualHost(int index, const QString &address);
     Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback);
-    Q_INVOKABLE void connectToHost(int index);
+    Q_INVOKABLE void connectToHost(int index, QString nickname = QString());
     Q_INVOKABLE void stopSession(bool sleep);
     Q_INVOKABLE void sessionGoHome();
     Q_INVOKABLE void enterPin(const QString &pin);
@@ -179,6 +179,8 @@ signals:
     void psnTokenChanged();
     void psnCredsExpired();
     void autoConnectChanged();
+    void wakeupStartInitiated();
+    void wakeupStartFailed();
     void windowTypeUpdated(WindowType type);
 
     void error(const QString &title, const QString &text);
@@ -223,11 +225,12 @@ private:
     QThread *frame_thread = {};
     QTimer *psn_reconnect_timer = {};
     QTimer *psn_auto_connect_timer = {};
+    QTimer *wakeup_start_timer = {};
     int psn_reconnect_tries = 0;
     QThread psn_connection_thread;
     PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
-    QList<QString> waking_nicknames;
+    QList<QString> waking_sleeping_nicknames;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;
     StreamSessionConnectInfo session_info = {};
@@ -251,5 +254,7 @@ private:
     bool settings_allocd = false;
     HostMAC auto_connect_mac = {};
     QString auto_connect_nickname = "";
+    QString wakeup_nickname = "";
+    bool wakeup_start = false;
     QMap<QString, PsnHost> psn_hosts;
 };

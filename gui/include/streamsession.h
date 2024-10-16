@@ -74,6 +74,7 @@ struct StreamSessionConnectInfo
 	QString log_file;
 	ChiakiTarget target;
 	QString host;
+	QString nickname;
 	QByteArray regist_key;
 	QByteArray morning;
 	QString initial_login_pin;
@@ -106,6 +107,7 @@ struct StreamSessionConnectInfo
 			Settings *settings,
 			ChiakiTarget target,
 			QString host,
+			QString nickname,
 			QByteArray regist_key,
 			QByteArray morning,
 			QString initial_login_pin,

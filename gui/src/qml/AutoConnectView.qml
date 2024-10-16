@@ -61,4 +61,20 @@ Rectangle {
         running: true
         onTriggered: view.allowClose = true
     }
+
+    Timer {
+        id: failTimer
+        interval: 2000
+        running: false
+        onTriggered: view.stop();
+    }
+
+    Connections {
+        target: Chiaki
+
+        function onWakeupStartFailed() {
+            infoLabel.text = qsTr("Timed out waiting for console. Exiting...")
+            failTimer.start();
+        }
+    }
 }
