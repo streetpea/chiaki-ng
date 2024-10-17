@@ -15,9 +15,12 @@
  * 1. `chiaki_holepunch_list_devices` to get a list of devices that can be used for remote play
  * 2. `chiaki_holepunch_session_init` to initialize a session with a valid OAuth2 token
  * 3. `chiaki_holepunch_session_create` to create a remote play session on the PSN server
- * 4. `chiaki_holepunch_session_start` to start the session for a specific device
- * 5. `chiaki_holepunch_session_punch_hole` called twice, to obtain the control and data sockets
- * 6. `chiaki_holepunch_session_fini` once the streaming session has terminated.
+ * 4. `chiaki_holepunch_session_create_offer` to create our offer message to send to the console containing our network information for the control socket
+ * 5. `chiaki_holepunch_session_start` to start the session for a specific device
+ * 6. `chiaki_holepunch_session_punch_hole` called to prepare the control socket
+ * 7. `chiaki_holepunch_session_create_offer` to create our offer message to send to the console containing our network information for the data socket
+ * 8. `chiaki_holepunch_session_punch_hole` called to prepare the data socket
+ * 9. `chiaki_holepunch_session_fini` once the streaming session has terminated.
  */
 
 #ifndef CHIAKI_HOLEPUNCH_H
@@ -45,6 +48,12 @@ extern "C" {
 
 /** Handle to holepunching session state */
 typedef struct session_t* ChiakiHolepunchSession;
+
+/** Handle to session message */
+typedef struct session_message_t* ChiakiHolepunchMessage;
+
+/** Handle to candidate */
+typedef struct candidate_t* ChiakiHolepunchCandidate;
 
 /** Info for Remote Registration */
 typedef struct holepunch_regist_info_t
@@ -204,6 +213,15 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
     ChiakiHolepunchSession session, const uint8_t* console_uid,
     ChiakiHolepunchConsoleType console_type);
 
+/** Creates an OFFER session message to send via PSN.
+ *
+ * @param session The Session instance.
+ * @param local_candidates The local candidates found while creating the offer
+ * @param out the created SessionMessage
+ * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
+ */
+CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(ChiakiHolepunchSession session, ChiakiHolepunchCandidate *local_candidates, ChiakiHolepunchMessage *our_offer_msg);
+
 /**
  * Punch a hole in the NAT for the control or data socket.
  *
@@ -215,7 +233,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
-    ChiakiHolepunchSession session, ChiakiHolepunchPortType port_type);
+    ChiakiHolepunchSession session, ChiakiHolepunchCandidate local_candidate, ChiakiHolepunchMessage our_offer_msg, ChiakiHolepunchPortType port_type);
 
 /**
  * Cancel initial psn connection steps (i.e., session create, session start and session punch hole)
