@@ -431,8 +431,16 @@ static void *session_thread_func(void *arg)
 
 	CHECK_STOP(quit);
 
+	ChiakiHolepunchCandidate local_candidates = NULL;
+	ChiakiHolepunchMessage our_offer_msg = NULL;
 	if(session->holepunch_session)
 	{
+		ChiakiErrorCode err = holepunch_session_create_offer(session->holepunch_session, &local_candidates, &our_offer_msg);
+		if (err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "!! Failed to create offer msg for data connection");
+			CHECK_STOP(quit);
+		}
 		chiaki_socket_t *rudp_sock = chiaki_get_holepunch_sock(session->holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
 		session->rudp = chiaki_rudp_init(rudp_sock, session->log);
 		if(!session->rudp)
@@ -553,14 +561,6 @@ static void *session_thread_func(void *arg)
 		event_start.type = CHIAKI_EVENT_HOLEPUNCH;
 		event_start.data_holepunch.finished = false;
 		chiaki_session_send_event(session, &event_start);
-		ChiakiHolepunchCandidate local_candidates = NULL;
-		ChiakiHolepunchMessage our_offer_msg = NULL;
-		ChiakiErrorCode err = holepunch_session_create_offer(session->holepunch_session, &local_candidates, &our_offer_msg);
-		if (err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "!! Failed to create offer msg for data connection");
-			QUIT(quit_ctrl);
-		}
 		err = chiaki_holepunch_session_punch_hole(session->holepunch_session, local_candidates, our_offer_msg, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
 		if (err != CHIAKI_ERR_SUCCESS)
 		{
