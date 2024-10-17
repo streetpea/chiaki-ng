@@ -224,6 +224,13 @@ typedef struct upnp_gateway_info_t
     struct UPNPUrls *urls;
     struct IGDdatas *data;
 } UPNPGatewayInfo;
+
+typedef enum upnp_gatway_status_t
+{
+    GATEWAY_STATUS_UNKNOWN = 1 << 0,
+    GATEWAY_STATUS_FOUND = 1 << 1,
+    GATEWAY_STATUS_NOT_FOUND = 1 << 2,
+} UPNPGatewayStatus;
 typedef struct session_t
 {
     // TODO: Clean this up, how much of this stuff do we really need?
@@ -254,6 +261,7 @@ typedef struct session_t
     size_t num_stun_servers;
     size_t num_stun_servers_ipv6;
     UPNPGatewayInfo gw;
+    UPNPGatewayStatus gw_status;
 
     uint8_t data1[16];
     uint8_t data2[16];
@@ -724,6 +732,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->num_stun_servers = 0;
     session->num_stun_servers_ipv6 = 0;
     session->gw.data = NULL;
+    session->gw_status = GATEWAY_STATUS_UNKNOWN;
 
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&session->notif_mutex, false);
@@ -2373,34 +2382,62 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session, C
     bool have_addr = false;
     Candidate *candidate_remote = &msg.conn_request->candidates[1];
     candidate_remote->type = CANDIDATE_TYPE_STATIC;
-    UPNPGatewayInfo upnp_gw;
-    upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
-    if(!upnp_gw.data)
+    switch(session->gw_status)
     {
-        err = CHIAKI_ERR_MEMORY;
-        goto cleanup;
-    }
-    upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
-    if(!upnp_gw.urls)
-    {
-        err = CHIAKI_ERR_MEMORY;
-        free(upnp_gw.data);
-        goto cleanup;
-    }
-    err = upnp_get_gateway_info(session->log, &upnp_gw);
-    if (err == CHIAKI_ERR_SUCCESS) {
-        memcpy(candidate_local->addr, upnp_gw.lan_ip, sizeof(upnp_gw.lan_ip));
-        have_addr = get_client_addr_remote_upnp(session->log, &upnp_gw, candidate_remote->addr);
-        if(upnp_add_udp_port_mapping(session->log, &upnp_gw, local_port, local_port))
-        {
-            CHIAKI_LOGI(session->log, "holepunch_session_create_offer: Added local UPNP port mapping to port %u", local_port);
-            session->gw = upnp_gw;
+        case GATEWAY_STATUS_UNKNOWN: {
+            UPNPGatewayInfo upnp_gw;
+            upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
+            if(!upnp_gw.data)
+            {
+                err = CHIAKI_ERR_MEMORY;
+                goto cleanup;
+            }
+            upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
+            if(!upnp_gw.urls)
+            {
+                err = CHIAKI_ERR_MEMORY;
+                free(upnp_gw.data);
+                goto cleanup;
+            }
+            err = upnp_get_gateway_info(session->log, &upnp_gw);
+            if (err == CHIAKI_ERR_SUCCESS) {
+                memcpy(candidate_local->addr, upnp_gw.lan_ip, sizeof(upnp_gw.lan_ip));
+                have_addr = get_client_addr_remote_upnp(session->log, &upnp_gw, candidate_remote->addr);
+                if(upnp_add_udp_port_mapping(session->log, &upnp_gw, local_port, local_port))
+                {
+                    CHIAKI_LOGI(session->log, "holepunch_session_create_offer: Added local UPNP port mapping to port %u", local_port);
+                    session->gw = upnp_gw;
+                    session->gw_status = GATEWAY_STATUS_FOUND;
+                }
+                else
+                {
+                    CHIAKI_LOGE(session->log, "holepunch_session_create_offer: Adding upnp port mapping failed");
+                    session->gw_status = GATEWAY_STATUS_NOT_FOUND;
+                }
+            }
+            else {
+                get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
+                session->gw_status = GATEWAY_STATUS_NOT_FOUND;
+            }
+            break;
         }
-        else
-            CHIAKI_LOGE(session->log, "holepunch_session_create_offer: Adding upnp port mapping failed");
-    }
-    else {
-        get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
+        case GATEWAY_STATUS_NOT_FOUND: {
+            get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
+            break;
+        }
+        case GATEWAY_STATUS_FOUND: {
+            memcpy(candidate_local->addr, session->gw.lan_ip, sizeof(session->gw.lan_ip));
+            have_addr = get_client_addr_remote_upnp(session->log, &session->gw, candidate_remote->addr);
+            if(upnp_add_udp_port_mapping(session->log, &session->gw, local_port, local_port))
+            {
+                CHIAKI_LOGI(session->log, "holepunch_session_create_offer: Added local UPNP port mapping to port %u", local_port);
+            }
+            else
+            {
+                CHIAKI_LOGE(session->log, "holepunch_session_create_offer: Adding upnp port mapping failed");
+            }
+            break;
+        }
     }
     memcpy(session->client_local_ip, candidate_local->addr, sizeof(candidate_local->addr));
     if (!have_addr)
