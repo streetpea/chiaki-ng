@@ -442,8 +442,16 @@ static void *session_thread_func(void *arg)
 		}
 	}
 	// PSN Connection
+	ChiakiHolepunchCandidate local_candidates = NULL;
+	ChiakiHolepunchMessage our_offer_msg = NULL;
 	if(session->rudp)
 	{
+		ChiakiErrorCode err = holepunch_session_create_offer(session->holepunch_session, &local_candidates, &our_offer_msg);
+		if (err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(session->log, "!! Failed to create offer msg for data connection");
+			QUIT(quit_ctrl);
+		}
 		ChiakiRegist regist;
 		ChiakiRegistInfo info;
 		ChiakiHolepunchRegistInfo hinfo = chiaki_get_regist_info(session->holepunch_session);
@@ -553,14 +561,6 @@ static void *session_thread_func(void *arg)
 		event_start.type = CHIAKI_EVENT_HOLEPUNCH;
 		event_start.data_holepunch.finished = false;
 		chiaki_session_send_event(session, &event_start);
-		ChiakiHolepunchCandidate local_candidates = NULL;
-		ChiakiHolepunchMessage our_offer_msg = NULL;
-		ChiakiErrorCode err = holepunch_session_create_offer(session->holepunch_session, &local_candidates, &our_offer_msg);
-		if (err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "!! Failed to create offer msg for data connection");
-			QUIT(quit_ctrl);
-		}
 		err = chiaki_holepunch_session_punch_hole(session->holepunch_session, local_candidates, our_offer_msg, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
 		if (err != CHIAKI_ERR_SUCCESS)
 		{
