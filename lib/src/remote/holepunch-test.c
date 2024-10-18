@@ -134,32 +134,60 @@ int main(int argc, char **argv)
     }
     printf(">> Created session\n");
 
+	ChiakiHolepunchMessage our_offer_msg_ctrl = NULL;
+    ChiakiHolepunchCandidate local_candidates = NULL;
+	err = holepunch_session_create_offer(session, &local_candidates, &our_offer_msg_ctrl);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "!! Failed to create offer msg for ctrl connection");
+		return err;
+	}
+    printf(">> Created offer msg for ctrl connection\n");
     err = chiaki_holepunch_session_start(session, device_uid, console_type);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to start session\n");
+        if(local_candidates)
+            free(local_candidates);
         chiaki_holepunch_session_fini(session);
         return -1;
     }
     printf(">> Started session\n");
 
-    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
+    err = chiaki_holepunch_session_punch_hole(session, local_candidates, our_offer_msg_ctrl, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to punch hole for control connection.\n");
+        if(local_candidates)
+            free(local_candidates);
         chiaki_holepunch_session_fini(session);
         return -1;
     }
     printf(">> Punched hole for control connection!\n");
+    if(local_candidates)
+        free(local_candidates);
+    local_candidates = NULL;
 
-    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
+	ChiakiHolepunchMessage our_offer_msg_data = NULL;
+	err = holepunch_session_create_offer(session, &local_candidates, &our_offer_msg_data);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "!! Failed to create offer msg for ctrl connection");
+		return err;
+	}
+    printf(">> Created offer msg for ctrl connection\n");
+    err = chiaki_holepunch_session_punch_hole(session, local_candidates, our_offer_msg_data, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         fprintf(stderr, "!! Failed to punch hole for data connection.\n");
+        if(local_candidates)
+            free(local_candidates);
         chiaki_holepunch_session_fini(session);
         return -1;
     }
     printf(">> Punched hole for data connection!\n");
+    if(local_candidates)
+        free(local_candidates);
 
     printf(">> Successfully punched holes for all neccessary connections!\n");
 
