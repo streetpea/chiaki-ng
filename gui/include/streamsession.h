@@ -101,6 +101,7 @@ struct StreamSessionConnectInfo
 	QString duid;
 	QString psn_token;
 	QString psn_account_id;
+	uint16_t dpad_touch_increment;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
@@ -187,6 +188,11 @@ class StreamSession : public QObject
 		ChiakiControllerState touch_state;
 		QMap<int, uint8_t> touch_tracker;
 		int8_t mouse_touch_id;
+		ChiakiControllerState dpad_touch_state;
+		uint16_t dpad_touch_increment;
+		int8_t dpad_touch_id;
+		QPair<uint16_t, uint16_t> dpad_touch_value;
+		QTimer *dpad_touch_timer, *dpad_touch_stop_timer;
 		QElapsedTimer double_tap_timer;
 		RumbleHapticsIntensity rumble_haptics_intensity;
 		bool start_mic_unmuted;
@@ -276,6 +282,7 @@ class StreamSession : public QObject
 #endif
 		void HandleKeyboardEvent(QKeyEvent *event);
 		void HandleTouchEvent(QTouchEvent *event, qreal width, qreal height);
+		void HandleDpadTouchEvent(ChiakiControllerState *state, bool placeholder = false);
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
@@ -300,6 +307,7 @@ class StreamSession : public QObject
 
 	private slots:
 		void UpdateGamepads();
+		void DpadSendFeedbackState();
 		void SendFeedbackState();
 };
 

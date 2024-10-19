@@ -758,6 +758,26 @@ void Settings::SetCurrentProfile(QString profile)
 	emit CurrentProfileChanged();
 }
 
+bool Settings::GetDpadTouchEnabled() const
+{
+	return settings.value("settings/dpad_touch_enabled", true).toBool();
+}
+
+void Settings::SetDpadTouchEnabled(bool enabled)
+{
+	settings.setValue("settings/dpad_touch_enabled", enabled);
+}
+
+uint16_t Settings::GetDpadTouchIncrement() const
+{
+	return settings.value("settings/dpad_touch_increment", 30).toUInt();
+}
+
+void Settings::SetDpadTouchIncrement(uint16_t increment)
+{
+	settings.setValue("settings/dpad_touch_increment", increment);
+}
+
 QString Settings::GetPsnAccountId() const
 {
 	return settings.value("settings/psn_account_id").toString();

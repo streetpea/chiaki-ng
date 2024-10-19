@@ -334,6 +334,12 @@ class Settings : public QObject
 		QString GetCurrentProfile() const;
 		void SetCurrentProfile(QString profile);
 
+		bool GetDpadTouchEnabled() const;
+		void SetDpadTouchEnabled(bool enabled);
+
+		uint16_t GetDpadTouchIncrement() const;
+		void SetDpadTouchIncrement(uint16_t increment);
+
 		void DeleteProfile(QString profile);
 
 		QString GetPsnAccountId() const;

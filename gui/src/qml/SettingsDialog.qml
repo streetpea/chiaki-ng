@@ -186,22 +186,6 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Buttons By Position:")
-                    }
-
-                    C.CheckBox {
-                        text: qsTr("Use buttons by position instead of by label")
-                        checked: Chiaki.settings.buttonsByPosition
-                        onToggled: Chiaki.settings.buttonsByPosition = checked
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Unchecked)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Steam Deck Vertical:")
                         visible: typeof Chiaki.settings.verticalDeck !== "undefined"
                     }
@@ -1303,11 +1287,11 @@ DialogView {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 1
+                    columns: 3
                     rowSpacing: 20
-                    columnSpacing: 20
+                    columnSpacing: 100
 
-
+                    Label { }
                     C.Button {
                         id: controllerMappingChange
                         firstInFocusChain: true
@@ -1316,14 +1300,76 @@ DialogView {
                             reset: false
                         });
                     }
-
+                    Label { }
+                    Label { }
                     C.Button {
                         id: controllerMappingReset
-                        lastInFocusChain: true
                         text: "Reset Controller Mapping"
                         onClicked: controllerMappingDialog.show({
                             reset: true
                         });
+                    }
+                    Label { }
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Dpad Touchpad Emulation")
+                    }
+                    C.CheckBox {
+                        checked: Chiaki.settings.dpadTouchIncrement
+                        onToggled: Chiaki.settings.dpadTouchEnabled = !Chiaki.settings.dpadTouchEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Dpad Touch Increment:")
+                        visible: Chiaki.settings.dpadTouchEnabled
+                    }
+
+                    C.Slider {
+                        Layout.preferredWidth: 250
+                        from: 1
+                        to: 1079
+                        stepSize: 1
+                        visible: Chiaki.settings.dpadTouchEnabled
+                        value: Chiaki.settings.dpadTouchIncrement
+                        onMoved: Chiaki.settings.dpadTouchIncrement = value
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
+                            }
+                            text: qsTr("%1 mm").arg(parent.value / 100)
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(0.3 mm)")
+                        visible: Chiaki.settings.dpadTouchEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Buttons By Position:")
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("Use buttons by position instead of by label")
+                        checked: Chiaki.settings.buttonsByPosition
+                        onToggled: Chiaki.settings.buttonsByPosition = checked
+                        lastInFocusChain: true
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
                     }
                 }
             }

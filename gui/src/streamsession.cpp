@@ -18,6 +18,8 @@
 #define SETSU_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_HAPTIC_INTERVAL_MS 10 // check every interval
+#define NEW_DPAD_TOUCH_INTERVAL_MS 500
+#define DPAD_TOUCH_UPDATE_INTERVAL_MS 10
 #define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 4 // send packets every interval * packets per analysis
 #define STEAMDECK_HAPTIC_SAMPLING_RATE 3000
 // DualShock4 touchpad is 1920 x 942
@@ -118,6 +120,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->psn_token = settings->GetPsnAuthToken();
 	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = std::move(duid);
+	this->dpad_touch_increment = settings->GetDpadTouchEnabled() ? settings->GetDpadTouchIncrement(): 0;
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -270,6 +273,24 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_controller_state_set_idle(&touch_state);
 	touch_tracker=QMap<int, uint8_t>();
 	mouse_touch_id=-1;
+	dpad_touch_id =-1;
+	chiaki_controller_state_set_idle(&dpad_touch_state);
+	dpad_touch_value = QPair<uint16_t, uint16_t>(0,0);
+	dpad_touch_increment = connect_info.dpad_touch_increment;
+	dpad_touch_timer = new QTimer(this);
+	connect(dpad_touch_timer, &QTimer::timeout, this, &StreamSession::DpadSendFeedbackState);
+	dpad_touch_timer->setInterval(DPAD_TOUCH_UPDATE_INTERVAL_MS);
+	dpad_touch_stop_timer = new QTimer(this);
+	dpad_touch_stop_timer->setSingleShot(true);
+	connect(dpad_touch_stop_timer, &QTimer::timeout, this, [this]{
+		if(dpad_touch_id >= 0)
+		{
+			dpad_touch_timer->stop();
+			chiaki_controller_state_stop_touch(&dpad_touch_state, (uint8_t)dpad_touch_id);
+			dpad_touch_id = -1;
+			SendFeedbackState();
+		}
+	});
 	// If duid isn't empty connect with psn
 	chiaki_connect_info.holepunch_session = NULL;
 	if(!connect_info.duid.isEmpty())
@@ -453,6 +474,16 @@ StreamSession::~StreamSession()
 	{
 		chiaki_ffmpeg_decoder_fini(ffmpeg_decoder);
 		delete ffmpeg_decoder;
+	}
+	if(dpad_touch_stop_timer)
+	{
+		delete dpad_touch_stop_timer;
+		dpad_touch_stop_timer = nullptr;
+	}
+	if(dpad_touch_timer)
+	{
+		delete dpad_touch_timer;
+		dpad_touch_timer = nullptr;
 	}
 	if (haptics_output > 0)
 	{
@@ -732,6 +763,93 @@ void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal heig
 	SendFeedbackState();
 }
 
+void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool placeholder)
+{
+	ChiakiControllerState placeholder_touch_state;
+	if(!placeholder)
+		dpad_touch_timer->start();
+	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT)
+	{
+		if(dpad_touch_id < 0)
+		{
+			dpad_touch_value = QPair<uint16_t, uint16_t>((uint16_t)(0), (uint16_t)(PS_TOUCHPAD_MAXY / 2));
+			dpad_touch_id = chiaki_controller_state_start_touch(&dpad_touch_state, dpad_touch_value.first, dpad_touch_value.second);
+			if(dpad_touch_stop_timer->isActive() && !placeholder)
+				dpad_touch_stop_timer->stop();
+			return;
+		}
+		if(dpad_touch_stop_timer->isActive() && !placeholder)
+			dpad_touch_stop_timer->stop();
+		if(dpad_touch_value.first < dpad_touch_increment)
+			dpad_touch_value.first = 0;
+		else
+			dpad_touch_value.first -= dpad_touch_increment;
+		chiaki_controller_state_set_touch_pos(&dpad_touch_state, dpad_touch_id, dpad_touch_value.first, dpad_touch_value.second);
+		return;
+	}
+	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT)
+	{
+		// starting new touch
+		if(dpad_touch_id < 0)
+		{
+			dpad_touch_value = QPair<uint16_t, uint16_t>((uint16_t)(PS_TOUCHPAD_MAXX), (uint16_t)(PS_TOUCHPAD_MAXY / 2));
+			dpad_touch_id = chiaki_controller_state_start_touch(&dpad_touch_state, dpad_touch_value.first, dpad_touch_value.second);
+			if(dpad_touch_stop_timer->isActive() && !placeholder)
+				dpad_touch_stop_timer->stop();
+			return;
+		}
+		if(dpad_touch_stop_timer->isActive() && !placeholder)
+			dpad_touch_stop_timer->stop();
+		if(dpad_touch_value.first > (PS_TOUCHPAD_MAXX - dpad_touch_increment))
+			dpad_touch_value.first = PS_TOUCHPAD_MAXX;
+		else
+			dpad_touch_value.first += dpad_touch_increment;
+		chiaki_controller_state_set_touch_pos(&dpad_touch_state, dpad_touch_id, dpad_touch_value.first, dpad_touch_value.second);
+		return;
+	}
+	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN)
+	{
+		// starting new touch
+		if(dpad_touch_id < 0)
+		{
+			dpad_touch_value = QPair<uint16_t, uint16_t>((uint16_t)(PS_TOUCHPAD_MAXX / 2), (uint16_t)(PS_TOUCHPAD_MAXY));
+			dpad_touch_id = chiaki_controller_state_start_touch(&dpad_touch_state, dpad_touch_value.first, dpad_touch_value.second);
+			if(dpad_touch_stop_timer->isActive() && !placeholder)
+				dpad_touch_stop_timer->stop();
+			return;
+		}
+		if(dpad_touch_stop_timer->isActive() && !placeholder)
+			dpad_touch_stop_timer->stop();
+		if(dpad_touch_value.second > PS_TOUCHPAD_MAXY - dpad_touch_increment)
+			dpad_touch_value.second = PS_TOUCHPAD_MAXY;
+		else
+			dpad_touch_value.second += dpad_touch_increment;
+		chiaki_controller_state_set_touch_pos(&dpad_touch_state, dpad_touch_id, dpad_touch_value.first, dpad_touch_value.second);
+		return;
+	}
+	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_UP)
+	{
+		// starting new touch
+		if(dpad_touch_id < 0)
+		{
+			dpad_touch_value = QPair<uint16_t, uint16_t>((uint16_t)(PS_TOUCHPAD_MAXX / 2), (uint16_t)(0));
+			dpad_touch_id = chiaki_controller_state_start_touch(&dpad_touch_state, dpad_touch_value.first, dpad_touch_value.second);
+			if(dpad_touch_stop_timer->isActive() && !placeholder)
+				dpad_touch_stop_timer->stop();
+			return;
+		}
+		if(dpad_touch_stop_timer->isActive() && !placeholder)
+			dpad_touch_stop_timer->stop();
+		if(dpad_touch_value.second < dpad_touch_increment)
+			dpad_touch_value.second = 0;
+		else
+			dpad_touch_value.second -= dpad_touch_increment;
+		chiaki_controller_state_set_touch_pos(&dpad_touch_state, dpad_touch_id, dpad_touch_value.first, dpad_touch_value.second);
+		return;
+	}
+	CHIAKI_LOGW(GetChiakiLog(), "Dpad Touch event called without dpad press, ignoring...");
+}
+
 void StreamSession::UpdateGamepads()
 {
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -809,6 +927,52 @@ void StreamSession::UpdateGamepads()
 #endif
 }
 
+void StreamSession::DpadSendFeedbackState()
+{
+	ChiakiControllerState state;
+	chiaki_controller_state_set_idle(&state);
+
+#if CHIAKI_GUI_ENABLE_SETSU
+	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
+	state = setsu_state;
+#endif
+
+	for(auto controller : controllers)
+	{
+		auto controller_state = controller->GetState();
+		chiaki_controller_state_or(&state, &state, &controller_state);
+	}
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	chiaki_controller_state_or(&state, &state, &sdeck_state);
+#endif
+	chiaki_controller_state_or(&state, &state, &keyboard_state);
+	chiaki_controller_state_or(&state, &state, &touch_state);
+
+	if(input_block)
+	{
+		// Only unblock input after all buttons were released
+		if(input_block == 2 && !state.buttons)
+			input_block = 0;
+		else
+		{
+			chiaki_controller_state_set_idle(&state);
+			chiaki_controller_state_set_idle(&keyboard_state);
+		}
+	}
+	if(dpad_touch_increment && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
+	{
+		HandleDpadTouchEvent(&state, true);
+	}
+	else
+	{
+		if(dpad_touch_id >= 0 && !dpad_touch_stop_timer->isActive())
+			dpad_touch_stop_timer->start(NEW_DPAD_TOUCH_INTERVAL_MS);
+	}
+	chiaki_controller_state_or(&state, &state, &dpad_touch_state);
+	chiaki_session_set_controller_state(&session, &state);
+}
+
 void StreamSession::SendFeedbackState()
 {
 	ChiakiControllerState state;
@@ -842,6 +1006,16 @@ void StreamSession::SendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
+	if(dpad_touch_increment && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
+	{
+		HandleDpadTouchEvent(&state);
+	}
+	else
+	{
+		if(dpad_touch_id >= 0 && !dpad_touch_stop_timer->isActive())
+			dpad_touch_stop_timer->start(NEW_DPAD_TOUCH_INTERVAL_MS);
+	}
+	chiaki_controller_state_or(&state, &state, &dpad_touch_state);
 	chiaki_session_set_controller_state(&session, &state);
 }
 

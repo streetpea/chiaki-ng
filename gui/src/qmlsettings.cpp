@@ -480,6 +480,28 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
     emit psnAccountIdChanged();
 }
 
+bool QmlSettings::dpadTouchEnabled() const
+{
+    return settings->GetDpadTouchEnabled();
+}
+
+void QmlSettings::setDpadTouchEnabled(bool enabled)
+{
+    settings->SetDpadTouchEnabled(enabled);
+    emit dpadTouchEnabledChanged();
+}
+
+uint16_t QmlSettings::dpadTouchIncrement() const
+{
+    return settings->GetDpadTouchIncrement();
+}
+
+void QmlSettings::setDpadTouchIncrement(uint16_t increment)
+{
+    settings->SetDpadTouchIncrement(increment);
+    emit dpadTouchIncrementChanged();
+}
+
 QString QmlSettings::currentProfile() const
 {
     return settings->GetCurrentProfile();
@@ -1290,6 +1312,7 @@ void QmlSettings::refreshAllKeys()
     emit psnRefreshTokenChanged();
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
+    emit dpadTouchIncrementChanged();
     emit controllerMappingChanged();
     emit packetLossMaxChanged();
     emit currentProfileChanged();

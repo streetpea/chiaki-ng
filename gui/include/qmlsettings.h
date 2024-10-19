@@ -58,6 +58,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
+    Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
+    Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
@@ -426,6 +428,12 @@ public:
     QString psnAccountId() const;
     void setPsnAccountId(const QString &account_id);
 
+    bool dpadTouchEnabled() const;
+    void setDpadTouchEnabled(bool enabled);
+
+    uint16_t dpadTouchIncrement() const;
+    void setDpadTouchIncrement(uint16_t increment);
+
     QString currentProfile() const;
     void setCurrentProfile(const QString &profile);
 
@@ -498,6 +506,8 @@ signals:
     void psnRefreshTokenChanged();
     void psnAuthTokenExpiryChanged();
     void psnAccountIdChanged();
+    void dpadTouchEnabledChanged();
+    void dpadTouchIncrementChanged();
     void controllerMappingChanged();
     void packetLossMaxChanged();
     void currentProfileChanged();

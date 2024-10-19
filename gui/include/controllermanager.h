@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QMap>
 #include <QString>
+#include <QTimer>
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 #include <SDL.h>
