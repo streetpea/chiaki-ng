@@ -48,7 +48,7 @@ static const QMap<QString, CLICommand> cli_commands = {
 #endif
 
 int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info);
-int RunMain(QGuiApplication &app, Settings *settings);
+int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit);
 
 int real_main(int argc, char *argv[])
 {
@@ -126,6 +126,9 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption profile_option("profile", "", "profile", "Configuration profile");
 	parser.addOption(profile_option);
 
+	QCommandLineOption stream_exit_option("exit-app-on-stream-exit", "Exit the GUI application when the stream session ends.");
+	parser.addOption(stream_exit_option);
+
 	QCommandLineOption regist_key_option("registkey", "", "registkey");
 	parser.addOption(regist_key_option);
 
@@ -151,6 +154,7 @@ int real_main(int argc, char *argv[])
 	QStringList args = parser.positionalArguments();
 
 	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
+	bool exit_app_on_stream_exit = parser.isSet(stream_exit_option);
 	if(parser.isSet(profile_option))
 		settings.SetCurrentProfile(parser.value(profile_option));
 	Settings alt_settings(parser.isSet(profile_option) ? "" : settings.GetCurrentProfile());
@@ -161,7 +165,7 @@ int real_main(int argc, char *argv[])
 		use_alt_settings = true;
 
 	if(args.length() == 0)
-		return RunMain(app, use_alt_settings ? &alt_settings : &settings);
+		return RunMain(app, use_alt_settings ? &alt_settings : &settings, exit_app_on_stream_exit);
 
 	if(args[0] == "list")
 	{
@@ -286,9 +290,10 @@ int real_main(int argc, char *argv[])
 	}
 }
 
-int RunMain(QGuiApplication &app, Settings *settings)
+int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)
 {
-	QmlMainWindow main_window(settings);
+	printf("Exit app on stream exit %d\n", exit_app_on_stream_exit);
+	QmlMainWindow main_window(settings, exit_app_on_stream_exit);
 	main_window.show();
 	return app.exec();
 }
