@@ -53,6 +53,7 @@ class QmlBackend : public QObject
     Q_PROPERTY(QList<QmlController*> controllers READ qmlControllers NOTIFY controllersChanged)
     Q_PROPERTY(bool discoveryEnabled READ discoveryEnabled WRITE setDiscoveryEnabled NOTIFY discoveryEnabledChanged)
     Q_PROPERTY(QVariantList hosts READ hosts NOTIFY hostsChanged)
+    Q_PROPERTY(QVariantList hiddenHosts READ hiddenHosts NOTIFY hiddenHostsChanged)
     Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
     Q_PROPERTY(PsnConnectState connectState READ connectState WRITE setConnectState NOTIFY connectStateChanged)
     Q_PROPERTY(QVariantList currentControllerMapping READ currentControllerMapping NOTIFY currentControllerMappingChanged)
@@ -92,6 +93,8 @@ public:
     PsnConnectState connectState() const;
     void setConnectState(PsnConnectState connect_state);
     QVariantList hosts() const;
+
+    QVariantList hiddenHosts() const;
 
     QVariantList currentControllerMapping() const;
 
@@ -135,6 +138,8 @@ public:
     Q_INVOKABLE void deleteHost(int index);
     Q_INVOKABLE void wakeUpHost(int index, QString nickname = QString());
     Q_INVOKABLE void addManualHost(int index, const QString &address);
+    Q_INVOKABLE void hideHost(const QString &mac_string, const QString &host_nickname);
+    Q_INVOKABLE void unhideHost(const QString &mac_string);
     Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback);
     Q_INVOKABLE void connectToHost(int index, QString nickname = QString());
     Q_INVOKABLE void stopSession(bool sleep);
@@ -176,6 +181,7 @@ signals:
     void enableAnalogStickMappingChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
+    void hiddenHostsChanged();
     void psnTokenChanged();
     void psnCredsExpired();
     void autoConnectChanged();

@@ -83,6 +83,22 @@ RegisteredHost RegisteredHost::LoadFromSettings(QSettings *settings)
 	return r;
 }
 
+void HiddenHost::SaveToSettings(QSettings *settings) const
+{
+	settings->setValue("server_nickname", server_nickname);
+	settings->setValue("server_mac", QByteArray((const char *)server_mac.GetMAC(), 6));
+}
+
+HiddenHost HiddenHost::LoadFromSettings(QSettings *settings)
+{
+	HiddenHost r;
+	r.server_nickname = settings->value("server_nickname").toString();
+	auto server_mac = settings->value("server_mac").toByteArray();
+	if(server_mac.size() == 6)
+		r.server_mac = HostMAC((const uint8_t *)server_mac.constData());
+	return r;
+}
+
 ManualHost::ManualHost()
 {
 	id = -1;

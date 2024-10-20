@@ -177,6 +177,7 @@ class Settings : public QObject
 		QSettings default_settings;
 		QSettings placebo_settings;
 		QString time_format;
+		QMap<HostMAC, HiddenHost> hidden_hosts;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
 		QMap<QString, RegisteredHost> nickname_registered_hosts;
@@ -189,6 +190,8 @@ class Settings : public QObject
 		void LoadRegisteredHosts(QSettings *qsettings = nullptr);
 		void SaveRegisteredHosts(QSettings *qsettings = nullptr);
 
+		void LoadHiddenHosts(QSettings *qsettings = nullptr);
+		void SaveHiddenHosts(QSettings *qsettings = nullptr);
 
 		void LoadManualHosts(QSettings *qsettings = nullptr);
 		void SaveManualHosts(QSettings *qsettings = nullptr);
@@ -562,6 +565,11 @@ class Settings : public QObject
 		void RemoveRegisteredHost(const HostMAC &mac);
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
+		QList<HiddenHost> GetHiddenHosts() const 					{ return hidden_hosts.values(); }
+		void AddHiddenHost(const HiddenHost &host);
+		void RemoveHiddenHost(const HostMAC &mac);
+		bool GetHiddenHostHidden(const HostMAC &mac) const			{ return hidden_hosts.contains(mac); }
+		HiddenHost GetHiddenHost(const HostMAC &mac) const 			{ return hidden_hosts[mac]; }
 		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
 		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
 		size_t GetPS4RegisteredHostsRegistered() const { return ps4s_registered; }
@@ -584,6 +592,7 @@ class Settings : public QObject
 
 	signals:
 		void RegisteredHostsUpdated();
+		void HiddenHostsUpdated();
 		void ManualHostsUpdated();
 		void ControllerMappingsUpdated();
 		void CurrentProfileChanged();

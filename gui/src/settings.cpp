@@ -192,6 +192,7 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
+	LoadHiddenHosts();
 	LoadManualHosts();
 	LoadControllerMappings();
 	default_settings.setFallbacksEnabled(false);
@@ -212,6 +213,7 @@ void Settings::ExportSettings(QString fileurl)
 	file.close();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	SaveRegisteredHosts(&settings_backup);
+	SaveHiddenHosts(&settings_backup);
 	SaveManualHosts(&settings_backup);
 	SaveControllerMappings(&settings_backup);
     QStringList keys = settings.allKeys();
@@ -260,6 +262,7 @@ void Settings::ImportSettings(QString fileurl)
 	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	LoadRegisteredHosts(&settings_backup);
+	LoadHiddenHosts(&settings_backup);
 	LoadManualHosts(&settings_backup);
 	LoadControllerMappings(&settings_backup);
 	QString profile = settings_backup.value("this_profile").toString();
@@ -267,6 +270,7 @@ void Settings::ImportSettings(QString fileurl)
 	{
 		settings.clear();
 		SaveRegisteredHosts();
+		SaveHiddenHosts();
 		SaveManualHosts();
 		SaveControllerMappings();
 		QStringList keys = settings_backup.allKeys();
@@ -281,6 +285,7 @@ void Settings::ImportSettings(QString fileurl)
 		QSettings profile_settings(QCoreApplication::organizationName(), QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
 		profile_settings.clear();
 		SaveRegisteredHosts(&profile_settings);
+		SaveHiddenHosts(&profile_settings);
 		SaveManualHosts(&profile_settings);
 		SaveControllerMappings(&profile_settings);
 		QStringList keys = settings_backup.allKeys();
@@ -1751,6 +1756,7 @@ void Settings::DeleteProfile(QString profile)
 	manual_hosts.clear();
 	controller_mappings.clear();
 	SaveRegisteredHosts(&delete_profile);
+	SaveHiddenHosts(&delete_profile);
 	SaveManualHosts(&delete_profile);
 	SaveControllerMappings(&delete_profile);
 	delete_profile.remove("settings");
@@ -1758,6 +1764,7 @@ void Settings::DeleteProfile(QString profile)
 	SaveProfiles();
 	emit ProfilesUpdated();
 	LoadRegisteredHosts();
+	LoadHiddenHosts();
 	LoadManualHosts();
 	LoadControllerMappings();
 }
@@ -1813,6 +1820,52 @@ void Settings::RemoveRegisteredHost(const HostMAC &mac)
 	registered_hosts.remove(mac);
 	SaveRegisteredHosts();
 	emit RegisteredHostsUpdated();
+}
+
+void Settings::LoadHiddenHosts(QSettings *qsettings)
+{
+	if(!qsettings)
+		qsettings = &settings;
+	hidden_hosts.clear();
+	int count = qsettings->beginReadArray("hidden_hosts");
+	for(int i=0; i<count; i++)
+	{
+		qsettings->setArrayIndex(i);
+		HiddenHost host = HiddenHost::LoadFromSettings(qsettings);
+		hidden_hosts[host.GetMAC()] = host;
+	}
+	qsettings->endArray();
+}
+
+void Settings::SaveHiddenHosts(QSettings *qsettings)
+{
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("hidden_hosts");
+	int i=0;
+	for(const auto &host : hidden_hosts)
+	{
+		qsettings->setArrayIndex(i);
+		host.SaveToSettings(qsettings);
+		i++;
+	}
+	qsettings->endArray();
+}
+
+void Settings::AddHiddenHost(const HiddenHost &host)
+{
+	hidden_hosts[host.GetMAC()] = host;
+	SaveHiddenHosts();
+	emit HiddenHostsUpdated();
+}
+
+void Settings::RemoveHiddenHost(const HostMAC &mac)
+{
+	if(!hidden_hosts.contains(mac))
+		return;
+	hidden_hosts.remove(mac);
+	SaveHiddenHosts();
+	emit HiddenHostsUpdated();
 }
 
 void Settings::LoadManualHosts(QSettings *qsettings)

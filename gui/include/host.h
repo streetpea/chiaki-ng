@@ -36,6 +36,23 @@ static bool operator==(const HostMAC &a, const HostMAC &b)	{ return memcmp(a.Get
 static bool operator!=(const HostMAC &a, const HostMAC &b)	{ return !(a == b); }
 static bool operator<(const HostMAC &a, const HostMAC &b)	{ return a.GetValue() < b.GetValue(); }
 
+class HiddenHost
+{
+	private:
+		HostMAC server_mac;
+		QString server_nickname;
+	public:
+		HiddenHost()	{ ; }
+		HiddenHost(HostMAC  server_mac, QString server_nickname)	{ this->server_mac = server_mac; this->server_nickname = server_nickname; }
+		HostMAC GetMAC() const 		{ return server_mac; }
+		QString GetNickname() const 	{ return server_nickname; }
+		void SetNickname(const QString &nickname) { this->server_nickname = nickname; }
+
+		void SaveToSettings(QSettings *settings) const;
+		static HiddenHost LoadFromSettings(QSettings *settings);
+};
+
+static bool operator==(const HiddenHost &a, const HiddenHost &b)	{ return (a.GetMAC() == b.GetMAC() && a.GetNickname() == b.GetNickname()); }
 class RegisteredHost
 {
 	private:
