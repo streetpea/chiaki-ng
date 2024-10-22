@@ -221,6 +221,14 @@ DialogView {
             Material.roundedScale: Material.MediumScale
             onOpened: logArea.forceActiveFocus()
             onClosed: stack.pop();
+            KeyNavigation.up: {
+                if(logScrollbar.position > 0.001)
+                    logFlick.flick(0, 500);
+            }
+            KeyNavigation.down: {
+                if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                    logFlick.flick(0, -500);           
+            }
 
             Flickable {
                 id: logFlick
@@ -230,7 +238,10 @@ DialogView {
                 contentWidth: logArea.contentWidth
                 contentHeight: logArea.contentHeight
                 flickableDirection: Flickable.AutoFlickIfNeeded
-                ScrollIndicator.vertical: ScrollIndicator { }
+                ScrollBar.vertical: ScrollBar {
+                    id: logScrollbar
+                    policy: ScrollBar.AlwaysOn
+                }
 
                 Label {
                     id: logArea

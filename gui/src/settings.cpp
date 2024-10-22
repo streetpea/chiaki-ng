@@ -1835,6 +1835,7 @@ void Settings::LoadHiddenHosts(QSettings *qsettings)
 		hidden_hosts[host.GetMAC()] = host;
 	}
 	qsettings->endArray();
+	emit HiddenHostsUpdated();
 }
 
 void Settings::SaveHiddenHosts(QSettings *qsettings)

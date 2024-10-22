@@ -126,6 +126,14 @@ DialogView {
             y: Math.round((root.height - height) / 2)
             title: qsTr("Create PSN Automatic Remote Connection Token")
             modal: true
+            KeyNavigation.up: {
+                if(logScrollbar.position > 0.001)
+                    logFlick.flick(0, 500);
+            }
+            KeyNavigation.down: {
+                if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                    logFlick.flick(0, -500);    
+            }
             closePolicy: Popup.NoAutoClose
             standardButtons: Dialog.Cancel
             Material.roundedScale: Material.MediumScale
@@ -140,7 +148,10 @@ DialogView {
                 contentWidth: logArea.contentWidth
                 contentHeight: logArea.contentHeight
                 flickableDirection: Flickable.AutoFlickIfNeeded
-                ScrollIndicator.vertical: ScrollIndicator { }
+                ScrollBar.vertical: ScrollBar {
+                    id: logScrollbar
+                    policy: ScrollBar.AlwaysOn
+                }
 
                 Label {
                     id: logArea

@@ -292,7 +292,6 @@ int real_main(int argc, char *argv[])
 
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)
 {
-	printf("Exit app on stream exit %d\n", exit_app_on_stream_exit);
 	QmlMainWindow main_window(settings, exit_app_on_stream_exit);
 	main_window.show();
 	return app.exec();
