@@ -7,7 +7,7 @@ import org.streetpea.chiaking
 
 Pane {
     padding: 0
-
+    id: consolePane
     StackView.onActivated: {
         forceActiveFocus();
         if(Chiaki.settings.remotePlayAsk)
@@ -148,6 +148,23 @@ Pane {
         }
         clip: true
         model: Chiaki.hosts
+        onCountChanged: {
+            if(!hostsView.currentItem)
+                hostsView.incrementCurrentIndex();
+            if(!hostsView.currentItem)
+                return;
+            if(!hostsView.currentItem.visible)
+            {
+                for(var i = 0; i < hostsView.count; i++)
+                {
+                    hostsView.incrementCurrentIndex()
+                    if(hostsView.currentItem.visible)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
         delegate: ItemDelegate {
             visible: modelData.display
             id: delegate
@@ -170,7 +187,8 @@ Pane {
 
             function deleteHost() {
                 if (modelData.manual)
-                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
+                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => {Chiaki.deleteHost(index)});
+                        
                 else if (modelData.discovered && !modelData.registered)
                     root.showConfirmDialog(qsTr("Hide Console"), qsTr("Are you sure you want to hide this console?") + "\n\n" + qsTr("Note: You can unhide from the Consoles section of the Settings under Hidden Consoles"), () => Chiaki.hideHost(modelData.mac, modelData.name));
 

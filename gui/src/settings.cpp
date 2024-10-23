@@ -265,7 +265,7 @@ void Settings::ImportSettings(QString fileurl)
 	LoadHiddenHosts(&settings_backup);
 	LoadManualHosts(&settings_backup);
 	LoadControllerMappings(&settings_backup);
-	QString profile = settings_backup.value("this_profile").toString();
+	QString profile = settings_backup.value("settings/this_profile").toString();
 	if(profile.isEmpty())
 	{
 		settings.clear();

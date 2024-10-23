@@ -1084,6 +1084,7 @@ DialogView {
                     ScrollBar.vertical: ScrollBar {
                         id: consolesScrollbar
                         policy: ScrollBar.AlwaysOn
+                        visible: consolesView.contentHeight > consolesView.height
                     }
                     clip: true
                     model: Chiaki.settings.registeredHosts
@@ -1275,10 +1276,11 @@ DialogView {
                         topMargin: 10
                     }
                     clip: true
-                    width: 400
+                    width: 500
                     ScrollBar.vertical: ScrollBar {
                         id: hiddenConsolesScrollbar
                         policy: ScrollBar.AlwaysOn
+                        visible: hiddenConsolesView.contentHeight > hiddenConsolesView.height
                     }
                     model: Chiaki.hiddenHosts
                     delegate: ItemDelegate {
@@ -1683,7 +1685,7 @@ DialogView {
                         id: aboutButton
                         lastInFocusChain: true
                         implicitWidth: 200
-                        text: qsTr("About %1").arg(Qt.application.displayName)
+                        text: qsTr("About %1-ng").arg(Qt.application.name)
                         onClicked: aboutDialog.open()
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1743,7 +1745,7 @@ DialogView {
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)
             y: Math.round((root.height - height) / 2)
-            title: qsTr("About %1").arg(Qt.application.name)
+            title: qsTr("About %1-ng").arg(Qt.application.name)
             modal: true
             standardButtons: Dialog.Ok
             Material.roundedScale: Material.MediumScale

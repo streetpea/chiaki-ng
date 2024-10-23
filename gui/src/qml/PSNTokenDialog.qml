@@ -151,6 +151,7 @@ DialogView {
                 ScrollBar.vertical: ScrollBar {
                     id: logScrollbar
                     policy: ScrollBar.AlwaysOn
+                    visible: logFlick.contentHeight > logFlick.implicitHeight
                 }
 
                 Label {
