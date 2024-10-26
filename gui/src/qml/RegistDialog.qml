@@ -14,14 +14,12 @@ DialogView {
     buttonText: qsTr("✓ Register")
     buttonEnabled: hostField.text.trim() && pin.acceptableInput && cpin.acceptableInput && (!onlineId.visible || onlineId.text.trim()) && (!accountId.visible || accountId.text.trim())
     StackView.onActivated: {
-        if (host == "255.255.255.255")
-            broadcast.checked = true;
         if(Chiaki.settings.psnAccountId)
             accountId.text = Chiaki.settings.psnAccountId
     }
     onAccepted: {
         let psnId = onlineId.visible ? onlineId.text.trim() : accountId.text.trim();
-        let registerOk = Chiaki.registerHost(hostField.text.trim(), psnId, pin.text.trim(), cpin.text.trim(), broadcast.checked, consoleButtons.checkedButton.target, function(msg, ok, done) {
+        let registerOk = Chiaki.registerHost(hostField.text.trim(), psnId, pin.text.trim(), cpin.text.trim(), hostField.text.trim() == "255.255.255.255", consoleButtons.checkedButton.target, function(msg, ok, done) {
             if (!done)
                 logArea.text += msg + "\n";
             else
@@ -156,15 +154,6 @@ DialogView {
                 id: cpin
                 validator: RegularExpressionValidator { regularExpression: /^$|[0-9]{4}/ }
                 Layout.preferredWidth: 400
-            }
-
-            Label {
-                Layout.alignment: Qt.AlignRight
-                text: qsTr("Broadcast:")
-            }
-
-            C.CheckBox {
-                id: broadcast
             }
 
             Label {
