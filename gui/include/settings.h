@@ -226,7 +226,10 @@ class Settings : public QObject
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
 
 		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
-		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
+		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); emit ButtonsByPosChanged(); }
+
+		bool GetBackgroundControllerEnabled() const { return settings.value("settings/background_controller_enabled", false).toBool(); }
+		void SetBackgroundControllerEnabled(bool enabled) {settings.setValue("settings/background_controller_enabled", enabled); emit BackgroundControllerChanged(); }
 
 		bool GetStartMicUnmuted() const          { return settings.value("settings/start_mic_unmuted", false).toBool(); }
 		void SetStartMicUnmuted(bool unmuted) { return settings.setValue("settings/start_mic_unmuted", unmuted); }
@@ -598,6 +601,8 @@ class Settings : public QObject
 		void CurrentProfileChanged();
 		void ProfilesUpdated();
 		void PlaceboSettingsUpdated();
+		void ButtonsByPosChanged();
+		void BackgroundControllerChanged();
 };
 
 #endif // CHIAKI_SETTINGS_H

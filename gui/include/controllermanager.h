@@ -48,7 +48,8 @@ class ControllerManager : public QObject
 
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();
-		void SetButtonsByPos();
+		void SetButtonsByPos(bool enabled);
+		void SetBackgroundController(bool enabled);
 		void creatingControllerMapping(bool creating_controller_mapping);
 		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);

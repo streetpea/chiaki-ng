@@ -480,6 +480,17 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
     emit psnAccountIdChanged();
 }
 
+bool QmlSettings::backgroundControllerEnabled() const
+{
+    return settings->GetBackgroundControllerEnabled();
+}
+
+void QmlSettings::setBackgroundControllerEnabled(bool enabled)
+{
+    settings->SetBackgroundControllerEnabled(enabled);
+    emit backgroundControllerEnabledChanged();
+}
+
 bool QmlSettings::dpadTouchEnabled() const
 {
     return settings->GetDpadTouchEnabled();
@@ -1312,6 +1323,7 @@ void QmlSettings::refreshAllKeys()
     emit psnRefreshTokenChanged();
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
+    emit backgroundControllerEnabledChanged();
     emit dpadTouchIncrementChanged();
     emit controllerMappingChanged();
     emit packetLossMaxChanged();

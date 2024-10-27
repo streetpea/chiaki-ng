@@ -87,7 +87,6 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	RumbleHapticsIntensity rumble_haptics_intensity;
-	bool buttons_by_pos;
 	bool start_mic_unmuted;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;

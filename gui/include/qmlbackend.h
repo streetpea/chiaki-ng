@@ -104,6 +104,9 @@ public:
 
     void controllerMappingUpdate(Controller *controller);
 
+    void setButtonsByPos();
+    void setBackgroundController();
+
     bool controllerMappingDefaultMapping() const { return controller_mapping_default_mapping; }
     void setControllerMappingDefaultMapping(bool is_default_mapping);
 

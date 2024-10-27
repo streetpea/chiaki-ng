@@ -105,7 +105,6 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = true;
 	this->rumble_haptics_intensity = settings->GetRumbleHapticsIntensity();
-	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -348,8 +347,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
-	if(connect_info.buttons_by_pos)
-		ControllerManager::GetInstance()->SetButtonsByPos();
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_motion_device = nullptr;

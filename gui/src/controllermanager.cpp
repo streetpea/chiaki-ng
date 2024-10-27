@@ -133,10 +133,23 @@ ControllerManager::~ControllerManager()
 #endif
 }
 
-void ControllerManager::SetButtonsByPos()
+void ControllerManager::SetButtonsByPos(bool enabled)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
+	if(enabled)
+		SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
+	else
+		SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "1");
+#endif
+}
+
+void ControllerManager::SetBackgroundController(bool enabled)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(enabled)
+		SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+	else
+		SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "0");
 #endif
 }
 

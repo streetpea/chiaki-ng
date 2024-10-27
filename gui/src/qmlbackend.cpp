@@ -118,10 +118,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(settings, &Settings::HiddenHostsUpdated, this, &QmlBackend::hiddenHostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
+    connect(settings, &Settings::ButtonsByPosChanged, this, &QmlBackend::setButtonsByPos);
+    connect(settings, &Settings::BackgroundControllerChanged, this, &QmlBackend::setBackgroundController);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
+    setButtonsByPos();
+    setBackgroundController();
     updateControllers();
     updateControllerMappings();
     connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
@@ -295,6 +299,10 @@ void QmlBackend::profileChanged()
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
+    connect(settings, &Settings::ButtonsByPosChanged, this, &QmlBackend::setButtonsByPos);
+    connect(settings, &Settings::BackgroundControllerChanged, this, &QmlBackend::setBackgroundController);
+    setButtonsByPos();
+    setBackgroundController();
     settings_qml->setSettings(settings);
     discovery_manager.SetSettings(settings);
     window->setSettings(settings);
@@ -410,6 +418,16 @@ void QmlBackend::profileChanged()
     refreshPsnToken();
     emit hostsChanged();
     emit hiddenHostsChanged();
+}
+
+void QmlBackend::setButtonsByPos()
+{
+    ControllerManager::GetInstance()->SetButtonsByPos(settings->GetButtonsByPosition());
+}
+
+void QmlBackend::setBackgroundController()
+{
+    ControllerManager::GetInstance()->SetBackgroundController(settings->GetBackgroundControllerEnabled());
 }
 
 bool QmlBackend::discoveryEnabled() const

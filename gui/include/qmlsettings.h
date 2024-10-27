@@ -60,6 +60,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
     Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
+    Q_PROPERTY(bool backgroundControllerEnabled READ backgroundControllerEnabled WRITE setBackgroundControllerEnabled NOTIFY backgroundControllerEnabledChanged)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
@@ -176,6 +177,9 @@ public:
 
     bool remotePlayAsk() const;
     void setRemotePlayAsk(bool asked);
+
+    bool backgroundControllerEnabled() const;
+    void setBackgroundControllerEnabled(bool enabled);
 
     int fpsLocalPS4() const;
     void setFpsLocalPS4(int fps);
@@ -508,6 +512,7 @@ signals:
     void psnAccountIdChanged();
     void dpadTouchEnabledChanged();
     void dpadTouchIncrementChanged();
+    void backgroundControllerEnabledChanged();
     void controllerMappingChanged();
     void packetLossMaxChanged();
     void currentProfileChanged();

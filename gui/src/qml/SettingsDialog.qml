@@ -1596,6 +1596,22 @@ DialogView {
                         text: qsTr("Use buttons by position instead of by label")
                         checked: Chiaki.settings.buttonsByPosition
                         onToggled: Chiaki.settings.buttonsByPosition = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Background Controller:")
+                    }
+
+                    C.CheckBox {
+                        text: qsTr("Receive controller events while chiaki-ng is not in focus")
+                        checked: Chiaki.settings.backgroundControllerEnabled
+                        onToggled: Chiaki.settings.backgroundControllerEnabled = checked
                         lastInFocusChain: true
                     }
 
