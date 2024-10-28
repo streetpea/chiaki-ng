@@ -231,6 +231,59 @@ typedef enum upnp_gatway_status_t
     GATEWAY_STATUS_FOUND = 1 << 1,
     GATEWAY_STATUS_NOT_FOUND = 1 << 2,
 } UPNPGatewayStatus;
+typedef enum session_message_action_t
+{
+    SESSION_MESSAGE_ACTION_UNKNOWN = 0,
+    SESSION_MESSAGE_ACTION_OFFER = 1,
+    SESSION_MESSAGE_ACTION_RESULT = 1 << 2,
+    SESSION_MESSAGE_ACTION_ACCEPT = 1 << 3,
+    SESSION_MESSAGE_ACTION_TERMINATE = 1 << 4,
+} SessionMessageAction;
+
+typedef struct http_response_data_t
+{
+    char* data;
+    size_t size;
+} HttpResponseData;
+
+typedef enum candidate_type_t
+{
+    CANDIDATE_TYPE_STATIC = 0,
+    CANDIDATE_TYPE_LOCAL = 1,
+    CANDIDATE_TYPE_STUN = 2,
+    CANDIDATE_TYPE_DERIVED = 3
+} CandidateType;
+
+typedef struct candidate_t
+{
+    CandidateType type;
+    char addr[INET6_ADDRSTRLEN];
+    char addr_mapped[INET6_ADDRSTRLEN];
+    uint16_t port;
+    uint16_t port_mapped;
+} Candidate;
+
+typedef struct connection_request_t
+{
+    uint32_t sid;
+    uint32_t peer_sid;
+    uint8_t skey[16];
+    uint8_t nat_type;
+    Candidate *candidates;
+    size_t num_candidates;
+    uint8_t default_route_mac_addr[6];
+    uint8_t local_hashed_id[20];
+} ConnectionRequest;
+
+typedef struct session_message_t
+{
+    SessionMessageAction action;
+    uint16_t req_id;
+    uint16_t error;
+    ConnectionRequest *conn_request;
+    Notification *notification;
+} SessionMessage;
+
 typedef struct session_t
 {
     // TODO: Clean this up, how much of this stuff do we really need?
@@ -240,6 +293,8 @@ typedef struct session_t
     ChiakiHolepunchConsoleType console_type;
 
     chiaki_socket_t sock;
+    Candidate *local_candidates;
+    SessionMessage *our_offer_msg;
 
     uint64_t account_id;
     char *online_id;
@@ -300,59 +355,6 @@ typedef struct session_t
     ChiakiLog *log;
 } Session;
 
-typedef enum session_message_action_t
-{
-    SESSION_MESSAGE_ACTION_UNKNOWN = 0,
-    SESSION_MESSAGE_ACTION_OFFER = 1,
-    SESSION_MESSAGE_ACTION_RESULT = 1 << 2,
-    SESSION_MESSAGE_ACTION_ACCEPT = 1 << 3,
-    SESSION_MESSAGE_ACTION_TERMINATE = 1 << 4,
-} SessionMessageAction;
-
-typedef struct http_response_data_t
-{
-    char* data;
-    size_t size;
-} HttpResponseData;
-
-typedef enum candidate_type_t
-{
-    CANDIDATE_TYPE_STATIC = 0,
-    CANDIDATE_TYPE_LOCAL = 1,
-    CANDIDATE_TYPE_STUN = 2,
-    CANDIDATE_TYPE_DERIVED = 3
-} CandidateType;
-
-typedef struct candidate_t
-{
-    CandidateType type;
-    char addr[INET6_ADDRSTRLEN];
-    char addr_mapped[INET6_ADDRSTRLEN];
-    uint16_t port;
-    uint16_t port_mapped;
-} Candidate;
-
-typedef struct connection_request_t
-{
-    uint32_t sid;
-    uint32_t peer_sid;
-    uint8_t skey[16];
-    uint8_t nat_type;
-    Candidate *candidates;
-    size_t num_candidates;
-    uint8_t default_route_mac_addr[6];
-    uint8_t local_hashed_id[20];
-} ConnectionRequest;
-
-typedef struct session_message_t
-{
-    SessionMessageAction action;
-    uint16_t req_id;
-    uint16_t error;
-    ConnectionRequest *conn_request;
-    Notification *notification;
-} SessionMessage;
-
 static ChiakiErrorCode make_oauth2_header(char** out, const char* token);
 static ChiakiErrorCode make_session_id_header(char ** out, const char* session_id);
 static ChiakiErrorCode get_websocket_fqdn(
@@ -364,7 +366,7 @@ static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t
 static void random_uuidv4(char* out);
 static void *websocket_thread_func(void *user);
 static NotificationType parse_notification_type(ChiakiLog *log, json_object* json);
-static ChiakiErrorCode send_offer(Session *session, SessionMessage *our_offer_msg);
+static ChiakiErrorCode send_offer(Session *session);
 static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *selected_candidate);
 static ChiakiErrorCode http_create_session(Session *session);
 static ChiakiErrorCode http_check_session(Session *session, bool viewurl);
@@ -713,6 +715,8 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
         free(session);
         return NULL;
     }
+    session->local_candidates = NULL;
+    session->our_offer_msg = NULL;
     session->ws_open = false;
     session->online_id = NULL;
     memset(&session->session_id, 0, sizeof(session->session_id));
@@ -1363,26 +1367,27 @@ cleanup:
     return err;
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* session, Candidate *local_candidates, SessionMessage *our_offer_msg, ChiakiHolepunchPortType port_type)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* session, ChiakiHolepunchPortType port_type)
 {
+    ChiakiErrorCode err;
     chiaki_mutex_lock(&session->state_mutex);
     if (port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL
         && !(session->state & SESSION_STATE_CUSTOMDATA1_RECEIVED))
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: customData1 not received yet.");
         chiaki_mutex_unlock(&session->state_mutex);
-        return CHIAKI_ERR_UNKNOWN;
+        err = CHIAKI_ERR_UNKNOWN;
+        goto offer_cleanup;
     }
     else if (port_type == CHIAKI_HOLEPUNCH_PORT_TYPE_DATA
         && !(session->state & SESSION_STATE_CTRL_ESTABLISHED))
     {
         chiaki_mutex_unlock(&session->state_mutex);
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Control port not open yet.");
-        return CHIAKI_ERR_UNKNOWN;
+        err = CHIAKI_ERR_UNKNOWN;
+        goto offer_cleanup;
     }
     chiaki_mutex_unlock(&session->state_mutex);
-
-    ChiakiErrorCode err;
 
     // NOTE: Needs to be kept around until the end, we're using the candidates in the message later on
     SessionMessage *console_offer_msg = NULL;
@@ -1390,17 +1395,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     if (err == CHIAKI_ERR_TIMEOUT)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Timed out waiting for OFFER holepunch session message.");
-        return err;
+        goto offer_cleanup;
     }
     else if (err == CHIAKI_ERR_CANCELED)
     {
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_punch_holes: canceled");
-        return err;
+        goto offer_cleanup;
     }
     else if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_punch_holes: Failed to wait for OFFER holepunch session message.");
-        return err;
+        goto offer_cleanup;
     }
     ConnectionRequest *console_req = console_offer_msg->conn_request;
     memcpy(session->hashed_id_console, console_req->local_hashed_id, sizeof(session->hashed_id_console));
@@ -1441,8 +1446,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
     // Send our own OFFER
     const int our_offer_req_id = session->local_req_id;
     session->local_req_id++;
-    our_offer_msg->req_id = our_offer_req_id;
-    send_offer(session, our_offer_msg);
+    session->our_offer_msg->req_id = our_offer_req_id;
+    send_offer(session);
 
     // Wait for ACK of OFFER, ignore other OFFERs, simply ACK them
     err = wait_for_session_message_ack(
@@ -1471,7 +1476,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(Session* sessi
         print_candidate(session->log, &console_req->candidates[i]);
     }
     Candidate selected_candidate;
-    err = check_candidates(session, local_candidates, console_req->candidates, console_req->num_candidates, &sock, &selected_candidate);
+    err = check_candidates(session, session->local_candidates, console_req->candidates, console_req->num_candidates, &sock, &selected_candidate);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(
@@ -1607,7 +1612,17 @@ cleanup:
     chiaki_mutex_lock(&session->notif_mutex);
     session_message_free(console_offer_msg);
     chiaki_mutex_unlock(&session->notif_mutex);
-
+offer_cleanup:
+    if(session->our_offer_msg)
+    {
+        session_message_free(session->our_offer_msg);
+        session->our_offer_msg = NULL;
+    }
+    if(session->local_candidates)
+    {
+        free(session->local_candidates);
+        session->local_candidates = NULL;
+    }
     return err;
 }
 
@@ -2234,8 +2249,20 @@ static NotificationType parse_notification_type(
 }
 
 
-CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session, Candidate **local_candidates, SessionMessage **out)
+CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
 {
+    if(session->our_offer_msg)
+    {
+        CHIAKI_LOGW(session->log, "Overwriting previously unsent offer message. Make sure you're punching the control hole before the data hole!");
+        session_message_free(session->our_offer_msg);
+        session->our_offer_msg = NULL;
+    }
+    if(session->local_candidates)
+    {
+        CHIAKI_LOGW(session->log, "Overwriting previously unused message. Make sure you're punching the control hole before the data hole!");
+        free(session->local_candidates);
+        session->local_candidates = NULL;
+    }
     // Create socket with available local port for connection
     session->ipv4_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
@@ -2640,24 +2667,24 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session, C
     memcpy(candidate_remote->addr_mapped, "0.0.0.0", 8);
     candidate_remote->port = local_port;
     candidate_remote->port_mapped = 0;
-    *local_candidates = calloc(2, sizeof(Candidate));
-    if(!*local_candidates)
+    session->local_candidates = calloc(2, sizeof(Candidate));
+    if(!session->local_candidates)
     {
         err = CHIAKI_ERR_MEMORY;
         goto cleanup;
     }
-    memcpy(&((*local_candidates)[0]), candidate_local, sizeof(Candidate));
+    memcpy(&session->local_candidates[0], candidate_local, sizeof(Candidate));
     // either STUN candidate if it exists, else STATIC candidate
-    memcpy(&((*local_candidates)[1]), &msg.conn_request->candidates[0], sizeof(Candidate));
+    memcpy(&session->local_candidates[1], &msg.conn_request->candidates[0], sizeof(Candidate));
 
 cleanup:
     if(err == CHIAKI_ERR_SUCCESS)
     {
-        *out = malloc(sizeof(SessionMessage));
-        if(!*out)
+        session->our_offer_msg = malloc(sizeof(SessionMessage));
+        if(!session->our_offer_msg)
             err = CHIAKI_ERR_MEMORY;
         else
-            memcpy(*out, &msg, sizeof(SessionMessage));
+            memcpy(session->our_offer_msg, &msg, sizeof(SessionMessage));
     }
     else
     {
@@ -2681,15 +2708,14 @@ cleanup_socket:
     return err;
 }
 
-static ChiakiErrorCode send_offer(Session *session, SessionMessage *msg)
+static ChiakiErrorCode send_offer(Session *session)
 {
-    print_session_request(session->log, msg->conn_request);
-    ChiakiErrorCode err = http_send_session_message(session, msg, false);
+    print_session_request(session->log, session->our_offer_msg->conn_request);
+    ChiakiErrorCode err = http_send_session_message(session, session->our_offer_msg, false);
     if (err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "send_offer: Sending session message failed");
     }
-    session_message_free(msg);
     return err;
 }
 
@@ -2962,13 +2988,13 @@ static ChiakiErrorCode http_start_session(Session *session)
     if(err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "http_start_session: Could not encode data1 into base64.");
-        return err;
+        goto offer_cleanup;
     }
     err = chiaki_base64_encode(session->data2, sizeof(session->data2), data2_base64, sizeof(data2_base64));
     if(err != CHIAKI_ERR_SUCCESS)
     {
         CHIAKI_LOGE(session->log, "http_start_session: Could not encode data2 into base64.");
-        return err;
+        goto offer_cleanup;
     }
     snprintf(payload_buf, sizeof(payload_buf), session_start_payload_fmt,
         session->account_id,
@@ -2995,7 +3021,8 @@ static ChiakiErrorCode http_start_session(Session *session)
     {
         free(response_data.data);
         CHIAKI_LOGE(session->log, "Curl could not init");
-        return CHIAKI_ERR_MEMORY;
+        err = CHIAKI_ERR_MEMORY;
+        goto offer_cleanup;
     }
 
     struct curl_slist *headers = NULL;
@@ -3058,7 +3085,20 @@ static ChiakiErrorCode http_start_session(Session *session)
 cleanup:
     curl_easy_cleanup(curl);
     free(response_data.data);
-
+offer_cleanup:
+    if(err != CHIAKI_ERR_SUCCESS)
+    {
+        if(session->our_offer_msg)
+        {
+            session_message_free(session->our_offer_msg);
+            session->our_offer_msg = NULL;
+        }
+        if(session->local_candidates)
+        {
+            free(session->local_candidates);
+            session->local_candidates = NULL;
+        }
+    }
     return err;
 }
 

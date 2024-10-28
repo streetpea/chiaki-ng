@@ -1750,7 +1750,7 @@ void QmlBackend::updateDiscoveryHosts()
             continue;
         auto registered = settings->GetRegisteredHost(host.GetHostMAC());
         if (registered.GetRPRegistKey() == session_info.regist_key) {
-            if(wakeup_start && host.host_name == wakeup_nickname && host.state == CHIAKI_DISCOVERY_HOST_STATE_READY)
+            if(wakeup_start && session && host.host_name == wakeup_nickname && host.state == CHIAKI_DISCOVERY_HOST_STATE_READY)
             {
                 wakeup_nickname.clear();
                 wakeup_start = false;

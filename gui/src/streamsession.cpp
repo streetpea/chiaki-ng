@@ -1914,9 +1914,7 @@ ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-	ChiakiHolepunchCandidate local_candidates = NULL;
-	ChiakiHolepunchMessage our_offer_msg = NULL;
-	ChiakiErrorCode err = holepunch_session_create_offer(holepunch_session, &local_candidates, &our_offer_msg);
+	ChiakiErrorCode err = holepunch_session_create_offer(holepunch_session);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create offer msg for ctrl connection");
@@ -1927,23 +1925,17 @@ ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to start session");
-		if(local_candidates)
-			free(local_candidates);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Started session");
 
-	err = chiaki_holepunch_session_punch_hole(holepunch_session, local_candidates, our_offer_msg, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
+	err = chiaki_holepunch_session_punch_hole(holepunch_session, CHIAKI_HOLEPUNCH_PORT_TYPE_CTRL);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to punch hole for control connection.");
-		if(local_candidates)
-			free(local_candidates);
 		return err;
 	}
 	CHIAKI_LOGI(log, ">> Punched hole for control connection!");
-	if(local_candidates)
-		free(local_candidates);
 	return err;
 }
 

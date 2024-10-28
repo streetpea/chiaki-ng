@@ -49,12 +49,6 @@ extern "C" {
 /** Handle to holepunching session state */
 typedef struct session_t* ChiakiHolepunchSession;
 
-/** Handle to session message */
-typedef struct session_message_t* ChiakiHolepunchMessage;
-
-/** Handle to candidate */
-typedef struct candidate_t* ChiakiHolepunchCandidate;
-
 /** Info for Remote Registration */
 typedef struct holepunch_regist_info_t
 {
@@ -216,11 +210,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
 /** Creates an OFFER session message to send via PSN.
  *
  * @param session The Session instance.
- * @param local_candidates The local candidates found while creating the offer
- * @param out the created SessionMessage
+ * @param type The type of offer message to create
  * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
  */
-CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(ChiakiHolepunchSession session, ChiakiHolepunchCandidate *local_candidates, ChiakiHolepunchMessage *our_offer_msg);
+CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(ChiakiHolepunchSession session);
 
 /**
  * Punch a hole in the NAT for the control or data socket.
@@ -233,7 +226,7 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(ChiakiHolepunchSess
  * @return CHIAKI_ERR_SUCCESS on success, otherwise another error code
  */
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_punch_hole(
-    ChiakiHolepunchSession session, ChiakiHolepunchCandidate local_candidate, ChiakiHolepunchMessage our_offer_msg, ChiakiHolepunchPortType port_type);
+    ChiakiHolepunchSession session, ChiakiHolepunchPortType port_type);
 
 /**
  * Cancel initial psn connection steps (i.e., session create, session start and session punch hole)
