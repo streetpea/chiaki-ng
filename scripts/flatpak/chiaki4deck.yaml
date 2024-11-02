@@ -14,7 +14,7 @@ finish-args:
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
-  - --env=LD_LIBRARY_PATH=/app/lib64
+  - --env=LD_LIBRARY_PATH=/app/lib:/app/lib64
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=QML_DISABLE_DISK_CACHE=1
   - --env=SDL_AUDIODRIVER=pipewire
@@ -26,7 +26,7 @@ finish-args:
 
 build-options:
   env:
-    PKG_CONFIG_PATH: "/app/lib64/pkgconfig"
+    PKG_CONFIG_PATH: "/app/lib/pkgconfig:/app/lib64/pkgconfig"
 
 modules:
   - name: protobuf-compilers

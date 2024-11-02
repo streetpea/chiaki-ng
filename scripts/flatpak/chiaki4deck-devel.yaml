@@ -17,8 +17,8 @@ finish-args:
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=CPATH=/app/include
   - --env=RADV_PERFTEST=video_decode
-  - --env=PKG_CONFIG_PATH=/app/lib64/pkgconfig
-  - --env=LD_LIBRARY_PATH=/app/lib64
+  - --env=PKG_CONFIG_PATH=/app/lib/pkgconfig:/app/lib64/pkgconfig
+  - --env=LD_LIBRARY_PATH=/app/lib:/app/lib64
   - --env=QML_DISABLE_DISK_CACHE=1
   - --env=SDL_AUDIODRIVER=pipewire
   - --talk-name=org.freedesktop.ScreenSaver
@@ -29,7 +29,7 @@ finish-args:
 
 build-options:
   env:
-    PKG_CONFIG_PATH: "/app/lib64/pkgconfig"
+    PKG_CONFIG_PATH: "/app/lib/pkgconfig:/app/lib64/pkgconfig"
 
 modules:
   - name: protobuf-compilers
