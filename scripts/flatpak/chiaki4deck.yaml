@@ -1,7 +1,7 @@
 app-id: io.github.streetpea.Chiaki4deck
 branch: chiaki4deck
 runtime: org.kde.Platform
-runtime-version: '6.7'
+runtime-version: '6.8'
 sdk: org.kde.Sdk
 command: chiaki
 rename-icon: chiaking
@@ -14,6 +14,7 @@ finish-args:
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
+  - --env=LD_LIBRARY_PATH=/app/lib64
   - --env=DBUS_FATAL_WARNINGS=0
   - --env=QML_DISABLE_DISK_CACHE=1
   - --env=SDL_AUDIODRIVER=pipewire
@@ -22,6 +23,10 @@ finish-args:
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host
+
+build-options:
+  env:
+    PKG_CONFIG_PATH: "/app/lib64/pkgconfig"
 
 modules:
   - name: protobuf-compilers
@@ -111,12 +116,8 @@ modules:
       - --enable-hwaccel=hevc_vulkan
     sources:
       - type: archive
-        url: https://ffmpeg.org/releases/ffmpeg-6.1.2.tar.xz
-        sha256: 3b624649725ecdc565c903ca6643d41f33bd49239922e45c9b1442c63dca4e38
-      - type: patch
-        path: 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
-      - type: patch
-        path: 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
+        url: https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+        sha256: 40973d44970dbc83ef302b0609f2e74982be2d85916dd2ee7472d30678a7abe6
       - type: patch
         path: 0001-vulkan-ignore-frames-without-hw-context.patch
 

@@ -41,34 +41,7 @@
 
                 2. `Enable turning on PS4 from Network`
 
-    3. Get your PlayStation AccountID (This is needed to access your ps account)
-
-        === "Using Gui (Linux and MacOS only)"
-
-            1. Wait until step 5 below when you are registering your console, hit the `PSN Login` button and login to your PlayStation account on the window that opens.
-
-                ![PSN Login](images/PSNLogin.png)
-
-        === "Using konsole (Flatpak only)"
-
-            1. Run the flatpak with the `psn-account-id` command
-
-                ``` bash
-                flatpak run --command=psn-account-id io.github.streetpea.Chiaki4deck
-                ```
-
-            2. Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.
-
-            3. Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.
-
-        === "Using public website"
-
-            1. Change your PSN privacy settings to allow anyone to find you in your search
-            2. Go to [psn.flipscreen.games](https://psn.flipscreen.games/){target="_blank" rel="noopener"}
-            3. Enter your Account ID
-            4. Copy your encoded id for Chiaki
-
-    4. Open `chiaki-ng` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.chiaki-ng` via `konsole`) and your PlayStation system should be automatically discovered.
+    2. Open `chiaki-ng` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.chiaki-ng` via `konsole`) and your PlayStation system should be automatically discovered.
 
         ![Unregistered PS5](images/UnregisteredPS5.png)
 
@@ -76,7 +49,36 @@
         
             Make sure your client device (i.e., Steam Deck) is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your client device (i.e., Steam Deck) and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.
 
-    5. Register your PlayStation console
+    2. Register `chiaki-ng` with PSN to enable remote Play via PSN via the popup
+
+        ![Remote Play PSN Popup](images/RemotePlayPSNPopup.png)
+
+        1. Login to psn on the provided page if one appears. Otherwise, paste your clipboard contents in a web browser and bang enter to bring up the login to psn page.
+
+            ???- Tip "Tips for those having trouble logging into to PSN"
+
+                If you get a `connection to the server timed out` message, keep on trying to login by hitting ++enter++ every few seconds until you get a different error message such as `Can't connect to the server` or you have tried for at least 20 seconds. If that doesn't work, please try refreshing the page and going through the process again. If you still can't find success, make an attempt using a different browser.
+
+                Unfortunately, we have no control over Sony's site (that gives out auth tokens to access their PSN servers for the remote connection over PSN setup) so we can only give tips on how best to handle the errors that may occur on the page and wish you the best in obtaining your token. Fortunately, once this token is obtained, chiaki-ng will automatically refresh it as needed and only ask for you to create a new token in the event that PSN requires you to generate a new one using your login.
+
+        2. Copy your redirect url from the browser
+
+            ![Redirect picture](images/CopyRedirectLinkPsn.png)
+
+        3. Paste your redirect url on the page and create your token
+
+            ![Create token](images/PasteUrlPSN.png)
+
+        4. See success message and close the dialog box
+
+            ![Success Message](images/CloseTokenDialogBox.png)
+
+            !!! Danger "Error Message"
+
+                If you obtain an error with a link to Sony's oauth site, it is likely the code from the link has expired and you need to create a new code by logging in again and pasting the url into chiaki-ng. The code usually expires within a few minutes. Otherwise, the error code should hopefully be self explanatory.
+
+
+    3. Register your PlayStation console
 
         === "Register Discovered Console (Recommended)"
 
@@ -86,7 +88,7 @@
 
             2. Choose your console type
 
-            3. Enter your PSN Account-ID obtained in step 1 above (if not automatically copied).
+            3. If you registered for remote connection via PSN your `PSN Account-ID` will be automatically entered. Otherwise, either use PSN via the `PSN Login` button or public lookup using the `Public Lookup` button to obtain your `PSN Account-ID`.
 
             4. Get a registration code for remote play
 
@@ -98,9 +100,11 @@
 
                     Go to `Settings -> Remote Play -> Add Device`
 
-            5. Enter the code from your device in the `PIN` field
+            5. Enter the code from your device in the `Remote Play PIN` field
 
-            6. Click Register (will become available when all necessary fields are filled)
+            6. (Optional) If you have a pin for your console, enter it in the `Console Pin` field to have `chiaki-ng` automatically enter your PIN instead of having to enter it manually each time.
+
+            7. Click Register (will become available when all necessary fields are filled)
 
         === "Manual Registration"
 
@@ -186,46 +190,11 @@
 
     2. Open `chiaki-ng`
 
-    3. Double click on the box with the console icon colored orange (**State: standby**). 
-    
-    4. When prompted with, "The Console is currently in standby mode.Should we send a Wakeup packet instead of trying to connect immediately?": 
-        
-        - choose **Yes**
-
-    5. Your PlayStation console should wake up and the box with the console icon should turn from orange to blue (**State: ready**).
-
-        === "Your PlayStation has awoken from slumber! :sun_with_face:"
-
-            !!! success
-            
-                Now it's time to test connecting via PlayStation Remote Play in the next step!
-
-        === "Your PlayStation hit the snooze button :zzz:"
-
-            !!! Failure "Here's how to get back on the happy path"
-
-                1. Make sure your PlayStation shows as registered and is currently in sleep mode. If it's not in sleep mode, you can't wake it up.
-
-                2. Make sure that you have enabled turning on your PlayStation console from rest mode:
-
-                    === "PS5"
-
-                        Go to `Settings -> System -> Power Saving -> Features Available in Rest Mode` and turn on:
-
-                        1. `Stay Connected to the Internet`
-                        2. `Enable Turning on PS5 from Network`
-
-                    === "PS4"
-
-                        Go to `Settings -> Power Save Settings -> Set Function Available in Rest Mode` and turn on:
-                        
-                        1. `Stay Connected to the Internet`
-
-                        2. `Enable turning on PS4 from Network`
+    3. Your PlayStation console should be discovered display (**State: ready** or **State: standby**).
 
 2. Test PlayStation Remote Play
 
-    1. Double click on the box with the now blue console icon (**State: ready**)
+    1. Press/click on your registered console
     
     2. Test launching a game if you want
     
@@ -255,11 +224,11 @@ Here are different settings you can use for Chiaki/`chiaki-ng` depending on your
 
     If you are in an area with bad Internet, as long as you have a good wireless router, you can get close to native performance.
 
-1. Open `chiaki-ng` and click the gear icon in the top right to open the settings menu
+1. Open `chiaki-ng` and click the gear icon in the top right or the options button on your controller to open the settings menu
 
     ![Open Settings](images/OpenSettings.png)
 
-2. Adjust the settings to your preferences. 
+2. Adjust the settings to your preferences moving between settings by either clicking or using L1/R1.
 
     1. **General Settings**
 
@@ -282,48 +251,48 @@ Here are different settings you can use for Chiaki/`chiaki-ng` depending on your
             For `Action on Disconnect`, choose `Ask` (the default) to get prompted (use the touchscreen to respond to prompt window) about putting your PlayStation to sleep when you close your session with ++ctrl+q++ (you will add this shortcut as part of you controller configuration in [controller section](controlling.md){target="_blank" rel="noopener"}). 
             
             If you prefer, you can also use `Enter Sleep Mode` to automatically put your PlayStation console to sleep as soon as you close your session with ++ctrl+q++
-
-    2. **Audio/WiFi Settings**
-
-        ![Audio/Wifi Settings](images/AudioSettings.png)
     
-    3. **Video Settings**
+    2. **Video Settings**
 
         ![Video Settings](images/VideoSettings.png)
 
-    4. **Stream Settings**
+    3. **Stream Settings**
 
         (choose the **PS5 HDR** tab if you have a PS5 connected to a HDR TV/monitor ([see HDR section below for more details](#hdr-high-dynamic-range)), **PS5** if you have a PS5 not connected to an HDR TV/monitor, and **PS4** if you have a PS4). If you are having issues with your PS5 connection, please try switching to 720P following with its default bitrate of 10,000 with your PS5 since that requires significantly less bandwidth from your wireless router.
 
-    === "PS5 HDR"
+        === "PS5 HDR"
 
-        Stream output with [HDR](#hdr-high-dynamic-range). This are the recommended PS5 settings for a device that supports HDR such as the Steam Deck OLED.
+            Stream output with [HDR](#hdr-high-dynamic-range). This are the recommended PS5 settings for a device that supports HDR such as the Steam Deck OLED.
 
-        ![PS5 HDR Settings](images/PS5_SettingsHDR.png)
+            ![PS5 HDR Settings](images/PS5_SettingsHDR.png)
 
-        ???+ Question "Why 1080p if the client device [i.e., Steam Deck] is only 800p?"
+            ???+ Question "Why 1080p if the client device [i.e., Steam Deck] is only 800p?"
 
-            Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
-            
-            However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
+                Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
+                
+                However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
 
-    === "PS5"
+        === "PS5"
 
-        These are the recommended PS5 settings for a device that doesn't support HDR like the ROG Ally.
+            These are the recommended PS5 settings for a device that doesn't support HDR like the ROG Ally.
 
-        ![1080p Settings](images/PS5_SettingsSDR.png)
+            ![1080p Settings](images/PS5_SettingsSDR.png)
 
-        ???+ Question "Why 1080p if the client device [i.e., Steam Deck] is only 800p?"
+            ???+ Question "Why 1080p if the client device [i.e., Steam Deck] is only 800p?"
 
-            Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
-            
-            However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
+                Using 1080p results in a better picture for me than 720p. The biggest factor in this seems to be [chroma-sub sampling](https://www.phonearena.com/news/Did-you-know-4K-vs-1080p-chroma-sub-sampling-and-why-you-should-record-in-4K-even-if-your-TV-does-not-support-it-yet_id61878){target="_blank" rel="noopener"}. In simple terms, the colors for an image are compressed and so you get a much lower resolution of color data than your image resolution. This means a 1080p image (with a high bitrate) will have more color data than a 720p image even if the image resolution itself ends up being 720p (since the color resolution will be higher than the equivalent 720p picture's color resolution). This results in an image that has more pop to it. Thus, I recommend streaming at 1080p if you have the bandwidth (good enough wireless router).
+                
+                However, if you are having issues with your wireless connection (i.e choppy audio, flashes in your video, or lag) while playing, then please use 720p instead. The gains you get from 1080p are nice, but aren't worth having a bad connection.
 
-    === "PS4"
+        === "PS4"
 
-        This is the recommended setting for a PS4. If you have a PS4 pro you can use 1080P instead.
+            This is the recommended setting for a PS4. If you have a PS4 pro you can use 1080P instead.
 
-        ![PS4 Settings](images/PS4_Settings.png)
+            ![PS4 Settings](images/PS4_Settings.png)
+
+    4. **Audio/WiFi Settings**
+
+        ![Audio/Wifi Settings](images/AudioSettings.png)
 
 ### HDR (High Dynamic Range)
 
@@ -359,7 +328,9 @@ If you have one console you want to connect to remotely or locally you can use t
 
 ### Profiles
 
-You can switch between profiles in chiaki-ng so if, for example you have 2 users that both use the same device you can create a profile for each user. You can see your current profile listed at Settings (Gear icon)->Config->Current profile. You can create, switch, and delete profiles via Settings (Gear icon)->Config->Manage Profiles.
+You can switch between profiles in chiaki-ng. If, for example, you have 2 users that both use the same device, you can create a profile for each user. You can see your current profile at the top of the chiaki-ng window and listed at Settings (Gear icon)->Config->Current profile. You can create, switch, and delete profiles via Settings (Gear icon)->Config->Manage Profiles.
+
+![Profiles](images/ProfilesPic.png)
 
 #### Creating a profile
 

@@ -13,7 +13,7 @@
   <url type="bugtracker">https://github.com/streetpea/chiaki-ng/issues</url>
   <description>
     <p>
-      chiaki-ng is a fork of Chiaki, adding new features and ongoing support as the original project (Chiaki) is in maintenance mode. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
+      chiaki-ng is the next-generation of Chiaki, adding new features and ongoing support as the original project (Chiaki) is in maintenance mode. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
     </p>
   </description>
   <screenshots>
@@ -24,12 +24,56 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+
+    Adds dpad touch emulation to use the dpad for touchscreen touches and swipes see dpad touch emulation
+    Add --exit-app-on-stream-exit option to exit chiaki-ng immediately after closing a streaming session
+    Fix registration issues related to broadcast settings by automatically detecting when broadcast should be used
+    Reset motion controls when necessary to prevent jumping to position when using motion controls to aim in games that activate motion controls via a trigger press such as Resident Evil 4 Remake
+    Fix bug where upnp discovery could take too long, causing the remote connection via PSN to fail
+    Notify users of the possibility of remote connection via PSN as many users aren't aware of this option still
+    Add mapping for Share button on Xbox Series and Xbox One Controllers
+    Display current profile name with colon after application name as Application Display Name
+    Update controller mappings to be portable across all platforms (Linux, Mac/OS, and Windows)
+    Adds controller name for controller mapping for controllers that don't have a name configured in the mapping itself
+    Allow entering controller mapping and reset mapping using the back button
+    Make log dialogs, registered consoles, and hidden consoles scrollable with a controller
+    Increase STUN timeouts to 5 seconds + add timeouts for curl of 10 seconds
+    Make key mapping dialog navigable with controller
+    Disable zero-copy for hw cards that don't support it
+    Increase wait time for DualSense haptics of DualSense edge to come online to 15 seconds
+    Add homebrew cask for chiaki-ng for MacOS
+    Fix an error causing a crash when random stun allocation was used for remote connection via PSN
+    Fix a memory leak in remote connection via PSN
+    <release date="2024-11-02" version="1.9.1">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>Adds dpad touch emulation to use the dpad for touchscreen touches and swipes see dpad touch emulation</li>
+          <li>Adds --exit-app-on-stream-exit option to exit chiaki-ng immediately after closing a streaming session</li>
+          <li>Fix registration issues related to broadcast settings by automatically detecting when broadcast should be used</li>
+          <li>Reset motion controls when necessary to prevent jumping to position when using motion controls to aim in games that activate motion controls via a trigger press such as Resident Evil 4 Remake</li>
+          <li>Fix bug where upnp discovery could take too long, causing the remote connection via PSN to fail</li>
+          <li>Notify users of the possibility of remote connection via PSN as many users aren't aware of this option still</li>
+          <li>Add mapping for Share button on Xbox Series and Xbox One Controllers</li>
+          <li>Display current profile name with colon after application name as Application Display Name</li>
+          <li>Update controller mappings to be portable across all platforms (Linux, Mac/OS, and Windows)</li>
+          <li>Adds controller name for controller mapping for controllers that don't have a name configured in the mapping itself</li>
+          <li>Allow entering controller mapping and reset mapping using the back button</li>
+          <li>Make log dialogs, registered consoles, and hidden consoles scrollable with a controller</li>
+          <li>Make key mapping dialog navigable with controller</li>
+          <li>Increase STUN timeouts to 5 seconds + add timeouts for curl of 10 seconds</li>
+          <li>Disable zero-copy for hw cards that don't support it</li>
+          <li>Increase wait time for DualSense haptics of DualSense edge to come online to 15 seconds</li>
+          <li>Fix an error causing a crash when random stun allocation was used for remote connection via PSN</li>
+          <li>Fix a memory leak in remote connection via PSN</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-9-19" version="1.9.0">
       <description>
         <p>This release provides the following improvements:</p>
         <ul>
-          <li>adds Controllers section to chiaki-ng settings which allows you to configure the mapping for your controller (especially nice for mapping Xbox and Switch controllers to PlayStation inputs)
-</li>
+          <li>adds Controllers section to chiaki-ng settings which allows you to configure the mapping for your controller (especially nice for mapping Xbox and Switch controllers to PlayStation inputs)</li>
           <li>adds Custom renderer option which allows you to configure your renderer options very granularly with the options at https://libplacebo.org/options/</li>
           <li>add defaults to all settings so users are aware of the defaults/which settings they've changed</li>
           <li>add different haptic rumble intensity settings for users to configure if the default is not to their liking</li>

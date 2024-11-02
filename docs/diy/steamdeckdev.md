@@ -8,10 +8,10 @@ This is for contributors that want to make/test updates to the codebase without 
 
 ## Setup Environment
 
-1. Install flatpak and/or build a new one with any added dependencies following [Building the Flatpak Yourself](buildit.md){target="_blank" rel="noopener"}
+1. Install flatpak with debug extension and/or build a new one with any added dependencies following [Building the Flatpak Yourself](buildit.md){target="_blank" rel="noopener"}
 
     ``` bash
-    flatpak install --user -y https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
+    flatpak install --include-debug -y https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
     ```
 
     !!! Info "Creating local flatpak builds"
@@ -42,22 +42,16 @@ This is for contributors that want to make/test updates to the codebase without 
 3. Install the SDK
 
     ``` bash
-    flatpak install org.kde.Sdk//6.7
+    flatpak install org.kde.Sdk//6.8
     ```
 
 4. Install the `Debug` extensions for the SDK
 
     ``` bash
-    flatpak install org.kde.Sdk.Debug//6.7
+    flatpak install org.kde.Sdk.Debug//6.8
     ```
 
-5. Install the `Debug` extension for the application build for debugging
-
-    ``` bash
-    flatpak install io.github.streetpea.Chiaki4deck.Debug
-    ```
-
-6. Clone the project onto your Steam Deck with:
+5. Clone the project onto your Steam Deck with:
 
     === "HTTPS"
 

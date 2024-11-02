@@ -62,47 +62,55 @@ DialogView {
             }
         }
 
-        Dialog {
-            id: logDialog
-            parent: Overlay.overlay
-            x: Math.round((root.width - width) / 2)
-            y: Math.round((root.height - height) / 2)
-            title: qsTr("Create non-Steam game")
-            modal: true
-            closePolicy: Popup.NoAutoClose
-            standardButtons: Dialog.Cancel
-            Material.roundedScale: Material.MediumScale
-            onOpened: logArea.forceActiveFocus()
-            onClosed: restartDialog.open()
-            KeyNavigation.up: {
-                if(logScrollbar.position > 0.001)
-                    logFlick.flick(0, 500);
-            }
-            KeyNavigation.down: {
-                if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
-                    logFlick.flick(0, -500); 
-            }
-
-            Flickable {
-                id: logFlick
-                implicitWidth: 600
-                implicitHeight: 400
-                clip: true
-                contentWidth: logArea.contentWidth
-                contentHeight: logArea.contentHeight
-                flickableDirection: Flickable.AutoFlickIfNeeded
-                ScrollBar.vertical: ScrollBar {
-                    id: logScrollbar
-                    policy: ScrollBar.AlwaysOn
-                    visible: logFlick.contentHeight > logFlick.implicitHeight
+        Item {
+            Keys.onPressed: (event) => {
+                switch (event.key) {
+                case Qt.Key_Up:
+                    if(logScrollbar.position > 0.001)
+                        logFlick.flick(0, 500);
+                    event.accepted = true;
+                    break;
+                case Qt.Key_Down:
+                    if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                        logFlick.flick(0, -500);
+                    event.accepted = true;
+                    break;
                 }
+            }
+            Dialog {
+                id: logDialog
+                parent: Overlay.overlay
+                x: Math.round((root.width - width) / 2)
+                y: Math.round((root.height - height) / 2)
+                title: qsTr("Create non-Steam game")
+                modal: true
+                closePolicy: Popup.NoAutoClose
+                standardButtons: Dialog.Cancel
+                Material.roundedScale: Material.MediumScale
+                onOpened: logArea.forceActiveFocus()
+                onClosed: restartDialog.open()
 
-                Label {
-                    id: logArea
-                    width: logFlick.width
-                    wrapMode: TextEdit.Wrap
-                    Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
-                    Keys.onEscapePressed: logDialog.close()
+                Flickable {
+                    id: logFlick
+                    implicitWidth: 600
+                    implicitHeight: 400
+                    clip: true
+                    contentWidth: logArea.contentWidth
+                    contentHeight: logArea.contentHeight
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        id: logScrollbar
+                        policy: ScrollBar.AlwaysOn
+                        visible: logFlick.contentHeight > logFlick.implicitHeight
+                    }
+
+                    Label {
+                        id: logArea
+                        width: logFlick.width
+                        wrapMode: TextEdit.Wrap
+                        Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
+                        Keys.onEscapePressed: logDialog.close()
+                    }
                 }
             }
         }

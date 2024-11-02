@@ -31,11 +31,11 @@ The remote connection via PSN uses PSN servers as an initial go-between to excha
 
     ![Go to Settings](images/GoToSettings.png)
 
-2. Go to the PSN tab and then click `Login to PSN`
+2. Go to the `Config` tab and then click `Login to PSN`
 
     ![PSN credentials](images/ClickLoginToPsn.png)
 
-3. Login to psn on the provided page
+3. Login to psn on the provided page if one appears. Otherwise, paste your clipboard contents in a web browser and bang enter to bring up the login to psn page.
 
     ???- Tip "Tips for those having trouble logging into to PSN"
 
@@ -98,7 +98,7 @@ Forward the ports for your console on your router following [this port forwardin
 
     | Port | Connection Type |
     | ---- | --------------- |
-    | 9295 | TCP             |
+    | 9295 | UDP/TCP         |
     | 9296 | UDP             |
     | 9297 | UDP             |
     | 9302 | UDP             |
@@ -108,7 +108,7 @@ Forward the ports for your console on your router following [this port forwardin
     | Port | Connection Type |
     | ---- | --------------- |
     | 987  | UDP             |
-    | 9295 | TCP             |
+    | 9295 | UDP/TCP         |
     | 9296 | UDP             |
     | 9297 | UDP             |
 

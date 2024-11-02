@@ -91,7 +91,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"}, associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}, and base app.
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//6.7 flathub org.kde.Sdk//6.7
+    flatpak install -y flathub org.kde.Platform//6.8 flathub org.kde.Sdk//6.8
     ```
 
 2. Create a directory for your build files and switch into it
@@ -114,19 +114,7 @@
         curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
         ```
 
-    2. 0001-lavc-vaapi_h264-Fixup-invalid-references.patch
-
-        ```
-        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_h264-Fixup-invalid-references.patch
-        ```
-
-    3. 0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
-
-        ```
-        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
-        ```
-
-    4. 0001-vulkan-ignore-frames-without-hw-context.patch
+    2. 0001-vulkan-ignore-frames-without-hw-context.patch
 
         ```
         curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-vulkan-ignore-frames-without-hw-context.patch
