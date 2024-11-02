@@ -809,6 +809,63 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#using-a-non-playstation-controller-with-chiaki-ng" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using a non-PlayStation controller with chiaki-ng
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using a non-PlayStation controller with chiaki-ng">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller Mapping
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controller Mapping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#change-controller-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change Controller Mapping
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset-controller-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reset Controller Mapping
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dpad-touch-emulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dpad Touch Emulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1302,6 +1359,63 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#using-a-non-playstation-controller-with-chiaki-ng" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using a non-PlayStation controller with chiaki-ng
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using a non-PlayStation controller with chiaki-ng">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controller-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controller Mapping
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controller Mapping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#change-controller-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change Controller Mapping
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset-controller-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reset Controller Mapping
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dpad-touch-emulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dpad Touch Emulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1773,6 +1887,84 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <p>Play your favorite PS5 game with haptic feedback on Mac via <code>chiaki-ng</code>!</p>
 </li>
 </ol>
+<h2 id="using-a-non-playstation-controller-with-chiaki-ng">Using a non-PlayStation controller with chiaki-ng<a class="headerlink" href="#using-a-non-playstation-controller-with-chiaki-ng" title="Permanent link">&para;</a></h2>
+<h3 id="controller-mapping">Controller Mapping<a class="headerlink" href="#controller-mapping" title="Permanent link">&para;</a></h3>
+<h4 id="change-controller-mapping">Change Controller Mapping<a class="headerlink" href="#change-controller-mapping" title="Permanent link">&para;</a></h4>
+<p>You can re-map all necessary PlayStation buttons to your controller using the controller mapper built-in to <code>chiaki-ng</code></p>
+<ol>
+<li>
+<p>Go to Settings-&gt;Controllers and select <code>Change Controller Mapping</code></p>
+<p><img alt="Change Controller Mapping" src="../images/ChangeControllerMapping.png" /></p>
+</li>
+<li>
+<p>Click on any button on the controller you want to change the mapping for</p>
+</li>
+<li>
+<p>Change the buttons as you see fit on the controller mapping page (i.e., change touchpad to Share button on the Xbox Series X Controller)</p>
+<p><img alt="Controller Mapping Changes" src="../images/ControllerMappingMenu.png" /></p>
+</li>
+<li>
+<p>Update Controller Mapping using the <code>Options</code> button on the controller</p>
+</li>
+</ol>
+<h4 id="reset-controller-mapping">Reset Controller Mapping<a class="headerlink" href="#reset-controller-mapping" title="Permanent link">&para;</a></h4>
+<p>You can reset a controller mapping for a controller back to default at any time</p>
+<ol>
+<li>
+<p>Go to Settings-&gt;Controllers and select <code>Reset Controller Mapping</code></p>
+</li>
+<li>
+<p>Click on any button on the controller you want to reset the mapping for</p>
+</li>
+</ol>
+<h3 id="dpad-touch-emulation">Dpad Touch Emulation<a class="headerlink" href="#dpad-touch-emulation" title="Permanent link">&para;</a></h3>
+<p>Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings-&gt;Controllers and can be disabled at any time. The <code>Dpad Touch Increment</code> controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position</p>
+<p><img alt="Dpad Touch Emulation" src="../images/DpadTouchEmulation.png" /></p>
+<div class="admonition question">
+<p class="admonition-title">How does Dpad Touch Emulation work</p>
+<p>Pushing one of the dpad buttons will register a touch in the quadrant of that button:</p>
+<ul>
+<li>
+<p>Dpad Left: All the way to the left and halfway up the touchpad</p>
+</li>
+<li>
+<p>Dpad Right: All the way to the right and halfway up the touchpad</p>
+</li>
+<li>
+<p>Dpad Up: In the middle of the touchpad horizontally and at the top of the touchpad</p>
+</li>
+<li>
+<p>Dpad Down: In the middle of the touchpad horizontally and at the bottom of the touchpad</p>
+</li>
+</ul>
+<p>How to perform some common touchpad functions with the dpad:</p>
+<ul>
+<li>
+<p>For a touchpad left click:</p>
+<p>You want to press the touchpad click button you have mapped for your controller (such as the Share key) and dpad left</p>
+</li>
+<li>
+<p>For a touchpad right click:</p>
+<p>You want to press the touchpad click button you have mapped for your controller (such as the Share key) and dpad right</p>
+</li>
+<li>
+<p>For a swipe from left to right:</p>
+<p>First touch dpad left and then hold dpad right for a second or so. This will start you at the left side of the touchpad and move you across the touchpad in the right direction.</p>
+</li>
+<li>
+<p>For a swipe from right to left:</p>
+<p>First touch dpad right and then hold dpad left for a second or so. This will start you at the right side of the touchpad and move you across the touchpad in the left direction.</p>
+</li>
+<li>
+<p>For a swipe from up to down:</p>
+<p>First touch dpad up and then hold dpad down for a second or so. This will start you at the top of the touchpad and move you across the touchpad in the down direction.</p>
+</li>
+<li>
+<p>For a swipe from down to up:</p>
+<p>First touch dpad down and then hold dpad up for a second or so. This will start you at the bottom of the touchpad and move you across the touchpad in the up direction.</p>
+</li>
+</ul>
+</div>
 
 
 
@@ -1795,7 +1987,7 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 9, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 2, 2024</span>
   </span>
 
     

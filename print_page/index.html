@@ -1444,11 +1444,14 @@
 </div>
 </div>
 </details></section><section class="print-page" id="setup-installation"><h1 id="setup-installation-installing-chiaki-ng">Installing <code>chiaki-ng</code><a class="headerlink" href="#setup-installation-installing-chiaki-ng" title="Permanent link">&para;</a></h1>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="setup-installation-__tabbed_1_1" name="setup-installation-__tabbed_1" type="radio" /><input id="setup-installation-__tabbed_1_2" name="setup-installation-__tabbed_1" type="radio" /><input id="setup-installation-__tabbed_1_3" name="setup-installation-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-installation-__tabbed_1_1">Linux Flatpak</label><label for="setup-installation-__tabbed_1_2">MacOS via Brew</label><label for="setup-installation-__tabbed_1_3">MacOS/Windows/Linux Appimage Package</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="admonition tip">
 <p class="admonition-title">Copying from and Pasting into Konsole Windows</p>
 <p>You can copy from and paste into <code>konsole</code> windows with <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-shift">Shift</kbd><span>+</span><kbd class="key-c">C</kbd></span> (copy) and <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-shift">Shift</kbd><span>+</span><kbd class="key-v">V</kbd></span> (paste) instead of the normal <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-c">C</kbd></span> (copy) and <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-v">V</kbd></span> (paste) shortcuts. In fact, <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-c">C</kbd></span> is a shortcut to terminate the current process in the <code>konsole</code>. Additionally, you can still right-click and select copy or paste as per normal.</p>
 </div>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="setup-installation-__tabbed_1_1" name="setup-installation-__tabbed_1" type="radio" /><input id="setup-installation-__tabbed_1_2" name="setup-installation-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-installation-__tabbed_1_1">Using the Discover Store (Recommended)</label><label for="setup-installation-__tabbed_1_2">Using the <code>konsole</code> (If for some reason it doesn't show up on the Discover store)</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="setup-installation-__tabbed_2_1" name="setup-installation-__tabbed_2" type="radio" /><input id="setup-installation-__tabbed_2_2" name="setup-installation-__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="setup-installation-__tabbed_2_1">Using the Discover Store (Recommended)</label><label for="setup-installation-__tabbed_2_2">Using the <code>konsole</code> (If for some reason it doesn't show up on the Discover store)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <ol>
@@ -1458,7 +1461,7 @@
 </li>
 <li>
 <p>Search for <code>chiaki-ng</code> in the search bar</p>
-<p><img alt="Install chiaki-ng" src="../setup/images/InstallChiaki4deck.png" /></p>
+<p><img alt="Install chiaki-ng" src="../setup/images/InstallChiaking.png" /></p>
 </li>
 <li>
 <p>Click Install</p>
@@ -1478,8 +1481,25 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">About <code>chiaki-ng</code></p>
-<p>This is a flatpak I created for <code>chiaki-ng</code> from <a href="#updates-done" rel="noopener" target="_blank">updated</a> Chiaki source code is available on Flathub. This is the recommended install as it is the most straightforward.</p>
+<p>The above instructions are for the official <code>chiaki-ng</code> flatpak on Flathub.</p>
 <p>However, you can also build the flatpak yourself (recommended for users who want to add their own source code changes on top of the ones I've made) by following the instructions in <a href="#diy-buildit" rel="noopener" target="_blank">Building the flatpak yourself</a>.</p>
+</div>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>
+<p>Install with the following command in the terminal</p>
+<div class="highlight"><pre><span></span><code>brew install --cask streetpea/streetpea/chiaki-ng
+</code></pre></div>
+</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>Download the appopriate package from the <a href="https://github.com/streetpea/chiaki-ng/releases" rel="noopener" target="_blank">releases page</a> on GitHub (for Mac there are separate packages for the Intel (<code>-amd64</code>) and Apple (<code>-arm64</code>) based Macs)</li>
+</ol>
+</div>
+</div>
 </div></section><section class="print-page" id="setup-configuration"><h1 id="setup-configuration-configuring-chiaki-ng">Configuring <code>chiaki-ng</code><a class="headerlink" href="#setup-configuration-configuring-chiaki-ng" title="Permanent link">&para;</a></h1>
 <h2 id="setup-configuration-registering-your-playstation">Registering your PlayStation<a class="headerlink" href="#setup-configuration-registering-your-playstation" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="setup-configuration-__tabbed_1_1" name="setup-configuration-__tabbed_1" type="radio" /><input id="setup-configuration-__tabbed_1_2" name="setup-configuration-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_1_1">New to Using Chiaki/chiaki-ng</label><label for="setup-configuration-__tabbed_1_2">Upgrading from Using Chiaki Flatpak</label></div>
@@ -1546,44 +1566,6 @@
 </ol>
 </li>
 <li>
-<p>Get your PlayStation AccountID (This is needed to access your ps account)</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="setup-configuration-__tabbed_4_1" name="setup-configuration-__tabbed_4" type="radio" /><input id="setup-configuration-__tabbed_4_2" name="setup-configuration-__tabbed_4" type="radio" /><input id="setup-configuration-__tabbed_4_3" name="setup-configuration-__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_4_1">Using Gui (Linux and MacOS only)</label><label for="setup-configuration-__tabbed_4_2">Using konsole (Flatpak only)</label><label for="setup-configuration-__tabbed_4_3">Using public website</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<ol>
-<li>
-<p>Wait until step 5 below when you are registering your console, hit the <code>PSN Login</code> button and login to your PlayStation account on the window that opens.</p>
-<p><img alt="PSN Login" src="../setup/images/PSNLogin.png" /></p>
-</li>
-</ol>
-</div>
-<div class="tabbed-block">
-<ol>
-<li>
-<p>Run the flatpak with the <code>psn-account-id</code> command</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>run<span class="w"> </span>--command<span class="o">=</span>psn-account-id<span class="w"> </span>io.github.streetpea.Chiaki4deck
-</code></pre></div>
-</li>
-<li>
-<p>Follow the prompts, opening a browser and logging in with your PlayStation network account details when prompted.</p>
-</li>
-<li>
-<p>Copy the Account-ID you receive and store it in a safe place. This is the Account-ID used for remote play that is associated with your PlayStation online account username and password.</p>
-</li>
-</ol>
-</div>
-<div class="tabbed-block">
-<ol>
-<li>Change your PSN privacy settings to allow anyone to find you in your search</li>
-<li>Go to <a href="https://psn.flipscreen.games/" rel="noopener" target="_blank">psn.flipscreen.games</a></li>
-<li>Enter your Account ID</li>
-<li>Copy your encoded id for Chiaki</li>
-</ol>
-</div>
-</div>
-</div>
-</li>
-<li>
 <p>Open <code>chiaki-ng</code> (click the Steam icon in the bottom left and search for it in the <code>Games</code> section via GUI or <code>flatpak run io.github.streetpea.chiaki-ng</code> via <code>konsole</code>) and your PlayStation system should be automatically discovered.</p>
 <p><img alt="Unregistered PS5" src="../setup/images/UnregisteredPS5.png" /></p>
 <div class="admonition question">
@@ -1592,8 +1574,38 @@
 </div>
 </li>
 <li>
+<p>Register <code>chiaki-ng</code> with PSN to enable remote Play via PSN via the popup</p>
+<p><img alt="Remote Play PSN Popup" src="../setup/images/RemotePlayPSNPopup.png" /></p>
+<ol>
+<li>
+<p>Login to psn on the provided page if one appears. Otherwise, paste your clipboard contents in a web browser and bang enter to bring up the login to psn page.</p>
+<details class="- tip">
+<summary>Tips for those having trouble logging into to PSN</summary>
+<p>If you get a <code>connection to the server timed out</code> message, keep on trying to login by hitting <span class="keys"><kbd class="key-enter">Enter</kbd></span> every few seconds until you get a different error message such as <code>Can't connect to the server</code> or you have tried for at least 20 seconds. If that doesn't work, please try refreshing the page and going through the process again. If you still can't find success, make an attempt using a different browser.</p>
+<p>Unfortunately, we have no control over Sony's site (that gives out auth tokens to access their PSN servers for the remote connection over PSN setup) so we can only give tips on how best to handle the errors that may occur on the page and wish you the best in obtaining your token. Fortunately, once this token is obtained, chiaki-ng will automatically refresh it as needed and only ask for you to create a new token in the event that PSN requires you to generate a new one using your login.</p>
+</details>
+</li>
+<li>
+<p>Copy your redirect url from the browser</p>
+<p><img alt="Redirect picture" src="../setup/images/CopyRedirectLinkPsn.png" /></p>
+</li>
+<li>
+<p>Paste your redirect url on the page and create your token</p>
+<p><img alt="Create token" src="../setup/images/PasteUrlPSN.png" /></p>
+</li>
+<li>
+<p>See success message and close the dialog box</p>
+<p><img alt="Success Message" src="../setup/images/CloseTokenDialogBox.png" /></p>
+<div class="admonition danger">
+<p class="admonition-title">Error Message</p>
+<p>If you obtain an error with a link to Sony's oauth site, it is likely the code from the link has expired and you need to create a new code by logging in again and pasting the url into chiaki-ng. The code usually expires within a few minutes. Otherwise, the error code should hopefully be self explanatory.</p>
+</div>
+</li>
+</ol>
+</li>
+<li>
 <p>Register your PlayStation console</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="setup-configuration-__tabbed_5_1" name="setup-configuration-__tabbed_5" type="radio" /><input id="setup-configuration-__tabbed_5_2" name="setup-configuration-__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_5_1">Register Discovered Console (Recommended)</label><label for="setup-configuration-__tabbed_5_2">Manual Registration</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="setup-configuration-__tabbed_4_1" name="setup-configuration-__tabbed_4" type="radio" /><input id="setup-configuration-__tabbed_4_2" name="setup-configuration-__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_4_1">Register Discovered Console (Recommended)</label><label for="setup-configuration-__tabbed_4_2">Manual Registration</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <ol>
@@ -1605,11 +1617,11 @@
 <p>Choose your console type</p>
 </li>
 <li>
-<p>Enter your PSN Account-ID obtained in step 1 above (if not automatically copied).</p>
+<p>If you registered for remote connection via PSN your <code>PSN Account-ID</code> will be automatically entered. Otherwise, either use PSN via the <code>PSN Login</code> button or public lookup using the <code>Public Lookup</code> button to obtain your <code>PSN Account-ID</code>.</p>
 </li>
 <li>
 <p>Get a registration code for remote play</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="setup-configuration-__tabbed_6_1" name="setup-configuration-__tabbed_6" type="radio" /><input id="setup-configuration-__tabbed_6_2" name="setup-configuration-__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_6_1">PS5</label><label for="setup-configuration-__tabbed_6_2">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="setup-configuration-__tabbed_5_1" name="setup-configuration-__tabbed_5" type="radio" /><input id="setup-configuration-__tabbed_5_2" name="setup-configuration-__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_5_1">PS5</label><label for="setup-configuration-__tabbed_5_2">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Go to <code>Settings -&gt; System -&gt; Remote Play -&gt; Link Device</code></p>
@@ -1621,7 +1633,10 @@
 </div>
 </li>
 <li>
-<p>Enter the code from your device in the <code>PIN</code> field</p>
+<p>Enter the code from your device in the <code>Remote Play PIN</code> field</p>
+</li>
+<li>
+<p>(Optional) If you have a pin for your console, enter it in the <code>Console Pin</code> field to have <code>chiaki-ng</code> automatically enter your PIN instead of having to enter it manually each time.</p>
 </li>
 <li>
 <p>Click Register (will become available when all necessary fields are filled)</p>
@@ -1643,7 +1658,7 @@
 <li>
 <p>Enter your PlayStation's ip address in the <code>Host</code> section replacing <code>255.255.255.255</code></p>
 <p>You can obtain your PlayStation's ip address by going in your PlayStation console's settings and going to:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="setup-configuration-__tabbed_7_1" name="setup-configuration-__tabbed_7" type="radio" /><input id="setup-configuration-__tabbed_7_2" name="setup-configuration-__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_7_1">PS5</label><label for="setup-configuration-__tabbed_7_2">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="setup-configuration-__tabbed_6_1" name="setup-configuration-__tabbed_6" type="radio" /><input id="setup-configuration-__tabbed_6_2" name="setup-configuration-__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_6_1">PS5</label><label for="setup-configuration-__tabbed_6_2">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p><code>System-&gt;System Software-&gt;Console Information</code> and looking at the IPV4 Address</p>
@@ -1662,7 +1677,7 @@
 </li>
 <li>
 <p>Get a registration code for remote play</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="setup-configuration-__tabbed_8_1" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_2" name="setup-configuration-__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_8_1">PS5</label><label for="setup-configuration-__tabbed_8_2">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="setup-configuration-__tabbed_7_1" name="setup-configuration-__tabbed_7" type="radio" /><input id="setup-configuration-__tabbed_7_2" name="setup-configuration-__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_7_1">PS5</label><label for="setup-configuration-__tabbed_7_2">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Go to <code>Settings -&gt; System -&gt; Remote Play -&gt; Link Device</code></p>
@@ -1743,61 +1758,7 @@
 <p>Open <code>chiaki-ng</code></p>
 </li>
 <li>
-<p>Double click on the box with the console icon colored orange (<strong>State: standby</strong>). </p>
-</li>
-<li>
-<p>When prompted with, "The Console is currently in standby mode.Should we send a Wakeup packet instead of trying to connect immediately?": </p>
-<ul>
-<li>choose <strong>Yes</strong></li>
-</ul>
-</li>
-<li>
-<p>Your PlayStation console should wake up and the box with the console icon should turn from orange to blue (<strong>State: ready</strong>).</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="setup-configuration-__tabbed_9_1" name="setup-configuration-__tabbed_9" type="radio" /><input id="setup-configuration-__tabbed_9_2" name="setup-configuration-__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_9_1">Your PlayStation has awoken from slumber! <img alt="🌞" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f31e.svg" title=":sun_with_face:" /></label><label for="setup-configuration-__tabbed_9_2">Your PlayStation hit the snooze button <img alt="💤" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f4a4.svg" title=":zzz:" /></label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="admonition success">
-<p class="admonition-title">Success</p>
-<p>Now it's time to test connecting via PlayStation Remote Play in the next step!</p>
-</div>
-</div>
-<div class="tabbed-block">
-<div class="admonition failure">
-<p class="admonition-title">Here's how to get back on the happy path</p>
-<ol>
-<li>
-<p>Make sure your PlayStation shows as registered and is currently in sleep mode. If it's not in sleep mode, you can't wake it up.</p>
-</li>
-<li>
-<p>Make sure that you have enabled turning on your PlayStation console from rest mode:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="setup-configuration-__tabbed_10_1" name="setup-configuration-__tabbed_10" type="radio" /><input id="setup-configuration-__tabbed_10_2" name="setup-configuration-__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_10_1">PS5</label><label for="setup-configuration-__tabbed_10_2">PS4</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<p>Go to <code>Settings -&gt; System -&gt; Power Saving -&gt; Features Available in Rest Mode</code> and turn on:</p>
-<ol>
-<li><code>Stay Connected to the Internet</code></li>
-<li><code>Enable Turning on PS5 from Network</code></li>
-</ol>
-</div>
-<div class="tabbed-block">
-<p>Go to <code>Settings -&gt; Power Save Settings -&gt; Set Function Available in Rest Mode</code> and turn on:</p>
-<ol>
-<li>
-<p><code>Stay Connected to the Internet</code></p>
-</li>
-<li>
-<p><code>Enable turning on PS4 from Network</code></p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-</div>
+<p>Your PlayStation console should be discovered display (<strong>State: ready</strong> or <strong>State: standby</strong>).</p>
 </li>
 </ol>
 </li>
@@ -1805,7 +1766,7 @@
 <p>Test PlayStation Remote Play</p>
 <ol>
 <li>
-<p>Double click on the box with the now blue console icon (<strong>State: ready</strong>)</p>
+<p>Press/click on your registered console</p>
 </li>
 <li>
 <p>Test launching a game if you want</p>
@@ -1814,7 +1775,7 @@
 <p>Exit out of the window once you've tested the connection.</p>
 </li>
 </ol>
-<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="setup-configuration-__tabbed_11_1" name="setup-configuration-__tabbed_11" type="radio" /><input id="setup-configuration-__tabbed_11_2" name="setup-configuration-__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_11_1">It worked! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f604.svg" title=":smile:" /></label><label for="setup-configuration-__tabbed_11_2">It didn't work <img alt="😦" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f626.svg" title=":frowning:" /></label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="setup-configuration-__tabbed_8_1" name="setup-configuration-__tabbed_8" type="radio" /><input id="setup-configuration-__tabbed_8_2" name="setup-configuration-__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_8_1">It worked! <img alt="😄" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f604.svg" title=":smile:" /></label><label for="setup-configuration-__tabbed_8_2">It didn't work <img alt="😦" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f626.svg" title=":frowning:" /></label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="admonition success">
@@ -1848,11 +1809,11 @@
 </div>
 <ol>
 <li>
-<p>Open <code>chiaki-ng</code> and click the gear icon in the top right to open the settings menu</p>
+<p>Open <code>chiaki-ng</code> and click the gear icon in the top right or the options button on your controller to open the settings menu</p>
 <p><img alt="Open Settings" src="../setup/images/OpenSettings.png" /></p>
 </li>
 <li>
-<p>Adjust the settings to your preferences. </p>
+<p>Adjust the settings to your preferences moving between settings by either clicking or using L1/R1.</p>
 <ol>
 <li>
 <p><strong>General Settings</strong></p>
@@ -1876,19 +1837,13 @@
 </div>
 </li>
 <li>
-<p><strong>Audio/WiFi Settings</strong></p>
-<p><img alt="Audio/Wifi Settings" src="../setup/images/AudioSettings.png" /></p>
-</li>
-<li>
 <p><strong>Video Settings</strong></p>
 <p><img alt="Video Settings" src="../setup/images/VideoSettings.png" /></p>
 </li>
 <li>
 <p><strong>Stream Settings</strong></p>
 <p>(choose the <strong>PS5 HDR</strong> tab if you have a PS5 connected to a HDR TV/monitor (<a href="#setup-configuration-hdr-high-dynamic-range">see HDR section below for more details</a>), <strong>PS5</strong> if you have a PS5 not connected to an HDR TV/monitor, and <strong>PS4</strong> if you have a PS4). If you are having issues with your PS5 connection, please try switching to 720P following with its default bitrate of 10,000 with your PS5 since that requires significantly less bandwidth from your wireless router.</p>
-</li>
-</ol>
-<div class="tabbed-set tabbed-alternate" data-tabs="12:3"><input checked="checked" id="setup-configuration-__tabbed_12_1" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_2" name="setup-configuration-__tabbed_12" type="radio" /><input id="setup-configuration-__tabbed_12_3" name="setup-configuration-__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_12_1">PS5 HDR</label><label for="setup-configuration-__tabbed_12_2">PS5</label><label for="setup-configuration-__tabbed_12_3">PS4</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:3"><input checked="checked" id="setup-configuration-__tabbed_9_1" name="setup-configuration-__tabbed_9" type="radio" /><input id="setup-configuration-__tabbed_9_2" name="setup-configuration-__tabbed_9" type="radio" /><input id="setup-configuration-__tabbed_9_3" name="setup-configuration-__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="setup-configuration-__tabbed_9_1">PS5 HDR</label><label for="setup-configuration-__tabbed_9_2">PS5</label><label for="setup-configuration-__tabbed_9_3">PS4</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Stream output with <a href="#setup-configuration-hdr-high-dynamic-range">HDR</a>. This are the recommended PS5 settings for a device that supports HDR such as the Steam Deck OLED.</p>
@@ -1914,6 +1869,12 @@
 </div>
 </div>
 </div>
+</li>
+<li>
+<p><strong>Audio/WiFi Settings</strong></p>
+<p><img alt="Audio/Wifi Settings" src="../setup/images/AudioSettings.png" /></p>
+</li>
+</ol>
 </li>
 </ol>
 <h3 id="setup-configuration-hdr-high-dynamic-range">HDR (High Dynamic Range)<a class="headerlink" href="#setup-configuration-hdr-high-dynamic-range" title="Permanent link">&para;</a></h3>
@@ -1952,7 +1913,8 @@
 <p>If you have one console you want to connect to remotely or locally you can use the auto-connect feature to launch it automatically on launch. If you have multiple consoles to launch into you can instead use the <a href="#setup-automation">automation section</a>.</p>
 <p><img alt="Auto-Connect Settings" src="../setup/images/AutoConnect.png" /></p>
 <h3 id="setup-configuration-profiles">Profiles<a class="headerlink" href="#setup-configuration-profiles" title="Permanent link">&para;</a></h3>
-<p>You can switch between profiles in chiaki-ng so if, for example you have 2 users that both use the same device you can create a profile for each user. You can see your current profile listed at Settings (Gear icon)-&gt;Config-&gt;Current profile. You can create, switch, and delete profiles via Settings (Gear icon)-&gt;Config-&gt;Manage Profiles.</p>
+<p>You can switch between profiles in chiaki-ng. If, for example, you have 2 users that both use the same device, you can create a profile for each user. You can see your current profile at the top of the chiaki-ng window and listed at Settings (Gear icon)-&gt;Config-&gt;Current profile. You can create, switch, and delete profiles via Settings (Gear icon)-&gt;Config-&gt;Manage Profiles.</p>
+<p><img alt="Profiles" src="../setup/images/ProfilesPic.png" /></p>
 <h4 id="setup-configuration-creating-a-profile">Creating a profile<a class="headerlink" href="#setup-configuration-creating-a-profile" title="Permanent link">&para;</a></h4>
 <ol>
 <li>Open Settings (Gear icon on top right of main screen)</li>
@@ -2099,11 +2061,11 @@
 <p><img alt="Go to Settings" src="../setup/images/GoToSettings.png" /></p>
 </li>
 <li>
-<p>Go to the PSN tab and then click <code>Login to PSN</code></p>
+<p>Go to the <code>Config</code> tab and then click <code>Login to PSN</code></p>
 <p><img alt="PSN credentials" src="../setup/images/ClickLoginToPsn.png" /></p>
 </li>
 <li>
-<p>Login to psn on the provided page</p>
+<p>Login to psn on the provided page if one appears. Otherwise, paste your clipboard contents in a web browser and bang enter to bring up the login to psn page.</p>
 <details class="- tip">
 <summary>Tips for those having trouble logging into to PSN</summary>
 <p>If you get a <code>connection to the server timed out</code> message, keep on trying to login by hitting <span class="keys"><kbd class="key-enter">Enter</kbd></span> every few seconds until you get a different error message such as <code>Can't connect to the server</code> or you have tried for at least 20 seconds. If that doesn't work, please try refreshing the page and going through the process again. If you still can't find success, make an attempt using a different browser.</p>
@@ -2174,7 +2136,7 @@
 <tbody>
 <tr>
 <td>9295</td>
-<td>TCP</td>
+<td>UDP/TCP</td>
 </tr>
 <tr>
 <td>9296</td>
@@ -2206,7 +2168,7 @@
 </tr>
 <tr>
 <td>9295</td>
-<td>TCP</td>
+<td>UDP/TCP</td>
 </tr>
 <tr>
 <td>9296</td>
@@ -3540,7 +3502,85 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <li>
 <p>Play your favorite PS5 game with haptic feedback on Mac via <code>chiaki-ng</code>!</p>
 </li>
-</ol></section><h1 class='nav-section-title-end'>Ended: Setup</h1>
+</ol>
+<h2 id="setup-controlling-using-a-non-playstation-controller-with-chiaki-ng">Using a non-PlayStation controller with chiaki-ng<a class="headerlink" href="#setup-controlling-using-a-non-playstation-controller-with-chiaki-ng" title="Permanent link">&para;</a></h2>
+<h3 id="setup-controlling-controller-mapping">Controller Mapping<a class="headerlink" href="#setup-controlling-controller-mapping" title="Permanent link">&para;</a></h3>
+<h4 id="setup-controlling-change-controller-mapping">Change Controller Mapping<a class="headerlink" href="#setup-controlling-change-controller-mapping" title="Permanent link">&para;</a></h4>
+<p>You can re-map all necessary PlayStation buttons to your controller using the controller mapper built-in to <code>chiaki-ng</code></p>
+<ol>
+<li>
+<p>Go to Settings-&gt;Controllers and select <code>Change Controller Mapping</code></p>
+<p><img alt="Change Controller Mapping" src="../setup/images/ChangeControllerMapping.png" /></p>
+</li>
+<li>
+<p>Click on any button on the controller you want to change the mapping for</p>
+</li>
+<li>
+<p>Change the buttons as you see fit on the controller mapping page (i.e., change touchpad to Share button on the Xbox Series X Controller)</p>
+<p><img alt="Controller Mapping Changes" src="../setup/images/ControllerMappingMenu.png" /></p>
+</li>
+<li>
+<p>Update Controller Mapping using the <code>Options</code> button on the controller</p>
+</li>
+</ol>
+<h4 id="setup-controlling-reset-controller-mapping">Reset Controller Mapping<a class="headerlink" href="#setup-controlling-reset-controller-mapping" title="Permanent link">&para;</a></h4>
+<p>You can reset a controller mapping for a controller back to default at any time</p>
+<ol>
+<li>
+<p>Go to Settings-&gt;Controllers and select <code>Reset Controller Mapping</code></p>
+</li>
+<li>
+<p>Click on any button on the controller you want to reset the mapping for</p>
+</li>
+</ol>
+<h3 id="setup-controlling-dpad-touch-emulation">Dpad Touch Emulation<a class="headerlink" href="#setup-controlling-dpad-touch-emulation" title="Permanent link">&para;</a></h3>
+<p>Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings-&gt;Controllers and can be disabled at any time. The <code>Dpad Touch Increment</code> controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position</p>
+<p><img alt="Dpad Touch Emulation" src="../setup/images/DpadTouchEmulation.png" /></p>
+<div class="admonition question">
+<p class="admonition-title">How does Dpad Touch Emulation work</p>
+<p>Pushing one of the dpad buttons will register a touch in the quadrant of that button:</p>
+<ul>
+<li>
+<p>Dpad Left: All the way to the left and halfway up the touchpad</p>
+</li>
+<li>
+<p>Dpad Right: All the way to the right and halfway up the touchpad</p>
+</li>
+<li>
+<p>Dpad Up: In the middle of the touchpad horizontally and at the top of the touchpad</p>
+</li>
+<li>
+<p>Dpad Down: In the middle of the touchpad horizontally and at the bottom of the touchpad</p>
+</li>
+</ul>
+<p>How to perform some common touchpad functions with the dpad:</p>
+<ul>
+<li>
+<p>For a touchpad left click:</p>
+<p>You want to press the touchpad click button you have mapped for your controller (such as the Share key) and dpad left</p>
+</li>
+<li>
+<p>For a touchpad right click:</p>
+<p>You want to press the touchpad click button you have mapped for your controller (such as the Share key) and dpad right</p>
+</li>
+<li>
+<p>For a swipe from left to right:</p>
+<p>First touch dpad left and then hold dpad right for a second or so. This will start you at the left side of the touchpad and move you across the touchpad in the right direction.</p>
+</li>
+<li>
+<p>For a swipe from right to left:</p>
+<p>First touch dpad right and then hold dpad left for a second or so. This will start you at the right side of the touchpad and move you across the touchpad in the left direction.</p>
+</li>
+<li>
+<p>For a swipe from up to down:</p>
+<p>First touch dpad up and then hold dpad down for a second or so. This will start you at the top of the touchpad and move you across the touchpad in the down direction.</p>
+</li>
+<li>
+<p>For a swipe from down to up:</p>
+<p>First touch dpad down and then hold dpad up for a second or so. This will start you at the bottom of the touchpad and move you across the touchpad in the up direction.</p>
+</li>
+</ul>
+</div></section><h1 class='nav-section-title-end'>Ended: Setup</h1>
                         <h1 class='nav-section-title' id='section-updates'>
                             Updates <a class='headerlink' href='#section-updates' title='Permanent link'>↵</a>
                         </h1>
@@ -3585,6 +3625,9 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </ol>
 <h2 id="updates-releases-updating-chiaki-ng">Updating <code>chiaki-ng</code><a class="headerlink" href="#updates-releases-updating-chiaki-ng" title="Permanent link">&para;</a></h2>
 <p>In order to update your already installed <code>chiaki-ng</code> to the newest version, either:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="updates-releases-__tabbed_1_1" name="updates-releases-__tabbed_1" type="radio" /><input id="updates-releases-__tabbed_1_2" name="updates-releases-__tabbed_1" type="radio" /><input id="updates-releases-__tabbed_1_3" name="updates-releases-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="updates-releases-__tabbed_1_1">Linux Flatpak</label><label for="updates-releases-__tabbed_1_2">MacOS Brew</label><label for="updates-releases-__tabbed_1_3">Windows/MacOS/Linux Appimage</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <ul>
 <li>
 <p>Check for updates in <code>Discover</code> and update there</p>
@@ -3592,7 +3635,7 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 <li>
 <p>Update via the <code>konsole</code> with:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="updates-releases-__tabbed_1_1" name="updates-releases-__tabbed_1" type="radio" /><input id="updates-releases-__tabbed_1_2" name="updates-releases-__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="updates-releases-__tabbed_1_1">chiaki-ng Installed Via Discover Store</label><label for="updates-releases-__tabbed_1_2">chiaki-ng Legacy Install Via Konsole</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="updates-releases-__tabbed_2_1" name="updates-releases-__tabbed_2" type="radio" /><input id="updates-releases-__tabbed_2_2" name="updates-releases-__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="updates-releases-__tabbed_2_1">chiaki-ng Installed Via Discover Store</label><label for="updates-releases-__tabbed_2_2">chiaki-ng Legacy Install Via Konsole</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>update<span class="w"> </span>-y<span class="w"> </span>io.github.streetpea.Chiaki4deck
@@ -3606,7 +3649,45 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </div>
 </li>
 </ul>
+</div>
+<div class="tabbed-block">
+<ul>
+<li>
+<p>Update via the terminal with:</p>
+<div class="highlight"><pre><span></span><code>brew<span class="w"> </span>install<span class="w"> </span>--cask<span class="w"> </span>streetpea/streetpea/chiaki-ng
+</code></pre></div>
+</li>
+</ul>
+</div>
+<div class="tabbed-block">
+<p>Download the appropriate package from the <a href="https://github.com/streetpea/chiaki-ng/releases" rel="noopener" target="_blank">releases page</a> on GitHub (for Mac there are separate packages for the Intel (<code>-amd64</code>) and Apple (<code>-arm64</code>) based Macs)</p>
+</div>
+</div>
+</div>
 <h2 id="updates-releases-releases-newest-first">Releases (Newest First)<a class="headerlink" href="#updates-releases-releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="updates-releases-191">1.9.1<a class="headerlink" href="#updates-releases-191" title="Permanent link">&para;</a></h3>
+<p>Small patch update:</p>
+<ul>
+<li>Adds dpad touch emulation to use the dpad for touchscreen touches and swipes <a href="#setup-controlling-dpad-touch-emulation" rel="noopener" target="_blank">see dpad touch emulation</a></li>
+<li>Add --exit-app-on-stream-exit option to exit <code>chiaki-ng</code> immediately after closing a streaming session</li>
+<li>Fix registration issues related to broadcast settings by automatically detecting when broadcast should be used</li>
+<li>Reset motion controls when necessary to prevent jumping to position when using motion controls to aim in games that activate motion controls via a trigger press such as Resident Evil 4 Remake</li>
+<li>Fix bug where upnp discovery could take too long, causing the remote connection via PSN to fail</li>
+<li>Notify users of the possibility of remote connection via PSN as many users aren't aware of this option still</li>
+<li>Add mapping for Share button on Xbox Series and Xbox One Controllers</li>
+<li>Display current profile name with colon after application name as Application Display Name</li>
+<li>Update controller mappings to be portable across all platforms (Linux, Mac/OS, and Windows)</li>
+<li>Add controller name for controller mapping for controllers that don't have a name configured in the mapping itself</li>
+<li>Allow entering controller mapping and reset mapping using the back button</li>
+<li>Make log dialogs, registered consoles, and hidden consoles scrollable with a controller</li>
+<li>Increase STUN timeouts to 5 seconds + add timeouts for curl of 10 seconds</li>
+<li>Make key mapping dialog navigable with controller</li>
+<li>Disable zero-copy for hw cards that don't support it</li>
+<li>Increase wait time for DualSense haptics of DualSense edge to come online to 15 seconds</li>
+<li>Add homebrew cask for <code>chiaki-ng</code> for MacOS</li>
+<li>Fix an error causing a crash when random stun allocation was used for remote connection via PSN</li>
+<li>Fix a memory leak in remote connection via PSN</li>
+</ul>
 <h3 id="updates-releases-190">1.9.0<a class="headerlink" href="#updates-releases-190" title="Permanent link">&para;</a></h3>
 <p>Brings ability to set controller mappings for chiaki-ng</p>
 <ul>
@@ -4163,7 +4244,7 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <ol>
 <li>
 <p>Install the necessary <a href="https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes" rel="noopener" target="_blank">flatpak runtime</a>, associated <a href="https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks" rel="noopener" target="_blank">sdk</a>, and base app.</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>flathub<span class="w"> </span>org.kde.Platform//6.7<span class="w"> </span>flathub<span class="w"> </span>org.kde.Sdk//6.7
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>flathub<span class="w"> </span>org.kde.Platform//6.8<span class="w"> </span>flathub<span class="w"> </span>org.kde.Sdk//6.8
 </code></pre></div>
 </li>
 <li>
@@ -4182,16 +4263,6 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <li>
 <p>0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch</p>
 <div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
-</code></pre></div>
-</li>
-<li>
-<p>0001-lavc-vaapi_h264-Fixup-invalid-references.patch</p>
-<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_h264-Fixup-invalid-references.patch
-</code></pre></div>
-</li>
-<li>
-<p>0001-lavc-vaapi_hevc-Fixup-invalid-references.patch</p>
-<div class="highlight"><pre><span></span><code>curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-lavc-vaapi_hevc-Fixup-invalid-references.patch
 </code></pre></div>
 </li>
 <li>
@@ -4323,8 +4394,8 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 <h2 id="diy-steamdeckdev-setup-environment">Setup Environment<a class="headerlink" href="#diy-steamdeckdev-setup-environment" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
-<p>Install flatpak and/or build a new one with any added dependencies following <a href="#diy-buildit" rel="noopener" target="_blank">Building the Flatpak Yourself</a></p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>-y<span class="w"> </span>https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
+<p>Install flatpak with debug extension and/or build a new one with any added dependencies following <a href="#diy-buildit" rel="noopener" target="_blank">Building the Flatpak Yourself</a></p>
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>--include-debug<span class="w"> </span>-y<span class="w"> </span>https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
 </code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Creating local flatpak builds</p>
@@ -4348,17 +4419,12 @@ The DualSense/DualShock 4 touchpad and gyro controls work with the binary versio
 </li>
 <li>
 <p>Install the SDK</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk//6.7
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk//6.8
 </code></pre></div>
 </li>
 <li>
 <p>Install the <code>Debug</code> extensions for the SDK</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//6.7
-</code></pre></div>
-</li>
-<li>
-<p>Install the <code>Debug</code> extension for the application build for debugging</p>
-<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>io.github.streetpea.Chiaki4deck.Debug
+<div class="highlight"><pre><span></span><code>flatpak<span class="w"> </span>install<span class="w"> </span>org.kde.Sdk.Debug//6.8
 </code></pre></div>
 </li>
 <li>
