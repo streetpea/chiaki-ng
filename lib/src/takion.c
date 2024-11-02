@@ -62,8 +62,6 @@ typedef enum takion_packet_type_t {
 	TAKION_PACKET_TYPE_CONGESTION = 5,
 	TAKION_PACKET_TYPE_FEEDBACK_STATE = 6,
 	TAKION_PACKET_TYPE_CLIENT_INFO = 8,
-	TAKION_PACKET_TYPE_PAD_INFO_EVENT = 9,
-	TAKION_PACKET_TYPE_PAD_ADAPTIVE_TRIGGERS = 11,
 } TakionPacketType;
 
 /**
@@ -508,7 +506,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_packet_mac(ChiakiGKCrypt *crypt, uin
 			memcpy(key_pos_tmp, buf + key_pos_offset, sizeof(uint32_t));
 			memset(buf + key_pos_offset, 0, sizeof(uint32_t));
 		}
-		chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
+		ChiakiErrorCode err = chiaki_gkcrypt_gmac(crypt, key_pos, buf, buf_size, buf + mac_offset);
+		if(err != CHIAKI_ERR_SUCCESS)
+			return err;
 		if(base_type == TAKION_PACKET_TYPE_CONTROL || base_type == TAKION_PACKET_TYPE_CONGESTION)
 			memcpy(buf + key_pos_offset, key_pos_tmp, sizeof(uint32_t));
 	}
@@ -987,7 +987,7 @@ static ChiakiErrorCode takion_recv(ChiakiTakion *takion, uint8_t *buf, size_t *b
 		return err;
 	}
 
-	int received_sz = recv(takion->sock, buf, *buf_size, 0);
+	CHIAKI_SSIZET_TYPE received_sz = recv(takion->sock, buf, *buf_size, 0);
 	if(received_sz <= 0)
 	{
 		if(received_sz < 0)
@@ -1023,7 +1023,7 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 
 	if(memcmp(mac_expected, mac, sizeof(mac)) != 0)
 	{
-		CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for packet type %#x with key_pos %#lx", base_type, key_pos);
+		CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for packet type %#x with key_pos %#llx", base_type, key_pos);
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_ERROR, buf, buf_size);
 		CHIAKI_LOGD(takion->log, "GMAC:");
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, mac, sizeof(mac));
@@ -1155,7 +1155,7 @@ static void takion_flush_data_queue(ChiakiTakion *takion)
 		if(data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PROTOBUF
 				&& data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE
 				&& data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_TRIGGER_EFFECTS
-				&& data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_9)
+				&& data_type != CHIAKI_TAKION_MESSAGE_DATA_TYPE_PAD_INFO)
 		{
 			CHIAKI_LOGW(takion->log, "Takion received data with unexpected data type %#x", data_type);
 			chiaki_log_hexdump(takion->log, CHIAKI_LOG_WARNING, entry->packet_buf, entry->packet_size);
@@ -1209,7 +1209,7 @@ static void takion_handle_packet_message_data_ack(ChiakiTakion *takion, uint8_t 
 {
 	if(buf_size != 0xc)
 	{
-		CHIAKI_LOGE(takion->log, "Takion received data ack with size %#x != %#x", buf_size, 0xc);
+		CHIAKI_LOGE(takion->log, "Takion received data ack with size %zx != %#x", buf_size, 0xc);
 		return;
 	}
 
@@ -1332,7 +1332,7 @@ static ChiakiErrorCode takion_recv_message_init_ack(ChiakiTakion *takion, Takion
 
 	if(received_size < sizeof(message))
 	{
-		CHIAKI_LOGE(takion->log, "Takion received packet of size %#x while expecting init ack packet of exactly %#x", received_size, sizeof(message));
+		CHIAKI_LOGE(takion->log, "Takion received packet of size %zu while expecting init ack packet of exactly %zu", received_size, sizeof(message));
 		return CHIAKI_ERR_INVALID_RESPONSE;
 	}
 
@@ -1387,7 +1387,7 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 
 	if(received_size < sizeof(message))
 	{
-		CHIAKI_LOGE(takion->log, "Takion received packet of size %#x while expecting cookie ack packet of exactly %#x", received_size, sizeof(message));
+		CHIAKI_LOGE(takion->log, "Takion received packet of size %zu while expecting cookie ack packet of exactly %zu", received_size, sizeof(message));
 		return CHIAKI_ERR_INVALID_RESPONSE;
 	}
 
@@ -1662,7 +1662,7 @@ static ChiakiErrorCode takion_read_extra_sock_messages(ChiakiTakion *takion)
 		ChiakiErrorCode err = chiaki_stop_pipe_select_single(&takion->stop_pipe, takion->sock, false, 200);
 		if(err != CHIAKI_ERR_SUCCESS)
 			return err;
-        int len = recv(takion->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, sizeof(buf), 0);
+        CHIAKI_SSIZET_TYPE len = recv(takion->sock, (CHIAKI_SOCKET_BUF_TYPE) buf, sizeof(buf), 0);
         if (len < 0)
             return CHIAKI_ERR_NETWORK;
 	}

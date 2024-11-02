@@ -19,7 +19,9 @@
 
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 #include <sdeck.h>
+#include <chiaki/orientation.h>
 #endif
+
 // Using Q_OS_MACOS instead of __APPLE__ doesn't work for the necessary enums to be included
 #ifdef __APPLE__
 #include <macMicPermission.h>
@@ -72,6 +74,7 @@ struct StreamSessionConnectInfo
 	QString log_file;
 	ChiakiTarget target;
 	QString host;
+	QString nickname;
 	QByteArray regist_key;
 	QByteArray morning;
 	QString initial_login_pin;
@@ -98,12 +101,14 @@ struct StreamSessionConnectInfo
 	QString duid;
 	QString psn_token;
 	QString psn_account_id;
+	uint16_t dpad_touch_increment;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
 			Settings *settings,
 			ChiakiTarget target,
 			QString host,
+			QString nickname,
 			QByteArray regist_key,
 			QByteArray morning,
 			QString initial_login_pin,
@@ -151,7 +156,6 @@ class StreamSession : public QObject
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
-
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
 		Setsu *setsu;
@@ -159,6 +163,7 @@ class StreamSession : public QObject
 		ChiakiControllerState setsu_state;
 		SetsuDevice *setsu_motion_device;
 		ChiakiOrientationTracker orient_tracker;
+		ChiakiAccelNewZero setsu_accel_zero, setsu_real_accel;
 		bool orient_dirty;
 #endif
 
@@ -174,6 +179,7 @@ class StreamSession : public QObject
 		bool sdeck_skipl, sdeck_skipr;
 		bool enable_steamdeck_haptics;
 		ChiakiOrientationTracker sdeck_orient_tracker;
+		ChiakiAccelNewZero sdeck_accel_zero, sdeck_real_accel;
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
 #endif
@@ -182,6 +188,11 @@ class StreamSession : public QObject
 		ChiakiControllerState touch_state;
 		QMap<int, uint8_t> touch_tracker;
 		int8_t mouse_touch_id;
+		ChiakiControllerState dpad_touch_state;
+		uint16_t dpad_touch_increment;
+		int8_t dpad_touch_id;
+		QPair<uint16_t, uint16_t> dpad_touch_value;
+		QTimer *dpad_touch_timer, *dpad_touch_stop_timer;
 		QElapsedTimer double_tap_timer;
 		RumbleHapticsIntensity rumble_haptics_intensity;
 		bool start_mic_unmuted;
@@ -271,6 +282,7 @@ class StreamSession : public QObject
 #endif
 		void HandleKeyboardEvent(QKeyEvent *event);
 		void HandleTouchEvent(QTouchEvent *event, qreal width, qreal height);
+		void HandleDpadTouchEvent(ChiakiControllerState *state, bool placeholder = false);
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
@@ -295,6 +307,7 @@ class StreamSession : public QObject
 
 	private slots:
 		void UpdateGamepads();
+		void DpadSendFeedbackState();
 		void SendFeedbackState();
 };
 

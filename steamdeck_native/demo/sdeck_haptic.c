@@ -138,7 +138,7 @@ void frequency_demo()
     printf("\n\nFREQUENCY RESULTS\n-------------------\n");
     printf("Power Calculated Frequency is: %f Hz with power: %f\n", frequency, freq_power);
     if (compute_freq(pcm_data, complexN, sampling_rate, &frequency, max_freq) == 0)
-        printf("Autocorrelation Calculated Frequency is: %f Hz\n");
+        printf("Autocorrelation Calculated Frequency is: %f Hz\n", frequency);
     printf("Real Frquency of signal is: %f Hz\n", target_freq);
 	printf("\n\nFinding frequency via max power frequency took %f seconds\n", (((float)(end1-start) / CLOCKS_PER_SEC)));
     printf("Finding frquency via autocorrelation took %f seconds\n", (((float)(end2-start) / CLOCKS_PER_SEC)));

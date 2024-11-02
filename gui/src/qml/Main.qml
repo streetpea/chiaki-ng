@@ -197,6 +197,10 @@ Item {
         function onRegistDialogRequested(host, ps5) {
             showRegistDialog(host, ps5);
         }
+
+        function onWakeupStartInitiated() {
+            stack.replace(stack.get(0), autoConnectViewComponent, {}, StackView.Immediate);
+        }
     }
 
     Component {

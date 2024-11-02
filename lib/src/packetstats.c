@@ -2,15 +2,22 @@
 
 #include <chiaki/packetstats.h>
 #include <chiaki/log.h>
+#include <assert.h>
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_packet_stats_init(ChiakiPacketStats *stats)
 {
+	ChiakiErrorCode err = chiaki_mutex_init(&stats->mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	err = chiaki_mutex_lock(&stats->mutex);
+	assert(err == CHIAKI_ERR_SUCCESS);
 	stats->gen_received = 0;
 	stats->gen_lost = 0;
 	stats->seq_min = 0;
 	stats->seq_max = 0;
 	stats->seq_received = 0;
-	return chiaki_mutex_init(&stats->mutex, false);
+	err = chiaki_mutex_unlock(&stats->mutex);
+	return err;
 }
 
 CHIAKI_EXPORT void chiaki_packet_stats_fini(ChiakiPacketStats *stats)

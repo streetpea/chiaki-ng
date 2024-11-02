@@ -1,25 +1,22 @@
 #include <string.h>
 #include <time.h>
-#include <netdb.h>
 #include <sys/types.h>
+#include <assert.h>
+#include <stdio.h>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <assert.h>
-
-#include <curl/curl.h>
-#include <json-c/json_object.h>
-#include <json-c/json_tokener.h>
-#include <json-c/json_pointer.h>
-// TODO: Make UPnP optional
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnpcommands.h>
+#include <netdb.h>
+#endif
 
 #include <chiaki/remote/holepunch.h>
-#include <chiaki/stoppipe.h>
-#include <chiaki/thread.h>
-#include <chiaki/base64.h>
-#include <chiaki/random.h>
-#include <chiaki/sock.h>
 #include "../utils.h"
 
 // ================================================================================================
@@ -38,6 +35,8 @@ int main(int argc, char **argv)
         if (token_len > 0)
         {
             oauth_token = calloc(1, token_len + 1);
+            if(!oauth_token)
+                return 1;
             memcpy(oauth_token, token_buf, token_len);
             oauth_token[token_len] = '\0';
         }
@@ -135,6 +134,13 @@ int main(int argc, char **argv)
     }
     printf(">> Created session\n");
 
+	err = holepunch_session_create_offer(session);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "!! Failed to create offer msg for ctrl connection");
+		return err;
+	}
+    printf(">> Created offer msg for ctrl connection\n");
     err = chiaki_holepunch_session_start(session, device_uid, console_type);
     if (err != CHIAKI_ERR_SUCCESS)
     {
@@ -152,7 +158,13 @@ int main(int argc, char **argv)
         return -1;
     }
     printf(">> Punched hole for control connection!\n");
-
+	err = holepunch_session_create_offer(session);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "!! Failed to create offer msg for ctrl connection");
+		return err;
+	}
+    printf(">> Created offer msg for ctrl connection\n");
     err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
     if (err != CHIAKI_ERR_SUCCESS)
     {

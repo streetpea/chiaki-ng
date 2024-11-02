@@ -36,6 +36,7 @@ DialogView {
             openurl.selectAll()
             openurl.copy()
         }
+        pasteUrl.forceActiveFocus(Qt.TabFocusReason)
     }
 
     Item {
@@ -69,8 +70,9 @@ DialogView {
                     openurl.selectAll()
                     openurl.copy()
                 }
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.up: copyUrl
                 KeyNavigation.down: url
-                KeyNavigation.right: url
                 visible: psnurl
             }
 
@@ -81,10 +83,20 @@ DialogView {
             TextField {
                 id: url
                 Layout.preferredWidth: 400
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
+                KeyNavigation.up: {
+                    if(psnurl)
+                        copyUrl
+                    else
+                        url
+                }
+                KeyNavigation.down: url
                 KeyNavigation.right: pasteUrl
-                KeyNavigation.left: copyUrl
-                KeyNavigation.up: copyUrl
-                KeyNavigation.down: pasteUrl
                 C.Button {
                     id: pasteUrl
                     text: qsTr("Click to Paste URL")
@@ -94,42 +106,68 @@ DialogView {
                         leftMargin: 10
                     }
                     onClicked: url.paste()
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
                     KeyNavigation.left: url
-                    KeyNavigation.up: url
-                    lastInFocusChain: true
+                    KeyNavigation.up: {
+                        if(psnurl)
+                            copyUrl
+                        else
+                            pasteUrl
+                    }
+                    KeyNavigation.down: pasteUrl
                 }
             }
         }
 
-        Dialog {
-            id: logDialog
-            parent: Overlay.overlay
-            x: Math.round((root.width - width) / 2)
-            y: Math.round((root.height - height) / 2)
-            title: qsTr("Create PSN Automatic Remote Connection Token")
-            modal: true
-            closePolicy: Popup.NoAutoClose
-            standardButtons: Dialog.Cancel
-            Material.roundedScale: Material.MediumScale
-            onOpened: logArea.forceActiveFocus()
-            onClosed: root.showMainView()
+        Item {
+            Keys.onPressed: (event) => {
+                switch (event.key) {
+                case Qt.Key_Up:
+                    if(logScrollbar.position > 0.001)
+                        logFlick.flick(0, 500);
+                    event.accepted = true;
+                    break;
+                case Qt.Key_Down:
+                    if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                        logFlick.flick(0, -500);
+                    event.accepted = true;
+                    break;
+                }
+            }
+            Dialog {
+                id: logDialog
+                parent: Overlay.overlay
+                x: Math.round((root.width - width) / 2)
+                y: Math.round((root.height - height) / 2)
+                title: qsTr("Create PSN Automatic Remote Connection Token")
+                modal: true
+                closePolicy: Popup.NoAutoClose
+                standardButtons: Dialog.Cancel
+                Material.roundedScale: Material.MediumScale
+                onOpened: logArea.forceActiveFocus()
+                onClosed: root.showMainView()
 
-            Flickable {
-                id: logFlick
-                implicitWidth: 600
-                implicitHeight: 400
-                clip: true
-                contentWidth: logArea.contentWidth
-                contentHeight: logArea.contentHeight
-                flickableDirection: Flickable.AutoFlickIfNeeded
-                ScrollIndicator.vertical: ScrollIndicator { }
+                Flickable {
+                    id: logFlick
+                    implicitWidth: 600
+                    implicitHeight: 400
+                    clip: true
+                    contentWidth: logArea.contentWidth
+                    contentHeight: logArea.contentHeight
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        id: logScrollbar
+                        policy: ScrollBar.AlwaysOn
+                        visible: logFlick.contentHeight > logFlick.implicitHeight
+                    }
 
-                Label {
-                    id: logArea
-                    width: logFlick.width
-                    wrapMode: TextEdit.Wrap
-                    Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
-                    Keys.onEscapePressed: logDialog.close()
+                    Label {
+                        id: logArea
+                        width: logFlick.width
+                        wrapMode: TextEdit.Wrap
+                        Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
+                        Keys.onEscapePressed: logDialog.close()
+                    }
                 }
             }
         }

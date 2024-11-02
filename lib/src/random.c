@@ -51,5 +51,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_random_bytes_crypt(uint8_t *buf, size_t buf
 
 CHIAKI_EXPORT uint32_t chiaki_random_32()
 {
-	return rand() % UINT32_MAX;
+	uint32_t rand_number;
+	chiaki_random_bytes_crypt((uint8_t *)(&rand_number), 4);
+	return rand_number;
 }

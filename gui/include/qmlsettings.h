@@ -5,6 +5,7 @@
 class QmlSettings : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(bool remotePlayAsk READ remotePlayAsk WRITE setRemotePlayAsk NOTIFY remotePlayAskChanged)
     Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
     Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
     Q_PROPERTY(int resolutionLocalPS5 READ resolutionLocalPS5 WRITE setResolutionLocalPS5 NOTIFY resolutionLocalPS5Changed)
@@ -57,6 +58,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
+    Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
+    Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
@@ -170,6 +173,9 @@ public:
 #endif
     bool fullscreenDoubleClick() const;
     void setFullscreenDoubleClick(bool enabled);
+
+    bool remotePlayAsk() const;
+    void setRemotePlayAsk(bool asked);
 
     int fpsLocalPS4() const;
     void setFpsLocalPS4(int fps);
@@ -422,6 +428,12 @@ public:
     QString psnAccountId() const;
     void setPsnAccountId(const QString &account_id);
 
+    bool dpadTouchEnabled() const;
+    void setDpadTouchEnabled(bool enabled);
+
+    uint16_t dpadTouchIncrement() const;
+    void setDpadTouchIncrement(uint16_t increment);
+
     QString currentProfile() const;
     void setCurrentProfile(const QString &profile);
 
@@ -468,6 +480,7 @@ signals:
     void echoSuppressLevelChanged();
 #endif
     void fullscreenDoubleClickChanged();
+    void remotePlayAskChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();
     void fpsLocalPS5Changed();
@@ -493,6 +506,8 @@ signals:
     void psnRefreshTokenChanged();
     void psnAuthTokenExpiryChanged();
     void psnAccountIdChanged();
+    void dpadTouchEnabledChanged();
+    void dpadTouchIncrementChanged();
     void controllerMappingChanged();
     void packetLossMaxChanged();
     void currentProfileChanged();

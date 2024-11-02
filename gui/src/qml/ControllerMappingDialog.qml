@@ -11,7 +11,7 @@ DialogView {
     id: dialog
     property bool finalClosing: false
     property bool quitButtonMapping: true
-    title: Chiaki.currentControllerType + qsTr(" Mapping")
+    title: Chiaki.currentControllerType
     buttonText: qsTr("✓ Update Controller Mapping")
     buttonEnabled: Chiaki.controllerMappingAltered
     onAccepted: {
@@ -279,11 +279,12 @@ DialogView {
         }
 
         Dialog {
+            id: buttonDialog
             property int buttonValue
             property int buttonIndex
             property int mappingIndex
             property bool resetFocus: true
-            id: buttonDialog
+            focus: false
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)
             y: Math.round((root.height - height) / 2)
@@ -320,7 +321,7 @@ DialogView {
             function show(opts) {
                 buttonValue = opts.value;
                 buttonIndex = opts.buttonIndex;
-                mappingIndex = opts.mappingIndex
+                mappingIndex = opts.mappingIndex;
                 open();
             }
 
@@ -332,12 +333,13 @@ DialogView {
         }
 
         Dialog {
+            id: chooseButtonDialog
             property int buttonValue
             property var buttons
             property var oldButtonName
             property int buttonIndex
             property int mappingIndex
-            id: chooseButtonDialog
+            focus: false
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)
             y: Math.round((root.height - height) / 2)
@@ -374,6 +376,7 @@ DialogView {
             }
 
             ColumnLayout {
+                spacing: 20
                 Label {
                     id: chooseButtonLabel
                     Layout.preferredWidth: 400

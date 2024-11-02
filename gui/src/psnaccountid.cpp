@@ -16,7 +16,7 @@ void PSNAccountID::GetPsnAccountId(QString redirectCode) {
     JsonRequester* requester = new JsonRequester(this);
     connect(requester, &JsonRequester::requestFinished, this, &PSNAccountID::handleAccessTokenResponse);
     connect(requester, &JsonRequester::requestError, this, &PSNAccountID::handleErrorResponse);
-    requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", body);
+    requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", std::move(body));
 }
 
 void PSNAccountID::handleAccessTokenResponse(const QString& url, const QJsonDocument& jsonDocument) {
@@ -28,8 +28,8 @@ void PSNAccountID::handleAccessTokenResponse(const QString& url, const QJsonDocu
     QDateTime expiry = currentTime.addSecs(secondsLeft);
     QString access_token_expiry = expiry.toString(settings->GetTimeFormat());
     settings->SetPsnAuthToken(access_token);
-    settings->SetPsnRefreshToken(refresh_token);
-    settings->SetPsnAuthTokenExpiry(access_token_expiry);
+    settings->SetPsnRefreshToken(std::move(refresh_token));
+    settings->SetPsnAuthTokenExpiry(std::move(access_token_expiry));
 
     QString accountInfoUrl = QString("%1/%2").arg(PSNAuth::TOKEN_URL).arg(access_token);
     JsonRequester* requester = new JsonRequester(this);

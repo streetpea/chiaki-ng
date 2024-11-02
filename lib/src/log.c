@@ -152,7 +152,7 @@ CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, cons
 			hex_buf[i*3+2] = ' ';
 		}
 
-		chiaki_log(log, level, "%6x %s%s", offset, hex_buf, ascii_buf);
+		chiaki_log(log, level, "%6zx %s%s", offset, hex_buf, ascii_buf);
 
 		if(buf_size > HEXDUMP_WIDTH)
 		{

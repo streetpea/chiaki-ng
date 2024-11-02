@@ -20,12 +20,20 @@ extern "C" {
 #ifdef __GNUC__
 typedef uint32_t chiaki_unaligned_uint32_t __attribute__((aligned(1)));
 typedef uint16_t chiaki_unaligned_uint16_t __attribute__((aligned(1)));
+typedef int16_t chiaki_unaligned_int16_t __attribute__((aligned(1)));
 #else
 typedef uint32_t chiaki_unaligned_uint32_t;
 typedef uint16_t chiaki_unaligned_uint16_t;
+typedef int16_t chiaki_unaligned_int16_t;
 #endif
 
 #define CHIAKI_EXPORT
+
+#ifdef _WIN32
+#define CHIAKI_SSIZET_TYPE int
+#else
+#define CHIAKI_SSIZET_TYPE ssize_t
+#endif
 
 #define CHIAKI_NEW(t) ((t*)malloc(sizeof(t)))
 

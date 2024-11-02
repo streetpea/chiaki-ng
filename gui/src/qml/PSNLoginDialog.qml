@@ -11,27 +11,37 @@ DialogView {
     id: dialog
     property var callback: null
     property bool login
+    property bool submitting: false
     property var psnurl: ""
     title: qsTr("PSN Login")
     buttonVisible: false
     buttonText: qsTr("✓ Get Account ID")
-    buttonEnabled: url.text.trim()
-    onAccepted: Chiaki.handlePsnLoginRedirect(url.text.trim())
+    buttonEnabled: !submitting && url.text.trim()
+    onAccepted: {
+        submitting = true;
+        Chiaki.handlePsnLoginRedirect(url.text.trim());
+    }
 
     StackView.onActivated: {
         if(login)
         {
             loginForm.visible = true
+            dialog.buttonVisible = true
             psnurl = Chiaki.openPsnLink()
             if(psnurl)
             {
                 openurl.selectAll()
                 openurl.copy()
             }
-            dialog.buttonVisible = true
+            pasteUrl.forceActiveFocus(Qt.TabFocusReason)
         }
         else
+        {
             accountForm.visible = true
+            usernameField.forceActiveFocus(Qt.TabFocusReason)
+            usernameField.readOnly = false;
+            Qt.inputMethod.show();
+        }
     }
 
    Item {
@@ -46,6 +56,17 @@ DialogView {
             columns: 2
             rowSpacing: 10
             columnSpacing: 20
+
+            Label {
+                id: errorHeader
+                visible: false
+                text: "Retrieving PSN account ID failed with error"
+            }
+
+            Label {
+                id: errorLabel
+                visible: false
+            }
 
             Label {
                 text: qsTr("Open Web Browser with copied URL")
@@ -66,8 +87,9 @@ DialogView {
                     openurl.selectAll()
                     openurl.copy()
                 }
+                KeyNavigation.priority: KeyNavigation.BeforeItem
+                KeyNavigation.up: copyUrl
                 KeyNavigation.down: url
-                KeyNavigation.right: url
                 visible: psnurl
             }
 
@@ -78,10 +100,20 @@ DialogView {
             TextField {
                 id: url
                 Layout.preferredWidth: 400
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
+                KeyNavigation.up: {
+                    if(psnurl)
+                        copyUrl
+                    else
+                        url
+                }
+                KeyNavigation.down: url
                 KeyNavigation.right: pasteUrl
-                KeyNavigation.left: copyUrl
-                KeyNavigation.up: copyUrl
-                KeyNavigation.down: pasteUrl
                 C.Button {
                     id: pasteUrl
                     text: qsTr("Click to Paste URL")
@@ -90,9 +122,16 @@ DialogView {
                         verticalCenter: parent.verticalCenter
                         leftMargin: 10
                     }
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
                     onClicked: url.paste()
                     KeyNavigation.left: url
-                    KeyNavigation.up: url
+                    KeyNavigation.up: {
+                        if(psnurl)
+                            copyUrl
+                        else
+                            pasteUrl
+                    }
+                    KeyNavigation.down: pasteUrl
                     lastInFocusChain: true
                 }
             }
@@ -178,7 +217,15 @@ DialogView {
 
             function onPsnLoginAccountIdDone(accountId) {
                 dialog.callback(accountId);
+                submitting = false;
                 dialog.close();
+            }
+
+            function onPsnLoginAccountIdError(error) {
+                errorHeader.visible = true;
+                errorLabel.text = error;
+                errorLabel.visible = true;
+                submitting = false;
             }
         }
     }

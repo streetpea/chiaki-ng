@@ -19,7 +19,7 @@ void PSNToken::InitPsnToken(QString redirectCode) {
     JsonRequester* requester = new JsonRequester(this);
     connect(requester, &JsonRequester::requestFinished, this, &PSNToken::handleAccessTokenResponse);
     connect(requester, &JsonRequester::requestError, this, &PSNToken::handleErrorResponse);
-    requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", body);
+    requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", std::move(body));
 }
 
 void PSNToken::RefreshPsnToken(QString refreshToken) {
@@ -27,7 +27,7 @@ void PSNToken::RefreshPsnToken(QString refreshToken) {
     JsonRequester* requester = new JsonRequester(this);
     connect(requester, &JsonRequester::requestFinished, this, &PSNToken::handleAccessTokenResponse);
     connect(requester, &JsonRequester::requestError, this, &PSNToken::handleErrorResponse);
-    requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", body);
+    requester->makePostRequest(PSNAuth::TOKEN_URL, basicAuthHeader, "application/x-www-form-urlencoded", std::move(body));
 }
 
 void PSNToken::handleAccessTokenResponse(const QString& url, const QJsonDocument& jsonDocument) {
@@ -38,9 +38,9 @@ void PSNToken::handleAccessTokenResponse(const QString& url, const QJsonDocument
     auto secondsLeft = object.value("expires_in").toInt();
     QDateTime expiry = currentTime.addSecs(secondsLeft);
     QString access_token_expiry = expiry.toString(settings->GetTimeFormat());
-    settings->SetPsnAuthToken(access_token);
-    settings->SetPsnRefreshToken(refresh_token);
-    settings->SetPsnAuthTokenExpiry(access_token_expiry);
+    settings->SetPsnAuthToken(std::move(access_token));
+    settings->SetPsnRefreshToken(std::move(refresh_token));
+    settings->SetPsnAuthTokenExpiry(std::move(access_token_expiry));
     emit PSNTokenSuccess();
 }
 

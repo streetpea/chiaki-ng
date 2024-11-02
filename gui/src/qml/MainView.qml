@@ -7,17 +7,35 @@ import org.streetpea.chiaking
 
 Pane {
     padding: 0
-
-    StackView.onActivated: forceActiveFocus()
+    id: consolePane
+    StackView.onActivated: {
+        forceActiveFocus();
+        if(Chiaki.settings.remotePlayAsk)
+        {
+            if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+            {
+                Chiaki.settings.remotePlayAsk = false;
+                root.showConfirmDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), () => root.showPSNTokenDialog(Chiaki.openPsnLink(), false));
+            }
+            else
+                Chiaki.settings.remotePlayAsk = false;
+        }
+    }
     Keys.onUpPressed: {
-        hostsView.decrementCurrentIndex()
-            while(hostsView.currentItem && !hostsView.currentItem.visible)
+        if(hostsView.currentItem && hostsView.currentItem.visible)
+        {
+            hostsView.decrementCurrentIndex()
+            while(!hostsView.currentItem.visible)
                 hostsView.decrementCurrentIndex()
+        }
     }
     Keys.onDownPressed: {
-        hostsView.incrementCurrentIndex()
-            while(hostsView.currentItem && !hostsView.currentItem.visible)
-                hostsView.incrementCurrentIndex()
+        if(hostsView.currentItem && hostsView.currentItem.visible)
+        {
+            hostsView.incrementCurrentIndex()
+            while(!hostsView.currentItem.visible)
+                 hostsView.incrementCurrentIndex()
+        }
     }
     Keys.onMenuPressed: settingsButton.clicked()
     Keys.onReturnPressed: if (hostsView.currentItem) hostsView.currentItem.connectToHost()
@@ -130,6 +148,23 @@ Pane {
         }
         clip: true
         model: Chiaki.hosts
+        onCountChanged: {
+            if(!hostsView.currentItem)
+                hostsView.incrementCurrentIndex();
+            if(!hostsView.currentItem)
+                return;
+            if(!hostsView.currentItem.visible)
+            {
+                for(var i = 0; i < hostsView.count; i++)
+                {
+                    hostsView.incrementCurrentIndex()
+                    if(hostsView.currentItem.visible)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
         delegate: ItemDelegate {
             visible: modelData.display
             id: delegate
@@ -139,16 +174,24 @@ Pane {
             onClicked: connectToHost()
 
             function connectToHost() {
-                Chiaki.connectToHost(index);
+                if(modelData.discovered)
+                    Chiaki.connectToHost(index, modelData.name);
+                else
+                    Chiaki.connectToHost(index);
             }
 
             function wakeUpHost() {
-                Chiaki.wakeUpHost(index);
+                if(!modelData.discovered && !modelData.duid)
+                    Chiaki.wakeUpHost(index);
             }
 
             function deleteHost() {
                 if (modelData.manual)
-                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.deleteHost(index));
+                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => {Chiaki.deleteHost(index)});
+                        
+                else if (modelData.discovered && !modelData.registered)
+                    root.showConfirmDialog(qsTr("Hide Console"), qsTr("Are you sure you want to hide this console?") + "\n\n" + qsTr("Note: You can unhide from the Consoles section of the Settings under Hidden Consoles"), () => Chiaki.hideHost(modelData.mac, modelData.name));
+
             }
 
             function setConsolePin() {
@@ -229,12 +272,12 @@ Pane {
 
                     Button {
                         Layout.alignment: Qt.AlignCenter
-                        text: qsTr("Delete")
+                        text: modelData.manual ? qsTr("Delete") : qsTr("Hide")
                         flat: true
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
                         focusPolicy: Qt.NoFocus
-                        visible: modelData.manual
+                        visible: modelData.manual || (modelData.discovered && !modelData.registered)
                         onClicked: delegate.deleteHost()
                         Material.roundedScale: Material.SmallScale
 
@@ -258,7 +301,7 @@ Pane {
                         flat: true
                         padding: 20
                         leftPadding: delegate.highlighted ? 50 : undefined
-                        visible: modelData.registered && !modelData.duid && (!modelData.discovered || modelData.state == "standby")
+                        visible: modelData.registered && !modelData.duid && !modelData.discovered
                         focusPolicy: Qt.NoFocus
                         onClicked: delegate.wakeUpHost()
                         Material.roundedScale: Material.SmallScale

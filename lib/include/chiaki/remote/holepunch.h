@@ -15,9 +15,12 @@
  * 1. `chiaki_holepunch_list_devices` to get a list of devices that can be used for remote play
  * 2. `chiaki_holepunch_session_init` to initialize a session with a valid OAuth2 token
  * 3. `chiaki_holepunch_session_create` to create a remote play session on the PSN server
- * 4. `chiaki_holepunch_session_start` to start the session for a specific device
- * 5. `chiaki_holepunch_session_punch_hole` called twice, to obtain the control and data sockets
- * 6. `chiaki_holepunch_session_fini` once the streaming session has terminated.
+ * 4. `chiaki_holepunch_session_create_offer` to create our offer message to send to the console containing our network information for the control socket
+ * 5. `chiaki_holepunch_session_start` to start the session for a specific device
+ * 6. `chiaki_holepunch_session_punch_hole` called to prepare the control socket
+ * 7. `chiaki_holepunch_session_create_offer` to create our offer message to send to the console containing our network information for the data socket
+ * 8. `chiaki_holepunch_session_punch_hole` called to prepare the data socket
+ * 9. `chiaki_holepunch_session_fini` once the streaming session has terminated.
  */
 
 #ifndef CHIAKI_HOLEPUNCH_H
@@ -40,11 +43,6 @@ extern "C" {
 #endif
 
 #define DUID_PREFIX "0000000700410080"
-#ifdef _WIN32
-#define CHIAKI_SSIZET_TYPE int
-#else
-#define CHIAKI_SSIZET_TYPE ssize_t
-#endif
 
 #define CHIAKI_DUID_STR_SIZE 49
 
@@ -208,6 +206,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
     ChiakiHolepunchSession session, const uint8_t* console_uid,
     ChiakiHolepunchConsoleType console_type);
+
+/** Creates an OFFER session message to send via PSN.
+ *
+ * @param session The Session instance.
+ * @param type The type of offer message to create
+ * @return CHIAKI_ERR_SUCCESS on success, or an error code on failure.
+ */
+CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(ChiakiHolepunchSession session);
 
 /**
  * Punch a hole in the NAT for the control or data socket.

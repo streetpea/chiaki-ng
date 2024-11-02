@@ -23,7 +23,7 @@ public:
 signals:
     void log(ChiakiLogLevel level, const QString &msg);
     void failed();
-    void success(RegisteredHost host);
+    void success(const RegisteredHost& host);
 
 private:
     static void log_cb(ChiakiLogLevel level, const char *msg, void *user);
@@ -53,6 +53,7 @@ class QmlBackend : public QObject
     Q_PROPERTY(QList<QmlController*> controllers READ qmlControllers NOTIFY controllersChanged)
     Q_PROPERTY(bool discoveryEnabled READ discoveryEnabled WRITE setDiscoveryEnabled NOTIFY discoveryEnabledChanged)
     Q_PROPERTY(QVariantList hosts READ hosts NOTIFY hostsChanged)
+    Q_PROPERTY(QVariantList hiddenHosts READ hiddenHosts NOTIFY hiddenHostsChanged)
     Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
     Q_PROPERTY(PsnConnectState connectState READ connectState WRITE setConnectState NOTIFY connectStateChanged)
     Q_PROPERTY(QVariantList currentControllerMapping READ currentControllerMapping NOTIFY currentControllerMappingChanged)
@@ -93,6 +94,8 @@ public:
     void setConnectState(PsnConnectState connect_state);
     QVariantList hosts() const;
 
+    QVariantList hiddenHosts() const;
+
     QVariantList currentControllerMapping() const;
 
     QString currentControllerType() const { return controller_mapping_controller_type; }
@@ -129,11 +132,16 @@ public:
 
     void profileChanged();
 
+    bool zeroCopy()        { return !disable_zero_copy; };
+    void disableZeroCopy() { disable_zero_copy = true; };
+
     Q_INVOKABLE void deleteHost(int index);
-    Q_INVOKABLE void wakeUpHost(int index);
+    Q_INVOKABLE void wakeUpHost(int index, QString nickname = QString());
     Q_INVOKABLE void addManualHost(int index, const QString &address);
+    Q_INVOKABLE void hideHost(const QString &mac_string, const QString &host_nickname);
+    Q_INVOKABLE void unhideHost(const QString &mac_string);
     Q_INVOKABLE bool registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback);
-    Q_INVOKABLE void connectToHost(int index);
+    Q_INVOKABLE void connectToHost(int index, QString nickname = QString());
     Q_INVOKABLE void stopSession(bool sleep);
     Q_INVOKABLE void sessionGoHome();
     Q_INVOKABLE void enterPin(const QString &pin);
@@ -173,9 +181,12 @@ signals:
     void enableAnalogStickMappingChanged();
     void discoveryEnabledChanged();
     void hostsChanged();
+    void hiddenHostsChanged();
     void psnTokenChanged();
     void psnCredsExpired();
     void autoConnectChanged();
+    void wakeupStartInitiated();
+    void wakeupStartFailed();
     void windowTypeUpdated(WindowType type);
 
     void error(const QString &title, const QString &text);
@@ -184,6 +195,7 @@ signals:
     void sessionStopDialogRequested();
     void registDialogRequested(const QString &host, bool ps5);
     void psnLoginAccountIdDone(const QString &accountId);
+    void psnLoginAccountIdError(const QString &error);
 
 private:
     struct DisplayServer {
@@ -219,19 +231,24 @@ private:
     QThread *frame_thread = {};
     QTimer *psn_reconnect_timer = {};
     QTimer *psn_auto_connect_timer = {};
+    QTimer *wakeup_start_timer = {};
     int psn_reconnect_tries = 0;
     QThread psn_connection_thread;
     PsnConnectState psn_connect_state;
     DiscoveryManager discovery_manager;
+    QList<QString> waking_sleeping_nicknames;
     QHash<int, QmlController*> controllers;
     DisplayServer regist_dialog_server;
     StreamSessionConnectInfo session_info = {};
     SystemdInhibit *sleep_inhibit = {};
     bool controller_mapping_default_mapping = false;
     bool controller_mapping_altered = false;
+    bool disable_zero_copy = false;
     Controller *controller_mapping_controller = {};
+    QMap<QString, QStringList> controller_guids_to_update = {};
     int controller_mapping_id = -1;
     QString controller_mapping_controller_guid = "";
+    QString controller_mapping_controller_vid_pid = "";
     QString controller_mapping_controller_type = "";
     QMap<QString, QStringList> controller_mapping_controller_mappings = {};
     QMap<QString, QStringList> controller_mapping_applied_controller_mappings = {};
@@ -243,5 +260,7 @@ private:
     bool settings_allocd = false;
     HostMAC auto_connect_mac = {};
     QString auto_connect_nickname = "";
+    QString wakeup_nickname = "";
+    bool wakeup_start = false;
     QMap<QString, PsnHost> psn_hosts;
 };

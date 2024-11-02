@@ -128,6 +128,10 @@ static void ctrl_message_received_switch_to_stream_connection(ChiakiCtrl *ctrl, 
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
+	ChiakiErrorCode err = chiaki_mutex_init(&ctrl->notif_mutex, false);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
+	chiaki_mutex_lock(&ctrl->notif_mutex);
 	ctrl->session = session;
 
 	ctrl->should_stop = false;
@@ -141,18 +145,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->keyboard_text_counter = 0;
 	ctrl->sock = CHIAKI_INVALID_SOCKET;
 
-	ChiakiErrorCode err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
+	err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
-		return err;
+		goto error_mutex;
 
-	err = chiaki_mutex_init(&ctrl->notif_mutex, false);
-	if(err != CHIAKI_ERR_SUCCESS)
-		goto error_notif_pipe;
-
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	return err;
+
+error_mutex:
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	chiaki_mutex_fini(&ctrl->notif_mutex);
-error_notif_pipe:
-	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
 	return err;
 }
 
@@ -400,7 +402,7 @@ static void *ctrl_thread_func(void *user)
 			break;
 		}
 
-		int received = 0;
+		CHIAKI_SSIZET_TYPE received = 0;
 		if(ctrl->session->rudp)
 		{
 			RudpMessage message;
@@ -522,7 +524,8 @@ static void *ctrl_thread_func(void *user)
 
 static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const uint8_t *payload, size_t payload_size)
 {
-	assert(payload_size == 0 || payload);
+	if(!(payload_size == 0 || payload))
+		return CHIAKI_ERR_INVALID_DATA;
 
 	CHIAKI_LOGV(ctrl->session->log, "Ctrl sending message type %x, size %llx\n",
 			(unsigned int)type, (unsigned long long)payload_size);
@@ -530,7 +533,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		chiaki_log_hexdump(ctrl->session->log, CHIAKI_LOG_VERBOSE, payload, payload_size);
 
 	uint8_t *enc = NULL;
-	if(payload && payload_size)
+	if(payload)
 	{
 		ChiakiErrorCode err;
 		enc = malloc(payload_size);
@@ -564,7 +567,8 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		uint8_t buf_size = 8 + payload_size;
 		uint8_t buf[buf_size];
 		memcpy(buf, header, 8);
-		memcpy(buf + 8, enc, payload_size);
+		if(enc)
+			memcpy(buf + 8, enc, payload_size);
 		ChiakiErrorCode err;
 		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -662,14 +666,15 @@ CHIAKI_EXPORT ChiakiErrorCode ctrl_message_set_fallback_session_id(ChiakiCtrl *c
 		CHIAKI_LOGE(ctrl->session->log, "Couldn't base64 encode rand_bytes for fallback session Id with error: %s", chiaki_error_string(err));
 		return err;
 	}
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	if(ctrl->session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGW(ctrl->session->log, "Aleady received session Id don't need fallback.");
+		chiaki_mutex_unlock(&ctrl->session->state_mutex);
 		return err;
 	}
 	memcpy(ctrl->session->session_id, fallback_session_id, sizeof(fallback_session_id));
-	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id %s", fallback_session_id);
-	chiaki_mutex_lock(&ctrl->session->state_mutex);
+	CHIAKI_LOGI(ctrl->session->log, "Ctrl set fallback session Id %s", ctrl->session->session_id);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
@@ -759,11 +764,14 @@ CHIAKI_EXPORT void ctrl_enable_features(ChiakiCtrl *ctrl)
 
 static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	if(ctrl->session->ctrl_session_id_received)
 	{
 		CHIAKI_LOGW(ctrl->session->log, "Received another Session Id Message");
+		chiaki_mutex_unlock(&ctrl->session->state_mutex);
 		return;
 	}
+	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 
 	if(payload_size < 2)
 	{
@@ -810,10 +818,10 @@ static void ctrl_message_received_session_id(ChiakiCtrl *ctrl, uint8_t *payload,
 		return;
 	}
 
+	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	memcpy(ctrl->session->session_id, payload, payload_size);
 	ctrl->session->session_id[payload_size] = '\0';
 	CHIAKI_LOGI(ctrl->session->log, "Ctrl received valid Session Id: %s", ctrl->session->session_id);
-	chiaki_mutex_lock(&ctrl->session->state_mutex);
 	ctrl->session->ctrl_session_id_received = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
@@ -921,7 +929,11 @@ static void ctrl_message_received_login(ChiakiCtrl *ctrl, uint8_t *payload, size
 
 static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
-	assert(payload_size >= sizeof(CtrlKeyboardOpenMessage));
+	if(payload_size < sizeof(CtrlKeyboardOpenMessage))
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Ctrl received invalid message keyboard open with payload size %zu while expected size is at least %zu", payload_size, sizeof(CtrlKeyboardOpenMessage));
+		return;
+	}
 
 	CtrlKeyboardOpenMessage *msg = (CtrlKeyboardOpenMessage *)payload;
 	msg->text_length = ntohl(msg->text_length);
@@ -956,7 +968,11 @@ static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payl
 
 static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
-	assert(payload_size >= sizeof(CtrlKeyboardTextResponseMessage));
+	if(payload_size < sizeof(CtrlKeyboardTextResponseMessage))
+	{
+		CHIAKI_LOGE(ctrl->session->log, "Ctrl received invalid message keyboard text change with payload size %zu while expected size is at least %zu", payload_size, sizeof(CtrlKeyboardTextResponseMessage));
+		return;
+	}
 
 	CtrlKeyboardTextResponseMessage *msg = (CtrlKeyboardTextResponseMessage *)payload;
 	msg->text_length1 = ntohl(msg->text_length1);
@@ -1004,7 +1020,12 @@ static void parse_ctrl_response(CtrlResponse *response, ChiakiHttpResponse *http
 		if(strcmp(header->key, "RP-Server-Type") == 0)
 		{
 			size_t server_type_size = sizeof(response->rp_server_type);
-			chiaki_base64_decode(header->value, strlen(header->value) + 1, response->rp_server_type, &server_type_size);
+			ChiakiErrorCode err = chiaki_base64_decode(header->value, strlen(header->value) + 1, response->rp_server_type, &server_type_size);
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				response->success = false;
+				return;
+			}
 			response->server_type_valid = server_type_size == sizeof(response->rp_server_type);
 		}
 		else if(strcmp(header->key, "RP-Prohibit") == 0)
@@ -1061,6 +1082,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			((struct sockaddr_in6 *)sa)->sin6_port = htons(SESSION_CTRL_PORT);
 		else
 		{
+			free(sa);
 			CHIAKI_LOGE(session->log, "Ctrl got invalid sockaddr");
 			return CHIAKI_ERR_INVALID_DATA;
 		}
@@ -1068,6 +1090,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		chiaki_socket_t sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
 		if(CHIAKI_SOCKET_IS_INVALID(sock))
 		{
+			free(sa);
 			CHIAKI_LOGE(session->log, "Session ctrl socket creation failed.");
 			ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
 			return CHIAKI_ERR_NETWORK;

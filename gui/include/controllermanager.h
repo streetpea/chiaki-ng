@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QMap>
 #include <QString>
+#include <QTimer>
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 #include <SDL.h>
@@ -85,11 +86,15 @@ class Controller : public QObject
 		bool is_dualsense;
 		bool is_handheld;
 		bool is_steam_virtual;
+		bool is_dualsense_edge;
 		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		QMap<QPair<Sint64, Sint64>, uint8_t> touch_ids;
 		SDL_GameController *controller;
+		ChiakiAccelNewZero accel_zero;
+		ChiakiAccelNewZero real_accel;
+		uint32_t last_motion_timestamp;
 #endif
 
 	public:
@@ -104,6 +109,9 @@ class Controller : public QObject
 		SDL_GameController *GetController() { return controller; };
 #endif
 		QString GetName();
+		QString GetVIDPIDString();
+		QString GetType();
+		QString GetGUIDString();
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
@@ -115,6 +123,8 @@ class Controller : public QObject
 		bool IsDualSense();
 		bool IsHandheld();
 		bool IsSteamVirtual();
+		bool IsDualSenseEdge();
+		void resetMotionControls(bool reset);
 
 	signals:
 		void StateChanged();

@@ -41,25 +41,63 @@ To migrate to the flathub repo do the following:
 
 In order to update your already installed `chiaki-ng` to the newest version, either:
 
-- Check for updates in `Discover` and update there
+=== "Linux Flatpak"
 
-    **OR**
+    - Check for updates in `Discover` and update there
 
-- Update via the `konsole` with:
+        **OR**
 
-    === "chiaki-ng Installed Via Discover Store"
+    - Update via the `konsole` with:
+
+        === "chiaki-ng Installed Via Discover Store"
+
+            ``` bash
+            flatpak update -y io.github.streetpea.Chiaki4deck
+            ```
+
+        === "chiaki-ng Legacy Install Via Konsole"
+
+            ``` bash
+            flatpak update --user -y re.chiaki.Chiaki4deck
+            ```
+
+=== "MacOS Brew"
+
+    - Update via the terminal with:
 
         ``` bash
-        flatpak update -y io.github.streetpea.Chiaki4deck
+        brew install --cask streetpea/streetpea/chiaki-ng
         ```
 
-    === "chiaki-ng Legacy Install Via Konsole"
+=== "Windows/MacOS/Linux Appimage"
 
-        ``` bash
-        flatpak update --user -y re.chiaki.Chiaki4deck
-        ```
+     Download the appropriate package from the [releases page](https://github.com/streetpea/chiaki-ng/releases){target="_blank" rel="noopener"} on GitHub (for Mac there are separate packages for the Intel (`-amd64`) and Apple (`-arm64`) based Macs)
 
 ## Releases (Newest First)
+
+### 1.9.1
+
+Small patch update:
+
+- Adds dpad touch emulation to use the dpad for touchscreen touches and swipes [see dpad touch emulation](../setup/controlling.md#dpad-touch-emulation){target="_blank" rel="noopener"}
+- Add --exit-app-on-stream-exit option to exit `chiaki-ng` immediately after closing a streaming session
+- Fix registration issues related to broadcast settings by automatically detecting when broadcast should be used
+- Reset motion controls when necessary to prevent jumping to position when using motion controls to aim in games that activate motion controls via a trigger press such as Resident Evil 4 Remake
+- Fix bug where upnp discovery could take too long, causing the remote connection via PSN to fail
+- Notify users of the possibility of remote connection via PSN as many users aren't aware of this option still
+- Add mapping for Share button on Xbox Series and Xbox One Controllers
+- Display current profile name with colon after application name as Application Display Name
+- Update controller mappings to be portable across all platforms (Linux, Mac/OS, and Windows)
+- Add controller name for controller mapping for controllers that don't have a name configured in the mapping itself
+- Allow entering controller mapping and reset mapping using the back button
+- Make log dialogs, registered consoles, and hidden consoles scrollable with a controller
+- Increase STUN timeouts to 5 seconds + add timeouts for curl of 10 seconds
+- Make key mapping dialog navigable with controller
+- Disable zero-copy for hw cards that don't support it
+- Increase wait time for DualSense haptics of DualSense edge to come online to 15 seconds
+- Add homebrew cask for `chiaki-ng` for MacOS
+- Fix an error causing a crash when random stun allocation was used for remote connection via PSN
+- Fix a memory leak in remote connection via PSN
 
 ### 1.9.0
 
@@ -69,7 +107,7 @@ Brings ability to set controller mappings for chiaki-ng
 
     !!!Note "Controllers mapped via Steam"
 
-        Controlled mapped via Steam should be mapped directly in the Steam UI gamepad configurator as opposed to this menu. If you try to map a controller that is mapped via Steam in this menu it will give you a notification that it should be mapped via Steam.
+        Controllers mapped via Steam should be mapped directly in the Steam UI gamepad configurator as opposed to this menu. If you try to map a controller that is mapped via Steam in this menu it will give you a notification that it should be mapped via Steam.
 
 - adds Custom renderer option which allows you to configure your renderer options very granularly with the options at https://libplacebo.org/options/
 - add defaults to all settings so users are aware of the defaults/which settings they've changed
@@ -83,8 +121,6 @@ Brings ability to set controller mappings for chiaki-ng
 - fix decimal points turning into scientific notation numbers in QSliders
 - properly terminate ipv6 discovery service
 - ping all network interfaces on Linux and MacOS allowing discovery of previously undiscoverable consoles
-
-
 
 ### 1.8.1
 

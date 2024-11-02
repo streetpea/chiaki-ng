@@ -70,6 +70,10 @@ static QSet<QString> chiaki_motion_controller_guids({
 static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
 	// in format (vendor id, product id)
 	QPair<int16_t, int16_t>(0x054c, 0x0ce6), // DualSense controller
+});
+
+static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_edge_controller_ids({
+	// in format (vendor id, product id)
 	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
 });
 
@@ -167,7 +171,7 @@ void ControllerManager::UpdateAvailableControllers()
 
 	if(current_controllers != available_controllers)
 	{
-		available_controllers = current_controllers;
+		available_controllers = std::move(current_controllers);
 		emit AvailableControllersUpdated();
 	}
 #endif
@@ -277,13 +281,15 @@ void ControllerManager::ControllerClosed(Controller *controller)
 }
 
 Controller::Controller(int device_id, ControllerManager *manager)
-: QObject(manager), ref(0), micbutton_push(false), is_dualsense(false),
-  updating_mapping_button(false), is_handheld(false), is_steam_virtual(false),
-  enable_analog_stick_mapping(false)
+: QObject(manager), ref(0), last_motion_timestamp(0), micbutton_push(false), is_dualsense(false),
+  is_dualsense_edge(false), updating_mapping_button(false), is_handheld(false),
+  is_steam_virtual(false), enable_analog_stick_mapping(false)
 {
 	this->id = device_id;
 	this->manager = manager;
 	chiaki_orientation_tracker_init(&this->orientation_tracker);
+	chiaki_accel_new_zero_set_inactive(&this->accel_zero, false);
+	chiaki_accel_new_zero_set_inactive(&this->real_accel, true);
 	chiaki_controller_state_set_idle(&this->state);
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -303,6 +309,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(controller_id);
+			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
 			break;
 		}
 	}
@@ -509,28 +516,28 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 				emit NewButtonMapping("paddle1");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE2:
 			if(updating_mapping_button)
 			{
 				emit NewButtonMapping("paddle2");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE3:
 			if(updating_mapping_button)
 			{
 				emit NewButtonMapping("paddle3");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE4:
 			if(updating_mapping_button)
 			{
 				emit NewButtonMapping("paddle4");
 				updating_mapping_button = false;
 			}
-			break;
+			return false;
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 		case SDL_CONTROLLER_BUTTON_TOUCHPAD:
 			if(updating_mapping_button)
@@ -555,6 +562,7 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 		{
 			micbutton_push = false;
 			emit MicButtonPush();
+			return false;
 		}
 		else
 			state.buttons &= ~ps_btn;
@@ -622,24 +630,31 @@ inline bool Controller::HandleAxisEvent(SDL_ControllerAxisEvent event) {
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 inline bool Controller::HandleSensorEvent(SDL_ControllerSensorEvent event)
 {
+	float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
 	switch(event.sensor)
 	{
 		case SDL_SENSOR_ACCEL:
-			state.accel_x = event.data[0] / SDL_STANDARD_GRAVITY;
-			state.accel_y = event.data[1] / SDL_STANDARD_GRAVITY;
-			state.accel_z = event.data[2] / SDL_STANDARD_GRAVITY;
+			accel_x = event.data[0] / SDL_STANDARD_GRAVITY;
+			accel_y = event.data[1] / SDL_STANDARD_GRAVITY;
+			accel_z = event.data[2] / SDL_STANDARD_GRAVITY;
+			chiaki_accel_new_zero_set_active(&this->real_accel,
+			accel_x, accel_y, accel_z, true);
+			chiaki_orientation_tracker_update(
+				&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
+				accel_x, accel_y, accel_z, &accel_zero, false, event.timestamp * 1000);
 			break;
 		case SDL_SENSOR_GYRO:
-			state.gyro_x = event.data[0];
-			state.gyro_y = event.data[1];
-			state.gyro_z = event.data[2];
+			gyro_x = event.data[0];
+			gyro_y = event.data[1];
+			gyro_z = event.data[2];
+			chiaki_orientation_tracker_update(
+				&orientation_tracker, gyro_x, gyro_y, gyro_z,
+				state.accel_x, state.accel_y, state.accel_z, &accel_zero, true, event.timestamp * 1000);
 			break;
 		default:
 			return false;
 	}
-	chiaki_orientation_tracker_update(
-		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
-		state.accel_x, state.accel_y, state.accel_z, event.timestamp * 1000);
+	last_motion_timestamp = event.timestamp * 1000;
 	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
 	return true;
 }
@@ -708,6 +723,33 @@ int Controller::GetDeviceID()
 #endif
 }
 
+QString Controller::GetType()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return QString();
+	SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
+	return QString("%1").arg(SDL_JoystickName(js));
+#else
+	return QString();
+#endif
+}
+
+QString Controller::GetGUIDString()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return QString();
+	SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
+	char guid_str[256];
+	SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
+	SDL_JoystickGetGUIDString(guid, guid_str, sizeof(guid_str));
+	return QString("%1").arg(guid_str);
+#else
+	return QString();
+#endif
+}
+
 QString Controller::GetName()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -718,6 +760,18 @@ QString Controller::GetName()
 	char guid_str[256];
 	SDL_JoystickGetGUIDString(guid, guid_str, sizeof(guid_str));
 	return QString("%1 (%2)").arg(SDL_JoystickName(js), guid_str);
+#else
+	return QString();
+#endif
+}
+
+QString Controller::GetVIDPIDString()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return QString();
+	QString vid_pid = QString("0x%1:0x%2").arg(SDL_GameControllerGetVendor(controller), 4, 16, QChar('0')).arg(SDL_GameControllerGetProduct(controller), 4, 16, QChar('0'));
+	return vid_pid;
 #else
 	return QString();
 #endif
@@ -794,6 +848,16 @@ bool Controller::IsDualSense()
 	return false;
 }
 
+bool Controller::IsDualSenseEdge()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return false;
+	return is_dualsense_edge;
+#endif
+	return false;
+}
+
 bool Controller::IsHandheld()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -812,4 +876,21 @@ bool Controller::IsSteamVirtual()
 	return is_steam_virtual;
 #endif
 	return false;
+}
+
+void Controller::resetMotionControls(bool reset)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	if(reset)
+		chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
+	else
+		chiaki_accel_new_zero_set_inactive(&accel_zero, false); 
+	chiaki_orientation_tracker_init(&orientation_tracker);
+	chiaki_orientation_tracker_update(
+		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,
+		real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, &accel_zero, false, last_motion_timestamp);
+	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
+#endif
 }

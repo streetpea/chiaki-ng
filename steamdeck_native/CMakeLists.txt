@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 
 project(sdeck)
 
-option(SDECK_BUILD_DEMOS "Build testing executables for sdeck" ON)
+option(SDECK_BUILD_DEMOS "Build testing executables for sdeck" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -26,7 +26,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
 target_link_libraries(sdeck PkgConfig::FFTW)
-if(SDECK_BUILD_DEMOS)
+if(SDECK_BUILD_DEMOS OR CHIAKI_ENABLE_TESTS)
 	add_executable(sdeck-demo-motion demo/sdeck_motion.c)
 	add_executable(sdeck-demo-haptic demo/sdeck_haptic.c)
 	target_link_libraries(sdeck-demo-motion sdeck)

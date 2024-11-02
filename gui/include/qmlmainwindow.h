@@ -61,7 +61,7 @@ public:
     };
     Q_ENUM(VideoPreset);
 
-    QmlMainWindow(Settings *settings);
+    QmlMainWindow(Settings *settings,  bool exit_app_on_stream_exit = false);
     QmlMainWindow(const StreamSessionConnectInfo &connect_info);
     ~QmlMainWindow();
     void updateWindowType(WindowType type);
@@ -101,7 +101,7 @@ signals:
     void menuRequested();
 
 private:
-    void init(Settings *settings);
+    void init(Settings *settings, bool exit_app_on_stream_exit = false);
     void update();
     void scheduleUpdate();
     void createSwapchain();

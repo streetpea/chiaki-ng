@@ -137,6 +137,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 		if(!host_addr)
 			break;
 		memcpy(host_addr, ai->ai_addr, host_addr_len);
+		break;
 	}
 	freeaddrinfo(host_addrinfos);
 
@@ -160,7 +161,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "Discovery init failed");
-		return 1;
+		goto cleanup_host_addr;
 	}
 
 	ChiakiDiscoveryThread thread;
@@ -168,8 +169,7 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "Discovery thread init failed");
-		chiaki_discovery_fini(&discovery);
-		return 1;
+		goto cleanup;
 	}
 	err = chiaki_discovery_send(&discovery, &packet, host_addr, host_addr_len);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -191,10 +191,15 @@ CHIAKI_EXPORT int chiaki_cli_cmd_discover(ChiakiLog *log, int argc, char *argv[]
 			CHIAKI_LOGE(log, "Discovery request timed out after timeout: %.*f seconds", 1, timeout_sec);
 			chiaki_discovery_thread_stop(&thread);
 		}
-		chiaki_discovery_fini(&discovery);
-		return err;
+		goto cleanup;
 	}
 	chiaki_discovery_fini(&discovery);
-
+	free(host_addr);
 	return 0;
+
+cleanup:
+	chiaki_discovery_fini(&discovery);
+cleanup_host_addr:
+	free(host_addr);
+	return 1;
 }

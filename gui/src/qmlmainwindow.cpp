@@ -80,11 +80,11 @@ private:
     QWindow *window = {};
 };
 
-QmlMainWindow::QmlMainWindow(Settings *settings)
+QmlMainWindow::QmlMainWindow(Settings *settings, bool exit_app_on_stream_exit)
     : QWindow()
     , settings(settings)
 {
-    init(settings);
+    init(settings, exit_app_on_stream_exit);
 }
 
 QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
@@ -245,6 +245,13 @@ void QmlMainWindow::setVideoPreset(VideoPreset preset)
 void QmlMainWindow::setSettings(Settings *new_settings)
 {
     settings = new_settings;
+    QString profile = settings->GetCurrentProfile();
+    qCCritical(chiakiGui) << "Current Profile: " << profile;
+    if(profile.isEmpty())
+        QGuiApplication::setApplicationDisplayName("chiaki-ng");
+    else
+        QGuiApplication::setApplicationDisplayName(QString("chiaki-ng:%1").arg(profile));
+    this->setTitle(QGuiApplication::applicationDisplayName());
 }
 
 void QmlMainWindow::show()
@@ -338,7 +345,7 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     return vulkan_hw_dev_ctx;
 }
 
-void QmlMainWindow::init(Settings *settings)
+void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 {
     setSurfaceType(QWindow::VulkanSurface);
 
@@ -482,13 +489,20 @@ void QmlMainWindow::init(Settings *settings)
     connect(qml_engine, &QQmlEngine::quit, this, &QWindow::close);
 
     backend = new QmlBackend(settings, this);
-    connect(backend, &QmlBackend::sessionChanged, this, [this](StreamSession *s) {
+    connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         session = s;
         grab_input = 0;
         if (has_video) {
             has_video = false;
             setCursor(Qt::ArrowCursor);
             emit hasVideoChanged();
+        }
+        if(session && exit_app_on_stream_exit)
+        {
+            connect(session, &StreamSession::ConnectedChanged, this, [this]() {
+                if (session->IsConnected())
+                    connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
+            });
         }
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
@@ -767,7 +781,14 @@ void QmlMainWindow::render()
             .tex = tex,
         };
         if (!pl_map_avframe_ex(placebo_vulkan->gpu, &current_frame, &avparams))
+        {
             qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
+            if(backend && backend->zeroCopy())
+            {
+                qCInfo(chiakiGui) << "Mapping frame failed, trying without zero copy!";
+                backend->disableZeroCopy();
+            }
+        }
         av_frame_free(&frame);
     }
 

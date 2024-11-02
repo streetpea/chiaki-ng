@@ -177,6 +177,7 @@ class Settings : public QObject
 		QSettings default_settings;
 		QSettings placebo_settings;
 		QString time_format;
+		QMap<HostMAC, HiddenHost> hidden_hosts;
 
 		QMap<HostMAC, RegisteredHost> registered_hosts;
 		QMap<QString, RegisteredHost> nickname_registered_hosts;
@@ -189,6 +190,8 @@ class Settings : public QObject
 		void LoadRegisteredHosts(QSettings *qsettings = nullptr);
 		void SaveRegisteredHosts(QSettings *qsettings = nullptr);
 
+		void LoadHiddenHosts(QSettings *qsettings = nullptr);
+		void SaveHiddenHosts(QSettings *qsettings = nullptr);
 
 		void LoadManualHosts(QSettings *qsettings = nullptr);
 		void SaveManualHosts(QSettings *qsettings = nullptr);
@@ -213,6 +216,8 @@ class Settings : public QObject
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
 
+		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
+		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();
@@ -331,6 +336,12 @@ class Settings : public QObject
 
 		QString GetCurrentProfile() const;
 		void SetCurrentProfile(QString profile);
+
+		bool GetDpadTouchEnabled() const;
+		void SetDpadTouchEnabled(bool enabled);
+
+		uint16_t GetDpadTouchIncrement() const;
+		void SetDpadTouchIncrement(uint16_t increment);
 
 		void DeleteProfile(QString profile);
 
@@ -554,6 +565,11 @@ class Settings : public QObject
 		void RemoveRegisteredHost(const HostMAC &mac);
 		bool GetRegisteredHostRegistered(const HostMAC &mac) const	{ return registered_hosts.contains(mac); }
 		RegisteredHost GetRegisteredHost(const HostMAC &mac) const	{ return registered_hosts[mac]; }
+		QList<HiddenHost> GetHiddenHosts() const 					{ return hidden_hosts.values(); }
+		void AddHiddenHost(const HiddenHost &host);
+		void RemoveHiddenHost(const HostMAC &mac);
+		bool GetHiddenHostHidden(const HostMAC &mac) const			{ return hidden_hosts.contains(mac); }
+		HiddenHost GetHiddenHost(const HostMAC &mac) const 			{ return hidden_hosts[mac]; }
 		bool GetNicknameRegisteredHostRegistered(const QString &nickname) const { return nickname_registered_hosts.contains(nickname); }
 		RegisteredHost GetNicknameRegisteredHost(const QString &nickname) const { return nickname_registered_hosts[nickname]; }
 		size_t GetPS4RegisteredHostsRegistered() const { return ps4s_registered; }
@@ -566,8 +582,8 @@ class Settings : public QObject
 		ManualHost GetManualHost(int id) const						{ return manual_hosts[id]; }
 
 		QMap<QString, QString> GetControllerMappings() const		{ return controller_mappings; }
-		void SetControllerMapping(const QString &guid, const QString &mapping);
-		void RemoveControllerMapping(const QString &guid);
+		void SetControllerMapping(const QString &vidpid, const QString &mapping);
+		void RemoveControllerMapping(const QString &vidpid);
 
 		static QString GetChiakiControllerButtonName(int);
 		void SetControllerButtonMapping(int, Qt::Key);
@@ -576,6 +592,7 @@ class Settings : public QObject
 
 	signals:
 		void RegisteredHostsUpdated();
+		void HiddenHostsUpdated();
 		void ManualHostsUpdated();
 		void ControllerMappingsUpdated();
 		void CurrentProfileChanged();

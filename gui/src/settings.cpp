@@ -42,6 +42,7 @@ static void MigrateSettingsTo2(QSettings *settings)
 		i++;
 	}
 	settings->endArray();
+
 	QString hw_decoder = settings->value("settings/hw_decode_engine").toString();
 	settings->remove("settings/hw_decode_engine");
 	if(hw_decoder != "none")
@@ -127,6 +128,57 @@ static void MigrateVideoProfile(QSettings *settings)
 	}
 }
 
+static void MigrateControllerMappings(QSettings *settings)
+{
+	QList<QMap<QString, QString>> mappings;
+	int count = settings->beginReadArray("controller_mappings");
+	for(int i=0; i<count; i++)
+	{
+		settings->setArrayIndex(i);
+		QMap<QString, QString> mapping;
+		for(QString k : settings->allKeys())
+			mapping.insert(k, settings->value(k).toString());
+		mappings.append(mapping);
+	}
+	settings->endArray();
+
+	settings->beginWriteArray("controller_mappings");
+	int i=0;
+	for(const auto &mapping : mappings)
+	{
+		settings->setArrayIndex(i);
+		for(auto it = mapping.constBegin(); it != mapping.constEnd(); it++)
+		{
+			QString k = it.key();
+			// change old guid field to new vidpid
+			if(k == "guid")
+			{
+				k = "vidpid";
+				settings->remove("guid");
+				if(settings->value("vidpid").toString().isEmpty())
+					settings->setValue(k, it.value());
+			}
+			if(k == "vidpid")
+			{
+				// move decimal vid/pid to hexadecimal vid/pid
+				if(it.value().contains(":") && !it.value().contains("x"))
+				{
+					QStringList ids = it.value().split(u':');
+					if(ids.length() == 2)
+					{
+						auto vid = ids.at(0).toUInt();
+						auto pid = ids.at(1).toUInt();
+						QString vid_pid = QString("0x%1:0x%2").arg(vid, 4, 16, QChar('0')).arg(pid, 4, 16, QChar('0'));
+						settings->setValue(k, vid_pid);
+					}
+				}
+			}
+		}
+		i++;
+	}
+	settings->endArray();
+}
+
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	time_format("yyyy-MM-dd  HH:mm:ss"),
 	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf)),
@@ -136,9 +188,11 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	settings.setFallbacksEnabled(false);
 	MigrateSettings(&settings);
 	MigrateVideoProfile(&settings);
+	MigrateControllerMappings(&settings);
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
+	LoadHiddenHosts();
 	LoadManualHosts();
 	LoadControllerMappings();
 	default_settings.setFallbacksEnabled(false);
@@ -159,7 +213,9 @@ void Settings::ExportSettings(QString fileurl)
 	file.close();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	SaveRegisteredHosts(&settings_backup);
+	SaveHiddenHosts(&settings_backup);
 	SaveManualHosts(&settings_backup);
+	SaveControllerMappings(&settings_backup);
     QStringList keys = settings.allKeys();
     for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
     {
@@ -206,32 +262,38 @@ void Settings::ImportSettings(QString fileurl)
 	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	LoadRegisteredHosts(&settings_backup);
+	LoadHiddenHosts(&settings_backup);
 	LoadManualHosts(&settings_backup);
-	QString profile = settings_backup.value("this_profile").toString();
+	LoadControllerMappings(&settings_backup);
+	QString profile = settings_backup.value("settings/this_profile").toString();
 	if(profile.isEmpty())
 	{
 		settings.clear();
 		SaveRegisteredHosts();
+		SaveHiddenHosts();
 		SaveManualHosts();
+		SaveControllerMappings();
 		QStringList keys = settings_backup.allKeys();
 		for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
 		{
 			settings.setValue( *i, settings_backup.value( *i ) );
 		}
-		SetCurrentProfile(profile);
+		SetCurrentProfile(std::move(profile));
 	}
 	else
 	{
 		QSettings profile_settings(QCoreApplication::organizationName(), QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
 		profile_settings.clear();
 		SaveRegisteredHosts(&profile_settings);
+		SaveHiddenHosts(&profile_settings);
 		SaveManualHosts(&profile_settings);
+		SaveControllerMappings(&profile_settings);
 		QStringList keys = settings_backup.allKeys();
 		for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
 		{
 			profile_settings.setValue( *i, settings_backup.value( *i ) );
 		}
-		SetCurrentProfile(profile);
+		SetCurrentProfile(std::move(profile));
 	}
 }
 
@@ -699,6 +761,26 @@ void Settings::SetCurrentProfile(QString profile)
 	}
 	default_settings.setValue("settings/current_profile", profile);
 	emit CurrentProfileChanged();
+}
+
+bool Settings::GetDpadTouchEnabled() const
+{
+	return settings.value("settings/dpad_touch_enabled", true).toBool();
+}
+
+void Settings::SetDpadTouchEnabled(bool enabled)
+{
+	settings.setValue("settings/dpad_touch_enabled", enabled);
+}
+
+uint16_t Settings::GetDpadTouchIncrement() const
+{
+	return settings.value("settings/dpad_touch_increment", 30).toUInt();
+}
+
+void Settings::SetDpadTouchIncrement(uint16_t increment)
+{
+	settings.setValue("settings/dpad_touch_increment", increment);
 }
 
 QString Settings::GetPsnAccountId() const
@@ -1674,6 +1756,7 @@ void Settings::DeleteProfile(QString profile)
 	manual_hosts.clear();
 	controller_mappings.clear();
 	SaveRegisteredHosts(&delete_profile);
+	SaveHiddenHosts(&delete_profile);
 	SaveManualHosts(&delete_profile);
 	SaveControllerMappings(&delete_profile);
 	delete_profile.remove("settings");
@@ -1681,6 +1764,7 @@ void Settings::DeleteProfile(QString profile)
 	SaveProfiles();
 	emit ProfilesUpdated();
 	LoadRegisteredHosts();
+	LoadHiddenHosts();
 	LoadManualHosts();
 	LoadControllerMappings();
 }
@@ -1738,6 +1822,53 @@ void Settings::RemoveRegisteredHost(const HostMAC &mac)
 	emit RegisteredHostsUpdated();
 }
 
+void Settings::LoadHiddenHosts(QSettings *qsettings)
+{
+	if(!qsettings)
+		qsettings = &settings;
+	hidden_hosts.clear();
+	int count = qsettings->beginReadArray("hidden_hosts");
+	for(int i=0; i<count; i++)
+	{
+		qsettings->setArrayIndex(i);
+		HiddenHost host = HiddenHost::LoadFromSettings(qsettings);
+		hidden_hosts[host.GetMAC()] = host;
+	}
+	qsettings->endArray();
+	emit HiddenHostsUpdated();
+}
+
+void Settings::SaveHiddenHosts(QSettings *qsettings)
+{
+	if(!qsettings)
+		qsettings = &settings;
+	qsettings->beginWriteArray("hidden_hosts");
+	int i=0;
+	for(const auto &host : hidden_hosts)
+	{
+		qsettings->setArrayIndex(i);
+		host.SaveToSettings(qsettings);
+		i++;
+	}
+	qsettings->endArray();
+}
+
+void Settings::AddHiddenHost(const HiddenHost &host)
+{
+	hidden_hosts[host.GetMAC()] = host;
+	SaveHiddenHosts();
+	emit HiddenHostsUpdated();
+}
+
+void Settings::RemoveHiddenHost(const HostMAC &mac)
+{
+	if(!hidden_hosts.contains(mac))
+		return;
+	hidden_hosts.remove(mac);
+	SaveHiddenHosts();
+	emit HiddenHostsUpdated();
+}
+
 void Settings::LoadManualHosts(QSettings *qsettings)
 {
 	if(!qsettings)
@@ -1780,7 +1911,7 @@ int Settings::SetManualHost(const ManualHost &host)
 	if(id < 0)
 		id = manual_hosts_id_next++;
 	ManualHost save_host(id, host);
-	manual_hosts[id] = save_host;
+	manual_hosts[id] = std::move(save_host);
 	SaveManualHosts();
 	emit ManualHostsUpdated();
 	return id;
@@ -1793,16 +1924,16 @@ void Settings::RemoveManualHost(int id)
 	emit ManualHostsUpdated();
 }
 
-void Settings::SetControllerMapping(const QString &guid, const QString &mapping)
+void Settings::SetControllerMapping(const QString &vidpid, const QString &mapping)
 {
-	controller_mappings.insert(guid, mapping);
+	controller_mappings.insert(vidpid, mapping);
 	SaveControllerMappings();
 	emit ControllerMappingsUpdated();
 }
 
-void Settings::RemoveControllerMapping(const QString &guid)
+void Settings::RemoveControllerMapping(const QString &vidpid)
 {
-	controller_mappings.remove(guid);
+	controller_mappings.remove(vidpid);
 	SaveControllerMappings();
 	emit ControllerMappingsUpdated();
 }
@@ -1817,7 +1948,8 @@ void Settings::LoadControllerMappings(QSettings *qsettings)
 	for(int i=0; i<count; i++)
 	{
 		qsettings->setArrayIndex(i);
-		controller_mappings.insert(qsettings->value("guid").toString(), qsettings->value("controller_mapping").toString());
+		QString vidpid = qsettings->value("vidpid").toString();
+		controller_mappings.insert(vidpid, qsettings->value("controller_mapping").toString());
 	}
 	qsettings->endArray();
 	emit ControllerMappingsUpdated();
@@ -1833,7 +1965,7 @@ void Settings::SaveControllerMappings(QSettings *qsettings)
 	while (j.hasNext()) {
 		qsettings->setArrayIndex(i);
 		j.next();
-		qsettings->setValue("guid", j.key());
+		qsettings->setValue("vidpid", j.key());
 		qsettings->setValue("controller_mapping", j.value());
 		i++;
 	}

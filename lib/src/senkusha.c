@@ -127,7 +127,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 	if(senkusha->should_stop)
 	{
 		err = CHIAKI_ERR_CANCELED;
-		goto quit;
+		QUIT(quit);
 	}
 
 	ChiakiTakionConnectInfo takion_info;
@@ -152,6 +152,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 	takion_info.ip_dontfrag = true;
 
 	takion_info.enable_crypt = false;
+	takion_info.enable_dualsense = session->connect_info.enable_dualsense;
 	takion_info.protocol_version = 7;
 
 	takion_info.cb = senkusha_takion_cb;
@@ -536,7 +537,7 @@ static ChiakiErrorCode senkusha_run_mtu_out_test(ChiakiSenkusha *senkusha, uint3
 			if(err != CHIAKI_ERR_SUCCESS)
 			{
 				CHIAKI_LOGE(senkusha->log, "Senkusha failed to format AV Header");
-				return err;
+				goto beach;
 			}
 			assert(header_size == MTU_AV_PACKET_ADD);
 

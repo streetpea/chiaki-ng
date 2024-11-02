@@ -23,6 +23,17 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
 }
 
+bool QmlSettings::remotePlayAsk() const
+{
+    return settings->GetRemotePlayAsk();
+}
+
+void QmlSettings::setRemotePlayAsk(bool asked)
+{
+    settings->SetRemotePlayAsk(asked);
+    emit remotePlayAskChanged();
+}
+
 int QmlSettings::resolutionLocalPS4() const
 {
     return settings->GetResolutionLocalPS4();
@@ -467,6 +478,28 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
 {
     settings->SetPsnAccountId(account_id);
     emit psnAccountIdChanged();
+}
+
+bool QmlSettings::dpadTouchEnabled() const
+{
+    return settings->GetDpadTouchEnabled();
+}
+
+void QmlSettings::setDpadTouchEnabled(bool enabled)
+{
+    settings->SetDpadTouchEnabled(enabled);
+    emit dpadTouchEnabledChanged();
+}
+
+uint16_t QmlSettings::dpadTouchIncrement() const
+{
+    return settings->GetDpadTouchIncrement();
+}
+
+void QmlSettings::setDpadTouchIncrement(uint16_t increment)
+{
+    settings->SetDpadTouchIncrement(increment);
+    emit dpadTouchIncrementChanged();
 }
 
 QString QmlSettings::currentProfile() const
@@ -1171,7 +1204,7 @@ QStringList QmlSettings::profiles() const
 void QmlSettings::deleteProfile(QString profile)
 {
     if(!profile.isEmpty())
-        settings->DeleteProfile(profile);
+        settings->DeleteProfile(std::move(profile));
 }
 
 QVariantList QmlSettings::controllerMapping() const
@@ -1233,6 +1266,7 @@ void QmlSettings::setSettings(Settings *new_settings)
 
 void QmlSettings::refreshAllKeys()
 {
+    emit remotePlayAskChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
     emit resolutionLocalPS5Changed();
@@ -1278,6 +1312,7 @@ void QmlSettings::refreshAllKeys()
     emit psnRefreshTokenChanged();
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
+    emit dpadTouchIncrementChanged();
     emit controllerMappingChanged();
     emit packetLossMaxChanged();
     emit currentProfileChanged();
@@ -1352,21 +1387,21 @@ void QmlSettings::refreshAllPlaceboKeys()
 
 void QmlSettings::exportSettings(QString fileurl)
 {
-    settings->ExportSettings(fileurl);
+    settings->ExportSettings(std::move(fileurl));
 }
 
 void QmlSettings::importSettings(QString fileurl)
 {
-    settings->ImportSettings(fileurl);
+    settings->ImportSettings(std::move(fileurl));
 }
 
 void QmlSettings::exportPlaceboSettings(QString fileurl)
 {
-    settings->ExportPlaceboSettings(fileurl);
+    settings->ExportPlaceboSettings(std::move(fileurl));
 }
 
 void QmlSettings::importPlaceboSettings(QString fileurl)
 {
-    settings->ImportPlaceboSettings(fileurl);
+    settings->ImportPlaceboSettings(std::move(fileurl));
     refreshAllPlaceboKeys();
 }

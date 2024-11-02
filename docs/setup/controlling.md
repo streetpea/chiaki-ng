@@ -319,3 +319,75 @@ In order to enable DualSense haptics on MacOS please do the following:
     ![Select Quadrophonic audio](images/configure_quadrophonic.png)
 
 7. Play your favorite PS5 game with haptic feedback on Mac via `chiaki-ng`!
+
+## Using a non-PlayStation controller with chiaki-ng
+
+### Controller Mapping
+
+#### Change Controller Mapping
+
+You can re-map all necessary PlayStation buttons to your controller using the controller mapper built-in to `chiaki-ng`
+
+1. Go to Settings->Controllers and select `Change Controller Mapping`
+
+    ![Change Controller Mapping](images/ChangeControllerMapping.png)
+
+2. Click on any button on the controller you want to change the mapping for
+
+3. Change the buttons as you see fit on the controller mapping page (i.e., change touchpad to Share button on the Xbox Series X Controller)
+
+    ![Controller Mapping Changes](images/ControllerMappingMenu.png)
+
+4. Update Controller Mapping using the `Options` button on the controller
+
+#### Reset Controller Mapping
+
+You can reset a controller mapping for a controller back to default at any time
+
+1. Go to Settings->Controllers and select `Reset Controller Mapping`
+
+2. Click on any button on the controller you want to reset the mapping for
+
+### Dpad Touch Emulation
+
+Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings->Controllers and can be disabled at any time. The `Dpad Touch Increment` controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position
+
+![Dpad Touch Emulation](images/DpadTouchEmulation.png)
+
+!!! Question "How does Dpad Touch Emulation work"
+
+    Pushing one of the dpad buttons will register a touch in the quadrant of that button:
+
+    - Dpad Left: All the way to the left and halfway up the touchpad
+
+    - Dpad Right: All the way to the right and halfway up the touchpad
+
+    - Dpad Up: In the middle of the touchpad horizontally and at the top of the touchpad
+
+    - Dpad Down: In the middle of the touchpad horizontally and at the bottom of the touchpad
+
+    How to perform some common touchpad functions with the dpad:
+
+    - For a touchpad left click:
+
+        You want to press the touchpad click button you have mapped for your controller (such as the Share key) and dpad left
+
+    - For a touchpad right click:
+
+        You want to press the touchpad click button you have mapped for your controller (such as the Share key) and dpad right
+
+    - For a swipe from left to right:
+
+        First touch dpad left and then hold dpad right for a second or so. This will start you at the left side of the touchpad and move you across the touchpad in the right direction.
+
+    - For a swipe from right to left:
+
+        First touch dpad right and then hold dpad left for a second or so. This will start you at the right side of the touchpad and move you across the touchpad in the left direction.
+
+    - For a swipe from up to down:
+
+        First touch dpad up and then hold dpad down for a second or so. This will start you at the top of the touchpad and move you across the touchpad in the down direction.
+
+    - For a swipe from down to up:
+
+        First touch dpad down and then hold dpad up for a second or so. This will start you at the bottom of the touchpad and move you across the touchpad in the up direction.

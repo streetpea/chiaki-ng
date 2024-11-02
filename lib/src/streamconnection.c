@@ -10,6 +10,7 @@
 #include <chiaki/video.h>
 
 #include <string.h>
+#include <inttypes.h>
 #include <assert.h>
 #ifndef _WIN32
 #include <unistd.h>
@@ -47,6 +48,7 @@ static void stream_connection_takion_cb(ChiakiTakionEvent *event, void *user);
 static void stream_connection_takion_data(ChiakiStreamConnection *stream_connection, ChiakiTakionMessageDataType data_type, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_protobuf(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_rumble(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
+static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size);
 static ChiakiErrorCode stream_connection_send_big(ChiakiStreamConnection *stream_connection);
 static ChiakiErrorCode stream_connection_send_controller_connection(ChiakiStreamConnection *stream_connection);
@@ -173,6 +175,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	if(!stream_connection->audio_receiver)
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Audio Receiver");
+		if(!socket)
+			free(takion_info.sa);
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
@@ -181,6 +186,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Haptics Receiver");
 		err = CHIAKI_ERR_UNKNOWN;
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		goto err_audio_receiver;
 	}
 
@@ -189,6 +195,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	{
 		CHIAKI_LOGE(session->log, "StreamConnection failed to initialize Video Receiver");
 		err = CHIAKI_ERR_UNKNOWN;
+		chiaki_mutex_unlock(&stream_connection->state_mutex);
 		goto err_haptics_receiver;
 	}
 
@@ -196,8 +203,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
 	err = chiaki_takion_connect(&stream_connection->takion, &takion_info, socket);
-	if(!socket)
-		free(takion_info.sa);
 
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
@@ -339,8 +344,10 @@ close_takion:
 	CHIAKI_LOGI(session->log, "StreamConnection closed takion");
 
 err_video_receiver:
+	chiaki_mutex_lock(&stream_connection->state_mutex);
 	chiaki_video_receiver_free(stream_connection->video_receiver);
 	stream_connection->video_receiver = NULL;
+	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 err_haptics_receiver:
 	chiaki_audio_receiver_free(stream_connection->haptics_receiver);
@@ -349,7 +356,8 @@ err_haptics_receiver:
 err_audio_receiver:
 	chiaki_audio_receiver_free(stream_connection->audio_receiver);
 	stream_connection->audio_receiver = NULL;
-
+	if(!socket)
+		free(takion_info.sa);
 	return err;
 }
 
@@ -400,6 +408,9 @@ static void stream_connection_takion_data(ChiakiStreamConnection *stream_connect
 			break;
 		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_RUMBLE:
 			stream_connection_takion_data_rumble(stream_connection, buf, buf_size);
+			break;
+		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_PAD_INFO:
+			stream_connection_takion_data_pad_info(stream_connection, buf, buf_size);
 			break;
 		case CHIAKI_TAKION_MESSAGE_DATA_TYPE_TRIGGER_EFFECTS:
 			stream_connection_takion_data_trigger_effects(stream_connection, buf, buf_size);
@@ -458,6 +469,74 @@ static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection
 	event.trigger_effects.type_right = buf[2];
 	memcpy(&event.trigger_effects.left, buf + 5, 10);
 	memcpy(&event.trigger_effects.right, buf + 15, 10);
+	chiaki_session_send_event(stream_connection->session, &event);
+}
+
+static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
+{
+	bool reset = false;
+	const uint8_t motion_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
+	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
+	// const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
+
+	switch(buf_size)
+	{
+		case 0x19:
+		{
+			// sequence number of feedback packet this is responding to
+			uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
+			// int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
+			uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
+			// check if motion reset type is used
+			if(memcmp(buf + 8, motion_reset, 4) == 0)
+			{
+				reset = true;
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
+				break;
+			}
+			if(memcmp(buf + 8, motion_normal, 4) == 0)
+			{
+				reset = false;
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+				break;
+			}
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
+			return;
+			// if(!memcmp(buf + 12, unknown0, 13) == 0)
+			// {
+			// 	CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
+			// 	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf + 12, 13);
+			// 	return;
+			// }
+		}
+		case 0x11:
+		{
+			// check if motion reset type is used
+			if(memcmp(buf, motion_reset, 4) == 0)
+			{
+				reset = true;
+				break;
+			}
+			if(memcmp(buf, motion_normal, 4) == 0)
+			{
+				reset = false;
+				break;
+			}
+			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
+			return;
+		}
+		default:
+		{
+			CHIAKI_LOGE(stream_connection->log, "StreamConnection got pad info with size %#llx not equal to 0x19 or 0x11",
+					(unsigned long long)buf_size);
+			return;
+		}
+	}
+	ChiakiEvent event = { 0 };
+	event.type = CHIAKI_EVENT_MOTION_RESET;
+	event.data_motion.motion_reset = reset;
 	chiaki_session_send_event(stream_connection->session, &event);
 }
 

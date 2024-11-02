@@ -141,7 +141,7 @@ CHIAKI_EXPORT void chiaki_controller_state_or(ChiakiControllerState *out, Chiaki
 	// doing so will cause problems w/ orientation values among other things
 	// since orient is calculated from accel and gyro, just check those.
 	bool chooser = false;
-#define SETCHOOSER(n, default) if(a->n != default) chooser = true;
+#define SETCHOOSER(n, default) if(a->n < (default - 0.0000001f) ||  a->n > (default + 0.0000001f)) chooser = true;
 	SETCHOOSER(gyro_x, 0.0f);
 	SETCHOOSER(gyro_y, 0.0f);
 	SETCHOOSER(gyro_z, 0.0f);

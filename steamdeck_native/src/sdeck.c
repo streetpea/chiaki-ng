@@ -426,7 +426,7 @@ int send_haptic(SDeck *sdeck, uint8_t position, uint16_t period_high, uint16_t p
 int sdeck_haptic(SDeck *sdeck, uint8_t position, double frequency, uint32_t interval, const uint16_t repeat)
 {
 	int res = 0;
-	double freq_min = 500000 / interval; // can play haptic for at most 2 intervals w/ borrow from future
+	double freq_min = 500000.0 / (double)interval; // can play haptic for at most 2 intervals w/ borrow from future
 	uint16_t period = 0;
 	if (frequency >= freq_min)
 	{
@@ -445,7 +445,7 @@ int sdeck_haptic_ratio(SDeck *sdeck, uint8_t position, double frequency, uint32_
 	double ratio_high = 0, ratio_low = 0;
 	ratio_high = 2 * ratio;
 	ratio_low = 2 - ratio_high;
-	double freq_min = 500000 / interval; // can play haptic for at most 2 intervals w/ borrow from future
+	double freq_min = 500000.0 / (double)interval; // can play haptic for at most 2 intervals w/ borrow from future
 	uint16_t period = 0;
 	if (frequency >= freq_min)
 	{

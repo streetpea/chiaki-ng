@@ -94,6 +94,21 @@ bool QmlController::isSteamVirtual() const
     return controller->IsSteamVirtual();
 }
 
+bool QmlController::isDualSenseEdge() const
+{
+    return controller->IsDualSenseEdge();
+}
+
+QString QmlController::GetGUID() const
+{
+    return controller->GetGUIDString();
+}
+
+QString QmlController::GetVIDPID() const
+{
+    return controller->GetVIDPIDString();
+}
+
 void QmlController::sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
     QKeyEvent press(QEvent::KeyPress, key, modifiers);
