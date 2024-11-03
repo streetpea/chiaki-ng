@@ -16,7 +16,7 @@ jobs:
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - uses: msys2/setup-msys2@v2
@@ -155,7 +155,7 @@ jobs:
           zip -r chiaki-ng-Win.zip chiaki-ng-Win/
 
       - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chiaki-ng-win_x64-MSYS2-Release
           path: chiaki-ng-Win.zip

@@ -8,7 +8,7 @@ jobs:
     name: Build macOSX x86_64 version
     runs-on: macos-12
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -44,7 +44,7 @@ jobs:
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.dmg
 
       - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chiaki-ng-macos_x86_64-Release
           path: chiaki-ng.dmg
