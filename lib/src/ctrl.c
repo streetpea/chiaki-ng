@@ -427,12 +427,12 @@ static void *ctrl_thread_func(void *user)
 			{
 				switch(message.subtype) // wrong but works ...
 				{
-					case 0x02:
 					case 0x12:
 					case 0x26:
 					case 0x36:
 						ack_counter = ntohs(*((chiaki_unaligned_uint16_t *)(message.data + 2)));
 						chiaki_rudp_ack_packet(ctrl->session->rudp, ack_counter);
+					case 0x02:
 						chiaki_rudp_send_ack_message(ctrl->session->rudp, remote_counter);
 						int offset = rudp_packet_type_data_offset(message.subtype);
 						// ctrl message header is 8 bytes
