@@ -102,10 +102,7 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
         showFullScreen();
 
-    connect(session, &StreamSession::ConnectedChanged, this, [this]() {
-        if (session->IsConnected())
-            connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
-    });
+    connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
 }
 
 QmlMainWindow::~QmlMainWindow()
@@ -501,10 +498,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         }
         if(session && exit_app_on_stream_exit)
         {
-            connect(session, &StreamSession::ConnectedChanged, this, [this]() {
-                if (session->IsConnected())
-                    connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
-            });
+            connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
         }
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
