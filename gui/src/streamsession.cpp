@@ -1887,14 +1887,7 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 		CHIAKI_LOGE(log, "!! Failed to initialize session");
 		return CHIAKI_ERR_MEMORY;
 	}
-	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
-	if (err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "!! Failed to create session");
-		return err;
-	}
-	CHIAKI_LOGI(log, ">> Created session");
-	return err;
+	return CHIAKI_ERR_SUCCESS;
 }
 
 ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
@@ -1914,7 +1907,20 @@ ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-	ChiakiErrorCode err = holepunch_session_create_offer(holepunch_session);
+	ChiakiErrorCode err = chiaki_holepunch_upnp_discover(holepunch_session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to run upnp discover");
+		return err;
+	}
+	err = chiaki_holepunch_session_create(holepunch_session);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to create session");
+		return err;
+	}
+	CHIAKI_LOGI(log, ">> Created session");
+	err = holepunch_session_create_offer(holepunch_session);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create offer msg for ctrl connection");

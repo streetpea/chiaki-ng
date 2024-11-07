@@ -572,24 +572,36 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             setConnectState(PsnConnectState::ConnectFailedStart);
             if(session)
             {
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
+                emit sessionChanged(session);
             }
             break;
         case CHIAKI_ERR_HOST_UNREACH:
             setConnectState(PsnConnectState::ConnectFailedConsoleUnreachable);
             if(session)
             {
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
+                emit sessionChanged(session);
             }
             break;
         default:
             setConnectState(PsnConnectState::ConnectFailed);
             if(session)
             {
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
+                emit sessionChanged(session);
             }
             break;
     }
