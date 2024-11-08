@@ -775,7 +775,15 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     });
 
     if (window->windowState() != Qt::WindowFullScreen)
-        window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
+    {
+        if(settings->GetWindowType() == WindowType::CustomResolution)
+        {
+            window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
+            window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
+        }
+        else
+            window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
+    }
 
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
@@ -1015,6 +1023,8 @@ void QmlBackend::connectToHost(int index, QString nickname)
     bool fullscreen = false, zoom = false, stretch = false;
     switch (settings->GetWindowType()) {
     case WindowType::SelectedResolution:
+        break;
+    case WindowType::CustomResolution:
         break;
     case WindowType::Fullscreen:
         fullscreen = true;

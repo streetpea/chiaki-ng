@@ -605,6 +605,7 @@ void Settings::SetPacketLossMax(float packet_loss_max)
 
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
+	{ WindowType::CustomResolution, "Custom Resolution"},
 	{ WindowType::Fullscreen, "Fullscreen" },
 	{ WindowType::Zoom, "Zoom" },
 	{ WindowType::Stretch, "Stretch" }
@@ -619,6 +620,26 @@ WindowType Settings::GetWindowType() const
 void Settings::SetWindowType(WindowType type)
 {
 	settings.setValue("settings/window_type", window_type_values[type]);
+}
+
+uint Settings::GetCustomResolutionWidth() const
+{
+	return settings.value("settings/custom_resolution_width", 1920).toUInt();
+}
+
+void Settings::SetCustomResolutionWidth(uint width)
+{
+	settings.setValue("settings/custom_resolution_width", width);
+}
+
+uint Settings::GetCustomResolutionHeight() const
+{
+	return settings.value("settings/custom_resolution_length", 1080).toUInt();
+}
+
+void Settings::SetCustomResolutionHeight(uint length)
+{
+	settings.setValue("settings/custom_resolution_length", length);
 }
 
 RegisteredHost Settings::GetAutoConnectHost() const

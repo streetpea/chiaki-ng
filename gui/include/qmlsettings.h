@@ -41,6 +41,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
+    Q_PROPERTY(uint customResolutionWidth READ customResolutionWidth WRITE setCustomResolutionWidth NOTIFY customResolutionWidthChanged)
+    Q_PROPERTY(uint customResolutionHeight READ customResolutionHeight WRITE setCustomResolutionHeight NOTIFY customResolutionHeightChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
@@ -214,6 +216,12 @@ public:
 
     int windowType() const;
     void setWindowType(int type);
+
+    uint customResolutionWidth() const;
+    void setCustomResolutionWidth(uint width);
+
+    uint customResolutionHeight() const;
+    void setCustomResolutionHeight(uint length);
 
     float sZoomFactor() const;
     void setSZoomFactor(float factor);
@@ -497,6 +505,8 @@ signals:
     void wifiDroppedNotifChanged();
     void decoderChanged();
     void windowTypeChanged();
+    void customResolutionWidthChanged();
+    void customResolutionHeightChanged();
     void sZoomFactorChanged();
     void videoPresetChanged();
     void autoConnectMacChanged();
