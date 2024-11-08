@@ -67,6 +67,7 @@ enum class PlaceboPreset {
 
 enum class WindowType {
 	SelectedResolution,
+	CustomResolution,
 	Fullscreen,
 	Zoom,
 	Stretch
@@ -290,6 +291,12 @@ class Settings : public QObject
 
 		WindowType GetWindowType() const;
 		void SetWindowType(WindowType type);
+
+		uint GetCustomResolutionWidth() const;
+		void SetCustomResolutionWidth(uint width);
+
+		uint GetCustomResolutionHeight() const;
+		void SetCustomResolutionHeight(uint length);
 
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);

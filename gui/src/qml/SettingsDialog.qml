@@ -286,14 +286,78 @@ DialogView {
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        model: [qsTr("Selected Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
+                        model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
                         currentIndex: Chiaki.settings.windowType
                         onActivated: (index) => Chiaki.settings.windowType = index;
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Selected Resolution)")
+                        text: qsTr("(Stream Resolution)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Custom Resolution Width")
+                        visible: Chiaki.settings.windowType == 1
+                    }
+
+                    C.TextField {
+                        id: customResolutionWidth
+                        Layout.preferredWidth: 400
+                        visible: Chiaki.settings.windowType == 1
+                        text: Chiaki.settings.customResolutionWidth
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.customResolutionWidth = parseInt(text);
+                            } else {
+                                Chiaki.settings.customResolutionWidth = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 0 && num <= 9999;
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1920)")
+                        visible: Chiaki.settings.windowType == 1
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Custom Resolution Height")
+                        visible: Chiaki.settings.windowType == 1
+                    }
+
+                    C.TextField {
+                        id: customResolutionHeight
+                        Layout.preferredWidth: 400
+                        visible: Chiaki.settings.windowType == 1
+                        text: Chiaki.settings.customResolutionHeight
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.customResolutionHeight = parseInt(text);
+                            } else {
+                                Chiaki.settings.customResolutionHeight = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 0 && num <= 9999;
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1080)")
+                        visible: Chiaki.settings.windowType == 1
                     }
 
                     Label {

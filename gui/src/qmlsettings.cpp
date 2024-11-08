@@ -380,6 +380,28 @@ void QmlSettings::setWindowType(int type)
     emit windowTypeChanged();
 }
 
+uint QmlSettings::customResolutionWidth() const
+{
+    return settings->GetCustomResolutionWidth();
+}
+
+void QmlSettings::setCustomResolutionWidth(uint width)
+{
+    settings->SetCustomResolutionWidth(width);
+    emit customResolutionWidthChanged();
+}
+
+uint QmlSettings::customResolutionHeight() const
+{
+    return settings->GetCustomResolutionHeight();
+}
+
+void QmlSettings::setCustomResolutionHeight(uint length)
+{
+    settings->SetCustomResolutionHeight(length);
+    emit customResolutionHeightChanged();
+}
+
 float QmlSettings::sZoomFactor() const
 {
     return settings->GetZoomFactor();
@@ -1303,6 +1325,8 @@ void QmlSettings::refreshAllKeys()
     emit wifiDroppedNotifChanged();
     emit decoderChanged();
     emit windowTypeChanged();
+    emit customResolutionWidthChanged();
+    emit customResolutionHeightChanged();
     emit sZoomFactorChanged();
     emit videoPresetChanged();
     emit autoConnectMacChanged();

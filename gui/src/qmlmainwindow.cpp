@@ -152,6 +152,8 @@ void QmlMainWindow::updateWindowType(WindowType type)
     switch (type) {
     case WindowType::SelectedResolution:
         break;
+    case WindowType::CustomResolution:
+        break;
     case WindowType::Fullscreen:
         showFullScreen();
         break;
@@ -270,8 +272,7 @@ void QmlMainWindow::show()
         QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
-
-    resize(1280, 720);
+    resize(1920, 1080);
 
     if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
         showFullScreen();
