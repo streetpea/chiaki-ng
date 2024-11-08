@@ -193,14 +193,6 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     });
     connect(wakeup_start_timer, &QTimer::timeout, this, [this]
     {
-        wakeup_nickname.clear();
-        wakeup_start = false;
-        chiaki_log_mutex.lock();
-        chiaki_log_ctx = nullptr;
-        chiaki_log_mutex.unlock();
-
-        session->deleteLater();
-        session = nullptr;
         emit wakeupStartFailed();
     });
     psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
@@ -1179,8 +1171,17 @@ void QmlBackend::stopAutoConnect()
     if(!wakeup_nickname.isEmpty())
     {
         wakeup_start_timer->stop();
-        wakeup_start = false;
         wakeup_nickname.clear();
+        if(wakeup_start)
+        {
+            wakeup_start = false;
+            chiaki_log_mutex.lock();
+            chiaki_log_ctx = nullptr;
+            chiaki_log_mutex.unlock();
+
+            session->deleteLater();
+            session = nullptr;
+        }
     }
     emit autoConnectChanged();
 }
