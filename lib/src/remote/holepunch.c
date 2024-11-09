@@ -70,7 +70,7 @@
 #define SESSION_DELETION_TIMEOUT_SEC 3
 #define SELECT_CANDIDATE_TIMEOUT_SEC 0.5F
 #define SELECT_CANDIDATE_TRIES 20
-#define SELECT_CANDIDATE_CONNECTION_SEC 5
+#define SELECT_CANDIDATE_CONNECTION_RETRIES 5
 #define RANDOM_ALLOCATION_GUESSES_NUMBER 75
 #define RANDOM_ALLOCATION_SOCKS_NUMBER 250
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
@@ -3604,6 +3604,8 @@ static ChiakiErrorCode check_candidates(
     if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
         FD_SET(session->ipv6_sock, &fds);
     bool failed = true;
+    int live_candidate_index = -1;
+    chiaki_socket_t live_candidate_sock = CHIAKI_INVALID_SOCKET;
     char service_remote[6];
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -3853,12 +3855,30 @@ static ChiakiErrorCode check_candidates(
                     }
                     continue;                    
                 }
-                else if(received_response && !connecting)
+                else if(received_response)
                 {
-                    connecting = true;
-                    tv.tv_sec = SELECT_CANDIDATE_CONNECTION_SEC;
-                    tv.tv_usec = 0;
-                    continue;
+                    if(!connecting)
+                    {
+                        connecting = true;
+                        retry_counter = 0;
+                        tv.tv_sec = 0;
+                        tv.tv_usec = WAIT_RESPONSE_TIMEOUT_SEC * SECOND_US;
+                        continue;
+                    }
+                    if(retry_counter < SELECT_CANDIDATE_CONNECTION_RETRIES)
+                    {
+                        retry_counter++;
+                        int responses = responses_received[live_candidate_index];
+                        if (sendto(live_candidate_sock, (CHIAKI_SOCKET_BUF_TYPE) request_buf[responses], sizeof(request_buf[responses]), 0, (struct sockaddr *)&addrs[live_candidate_index], lens[live_candidate_index]) < 0)
+                        {
+                            CHIAKI_LOGE(session->log, "check_candidates: Sending live candidate request failed with error: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+                            err = CHIAKI_ERR_NETWORK;
+                                continue;
+                        }
+                        CHIAKI_LOGI(session->log, "Sent followup request %d to candidate", retry_counter);
+                        continue;
+                    }
+
                 }
                 // No responsive candidate within timeout, terminate with error
                 CHIAKI_LOGE(session->log, "check_candidates: Select timed out");
@@ -4058,6 +4078,12 @@ static ChiakiErrorCode check_candidates(
         received_response = true;
         responses_received[i]++;
         responses = responses_received[i];
+        if(live_candidate_index < 0)
+        {
+            live_candidate_index = i;
+            live_candidate_sock = candidate_sock;
+            CHIAKI_LOGI(session->log, "check_candidates: Live candidate is at %s:%d", candidate->addr, candidate->port);
+        }
         CHIAKI_LOGV(session->log, "Received response %d", responses);
         if(responses > 2)
         {
