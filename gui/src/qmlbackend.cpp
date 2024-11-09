@@ -569,7 +569,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
-                emit sessionChanged(session);
+                setDiscoveryEnabled(true);
             }
             break;
         case CHIAKI_ERR_HOST_UNREACH:
@@ -581,7 +581,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
-                emit sessionChanged(session);
+                setDiscoveryEnabled(true);
             }
             break;
         default:
@@ -593,7 +593,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
-                emit sessionChanged(session);
+                setDiscoveryEnabled(true);
             }
             break;
     }
@@ -604,7 +604,12 @@ void QmlBackend::psnSessionStart()
     try {
         session->Start();
     } catch (const Exception &e) {
-        emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+        chiaki_log_mutex.lock();
+        chiaki_log_ctx = nullptr;
+        chiaki_log_mutex.unlock();
+        delete session;
+        session = nullptr;
+        emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
         return;
     }
 
@@ -794,7 +799,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             try {
                 session->Start();
             } catch (const Exception &e) {
-                emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+                emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
+                delete session;
+                session = nullptr;
                 return;
             }
             emit sessionChanged(session);
@@ -1783,8 +1793,13 @@ void QmlBackend::updateDiscoveryHosts()
                 try {
                     session->Start();
                 } catch (const Exception &e) {
-                    emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+                    emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
                     session_start_succeeded = false;
+                    chiaki_log_mutex.lock();
+                    chiaki_log_ctx = nullptr;
+                    chiaki_log_mutex.unlock();
+                    delete session;
+                    session = nullptr;
                 }
                 if(session_start_succeeded)
                 {
