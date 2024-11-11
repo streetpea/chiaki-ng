@@ -182,7 +182,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_x64-VC-installer.exe
-          path: chiaki-ng-installer.exe
+          name: chiaki-ng-win_x64-VC-installer.zip
+          path: chiaki-ng-windows-installer.exe
           if-no-files-found: error
           retention-days: 7

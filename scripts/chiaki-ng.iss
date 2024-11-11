@@ -37,7 +37,7 @@ LicenseFile=..\LICENSES\AGPL-3.0-only-OpenSSL.txt
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputBaseFilename=chiaki-ng-installer
+OutputBaseFilename=chiaki-ng-windows-installer
 OutputDir=..
 SetupIconFile=..\gui\chiaking.ico
 Compression=lzma
