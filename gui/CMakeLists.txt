@@ -55,6 +55,10 @@ set(RESOURCE_FILES "")
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaking.icns")
 elseif(WIN32)
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc.in
+		${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc
+		@ONLY)
 	list(APPEND RESOURCE_FILES "chiaking.rc")
 endif()
 

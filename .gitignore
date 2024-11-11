@@ -21,9 +21,12 @@ appdir
 /sdl2-*
 /protoc*
 /openssl*
+scripts/chiaki-ng.iss
+scripts/Output
 .vs
 CMakeSettings.json
 chiaki.rb
+gui/chiaking.rc
 *.jks
 secret.tar
 keystore-env.sh
