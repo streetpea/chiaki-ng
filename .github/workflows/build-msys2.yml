@@ -63,7 +63,7 @@ jobs:
       - name: Install python protobuf and zip
         run: |
           pip install protobuf
-          pacman -S zip git make unzip --noconfirm
+          pacman -S git make unzip --noconfirm
 
       - name: Build libbplacebo
         run: |
@@ -152,13 +152,18 @@ jobs:
           cp -R /mingw64/share/qt6/qml/QtQuick chiaki-ng-Win/qml/
           cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ chiaki-ng-Win/qml/QtQml/
           cp /mingw64/bin/Qt6QmlWorkerScript.dll chiaki-ng-Win/
-          zip -r chiaki-ng-Win.zip chiaki-ng-Win/
+
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: "scripts/chiaki-ng.iss"
+          options: /O+
 
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_x64-MSYS2-Release
-          path: chiaki-ng-Win.zip
+          name: chiaki-ng-win_x64-MSYS2-Release.zip
+          path: chiaki-ng-windows-installer.exe
           if-no-files-found: error
           retention-days: 7
           
