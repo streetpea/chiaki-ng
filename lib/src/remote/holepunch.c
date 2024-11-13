@@ -3379,7 +3379,7 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     int success = 0;
     struct UPNPDev *devlist = upnpDiscover(
-        2000 /** ms, delay*/, NULL, NULL, 0, 0, 0, &success);
+        2000 /** ms, delay*/, NULL, NULL, 0, 0, 2, &success);
     if (devlist == NULL || err != UPNPDISCOVER_SUCCESS) {
         CHIAKI_LOGI(log, "Failed to find UPnP-capable devices on network: err=%d", err);
         return CHIAKI_ERR_NETWORK;
