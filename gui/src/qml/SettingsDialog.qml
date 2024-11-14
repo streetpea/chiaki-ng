@@ -1248,7 +1248,7 @@ DialogView {
                             Keys.onPressed: (event) => {
                                 switch (event.key) {
                                     case Qt.Key_Left:
-                                        if (!lastInFocusChain) {
+                                        if (!firstInFocusChain) {
                                             let item = nextItemInFocusChain(false);
                                             if (item)
                                                 item.forceActiveFocus(Qt.TabFocusReason);
