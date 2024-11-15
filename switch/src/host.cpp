@@ -13,10 +13,10 @@ static void InitAudioCB(unsigned int channels, unsigned int rate, void *user)
 	io->InitAudioCB(channels, rate);
 }
 
-static bool VideoCB(uint8_t *buf, size_t buf_size, void *user)
+static bool VideoCB(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)
 {
 	IO *io = (IO *)user;
-	return io->VideoCB(buf, buf_size);
+	return io->VideoCB(buf, buf_size, frames_lost, frame_recovered, user);
 }
 
 static void AudioCB(int16_t *buf, size_t samples_count, void *user)

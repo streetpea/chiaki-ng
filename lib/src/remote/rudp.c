@@ -8,6 +8,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#if defined(__SWITCH__)
+#include <sys/socket.h>
+#endif
 
 #define RUDP_CONSTANT 0x244F244F
 #define RUDP_SEND_BUFFER_SIZE 16

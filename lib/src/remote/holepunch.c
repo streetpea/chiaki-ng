@@ -29,6 +29,15 @@
 #endif
 #include <windows.h>
 #include <iphlpapi.h>
+#elif defined(__SWITCH__)
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <net/if.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -2040,7 +2049,6 @@ static void* websocket_thread_func(void *user) {
         CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
         goto cleanup;
     }
-
     const struct curl_ws_frame *meta;
     char *buf = malloc(WEBSOCKET_MAX_FRAME_SIZE);
     if(!buf)
@@ -3356,6 +3364,18 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
     return err;
 #undef MALLOC
 #undef FREE
+#elif defined(__SWITCH__)
+    // switch does not have ifaddrs.h, use arpa/inet.h
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = gethostid();
+    if (!inet_ntop(AF_INET,  &(addr.sin_addr), local_console_candidate->addr, sizeof(local_console_candidate->addr)))
+    {
+        CHIAKI_LOGE(session->log, "%s: inet_ntop failed with error: " CHIAKI_SOCKET_ERROR_FMT "\n", addr.sin_addr.s_addr, CHIAKI_SOCKET_ERROR_VALUE);
+        CHIAKI_LOGE(session->log, "Couldn't find a valid external address!");
+        return CHIAKI_ERR_NETWORK;
+    }
+
 #else
     struct ifaddrs *local_addrs, *current_addr;
     void *in_addr;

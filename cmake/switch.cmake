@@ -33,6 +33,7 @@ else()
 	message(WARNING "nacptool - not found")
 endif()
 
+
 function(__add_nacp target APP_TITLE APP_AUTHOR APP_VERSION)
 	set(__NACP_COMMAND ${NACPTOOL} --create ${APP_TITLE} ${APP_AUTHOR} ${APP_VERSION} ${CMAKE_CURRENT_BINARY_DIR}/${target})
 

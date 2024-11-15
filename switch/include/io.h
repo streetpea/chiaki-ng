@@ -67,7 +67,7 @@ class IO
 		// default nintendo switch res
 		int screen_width = 1280;
 		int screen_height = 720;
-		AVCodec *codec;
+		const AVCodec *codec;
 		AVCodecContext *codec_context;
 		AVFrame *frame;
 		SDL_AudioDeviceID sdl_audio_device_id = 0;
@@ -108,7 +108,7 @@ class IO
 
 		~IO();
 		void SetMesaConfig();
-		bool VideoCB(uint8_t *buf, size_t buf_size);
+		bool VideoCB(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user);
 		void InitAudioCB(unsigned int channels, unsigned int rate);
 		void AudioCB(int16_t *buf, size_t samples_count);
 		bool InitVideo(int video_width, int video_height, int screen_width, int screen_height);
