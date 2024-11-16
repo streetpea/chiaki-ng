@@ -62,7 +62,14 @@ Item {
                     horizontalCenter: spinner.horizontalCenter
                     topMargin: 30
                 }
-                text: qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                text: {
+                    if(Chiaki.settings.dpadTouchEnabled)
+                    {
+                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press L3+R3 to toggle between regular dpad and dpad touch")
+                    }
+                    else
+                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                }
                 visible: sessionLoading
             }
 

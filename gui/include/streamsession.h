@@ -190,6 +190,8 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		ChiakiControllerState dpad_touch_state;
 		uint16_t dpad_touch_increment;
+		bool dpad_regular;
+		bool dpad_regular_touch_switched;
 		int8_t dpad_touch_id;
 		QPair<uint16_t, uint16_t> dpad_touch_value;
 		QTimer *dpad_touch_timer, *dpad_touch_stop_timer;

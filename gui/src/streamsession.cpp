@@ -170,6 +170,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	mic_authorization = false;
 #endif
 	allow_unmute = false;
+	dpad_regular = true;
+	dpad_regular_touch_switched = false;
 	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
 	ChiakiErrorCode err;
@@ -770,6 +772,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 		dpad_touch_timer->start();
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
 		if(dpad_touch_id < 0)
 		{
 			dpad_touch_value = QPair<uint16_t, uint16_t>((uint16_t)(0), (uint16_t)(PS_TOUCHPAD_MAXY / 2));
@@ -789,6 +792,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 	}
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
 		// starting new touch
 		if(dpad_touch_id < 0)
 		{
@@ -809,6 +813,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 	}
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
 		// starting new touch
 		if(dpad_touch_id < 0)
 		{
@@ -829,6 +834,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 	}
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_UP)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
 		// starting new touch
 		if(dpad_touch_id < 0)
 		{
@@ -960,7 +966,17 @@ void StreamSession::DpadSendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-	if(dpad_touch_increment && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
+	if((state.buttons & CHIAKI_CONTROLLER_BUTTON_R3) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L3) && !((state.buttons & CHIAKI_CONTROLLER_BUTTON_R1) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L1)))
+	{
+		if(!dpad_regular_touch_switched)
+		{
+			dpad_regular_touch_switched = true;
+			dpad_regular = !dpad_regular;
+		}
+	}
+	else
+		dpad_regular_touch_switched = false;
+	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
 	{
 		HandleDpadTouchEvent(&state, true);
 	}
@@ -1006,7 +1022,17 @@ void StreamSession::SendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-	if(dpad_touch_increment && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
+	if((state.buttons & CHIAKI_CONTROLLER_BUTTON_R3) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L3) && !((state.buttons & CHIAKI_CONTROLLER_BUTTON_R1) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L1)))
+	{
+		if(!dpad_regular_touch_switched)
+		{
+			dpad_regular_touch_switched = true;
+			dpad_regular = !dpad_regular;
+		}
+	}
+	else
+		dpad_regular_touch_switched = false;
+	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
 	{
 		HandleDpadTouchEvent(&state);
 	}
