@@ -218,6 +218,7 @@ Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation co
 | `L1`             | `L1`                    |
 | `L2`             | `L2`                    |
 | `L3`             | `L3` (left-stick click) |
+| `switch between dpad modes` | `L1+R1`      |
 | `stream menu`    | `L1+R1+L3+R3`           |
 
 ## Using a DualSense and/or DualShock4 Controller with `chiaki-ng`
@@ -350,7 +351,13 @@ You can reset a controller mapping for a controller back to default at any time
 
 ### Dpad Touch Emulation
 
-Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings->Controllers and can be disabled at any time. The `Dpad Touch Increment` controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position
+Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings->Controllers and can be disabled at any time. The `Dpad Touch Increment` controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position.
+
+#### Switching Dpad Mode
+
+Use `L3+R3` to switch between regular dpad and dpad touch emulation while in game.
+
+#### Examples
 
 ![Dpad Touch Emulation](images/DpadTouchEmulation.png)
 
