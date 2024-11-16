@@ -22,6 +22,7 @@ build_chiaki (){
 
 		cmake -B "${build}" \
 			-GNinja \
+			-DCMAKE_PREFIX_PATH=/opt/devkitpro/portlibs/switch/ \
 			-DCHIAKI_ENABLE_SWITCH_CURL=ON \
 			-DCHIAKI_ENABLE_SWITCH_JSONC=ON \
 			-DCMAKE_TOOLCHAIN_FILE=${toolchain} \
