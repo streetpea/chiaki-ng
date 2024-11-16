@@ -242,6 +242,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
 QmlBackend::~QmlBackend()
 {
+    if(session)
+    {
+        chiaki_log_mutex.lock();
+        chiaki_log_ctx = nullptr;
+        chiaki_log_mutex.unlock();
+        delete session;
+        session = nullptr;
+    }
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
