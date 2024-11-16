@@ -7,6 +7,7 @@ endif()
 
 # include devkitpro toolchain
 include("${DEVKITPRO}/cmake/Switch.cmake")
+set(PORTLIBS "${DEVKITPRO}/portlibs/switch" CACHE PATH "Path to devkitpro switch portlibs")
 
 set(NSWITCH TRUE)
 
