@@ -5,6 +5,7 @@
 
 #define SCREEN_W 1280
 #define SCREEN_H 720
+#define PIN_MAX_LEN 4
 
 // TODO
 using namespace brls::i18n::literals; // for _i18n
@@ -23,6 +24,7 @@ HostInterface::HostInterface(Host *host)
 	: host(host)
 {
 	this->settings = Settings::GetInstance();
+	this->log = this->settings->GetLogger();
 	this->io = IO::GetInstance();
 
 	brls::ListItem *connect = new brls::ListItem("Connect");
@@ -42,6 +44,8 @@ HostInterface::HostInterface(Host *host)
 	// when the host is connected
 	this->host->SetEventConnectedCallback(std::bind(&HostInterface::Stream, this));
 	this->host->SetEventQuitCallback(std::bind(&HostInterface::CloseStream, this, std::placeholders::_1));
+	// push login pin view onto the stack in callback fn
+	this->host->SetEventLoginPinRequestCallback(std::bind(&HostInterface::EnterPin, this, std::placeholders::_1));
 	// allow host to update controller state
 	this->host->SetEventRumbleCallback(std::bind(&IO::SetRumble, this->io, std::placeholders::_1, std::placeholders::_2));
 	this->host->SetReadControllerCallback(std::bind(&IO::UpdateControllerState, this->io, std::placeholders::_1, std::placeholders::_2));
@@ -192,6 +196,7 @@ void HostInterface::ConnectSession()
 
 	// connect host sesssion
 	this->host->InitSession(this->io);
+	CHIAKI_LOGI(this->log, "Session initiated");
 	this->host->StartSession();
 }
 
@@ -235,6 +240,19 @@ void HostInterface::CloseStream(ChiakiQuitEvent *quit)
 	*/
 	brls::Application::notify(chiaki_quit_reason_string(quit->reason));
 	Disconnect();
+}
+
+void HostInterface::EnterPin(bool isError) 
+{
+	// enter pin callback,
+	// inputs were blocked in ConnectSession
+	brls::Application::unblockInputs();
+	// if this is triggered as a result 
+	if(isError){
+		brls::Application::notify("Wrong pin");
+	}
+	
+	brls::Application::pushView(new EnterPinView(this->host, isError));
 }
 
 MainApplication::MainApplication(DiscoveryManager *discoverymanager)
@@ -553,4 +571,46 @@ void PSRemotePlay::draw(NVGcontext *vg, int x, int y, unsigned width, unsigned h
 
 PSRemotePlay::~PSRemotePlay()
 {
+}
+
+EnterPinView::EnterPinView(Host *host, bool isError)
+	: host(host)
+{
+	this->isError = isError;
+	this->settings = Settings::GetInstance();
+	this->log = this->settings->GetLogger();
+}
+
+EnterPinView::~EnterPinView()
+{
+}
+
+void EnterPinView::ClosePinView()
+{
+	brls::Application::popView();	
+}
+
+void EnterPinView::draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx)
+{
+	// the host is not logged in yet
+	// use callback to ensure that the message is showed on screen
+	// before the Swkbd
+	const std::string title = !this->isError ? "Please enter your login pin" : "Login PIN incorrect: please try again!";
+	auto login_pin_input_cb = [this](int pin) {
+		// prevent users form messing with the gui
+		brls::Application::blockInputs();
+		std::string pin_str = std::to_string(pin);
+		// left pad. ie "0001"
+		pin_str.insert(0, PIN_MAX_LEN - pin_str.length(), '0'); 
+		this->login_pin = pin_str;
+	};
+	brls::Swkbd::openForNumber(login_pin_input_cb,
+		title, "4 digits without spaces", PIN_MAX_LEN, "", "", "");
+	CHIAKI_LOGI(this->log, "Sending pin to libchiaki");
+	ChiakiErrorCode ret = chiaki_session_set_login_pin(&(this->host->session), reinterpret_cast<const uint8_t*>(this->login_pin.c_str()), this->login_pin.length());
+	if(ret != CHIAKI_ERR_SUCCESS)	
+	{
+		brls::Application::notify(chiaki_error_string(ret));
+	}
+	this->ClosePinView();
 }

@@ -90,6 +90,9 @@ class Host
 		ChiakiConnectVideoProfile video_profile;
 		friend class Settings;
 		friend class DiscoveryManager;
+		// allows session to be passed to gui
+		friend class HostInterface;
+		friend class EnterPinView;
 
 	public:
 		Host(std::string host_name);
