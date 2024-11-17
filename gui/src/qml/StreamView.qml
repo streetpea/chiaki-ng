@@ -65,7 +65,7 @@ Item {
                 text: {
                     if(Chiaki.settings.dpadTouchEnabled)
                     {
-                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press L3+R3 to toggle between regular dpad and dpad touch")
+                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
                     }
                     else
                         qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")

@@ -487,20 +487,19 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
 			// int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
 			uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
-			// check if motion reset type is used
-			if(memcmp(buf + 8, motion_reset, 4) == 0)
-			{
-				reset = true;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
-				break;
-			}
+			// check if motion normal is used, else motion reset
 			if(memcmp(buf + 8, motion_normal, 4) == 0)
 			{
 				reset = false;
 				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
 				break;
 			}
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
+			else
+			{
+				reset = true;
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
+				break;
+			}
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
 			return;
 			// if(!memcmp(buf + 12, unknown0, 13) == 0)
@@ -512,18 +511,17 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		}
 		case 0x11:
 		{
-			// check if motion reset type is used
-			if(memcmp(buf, motion_reset, 4) == 0)
-			{
-				reset = true;
-				break;
-			}
+			// check if motion normal is used, else motion reset
 			if(memcmp(buf, motion_normal, 4) == 0)
 			{
 				reset = false;
 				break;
 			}
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
+			else
+			{
+				reset = true;
+				break;
+			}
 			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
 			return;
 		}

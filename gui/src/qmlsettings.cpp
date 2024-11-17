@@ -1275,6 +1275,42 @@ QVariantList QmlSettings::controllerMapping() const
     return out;
 }
 
+QString QmlSettings::stringForDpadShortcut() const
+{
+    QString shortcut_string = "";
+    bool plus_next = false;
+    uint shortcut1 = settings->GetDpadTouchShortcut1();
+    uint shortcut2 = settings->GetDpadTouchShortcut2();
+    uint shortcut3 = settings->GetDpadTouchShortcut3();
+    uint shortcut4 = settings->GetDpadTouchShortcut4();
+    if(shortcut1)
+    {
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut1 - 1)));
+        plus_next = true;
+    }
+    if(shortcut2)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        plus_next = true;
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut2 - 1)));
+    }
+    if(shortcut3)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        plus_next = true;
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut3 - 1)));
+    }
+    if(shortcut4)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut4 - 1)));
+    }
+    return shortcut_string;
+}
+
 void QmlSettings::deleteRegisteredHost(int index)
 {
     settings->RemoveRegisteredHost(settings->GetRegisteredHosts().value(index).GetServerMAC());

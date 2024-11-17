@@ -482,6 +482,7 @@ public:
     Q_INVOKABLE void importSettings(QString fileurl);
     Q_INVOKABLE void importPlaceboSettings(QString fileurl);
     Q_INVOKABLE void deleteProfile(QString profile);
+    Q_INVOKABLE QString stringForDpadShortcut() const;
 
 signals:
     void resolutionLocalPS4Changed();
