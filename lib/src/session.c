@@ -183,7 +183,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	ChiakiErrorCode err = chiaki_cond_init(&session->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error;
-
+		
 	err = chiaki_mutex_init(&session->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_state_cond;
@@ -337,8 +337,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size)
 {
 	uint8_t *buf = malloc(pin_size);
-	if(!buf)
+	if(!buf){
 		return CHIAKI_ERR_MEMORY;
+	}
 	memcpy(buf, pin, pin_size);
 	ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
@@ -523,7 +524,6 @@ static void *session_thread_func(void *arg)
 		event.login_pin_request.pin_incorrect = pin_incorrect;
 		chiaki_session_send_event(session, &event);
 		pin_incorrect = true;
-
 		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, UINT64_MAX, session_check_state_pred_pin, session);
 		CHECK_STOP(quit_ctrl);
 		if(session->ctrl_failed)
@@ -539,7 +539,6 @@ static void *session_thread_func(void *arg)
 		free(session->login_pin);
 		session->login_pin = NULL;
 		session->login_pin_size = 0;
-
 		// wait for session id or new login pin request
 		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);

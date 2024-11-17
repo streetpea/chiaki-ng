@@ -25,6 +25,7 @@ class HostInterface : public brls::List
 		IO *io;
 		Host *host;
 		Settings *settings;
+		ChiakiLog *log = nullptr;
 		bool connected = false;
 
 	public:
@@ -38,6 +39,7 @@ class HostInterface : public brls::List
 		void ConnectSession();
 		void Disconnect();
 		void Stream();
+		void EnterPin(bool isError);
 		void CloseStream(ChiakiQuitEvent *quit);
 };
 
@@ -76,4 +78,20 @@ class PSRemotePlay : public brls::View
 		void draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx) override;
 };
 
+
+
+class EnterPinView :public brls::View
+{
+	private:
+		Host *host;
+		std::string login_pin;
+		Settings *settings;
+		ChiakiLog *log = nullptr;
+		bool isError = false;
+	public:
+		EnterPinView(Host *host, bool isError);
+		~EnterPinView();
+		void ClosePinView();
+		void draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx) override;
+};
 #endif // CHIAKI_GUI_H
