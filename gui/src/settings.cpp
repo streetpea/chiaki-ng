@@ -804,6 +804,34 @@ void Settings::SetDpadTouchIncrement(uint16_t increment)
 	settings.setValue("settings/dpad_touch_increment", increment);
 }
 
+uint Settings::GetDpadTouchShortcut1() const {
+	return settings.value("settings/dpad_touch_shortcut1", 9).toUInt();
+}
+void Settings::SetDpadTouchShortcut1(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut1", button);
+}
+
+uint Settings::GetDpadTouchShortcut2() const {
+	return settings.value("settings/dpad_touch_shortcut2", 10).toUInt();
+}
+void Settings::SetDpadTouchShortcut2(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut2", button);
+}
+
+uint Settings::GetDpadTouchShortcut3() const {
+	return settings.value("settings/dpad_touch_shortcut3", 7).toUInt();
+}
+void Settings::SetDpadTouchShortcut3(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut3", button);
+}
+
+uint Settings::GetDpadTouchShortcut4() const {
+	return settings.value("settings/dpad_touch_shortcut4", 0).toUInt();
+}
+void Settings::SetDpadTouchShortcut4(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut4", button);
+}
+
 QString Settings::GetPsnAccountId() const
 {
 	return settings.value("settings/psn_account_id").toString();

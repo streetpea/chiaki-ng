@@ -218,7 +218,7 @@ Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation co
 | `L1`             | `L1`                    |
 | `L2`             | `L2`                    |
 | `L3`             | `L3` (left-stick click) |
-| `switch between dpad modes` | `L1+R1`      |
+| `switch between dpad modes` | `L1+R1+dpad up`      |
 | `stream menu`    | `L1+R1+L3+R3`           |
 
 ## Using a DualSense and/or DualShock4 Controller with `chiaki-ng`
@@ -355,7 +355,7 @@ Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a t
 
 #### Switching Dpad Mode
 
-Use `L3+R3` to switch between regular dpad and dpad touch emulation while in game.
+Use the dpad touch switch button combo (default is `L1+R1+Dpad Up` but it's user configurable in settings->Controllers) to switch between regular dpad and dpad touch emulation while in game.
 
 #### Examples
 
@@ -363,7 +363,7 @@ Use `L3+R3` to switch between regular dpad and dpad touch emulation while in gam
 
 !!! Question "How does Dpad Touch Emulation work"
 
-    Pushing one of the dpad buttons will register a touch in the quadrant of that button:
+    When the dpad touch mode is enabled (toggled via the dpad touch switch button combo mentioned above), pushing one of the dpad buttons will register a touch in the quadrant of that button:
 
     - Dpad Left: All the way to the left and halfway up the touchpad
 

@@ -524,6 +524,38 @@ void QmlSettings::setDpadTouchIncrement(uint16_t increment)
     emit dpadTouchIncrementChanged();
 }
 
+uint QmlSettings::dpadTouchShortcut1() const {
+	return settings->GetDpadTouchShortcut1();
+}
+void QmlSettings::setDpadTouchShortcut1(uint button) {
+	settings->SetDpadTouchShortcut1(button);
+    emit dpadTouchShortcut1Changed();
+}
+
+uint QmlSettings::dpadTouchShortcut2() const {
+	return settings->GetDpadTouchShortcut2();
+}
+void QmlSettings::setDpadTouchShortcut2(uint button) {
+	settings->SetDpadTouchShortcut2(button);
+    emit dpadTouchShortcut2Changed();
+}
+
+uint QmlSettings::dpadTouchShortcut3() const {
+	return settings->GetDpadTouchShortcut3();
+}
+void QmlSettings::setDpadTouchShortcut3(uint button) {
+	settings->SetDpadTouchShortcut3(button);
+    emit dpadTouchShortcut3Changed();
+}
+
+uint QmlSettings::dpadTouchShortcut4() const {
+	return settings->GetDpadTouchShortcut4();
+}
+void QmlSettings::setDpadTouchShortcut4(uint button) {
+	settings->SetDpadTouchShortcut4(button);
+    emit dpadTouchShortcut4Changed();
+}
+
 QString QmlSettings::currentProfile() const
 {
     return settings->GetCurrentProfile();
@@ -1337,6 +1369,10 @@ void QmlSettings::refreshAllKeys()
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
     emit dpadTouchIncrementChanged();
+    emit dpadTouchShortcut1Changed();
+    emit dpadTouchShortcut2Changed();
+    emit dpadTouchShortcut3Changed();
+    emit dpadTouchShortcut4Changed();
     emit controllerMappingChanged();
     emit packetLossMaxChanged();
     emit currentProfileChanged();

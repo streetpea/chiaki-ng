@@ -169,6 +169,7 @@ enum class PlaceboToneMappingMetadata {
 	Hdr10Plus,
 	CieY
 };
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -349,6 +350,18 @@ class Settings : public QObject
 
 		uint16_t GetDpadTouchIncrement() const;
 		void SetDpadTouchIncrement(uint16_t increment);
+
+		uint GetDpadTouchShortcut1() const;
+		void SetDpadTouchShortcut1(uint button);
+
+		uint GetDpadTouchShortcut2() const;
+		void SetDpadTouchShortcut2(uint button);
+
+		uint GetDpadTouchShortcut3() const;
+		void SetDpadTouchShortcut3(uint button);
+
+		uint GetDpadTouchShortcut4() const;
+		void SetDpadTouchShortcut4(uint button);
 
 		void DeleteProfile(QString profile);
 

@@ -121,6 +121,18 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = std::move(duid);
 	this->dpad_touch_increment = settings->GetDpadTouchEnabled() ? settings->GetDpadTouchIncrement(): 0;
+	this->dpad_touch_shortcut1 = settings->GetDpadTouchShortcut1();
+	if(this->dpad_touch_shortcut1 > 0)
+		this->dpad_touch_shortcut1 = 1 << (this->dpad_touch_shortcut1 - 1);
+	this->dpad_touch_shortcut2 = settings->GetDpadTouchShortcut2();
+	if(this->dpad_touch_shortcut2 > 0)
+		this->dpad_touch_shortcut2 = 1 << (this->dpad_touch_shortcut2 - 1);
+	this->dpad_touch_shortcut3 = settings->GetDpadTouchShortcut3();
+	if(this->dpad_touch_shortcut3 > 0)
+		this->dpad_touch_shortcut3 = 1 << (this->dpad_touch_shortcut3 - 1);
+	this->dpad_touch_shortcut4 = settings->GetDpadTouchShortcut4();
+	if(this->dpad_touch_shortcut4 > 0)
+		this->dpad_touch_shortcut4 = 1 << (this->dpad_touch_shortcut4 - 1);
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -242,6 +254,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.enable_dualsense = connect_info.enable_dualsense;
 	chiaki_connect_info.packet_loss_max = connect_info.packet_loss_max;
 
+	dpad_touch_shortcut1 = connect_info.dpad_touch_shortcut1;
+	dpad_touch_shortcut2 = connect_info.dpad_touch_shortcut2;
+	dpad_touch_shortcut3 = connect_info.dpad_touch_shortcut3;
+	dpad_touch_shortcut4 = connect_info.dpad_touch_shortcut4;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)
 	{
@@ -966,7 +982,7 @@ void StreamSession::DpadSendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-	if((state.buttons & CHIAKI_CONTROLLER_BUTTON_R3) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L3) && !((state.buttons & CHIAKI_CONTROLLER_BUTTON_R1) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L1)))
+	if((dpad_touch_shortcut1 || dpad_touch_shortcut2 || dpad_touch_shortcut3 || dpad_touch_shortcut4) && (!dpad_touch_shortcut1 || (state.buttons & dpad_touch_shortcut1)) && (!dpad_touch_shortcut2 || (state.buttons & dpad_touch_shortcut2)) && (!dpad_touch_shortcut3 || (state.buttons & dpad_touch_shortcut3)) && (!dpad_touch_shortcut4 || (state.buttons & dpad_touch_shortcut4)))
 	{
 		if(!dpad_regular_touch_switched)
 		{
@@ -1022,7 +1038,7 @@ void StreamSession::SendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-	if((state.buttons & CHIAKI_CONTROLLER_BUTTON_R3) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L3) && !((state.buttons & CHIAKI_CONTROLLER_BUTTON_R1) && (state.buttons & CHIAKI_CONTROLLER_BUTTON_L1)))
+	if((dpad_touch_shortcut1 || dpad_touch_shortcut2 || dpad_touch_shortcut3 || dpad_touch_shortcut4) && (!dpad_touch_shortcut1 || (state.buttons & dpad_touch_shortcut1)) && (!dpad_touch_shortcut2 || (state.buttons & dpad_touch_shortcut2)) && (!dpad_touch_shortcut3 || (state.buttons & dpad_touch_shortcut3)) && (!dpad_touch_shortcut4 || (state.buttons & dpad_touch_shortcut4)))
 	{
 		if(!dpad_regular_touch_switched)
 		{

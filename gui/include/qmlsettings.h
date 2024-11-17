@@ -62,6 +62,10 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
     Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
+    Q_PROPERTY(uint dpadTouchShortcut1 READ dpadTouchShortcut1 WRITE setDpadTouchShortcut1 NOTIFY dpadTouchShortcut1Changed)
+    Q_PROPERTY(uint dpadTouchShortcut2 READ dpadTouchShortcut2 WRITE setDpadTouchShortcut2 NOTIFY dpadTouchShortcut2Changed)
+    Q_PROPERTY(uint dpadTouchShortcut3 READ dpadTouchShortcut3 WRITE setDpadTouchShortcut3 NOTIFY dpadTouchShortcut3Changed)
+    Q_PROPERTY(uint dpadTouchShortcut4 READ dpadTouchShortcut4 WRITE setDpadTouchShortcut4 NOTIFY dpadTouchShortcut4Changed)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
@@ -442,6 +446,18 @@ public:
     uint16_t dpadTouchIncrement() const;
     void setDpadTouchIncrement(uint16_t increment);
 
+    uint dpadTouchShortcut1() const;
+    void setDpadTouchShortcut1(uint button);
+
+    uint dpadTouchShortcut2() const;
+    void setDpadTouchShortcut2(uint button);
+
+    uint dpadTouchShortcut3() const;
+    void setDpadTouchShortcut3(uint button);
+
+    uint dpadTouchShortcut4() const;
+    void setDpadTouchShortcut4(uint button);
+
     QString currentProfile() const;
     void setCurrentProfile(const QString &profile);
 
@@ -518,6 +534,10 @@ signals:
     void psnAccountIdChanged();
     void dpadTouchEnabledChanged();
     void dpadTouchIncrementChanged();
+    void dpadTouchShortcut1Changed();
+    void dpadTouchShortcut2Changed();
+    void dpadTouchShortcut3Changed();
+    void dpadTouchShortcut4Changed();
     void controllerMappingChanged();
     void packetLossMaxChanged();
     void currentProfileChanged();
