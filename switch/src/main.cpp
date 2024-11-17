@@ -28,7 +28,6 @@ bool appletMainLoop()
 // use a custom nintendo switch socket config
 // chiaki requiers many threads with udp/tcp sockets
 static const SocketInitConfig g_chiakiSocketInitConfig = {
-	.bsdsockets_version = 1,
 
 	.tcp_tx_buf_size = 0x8000,
 	.tcp_rx_buf_size = 0x10000,

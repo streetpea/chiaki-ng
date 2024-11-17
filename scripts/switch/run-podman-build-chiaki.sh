@@ -2,10 +2,15 @@
 
 cd "`dirname $(readlink -f ${0})`/../.."
 
-podman run --rm \
-	-v "`pwd`:/build/chiaki" \
+docker run --rm \
+	-v "`pwd`:/build/chiaki":z \
 	-w "/build/chiaki" \
 	-it \
-	thestr4ng3r/chiaki-build-switch:v2 \
+	docker.io/xlanor/chiaki-ng-switch-builder:latest \
 	/bin/bash -c "scripts/switch/build.sh"
+
+if [[ $? -eq 0 ]]; then
+	sudo chmod -R 777 ./build_switch
+	cp build_switch/switch/chiaki.nro build_switch/switch/chiaki-ng.nro
+fi
 

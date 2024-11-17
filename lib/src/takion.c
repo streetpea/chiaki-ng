@@ -22,8 +22,8 @@
 #include <ws2tcpip.h>
 #elif defined(__SWITCH__)
 #include <unistd.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #else
 #include <unistd.h>

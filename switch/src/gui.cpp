@@ -280,7 +280,7 @@ bool MainApplication::Load()
 
 	// Create a view
 	this->rootFrame = new brls::TabFrame();
-	this->rootFrame->setTitle("Chiaki: Open Source PlayStation Remote Play Client");
+	this->rootFrame->setTitle("Chiaki-ng: Open Source PlayStation Remote Play Client");
 	this->rootFrame->setIcon(BOREALIS_ASSET("icon.png"));
 
 	brls::List *config = new brls::List();

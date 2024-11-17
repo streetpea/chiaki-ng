@@ -251,7 +251,7 @@ static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
 }
 #endif
 
-#if !__APPLE__
+#if !__APPLE__ && !__SWITCH__
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void **retval, uint64_t timeout_ms)
 {
 #if _WIN32

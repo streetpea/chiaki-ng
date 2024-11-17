@@ -169,7 +169,7 @@ void IO::DumpProgramError(GLuint prog, const char *func, const char *file, int l
 	}
 #endif
 
-bool IO::VideoCB(uint8_t *buf, size_t buf_size)
+bool IO::VideoCB(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)
 {
 	// callback function to decode video buffer
 

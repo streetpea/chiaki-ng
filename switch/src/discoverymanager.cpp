@@ -57,7 +57,7 @@ void DiscoveryManager::SetService(bool enable)
 		sockaddr_in addr = {};
 		addr.sin_family = AF_INET;
 		addr.sin_addr.s_addr = GetIPv4BroadcastAddr();
-		options.send_addr = reinterpret_cast<sockaddr *>(&addr);
+		options.send_addr = reinterpret_cast<sockaddr_storage *>(&addr);
 		options.send_addr_size = sizeof(addr);
 
 		ChiakiErrorCode err = chiaki_discovery_service_init(&this->service, &options, log);

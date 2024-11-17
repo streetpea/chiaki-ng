@@ -126,8 +126,8 @@ install(TARGETS chiaki-borealis
 if(CHIAKI_IS_SWITCH)
 	add_nro_target(chiaki
 		chiaki-borealis
-		"Chiaki"
-		"H0neyBadger and thestr4ng3r"
+		"Chiaki-ng"
+		"StreetPea, xlanor, H0neyBadger and thestr4ng3r"
 		"${CHIAKI_VERSION}"
 		"${CMAKE_CURRENT_SOURCE_DIR}/nro_icon.jpg"
 		"${CMAKE_CURRENT_SOURCE_DIR}/res")
