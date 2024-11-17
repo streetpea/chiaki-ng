@@ -272,12 +272,13 @@ void QmlMainWindow::show()
         QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
-    resize(1920, 1080);
+    auto screen_size = QGuiApplication::primaryScreen()->availableSize();
+    resize(screen_size);
 
     if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
         showFullScreen();
     else
-        showNormal();
+        showMaximized();
 }
 
 void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
