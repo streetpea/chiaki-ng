@@ -587,7 +587,8 @@ EnterPinView::~EnterPinView()
 
 void EnterPinView::ClosePinView()
 {
-	brls::Application::popView();	
+	brls::Application::popView();
+	brls::Application::unblockInputs();
 }
 
 void EnterPinView::draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx)
