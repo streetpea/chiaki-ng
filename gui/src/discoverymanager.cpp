@@ -27,7 +27,7 @@ HostMAC DiscoveryHost::GetHostMAC() const
 	QByteArray data = QByteArray::fromHex(host_id.toUtf8());
 	if(data.size() != 6)
 	{
-		fprintf(stderr, "Invalid mac received %s", host_id);
+		fprintf(stderr, "Invalid mac received %s", host_id.toUtf8().constData());
 		return HostMAC();
 	}
 	return HostMAC((uint8_t *)data.constData());
