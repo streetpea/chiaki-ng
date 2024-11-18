@@ -903,13 +903,14 @@ void QmlBackend::addManualHost(int index, const QString &address)
 void QmlBackend::hideHost(const QString &mac_string, const QString &host_nickname)
 {
     QByteArray mac_array = QByteArray::fromHex(mac_string.toUtf8());
-    const char *mac_ptr = mac_array.constData();
-    if (strlen(mac_ptr) != 6)
+    if (mac_array.size() != 6)
     {
-        qCCritical(chiakiGui) << " Aborting hidden host creation because mac string couldn't be converted to a valid host mac!";
+        qCCritical(chiakiGui) << "Invalid host mac:" << mac_string.toUtf8();
+        qCCritical(chiakiGui) << "Aborting hidden host creation because mac string couldn't be converted to a valid host mac!";
+        qCCritical(chiakiGui) << "Received an array of unexpected size. Expected: 6 bytes, Received:" << mac_array.size() << "bytes";
         return;
     }
-    HostMAC mac((const uint8_t *)mac_ptr);
+    HostMAC mac((const uint8_t *)mac_array.constData());
     HiddenHost hidden_host(mac, host_nickname);
     settings->AddHiddenHost(hidden_host);
     emit hostsChanged();
