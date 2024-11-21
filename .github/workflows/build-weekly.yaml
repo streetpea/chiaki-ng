@@ -1,0 +1,282 @@
+name: Build chiaki-ng weekly
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    name: Upload weekly release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: ncipollo/release-action@v1
+      with:
+        prerelease: true
+        commit: ${{ GITHUB_SHA }}
+        tag: weekly-canary-release-${{ GITHUB_SHA }}
+        allowUpdates: true
+
+  build-win_x64:
+    name: Build chiaki-ng win_x64 (VC)
+    runs-on: windows-latest
+    needs: create-release
+    env:
+      CC: clang-cl.exe
+      CXX: clang-cl.exe
+      VULKAN_SDK: C:\VulkanSDK\
+      triplet: x64-windows
+      vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
+      VCPKG_INSTALLED_DIR: ./vcpkg_installed/
+      dep_folder: deps
+      libplacebo_tag: v7.349.0
+
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Vulkan
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
+          echo Version $ver
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
+          echo Downloaded
+          .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
+
+      - name: Set up Ninja
+        run: choco install ninja
+
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: 18
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+
+      - name: Install pip dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade setuptools wheel
+          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          python3 -m pip install --user --upgrade meson
+          python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.7.*"
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtwebengine qtpositioning qtwebchannel'
+
+      - name: Setup ffmpeg
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/r52/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
+          Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -DestinationPath "."
+          Rename-Item "ffmpeg-n7.1-latest-win64-gpl-shared-7.1" "${{ env.dep_folder }}"
+
+      - name: Build SPIRV-Cross
+        run: |
+          git clone https://github.com/KhronosGroup/SPIRV-Cross.git
+          cd SPIRV-Cross
+          cmake `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\${{ env.dep_folder }}" `
+          -DSPIRV_CROSS_SHARED=ON `
+          -S . `
+          -B build `
+          -G Ninja
+          cmake --build build --config Release
+          cmake --install build
+
+      - name: Setup shaderc
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $url = ((Invoke-WebRequest -UseBasicParsing -Uri "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2019_release.html").Content | Select-String -Pattern 'url=(.*)"').Matches.Groups[1].Value
+          Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile .\shaderc.zip
+          Expand-Archive -LiteralPath "shaderc.zip" -DestinationPath "."
+          cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
+          rm "./install" -r -force
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
+          runVcpkgInstall: true
+          vcpkgJsonGlob: "vcpkg.json"
+
+      - name: Build libplacebo
+        run: |
+          git clone --recursive https://github.com/haasn/libplacebo.git
+          cd libplacebo
+          git checkout --recurse-submodules ${{ env.libplacebo_tag }}
+          meson setup `
+          --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
+          --native-file ../meson.ini `
+          "--pkg-config-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\lib\pkgconfig','${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\share\pkgconfig','${{ github.workspace }}\${{ env.dep_folder }}\lib\pkgconfig']" `
+          "--cmake-prefix-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}', '${{ env.VULKAN_SDK }}', '${{ github.workspace }}\${{ env.dep_folder }}']" `
+          -Dc_args="/I ${{ env.VULKAN_SDK }}Include" `
+          -Dcpp_args="/I ${{ env.VULKAN_SDK }}Include" `
+          -Dc_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
+          -Dcpp_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
+          -Ddemos=false `
+          ./build
+          ninja -C./build
+          ninja -C./build install
+
+      - name: Apply Patches
+        run: |
+          git apply --ignore-whitespace --verbose --directory=third-party/gf-complete/ scripts/windows-vc/gf-complete.patch
+          git apply --ignore-whitespace --verbose scripts/windows-vc/libplacebo-pc.patch
+
+      - name: Configure chiaki-ng
+        run: |
+          cmake `
+          -S . `
+          -B build `
+          -G Ninja `
+          -DCMAKE_TOOLCHAIN_FILE:STRING="vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCHIAKI_ENABLE_CLI=OFF `
+          -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON `
+          -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF `
+          -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF `
+          -DPYTHON_EXECUTABLE="${{ env.pythonLocation }}\python.exe" `
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}\${{ env.dep_folder }};${{ env.VULKAN_SDK }}"
+
+      - name: Build chiaki-ng
+        run: |
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Prepare Qt deployment package
+        run: |
+          mkdir chiaki-ng-Win
+          cp build\gui\chiaki.exe chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\fftw3.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\opus.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libspeexdsp.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
+          windeployqt.exe --no-translations --qmldir=gui/src/qml/ chiaki-ng-Win\chiaki.exe
+
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: "scripts/chiaki-ng.iss"
+          options: /O+
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-win_x64-VC-installer.zip
+          path: chiaki-ng-windows-installer.exe
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          if-no-files-found: error
+          retention-days: 7
+
+  build-mac_arm64_github:
+    name: Build macOSX arm64 version Github
+    runs-on: macos-14
+    needs: create-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install protobuf
+        run: |
+          pip3 install --user protobuf --break-system-packages
+      - name: Install brew dependencies
+        run: |
+          brew update
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
+
+      - name: Configure chiaki-ng
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/@openssl@3;$(brew --prefix)/opt/qt@6"
+
+      - name: Build chiaki-ng
+        run: |
+          export CPATH=$(brew --prefix)/opt/ffmpeg/include
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Deploy chiaki-ng
+        run: |
+          cp -a build/gui/chiaki.app chiaki-ng.app
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          mkdir -p chiaki-ng.app/Contents/Resources/vulkan/icd.d
+          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          cp MoltenVK/MoltenVK/dylib/macOS/* chiaki-ng.app/Contents/Resources/vulkan/icd.d
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
+          hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.dmg
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-macos_arm64-Release
+          path: chiaki-ng.dmg
+          if-no-files-found: error
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          retention-days: 7
+
+  build-appimage_x64:
+    name: Build chiaki-ng appimage_x64
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+      - name: Setup Podman
+        run: |
+          sudo apt update
+          sudo apt-get -y install podman
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: 'chiaki-ng'
+
+      - name: Run build script
+        working-directory: chiaki-ng/scripts
+        run: |
+          ./run-podman-build-appimage.sh
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng.AppImage
+          path: chiaki-ng/appimage/chiaki-ng.AppImage
+          if-no-files-found: error
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          retention-days: 7
