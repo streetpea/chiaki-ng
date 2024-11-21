@@ -352,6 +352,8 @@ bool IO::InitVideo(int video_width, int video_height, int screen_width, int scre
 
 	this->screen_width = screen_width;
 	this->screen_height = screen_height;
+	this->frames = (AVFrame**)malloc(MAX_FRAME_COUNT * sizeof(AVFrame*));
+
 	for (int i = 0; i < MAX_FRAME_COUNT; i++) {
 			frames[i] = av_frame_alloc();
 			if (frames[i] == NULL) {
@@ -404,6 +406,7 @@ bool IO::FreeVideo()
 				av_frame_free(&this->frames[i]);
 			}
 		}
+		free(this->frames); // allocted via malloc
 	}
 
 	if(this->tmp_frame)
