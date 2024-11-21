@@ -13,11 +13,14 @@ jobs:
       contents: write
     steps:
     - uses: ncipollo/release-action@v1
+      id: maker
       with:
         prerelease: true
         commit: ${{ github.sha }}
         tag: weekly-canary-release-${{ github.sha }}
         allowUpdates: true
+    outputs:
+      upload_url: ${{ steps.maker.outputs.upload_url }}
 
   build-win_x64:
     name: Build chiaki-ng win_x64 (VC)
@@ -208,7 +211,7 @@ jobs:
             chiaki-ng-windows-installer.exe
           upload-release-files: true
           if-no-files-found: error
-          release-upload-url:  ${{ needs.create-release.outputs.upload_url }}
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
 
   build-mac_arm64_github:
     name: Build macOSX arm64 version Github
@@ -259,7 +262,7 @@ jobs:
             chiaki-ng-macos_arm64-Release.dmg
           if-no-files-found: error
           upload-release-files: true
-          release-upload-url:  ${{ needs.create-release.outputs.upload_url }}
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
 
   build-appimage_x64:
     name: Build chiaki-ng appimage_x64
@@ -292,4 +295,4 @@ jobs:
             chiaki-ng/appimage/chiaki-ng.AppImage
           upload-release-files: true
           if-no-files-found: error
-          release-upload-url:  ${{ needs.create-release.outputs.upload_url }}
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
