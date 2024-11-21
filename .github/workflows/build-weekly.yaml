@@ -22,6 +22,8 @@ jobs:
   build-win_x64:
     name: Build chiaki-ng win_x64 (VC)
     runs-on: windows-latest
+    permissions:
+      contents: write
     needs: create-release
     env:
       CC: clang-cl.exe
@@ -195,18 +197,24 @@ jobs:
           path: "scripts/chiaki-ng.iss"
           options: /O+
 
+      - name: Rename installer
+        run: |
+          cp chiaki-ng-windows-installer.exe chiaki-ng-win_x64-VC-installer.exe
+
       - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          name: chiaki-ng-win_x64-VC-installer.zip
-          path: chiaki-ng-windows-installer.exe
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          path: |
+            chiaki-ng-windows-installer.exe
+          upload-release-files: true
           if-no-files-found: error
-          retention-days: 7
+          release-upload-url:  ${{ needs.create-release.outputs.upload_url }}
 
   build-mac_arm64_github:
     name: Build macOSX arm64 version Github
     runs-on: macos-14
+    permissions:
+      contents: write
     needs: create-release
     steps:
       - uses: actions/checkout@v4
@@ -242,19 +250,22 @@ jobs:
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.dmg
+          cp chiaki-ng.dmg chiaki-ng-macos_arm64-Release.dmg
 
       - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          name: chiaki-ng-macos_arm64-Release
-          path: chiaki-ng.dmg
+          path: |
+            chiaki-ng-macos_arm64-Release.dmg
           if-no-files-found: error
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          retention-days: 7
+          upload-release-files: true
+          release-upload-url:  ${{ needs.create-release.outputs.upload_url }}
 
   build-appimage_x64:
     name: Build chiaki-ng appimage_x64
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: create-release
     
     steps:
@@ -275,10 +286,10 @@ jobs:
           ./run-podman-build-appimage.sh
 
       - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          name: chiaki-ng.AppImage
-          path: chiaki-ng/appimage/chiaki-ng.AppImage
+          path: |
+            chiaki-ng/appimage/chiaki-ng.AppImage
+          upload-release-files: true
           if-no-files-found: error
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          retention-days: 7
+          release-upload-url:  ${{ needs.create-release.outputs.upload_url }}
