@@ -2,6 +2,8 @@ name: Build chiaki-ng weekly
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 1 * * 1"
 
 jobs:
   create-release:
@@ -13,8 +15,8 @@ jobs:
     - uses: ncipollo/release-action@v1
       with:
         prerelease: true
-        commit: ${{ GITHUB_SHA }}
-        tag: weekly-canary-release-${{ GITHUB_SHA }}
+        commit: ${{ github.sha }}
+        tag: weekly-canary-release-${{ github.sha }}
         allowUpdates: true
 
   build-win_x64:
