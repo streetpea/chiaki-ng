@@ -23,6 +23,7 @@ jobs:
       - name: Run build script
         working-directory: chiaki-ng
         run: |
+          chmod +x scripts/switch/run-docker-build-chiaki.sh
           scripts/switch/run-docker-build-chiaki.sh
 
       - name: Upload chiaki-ng Artifact
