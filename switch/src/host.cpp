@@ -25,6 +25,12 @@ static void AudioCB(int16_t *buf, size_t samples_count, void *user)
 	io->AudioCB(buf, samples_count);
 }
 
+static void HapticsFrameCb(uint8_t *buf, size_t buf_size, void *user)
+{
+	IO *io = (IO *)user;
+	io->HapticCB(buf, buf_size);
+}
+
 static void EventCB(ChiakiEvent *event, void *user)
 {
 	Host *host = (Host *)user;
@@ -141,13 +147,36 @@ int Host::InitSession(IO *user)
 	// Build chiaki ps4 stream session
 	chiaki_opus_decoder_init(&(this->opus_decoder), this->log);
 	ChiakiAudioSink audio_sink;
+	ChiakiAudioSink haptics_sink;
+	haptics_sink.user = user;
+	haptics_sink.frame_cb = HapticsFrameCb;
 	ChiakiConnectInfo chiaki_connect_info = {};
 
 	chiaki_connect_info.host = this->host_addr.c_str();
 	chiaki_connect_info.video_profile = this->video_profile;
 	chiaki_connect_info.video_profile_auto_downgrade = true;
+	if (this->IsPS5()) {
+		chiaki_connect_info.video_profile.codec = CHIAKI_CODEC_H265;
+	}
+	if (this->haptic > 0) {
+		chiaki_connect_info.enable_dualsense = true;
+		if (this->haptic == 1) {
+			user->HapticBase = 580;
+		} else {
+			user->HapticBase = 400;
+		}
+	}
 
 	chiaki_connect_info.ps5 = this->IsPS5();
+
+	if(!user->InitAVCodec(this->IsPS5()))
+	{
+		throw Exception("Failed to initiate libav codec");
+	}
+	if(!user->InitVideo(chiaki_connect_info.video_profile.width, chiaki_connect_info.video_profile.height, 1280, 720))
+	{
+		throw Exception("Failed to initiate video");
+	}
 
 	memcpy(chiaki_connect_info.regist_key, this->rp_regist_key, sizeof(chiaki_connect_info.regist_key));
 	memcpy(chiaki_connect_info.morning, this->rp_key, sizeof(chiaki_connect_info.morning));
@@ -160,6 +189,7 @@ int Host::InitSession(IO *user)
 	chiaki_opus_decoder_set_cb(&this->opus_decoder, InitAudioCB, AudioCB, user);
 	chiaki_opus_decoder_get_sink(&this->opus_decoder, &audio_sink);
 	chiaki_session_set_audio_sink(&this->session, &audio_sink);
+	chiaki_session_set_haptics_sink(&this->session, &haptics_sink);
 	chiaki_session_set_video_sample_cb(&this->session, VideoCB, user);
 	chiaki_session_set_event_cb(&this->session, EventCB, this);
 

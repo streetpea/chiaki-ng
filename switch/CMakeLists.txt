@@ -85,6 +85,7 @@ endif()
 find_package(FFMPEG REQUIRED COMPONENTS avcodec avutil swscale)
 find_library(SDL2 SDL2)
 find_library(SWRESAMPLE swresample)
+find_library(DAV1D dav1d)
 
 # find -type f | grep -P '\.(h|cpp)$' | sed 's#\./#\t\t#g'
 add_executable(chiaki-borealis WIN32
@@ -105,6 +106,7 @@ target_link_libraries(chiaki-borealis
 	chiaki-lib
 	borealis
 	${SDL2}
+	dav1d
 	FFMPEG::avcodec
 	FFMPEG::avutil
 	FFMPEG::swscale
@@ -127,7 +129,7 @@ if(CHIAKI_IS_SWITCH)
 	add_nro_target(chiaki
 		chiaki-borealis
 		"Chiaki-ng"
-		"StreetPea, xlanor, H0neyBadger and thestr4ng3r"
+		"StreetPea, kkWong, xlanor, H0neyBadger and thestr4ng3r"
 		"${CHIAKI_VERSION}"
 		"${CMAKE_CURRENT_SOURCE_DIR}/nro_icon.jpg"
 		"${CMAKE_CURRENT_SOURCE_DIR}/res")

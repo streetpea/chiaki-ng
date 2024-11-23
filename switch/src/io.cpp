@@ -3,6 +3,9 @@
 #include "io.h"
 #include "settings.h"
 
+#include <chrono>
+#include <thread>
+
 // https://github.com/torvalds/linux/blob/41ba50b0572e90ed3d24fe4def54567e9050bc47/drivers/hid/hid-sony.c#L2742
 #define DS4_TRACKPAD_MAX_X 1920
 #define DS4_TRACKPAD_MAX_Y 942
@@ -45,11 +48,43 @@ void main()
 		(texture(plane3, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5);
 	vec3 rgb = mat3(
 		1.0,		1.0,		1.0,
-		0.0,		-0.21482,	2.12798,
-		1.28033,	-0.38059,	0.0) * yuv;
+ 		0.0,		-0.18733,	1.85563,
+ 		1.57480,	-0.46812, 	0.0) * yuv;
 	out_color = vec4(rgb, 1.0);
 }
 )glsl";
+
+static const char *nv12_shader_frag_glsl = R"glsl(
+#version 150 core
+
+uniform sampler2D plane1; // Y
+uniform sampler2D plane2; // interlaced UV
+
+in vec2 uv_var;
+
+out vec4 out_color;
+
+void main()
+{
+	vec3 yuv = vec3(
+		(texture(plane1, uv_var).r - (16.0 / 255.0)) / ((235.0 - 16.0) / 255.0),
+		(texture(plane2, uv_var).r - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5,
+		(texture(plane2, uv_var).g - (16.0 / 255.0)) / ((240.0 - 16.0) / 255.0) - 0.5
+	);
+	vec3 rgb = mat3(
+		1.0,		1.0,		1.0,
+ 		0.0,		-0.18733,	1.85563,
+ 		1.57480,	-0.46812, 	0.0) * yuv;
+	out_color = vec4(rgb, 1.0);
+}
+)glsl";
+
+int current_frame = 0;
+int next_frame = 0;
+
+bool haptic_lock = false;
+int haptic_val = 0;
+std::chrono::system_clock::time_point haptic_lock_time;
 
 static const float vert_pos[] = {
 	0.0f, 0.0f,
@@ -58,6 +93,7 @@ static const float vert_pos[] = {
 	1.0f, 1.0f};
 
 IO *IO::instance = nullptr;
+bool enableHWAccl = true;
 
 IO *IO::GetInstance()
 {
@@ -173,33 +209,24 @@ bool IO::VideoCB(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_
 {
 	// callback function to decode video buffer
 
-	AVPacket packet;
-	av_init_packet(&packet);
-	packet.data = buf;
-	packet.size = buf_size;
-	AVFrame *frame = av_frame_alloc();
-	if(!frame)
-	{
-		CHIAKI_LOGE(this->log, "UpdateFrame Failed to alloc AVFrame");
-		av_packet_unref(&packet);
-		return false;
-	}
+	AVPacket* packet = av_packet_alloc();
+	packet->data = buf;
+	packet->size = buf_size;
 
 send_packet:
 	// Push
-	int r = avcodec_send_packet(this->codec_context, &packet);
+	int r = avcodec_send_packet(this->codec_context, packet);
 	if(r != 0)
 	{
 		if(r == AVERROR(EAGAIN))
 		{
 			CHIAKI_LOGE(this->log, "AVCodec internal buffer is full removing frames before pushing");
-			r = avcodec_receive_frame(this->codec_context, frame);
+			r = avcodec_receive_frame(this->codec_context, this->tmp_frame);
 			// send decoded frame for sdl texture update
 			if(r != 0)
 			{
 				CHIAKI_LOGE(this->log, "Failed to pull frame");
-				av_frame_free(&frame);
-				av_packet_unref(&packet);
+				av_packet_free(&packet);
 				return false;
 			}
 			goto send_packet;
@@ -209,22 +236,34 @@ send_packet:
 			char errbuf[128];
 			av_make_error_string(errbuf, sizeof(errbuf), r);
 			CHIAKI_LOGE(this->log, "Failed to push frame: %s", errbuf);
-			av_frame_free(&frame);
-			av_packet_unref(&packet);
+			av_packet_free(&packet);
 			return false;
 		}
 	}
 
-	this->mtx.lock();
 	// Pull
-	r = avcodec_receive_frame(this->codec_context, this->frame);
-	this->mtx.unlock();
+	if (enableHWAccl) {
+		r = avcodec_receive_frame(this->codec_context, this->tmp_frame);
+		if (r == 0) {
+			if (av_hwframe_transfer_data(this->frames[next_frame], this->tmp_frame, 0) < 0) {
+				CHIAKI_LOGI(this->log, "transfer error");
+			}
+			if (av_frame_copy_props(this->frames[next_frame], this->tmp_frame) < 0) {
+				CHIAKI_LOGI(this->log, "copy error");
+			}
+		}
+	} else {
+		r = avcodec_receive_frame(this->codec_context, this->frames[next_frame]);
+	}
 
-	if(r != 0)
+	if(r != 0) {
 		CHIAKI_LOGE(this->log, "Failed to pull frame");
+	} else {
+		current_frame = next_frame;
+		next_frame = (next_frame + 1) % MAX_FRAME_COUNT;
+	}
 
-	av_frame_free(&frame);
-	av_packet_unref(&packet);
+	av_packet_free(&packet);
 	return true;
 }
 
@@ -298,22 +337,49 @@ void IO::AudioCB(int16_t *buf, size_t samples_count)
 	int success = SDL_QueueAudio(this->sdl_audio_device_id, buf, sizeof(int16_t) * samples_count * 2);
 	if(success != 0)
 		CHIAKI_LOGE(this->log, "SDL_QueueAudio failed: %s\n", SDL_GetError());
+
+	// check haptic
+	if (haptic_lock) {
+		CleanUpHaptic();
+	}
 }
 
 bool IO::InitVideo(int video_width, int video_height, int screen_width, int screen_height)
 {
-	CHIAKI_LOGV(this->log, "load InitVideo");
+	CHIAKI_LOGI(this->log, "load InitVideo");
 	this->video_width = video_width;
 	this->video_height = video_height;
 
 	this->screen_width = screen_width;
 	this->screen_height = screen_height;
-	this->frame = av_frame_alloc();
+	this->frames = (AVFrame**)malloc(MAX_FRAME_COUNT * sizeof(AVFrame*));
 
-	if(!InitAVCodec())
-	{
-		throw Exception("Failed to initiate libav codec");
+	for (int i = 0; i < MAX_FRAME_COUNT; i++) {
+			frames[i] = av_frame_alloc();
+			if (frames[i] == NULL) {
+					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame");
+					return -1;
+			}
+			frames[i]->format = AV_PIX_FMT_NV12;
+			frames[i]->width  = video_width;
+			frames[i]->height = video_height;
+
+			int err = av_frame_get_buffer(frames[i], 256);
+			if (err < 0) {
+					CHIAKI_LOGE(this->log, "FFmpeg: Couldn't allocate frame buffer:");
+					return -1;
+			}
+			for (int j = 0; j < MAX_NV12_PLANE_COUNT; j++) {
+				uintptr_t ptr = (uintptr_t)frames[i]->data[j];
+				// store origin address for releasing
+				origin_ptr[i][j] = ptr;
+				uintptr_t dst = (((ptr)+(256)-1)&~((256)-1));
+				uintptr_t gap = dst - ptr;
+				frames[i]->data[j] += gap;
+			}
+			CHIAKI_LOGE(this->log, "FFmpeg: allocated address: %d %d, linesize 0: %d", (uintptr_t)frames[i]->data[0], (uintptr_t)frames[i]->data[1], frames[i]->linesize[0]);
 	}
+  this->tmp_frame = av_frame_alloc();
 
 	if(!InitOpenGl())
 	{
@@ -326,8 +392,25 @@ bool IO::FreeVideo()
 {
 	bool ret = true;
 
-	if(this->frame)
-		av_frame_free(&this->frame);
+	if (this->hw_device_ctx) {
+			av_buffer_unref(&this->hw_device_ctx);
+	}
+
+	if (this->frames != NULL) {
+		for (int i = 0; i < MAX_FRAME_COUNT; i++) {
+			if(this->frames[i]) {
+				for (int j = 0; j < MAX_NV12_PLANE_COUNT; j++) {
+					// resume origin pointer address
+					this->frames[i]->data[j] = (uint8_t*) origin_ptr[i][j];
+				}
+				av_frame_free(&this->frames[i]);
+			}
+		}
+		free(this->frames); // allocted via malloc
+	}
+
+	if(this->tmp_frame)
+		av_frame_free(&this->tmp_frame);
 
 	// avcodec_alloc_context3(codec);
 	if(this->codec_context)
@@ -402,53 +485,118 @@ void IO::SetRumble(uint8_t left, uint8_t right)
 			.amp_low = 0.0f,
 			.freq_low = 160.0f,
 			.amp_high = 0.0f,
-			.freq_high = 320.0f,
+			.freq_high = 200.0f,
 		},
 		{
 			.amp_low = 0.0f,
 			.freq_low = 160.0f,
 			.amp_high = 0.0f,
-			.freq_high = 320.0f,
+			.freq_high = 200.0f,
 		}};
 
 	int target_device = padIsHandheld(&pad) ? 0 : 1;
+	if(left > 160) left = 160;
 	if(left > 0)
 	{
 		// SDL_HapticRumblePlay(this->sdl_haptic_ptr[0], left / 100, 5000);
-		vibration_values[0].amp_low = (float)left / (float)100;
-		vibration_values[0].amp_high = (float)left / (float)100;
-		vibration_values[0].freq_low *= (float)left / (float)100;
-		vibration_values[0].freq_high *= (float)left / (float)100;
+		float l = (float)left / 255.0;
+		vibration_values[0].amp_low = l;
+		vibration_values[0].freq_low *= l;
+		vibration_values[0].amp_high = l;
+		vibration_values[0].freq_high *= l;
 	}
 
+	if(right > 160) right = 160;
 	if(right > 0)
 	{
 		// SDL_HapticRumblePlay(this->sdl_haptic_ptr[1], right / 100, 5000);
-		vibration_values[1].amp_low = (float)right / (float)100;
-		vibration_values[1].amp_high = (float)right / (float)100;
-		vibration_values[1].freq_low *= (float)left / (float)100;
-		vibration_values[1].freq_high *= (float)left / (float)100;
+		float r = (float)right / 255.0;
+		vibration_values[1].amp_low = r;
+		vibration_values[1].freq_low *= r;
+		vibration_values[1].amp_high = r;
+		vibration_values[1].freq_high *= r;
 	}
-
-	// printf("left ptr %p amp_low %f amp_high %f freq_low %f freq_high %f\n",
-	// 	&vibration_values[0],
-	// 	vibration_values[0].amp_low,
-	// 	vibration_values[0].amp_high,
-	// 	vibration_values[0].freq_low,
-	// 	vibration_values[0].freq_high);
-
-	// printf("right ptr %p amp_low %f amp_high %f freq_low %f freq_high %f\n",
-	// 	&vibration_values[1],
-	// 	vibration_values[1].amp_low,
-	// 	vibration_values[1].amp_high,
-	// 	vibration_values[1].freq_low,
-	// 	vibration_values[1].freq_high);
 
 	rc = hidSendVibrationValues(this->vibration_handles[target_device], vibration_values, 2);
 	if(R_FAILED(rc))
 		CHIAKI_LOGE(this->log, "hidSendVibrationValues() returned: 0x%x", rc);
 
 #endif
+}
+
+void IO::HapticCB(uint8_t *buf, size_t buf_size) {
+		int16_t amplitudel = 0, amplituder = 0;
+		int32_t suml = 0, sumr = 0;
+		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples
+
+		size_t buf_count = buf_size / sample_size;
+		for (size_t i = 0; i < buf_count; i++){
+			size_t cur = i * sample_size;
+
+			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
+			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
+			suml += amplitudel;
+			sumr += amplituder;
+		}
+		uint16_t left = 0, right = 0;
+		left = suml / buf_count;
+		right = sumr / buf_count;
+		SetHapticRumble(left, right);
+		if ((left != 0 || right != 0) && !haptic_lock) {
+			haptic_lock = true;
+		}
+}
+
+void IO::SetHapticRumble(uint8_t left, uint8_t right)
+{
+	uint8_t val = left > right ? left : right;
+	haptic_val = val;
+	haptic_lock_time = std::chrono::high_resolution_clock::now(); 
+	
+#ifdef __SWITCH__
+	Result rc = 0;
+	HidVibrationValue vibration_values[] = {
+		{
+			.amp_low = 0.0f,
+			.freq_low = 160.0f,
+			.amp_high = 0.0f,
+			.freq_high = 200.0f,
+		},
+		{
+			.amp_low = 0.0f,
+			.freq_low = 160.0f,
+			.amp_high = 0.0f,
+			.freq_high = 200.0f,
+		}};
+
+	int target_device = padIsHandheld(&pad) ? 0 : 1;
+	for (int i = 0; i < 2; i++) {
+		float index = (float)val / (float)HapticBase;
+		vibration_values[i].amp_low = index;
+		vibration_values[i].amp_high = index;
+		if (val != 0) {
+			vibration_values[i].freq_low *= index;
+			vibration_values[i].freq_high *= index;
+		}
+	}
+	// CHIAKI_LOGW(this->log, "haptic rumble param: %f %f %f %f",
+	// 	vibration_values[0].amp_low, vibration_values[0].amp_high,
+	// 	vibration_values[0].freq_low, vibration_values[0].freq_high);
+	
+	rc = hidSendVibrationValues(this->vibration_handles[target_device], vibration_values, 2);
+#endif
+}
+
+void IO::CleanUpHaptic() {
+	std::chrono::system_clock::time_point now = std::chrono::high_resolution_clock::now();
+	auto dur = now - haptic_lock_time;
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
+	if (haptic_val == 0) {
+		haptic_lock = false;
+	} else if (ms > 30) {
+		SetHapticRumble(0, 0);
+		haptic_lock = false;
+	}
 }
 
 bool IO::ReadGameSixAxis(ChiakiControllerState *state)
@@ -692,44 +840,71 @@ bool IO::ReadGameKeys(SDL_Event *event, ChiakiControllerState *state)
 	return ret;
 }
 
-bool IO::InitAVCodec()
+bool IO::InitAVCodec(bool is_PS5)
 {
-	CHIAKI_LOGV(this->log, "loading AVCodec");
+	CHIAKI_LOGI(this->log, "loading AVCodec");
 	// set libav video context
-	this->codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+	if (is_PS5) {
+		this->codec = avcodec_find_decoder_by_name("hevc");
+	} else {
+		this->codec = avcodec_find_decoder_by_name("h264");
+	}
 	if(!this->codec)
-		throw Exception("H264 Codec not available");
+		throw Exception("H265 Codec not available");
+	CHIAKI_LOGI(this->log, "get codec %s", this->codec->name);
 
 	this->codec_context = avcodec_alloc_context3(codec);
 	if(!this->codec_context)
 		throw Exception("Failed to alloc codec context");
 
-	// use rock88's mooxlight-nx optimization
-	// https://github.com/rock88/moonlight-nx/blob/698d138b9fdd4e483c998254484ccfb4ec829e95/src/streaming/ffmpeg/FFmpegVideoDecoder.cpp#L63
-	// this->codec_context->skip_loop_filter = AVDISCARD_ALL;
-	this->codec_context->flags |= AV_CODEC_FLAG_LOW_DELAY;
-	this->codec_context->flags2 |= AV_CODEC_FLAG2_FAST;
-	// this->codec_context->flags2 |= AV_CODEC_FLAG2_CHUNKS;
-	this->codec_context->thread_type = FF_THREAD_SLICE;
-	this->codec_context->thread_count = 4;
+	if (enableHWAccl) {
+		this->codec_context->skip_loop_filter = AVDISCARD_ALL;
+		this->codec_context->flags |= AV_CODEC_FLAG_LOW_DELAY;
+		this->codec_context->flags2 |= AV_CODEC_FLAG2_FAST;
+	} else {
+		// use rock88's mooxlight-nx optimization
+		// https://github.com/rock88/moonlight-nx/blob/698d138b9fdd4e483c998254484ccfb4ec829e95/src/streaming/ffmpeg/FFmpegVideoDecoder.cpp#L63
+		// this->codec_context->skip_loop_filter = AVDISCARD_ALL;
+		this->codec_context->flags |= AV_CODEC_FLAG_LOW_DELAY;
+		this->codec_context->flags2 |= AV_CODEC_FLAG2_FAST;
+		// this->codec_context->flags2 |= AV_CODEC_FLAG2_CHUNKS;
+		this->codec_context->thread_type = FF_THREAD_SLICE;
+		this->codec_context->thread_count = 4;
+	}
 
 	if(avcodec_open2(this->codec_context, this->codec, nullptr) < 0)
 	{
 		avcodec_free_context(&this->codec_context);
 		throw Exception("Failed to open codec context");
 	}
+
+	if (enableHWAccl) {
+		if(av_hwdevice_ctx_create(&this->hw_device_ctx, AV_HWDEVICE_TYPE_NVTEGRA, NULL, NULL, 0) < 0) {
+			throw Exception("Failed to enable hardware encoding");
+		}
+		this->codec_context->hw_device_ctx = av_buffer_ref(this->hw_device_ctx);
+	}
 	return true;
 }
 
 bool IO::InitOpenGl()
 {
-	CHIAKI_LOGV(this->log, "loading OpenGL");
+	CHIAKI_LOGI(this->log, "loading OpenGL");
+	isFirst = true;
 
 	if(!InitOpenGlShader())
 		return false;
+	
+	if (enableHWAccl) {
+		if(!InitOpenGlTX1Textures()) {
+			return false;
+		}
+	} else {
+		if(!InitOpenGlTextures()) {
+			return false;
+		}
+	}
 
-	if(!InitOpenGlTextures())
-		return false;
 
 	return true;
 }
@@ -774,6 +949,53 @@ bool IO::InitOpenGlTextures()
 	return true;
 }
 
+bool IO::InitOpenGlTX1Textures()
+{
+	CHIAKI_LOGV(this->log, "loading OpenGL TX1 textrures");
+
+	int planes[][5] = {
+		// { width_divide, height_divider, data_per_pixel }
+			{ 1, 1, 1, GL_R8, GL_RED },
+			{ 2, 2, 2, GL_RG8, GL_RG }
+	};
+
+	D(glGenTextures(2, this->tex));
+	D(glGenBuffers(2, this->pbo));
+	uint8_t uv_default[] = {0x7f, 0x7f};
+	for(int i = 0; i < MAX_NV12_PLANE_COUNT; i++)
+	{
+		D(glBindTexture(GL_TEXTURE_2D, this->tex[i]));
+		D(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		D(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+		D(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+		D(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+		D(glTexImage2D(GL_TEXTURE_2D, 0, planes[i][3], 1, 1, 0, planes[i][4], GL_UNSIGNED_BYTE, i > 0 ? uv_default : nullptr));
+	}
+
+	D(glUseProgram(this->prog));
+	// bind only as many planes as we need
+	const char *plane_names[] = {"plane1", "plane2", "plane3"};
+	for(int i = 0; i < MAX_NV12_PLANE_COUNT; i++) {
+		m_texture_uniform[i] = glGetUniformLocation(this->prog, plane_names[i]);
+		D(glUniform1i(m_texture_uniform[i], i));
+	}
+
+	D(glGenVertexArrays(1, &this->vao));
+	D(glBindVertexArray(this->vao));
+
+	D(glGenBuffers(1, &this->vbo));
+	D(glBindBuffer(GL_ARRAY_BUFFER, this->vbo));
+	D(glBufferData(GL_ARRAY_BUFFER, sizeof(vert_pos), vert_pos, GL_STATIC_DRAW));
+
+	D(glBindBuffer(GL_ARRAY_BUFFER, this->vbo));
+	D(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr));
+	D(glEnableVertexAttribArray(0));
+
+	D(glCullFace(GL_BACK));
+	D(glEnable(GL_CULL_FACE));
+	return true;
+}
+
 GLuint IO::CreateAndCompileShader(GLenum type, const char *source)
 {
 	GLint success;
@@ -806,7 +1028,11 @@ bool IO::InitOpenGlShader()
 	CHIAKI_LOGV(this->log, "loading OpenGl Shaders");
 
 	D(this->vert = CreateAndCompileShader(GL_VERTEX_SHADER, shader_vert_glsl));
-	D(this->frag = CreateAndCompileShader(GL_FRAGMENT_SHADER, yuv420p_shader_frag_glsl));
+	if (enableHWAccl) {
+		D(this->frag = CreateAndCompileShader(GL_FRAGMENT_SHADER, nv12_shader_frag_glsl));
+	} else {
+		D(this->frag = CreateAndCompileShader(GL_FRAGMENT_SHADER, yuv420p_shader_frag_glsl));
+	}
 
 	D(this->prog = glCreateProgram());
 
@@ -842,7 +1068,6 @@ inline void IO::SetOpenGlYUVPixels(AVFrame *frame)
 		{2, 2, 1}  // V
 	};
 
-	this->mtx.lock();
 	for(int i = 0; i < PLANES_COUNT; i++)
 	{
 		int width = frame->width / planes[i][0];
@@ -881,7 +1106,36 @@ inline void IO::SetOpenGlYUVPixels(AVFrame *frame)
 		D(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	}
-	this->mtx.unlock();
+	glFinish();
+}
+inline void IO::SetOpenGlNV12Pixels(AVFrame *frame)
+{
+	D(glUseProgram(this->prog));
+
+	int planes[][5] = {
+		// { width_divide, height_divider, data_per_pixel }
+			{ 1, 1, 1, GL_R8, GL_RED },
+			{ 2, 2, 2, GL_RG8, GL_RG }
+	};
+
+	for (int i = 0; i < MAX_NV12_PLANE_COUNT; i++) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		int real_width = frame->linesize[i] / planes[i][0];
+		int width = frame->width / planes[i][0];
+		int height = frame->height / planes[i][1];
+		D(glBindTexture(GL_TEXTURE_2D, tex[i]));
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, real_width);
+		if (isFirst) {
+			D(glTexImage2D(GL_TEXTURE_2D, 0, planes[i][3], width, height, 0, planes[i][4], GL_UNSIGNED_BYTE, frame->data[i]));
+		} else {
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width,
+											height, planes[i][4], GL_UNSIGNED_BYTE, frame->data[i]);
+		}
+		glUniform1i(m_texture_uniform[i], i);
+		D(glBindTexture(GL_TEXTURE_2D, 0));
+	}
+
+	isFirst = false;
 	glFinish();
 }
 
@@ -889,8 +1143,12 @@ inline void IO::OpenGlDraw()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	// send to OpenGl
-	SetOpenGlYUVPixels(this->frame);
+	if (enableHWAccl) {
+		SetOpenGlNV12Pixels(this->frames[current_frame]);
+	} else {
+		// send to OpenGl
+		SetOpenGlYUVPixels(this->frames[current_frame]);
+	}
 
 	//avcodec_flush_buffers(this->codec_context);
 	D(glBindVertexArray(this->vao));
@@ -921,10 +1179,11 @@ bool IO::InitController()
 			return false;
 		}
 		// this->sdl_haptic_ptr[i] = SDL_HapticOpenFromJoystick(sdl_joystick_ptr[i]);
-		// SDL_HapticRumbleInit(this->sdl_haptic_ptr[i]);
 		// if(sdl_haptic_ptr[i] == nullptr)
 		// {
 		// 	CHIAKI_LOGE(this->log, "SDL_HapticRumbleInit: %s\n", SDL_GetError());
+		// } else {
+		// 	SDL_HapticRumbleInit(this->sdl_haptic_ptr[i]);
 		// }
 	}
 #ifdef __SWITCH__
