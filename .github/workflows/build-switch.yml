@@ -30,6 +30,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chiaki-ng.nro
-          path: build_switch/switch/chiaki-ng.nro
+          path: chaiki-ng/build_switch/switch/chiaki-ng.nro
           if-no-files-found: error
           retention-days: 7

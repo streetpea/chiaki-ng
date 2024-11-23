@@ -323,7 +323,7 @@ jobs:
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            build_switch/switch/chiaki-ng.nro
+            chaiki-ng/build_switch/switch/chiaki-ng.nro
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
