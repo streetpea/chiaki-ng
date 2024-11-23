@@ -305,7 +305,7 @@ jobs:
       - name: Setup Podman
         run: |
           sudo apt update
-          sudo apt-get -y install podman podman-docker
+          sudo apt-get -y docker-ce-cli
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -315,7 +315,7 @@ jobs:
 
       - name: Run build script
         run: |
-          scripts/switch/run-podman-build-chiaki.sh
+          scripts/switch/run-docker-build-chiaki.sh
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
