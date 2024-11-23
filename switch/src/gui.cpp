@@ -142,7 +142,7 @@ void HostInterface::Wakeup(brls::View *view)
 	if(!this->host->HasRPkey())
 	{
 		// the host is not registered yet
-		DIALOG(prypf, "Please register your PlayStation first");
+		this->Register();
 	}
 	else
 	{

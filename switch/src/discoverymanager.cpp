@@ -47,18 +47,31 @@ void DiscoveryManager::SetService(bool enable)
 
 	if(enable)
 	{
+		IfAddrs addresses = GetIPv4BroadcastAddr();
 		ChiakiDiscoveryServiceOptions options;
 		options.ping_ms = PING_MS;
+		options.ping_initial_ms = PING_MS;
 		options.hosts_max = HOSTS_MAX;
 		options.host_drop_pings = DROP_PINGS;
 		options.cb = Discovery;
 		options.cb_user = this;
 
-		sockaddr_in addr = {};
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = GetIPv4BroadcastAddr();
-		options.send_addr = reinterpret_cast<sockaddr_storage *>(&addr);
-		options.send_addr_size = sizeof(addr);
+		sockaddr_in addr_broadcast = {};
+		addr_broadcast.sin_family = AF_INET;
+		addr_broadcast.sin_addr.s_addr = addresses.broadcast;
+		options.broadcast_addrs = (struct sockaddr_storage *)malloc(sizeof(struct sockaddr_storage));
+		memcpy(options.broadcast_addrs, &addr_broadcast, sizeof(addr_broadcast));		
+		options.broadcast_num = 1;
+			
+		// Base broadcast address (255.255.255.255)
+		struct sockaddr_in in_addr = {};
+		in_addr.sin_family = AF_INET;
+		in_addr.sin_addr.s_addr = 0xffffffff;
+		struct sockaddr_storage addr;
+		memcpy(&addr, &in_addr, sizeof(in_addr));
+		options.send_addr = &addr;
+		options.send_addr_size = sizeof(in_addr);
+		options.send_host = nullptr;
 
 		ChiakiErrorCode err = chiaki_discovery_service_init(&this->service, &options, log);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -74,9 +87,10 @@ void DiscoveryManager::SetService(bool enable)
 	}
 }
 
-uint32_t DiscoveryManager::GetIPv4BroadcastAddr()
+
+IfAddrs DiscoveryManager::GetIPv4BroadcastAddr()
 {
-#ifdef __SWITCH__
+	IfAddrs result;
 	uint32_t current_addr, subnet_mask;
 	// init nintendo net interface service
 	Result rc = nifmInitialize(NifmServiceType_User);
@@ -91,13 +105,13 @@ uint32_t DiscoveryManager::GetIPv4BroadcastAddr()
 	else
 	{
 		CHIAKI_LOGE(this->log, "Failed to get nintendo nifmGetCurrentIpConfigInfo");
-		return 1;
+		return result;
 	}
-	return current_addr | (~subnet_mask);
-#else
-	return 0xffffffff;
-#endif
+	result.broadcast = current_addr | (~subnet_mask);
+	result.local = current_addr;
+	return result;
 }
+
 
 int DiscoveryManager::Send(struct sockaddr *host_addr, size_t host_addr_len)
 {
@@ -155,7 +169,7 @@ int DiscoveryManager::Send()
 {
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = GetIPv4BroadcastAddr();
+	addr.sin_addr.s_addr = GetIPv4BroadcastAddr().broadcast;
 
 	this->host_addr_len = sizeof(sockaddr_in);
 	this->host_addr = (struct sockaddr *)malloc(host_addr_len);
