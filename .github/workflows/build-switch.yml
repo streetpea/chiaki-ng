@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Setup Podman
+      - name: Setup Docker
         run: |
           sudo apt update
           sudo apt-get -y install docker-ce-cli
@@ -21,6 +21,7 @@ jobs:
           path: 'chiaki-ng'
 
       - name: Run build script
+        working-directory: chiaki-ng
         run: |
           scripts/switch/run-docker-build-chiaki.sh
 

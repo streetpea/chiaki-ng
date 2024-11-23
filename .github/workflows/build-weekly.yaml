@@ -314,6 +314,7 @@ jobs:
           path: 'chiaki-ng'
 
       - name: Run build script
+        working-directory: chiaki-ng
         run: |
           scripts/switch/run-docker-build-chiaki.sh
 
