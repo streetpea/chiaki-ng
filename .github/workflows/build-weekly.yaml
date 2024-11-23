@@ -296,3 +296,32 @@ jobs:
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
+  build-switch_x64:
+    name: Build chiaki-ng switch_x64
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup Podman
+        run: |
+          sudo apt update
+          sudo apt-get -y install podman podman-docker
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: 'chiaki-ng'
+
+      - name: Run build script
+        run: |
+          scripts/switch/run-podman-build-chiaki.sh
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          path: |
+            build_switch/switch/chiaki-ng.nro
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
