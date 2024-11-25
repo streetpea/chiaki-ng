@@ -378,9 +378,10 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 				// set the view of the other field,
 				psn_account_id->setValue(std::string(accountId));
 			},
-			[this, entered_value](const std::string& error) {
+			[this, lookup_account_id, entered_value](const std::string& error) {
 				CHIAKI_LOGE(this->log, error.c_str());
-				brls::Application::notify(fmt::format("Unable to fetch psn id for {}", entered_value));
+				lookup_account_id->setValue("");
+				DIALOG(upaid, fmt::format("Unable to fetch account id for {}", entered_value));
 			}
 		);
 	};
