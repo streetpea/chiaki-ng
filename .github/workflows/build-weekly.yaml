@@ -230,7 +230,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
 
       - name: Configure chiaki-ng
         run: |
@@ -300,12 +300,15 @@ jobs:
   build-switch_x64:
     name: Build chiaki-ng switch_x64
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: create-release
     
     steps:
-      - name: Setup Podman
+      - name: Setup Docker
         run: |
           sudo apt update
-          sudo apt-get -y docker-ce-cli
+          sudo apt-get -y install docker-ce-cli
 
       - name: Checkout code
         uses: actions/checkout@v4

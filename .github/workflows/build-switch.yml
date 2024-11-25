@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Setup Docker
         run: |
-          sudo apt update
+          sudo apt-get update
           sudo apt-get -y install docker-ce-cli
 
       - name: Checkout code
