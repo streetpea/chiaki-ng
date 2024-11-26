@@ -2,6 +2,8 @@ app-id: io.github.streetpea.Chiaki4deck-devel
 runtime: org.kde.Platform
 runtime-version: '6.8'
 sdk: org.kde.Sdk
+base: io.qt.qtwebengine.BaseApp
+base-version: '6.8'
 command: chiaki
 rename-icon: chiaking
 rename-desktop-file: chiaking.desktop
@@ -9,8 +11,7 @@ separate-locales: false
 finish-args:
   - --share=network
   - --share=ipc
-  - --socket=fallback-x11
-  - --socket=wayland
+  - --socket=x11
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
@@ -20,6 +21,7 @@ finish-args:
   - --env=PKG_CONFIG_PATH=/app/lib/pkgconfig:/app/lib64/pkgconfig
   - --env=LD_LIBRARY_PATH=/app/lib:/app/lib64
   - --env=QML_DISABLE_DISK_CACHE=1
+  - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
   - --env=SDL_AUDIODRIVER=pipewire
   - --talk-name=org.freedesktop.ScreenSaver
   - --system-talk-name=org.freedesktop.login1
@@ -28,8 +30,11 @@ finish-args:
   - --filesystem=host
 
 build-options:
-  env:
-    PKG_CONFIG_PATH: "/app/lib/pkgconfig:/app/lib64/pkgconfig"
+  arch:
+    aarch64:
+      prepend-pkg-config-path: /app/lib/aarch64-linux-gnu/pkgconfig
+    x86_64:
+      prepend-pkg-config-path: "/app/lib/pkgconfig:/app/lib64/pkgconfig:/app/lib/x86_64-linux-gnu/pkgconfig:/app/lib64/x86_64-linux-gnu/pkgconfig"
 
 modules:
   - name: protobuf-compilers
