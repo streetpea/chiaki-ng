@@ -25,6 +25,11 @@ static void Discovery(ChiakiDiscoveryHost *discovered_hosts, size_t hosts_count,
 	}
 }
 
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, std::string *userp) {
+    userp->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
 DiscoveryManager::DiscoveryManager()
 {
 	this->settings = Settings::GetInstance();
@@ -233,4 +238,62 @@ void DiscoveryManager::DiscoveryCB(ChiakiDiscoveryHost *discovered_host)
 		CHIAKI_LOGI(this->log, "Running App Name:                  %s", discovered_host->running_app_name);
 
 	CHIAKI_LOGI(this->log, "--");
+}
+
+
+void DiscoveryManager::makeRequest(const std::string& username, std::function<void(const std::string&)> successCallback, 
+                std::function<void(const std::string&)> errorCallback) {
+    CURL *curl = curl_easy_init();
+    if(!curl) {
+        errorCallback("Failed to initialize CURL");
+        return;
+    }
+
+    char* encoded_username = curl_easy_escape(curl, username.c_str(), username.length());
+    std::string url = "https://psn.flipscreen.games/search.php?username=" + std::string(encoded_username);
+    curl_free(encoded_username);
+
+    std::string response_data;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data);
+
+    CURLcode res = curl_easy_perform(curl);
+    
+    if(res != CURLE_OK) {
+        errorCallback(curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        return;
+    }
+
+    struct json_object *parsed_json;
+    parsed_json = json_tokener_parse(response_data.c_str());
+    
+    if(!parsed_json) {
+        errorCallback("Failed to parse JSON response");
+        curl_easy_cleanup(curl);
+        return;
+    }
+
+    // Extract encoded_id
+    struct json_object *encoded_id;
+    if(json_object_object_get_ex(parsed_json, "encoded_id", &encoded_id)) {
+        // Success case - we found an encoded_id
+        successCallback(json_object_get_string(encoded_id));
+    } else {
+        // Error case - look for error message
+        struct json_object *error;
+        if(json_object_object_get_ex(parsed_json, "error", &error)) {
+            errorCallback(json_object_get_string(error));
+        } else {
+            errorCallback("Unknown error occurred");
+        }
+    }
+
+    // Cleanup
+    json_object_put(parsed_json);
+    curl_easy_cleanup(curl);
 }
