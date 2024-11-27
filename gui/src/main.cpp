@@ -102,7 +102,7 @@ int real_main(int argc, char *argv[])
 	QGuiApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS
-	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking_macos.svg"));
 #else
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking.svg"));
 #endif
