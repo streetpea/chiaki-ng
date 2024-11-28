@@ -491,12 +491,12 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			if(memcmp(buf + 8, motion_normal, 4) == 0)
 			{
 				reset = false;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
+				CHIAKI_LOGV(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
 			}
 			else
 			{
 				reset = true;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
+				CHIAKI_LOGV(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
 			}
 			uint32_t old_motion_counter = stream_connection->motion_counter;
 			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
@@ -530,7 +530,7 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			// only reset if counter matches last sent or counter is 0
 			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
 			{
-				CHIAKI_LOGI(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
+				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
 				return;
 			}
 			break;
