@@ -501,7 +501,7 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			uint32_t old_motion_counter = stream_connection->motion_counter;
 			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
 			// only reset if counter matches last sent
-			if(reset && old_motion_counter != stream_connection->motion_counter)
+			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
 			{
 				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
 				return;
