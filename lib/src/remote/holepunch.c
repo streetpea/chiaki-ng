@@ -82,6 +82,7 @@
 #define SELECT_CANDIDATE_CONNECTION_SEC 5
 #define RANDOM_ALLOCATION_GUESSES_NUMBER 75
 #define RANDOM_ALLOCATION_SOCKS_NUMBER 250
+#define CHECK_CANDIDATES_REQUEST_NUMBER 1
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -3592,11 +3593,11 @@ static ChiakiErrorCode check_candidates(
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
     // Set up request buffer
-    uint8_t request_buf[3][88] = {0};
-    uint8_t request_id[3][5] = {0};
+    uint8_t request_buf[CHECK_CANDIDATES_REQUEST_NUMBER][88] = {0};
+    uint8_t request_id[CHECK_CANDIDATES_REQUEST_NUMBER][5] = {0};
 
-    // send 3 requests for connection pairing with ps
-    for(int i = 0; i < 3; i++)
+    // send CHECK_CANDIDATES_REQUEST_NUMBER requests for connection pairing with ps
+    for(int i = 0; i < CHECK_CANDIDATES_REQUEST_NUMBER; i++)
     {
         chiaki_random_bytes_crypt(request_id[i], sizeof(request_id[i]));
         *(uint32_t*)&request_buf[i][0x00] = htonl(MSG_TYPE_REQ);
@@ -4079,7 +4080,7 @@ static ChiakiErrorCode check_candidates(
         responses_received[i]++;
         responses = responses_received[i];
         CHIAKI_LOGV(session->log, "Received response %d", responses);
-        if(responses > 2)
+        if(responses > (CHECK_CANDIDATES_REQUEST_NUMBER - 1))
         {
             selected_sock = candidate_sock;
             selected_candidate = candidate;
