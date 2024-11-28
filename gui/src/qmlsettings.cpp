@@ -34,6 +34,17 @@ void QmlSettings::setRemotePlayAsk(bool asked)
     emit remotePlayAskChanged();
 }
 
+bool QmlSettings::hideCursor() const
+{
+    return settings->GetHideCursor();
+}
+
+void QmlSettings::setHideCursor(bool enabled)
+{
+    settings->SetHideCursor(enabled);
+    emit hideCursorChanged();
+}
+
 int QmlSettings::resolutionLocalPS4() const
 {
     return settings->GetResolutionLocalPS4();
@@ -1357,6 +1368,7 @@ void QmlSettings::setSettings(Settings *new_settings)
 void QmlSettings::refreshAllKeys()
 {
     emit remotePlayAskChanged();
+    emit hideCursorChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
     emit resolutionLocalPS5Changed();

@@ -204,7 +204,7 @@ void QmlMainWindow::releaseInput()
     if (!grab_input)
         return;
     grab_input--;
-    if (!grab_input && has_video)
+    if (!grab_input && has_video && settings->GetHideCursor())
         setCursor(Qt::BlankCursor);
     if (session)
         session->BlockInput(grab_input);
@@ -296,7 +296,7 @@ void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
 
     if (!has_video) {
         has_video = true;
-        if (!grab_input)
+        if (!grab_input && settings->GetHideCursor())
             setCursor(Qt::BlankCursor);
         emit hasVideoChanged();
     }

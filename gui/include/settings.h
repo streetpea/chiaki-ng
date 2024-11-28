@@ -224,6 +224,9 @@ class Settings : public QObject
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();
 
+		bool GetHideCursor() const				{ return settings.value("settings/hide_cursor", true).toBool(); }
+		void SetHideCursor(bool enabled)		{ settings.setValue("settings/hide_cursor", enabled); }
+
 		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
 
