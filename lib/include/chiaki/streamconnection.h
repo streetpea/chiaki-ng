@@ -34,7 +34,7 @@ typedef struct chiaki_stream_connection_t
 	ChiakiVideoReceiver *video_receiver;
 	ChiakiAudioReceiver *haptics_receiver;
 	double packet_loss_max;
-
+	uint32_t motion_counter;
 	ChiakiFeedbackSender feedback_sender;
 	ChiakiCongestionControl congestion_control;
 	/**

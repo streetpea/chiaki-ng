@@ -70,6 +70,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->ecdh_secret = NULL;
 	stream_connection->gkcrypt_remote = NULL;
 	stream_connection->gkcrypt_local = NULL;
+	stream_connection->motion_counter = 0;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&stream_connection->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -475,7 +476,6 @@ static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection
 static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	bool reset = false;
-	const uint8_t motion_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
 	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
 	// const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
 
@@ -492,16 +492,21 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			{
 				reset = false;
 				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
-				break;
 			}
 			else
 			{
 				reset = true;
 				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
-				break;
 			}
-			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
-			return;
+			uint32_t old_motion_counter = stream_connection->motion_counter;
+			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
+			// only reset if counter matches last sent
+			if(reset && old_motion_counter != stream_connection->motion_counter)
+			{
+				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
+				return;
+			}
+			break;
 			// if(!memcmp(buf + 12, unknown0, 13) == 0)
 			// {
 			// 	CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
@@ -515,15 +520,20 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			if(memcmp(buf, motion_normal, 4) == 0)
 			{
 				reset = false;
-				break;
 			}
 			else
 			{
 				reset = true;
-				break;
 			}
-			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
-			return;
+			uint32_t old_motion_counter = stream_connection->motion_counter;
+			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf));
+			// only reset if counter matches last sent or counter is 0
+			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
+			{
+				CHIAKI_LOGI(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
+				return;
+			}
+			break;
 		}
 		default:
 		{
