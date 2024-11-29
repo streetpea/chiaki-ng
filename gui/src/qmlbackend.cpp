@@ -1149,7 +1149,7 @@ void QmlBackend::enterPin(const QString &pin)
 
 QUrl QmlBackend::psnLoginUrl() const
 {
-    size_t duid_size = 48;
+    size_t duid_size = CHIAKI_DUID_STR_SIZE;
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     return QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
@@ -1946,10 +1946,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 
 QString QmlBackend::openPsnLink()
 {
-    size_t duid_size = CHIAKI_DUID_STR_SIZE;
-    char duid[duid_size];
-    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
-    QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
+    QUrl url = psnLoginUrl();
     if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
     {
         qCWarning(chiakiGui) << "Launched browser.";
@@ -1975,6 +1972,11 @@ QString QmlBackend::openPlaceboOptionsLink()
         qCWarning(chiakiGui) << "Could not launch browser.";
         return QString(url.toEncoded());
     }
+}
+
+bool QmlBackend::checkPsnRedirectURL(const QUrl &url) const
+{
+    return url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE));
 }
 
 void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)

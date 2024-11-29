@@ -98,7 +98,6 @@ int real_main(int argc, char *argv[])
 	}
 
 	QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-
 	QGuiApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS

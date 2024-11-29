@@ -1825,7 +1825,7 @@ DialogView {
                         id: openPsnLogin
                         text: qsTr("Login to PSN")
                         onClicked: {
-                            root.showPSNTokenDialog(Chiaki.openPsnLink(), false)
+                            root.showPSNTokenDialog(false)
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
@@ -1843,6 +1843,7 @@ DialogView {
                             Chiaki.settings.psnAuthToken = ""
                             Chiaki.settings.psnAuthTokenExpiry = ""
                             Chiaki.settings.psnAccountId = ""
+                            openPsnLogin.forceActiveFocus(Qt.TabFocusReason);
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId

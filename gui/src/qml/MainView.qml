@@ -15,7 +15,7 @@ Pane {
             if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
             {
                 Chiaki.settings.remotePlayAsk = false;
-                root.showConfirmDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), () => root.showPSNTokenDialog(Chiaki.openPsnLink(), false));
+                root.showConfirmDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), () => root.showPSNTokenDialog(false));
             }
             else
                 Chiaki.settings.remotePlayAsk = false;
