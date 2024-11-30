@@ -1,4 +1,4 @@
-FROM docker.io/stateoftheartio/qt6:6.8-gcc-aqt
+FROM docker.io/stateoftheartio/qt6:6.7-gcc-aqt
 
 RUN sudo apt-get update
 RUN sudo apt-get install -y software-properties-common gpg wget
