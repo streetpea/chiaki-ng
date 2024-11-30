@@ -66,7 +66,7 @@ jobs:
           version: "6.7.*"
           host: 'windows'
           target: 'desktop'
-          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets'
+          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
 
       - name: Setup ffmpeg
         run: |
@@ -153,6 +153,7 @@ jobs:
         run: |
           mkdir chiaki-ng-Win
           cp build\gui\chiaki.exe chiaki-ng-Win
+          cp scripts\qtwebengine_import.qml gui\src\qml\
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
@@ -170,8 +171,7 @@ jobs:
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
-          echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
-          windeployqt.exe --no-translations --qmldir=gui/src/qml/ chiaki-ng-Win\chiaki.exe
+          windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2

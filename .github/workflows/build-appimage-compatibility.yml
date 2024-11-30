@@ -23,8 +23,7 @@ jobs:
       - name: Add QmlWebEngine Import
         working-directory: chiaki-ng
         run: |
-          echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
-
+          cp scripts/qtwebengine_import.qml /gui/src/qml/
       - name: Run build script
         working-directory: chiaki-ng/scripts
         run: |

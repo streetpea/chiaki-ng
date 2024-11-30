@@ -148,7 +148,7 @@ jobs:
           cp /mingw64/bin/libpsl-*.dll chiaki-ng-Win/
           cp /mingw64/bin/libjson-c-*.dll chiaki-ng-Win/
           cp /mingw64/bin/swresample-*.dll chiaki-ng-Win/
-          echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
+          cp scripts/qtwebengine_import.qml gui/src/qml/
           /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
           cp -R /mingw64/share/qt6/qml/QtQuick chiaki-ng-Win/qml/
           cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ chiaki-ng-Win/qml/QtQml/

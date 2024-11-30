@@ -23,6 +23,10 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <stdio.h>
 #include <string.h>
 
+#ifdef CHIAKI_HAVE_WEBENGINE
+#include <QtWebEngineQuick>
+#endif
+
 #include <QCommandLineParser>
 #include <QMap>
 #include <QSurfaceFormat>
@@ -98,6 +102,9 @@ int real_main(int argc, char *argv[])
 	}
 
 	QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+#ifdef CHIAKI_HAVE_WEBENGINE
+	QtWebEngineQuick::initialize();
+#endif
 	QGuiApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS

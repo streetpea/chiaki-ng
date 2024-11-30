@@ -8,6 +8,7 @@ if(APPLE)
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg Qml Quick)
+find_package(Qt6 COMPONENTS WebEngineQuick)
 find_package(Qt6 COMPONENTS DBus)
 
 if(WIN32)
@@ -96,6 +97,10 @@ target_link_libraries(chiaki Qt::Core Qt::Gui Qt::GuiPrivate Qt::Concurrent Qt::
 if (${Qt6DBus_FOUND} AND NOT WIN32)
 	target_link_libraries(chiaki Qt::DBus)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_HAVE_DBUS)
+endif()
+if (${Qt6WebEngineQuick_FOUND})
+	target_link_libraries(chiaki Qt::WebEngineQuick)
+	target_compile_definitions(chiaki PRIVATE CHIAKI_HAVE_WEBENGINE)
 endif()
 target_link_libraries(chiaki SDL2::SDL2)
 if(CHIAKI_ENABLE_SPEEX)
