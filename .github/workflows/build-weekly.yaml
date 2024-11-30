@@ -87,7 +87,6 @@ jobs:
           version: "6.8.*"
           host: 'windows'
           target: 'desktop'
-          arch: 'win64_msvc2019_64'
           modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets'
 
       - name: Setup ffmpeg
