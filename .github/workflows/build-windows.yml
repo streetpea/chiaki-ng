@@ -63,11 +63,11 @@ jobs:
       - name: Setup Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: "6.7.*"
+          version: "6.8.*"
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          modules: 'qtwebengine qtpositioning qtwebchannel'
+          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets'
 
       - name: Setup ffmpeg
         run: |

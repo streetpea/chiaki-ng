@@ -1,5 +1,6 @@
-FROM docker.io/stateoftheartio/qt6:6.6-gcc-aqt
-
+ARG QT_VERSION=6.8
+FROM docker.io/stateoftheartio/qt6:${QT_VERSION}-gcc-aqt
+RUN aqt install-qt linux desktop ${QT_VERSION} linux_gcc_6 -m qtwebengine qtpositioning qtwebchannel qtwebsockets
 RUN sudo apt-get update
 RUN sudo apt-get install -y software-properties-common gpg wget
 RUN sudo add-apt-repository ppa:deadsnakes/ppa
