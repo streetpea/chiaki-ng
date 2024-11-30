@@ -38,7 +38,7 @@ RUN sudo apt-get -y install \
 RUN sudo pip3 install protobuf==3.19.5
 RUN sudo pip3 install meson==1.3.0
 RUN sudo pip3 install aqtinstall==3.1.18
-RUN aqt install-qt -O ${QT_PATH} linux desktop ${QT_VERSION} linux_gcc_64 -m qtwebengine qtpositioning qtwebchannel qtwebsockets
+RUN sudo aqt install-qt -O ${QT_PATH} linux desktop ${QT_VERSION} linux_gcc_64 -m qtwebengine qtpositioning qtwebchannel qtwebsockets
 RUN (curl -L https://apt.kitware.com/kitware-archive.sh | sudo bash) && sudo apt-get -y install cmake
 
 RUN wget https://github.com/KhronosGroup/Vulkan-Headers/archive/v1.3.287.tar.gz && \
