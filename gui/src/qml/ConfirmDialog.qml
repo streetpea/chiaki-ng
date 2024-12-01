@@ -20,10 +20,12 @@ Dialog {
         callback();
     }
     onRejected: restoreFocus()
+    onClosed: restoreFocus()
 
     function restoreFocus() {
         if (restoreFocusItem)
-            restoreFocusItem.forceActiveFocus(Qt.TabFocus);
+            restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+        yesButton.focus = false;
     }
 
     Component.onCompleted: {
@@ -37,8 +39,6 @@ Dialog {
 
         Label {
             id: label
-            Keys.onReturnPressed: dialog.accept()
-            Keys.onEscapePressed: dialog.reject()
         }
 
         RowLayout {
@@ -48,6 +48,7 @@ Dialog {
             C.Button {
                 id: yesButton
                 text: qsTr("Yes")
+                Keys.onEscapePressed: dialog.reject()
                 flat: true
                 leftPadding: 50
                 KeyNavigation.priority: KeyNavigation.BeforeItem
@@ -72,6 +73,7 @@ Dialog {
                 id: noButton
                 KeyNavigation.priority: KeyNavigation.BeforeItem
                 KeyNavigation.left: yesButton
+                Keys.onEscapePressed: dialog.reject()
                 text: qsTr("No")
                 flat: true
                 leftPadding: 50
