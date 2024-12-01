@@ -1593,10 +1593,11 @@ DialogView {
                 // Controller Mapping
                 ColumnLayout {
                     anchors {
-                        fill: parent
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
                         topMargin: 20
-                        leftMargin: 20
                     }
+                    spacing: 20
                     C.Button {
                         Layout.alignment: Qt.AlignHCenter
                         id: controllerMappingChange
