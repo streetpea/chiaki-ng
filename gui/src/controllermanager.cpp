@@ -735,6 +735,21 @@ QString Controller::GetType()
 #endif
 }
 
+bool Controller::IsPS()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return false;
+	SDL_GameControllerType type = SDL_GameControllerGetType(controller);
+	if(type == SDL_CONTROLLER_TYPE_PS3 || type == SDL_CONTROLLER_TYPE_PS4 || type == SDL_CONTROLLER_TYPE_PS5)
+		return true;
+	else
+		return false;
+#else
+	return false;
+#endif
+}
+
 QString Controller::GetGUIDString()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER

@@ -12,11 +12,9 @@ Item {
     Material.accent: "#00a7ff"
 
     function controllerButton(name) {
-        let type = "ps";
+        let type = "deck";
         for (let i = 0; i < Chiaki.controllers.length; ++i) {
-            if (Chiaki.controllers[i].steamDeck)
-                type = "deck";
-            if (Chiaki.controllers[i].dualSense) {
+            if (Chiaki.controllers[i].playStation) {
                 type = "ps";
                 break;
             }
