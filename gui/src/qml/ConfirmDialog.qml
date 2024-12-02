@@ -52,6 +52,7 @@ Dialog {
                 Material.background: Material.accent
                 flat: true
                 leftPadding: 50
+                onClicked: dialog.accept()
                 Material.roundedScale: Material.SmallScale
 
                 Image {
@@ -72,6 +73,7 @@ Dialog {
                 text: qsTr("No")
                 flat: true
                 leftPadding: 50
+                onClicked: dialog.reject()
                 Material.roundedScale: Material.SmallScale
 
                 Image {
