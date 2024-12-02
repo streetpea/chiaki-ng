@@ -1514,7 +1514,7 @@ void QmlSettings::exportSettings()
 void QmlSettings::importSettings()
 {
     QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Profile From File"),
-                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
                                                     tr("Settings files (*.ini)"),
                                                     nullptr,
                                                     QFileDialog::DontUseNativeDialog);
@@ -1538,8 +1538,8 @@ void QmlSettings::exportPlaceboSettings()
 
 void QmlSettings::importPlaceboSettings()
 {
-    QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Placebo Renderer Settings To File"),
-                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+    QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Placebo Renderer Settings From File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
                                                     tr("Settings files (*.ini)"),
                                                     nullptr,
                                                     QFileDialog::DontUseNativeDialog);
