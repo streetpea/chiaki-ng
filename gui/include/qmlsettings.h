@@ -481,10 +481,10 @@ public:
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
     Q_INVOKABLE void clearKeyMapping();
-    Q_INVOKABLE void exportSettings(QString fileurl);
-    Q_INVOKABLE void exportPlaceboSettings(QString fileurl);
-    Q_INVOKABLE void importSettings(QString fileurl);
-    Q_INVOKABLE void importPlaceboSettings(QString fileurl);
+    Q_INVOKABLE void exportSettings();
+    Q_INVOKABLE void exportPlaceboSettings();
+    Q_INVOKABLE void importSettings();
+    Q_INVOKABLE void importPlaceboSettings();
     Q_INVOKABLE void deleteProfile(QString profile);
     Q_INVOKABLE QString stringForDpadShortcut() const;
 

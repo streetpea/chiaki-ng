@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <controllermanager.h>
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QtTypes>
 
 #ifdef CHIAKI_ENABLE_CLI
@@ -105,7 +105,7 @@ int real_main(int argc, char *argv[])
 #ifdef CHIAKI_HAVE_WEBENGINE
 	QtWebEngineQuick::initialize();
 #endif
-	QGuiApplication app(argc, argv);
+	QApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking_macos.svg"));

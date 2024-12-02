@@ -146,7 +146,7 @@ DialogView {
                         id: exportButton
                         text: qsTr("Export")
                         onClicked: {
-                            exportDialog.open()
+                            Chiaki.settings.exportPlaceboSettings();
                         }
                         Material.roundedScale: Material.SmallScale
                         KeyNavigation.down: importButton
@@ -162,7 +162,7 @@ DialogView {
                         lastInFocusChain: true
                         text: qsTr("Import")
                         onClicked: {
-                            importDialog.open()
+                            Chiaki.settings.importPlaceboSettings();
                         }
                         Material.roundedScale: Material.SmallScale
                         KeyNavigation.up: exportButton
@@ -1111,26 +1111,6 @@ DialogView {
                     }
                 }
             }
-        }
-
-        FileDialog {
-            id: exportDialog
-            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
-            defaultSuffix: "ini"
-            onAccepted: Chiaki.settings.exportPlaceboSettings(selectedFile)
-            nameFilters: ["Settings files (*.ini)"]
-            fileMode: FileDialog.SaveFile
-            acceptLabel: "Export To File"
-        }
-
-        FileDialog {
-            id: importDialog
-            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
-            defaultSuffix: "ini"
-            onAccepted: Chiaki.settings.importPlaceboSettings(selectedFile)
-            nameFilters: ["Settings files (*.ini)"]
-            fileMode: FileDialog.OpenFile
-            acceptLabel: "Import From File"
         }
     }
 }
