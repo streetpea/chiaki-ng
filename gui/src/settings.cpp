@@ -2,6 +2,7 @@
 
 #include <settings.h>
 #include <QFile>
+#include <QFileInfo>
 #include <QUrl>
 #include <QKeySequence>
 #include <QCoreApplication>
@@ -203,11 +204,12 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	InitializePlaceboSettings(&placebo_settings);
 }
 
-void Settings::ExportSettings(QString fileurl)
+void Settings::ExportSettings(QString filepath)
 {
-	// create file if it doesn't exist
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
+	// append ini if not already added
+	QFileInfo info(filepath);
+	if(info.suffix().isEmpty())
+		filepath += ".ini";
 	QFile file(filepath);
 	file.open(QIODevice::ReadWrite);
 	file.close();
@@ -227,11 +229,13 @@ void Settings::ExportSettings(QString fileurl)
 }
 
 
-void Settings::ExportPlaceboSettings(QString fileurl)
+void Settings::ExportPlaceboSettings(QString filepath)
 {
+	// append ini if not already added
+	QFileInfo info(filepath);
+	if(info.suffix().isEmpty())
+		filepath += ".ini";
 	// create file if it doesn't exist
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
 	QFile file(filepath);
 	file.open(QIODevice::ReadWrite);
 	file.close();
@@ -256,10 +260,8 @@ QMap<QString, QString> Settings::GetPlaceboValues()
 	return placeboMap;
 }
 
-void Settings::ImportSettings(QString fileurl)
+void Settings::ImportSettings(QString filepath)
 {
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	LoadRegisteredHosts(&settings_backup);
 	LoadHiddenHosts(&settings_backup);
@@ -297,10 +299,8 @@ void Settings::ImportSettings(QString fileurl)
 	}
 }
 
-void Settings::ImportPlaceboSettings(QString fileurl)
+void Settings::ImportPlaceboSettings(QString filepath)
 {
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	placebo_settings.clear();
 	QStringList keys = settings_backup.allKeys();

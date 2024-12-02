@@ -207,11 +207,11 @@ class Settings : public QObject
 	public:
 		explicit Settings(const QString &conf, QObject *parent = nullptr);
 
-		void ExportSettings(QString fileurl);
-		void ImportSettings(QString fileurl);
+		void ExportSettings(QString filepath);
+		void ImportSettings(QString filepath);
 
-		void ExportPlaceboSettings(QString fileurl);
-		void ImportPlaceboSettings(QString fileurl);
+		void ExportPlaceboSettings(QString filepath);
+		void ImportPlaceboSettings(QString filepath);
 
 		QMap<QString, QString> GetPlaceboValues();
 
