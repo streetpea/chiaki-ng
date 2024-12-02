@@ -1854,7 +1854,7 @@ DialogView {
                         id: exportButton
                         text: qsTr("Export settings to file")
                         onClicked: {
-                            exportDialog.open()
+                            Chiaki.settings.exportSettings();
                         }
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1863,7 +1863,7 @@ DialogView {
                         id: importButton
                         text: qsTr("Import settings from file")
                         onClicked: {
-                            importDialog.open()
+                            Chiaki.settings.importSettings();
                         }
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1871,7 +1871,6 @@ DialogView {
                     C.Button {
                         id: aboutButton
                         lastInFocusChain: true
-                        implicitWidth: 200
                         text: qsTr("About %1-ng").arg(Qt.application.name)
                         onClicked: aboutDialog.open()
                         Material.roundedScale: Material.SmallScale
@@ -1905,26 +1904,6 @@ DialogView {
                     }
                 }
             }
-        }
-
-        FileDialog {
-            id: exportDialog
-            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
-            defaultSuffix: "ini"
-            onAccepted: Chiaki.settings.exportSettings(selectedFile)
-            nameFilters: ["Settings files (*.ini)"]
-            fileMode: FileDialog.SaveFile
-            acceptLabel: "Export To File"
-        }
-
-        FileDialog {
-            id: importDialog
-            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
-            defaultSuffix: "ini"
-            onAccepted: Chiaki.settings.importSettings(selectedFile)
-            nameFilters: ["Settings files (*.ini)"]
-            fileMode: FileDialog.OpenFile
-            acceptLabel: "Import From File"
         }
 
         Dialog {

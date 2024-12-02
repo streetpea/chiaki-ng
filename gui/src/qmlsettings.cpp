@@ -6,6 +6,9 @@
 #include <QFutureWatcher>
 #include <QtConcurrentRun>
 #include <QLoggingCategory>
+#include <QStandardPaths>
+#include <QFileDialog>
+#include <QApplication>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -1493,23 +1496,55 @@ void QmlSettings::refreshAllPlaceboKeys()
     emit placeboToneMappingContrastRecoveryChanged();
 }
 
-void QmlSettings::exportSettings(QString fileurl)
+void QmlSettings::exportSettings()
 {
-    settings->ExportSettings(std::move(fileurl));
+    QString profile = settings->GetCurrentProfile();
+    if(profile.isEmpty())
+        profile = "Default";
+    QString fileName = QFileDialog::getSaveFileName(QApplication::focusWidget(), tr("Export %1 Profile To File").arg(profile),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/chiaki-ng-" + profile,
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog);
+    if(fileName.isEmpty())
+        return;
+    settings->ExportSettings(std::move(fileName));
 }
 
-void QmlSettings::importSettings(QString fileurl)
+void QmlSettings::importSettings()
 {
-    settings->ImportSettings(std::move(fileurl));
+    QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Profile From File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog);
+    if(fileName.isEmpty())
+        return;
+    settings->ImportSettings(std::move(fileName));
+    refreshAllKeys();
 }
 
-void QmlSettings::exportPlaceboSettings(QString fileurl)
+void QmlSettings::exportPlaceboSettings()
 {
-    settings->ExportPlaceboSettings(std::move(fileurl));
+    QString fileName = QFileDialog::getSaveFileName(QApplication::focusWidget(), tr("Export Placebo Renderer Settings To File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/chiaki-ng-placebo",
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog);
+    if(fileName.isEmpty())
+        return;
+    settings->ExportPlaceboSettings(std::move(fileName));
 }
 
-void QmlSettings::importPlaceboSettings(QString fileurl)
+void QmlSettings::importPlaceboSettings()
 {
-    settings->ImportPlaceboSettings(std::move(fileurl));
+    QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Placebo Renderer Settings To File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog);
+    if(fileName.isEmpty())
+        return;
+    settings->ImportPlaceboSettings(std::move(fileName));;
     refreshAllPlaceboKeys();
 }
