@@ -15,7 +15,7 @@ jobs:
       with:
         ref: ${{ github.ref }}
     - name: generate release notes
-      working-directory: chiaki-ng
+      working-directory: ${{ github.workspace }}
       run: |
         echo -e "Linux Flatpak Release on Flathub as io.github.streetpea.Chiaki4deck\n" > release_notes.md
         echo -e "Use brew to manage updates for the MacOS release with:\n" >> release_notes.md
@@ -27,11 +27,10 @@ jobs:
 
     - uses: ncipollo/release-action@v1
       id: maker
-      working-directory: chiaki-ng
       with:
         prerelease: false
         allowUpdates: true
-        bodyFile: release_notes.md
+        bodyFile: "${{ github.workspace }}/release_notes.md"
     outputs:
       upload_url: ${{ steps.maker.outputs.upload_url }}
 
