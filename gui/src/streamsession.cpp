@@ -939,7 +939,7 @@ void StreamSession::UpdateGamepads()
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, [this]{
 					ConnectHaptics();
-					if(!this->haptics_output > 0)
+					if(!(this->haptics_output > 0))
 						QTimer::singleShot(14000, this, &StreamSession::ConnectHaptics);
 				});
 			}
