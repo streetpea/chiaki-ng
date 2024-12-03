@@ -406,6 +406,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 #endif
     GET_PROC(vkDestroySurfaceKHR)
     GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
+    GET_PROC(vkGetPhysicalDeviceProperties)
 #undef GET_PROC
 
     const char *opt_dev_extensions[] = {
@@ -445,6 +446,13 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     });
     if (queue_it != queueFamilyProperties.end())
         vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
+    VkPhysicalDeviceProperties device_props;
+    vk_funcs.vkGetPhysicalDeviceProperties(placebo_vulkan->phys_device, &device_props);
+    if(device_props.vendorID == 0x1002)
+    {
+        amd_card = true;
+        qCInfo(chiakiGui) << "Using amd graphics card";
+    }
 
     struct pl_cache_params cache_params = {
         .log = placebo_log,
@@ -946,6 +954,11 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
     default:
         return false;
     }
+}
+
+bool QmlMainWindow::amdCard() const
+{
+    return amd_card;
 }
 
 bool QmlMainWindow::event(QEvent *event)

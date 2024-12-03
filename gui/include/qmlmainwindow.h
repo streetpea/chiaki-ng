@@ -79,6 +79,8 @@ public:
     float zoomFactor() const;
     void setZoomFactor(float factor);
 
+    bool amdCard() const;
+
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
 
@@ -117,6 +119,7 @@ private:
     QObject *focusObject() const override;
 
     bool has_video = false;
+    bool amd_card = false;
     bool keep_video = false;
     int grab_input = 0;
     int dropped_frames = 0;
@@ -175,6 +178,7 @@ private:
         PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
         PFN_vkWaitSemaphores vkWaitSemaphores;
         PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
+        PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
     } vk_funcs;
 
     friend class QmlBackend;
