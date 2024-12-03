@@ -121,6 +121,18 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = std::move(duid);
 	this->dpad_touch_increment = settings->GetDpadTouchEnabled() ? settings->GetDpadTouchIncrement(): 0;
+	this->dpad_touch_shortcut1 = settings->GetDpadTouchShortcut1();
+	if(this->dpad_touch_shortcut1 > 0)
+		this->dpad_touch_shortcut1 = 1 << (this->dpad_touch_shortcut1 - 1);
+	this->dpad_touch_shortcut2 = settings->GetDpadTouchShortcut2();
+	if(this->dpad_touch_shortcut2 > 0)
+		this->dpad_touch_shortcut2 = 1 << (this->dpad_touch_shortcut2 - 1);
+	this->dpad_touch_shortcut3 = settings->GetDpadTouchShortcut3();
+	if(this->dpad_touch_shortcut3 > 0)
+		this->dpad_touch_shortcut3 = 1 << (this->dpad_touch_shortcut3 - 1);
+	this->dpad_touch_shortcut4 = settings->GetDpadTouchShortcut4();
+	if(this->dpad_touch_shortcut4 > 0)
+		this->dpad_touch_shortcut4 = 1 << (this->dpad_touch_shortcut4 - 1);
 }
 
 static void AudioSettingsCb(uint32_t channels, uint32_t rate, void *user);
@@ -170,6 +182,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	mic_authorization = false;
 #endif
 	allow_unmute = false;
+	dpad_regular = true;
+	dpad_regular_touch_switched = false;
 	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
 	ChiakiErrorCode err;
@@ -240,6 +254,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.enable_dualsense = connect_info.enable_dualsense;
 	chiaki_connect_info.packet_loss_max = connect_info.packet_loss_max;
 
+	dpad_touch_shortcut1 = connect_info.dpad_touch_shortcut1;
+	dpad_touch_shortcut2 = connect_info.dpad_touch_shortcut2;
+	dpad_touch_shortcut3 = connect_info.dpad_touch_shortcut3;
+	dpad_touch_shortcut4 = connect_info.dpad_touch_shortcut4;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)
 	{
@@ -770,6 +788,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 		dpad_touch_timer->start();
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
 		if(dpad_touch_id < 0)
 		{
 			dpad_touch_value = QPair<uint16_t, uint16_t>((uint16_t)(0), (uint16_t)(PS_TOUCHPAD_MAXY / 2));
@@ -789,6 +808,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 	}
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
 		// starting new touch
 		if(dpad_touch_id < 0)
 		{
@@ -809,6 +829,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 	}
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
 		// starting new touch
 		if(dpad_touch_id < 0)
 		{
@@ -829,6 +850,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 	}
 	if(state->buttons & CHIAKI_CONTROLLER_BUTTON_DPAD_UP)
 	{
+		state->buttons &= ~CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
 		// starting new touch
 		if(dpad_touch_id < 0)
 		{
@@ -917,7 +939,7 @@ void StreamSession::UpdateGamepads()
 				// Connect haptics audio device with a delay to give the sound system time to set up
 				QTimer::singleShot(1000, this, [this]{
 					ConnectHaptics();
-					if(!this->haptics_output > 0)
+					if(!(this->haptics_output > 0))
 						QTimer::singleShot(14000, this, &StreamSession::ConnectHaptics);
 				});
 			}
@@ -960,7 +982,17 @@ void StreamSession::DpadSendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-	if(dpad_touch_increment && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
+	if((dpad_touch_shortcut1 || dpad_touch_shortcut2 || dpad_touch_shortcut3 || dpad_touch_shortcut4) && (!dpad_touch_shortcut1 || (state.buttons & dpad_touch_shortcut1)) && (!dpad_touch_shortcut2 || (state.buttons & dpad_touch_shortcut2)) && (!dpad_touch_shortcut3 || (state.buttons & dpad_touch_shortcut3)) && (!dpad_touch_shortcut4 || (state.buttons & dpad_touch_shortcut4)))
+	{
+		if(!dpad_regular_touch_switched)
+		{
+			dpad_regular_touch_switched = true;
+			dpad_regular = !dpad_regular;
+		}
+	}
+	else
+		dpad_regular_touch_switched = false;
+	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
 	{
 		HandleDpadTouchEvent(&state, true);
 	}
@@ -1006,7 +1038,17 @@ void StreamSession::SendFeedbackState()
 			chiaki_controller_state_set_idle(&keyboard_state);
 		}
 	}
-	if(dpad_touch_increment && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
+	if((dpad_touch_shortcut1 || dpad_touch_shortcut2 || dpad_touch_shortcut3 || dpad_touch_shortcut4) && (!dpad_touch_shortcut1 || (state.buttons & dpad_touch_shortcut1)) && (!dpad_touch_shortcut2 || (state.buttons & dpad_touch_shortcut2)) && (!dpad_touch_shortcut3 || (state.buttons & dpad_touch_shortcut3)) && (!dpad_touch_shortcut4 || (state.buttons & dpad_touch_shortcut4)))
+	{
+		if(!dpad_regular_touch_switched)
+		{
+			dpad_regular_touch_switched = true;
+			dpad_regular = !dpad_regular;
+		}
+	}
+	else
+		dpad_regular_touch_switched = false;
+	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
 	{
 		HandleDpadTouchEvent(&state);
 	}
@@ -1887,14 +1929,7 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 		CHIAKI_LOGE(log, "!! Failed to initialize session");
 		return CHIAKI_ERR_MEMORY;
 	}
-	ChiakiErrorCode err = chiaki_holepunch_session_create(holepunch_session);
-	if (err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(log, "!! Failed to create session");
-		return err;
-	}
-	CHIAKI_LOGI(log, ">> Created session");
-	return err;
+	return CHIAKI_ERR_SUCCESS;
 }
 
 ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
@@ -1914,7 +1949,20 @@ ChiakiErrorCode StreamSession::ConnectPsnConnection(QString duid, bool ps5)
 		return CHIAKI_ERR_INVALID_DATA;
 	}
 	ChiakiHolepunchConsoleType console_type = ps5 ? CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 : CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-	ChiakiErrorCode err = holepunch_session_create_offer(holepunch_session);
+	ChiakiErrorCode err = chiaki_holepunch_upnp_discover(holepunch_session);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to run upnp discover");
+		return err;
+	}
+	err = chiaki_holepunch_session_create(holepunch_session);
+	if (err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(log, "!! Failed to create session");
+		return err;
+	}
+	CHIAKI_LOGI(log, ">> Created session");
+	err = holepunch_session_create_offer(holepunch_session);
 	if (err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(log, "!! Failed to create offer msg for ctrl connection");

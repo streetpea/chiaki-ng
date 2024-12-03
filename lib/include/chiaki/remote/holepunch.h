@@ -207,6 +207,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
     ChiakiHolepunchSession session, const uint8_t* console_uid,
     ChiakiHolepunchConsoleType console_type);
 
+/** Discovers UPNP if available
+ * @param session The Session intance.
+*/
+CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_upnp_discover(ChiakiHolepunchSession session);
+
 /** Creates an OFFER session message to send via PSN.
  *
  * @param session The Session instance.

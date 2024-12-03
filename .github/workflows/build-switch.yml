@@ -1,0 +1,35 @@
+name: Build chiaki-ng for Switch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-switch_x64:
+    name: Build chiaki-ng switch_x64
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install docker-ce-cli
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: 'chiaki-ng'
+
+      - name: Run build script
+        working-directory: chiaki-ng
+        run: |
+          chmod +x scripts/switch/run-docker-build-chiaki.sh
+          scripts/switch/run-docker-build-chiaki.sh
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng.nro
+          path: chiaki-ng/build_switch/switch/chiaki-ng.nro
+          if-no-files-found: error
+          retention-days: 7

@@ -193,14 +193,6 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     });
     connect(wakeup_start_timer, &QTimer::timeout, this, [this]
     {
-        wakeup_nickname.clear();
-        wakeup_start = false;
-        chiaki_log_mutex.lock();
-        chiaki_log_ctx = nullptr;
-        chiaki_log_mutex.unlock();
-
-        session->deleteLater();
-        session = nullptr;
         emit wakeupStartFailed();
     });
     psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
@@ -250,6 +242,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
 QmlBackend::~QmlBackend()
 {
+    if(session)
+    {
+        chiaki_log_mutex.lock();
+        chiaki_log_ctx = nullptr;
+        chiaki_log_mutex.unlock();
+        delete session;
+        session = nullptr;
+    }
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
@@ -572,24 +572,36 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             setConnectState(PsnConnectState::ConnectFailedStart);
             if(session)
             {
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
+                setDiscoveryEnabled(true);
             }
             break;
         case CHIAKI_ERR_HOST_UNREACH:
             setConnectState(PsnConnectState::ConnectFailedConsoleUnreachable);
             if(session)
             {
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
+                setDiscoveryEnabled(true);
             }
             break;
         default:
             setConnectState(PsnConnectState::ConnectFailed);
             if(session)
             {
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
                 delete session;
                 session = nullptr;
+                setDiscoveryEnabled(true);
             }
             break;
     }
@@ -600,7 +612,12 @@ void QmlBackend::psnSessionStart()
     try {
         session->Start();
     } catch (const Exception &e) {
-        emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+        chiaki_log_mutex.lock();
+        chiaki_log_ctx = nullptr;
+        chiaki_log_mutex.unlock();
+        delete session;
+        session = nullptr;
+        emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
         return;
     }
 
@@ -654,7 +671,13 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
 #endif
     }
-
+#if defined(Q_OS_WIN)
+    if(session_info.hw_decoder == "vulkan" && session_info.video_profile.codec == CHIAKI_CODEC_H265_HDR && window->amdCard())
+    {
+        qCInfo(chiakiGui) << "Using amd card with vulkan hw decoding and hdr not supported on Windows, falling back to d3d11va...";
+        session_info.hw_decoder = "d3d11va";
+    }
+#endif
     if (session_info.hw_decoder == "vulkan") {
         session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
         if (!session_info.hw_device_ctx)
@@ -763,7 +786,15 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     });
 
     if (window->windowState() != Qt::WindowFullScreen)
-        window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
+    {
+        if(settings->GetWindowType() == WindowType::CustomResolution)
+        {
+            window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
+            window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
+        }
+        else
+            window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
+    }
 
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
@@ -782,7 +813,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             try {
                 session->Start();
             } catch (const Exception &e) {
-                emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+                emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
+                chiaki_log_mutex.lock();
+                chiaki_log_ctx = nullptr;
+                chiaki_log_mutex.unlock();
+                delete session;
+                session = nullptr;
                 return;
             }
             emit sessionChanged(session);
@@ -873,13 +909,14 @@ void QmlBackend::addManualHost(int index, const QString &address)
 void QmlBackend::hideHost(const QString &mac_string, const QString &host_nickname)
 {
     QByteArray mac_array = QByteArray::fromHex(mac_string.toUtf8());
-    const char *mac_ptr = mac_array.constData();
-    if (strlen(mac_ptr) != 6)
+    if (mac_array.size() != 6)
     {
-        qCCritical(chiakiGui) << " Aborting hidden host creation because mac string couldn't be converted to a valid host mac!";
+        qCCritical(chiakiGui) << "Invalid host mac:" << mac_string.toUtf8();
+        qCCritical(chiakiGui) << "Aborting hidden host creation because mac string couldn't be converted to a valid host mac!";
+        qCCritical(chiakiGui) << "Received an array of unexpected size. Expected: 6 bytes, Received:" << mac_array.size() << "bytes";
         return;
     }
-    HostMAC mac((const uint8_t *)mac_ptr);
+    HostMAC mac((const uint8_t *)mac_array.constData());
     HiddenHost hidden_host(mac, host_nickname);
     settings->AddHiddenHost(hidden_host);
     emit hostsChanged();
@@ -1004,6 +1041,8 @@ void QmlBackend::connectToHost(int index, QString nickname)
     switch (settings->GetWindowType()) {
     case WindowType::SelectedResolution:
         break;
+    case WindowType::CustomResolution:
+        break;
     case WindowType::Fullscreen:
         fullscreen = true;
         break;
@@ -1116,7 +1155,7 @@ void QmlBackend::enterPin(const QString &pin)
 
 QUrl QmlBackend::psnLoginUrl() const
 {
-    size_t duid_size = 48;
+    size_t duid_size = CHIAKI_DUID_STR_SIZE;
     char duid[duid_size];
     chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
     return QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
@@ -1157,8 +1196,17 @@ void QmlBackend::stopAutoConnect()
     if(!wakeup_nickname.isEmpty())
     {
         wakeup_start_timer->stop();
-        wakeup_start = false;
         wakeup_nickname.clear();
+        if(wakeup_start)
+        {
+            wakeup_start = false;
+            chiaki_log_mutex.lock();
+            chiaki_log_ctx = nullptr;
+            chiaki_log_mutex.unlock();
+
+            session->deleteLater();
+            session = nullptr;
+        }
     }
     emit autoConnectChanged();
 }
@@ -1760,8 +1808,13 @@ void QmlBackend::updateDiscoveryHosts()
                 try {
                     session->Start();
                 } catch (const Exception &e) {
-                    emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
+                    emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
                     session_start_succeeded = false;
+                    chiaki_log_mutex.lock();
+                    chiaki_log_ctx = nullptr;
+                    chiaki_log_mutex.unlock();
+                    delete session;
+                    session = nullptr;
                 }
                 if(session_start_succeeded)
                 {
@@ -1899,10 +1952,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 
 QString QmlBackend::openPsnLink()
 {
-    size_t duid_size = CHIAKI_DUID_STR_SIZE;
-    char duid[duid_size];
-    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
-    QUrl url = QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
+    QUrl url = psnLoginUrl();
     if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
     {
         qCWarning(chiakiGui) << "Launched browser.";
@@ -1928,6 +1978,11 @@ QString QmlBackend::openPlaceboOptionsLink()
         qCWarning(chiakiGui) << "Could not launch browser.";
         return QString(url.toEncoded());
     }
+}
+
+bool QmlBackend::checkPsnRedirectURL(const QUrl &url) const
+{
+    return url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE));
 }
 
 void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)

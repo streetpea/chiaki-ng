@@ -67,6 +67,7 @@ enum class PlaceboPreset {
 
 enum class WindowType {
 	SelectedResolution,
+	CustomResolution,
 	Fullscreen,
 	Zoom,
 	Stretch
@@ -168,6 +169,7 @@ enum class PlaceboToneMappingMetadata {
 	Hdr10Plus,
 	CieY
 };
+
 class Settings : public QObject
 {
 	Q_OBJECT
@@ -205,11 +207,11 @@ class Settings : public QObject
 	public:
 		explicit Settings(const QString &conf, QObject *parent = nullptr);
 
-		void ExportSettings(QString fileurl);
-		void ImportSettings(QString fileurl);
+		void ExportSettings(QString filepath);
+		void ImportSettings(QString filepath);
 
-		void ExportPlaceboSettings(QString fileurl);
-		void ImportPlaceboSettings(QString fileurl);
+		void ExportPlaceboSettings(QString filepath);
+		void ImportPlaceboSettings(QString filepath);
 
 		QMap<QString, QString> GetPlaceboValues();
 
@@ -221,6 +223,9 @@ class Settings : public QObject
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();
+
+		bool GetHideCursor() const				{ return settings.value("settings/hide_cursor", true).toBool(); }
+		void SetHideCursor(bool enabled)		{ settings.setValue("settings/hide_cursor", enabled); }
 
 		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
@@ -291,6 +296,12 @@ class Settings : public QObject
 		WindowType GetWindowType() const;
 		void SetWindowType(WindowType type);
 
+		uint GetCustomResolutionWidth() const;
+		void SetCustomResolutionWidth(uint width);
+
+		uint GetCustomResolutionHeight() const;
+		void SetCustomResolutionHeight(uint length);
+
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
 
@@ -342,6 +353,18 @@ class Settings : public QObject
 
 		uint16_t GetDpadTouchIncrement() const;
 		void SetDpadTouchIncrement(uint16_t increment);
+
+		uint GetDpadTouchShortcut1() const;
+		void SetDpadTouchShortcut1(uint button);
+
+		uint GetDpadTouchShortcut2() const;
+		void SetDpadTouchShortcut2(uint button);
+
+		uint GetDpadTouchShortcut3() const;
+		void SetDpadTouchShortcut3(uint button);
+
+		uint GetDpadTouchShortcut4() const;
+		void SetDpadTouchShortcut4(uint button);
 
 		void DeleteProfile(QString profile);
 

@@ -12,6 +12,10 @@
 #define BETA_WARMUP 20.0f
 #define BETA_DEFAULT 0.05f
 
+#define ORIENT_FUZZ 0.0007f
+#define FUZZ_FILTER_PREV_WEIGHT 0.75f
+#define FUZZ_FILTER_PREV_WEIGHT2x 0.6f
+
 CHIAKI_EXPORT void chiaki_orientation_init(ChiakiOrientation *orient)
 {
 	// 90 deg rotation around x for Madgwick
@@ -22,6 +26,7 @@ CHIAKI_EXPORT void chiaki_orientation_init(ChiakiOrientation *orient)
 }
 
 static float inv_sqrt(float x);
+static void fuzz(const float cur, float *prev, const float fuzz, const float wprev, const float wprev2x);
 
 CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
 		float gx, float gy, float gz, float ax, float ay, float az, float beta, float time_step_sec)
@@ -100,10 +105,30 @@ CHIAKI_EXPORT void chiaki_orientation_update(ChiakiOrientation *orient,
 	q2 *= recip_norm;
 	q3 *= recip_norm;
 
-	orient->x = q1;
-	orient->y = q2;
-	orient->z = q3;
-	orient->w = q0;
+	fuzz(q0, &orient->w, ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x);
+	fuzz(q1, &orient->x, ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x);
+	fuzz(q2, &orient->y, ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x);
+	fuzz(q3, &orient->z, ORIENT_FUZZ, FUZZ_FILTER_PREV_WEIGHT, FUZZ_FILTER_PREV_WEIGHT2x);
+}
+
+// input fuzz filter like the one used in kernel input system
+static void fuzz(const float cur, float *prev, const float fuzz, const float wprev, const float wprev2x)
+{
+	// smooth (0-1) is weight of previous (0.9 = 90%) to use at fuzz value
+	// wprev2x (0-1) is weight of previous (0.5 = 50%) to use at 2x fuzz value
+	if ((cur < *prev + fuzz / (float)2) && (cur > *prev - fuzz / (float)2))
+		return;
+	if ((cur < *prev + fuzz) && (cur > *prev - fuzz))
+	{
+		*prev = (wprev * *prev + (1 - wprev) * cur);
+		return;
+	}
+	if ((cur < *prev + fuzz * 2) && (cur > *prev - fuzz * 2))
+	{
+		*prev = (wprev2x * *prev + (1 - wprev2x) * cur);
+		return;
+	}
+	*prev = cur;
 }
 
 static float inv_sqrt(float x)

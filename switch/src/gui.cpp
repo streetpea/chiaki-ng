@@ -2,6 +2,10 @@
 
 #include "gui.h"
 #include <chiaki/log.h>
+#include "views/enter_pin_view.h"
+#include "views/ps_remote_play.h"
+
+
 
 #define SCREEN_W 1280
 #define SCREEN_H 720
@@ -23,6 +27,7 @@ HostInterface::HostInterface(Host *host)
 	: host(host)
 {
 	this->settings = Settings::GetInstance();
+	this->log = this->settings->GetLogger();
 	this->io = IO::GetInstance();
 
 	brls::ListItem *connect = new brls::ListItem("Connect");
@@ -42,6 +47,8 @@ HostInterface::HostInterface(Host *host)
 	// when the host is connected
 	this->host->SetEventConnectedCallback(std::bind(&HostInterface::Stream, this));
 	this->host->SetEventQuitCallback(std::bind(&HostInterface::CloseStream, this, std::placeholders::_1));
+	// push login pin view onto the stack in callback fn
+	this->host->SetEventLoginPinRequestCallback(std::bind(&HostInterface::EnterPin, this, std::placeholders::_1));
 	// allow host to update controller state
 	this->host->SetEventRumbleCallback(std::bind(&IO::SetRumble, this->io, std::placeholders::_1, std::placeholders::_2));
 	this->host->SetReadControllerCallback(std::bind(&IO::UpdateControllerState, this->io, std::placeholders::_1, std::placeholders::_2));
@@ -138,7 +145,7 @@ void HostInterface::Wakeup(brls::View *view)
 	if(!this->host->HasRPkey())
 	{
 		// the host is not registered yet
-		DIALOG(prypf, "Please register your PlayStation first");
+		this->Register();
 	}
 	else
 	{
@@ -192,6 +199,7 @@ void HostInterface::ConnectSession()
 
 	// connect host sesssion
 	this->host->InitSession(this->io);
+	CHIAKI_LOGI(this->log, "Session initiated");
 	this->host->StartSession();
 }
 
@@ -237,6 +245,19 @@ void HostInterface::CloseStream(ChiakiQuitEvent *quit)
 	Disconnect();
 }
 
+void HostInterface::EnterPin(bool isError) 
+{
+	// enter pin callback,
+	// inputs were blocked in ConnectSession
+	brls::Application::unblockInputs();
+	// if this is triggered as a result 
+	if(isError){
+		brls::Application::notify("Wrong pin");
+	}
+	
+	brls::Application::pushView(new EnterPinView(this->host, isError));
+}
+
 MainApplication::MainApplication(DiscoveryManager *discoverymanager)
 	: discoverymanager(discoverymanager)
 {
@@ -267,10 +288,10 @@ bool MainApplication::Load()
 
 	// init chiaki gl after borealis
 	// let borealis manage the main screen/window
-	if(!io->InitVideo(0, 0, SCREEN_W, SCREEN_H))
-	{
-		brls::Logger::error("Failed to initiate Video");
-	}
+	// if(!io->InitVideo(0, 0, SCREEN_W, SCREEN_H))
+	// {
+	// 	brls::Logger::error("Failed to initiate Video");
+	// }
 
 	brls::Logger::info("Load sdl/hid controller");
 	if(!io->InitController())
@@ -280,7 +301,7 @@ bool MainApplication::Load()
 
 	// Create a view
 	this->rootFrame = new brls::TabFrame();
-	this->rootFrame->setTitle("Chiaki: Open Source PlayStation Remote Play Client");
+	this->rootFrame->setTitle("Chiaki-ng: Open Source PlayStation Remote Play Client");
 	this->rootFrame->setIcon(BOREALIS_ASSET("icon.png"));
 
 	brls::List *config = new brls::List();
@@ -334,6 +355,40 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	psn_account_id->getClickEvent()->subscribe(psn_account_id_cb);
 	ls->addView(psn_account_id);
 
+	
+	brls::InputListItem *lookup_account_id = new brls::InputListItem("Lookup PSN ID from public account",
+		"", "PSN Account name", "Privacy must be set to public for this to work!", 16,
+		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_FORWSLASH |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_BACKSLASH);
+
+	auto lookup_account_id_cb = [this, host, lookup_account_id, psn_account_id](brls::View *view) {
+		// lookup psn_online
+		std::string entered_value = lookup_account_id->getValue();
+		this->discoverymanager->makeRequest(entered_value, 
+			 [this, host, lookup_account_id, psn_account_id](const std::string& accountId) {
+				// retrieve, push and save setting
+				CHIAKI_LOGI(this->log, fmt::format("Found account id {}", accountId).c_str());
+				this->settings->SetPSNAccountID(host, std::string(accountId));
+				// write on disk
+				this->settings->WriteFile();
+				lookup_account_id->setValue("");
+				// set the view of the other field,
+				psn_account_id->setValue(std::string(accountId));
+			},
+			[this, lookup_account_id, entered_value](const std::string& error) {
+				CHIAKI_LOGE(this->log, error.c_str());
+				lookup_account_id->setValue("");
+				DIALOG(upaid, fmt::format("Unable to fetch account id for {}", entered_value));
+			}
+		);
+	};
+	lookup_account_id->getClickEvent()->subscribe(lookup_account_id_cb);
+	ls->addView(lookup_account_id);
+
+
 	std::string psn_online_id_string = this->settings->GetPSNOnlineID(host);
 	brls::InputListItem *psn_online_id = new brls::InputListItem("PSN Online ID",
 		psn_online_id_string, "", "", 16,
@@ -352,35 +407,42 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	psn_online_id->getClickEvent()->subscribe(psn_online_id_cb);
 	ls->addView(psn_online_id);
 
+
 	int value;
 	ChiakiVideoResolutionPreset resolution_preset = this->settings->GetVideoResolution(host);
 	switch(resolution_preset)
 	{
-		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:
 			value = 0;
 			break;
-		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_720p:
 			value = 1;
 			break;
-		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_540p:
 			value = 2;
+			break;
+		case CHIAKI_VIDEO_RESOLUTION_PRESET_360p:
+			value = 3;
 			break;
 	}
 
 	brls::SelectListItem *resolution = new brls::SelectListItem(
-		"Resolution", { "720p", "540p", "360p" }, value);
+		"Resolution", { "1080p (PS5 and PS4 Pro only)", "720p", "540p", "360p" }, value);
 
 	auto resolution_cb = [this, host](int result) {
 		ChiakiVideoResolutionPreset value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 		switch(result)
 		{
 			case 0:
-				value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+				value = CHIAKI_VIDEO_RESOLUTION_PRESET_1080p;
 				break;
 			case 1:
-				value = CHIAKI_VIDEO_RESOLUTION_PRESET_540p;
+				value = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 				break;
 			case 2:
+				value = CHIAKI_VIDEO_RESOLUTION_PRESET_540p;
+				break;
+			case 3:
 				value = CHIAKI_VIDEO_RESOLUTION_PRESET_360p;
 				break;
 		}
@@ -421,6 +483,32 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 
 	fps->getValueSelectedEvent()->subscribe(fps_cb);
 	ls->addView(fps);
+
+	value = this->settings->GetHaptic(host);
+
+	brls::SelectListItem *haptic = new brls::SelectListItem(
+		"Haptic", { "Disabled", "Weak", "Strong" }, value);
+
+	auto haptic_cb = [this, host](int result) {
+		HapticPreset value = HAPTIC_PRESET_DIABLED;
+		switch(result)
+		{
+			case 0:
+				value = HAPTIC_PRESET_DIABLED;
+				break;
+			case 1:
+				value = HAPTIC_PRESET_WEAK;
+				break;
+			case 2:
+				value = HAPTIC_PRESET_STRONG;
+				break;
+		}
+		this->settings->SetHaptic(host, value);
+		this->settings->WriteFile();
+	};
+
+	haptic->getValueSelectedEvent()->subscribe(haptic_cb);
+	ls->addView(haptic);
 
 	if(host != nullptr)
 	{
@@ -539,18 +627,3 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 	add_host->addView(register_host);
 }
 
-PSRemotePlay::PSRemotePlay(Host *host)
-	: host(host)
-{
-	this->io = IO::GetInstance();
-}
-
-void PSRemotePlay::draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx)
-{
-	this->io->MainLoop();
-	this->host->SendFeedbackState();
-}
-
-PSRemotePlay::~PSRemotePlay()
-{
-}

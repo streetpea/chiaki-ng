@@ -111,6 +111,7 @@ class Controller : public QObject
 		QString GetName();
 		QString GetVIDPIDString();
 		QString GetType();
+		bool IsPS();
 		QString GetGUIDString();
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);

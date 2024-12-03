@@ -9,15 +9,18 @@
 #include "nanovg_gl.h"
 #include "nanovg_gl_utils.h"
 
-#include <borealis.hpp>
-
 #include <map>
 #include <thread>
+#include <fmt/format.h>
 
+#include <borealis.hpp>
 #include "discoverymanager.h"
 #include "host.h"
 #include "io.h"
 #include "settings.h"
+#include "switch.h"
+#include "views/enter_pin_view.h"
+#include "views/ps_remote_play.h"
 
 class HostInterface : public brls::List
 {
@@ -25,6 +28,7 @@ class HostInterface : public brls::List
 		IO *io;
 		Host *host;
 		Settings *settings;
+		ChiakiLog *log = nullptr;
 		bool connected = false;
 
 	public:
@@ -38,6 +42,7 @@ class HostInterface : public brls::List
 		void ConnectSession();
 		void Disconnect();
 		void Stream();
+		void EnterPin(bool isError);
 		void CloseStream(ChiakiQuitEvent *quit);
 };
 
@@ -58,22 +63,6 @@ class MainApplication
 		MainApplication(DiscoveryManager *discoverymanager);
 		~MainApplication();
 		bool Load();
-};
-
-class PSRemotePlay : public brls::View
-{
-	private:
-		brls::AppletFrame *frame;
-		// to display stream on screen
-		IO *io;
-		// to send gamepad inputs
-		Host *host;
-		brls::Label *label;
-	public:
-		PSRemotePlay(Host *host);
-		~PSRemotePlay();
-
-		void draw(NVGcontext *vg, int x, int y, unsigned width, unsigned height, brls::Style *style, brls::FrameContext *ctx) override;
 };
 
 #endif // CHIAKI_GUI_H

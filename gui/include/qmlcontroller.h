@@ -11,6 +11,7 @@ class QmlController : public QObject
     Q_PROPERTY(bool handheld READ isHandheld CONSTANT)
     Q_PROPERTY(bool steamVirtual READ isSteamVirtual CONSTANT)
     Q_PROPERTY(bool dualSenseEdge READ isDualSenseEdge CONSTANT)
+    Q_PROPERTY(bool playStation READ isPS CONSTANT)
 
 public:
     QmlController(Controller *controller, QObject *target, QObject *parent = nullptr);
@@ -20,6 +21,7 @@ public:
     bool isHandheld() const;
     bool isSteamVirtual() const;
     bool isDualSenseEdge() const;
+    bool isPS() const;
     QString GetGUID() const;
     QString GetVIDPID() const;
 

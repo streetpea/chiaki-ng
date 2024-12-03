@@ -75,6 +75,22 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.2
+
+Small patch update:
+
+- Add Windows installer
+- Increase stability of motion controls
+- Add native webview for obtaining PSN tokens, making it possible to obtain the token easily in Steam OS game mode
+- Add ability to set custom window resolution
+- Fix import/export dialogs to work with appimage and Steam OS game mode
+- enable switching between dpad mode and dpad touch emulation mode with any chosen combo up to 4 keys set in settings
+- expand motion control reset to work with more games beyond the Resident Evil 4 demo
+- Fix issue where session wouldn't close if canceled after waking the console but before connecting
+- Fix issue where session may fail to connect if it receives invalid frames initially
+- Show settings maximized at start instead of 720p
+
+
 ### 1.9.1
 
 Small patch update:

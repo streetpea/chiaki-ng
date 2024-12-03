@@ -89,6 +89,11 @@ bool QmlController::isHandheld() const
     return controller->IsHandheld();
 }
 
+bool QmlController::isPS() const
+{
+    return controller->IsPS();
+}
+
 bool QmlController::isSteamVirtual() const
 {
     return controller->IsSteamVirtual();

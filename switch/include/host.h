@@ -19,7 +19,8 @@
 
 class DiscoveryManager;
 static void Discovery(ChiakiDiscoveryHost *, void *);
-static void InitAudioCB(unsigned int channels, unsigned int rate, void *user);
+static void InitAudioCB(int16_t *buf, size_t buf_size, void *user);
+static void HapticsFrameCb(unsigned int channels, unsigned int rate, void *user);
 static bool VideoCB(uint8_t *buf, size_t buf_size, void *user);
 static void AudioCB(int16_t *buf, size_t samples_count, void *user);
 static void EventCB(ChiakiEvent *event, void *user);
@@ -42,6 +43,7 @@ class Host
 		//video config
 		ChiakiVideoResolutionPreset video_resolution = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 		ChiakiVideoFPSPreset video_fps = CHIAKI_VIDEO_FPS_PRESET_60;
+		int haptic = 0; 
 		std::string host_type;
 		// user info
 		std::string psn_online_id = "";
@@ -90,6 +92,9 @@ class Host
 		ChiakiConnectVideoProfile video_profile;
 		friend class Settings;
 		friend class DiscoveryManager;
+		// allows session to be passed to gui
+		friend class HostInterface;
+		friend class EnterPinView;
 
 	public:
 		Host(std::string host_name);
@@ -122,6 +127,7 @@ class Host
 		bool IsReady();
 		bool HasRPkey();
 		bool IsPS5();
+		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 };
 
 #endif

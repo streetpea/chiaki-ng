@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <controllermanager.h>
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QtTypes>
 
 #ifdef CHIAKI_ENABLE_CLI
@@ -22,6 +22,10 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 
 #include <stdio.h>
 #include <string.h>
+
+#ifdef CHIAKI_HAVE_WEBENGINE
+#include <QtWebEngineQuick>
+#endif
 
 #include <QCommandLineParser>
 #include <QMap>
@@ -98,11 +102,13 @@ int real_main(int argc, char *argv[])
 	}
 
 	QGuiApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-
-	QGuiApplication app(argc, argv);
+#ifdef CHIAKI_HAVE_WEBENGINE
+	QtWebEngineQuick::initialize();
+#endif
+	QApplication app(argc, argv);
 
 #ifdef Q_OS_MACOS
-	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaki_macos.svg"));
+	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking_macos.svg"));
 #else
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking.svg"));
 #endif

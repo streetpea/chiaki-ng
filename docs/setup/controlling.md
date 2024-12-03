@@ -1,4 +1,6 @@
-# Configuring Steam Deck Controller Profile
+# Controller Configuration
+
+## Configuring Steam Deck Controller Profile
 
 !!! Tip
     If you created the Steam Shortcut through the menu, it automatically adds the correct chiaki4deck+ mic controller profile for you on Steam Deck.
@@ -13,7 +15,7 @@ Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `c
 
     ![Chiaki Desktop Mode Controller](images/ChooseControllerLayout.png)
 
-## Retrieving chiaki-ng Controller Layouts when Using An Alternate Game Name [Most Users Can Skip This]
+### Retrieving chiaki-ng Controller Layouts when Using An Alternate Game Name [Most Users Can Skip This]
 
 ???- Tip "Only If You Didn't Use `chiaki-ng` As the Name of the Game in Steam [Click to Open Me]"
 
@@ -67,7 +69,7 @@ Get all of the shortcuts mapped to Steam Deck controls. Start by going to the `c
 
         An interesting aside is that you can exploit this same process to get the official controller layout for a game that has a Steam version but you added as a non-Steam game. In that instance, you would be changing the game name to the Steam App ID for that game which you can find by searching [SteamDB here](https://steamdb.info/apps/){target="_blank" rel="noopener"} among other ways (i.e., looking at the # in the URL of the game on the Steam Store).
 
-## Default Controller Profile
+### Default Controller Profile
 
 The easiest way to configure all of the necessary shortcuts for `chiaki-ng` is to copy the profile I have created in the `COMMUNITY LAYOUTS` tab.
 
@@ -77,11 +79,11 @@ The easiest way to configure all of the necessary shortcuts for `chiaki-ng` is t
 
     ![Default controller](images/StreetpeaChiaki4deckLayout.png)
 
-### Default `chiaki-ng` Layout Mapping Full View
+#### Default `chiaki-ng` Layout Mapping Full View
 
 ![Steam Deck Full Control View](images/ControlsFullView.png)
 
-### Default `chiaki-ng` Layout Touchscreen Mapping
+#### Default `chiaki-ng` Layout Touchscreen Mapping
 
 ![TouchScreen Native Global Option](images/TouchScreenNative.jpg)
 
@@ -93,7 +95,7 @@ Use the edges of the touchscreen (top, bottom, left, or right 5% of the screen) 
     
     For games that separate the PlayStation touchpad into 3 regions, you can use a left edge touchscreen tap for left touchpad click, right edge touchscreen tap for right touchpad click and top or bottom middle of the touchscreen tap for middle touchpad click.
 
-### Default `chiaki-ng` Layout Trackpad Mapping
+#### Default `chiaki-ng` Layout Trackpad Mapping
 
 ![Steam Deck TrackPad Mapping](images/TrackpadControls.jpg)
 
@@ -105,13 +107,13 @@ The touchpad gestures are mapped using a mouse region with left mouse click on t
 
     Clicking the mouse ++right-button++ instead of the ++t++ key would have the same effect.
 
-### Default `chiaki-ng` Layout Back Button Mapping
+#### Default `chiaki-ng` Layout Back Button Mapping
 
 ![Steam Deck Back Button Mapping](images/BackButtons.png)
 
 I have mapped `L4` to toggle mic mute, `L5` to end session (++ctrl+q++), `R4` to zoom (++ctrl+z++), and `R5` to stretch (++ctrl+s++).
 
-### Default `chiaki-ng` Layout Gyro Mapping
+#### Default `chiaki-ng` Layout Gyro Mapping
 
 I have also mapped gyro controls `As joystick`. Whenever you touch the right joystick, you can move the Steam Deck to aim / control the right stick (usually mapped to camera control) with motion (gyro) controls. You can use this on its own or for small adjustments to larger camera movements made by directly moving the right joystick. You can always change this by choosing to edit the layout and going into the gyro settings. 
 
@@ -121,9 +123,9 @@ I have also mapped gyro controls `As joystick`. Whenever you touch the right joy
 
     Of course, you could leave the right stick mapping on (so that it maps to both gyro and right joystick), if that is truly what you want.
 
-## Creating your Own Controller Profile
+## Standard Controller Mappings
 
-You can create your own controller profile by mapping the relevant buttons. The [special button mappings](#special-button-mappings-you-need-to-assign-these-yourself) (functions not assigned to the controller by default) [set these] and the [standard button mappings](#standard-button-mappings-these-directly-map-and-dont-need-to-be-specifically-set) (controls that directly map and are thus assigned by default) [no need to set these unless you prefer different mappings] are listed in tables below for your convenience.
+You can create your own controller profile by mapping the relevant buttons in Steam or using the [controller mapper](#change-controller-mapping) to map your controller's button to the PlayStation controller buttons. The [special button mappings](#special-button-mappings-you-need-to-assign-these-yourself) (functions not assigned to the controller by default) [set these] and the [standard button mappings](#standard-button-mappings-these-directly-map-and-dont-need-to-be-specifically-set) (controls that directly map and are thus assigned by default) [no need to set these unless you prefer different mappings] are listed in tables below for your convenience.
 
 ### Special Button Mappings (You need to assign these yourself)
 
@@ -150,7 +152,7 @@ You can create your own controller profile by mapping the relevant buttons. The 
 
     ![Sub command](images/SubCommandMenu.jpg) 
 
-#### Using Steam Deck Controller Touchscreen in Your Custom Controller Profile
+### Using Steam Deck Controller Touchscreen in Your Custom Controller Profile
 
 In order to use the Steam Deck touchscreen as a touchscreen instead of a mouse in Game Mode, you need to enable `Touchscreen Native Support` for it in controller options (this is done for you in the default `chiaki-ng` layout `chiaki4deck+ mic`). For your custom controller profile, do the following:
 
@@ -182,11 +184,9 @@ Additionally, you can use gyro controls for camera options with any game by mapp
 
 ### Haptics and Adaptive Triggers
 
-PlayStation 5 haptics are mapped for both the DualSense controller (usb connection required) and the Steam Deck controller and adaptive triggers are mapped for the DualSense controller (usb or bluetooth). These need to be explicitly enabled by checking the PS5 features box in the GUI as shown in the picture below:
+PlayStation 5 haptics are mapped for both the DualSense controller (usb connection required) and the Steam Deck controller and adaptive triggers are mapped for the DualSense controller (usb or bluetooth).
 
-![Enable PlayStation 5 Features](../updates/images/EnablePlayStation5Features.png)
-
-If you are using a DualSense controller in Game mode on the Steam Deck, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab [here](#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
+If you are using a DualSense controller in Game mode on the Steam Deck or via Steam, you will also need to disable Steam Input for the controller when it's first plugged in following the "Turning off Steam Input" tab [here](#enabling-chiaki-ng-to-work-with-dualsense-dualshock-4){target="_blank" rel="noopener"}.
 Once checked, haptics and adaptive triggers (DualSense only) will work in games that support them when streaming from a PlayStation 5. If the DualSense is plugged in via USB (either initially or plugged in during a gaming session), haptics will be directed to it. If you are using the Steam Deck and don't have a DualSense plugged in, haptics will be directed to it and played via the trackpads.
 
 ### Microphone
@@ -218,6 +218,7 @@ Unmute microphone with either ++ctrl+m++ or the mic button on the PlayStation co
 | `L1`             | `L1`                    |
 | `L2`             | `L2`                    |
 | `L3`             | `L3` (left-stick click) |
+| `switch between dpad modes` | `L1+R1+dpad up`      |
 | `stream menu`    | `L1+R1+L3+R3`           |
 
 ## Using a DualSense and/or DualShock4 Controller with `chiaki-ng`
@@ -326,7 +327,7 @@ In order to enable DualSense haptics on MacOS please do the following:
 
 #### Change Controller Mapping
 
-You can re-map all necessary PlayStation buttons to your controller using the controller mapper built-in to `chiaki-ng`
+You can re-map all necessary PlayStation buttons to your controller using the controller mapper built-in to `chiaki-ng`.
 
 1. Go to Settings->Controllers and select `Change Controller Mapping`
 
@@ -350,13 +351,19 @@ You can reset a controller mapping for a controller back to default at any time
 
 ### Dpad Touch Emulation
 
-Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings->Controllers and can be disabled at any time. The `Dpad Touch Increment` controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position
+Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings->Controllers and can be disabled at any time. The `Dpad Touch Increment` controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position.
+
+#### Switching Dpad Mode
+
+Use the dpad touch switch button combo (default is `L1+R1+Dpad Up` but it's user configurable in settings->Controllers) to switch between regular dpad and dpad touch emulation while in game.
+
+#### Examples
 
 ![Dpad Touch Emulation](images/DpadTouchEmulation.png)
 
 !!! Question "How does Dpad Touch Emulation work"
 
-    Pushing one of the dpad buttons will register a touch in the quadrant of that button:
+    When the dpad touch mode is enabled (toggled via the dpad touch switch button combo mentioned above), pushing one of the dpad buttons will register a touch in the quadrant of that button:
 
     - Dpad Left: All the way to the left and halfway up the touchpad
 

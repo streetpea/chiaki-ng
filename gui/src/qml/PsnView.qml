@@ -200,7 +200,7 @@ Rectangle {
             if (!Chiaki.session) {
                 if (errorTitleLabel.text)
                     failTimer.start();
-                else
+                else if(!failTimer.running)
                     root.showMainView();
             }
         }

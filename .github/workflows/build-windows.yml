@@ -66,8 +66,7 @@ jobs:
           version: "6.7.*"
           host: 'windows'
           target: 'desktop'
-          arch: 'win64_msvc2019_64'
-          modules: 'qtwebengine qtpositioning qtwebchannel'
+          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
 
       - name: Setup ffmpeg
         run: |
@@ -152,41 +151,38 @@ jobs:
 
       - name: Prepare Qt deployment package
         run: |
-          mkdir chiaki-ng-VC
-          cp build\gui\chiaki.exe chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\fftw3.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\opus.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libspeexdsp.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-VC
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-VC
-          windeployqt.exe --no-translations --qmldir=gui/src/qml/ chiaki-ng-VC\chiaki.exe
+          mkdir chiaki-ng-Win
+          cp build\gui\chiaki.exe chiaki-ng-Win
+          cp scripts\qtwebengine_import.qml gui\src\qml\
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\fftw3.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\opus.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libspeexdsp.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
+          windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
-      - name: Package chiaki-ng
-        run: |
-          $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
-          Compress-Archive chiaki-ng-VC $RELEASE_PACKAGE_FILE
-          $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
-          echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: "scripts/chiaki-ng.iss"
+          options: /O+
 
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_x64-VC-Release
-          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          name: chiaki-ng-win_x64-VC-installer.zip
+          path: chiaki-ng-windows-installer.exe
           if-no-files-found: error
           retention-days: 7

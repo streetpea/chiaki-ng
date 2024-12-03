@@ -6,6 +6,9 @@
 #include <QFutureWatcher>
 #include <QtConcurrentRun>
 #include <QLoggingCategory>
+#include <QStandardPaths>
+#include <QFileDialog>
+#include <QApplication>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -32,6 +35,17 @@ void QmlSettings::setRemotePlayAsk(bool asked)
 {
     settings->SetRemotePlayAsk(asked);
     emit remotePlayAskChanged();
+}
+
+bool QmlSettings::hideCursor() const
+{
+    return settings->GetHideCursor();
+}
+
+void QmlSettings::setHideCursor(bool enabled)
+{
+    settings->SetHideCursor(enabled);
+    emit hideCursorChanged();
 }
 
 int QmlSettings::resolutionLocalPS4() const
@@ -380,6 +394,28 @@ void QmlSettings::setWindowType(int type)
     emit windowTypeChanged();
 }
 
+uint QmlSettings::customResolutionWidth() const
+{
+    return settings->GetCustomResolutionWidth();
+}
+
+void QmlSettings::setCustomResolutionWidth(uint width)
+{
+    settings->SetCustomResolutionWidth(width);
+    emit customResolutionWidthChanged();
+}
+
+uint QmlSettings::customResolutionHeight() const
+{
+    return settings->GetCustomResolutionHeight();
+}
+
+void QmlSettings::setCustomResolutionHeight(uint length)
+{
+    settings->SetCustomResolutionHeight(length);
+    emit customResolutionHeightChanged();
+}
+
 float QmlSettings::sZoomFactor() const
 {
     return settings->GetZoomFactor();
@@ -500,6 +536,38 @@ void QmlSettings::setDpadTouchIncrement(uint16_t increment)
 {
     settings->SetDpadTouchIncrement(increment);
     emit dpadTouchIncrementChanged();
+}
+
+uint QmlSettings::dpadTouchShortcut1() const {
+	return settings->GetDpadTouchShortcut1();
+}
+void QmlSettings::setDpadTouchShortcut1(uint button) {
+	settings->SetDpadTouchShortcut1(button);
+    emit dpadTouchShortcut1Changed();
+}
+
+uint QmlSettings::dpadTouchShortcut2() const {
+	return settings->GetDpadTouchShortcut2();
+}
+void QmlSettings::setDpadTouchShortcut2(uint button) {
+	settings->SetDpadTouchShortcut2(button);
+    emit dpadTouchShortcut2Changed();
+}
+
+uint QmlSettings::dpadTouchShortcut3() const {
+	return settings->GetDpadTouchShortcut3();
+}
+void QmlSettings::setDpadTouchShortcut3(uint button) {
+	settings->SetDpadTouchShortcut3(button);
+    emit dpadTouchShortcut3Changed();
+}
+
+uint QmlSettings::dpadTouchShortcut4() const {
+	return settings->GetDpadTouchShortcut4();
+}
+void QmlSettings::setDpadTouchShortcut4(uint button) {
+	settings->SetDpadTouchShortcut4(button);
+    emit dpadTouchShortcut4Changed();
 }
 
 QString QmlSettings::currentProfile() const
@@ -1221,6 +1289,42 @@ QVariantList QmlSettings::controllerMapping() const
     return out;
 }
 
+QString QmlSettings::stringForDpadShortcut() const
+{
+    QString shortcut_string = "";
+    bool plus_next = false;
+    uint shortcut1 = settings->GetDpadTouchShortcut1();
+    uint shortcut2 = settings->GetDpadTouchShortcut2();
+    uint shortcut3 = settings->GetDpadTouchShortcut3();
+    uint shortcut4 = settings->GetDpadTouchShortcut4();
+    if(shortcut1)
+    {
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut1 - 1)));
+        plus_next = true;
+    }
+    if(shortcut2)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        plus_next = true;
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut2 - 1)));
+    }
+    if(shortcut3)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        plus_next = true;
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut3 - 1)));
+    }
+    if(shortcut4)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut4 - 1)));
+    }
+    return shortcut_string;
+}
+
 void QmlSettings::deleteRegisteredHost(int index)
 {
     settings->RemoveRegisteredHost(settings->GetRegisteredHosts().value(index).GetServerMAC());
@@ -1267,6 +1371,7 @@ void QmlSettings::setSettings(Settings *new_settings)
 void QmlSettings::refreshAllKeys()
 {
     emit remotePlayAskChanged();
+    emit hideCursorChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
     emit resolutionLocalPS5Changed();
@@ -1303,6 +1408,8 @@ void QmlSettings::refreshAllKeys()
     emit wifiDroppedNotifChanged();
     emit decoderChanged();
     emit windowTypeChanged();
+    emit customResolutionWidthChanged();
+    emit customResolutionHeightChanged();
     emit sZoomFactorChanged();
     emit videoPresetChanged();
     emit autoConnectMacChanged();
@@ -1313,6 +1420,10 @@ void QmlSettings::refreshAllKeys()
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
     emit dpadTouchIncrementChanged();
+    emit dpadTouchShortcut1Changed();
+    emit dpadTouchShortcut2Changed();
+    emit dpadTouchShortcut3Changed();
+    emit dpadTouchShortcut4Changed();
     emit controllerMappingChanged();
     emit packetLossMaxChanged();
     emit currentProfileChanged();
@@ -1385,23 +1496,55 @@ void QmlSettings::refreshAllPlaceboKeys()
     emit placeboToneMappingContrastRecoveryChanged();
 }
 
-void QmlSettings::exportSettings(QString fileurl)
+void QmlSettings::exportSettings()
 {
-    settings->ExportSettings(std::move(fileurl));
+    QString profile = settings->GetCurrentProfile();
+    if(profile.isEmpty())
+        profile = "Default";
+    QString fileName = QFileDialog::getSaveFileName(QApplication::focusWidget(), tr("Export %1 Profile To File").arg(profile),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/chiaki-ng-" + profile,
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
+    if(fileName.isEmpty())
+        return;
+    settings->ExportSettings(std::move(fileName));
 }
 
-void QmlSettings::importSettings(QString fileurl)
+void QmlSettings::importSettings()
 {
-    settings->ImportSettings(std::move(fileurl));
+    QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Profile From File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog);
+    if(fileName.isEmpty())
+        return;
+    settings->ImportSettings(std::move(fileName));
+    refreshAllKeys();
 }
 
-void QmlSettings::exportPlaceboSettings(QString fileurl)
+void QmlSettings::exportPlaceboSettings()
 {
-    settings->ExportPlaceboSettings(std::move(fileurl));
+    QString fileName = QFileDialog::getSaveFileName(QApplication::focusWidget(), tr("Export Placebo Renderer Settings To File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/chiaki-ng-placebo",
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
+    if(fileName.isEmpty())
+        return;
+    settings->ExportPlaceboSettings(std::move(fileName));
 }
 
-void QmlSettings::importPlaceboSettings(QString fileurl)
+void QmlSettings::importPlaceboSettings()
 {
-    settings->ImportPlaceboSettings(std::move(fileurl));
+    QString fileName = QFileDialog::getOpenFileName(QApplication::focusWidget(), tr("Import Placebo Renderer Settings From File"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
+                                                    tr("Settings files (*.ini)"),
+                                                    nullptr,
+                                                    QFileDialog::DontUseNativeDialog);
+    if(fileName.isEmpty())
+        return;
+    settings->ImportPlaceboSettings(std::move(fileName));;
     refreshAllPlaceboKeys();
 }

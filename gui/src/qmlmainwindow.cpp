@@ -102,25 +102,24 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
         showFullScreen();
 
-    connect(session, &StreamSession::ConnectedChanged, this, [this]() {
-        if (session->IsConnected())
-            connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
-    });
+    connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
 }
 
 QmlMainWindow::~QmlMainWindow()
 {
     Q_ASSERT(!placebo_swapchain);
 
+#ifndef Q_OS_MACOS
     QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
     render_thread->quit();
     render_thread->wait();
-    delete render_thread->parent();
-    delete render_thread;
+#endif
 
     delete quick_item;
     delete quick_window;
+    // calls invalidate here if not already called
     delete quick_render;
+    delete render_thread->parent();
     delete qml_engine;
     delete qt_vk_inst;
 
@@ -152,6 +151,8 @@ void QmlMainWindow::updateWindowType(WindowType type)
 {
     switch (type) {
     case WindowType::SelectedResolution:
+        break;
+    case WindowType::CustomResolution:
         break;
     case WindowType::Fullscreen:
         showFullScreen();
@@ -203,7 +204,7 @@ void QmlMainWindow::releaseInput()
     if (!grab_input)
         return;
     grab_input--;
-    if (!grab_input && has_video)
+    if (!grab_input && has_video && settings->GetHideCursor())
         setCursor(Qt::BlankCursor);
     if (session)
         session->BlockInput(grab_input);
@@ -271,13 +272,13 @@ void QmlMainWindow::show()
         QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
-
-    resize(1280, 720);
+    auto screen_size = QGuiApplication::primaryScreen()->availableSize();
+    resize(screen_size);
 
     if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
         showFullScreen();
     else
-        showNormal();
+        showMaximized();
 }
 
 void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
@@ -295,7 +296,7 @@ void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
 
     if (!has_video) {
         has_video = true;
-        if (!grab_input)
+        if (!grab_input && settings->GetHideCursor())
             setCursor(Qt::BlankCursor);
         emit hasVideoChanged();
     }
@@ -405,6 +406,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 #endif
     GET_PROC(vkDestroySurfaceKHR)
     GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
+    GET_PROC(vkGetPhysicalDeviceProperties)
 #undef GET_PROC
 
     const char *opt_dev_extensions[] = {
@@ -444,6 +446,13 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     });
     if (queue_it != queueFamilyProperties.end())
         vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
+    VkPhysicalDeviceProperties device_props;
+    vk_funcs.vkGetPhysicalDeviceProperties(placebo_vulkan->phys_device, &device_props);
+    if(device_props.vendorID == 0x1002)
+    {
+        amd_card = true;
+        qCInfo(chiakiGui) << "Using amd graphics card";
+    }
 
     struct pl_cache_params cache_params = {
         .log = placebo_log,
@@ -499,10 +508,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         }
         if(session && exit_app_on_stream_exit)
         {
-            connect(session, &StreamSession::ConnectedChanged, this, [this]() {
-                if (session->IsConnected())
-                    connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
-            });
+            connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
         }
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
@@ -948,6 +954,11 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
     default:
         return false;
     }
+}
+
+bool QmlMainWindow::amdCard() const
+{
+    return amd_card;
 }
 
 bool QmlMainWindow::event(QEvent *event)

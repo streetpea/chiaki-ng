@@ -8,6 +8,7 @@ import org.streetpea.chiaking
 import "controls" as C
 
 DialogView {
+    id: dialog
     property var psnurl
     property var expired
     title: {
@@ -18,6 +19,7 @@ DialogView {
     }
     buttonText: qsTr("✓ Setup")
     buttonEnabled: url.text.trim()
+    buttonVisible: false
     onAccepted: {
         logDialog.open()
         Chiaki.initPsnAuth(url.text.trim(), function(msg, ok, done) {
@@ -31,17 +33,229 @@ DialogView {
         });
     }
     StackView.onActivated: {
-        if(psnurl)
-        {
-            openurl.selectAll()
-            openurl.copy()
-        }
-        pasteUrl.forceActiveFocus(Qt.TabFocusReason)
+        nativeTokenForm.visible = true;
+        nativeTokenForm.forceActiveFocus(Qt.TabFocusReason);
     }
 
     Item {
+        Item {
+            id: nativeTokenForm
+            visible: false
+            Keys.onPressed: (event) => {
+                if (event.modifiers)
+                    return;
+                switch (event.key) {
+                case Qt.Key_PageUp:
+                    reloadButton.clicked();
+                    event.accepted = true;
+                    break;
+                case Qt.Key_PageDown:
+                    extBrowserButton.clicked();
+                    event.accepted = true;
+                    break;
+                }
+            }
+            anchors.fill: parent
+            ToolBar {
+                id: psnTokenToolbar
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                }
+                height: 80
+
+                RowLayout {
+                    anchors {
+                        fill: parent
+                        leftMargin: 10
+                        rightMargin: 10
+                    }
+                    Button {
+                        id: reloadButton
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 300
+                        flat: true
+                        text: "reload webpage"
+                        Image {
+                            anchors {
+                                left: parent.left
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 12
+                            }
+                            width: 28
+                            height: 28
+                            sourceSize: Qt.size(width, height)
+                            source: "qrc:/icons/l1.svg"
+                        }
+                        onClicked: reloadTimer.start()
+                        Material.roundedScale: Material.SmallScale
+                        focusPolicy: Qt.NoFocus
+                    }
+                    ProgressBar {
+                        id: browserProgresss
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 300
+                        from: 0
+                        to: 100
+                        value: webView.web.loadProgress
+                        Material.roundedScale: Material.SmallScale
+                        focusPolicy: Qt.NoFocus
+                    }
+                    Button {
+                        id: extBrowserButton
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 300
+                        flat: true
+                        Image {
+                            anchors {
+                                left: parent.left
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 12
+                            }
+                            width: 28
+                            height: 28
+                            sourceSize: Qt.size(width, height)
+                            source: "qrc:/icons/r1.svg"
+                        }
+                        focusPolicy: Qt.NoFocus
+                        text: "Use external browser"
+                        onClicked: {
+                            nativeTokenForm.visible = false;
+                            psnTokenToolbar.visible = false;
+                            nativeErrorGrid.visible = false;
+                            webView.visible = false;
+                            linkgrid.visible = true;
+                            dialog.buttonVisible = true;
+                            psnurl = Chiaki.openPsnLink();
+                            if(psnurl)
+                            {
+                                openurl.selectAll();
+                                openurl.copy();
+                            }
+                            pasteUrl.forceActiveFocus(Qt.TabFocusReason);
+                        }
+                    }
+                }
+            }
+            Timer {
+                id: reloadTimer
+                interval: 0
+                running: false
+                onTriggered: {
+                    webView.web.reload();
+                }
+            }
+
+            GridLayout {
+                id: nativeErrorGrid
+                visible: false
+                anchors {
+                    top: psnTokenToolbar.bottom
+                    left: parent.left
+                    right: parent.right
+                    topMargin: 50
+                }
+                columns: 2
+                rowSpacing: 10
+                columnSpacing: 20
+                Label {
+                    id: nativeErrorHeader
+                    text: "Retrieving PSN account ID failed with error: "
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 400
+                    Layout.leftMargin: 20
+                }
+
+                Label {
+                    id: nativeErrorLabel
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 400
+                    Layout.leftMargin: 20
+                }
+
+                Label {
+                    id: retryButton
+                    text: "Retry process"
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 300
+                    Layout.leftMargin: 20
+                }
+                C.Button {
+                    firstInFocusChain: true
+                    lastInFocusChain: true
+                    text: "Retry"
+                    onClicked: {
+                        nativeErrorGrid.visible = false;
+                        nativeErrorLabel.text = "";
+                        nativeErrorLabel.visible = false;
+                        webView.visible = true;
+                        webView.web.url = Chiaki.psnLoginUrl();
+                    }
+                    Layout.preferredWidth: 200
+                    Layout.fillHeight: true
+                    Layout.leftMargin: 20
+                }
+            }
+            Item {
+                id: webView
+                property Item web
+                anchors {
+                    top: psnTokenToolbar.bottom
+                    bottom: parent.bottom
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: 10
+                    rightMargin: 10
+                }
+                Component.onCompleted: {
+                    try {
+                        web = Qt.createQmlObject("
+                        import QtWebEngine
+                        import QtQuick.Controls
+                        import org.streetpea.chiaking
+                        WebEngineView {
+                            profile {
+                                offTheRecord: true
+                            }
+                            settings {
+                                dnsPrefetchEnabled: true
+                                // Load larger touch icons
+                                touchIconsEnabled: true
+                            }
+
+                            onContextMenuRequested: (request) => request.accepted = true;
+                            onNavigationRequested: (request) => {
+                                if (Chiaki.checkPsnRedirectURL(request.url)) {
+                                    logDialog.open()
+                                    Chiaki.initPsnAuth(request.url, function(msg, ok, done) {
+                                        if (!done)
+                                            logArea.text += msg + '\n';
+                                        else
+                                        {
+                                            logArea.text += msg + '\n';
+                                            logDialog.standardButtons = Dialog.Close;
+                                        }
+                                    });
+                                    request.reject();
+                                }
+                                else
+                                    request.accept();
+                            }
+                            onCertificateError: console.error(error.description);
+                        }", webView, "webView");
+                        web.url = Chiaki.psnLoginUrl();
+                        web.anchors.fill = webView;
+                    } catch (error) {
+                        console.error('Create webengine view failed with error:' + error);
+                        extBrowserButton.clicked();
+                    }
+                }
+            }
+        }
         GridLayout {
             id: linkgrid
+            visible: false
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter

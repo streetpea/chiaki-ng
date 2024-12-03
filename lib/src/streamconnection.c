@@ -70,6 +70,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->ecdh_secret = NULL;
 	stream_connection->gkcrypt_remote = NULL;
 	stream_connection->gkcrypt_local = NULL;
+	stream_connection->motion_counter = 0;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&stream_connection->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -475,7 +476,6 @@ static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection
 static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	bool reset = false;
-	const uint8_t motion_reset[] = { 0x00, 0x5d, 0xff, 0x60 };
 	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
 	// const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
 
@@ -487,22 +487,26 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			uint16_t feedback_packet_seq_num = ntohs(*(chiaki_unaligned_uint16_t *)(buf));
 			// int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
 			uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
-			// check if motion reset type is used
-			if(memcmp(buf + 8, motion_reset, 4) == 0)
-			{
-				reset = true;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
-				break;
-			}
+			// check if motion normal is used, else motion reset
 			if(memcmp(buf + 8, motion_normal, 4) == 0)
 			{
 				reset = false;
-				CHIAKI_LOGI(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
-				break;
+				CHIAKI_LOGV(stream_connection->log, "StreamConnection received motion return to normal request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32 "seconds after stream began", feedback_packet_seq_num, timestamp);
 			}
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
-			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf + 8, 4);
-			return;
+			else
+			{
+				reset = true;
+				CHIAKI_LOGV(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
+			}
+			uint32_t old_motion_counter = stream_connection->motion_counter;
+			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
+			// only reset if counter matches last sent
+			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
+			{
+				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
+				return;
+			}
+			break;
 			// if(!memcmp(buf + 12, unknown0, 13) == 0)
 			// {
 			// 	CHIAKI_LOGW(stream_connection->log, "StreamConnection received pad info with last 13 bytes not equal to their traditional constant value, ignoring");
@@ -512,20 +516,24 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		}
 		case 0x11:
 		{
-			// check if motion reset type is used
-			if(memcmp(buf, motion_reset, 4) == 0)
-			{
-				reset = true;
-				break;
-			}
+			// check if motion normal is used, else motion reset
 			if(memcmp(buf, motion_normal, 4) == 0)
 			{
 				reset = false;
-				break;
 			}
-			CHIAKI_LOGV(stream_connection->log, "StreamConnection received pad info with type not equal to motion reset or motion normal, ignoring");
-			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, 4);
-			return;
+			else
+			{
+				reset = true;
+			}
+			uint32_t old_motion_counter = stream_connection->motion_counter;
+			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf));
+			// only reset if counter matches last sent or counter is 0
+			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
+			{
+				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
+				return;
+			}
+			break;
 		}
 		default:
 		{

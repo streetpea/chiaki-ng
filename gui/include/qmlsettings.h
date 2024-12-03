@@ -6,6 +6,7 @@ class QmlSettings : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool remotePlayAsk READ remotePlayAsk WRITE setRemotePlayAsk NOTIFY remotePlayAskChanged)
+    Q_PROPERTY(bool hideCursor READ hideCursor WRITE setHideCursor NOTIFY hideCursorChanged)
     Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
     Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
     Q_PROPERTY(int resolutionLocalPS5 READ resolutionLocalPS5 WRITE setResolutionLocalPS5 NOTIFY resolutionLocalPS5Changed)
@@ -41,6 +42,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
+    Q_PROPERTY(uint customResolutionWidth READ customResolutionWidth WRITE setCustomResolutionWidth NOTIFY customResolutionWidthChanged)
+    Q_PROPERTY(uint customResolutionHeight READ customResolutionHeight WRITE setCustomResolutionHeight NOTIFY customResolutionHeightChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
@@ -60,6 +63,10 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
     Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
+    Q_PROPERTY(uint dpadTouchShortcut1 READ dpadTouchShortcut1 WRITE setDpadTouchShortcut1 NOTIFY dpadTouchShortcut1Changed)
+    Q_PROPERTY(uint dpadTouchShortcut2 READ dpadTouchShortcut2 WRITE setDpadTouchShortcut2 NOTIFY dpadTouchShortcut2Changed)
+    Q_PROPERTY(uint dpadTouchShortcut3 READ dpadTouchShortcut3 WRITE setDpadTouchShortcut3 NOTIFY dpadTouchShortcut3Changed)
+    Q_PROPERTY(uint dpadTouchShortcut4 READ dpadTouchShortcut4 WRITE setDpadTouchShortcut4 NOTIFY dpadTouchShortcut4Changed)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
@@ -177,6 +184,9 @@ public:
     bool remotePlayAsk() const;
     void setRemotePlayAsk(bool asked);
 
+    bool hideCursor() const;
+    void setHideCursor(bool enabled);
+
     int fpsLocalPS4() const;
     void setFpsLocalPS4(int fps);
     int fpsRemotePS4() const;
@@ -214,6 +224,12 @@ public:
 
     int windowType() const;
     void setWindowType(int type);
+
+    uint customResolutionWidth() const;
+    void setCustomResolutionWidth(uint width);
+
+    uint customResolutionHeight() const;
+    void setCustomResolutionHeight(uint length);
 
     float sZoomFactor() const;
     void setSZoomFactor(float factor);
@@ -434,6 +450,18 @@ public:
     uint16_t dpadTouchIncrement() const;
     void setDpadTouchIncrement(uint16_t increment);
 
+    uint dpadTouchShortcut1() const;
+    void setDpadTouchShortcut1(uint button);
+
+    uint dpadTouchShortcut2() const;
+    void setDpadTouchShortcut2(uint button);
+
+    uint dpadTouchShortcut3() const;
+    void setDpadTouchShortcut3(uint button);
+
+    uint dpadTouchShortcut4() const;
+    void setDpadTouchShortcut4(uint button);
+
     QString currentProfile() const;
     void setCurrentProfile(const QString &profile);
 
@@ -453,11 +481,12 @@ public:
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
     Q_INVOKABLE void clearKeyMapping();
-    Q_INVOKABLE void exportSettings(QString fileurl);
-    Q_INVOKABLE void exportPlaceboSettings(QString fileurl);
-    Q_INVOKABLE void importSettings(QString fileurl);
-    Q_INVOKABLE void importPlaceboSettings(QString fileurl);
+    Q_INVOKABLE void exportSettings();
+    Q_INVOKABLE void exportPlaceboSettings();
+    Q_INVOKABLE void importSettings();
+    Q_INVOKABLE void importPlaceboSettings();
     Q_INVOKABLE void deleteProfile(QString profile);
+    Q_INVOKABLE QString stringForDpadShortcut() const;
 
 signals:
     void resolutionLocalPS4Changed();
@@ -481,6 +510,7 @@ signals:
 #endif
     void fullscreenDoubleClickChanged();
     void remotePlayAskChanged();
+    void hideCursorChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();
     void fpsLocalPS5Changed();
@@ -497,6 +527,8 @@ signals:
     void wifiDroppedNotifChanged();
     void decoderChanged();
     void windowTypeChanged();
+    void customResolutionWidthChanged();
+    void customResolutionHeightChanged();
     void sZoomFactorChanged();
     void videoPresetChanged();
     void autoConnectMacChanged();
@@ -508,6 +540,10 @@ signals:
     void psnAccountIdChanged();
     void dpadTouchEnabledChanged();
     void dpadTouchIncrementChanged();
+    void dpadTouchShortcut1Changed();
+    void dpadTouchShortcut2Changed();
+    void dpadTouchShortcut3Changed();
+    void dpadTouchShortcut4Changed();
     void controllerMappingChanged();
     void packetLossMaxChanged();
     void currentProfileChanged();

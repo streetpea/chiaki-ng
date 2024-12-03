@@ -109,7 +109,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		if(video_receiver->session->video_sample_cb)
 			video_receiver->session->video_sample_cb(profile->header, profile->header_sz, 0, false, video_receiver->session->video_sample_cb_user);
 		if(!chiaki_bitstream_header(&video_receiver->bitstream, profile->header, profile->header_sz))
-			CHIAKI_LOGE(video_receiver->log, "Failed to parse video header");
+			CHIAKI_LOGW(video_receiver->log, "Failed to parse video header");
 	}
 
 	// next frame?
@@ -124,10 +124,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			err = chiaki_video_receiver_flush_frame(video_receiver);
 
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(video_receiver->log, "Video receiver could not flush frame with error: %s.", chiaki_error_string(err));
-			return;
-		}
+			CHIAKI_LOGW(video_receiver->log, "Video receiver could not flush frame.");
 
 		ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)(video_receiver->frame_index_prev_complete + 1);
 		if(chiaki_seq_num_16_gt(frame_index, next_frame_expected)
@@ -136,27 +133,18 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
 			err = stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, frame_index - 1);
 			if(err != CHIAKI_ERR_SUCCESS)
-			{
-				CHIAKI_LOGE(video_receiver->log, "Error sending corrupt frame: %s.", chiaki_error_string(err));
-				return;
-			}
+				CHIAKI_LOGW(video_receiver->log, "Error sending corrupt frame.");
 		}
 
 		video_receiver->frame_index_cur = frame_index;
 		err = chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(video_receiver->log, "Video receiver could not allocate frame for packet with error: %s.", chiaki_error_string(err));
-			return;
-		}
+			CHIAKI_LOGW(video_receiver->log, "Video receiver could not allocate frame for packet.");
 	}
 
 	err = chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);
 	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(video_receiver->log, "Video receiver could not put unit with error: %s.", chiaki_error_string(err));
-		return;
-	}
+		CHIAKI_LOGW(video_receiver->log, "Video receiver could not put unit.");
 
 	// if we are currently building up a frame
 	if(video_receiver->frame_index_cur != video_receiver->frame_index_prev)
@@ -165,10 +153,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		if(chiaki_frame_processor_flush_possible(&video_receiver->frame_processor) || packet->unit_index == packet->units_in_frame_total - 1)
 			err = chiaki_video_receiver_flush_frame(video_receiver);
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(video_receiver->log, "Video receiver could not flush frame with error %s.", chiaki_error_string(err));
-			return;
-		}
+			CHIAKI_LOGW(video_receiver->log, "Video receiver could not flush frame.");
 	}
 }
 

@@ -2,6 +2,7 @@
 
 #include <settings.h>
 #include <QFile>
+#include <QFileInfo>
 #include <QUrl>
 #include <QKeySequence>
 #include <QCoreApplication>
@@ -203,11 +204,12 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	InitializePlaceboSettings(&placebo_settings);
 }
 
-void Settings::ExportSettings(QString fileurl)
+void Settings::ExportSettings(QString filepath)
 {
-	// create file if it doesn't exist
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
+	// append ini if not already added
+	QFileInfo info(filepath);
+	if(info.suffix().isEmpty())
+		filepath += ".ini";
 	QFile file(filepath);
 	file.open(QIODevice::ReadWrite);
 	file.close();
@@ -227,11 +229,13 @@ void Settings::ExportSettings(QString fileurl)
 }
 
 
-void Settings::ExportPlaceboSettings(QString fileurl)
+void Settings::ExportPlaceboSettings(QString filepath)
 {
+	// append ini if not already added
+	QFileInfo info(filepath);
+	if(info.suffix().isEmpty())
+		filepath += ".ini";
 	// create file if it doesn't exist
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
 	QFile file(filepath);
 	file.open(QIODevice::ReadWrite);
 	file.close();
@@ -256,10 +260,8 @@ QMap<QString, QString> Settings::GetPlaceboValues()
 	return placeboMap;
 }
 
-void Settings::ImportSettings(QString fileurl)
+void Settings::ImportSettings(QString filepath)
 {
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	LoadRegisteredHosts(&settings_backup);
 	LoadHiddenHosts(&settings_backup);
@@ -297,10 +299,8 @@ void Settings::ImportSettings(QString fileurl)
 	}
 }
 
-void Settings::ImportPlaceboSettings(QString fileurl)
+void Settings::ImportPlaceboSettings(QString filepath)
 {
-	QUrl url(fileurl);
-	QString filepath = url.toLocalFile();
 	QSettings settings_backup(filepath, QSettings::IniFormat);
 	placebo_settings.clear();
 	QStringList keys = settings_backup.allKeys();
@@ -605,6 +605,7 @@ void Settings::SetPacketLossMax(float packet_loss_max)
 
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
+	{ WindowType::CustomResolution, "Custom Resolution"},
 	{ WindowType::Fullscreen, "Fullscreen" },
 	{ WindowType::Zoom, "Zoom" },
 	{ WindowType::Stretch, "Stretch" }
@@ -619,6 +620,26 @@ WindowType Settings::GetWindowType() const
 void Settings::SetWindowType(WindowType type)
 {
 	settings.setValue("settings/window_type", window_type_values[type]);
+}
+
+uint Settings::GetCustomResolutionWidth() const
+{
+	return settings.value("settings/custom_resolution_width", 1920).toUInt();
+}
+
+void Settings::SetCustomResolutionWidth(uint width)
+{
+	settings.setValue("settings/custom_resolution_width", width);
+}
+
+uint Settings::GetCustomResolutionHeight() const
+{
+	return settings.value("settings/custom_resolution_length", 1080).toUInt();
+}
+
+void Settings::SetCustomResolutionHeight(uint length)
+{
+	settings.setValue("settings/custom_resolution_length", length);
 }
 
 RegisteredHost Settings::GetAutoConnectHost() const
@@ -781,6 +802,34 @@ uint16_t Settings::GetDpadTouchIncrement() const
 void Settings::SetDpadTouchIncrement(uint16_t increment)
 {
 	settings.setValue("settings/dpad_touch_increment", increment);
+}
+
+uint Settings::GetDpadTouchShortcut1() const {
+	return settings.value("settings/dpad_touch_shortcut1", 9).toUInt();
+}
+void Settings::SetDpadTouchShortcut1(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut1", button);
+}
+
+uint Settings::GetDpadTouchShortcut2() const {
+	return settings.value("settings/dpad_touch_shortcut2", 10).toUInt();
+}
+void Settings::SetDpadTouchShortcut2(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut2", button);
+}
+
+uint Settings::GetDpadTouchShortcut3() const {
+	return settings.value("settings/dpad_touch_shortcut3", 7).toUInt();
+}
+void Settings::SetDpadTouchShortcut3(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut3", button);
+}
+
+uint Settings::GetDpadTouchShortcut4() const {
+	return settings.value("settings/dpad_touch_shortcut4", 0).toUInt();
+}
+void Settings::SetDpadTouchShortcut4(uint button) {
+	settings.setValue("settings/dpad_touch_shortcut4", button);
 }
 
 QString Settings::GetPsnAccountId() const

@@ -85,9 +85,12 @@ endif()
 find_package(FFMPEG REQUIRED COMPONENTS avcodec avutil swscale)
 find_library(SDL2 SDL2)
 find_library(SWRESAMPLE swresample)
+find_library(DAV1D dav1d)
 
 # find -type f | grep -P '\.(h|cpp)$' | sed 's#\./#\t\t#g'
 add_executable(chiaki-borealis WIN32
+	src/views/enter_pin_view.cpp
+	src/views/ps_remote_play.cpp
 	src/discoverymanager.cpp
 	src/settings.cpp
 	src/io.cpp
@@ -99,12 +102,13 @@ set_target_properties(chiaki-borealis PROPERTIES
 	CXX_STANDARD 17
 	OUTPUT_NAME chiaki)
 
-target_include_directories(chiaki-borealis PRIVATE include)
+target_include_directories(chiaki-borealis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(chiaki-borealis
 	chiaki-lib
 	borealis
 	${SDL2}
+	dav1d
 	FFMPEG::avcodec
 	FFMPEG::avutil
 	FFMPEG::swscale
@@ -126,8 +130,8 @@ install(TARGETS chiaki-borealis
 if(CHIAKI_IS_SWITCH)
 	add_nro_target(chiaki
 		chiaki-borealis
-		"Chiaki"
-		"H0neyBadger and thestr4ng3r"
+		"Chiaki-ng"
+		"StreetPea, kkWong, xlanor, H0neyBadger and thestr4ng3r"
 		"${CHIAKI_VERSION}"
 		"${CMAKE_CURRENT_SOURCE_DIR}/nro_icon.jpg"
 		"${CMAKE_CURRENT_SOURCE_DIR}/res")

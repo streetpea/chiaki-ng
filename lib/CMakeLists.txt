@@ -134,14 +134,30 @@ target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(json-c REQUIRED json-c IMPORTED_TARGET)
-target_include_directories(chiaki-lib PRIVATE ${json-c_INCLUDE_DIRS})
-target_link_libraries(chiaki-lib PkgConfig::json-c)
+if (CHIAKI_IS_SWITCH)
+	find_library(JSONC_LIB json-c ${PORTLIBS}/lib)
+	target_link_libraries(chiaki-lib ${JSONC_LIB})
+	target_include_directories(chiaki-lib PUBLIC "${PORTLIBS}/include/json-c")
+else()
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(json-c REQUIRED json-c IMPORTED_TARGET)
+	target_include_directories(chiaki-lib PRIVATE ${json-c_INCLUDE_DIRS})
+	target_link_libraries(chiaki-lib PkgConfig::json-c)
+endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
 target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
+
+
+if (CHIAKI_ENABLE_SWITCH_CURL)
+	target_link_libraries(chiaki-lib CURL::libcurl)
+elseif (CHIAKI_USE_SYSTEM_CURL)
+	target_link_libraries(chiaki-lib CURL::libcurl_shared)
+else()
+	target_link_libraries(chiaki-lib CURL::libcurl_static)
+endif()
+
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)
@@ -161,11 +177,6 @@ else()
 	target_link_libraries(chiaki-lib OpenSSL::Crypto)
 endif()
 
-if (CHIAKI_USE_SYSTEM_CURL)
-	target_link_libraries(chiaki-lib CURL::libcurl_shared)
-else()
-	target_link_libraries(chiaki-lib CURL::libcurl_static)
-endif()
 target_link_libraries(chiaki-lib Nanopb::nanopb)
 target_link_libraries(chiaki-lib Jerasure::Jerasure)
 

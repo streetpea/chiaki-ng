@@ -102,6 +102,10 @@ struct StreamSessionConnectInfo
 	QString psn_token;
 	QString psn_account_id;
 	uint16_t dpad_touch_increment;
+	uint dpad_touch_shortcut1;
+	uint dpad_touch_shortcut2;
+	uint dpad_touch_shortcut3;
+	uint dpad_touch_shortcut4;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
@@ -190,6 +194,12 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		ChiakiControllerState dpad_touch_state;
 		uint16_t dpad_touch_increment;
+		bool dpad_regular;
+		bool dpad_regular_touch_switched;
+		uint dpad_touch_shortcut1;
+		uint dpad_touch_shortcut2;
+		uint dpad_touch_shortcut3;
+		uint dpad_touch_shortcut4;
 		int8_t dpad_touch_id;
 		QPair<uint16_t, uint16_t> dpad_touch_value;
 		QTimer *dpad_touch_timer, *dpad_touch_stop_timer;

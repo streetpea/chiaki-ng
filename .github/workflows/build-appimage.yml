@@ -15,10 +15,15 @@ jobs:
           sudo apt-get -y install podman
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
           path: 'chiaki-ng'
+
+      - name: Add QmlWebEngine Import
+        working-directory: chiaki-ng
+        run: |
+          cp scripts/qtwebengine_import.qml gui/src/qml/
 
       - name: Run build script
         working-directory: chiaki-ng/scripts
@@ -26,7 +31,7 @@ jobs:
           ./run-podman-build-appimage.sh
 
       - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: chiaki-ng.AppImage
           path: chiaki-ng/appimage/chiaki-ng.AppImage

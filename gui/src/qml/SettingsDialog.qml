@@ -286,14 +286,78 @@ DialogView {
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        model: [qsTr("Selected Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
+                        model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
                         currentIndex: Chiaki.settings.windowType
                         onActivated: (index) => Chiaki.settings.windowType = index;
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Selected Resolution)")
+                        text: qsTr("(Stream Resolution)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Custom Resolution Width")
+                        visible: Chiaki.settings.windowType == 1
+                    }
+
+                    C.TextField {
+                        id: customResolutionWidth
+                        Layout.preferredWidth: 400
+                        visible: Chiaki.settings.windowType == 1
+                        text: Chiaki.settings.customResolutionWidth
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.customResolutionWidth = parseInt(text);
+                            } else {
+                                Chiaki.settings.customResolutionWidth = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 0 && num <= 9999;
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1920)")
+                        visible: Chiaki.settings.windowType == 1
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Custom Resolution Height")
+                        visible: Chiaki.settings.windowType == 1
+                    }
+
+                    C.TextField {
+                        id: customResolutionHeight
+                        Layout.preferredWidth: 400
+                        visible: Chiaki.settings.windowType == 1
+                        text: Chiaki.settings.customResolutionHeight
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate()) {
+                                Chiaki.settings.customResolutionHeight = parseInt(text);
+                            } else {
+                                Chiaki.settings.customResolutionHeight = 0;
+                                text = "";
+                            }
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 0 && num <= 9999;
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(1080)")
+                        visible: Chiaki.settings.windowType == 1
                     }
 
                     Label {
@@ -309,6 +373,20 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Hide Cursor during Stream")
+                    }
+                    C.CheckBox {
+                        checked: Chiaki.settings.hideCursor
+                        onToggled: Chiaki.settings.hideCursor = !Chiaki.settings.hideCursor
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
                     }
 
                     Label {
@@ -1184,7 +1262,7 @@ DialogView {
                             Keys.onPressed: (event) => {
                                 switch (event.key) {
                                     case Qt.Key_Left:
-                                        if (!lastInFocusChain) {
+                                        if (!firstInFocusChain) {
                                             let item = nextItemInFocusChain(false);
                                             if (item)
                                                 item.forceActiveFocus(Qt.TabFocusReason);
@@ -1513,18 +1591,15 @@ DialogView {
 
             Item {
                 // Controller Mapping
-                GridLayout {
+                ColumnLayout {
                     anchors {
                         top: parent.top
                         horizontalCenter: parent.horizontalCenter
                         topMargin: 20
                     }
-                    columns: 3
-                    rowSpacing: 20
-                    columnSpacing: 100
-
-                    Label { }
+                    spacing: 20
                     C.Button {
+                        Layout.alignment: Qt.AlignHCenter
                         id: controllerMappingChange
                         firstInFocusChain: true
                         text: "Change Controller Mapping"
@@ -1532,76 +1607,187 @@ DialogView {
                             reset: false
                         });
                     }
-                    Label { }
-                    Label { }
                     C.Button {
+                        Layout.alignment: Qt.AlignHCenter
                         id: controllerMappingReset
                         text: "Reset Controller Mapping"
                         onClicked: controllerMappingDialog.show({
                             reset: true
                         });
                     }
-                    Label { }
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Dpad Touchpad Emulation")
-                    }
-                    C.CheckBox {
-                        checked: Chiaki.settings.dpadTouchIncrement
-                        onToggled: Chiaki.settings.dpadTouchEnabled = !Chiaki.settings.dpadTouchEnabled
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Checked)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Dpad Touch Increment:")
-                        visible: Chiaki.settings.dpadTouchEnabled
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 1
-                        to: 1079
-                        stepSize: 1
-                        visible: Chiaki.settings.dpadTouchEnabled
-                        value: Chiaki.settings.dpadTouchIncrement
-                        onMoved: Chiaki.settings.dpadTouchIncrement = value
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Dpad Touchpad Emulation")
+                        }
+                        C.CheckBox {
+                            checked: Chiaki.settings.dpadTouchEnabled
+                            onToggled: Chiaki.settings.dpadTouchEnabled = !Chiaki.settings.dpadTouchEnabled
+                        }
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1 mm").arg(parent.value / 100)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Checked)")
                         }
                     }
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Dpad Touch Increment:")
+                            visible: Chiaki.settings.dpadTouchEnabled
+                        }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(0.3 mm)")
-                        visible: Chiaki.settings.dpadTouchEnabled
+                        C.Slider {
+                            id: touchIncrement
+                            Layout.preferredWidth: 250
+                            from: 1
+                            to: 1079
+                            stepSize: 1
+                            visible: Chiaki.settings.dpadTouchEnabled
+                            value: Chiaki.settings.dpadTouchIncrement
+                            onMoved: Chiaki.settings.dpadTouchIncrement = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1 mm").arg(parent.value / 100)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            Layout.leftMargin: 100
+                            text: qsTr("(0.3 mm)")
+                            visible: Chiaki.settings.dpadTouchEnabled
+                        }
                     }
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Dpad Regular/Touch Combo:")
+                            visible: Chiaki.settings.dpadTouchEnabled
+                        }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Buttons By Position:")
+                        C.ComboBox {
+                            id: dpadShortcut1
+                            implicitContentWidthPolicy: ComboBox.WidestText
+                            firstInFocusChain: false
+                            model: [qsTr("Not Used"), qsTr("Cross"), qsTr("Moon"), qsTr("Box"), qsTr("Pyramid"), qsTr("Dpad Left"), qsTr("Dpad Right"), qsTr("Dpad Up"), qsTr("Dpad Down"), qsTr("L1"), qsTr("R1"), qsTr("L3"), qsTr("R3"), qsTr("Options"), qsTr("Share"), qsTr("Touchpad"), qsTr("PS")]
+                            currentIndex: Chiaki.settings.dpadTouchShortcut1
+                            onActivated: index => Chiaki.settings.dpadTouchShortcut1 = index
+                            visible: Chiaki.settings.dpadTouchEnabled
+                            KeyNavigation.priority: {
+                                if(!popup.visible)
+                                    KeyNavigation.BeforeItem
+                                else
+                                    KeyNavigation.AfterItem
+                            }
+                            KeyNavigation.up: touchIncrement
+                            KeyNavigation.down: posButtons
+                            KeyNavigation.left: dpadShortcut1
+                            KeyNavigation.right: dpadShortcut2
+                        }
+
+                        C.ComboBox {
+                            id: dpadShortcut2
+                            implicitContentWidthPolicy: ComboBox.WidestText
+                            firstInFocusChain: false
+                            model: [qsTr("Not Used"), qsTr("Cross"), qsTr("Moon"), qsTr("Box"), qsTr("Pyramid"), qsTr("Dpad Left"), qsTr("Dpad Right"), qsTr("Dpad Up"), qsTr("Dpad Down"), qsTr("L1"), qsTr("R1"), qsTr("L3"), qsTr("R3"), qsTr("Options"), qsTr("Share"), qsTr("Touchpad"), qsTr("PS")]
+                            currentIndex: Chiaki.settings.dpadTouchShortcut2
+                            onActivated: index => Chiaki.settings.dpadTouchShortcut2 = index
+                            visible: Chiaki.settings.dpadTouchEnabled
+                            KeyNavigation.priority: {
+                                if(!popup.visible)
+                                    KeyNavigation.BeforeItem
+                                else
+                                    KeyNavigation.AfterItem
+                            }
+                            KeyNavigation.up: touchIncrement
+                            KeyNavigation.down: posButtons
+                            KeyNavigation.left: dpadShortcut1
+                            KeyNavigation.right: dpadShortcut3
+                        }
+
+                        C.ComboBox {
+                            id: dpadShortcut3
+                            implicitContentWidthPolicy: ComboBox.WidestText
+                            firstInFocusChain: false
+                            model: [qsTr("Not Used"), qsTr("Cross"), qsTr("Moon"), qsTr("Box"), qsTr("Pyramid"), qsTr("Dpad Left"), qsTr("Dpad Right"), qsTr("Dpad Up"), qsTr("Dpad Down"), qsTr("L1"), qsTr("R1"), qsTr("L3"), qsTr("R3"), qsTr("Options"), qsTr("Share"), qsTr("Touchpad"), qsTr("PS")]
+                            currentIndex: Chiaki.settings.dpadTouchShortcut3
+                            onActivated: index => Chiaki.settings.dpadTouchShortcut3 = index
+                            visible: Chiaki.settings.dpadTouchEnabled
+                            KeyNavigation.priority: {
+                                if(!popup.visible)
+                                    KeyNavigation.BeforeItem
+                                else
+                                    KeyNavigation.AfterItem
+                            }
+                            KeyNavigation.up: touchIncrement
+                            KeyNavigation.down: posButtons
+                            KeyNavigation.left: dpadShortcut2
+                            KeyNavigation.right: dpadShortcut4
+                        }
+
+                        C.ComboBox {
+                            id: dpadShortcut4
+                            implicitContentWidthPolicy: ComboBox.WidestText
+                            firstInFocusChain: false
+                            model: [qsTr("Not Used"), qsTr("Cross"), qsTr("Moon"), qsTr("Box"), qsTr("Pyramid"), qsTr("Dpad Left"), qsTr("Dpad Right"), qsTr("Dpad Up"), qsTr("Dpad Down"), qsTr("L1"), qsTr("R1"), qsTr("L3"), qsTr("R3"), qsTr("Options"), qsTr("Share"), qsTr("Touchpad"), qsTr("PS")]
+                            currentIndex: Chiaki.settings.dpadTouchShortcut4
+                            onActivated: index => Chiaki.settings.dpadTouchShortcut4 = index
+                            visible: Chiaki.settings.dpadTouchEnabled
+                            KeyNavigation.priority: {
+                                if(!popup.visible)
+                                    KeyNavigation.BeforeItem
+                                else
+                                    KeyNavigation.AfterItem
+                            }
+                            KeyNavigation.up: touchIncrement
+                            KeyNavigation.down: posButtons
+                            KeyNavigation.left: dpadShortcut3
+                            KeyNavigation.right: dpadShortcut4
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(L1+R1+dpad Up)")
+                            visible: Chiaki.settings.dpadTouchEnabled
+                        }
                     }
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Buttons By Position:")
+                        }
 
-                    C.CheckBox {
-                        text: qsTr("Use buttons by position instead of by label")
-                        checked: Chiaki.settings.buttonsByPosition
-                        onToggled: Chiaki.settings.buttonsByPosition = checked
-                        lastInFocusChain: true
-                    }
+                        C.CheckBox {
+                            id: posButtons
+                            text: qsTr("Use buttons by position instead of by label")
+                            checked: Chiaki.settings.buttonsByPosition
+                            onToggled: Chiaki.settings.buttonsByPosition = checked
+                            KeyNavigation.priority: KeyNavigation.BeforeItem
+                            KeyNavigation.up: dpadShortcut1
+                            KeyNavigation.down: posButtons
+                            KeyNavigation.left: posButtons
+                            KeyNavigation.right: posButtons
+                            lastInFocusChain: true
+                        }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Unchecked)")
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                        }
                     }
                 }
             }
@@ -1640,7 +1826,7 @@ DialogView {
                         id: openPsnLogin
                         text: qsTr("Login to PSN")
                         onClicked: {
-                            root.showPSNTokenDialog(Chiaki.openPsnLink(), false)
+                            root.showPSNTokenDialog(false)
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
@@ -1658,6 +1844,7 @@ DialogView {
                             Chiaki.settings.psnAuthToken = ""
                             Chiaki.settings.psnAuthTokenExpiry = ""
                             Chiaki.settings.psnAccountId = ""
+                            openPsnLogin.forceActiveFocus(Qt.TabFocusReason);
                         }
                         Material.roundedScale: Material.SmallScale
                         visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId
@@ -1667,7 +1854,7 @@ DialogView {
                         id: exportButton
                         text: qsTr("Export settings to file")
                         onClicked: {
-                            exportDialog.open()
+                            Chiaki.settings.exportSettings();
                         }
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1676,7 +1863,7 @@ DialogView {
                         id: importButton
                         text: qsTr("Import settings from file")
                         onClicked: {
-                            importDialog.open()
+                            Chiaki.settings.importSettings();
                         }
                         Material.roundedScale: Material.SmallScale
                     }
@@ -1684,7 +1871,6 @@ DialogView {
                     C.Button {
                         id: aboutButton
                         lastInFocusChain: true
-                        implicitWidth: 200
                         text: qsTr("About %1-ng").arg(Qt.application.name)
                         onClicked: aboutDialog.open()
                         Material.roundedScale: Material.SmallScale
@@ -1718,26 +1904,6 @@ DialogView {
                     }
                 }
             }
-        }
-
-        FileDialog {
-            id: exportDialog
-            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
-            defaultSuffix: "ini"
-            onAccepted: Chiaki.settings.exportSettings(selectedFile)
-            nameFilters: ["Settings files (*.ini)"]
-            fileMode: FileDialog.SaveFile
-            acceptLabel: "Export To File"
-        }
-
-        FileDialog {
-            id: importDialog
-            currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
-            defaultSuffix: "ini"
-            onAccepted: Chiaki.settings.importSettings(selectedFile)
-            nameFilters: ["Settings files (*.ini)"]
-            fileMode: FileDialog.OpenFile
-            acceptLabel: "Import From File"
         }
 
         Dialog {

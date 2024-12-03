@@ -14,16 +14,18 @@ Dialog {
     y: Math.round((root.height - height) / 2)
     modal: true
     Material.roundedScale: Material.MediumScale
-    onOpened: yesButton.forceActiveFocus(Qt.TabFocusReason)
+    onOpened: label.forceActiveFocus(Qt.TabFocusReason)
     onAccepted: {
         restoreFocus();
         callback();
     }
     onRejected: restoreFocus()
+    onClosed: restoreFocus()
 
     function restoreFocus() {
         if (restoreFocusItem)
-            restoreFocusItem.forceActiveFocus(Qt.TabFocus);
+            restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+        label.focus = false;
     }
 
     Component.onCompleted: {
@@ -37,21 +39,19 @@ Dialog {
 
         Label {
             id: label
-            Keys.onReturnPressed: dialog.accept()
             Keys.onEscapePressed: dialog.reject()
+            Keys.onReturnPressed: dialog.accept()
         }
 
         RowLayout {
             Layout.alignment: Qt.AlignCenter
             spacing: 20
 
-            C.Button {
-                id: yesButton
+            Button {
                 text: qsTr("Yes")
+                Material.background: Material.accent
                 flat: true
                 leftPadding: 50
-                KeyNavigation.priority: KeyNavigation.BeforeItem
-                KeyNavigation.right: noButton
                 onClicked: dialog.accept()
                 Material.roundedScale: Material.SmallScale
 
@@ -68,10 +68,8 @@ Dialog {
                 }
             }
 
-            C.Button {
-                id: noButton
-                KeyNavigation.priority: KeyNavigation.BeforeItem
-                KeyNavigation.left: yesButton
+            Button {
+                Material.background: Material.accent
                 text: qsTr("No")
                 flat: true
                 leftPadding: 50

@@ -29,6 +29,15 @@
 #endif
 #include <windows.h>
 #include <iphlpapi.h>
+#elif defined(__SWITCH__)
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <net/if.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -73,6 +82,7 @@
 #define SELECT_CANDIDATE_CONNECTION_SEC 5
 #define RANDOM_ALLOCATION_GUESSES_NUMBER 75
 #define RANDOM_ALLOCATION_SOCKS_NUMBER 250
+#define CHECK_CANDIDATES_REQUEST_NUMBER 1
 #define WAIT_RESPONSE_TIMEOUT_SEC 1
 #define MSG_TYPE_REQ 0x06000000
 #define MSG_TYPE_RESP 0x07000000
@@ -776,11 +786,38 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     return session;
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_upnp_discover(Session *session)
+{
+    session->gw.data = calloc(1, sizeof(struct IGDdatas));
+    if(!session->gw.data)
+    {
+        return CHIAKI_ERR_MEMORY;
+    }
+    session->gw.urls = calloc(1, sizeof(struct UPNPUrls));
+    if(!session->gw.urls)
+    {
+        free(session->gw.data);
+        return CHIAKI_ERR_MEMORY;
+    }
+    ChiakiErrorCode err = upnp_get_gateway_info(session->log, &session->gw);
+    if (err == CHIAKI_ERR_SUCCESS)
+        session->gw_status = GATEWAY_STATUS_FOUND;
+    else
+    {
+        session->gw_status = GATEWAY_STATUS_NOT_FOUND;
+        free(session->gw.data);
+        session->gw.data = NULL;
+        free(session->gw.urls);
+        session->gw.urls = NULL;
+    }
+    return CHIAKI_ERR_SUCCESS;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
 {
     ChiakiErrorCode err = get_websocket_fqdn(session, &session->ws_fqdn);
     if (err != CHIAKI_ERR_SUCCESS)
-        goto cleanup_curlsh;
+        return err;
     chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
     {
@@ -788,13 +825,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
-        goto cleanup_curlsh;
+        return err;
     }
     chiaki_mutex_unlock(&session->stop_mutex);
 
     err = chiaki_thread_create(&session->ws_thread, websocket_thread_func, session);
     if (err != CHIAKI_ERR_SUCCESS)
-        goto cleanup_curlsh;
+        return err;
     chiaki_thread_set_name(&session->ws_thread, "Chiaki Holepunch WS");
     CHIAKI_LOGV(session->log, "chiaki_holepunch_session_create: Created websocket thread");
 
@@ -814,12 +851,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
-        goto cleanup_thread;
+        return err;
     }
     chiaki_mutex_unlock(&session->stop_mutex);
     err = http_create_session(session);
     if (err != CHIAKI_ERR_SUCCESS)
-        goto cleanup_thread;
+        return err;
     CHIAKI_LOGV(session->log, "chiaki_holepunch_session_create: Sent holepunch session creation request");
     chiaki_mutex_lock(&session->stop_mutex);
     if(session->main_should_stop)
@@ -828,7 +865,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         chiaki_mutex_unlock(&session->stop_mutex);
         CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
         err = CHIAKI_ERR_CANCELED;
-        goto cleanup_thread;
+        return err;
     }
     chiaki_mutex_unlock(&session->stop_mutex);
 
@@ -845,17 +882,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         if (err == CHIAKI_ERR_TIMEOUT)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Timed out waiting for holepunch session creation notifications.");
-            goto cleanup_thread;
+            return err;
         }
         else if (err == CHIAKI_ERR_CANCELED)
         {
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
-            goto cleanup_thread;
+            return err;
         }
         else if (err != CHIAKI_ERR_SUCCESS)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Failed to wait for holepunch session creation notifications.");
-            goto cleanup_thread;
+            return err;
         }
         chiaki_mutex_lock(&session->state_mutex);
         if (notif->type == NOTIFICATION_TYPE_SESSION_CREATED)
@@ -878,14 +915,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
             {
                 CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: could not extra PSN online id string.");
                 err = CHIAKI_ERR_UNKNOWN;
-                goto cleanup_thread;
+                return err;
             }
             session->online_id = malloc((strlen(online_id) + 1) * sizeof(char));
             if(!session->online_id)
             {
                 CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: could not allocate space for PSN online id string.");
                 err = CHIAKI_ERR_MEMORY;
-                goto cleanup_thread;
+                return err;
             }
             strcpy(session->online_id, online_id);
         }
@@ -898,7 +935,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         {
             CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Got unexpected notification of type %d", notif->type);
             err = CHIAKI_ERR_UNKNOWN;
-            goto cleanup_thread;
+            return err;
         }
         chiaki_mutex_lock(&session->stop_mutex);
         if(session->main_should_stop)
@@ -907,7 +944,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
             chiaki_mutex_unlock(&session->stop_mutex);
             CHIAKI_LOGI(session->log, "chiaki_holepunch_session_create: canceled");
             err = CHIAKI_ERR_CANCELED;
-            goto cleanup_thread;
+            return err;
         }
         chiaki_mutex_unlock(&session->stop_mutex);
         http_check_session(session, true);
@@ -917,34 +954,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
         chiaki_mutex_unlock(&session->state_mutex);
         clear_notification(session, notif);
     }
-    return err;
-
-cleanup_thread:
-    chiaki_mutex_lock(&session->stop_mutex);
-    session->ws_thread_should_stop = true;
-    chiaki_mutex_unlock(&session->stop_mutex);
-    chiaki_thread_join(&session->ws_thread, NULL);
-cleanup_curlsh:
-    curl_share_cleanup(session->curl_share);
-    if (session->oauth_header)
-        free(session->oauth_header);
-    if(session->session_id_header)
-        free(session->session_id_header);
-    if (session->ws_fqdn)
-        free(session->ws_fqdn);
-    if (session->ws_notification_queue)
-    {
-        chiaki_mutex_lock(&session->notif_mutex);
-        notification_queue_free(session->ws_notification_queue);
-        chiaki_mutex_unlock(&session->notif_mutex);
-    }
-    chiaki_stop_pipe_fini(&session->notif_pipe);
-    chiaki_mutex_fini(&session->notif_mutex);
-    chiaki_stop_pipe_fini(&session->select_pipe);
-    chiaki_cond_fini(&session->notif_cond);
-    chiaki_mutex_fini(&session->state_mutex);
-    chiaki_mutex_fini(&session->stop_mutex);
-    chiaki_cond_fini(&session->state_cond);
     return err;
 }
 
@@ -1983,7 +1992,7 @@ static void* websocket_thread_func(void *user) {
     res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
     if(res != CURLE_OK)
         CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
-    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0L);
     if(res != CURLE_OK)
         CHIAKI_LOGW(session->log, "websocket_thread_func: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
     res = curl_easy_setopt(curl, CURLOPT_URL, ws_url);
@@ -2040,7 +2049,6 @@ static void* websocket_thread_func(void *user) {
         CHIAKI_LOGE(session->log, "Couldn't create new json tokener");
         goto cleanup;
     }
-
     const struct curl_ws_frame *meta;
     char *buf = malloc(WEBSOCKET_MAX_FRAME_SIZE);
     if(!buf)
@@ -2411,43 +2419,7 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
     candidate_remote->type = CANDIDATE_TYPE_STATIC;
     switch(session->gw_status)
     {
-        case GATEWAY_STATUS_UNKNOWN: {
-            UPNPGatewayInfo upnp_gw;
-            upnp_gw.data = calloc(1, sizeof(struct IGDdatas));
-            if(!upnp_gw.data)
-            {
-                err = CHIAKI_ERR_MEMORY;
-                goto cleanup;
-            }
-            upnp_gw.urls = calloc(1, sizeof(struct UPNPUrls));
-            if(!upnp_gw.urls)
-            {
-                err = CHIAKI_ERR_MEMORY;
-                free(upnp_gw.data);
-                goto cleanup;
-            }
-            err = upnp_get_gateway_info(session->log, &upnp_gw);
-            if (err == CHIAKI_ERR_SUCCESS) {
-                memcpy(candidate_local->addr, upnp_gw.lan_ip, sizeof(upnp_gw.lan_ip));
-                have_addr = get_client_addr_remote_upnp(session->log, &upnp_gw, candidate_remote->addr);
-                if(upnp_add_udp_port_mapping(session->log, &upnp_gw, local_port, local_port))
-                {
-                    CHIAKI_LOGI(session->log, "holepunch_session_create_offer: Added local UPNP port mapping to port %u", local_port);
-                    session->gw = upnp_gw;
-                    session->gw_status = GATEWAY_STATUS_FOUND;
-                }
-                else
-                {
-                    CHIAKI_LOGE(session->log, "holepunch_session_create_offer: Adding upnp port mapping failed");
-                    session->gw_status = GATEWAY_STATUS_NOT_FOUND;
-                }
-            }
-            else {
-                get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
-                session->gw_status = GATEWAY_STATUS_NOT_FOUND;
-            }
-            break;
-        }
+        case GATEWAY_STATUS_UNKNOWN:
         case GATEWAY_STATUS_NOT_FOUND: {
             get_client_addr_local(session, candidate_local, candidate_local->addr, sizeof(candidate_local->addr));
             break;
@@ -3356,6 +3328,18 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
     return err;
 #undef MALLOC
 #undef FREE
+#elif defined(__SWITCH__)
+    // switch does not have ifaddrs.h, use arpa/inet.h
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = gethostid();
+    if (!inet_ntop(AF_INET,  &(addr.sin_addr), local_console_candidate->addr, sizeof(local_console_candidate->addr)))
+    {
+        CHIAKI_LOGE(session->log, "%s: inet_ntop failed with error: " CHIAKI_SOCKET_ERROR_FMT "\n", addr.sin_addr.s_addr, CHIAKI_SOCKET_ERROR_VALUE);
+        CHIAKI_LOGE(session->log, "Couldn't find a valid external address!");
+        return CHIAKI_ERR_NETWORK;
+    }
+
 #else
     struct ifaddrs *local_addrs, *current_addr;
     void *in_addr;
@@ -3416,7 +3400,7 @@ static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *in
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     int success = 0;
     struct UPNPDev *devlist = upnpDiscover(
-        2000 /** ms, delay*/, NULL, NULL, 0, 0, 0, &success);
+        2000 /** ms, delay*/, NULL, NULL, 0, 0, 2, &success);
     if (devlist == NULL || err != UPNPDISCOVER_SUCCESS) {
         CHIAKI_LOGI(log, "Failed to find UPnP-capable devices on network: err=%d", err);
         return CHIAKI_ERR_NETWORK;
@@ -3609,11 +3593,11 @@ static ChiakiErrorCode check_candidates(
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 
     // Set up request buffer
-    uint8_t request_buf[3][88] = {0};
-    uint8_t request_id[3][5] = {0};
+    uint8_t request_buf[CHECK_CANDIDATES_REQUEST_NUMBER][88] = {0};
+    uint8_t request_id[CHECK_CANDIDATES_REQUEST_NUMBER][5] = {0};
 
-    // send 3 requests for connection pairing with ps
-    for(int i = 0; i < 3; i++)
+    // send CHECK_CANDIDATES_REQUEST_NUMBER requests for connection pairing with ps
+    for(int i = 0; i < CHECK_CANDIDATES_REQUEST_NUMBER; i++)
     {
         chiaki_random_bytes_crypt(request_id[i], sizeof(request_id[i]));
         *(uint32_t*)&request_buf[i][0x00] = htonl(MSG_TYPE_REQ);
@@ -4096,7 +4080,7 @@ static ChiakiErrorCode check_candidates(
         responses_received[i]++;
         responses = responses_received[i];
         CHIAKI_LOGV(session->log, "Received response %d", responses);
-        if(responses > 2)
+        if(responses > (CHECK_CANDIDATES_REQUEST_NUMBER - 1))
         {
             selected_sock = candidate_sock;
             selected_candidate = candidate;

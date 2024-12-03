@@ -22,7 +22,7 @@
 #define ACCEL_MOVESPEED_MULT 1.5f
 // sqrt(qw^2 + qx^2 + qy^2 qz^2) approx. above constant due to normalization
 #define STEAM_DECK_ORIENT_FUZZ 24.0f
-#define STEAM_DECK_ACCEL_FUZZ 256.0f
+#define STEAM_DECK_ACCEL_FUZZ 12.0f
 #define FUZZ_FILTER_PREV_WEIGHT 0.75f
 #define FUZZ_FILTER_PREV_WEIGHT2x 0.6f
 #define STEAM_DECK_GYRO_DEADZONE 24.0f
