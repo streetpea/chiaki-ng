@@ -1505,7 +1505,7 @@ void QmlSettings::exportSettings()
                                                     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/chiaki-ng-" + profile,
                                                     tr("Settings files (*.ini)"),
                                                     nullptr,
-                                                    QFileDialog::DontUseNativeDialog);
+                                                    QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
     if(fileName.isEmpty())
         return;
     settings->ExportSettings(std::move(fileName));
@@ -1530,7 +1530,7 @@ void QmlSettings::exportPlaceboSettings()
                                                     QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/chiaki-ng-placebo",
                                                     tr("Settings files (*.ini)"),
                                                     nullptr,
-                                                    QFileDialog::DontUseNativeDialog);
+                                                    QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
     if(fileName.isEmpty())
         return;
     settings->ExportPlaceboSettings(std::move(fileName));
