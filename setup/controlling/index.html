@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../images/chiaking.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.44">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.35">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -868,6 +868,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Dpad Touch Emulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#switching-dpad-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Switching Dpad Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1427,6 +1451,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Dpad Touch Emulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#switching-dpad-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Switching Dpad Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1789,6 +1837,10 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 <td><code>L3</code> (left-stick click)</td>
 </tr>
 <tr>
+<td><code>switch between dpad modes</code></td>
+<td><code>L1+R1+dpad up</code></td>
+</tr>
+<tr>
 <td><code>stream menu</code></td>
 <td><code>L1+R1+L3+R3</code></td>
 </tr>
@@ -1936,11 +1988,14 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
 </li>
 </ol>
 <h3 id="dpad-touch-emulation">Dpad Touch Emulation<a class="headerlink" href="#dpad-touch-emulation" title="Permanent link">&para;</a></h3>
-<p>Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings-&gt;Controllers and can be disabled at any time. The <code>Dpad Touch Increment</code> controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position</p>
+<p>Non-PlayStation controllers such as Xbox and Nintendo controllers don't have a touchpad. To use touchpad functionality in games, chiaki-ng provides dpad touch emulation. It is enabled by default in Settings-&gt;Controllers and can be disabled at any time. The <code>Dpad Touch Increment</code> controls how far away the next touch on the dpad will be when holding down a direction on the dpad. Changing this will make you "move across the touchpad" (in the currently pressed dpad direction) farther or nearer to your current position.</p>
+<h4 id="switching-dpad-mode">Switching Dpad Mode<a class="headerlink" href="#switching-dpad-mode" title="Permanent link">&para;</a></h4>
+<p>Use the dpad touch switch button combo (default is <code>L1+R1+Dpad Up</code> but it's user configurable in settings-&gt;Controllers) to switch between regular dpad and dpad touch emulation while in game.</p>
+<h4 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h4>
 <p><img alt="Dpad Touch Emulation" src="../images/DpadTouchEmulation.png" /></p>
 <div class="admonition question">
 <p class="admonition-title">How does Dpad Touch Emulation work</p>
-<p>Pushing one of the dpad buttons will register a touch in the quadrant of that button:</p>
+<p>When the dpad touch mode is enabled (toggled via the dpad touch switch button combo mentioned above), pushing one of the dpad buttons will register a touch in the quadrant of that button:</p>
 <ul>
 <li>
 <p>Dpad Left: All the way to the left and halfway up the touchpad</p>
@@ -2005,7 +2060,7 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 14, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 17, 2024</span>
   </span>
 
     
@@ -2270,7 +2325,7 @@ Once checked, haptics and adaptive triggers (DualSense only) will work in games 
     <script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "navigation.tracking", "navigation.footer", "search.share", "navigation.indexes", "announce.dismiss", "content.tabs.link", "content.code.copy", "content.action.edit", "content.action.view"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
       
         <script src="../../js/print-site.js"></script>
       
