@@ -79,6 +79,7 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 Small patch update:
 
+- HDR support for MacOS and Windows
 - Add Windows installer
 - Increase stability of motion controls
 - Add native webview for obtaining PSN tokens, making it possible to obtain the token easily in Steam OS game mode
@@ -401,7 +402,7 @@ Install update following [updating `chiaki-ng`](#updating-chiaki-ng).
         
     - Creating a Custom Controller Profile (Great for tinkering, especially for updating the default profile to meet your needs exactly):
     
-        Make a custom controller profile using the [Creating Your Own Controller Profile](../setup/controlling.md#creating-your-own-controller-profile){target="_blank" rel="noopener"} section, taking special note of the [Special Button Mappings](../setup/controlling.md#special-button-mappings-you-need-to-assign-these-yourself){target="_blank" rel="noopener"} and [Using Steam Deck Controller Touchscreen in Your Custom Controller Profile](../setup/controlling.md#using-steam-deck-controller-touchscreen-in-your-custom-controller-profile){target="_blank" rel="noopener"}
+        Make a custom controller profile using the [Creating Your Own Controller Profile](../setup/controlling.md){target="_blank" rel="noopener"} section, taking special note of the [Special Button Mappings](../setup/controlling.md#special-button-mappings-you-need-to-assign-these-yourself){target="_blank" rel="noopener"} and [Using Steam Deck Controller Touchscreen in Your Custom Controller Profile](../setup/controlling.md#using-steam-deck-controller-touchscreen-in-your-custom-controller-profile){target="_blank" rel="noopener"}
 
         [Approximate Time Estimate: 10-20 minutes depending on your experience with Steam Deck Controller Layouts]
 

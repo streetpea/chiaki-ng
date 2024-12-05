@@ -3,7 +3,7 @@
   <id>io.github.streetpea.Chiaki4deck</id>
   <launchable type="desktop-id">chiaking.desktop</launchable>
   <name>chiaki-ng</name>
-  <summary>Free and Open Source Client for PlayStation Remote Play modified for Steam Deck</summary>
+  <summary>Free and Open Source Client for PlayStation Remote Play</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <developer_name>Street Pea</developer_name>
