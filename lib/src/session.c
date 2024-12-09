@@ -30,6 +30,8 @@
 
 #define SESSION_EXPECT_TIMEOUT_MS		5000
 
+#define SESSION_EXPECT_CTRL_START_MS    10000
+
 static void *session_thread_func(void *arg);
 static void regist_cb(ChiakiRegistEvent *event, void *user);
 static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, ChiakiTarget *target_out);
@@ -506,7 +508,7 @@ static void *session_thread_func(void *arg)
 	if(err != CHIAKI_ERR_SUCCESS)
 		QUIT(quit);
 
-	err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+	err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_CTRL_START_MS, session_check_state_pred_ctrl_start, session);
 	CHECK_STOP(quit_ctrl);
 
 	if(session->ctrl_failed)
