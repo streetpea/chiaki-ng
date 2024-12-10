@@ -2,7 +2,15 @@
 
 set -xe
 
-export PATH="${QT_PATH}/${QT_VERSION}/gcc_64/bin:$PATH"
+if [ "$(uname -m)" = "aarch64" ]
+then
+    export GCC_STRING="gcc_arm64"
+else
+    export GCC_STRING="gcc_64"
+fi
+
+export PATH="${QT_PATH}/${QT_VERSION}/${GCC_STRING}/bin:$PATH"
+
 
 # sometimes there are errors in linuxdeploy in docker/podman when the appdir is on a mount
 appdir=${1:-`pwd`/appimage/appdir}
@@ -36,15 +44,16 @@ build_appimage/test/chiaki-unit
 DESTDIR="${appdir}" ninja -C build_appimage install
 cd appimage
 
-curl -L -O https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-chmod +x linuxdeploy-x86_64.AppImage
-curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
+export ARCH="$(uname -m)"
+curl -L -O https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
+chmod +x linuxdeploy-${ARCH}.AppImage
+curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
+chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
 
-export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/gcc_64/lib:$(pwd)/../build_appimage/third-party/cpp-steam-tools:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/${GCC_STRING}/lib:$(pwd)/../build_appimage/third-party/cpp-steam-tools:$LD_LIBRARY_PATH"
 export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
 
-./linuxdeploy-x86_64.AppImage \
+./linuxdeploy-${ARCH}.AppImage \
     --appdir="${appdir}" \
     -e "${appdir}/usr/bin/chiaki" \
     -d "${appdir}/usr/share/applications/chiaking.desktop" \
@@ -54,4 +63,4 @@ export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
     --exclude-library='libhidapi*' \
     --output appimage
 
-mv chiaki-ng-x86_64.AppImage chiaki-ng.AppImage
+mv chiaki-ng-${ARCH}.AppImage chiaki-ng.AppImage
