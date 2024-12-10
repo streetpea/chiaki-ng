@@ -1,11 +1,11 @@
-name: Build chiaki-ng Appimage
+name: Build chiaki-ng Appimage arm64
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-appimage_x64:
-    name: Build chiaki-ng appimage_x64
+  build-appimage_arm64:
+    name: Build chiaki-ng appimage_arm64
     runs-on: ubuntu-latest
     
     steps:
