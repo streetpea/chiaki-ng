@@ -31,11 +31,9 @@ jobs:
           platforms: "arm64"
   
       - name: Run build script
-        working-directory: chiaki-ng/scripts
+        working-directory: chiaki-ng
         run: |
           set -xe
-          cd "`dirname $(readlink -f ${0})`"
-          cd ..
           podman run --rm \
             -v "`pwd`:/build/chiaki" \
             -w "/build/chiaki" \
