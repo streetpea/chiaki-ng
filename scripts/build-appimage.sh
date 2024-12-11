@@ -53,7 +53,7 @@ chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
 export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/${GCC_STRING}/lib:$(pwd)/../build_appimage/third-party/cpp-steam-tools:$LD_LIBRARY_PATH"
 export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
 
-./linuxdeploy-${ARCH}.AppImage \
+APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy-${ARCH}.AppImage \
     --appdir="${appdir}" \
     -e "${appdir}/usr/bin/chiaki" \
     -d "${appdir}/usr/share/applications/chiaking.desktop" \
