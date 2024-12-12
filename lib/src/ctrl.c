@@ -859,6 +859,13 @@ static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *paylo
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->session->state_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
+	// If receive login pin request after starting session, quit session as this won't work
+	if(ctrl->session->ctrl_session_id_received)
+	{
+		chiaki_mutex_unlock(&ctrl->session->state_mutex);
+		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		return;
+	}
 	ctrl->session->ctrl_login_pin_requested = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
