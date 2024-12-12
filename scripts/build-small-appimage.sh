@@ -15,15 +15,7 @@ export PATH="${QT_PATH}/${QT_VERSION}/${GCC_STRING}/bin:$PATH"
 # sometimes there are errors in linuxdeploy in docker/podman when the appdir is on a mount
 appdir=${1:-`pwd`/appimage/appdir}
 
-rm -rf appimage && mkdir -p appimage
-
-scripts/fetch-protoc.sh appimage
 export PATH="`pwd`/appimage/protoc/bin:$PATH"
-scripts/build-ffmpeg.sh appimage
-scripts/build-sdl2.sh appimage
-scripts/build-libplacebo.sh appimage
-
-rm -rf build_appimage && mkdir -p build_appimage
 cd build_appimage 
 qt-cmake \
 	-GNinja \
@@ -47,6 +39,8 @@ cd appimage
 export ARCH="$(uname -m)"
 curl -L -O https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
 chmod +x linuxdeploy-${ARCH}.AppImage
+curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
+chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
 
 export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/${GCC_STRING}/lib:$(pwd)/../build_appimage/third-party/cpp-steam-tools:$LD_LIBRARY_PATH"
 export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
@@ -63,13 +57,9 @@ then
         --exclude-library='libva*' \
         --exclude-library='libvulkan*' \
         --exclude-library='libhidapi*'
-    curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
-    chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
     ./qemu-aarch64-static ./linuxdeploy-plugin-qt-${ARCH}.AppImage --appdir="${appdir}"
     ./qemu-aarch64-static ./appimagetool-aarch64.AppImage "${appdir}"
 else
-    curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
-    chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
     ./linuxdeploy-${ARCH}.AppImage \
         --appdir="${appdir}" \
         -e "${appdir}/usr/bin/chiaki" \
