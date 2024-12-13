@@ -328,6 +328,9 @@ jobs:
 
   build-appimage_arm64:
     name: Build chiaki-ng appimage_arm64
+    permissions:
+      contents: write
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - name: Setup Podman
