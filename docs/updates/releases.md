@@ -75,6 +75,13 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.3
+
+Small patch update
+
+- add Linux arm64 appimage
+- fix bug that can cause chiaki-ng to fail to start after new PlayStation firmware update if user has a login pin adn some other edge cases
+
 ### 1.9.2
 
 Small patch update:

@@ -20,8 +20,9 @@ jobs:
         echo -e "Linux Flatpak Release on Flathub as io.github.streetpea.Chiaki4deck\n" > release_notes.md
         echo -e "Use brew to manage updates for the MacOS release with:\n" >> release_notes.md
         echo -e "brew install --cask streetpea/streetpea/chiaki-ng\n" >> release_notes.md
-        echo -e "Windows Release, MacOS Release, and Linux Appimage Release attached.\n" >> release_notes.md
+        echo -e "Windows Release (x86_64), MacOS Release (arm64 and x86_64), and Linux Appimage Release (arm64 and x86_64) attached.\n" >> release_notes.md
         echo -e "Note: Pipewire required for appimage. For Linux pipewire is required for DualSense haptics.\nFor flatpak you can run with --env=SDL_AUDIODRIVER=pulse to use pulse instead of pipewire if you really want that (doing this means DualSense haptics won't work)\n" >> release_notes.md
+        echo -e "Note2: Appimage requires the following libraries to be installed on your system (these files need to be the correct ones for your system to work properly so can't be packaged with the appimage):\n```\nlibhidapi\nlibvulkan\nlibva\n```\n" >> release_notes.md
         echo -e "## Updates\n" >> release_notes.md
         git tag -l --format='%(contents)' ${GITHUB_REF_NAME} >> release_notes.md
 
