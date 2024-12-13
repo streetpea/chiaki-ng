@@ -292,15 +292,71 @@ jobs:
           cp scripts/qtwebengine_import.qml gui/src/qml/
 
       - name: Run build script
-        working-directory: chiaki-ng/scripts
+        working-directory: chiaki-ng
         run: |
-          ./run-podman-build-appimage.sh
+          set -xe
+          podman run --rm \
+            -v "`pwd`:/build/chiaki" \
+            -w "/build/chiaki" \
+            --device /dev/fuse \
+            --cap-add SYS_ADMIN \
+            -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \
+            /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
+          cp appimage/chiaki-ng.AppImage appimage/chiaki-ng.AppImage_x86_64
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            chiaki-ng/appimage/chiaki-ng.AppImage
+            chiaki-ng/appimage/chiaki-ng.AppImage_x86_64
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
+  build-appimage_arm64:
+    name: Build chiaki-ng appimage_arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Podman
+        run: |
+          sudo apt update
+          sudo apt-get -y install podman
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: 'chiaki-ng'
+
+      - name: Add QmlWebEngine Import
+        working-directory: chiaki-ng
+        run: |
+          cp scripts/qtwebengine_import.qml gui/src/qml/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: "arm64"
+
+      - name: Run build script
+        working-directory: chiaki-ng
+        run: |
+          set -xe
+          podman run --rm \
+            -v "`pwd`:/build/chiaki" \
+            -w "/build/chiaki" \
+            --platform linux/arm64 \
+            --device /dev/fuse \
+            --cap-add SYS_ADMIN \
+            -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \
+            /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
+          cp appimage/chiaki-ng.AppImage appimage/chiaki-ng.AppImage_arm64
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          path: |
+            chiaki-ng/appimage/chiaki-ng.AppImage_arm64
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
