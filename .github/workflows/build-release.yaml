@@ -1,4 +1,4 @@
-name: Build chiaki-ng release
+name: Create chiaki-ng release
 
 on:
   push:
