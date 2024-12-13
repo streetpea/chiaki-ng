@@ -6,7 +6,7 @@ on:
 jobs:
   build-mac_x64:
     name: Build macOSX x86_64 version
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,7 +19,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
 
       - name: Configure chiaki-ng
         run: |
