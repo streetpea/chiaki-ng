@@ -874,7 +874,9 @@ static void ctrl_message_received_login_pin_req(ChiakiCtrl *ctrl, uint8_t *paylo
 static void ctrl_message_received_displaya(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size)
 {
 	if(payload[0] == 0x1)
+	{
 		ctrl->cant_displaya = true;
+	}
 	else if (payload[0] == 0x0 && !ctrl->cant_displayb)
 	{
 		ctrl->cant_displaya = false;
@@ -887,7 +889,7 @@ static void ctrl_message_received_displayb(ChiakiCtrl *ctrl, uint8_t *payload, s
 {
 	if(ctrl->cant_displaya == true)
 	{
-		if(payload[0] == 0x00 && payload[1] == 0x00 && !ctrl->cant_displayb)
+		if(!(payload[0] == 0x01 && payload[1] == 0xff) && !ctrl->cant_displayb)
 		{
 			ctrl->session->display_sink.cantdisplay_cb(ctrl->session->display_sink.user, true);
 			CHIAKI_LOGI(ctrl->session->log, "Ctrl received message that the stream can't display due to displaying some content that can't be streamed.");
