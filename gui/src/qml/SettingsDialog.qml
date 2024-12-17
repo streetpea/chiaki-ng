@@ -1175,6 +1175,7 @@ DialogView {
                         CheckBox {
                             property bool firstInFocusChain: false
                             property bool lastInFocusChain: false
+                            property bool lastDownInFocusChain: index > consolesView.count + hiddenConsolesView.count - 2
 
                             id: autoConnectButton
                             anchors {
@@ -1217,7 +1218,7 @@ DialogView {
                                     }
                                     break;
                                 case Qt.Key_Down:
-                                    if (!lastInFocusChain) {
+                                    if (!lastDownInFocusChain) {
                                         let item = nextItemInFocusChain();
                                         if (item)
                                             item.forceActiveFocus(Qt.TabFocusReason);
@@ -1623,6 +1624,7 @@ DialogView {
                             text: qsTr("Dpad Touchpad Emulation")
                         }
                         C.CheckBox {
+                            id: dpadTouch
                             checked: Chiaki.settings.dpadTouchEnabled
                             onToggled: Chiaki.settings.dpadTouchEnabled = !Chiaki.settings.dpadTouchEnabled
                         }
@@ -1777,7 +1779,12 @@ DialogView {
                             checked: Chiaki.settings.buttonsByPosition
                             onToggled: Chiaki.settings.buttonsByPosition = checked
                             KeyNavigation.priority: KeyNavigation.BeforeItem
-                            KeyNavigation.up: dpadShortcut1
+                            KeyNavigation.up: {
+                                if(dpadShortcut1.visible)
+                                    dpadShortcut1
+                                else
+                                    dpadTouch;
+                            }
                             KeyNavigation.down: posButtons
                             KeyNavigation.left: posButtons
                             KeyNavigation.right: posButtons
