@@ -166,6 +166,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
+	sdeck(nullptr),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	echo_resampler_buf(nullptr),
