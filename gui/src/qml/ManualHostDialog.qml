@@ -9,7 +9,7 @@ import "controls" as C
 
 DialogView {
     title: qsTr("Add Manual Console")
-    buttonText: qsTr("✓ Add")
+    buttonText: qsTr("Add")
     buttonEnabled: hostField.text.trim() && (consoleCombo.model[consoleCombo.currentIndex].index != -1)
     onAccepted: {
         Chiaki.addManualHost(consoleCombo.model[consoleCombo.currentIndex].index, hostField.text.trim());

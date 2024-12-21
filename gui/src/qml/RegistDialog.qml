@@ -11,7 +11,7 @@ DialogView {
     property bool ps5: true
     property alias host: hostField.text
     title: qsTr("Register Console")
-    buttonText: qsTr("✓ Register")
+    buttonText: qsTr("Register")
     buttonEnabled: hostField.text.trim() && pin.acceptableInput && cpin.acceptableInput && (!onlineId.visible || onlineId.text.trim()) && (!accountId.visible || accountId.text.trim())
     StackView.onActivated: {
         if(Chiaki.settings.psnAccountId)

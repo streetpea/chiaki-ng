@@ -10,7 +10,7 @@ import "controls" as C
 DialogView {
     property bool opening: false
     title: qsTr("Create Non-Steam Game")
-    buttonText: qsTr("✓ Create")
+    buttonText: qsTr("Create")
     buttonEnabled: name.text.trim() && !opening
     onAccepted: {
         opening = true;

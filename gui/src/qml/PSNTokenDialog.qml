@@ -17,7 +17,7 @@ DialogView {
         else
             qsTr("Setup Automatic PSN Remote Connection")
     }
-    buttonText: qsTr("✓ Setup")
+    buttonText: qsTr("Setup")
     buttonEnabled: url.text.trim()
     buttonVisible: false
     onAccepted: {

@@ -54,6 +54,14 @@ Pane {
             if (Chiaki.settings.psnAuthToken) Chiaki.refreshPsnToken();
             event.accepted = true;
             break;
+        case Qt.Key_F1:
+            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog();
+            event.accepted = true;
+            break;
+        case Qt.Key_F2:
+            root.showManualHostDialog();
+            event.accepted = true;
+            break;
         }
     }
 
@@ -88,13 +96,24 @@ Pane {
 
             Button {
                 Layout.fillHeight: true
-                Layout.preferredWidth: 400
+                Layout.preferredWidth: 350
                 flat: true
                 text: "Create Steam Shortcut"
                 focusPolicy: Qt.NoFocus
                 onClicked: root.showSteamShortcutDialog()
                 Material.roundedScale: Material.SmallScale
                 visible: typeof Chiaki.createSteamShortcut === "function"
+                Image {
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l3.svg"
+                }
             }
 
             Button {
@@ -111,14 +130,23 @@ Pane {
 
             Button {
                 Layout.fillHeight: true
-                Layout.preferredWidth: 100
+                Layout.preferredWidth: 300
                 flat: true
-                icon.source: "qrc:/icons/add-24px.svg";
-                icon.width: 50
-                icon.height: 50
+                text: "Add Manual Host"
                 focusPolicy: Qt.NoFocus
                 onClicked: root.showManualHostDialog()
                 Material.roundedScale: Material.SmallScale
+                Image {
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r3.svg"
+                }
             }
 
             Button {

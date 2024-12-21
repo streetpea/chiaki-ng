@@ -10,7 +10,7 @@ import "controls" as C
 DialogView {
     property var consoleIndex
     title: qsTr("Set console pin")
-    buttonText: qsTr("✓ Set")
+    buttonText: qsTr("Set")
     buttonEnabled: pin.acceptableInput
     onAccepted: {
         Chiaki.setConsolePin(consoleIndex, pin.text.trim());

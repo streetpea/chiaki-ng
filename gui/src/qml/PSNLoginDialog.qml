@@ -15,7 +15,7 @@ DialogView {
     property var psnurl: ""
     title: qsTr("PSN Login")
     buttonVisible: false
-    buttonText: qsTr("✓ Get Account ID")
+    buttonText: qsTr("Get Account ID")
     buttonEnabled: !submitting && url.text.trim()
     onAccepted: {
         submitting = true;
