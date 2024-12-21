@@ -53,7 +53,7 @@ TextField {
         anchors.fill: parent
         enabled: parent.readOnly
         onClicked: {
-            parent.forceActiveFocus();
+            parent.forceActiveFocus(Qt.TabFocusReason);
             parent.readOnly = false;
             Qt.inputMethod.show();
         }

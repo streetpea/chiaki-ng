@@ -27,14 +27,14 @@ Rectangle {
         Chiaki.window.grabInput();
         restoreFocusItems.push(Window.window.activeFocusItem);
         if (item)
-            item.forceActiveFocus();
+            item.forceActiveFocus(Qt.TabFocusReason);
     }
 
     function releaseInput() {
         Chiaki.window.releaseInput();
         let item = restoreFocusItems.pop();
         if (item && item.visible)
-            item.forceActiveFocus();
+            item.forceActiveFocus(Qt.TabFocusReason);
     }
 
     Keys.onReturnPressed: view.stop()

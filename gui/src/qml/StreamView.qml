@@ -18,14 +18,14 @@ Item {
         Chiaki.window.grabInput();
         restoreFocusItems.push(Window.window.activeFocusItem);
         if (item)
-            item.forceActiveFocus();
+            item.forceActiveFocus(Qt.TabFocusReason);
     }
 
     function releaseInput() {
         Chiaki.window.releaseInput();
         let item = restoreFocusItems.pop();
         if (item && item.visible)
-            item.forceActiveFocus();
+            item.forceActiveFocus(Qt.TabFocusReason);
     }
 
     StackView.onActivating: Chiaki.window.keepVideo = true

@@ -1926,7 +1926,7 @@ DialogView {
 
             RowLayout {
                 spacing: 50
-                onVisibleChanged: if (visible) forceActiveFocus()
+                onVisibleChanged: if (visible) forceActiveFocus(Qt.TabFocusReason)
                 Keys.onReturnPressed: aboutDialog.close()
                 Keys.onEscapePressed: aboutDialog.close()
 
@@ -1969,7 +1969,7 @@ DialogView {
             modal: true
             standardButtons: Dialog.Close
             closePolicy: Popup.CloseOnPressOutside
-            onOpened: keyLabel.forceActiveFocus()
+            onOpened: keyLabel.forceActiveFocus(Qt.TabFocusReason)
             onClosed: {
                 let item = chiakiKeys.itemAt(keysIndex)
                 if(item)
@@ -2014,7 +2014,7 @@ DialogView {
             standardButtons: Dialog.Close
             closePolicy: Popup.CloseOnPressOutside
             onOpened: {
-                controllerLabel.forceActiveFocus();
+                controllerLabel.forceActiveFocus(Qt.TabFocusReason);
                 Chiaki.creatingControllerMapping(true);
             }
             onClosed: {
@@ -2059,7 +2059,7 @@ DialogView {
             standardButtons: Dialog.Close
             closePolicy: Popup.NoAutoClose
             onOpened: {
-                steamLabel.forceActiveFocus();
+                steamLabel.forceActiveFocus(Qt.TabFocusReason);
             }
             onClosed: {
                 if(resetMapping)

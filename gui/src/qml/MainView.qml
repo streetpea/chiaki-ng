@@ -9,7 +9,7 @@ Pane {
     padding: 0
     id: consolePane
     StackView.onActivated: {
-        forceActiveFocus();
+        forceActiveFocus(Qt.TabFocusReason);
         if(Chiaki.settings.remotePlayAsk)
         {
             if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)

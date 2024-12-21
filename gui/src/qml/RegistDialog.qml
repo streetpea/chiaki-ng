@@ -199,20 +199,6 @@ DialogView {
         }
 
         Item {
-            Keys.onPressed: (event) => {
-                switch (event.key) {
-                case Qt.Key_Up:
-                    if(logScrollbar.position > 0.001)
-                        logFlick.flick(0, 500);
-                    event.accepted = true;
-                    break;
-                case Qt.Key_Down:
-                    if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
-                        logFlick.flick(0, -500);
-                    event.accepted = true;
-                    break;
-                }
-            }
             Dialog {
                 id: logDialog
                 parent: Overlay.overlay
@@ -223,7 +209,7 @@ DialogView {
                 closePolicy: Popup.NoAutoClose
                 standardButtons: Dialog.Cancel
                 Material.roundedScale: Material.MediumScale
-                onOpened: logArea.forceActiveFocus()
+                onOpened: logArea.forceActiveFocus(Qt.TabFocusReason)
                 onClosed: stack.pop();
 
                 Flickable {
@@ -246,6 +232,20 @@ DialogView {
                         wrapMode: TextEdit.Wrap
                         Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
                         Keys.onEscapePressed: logDialog.close()
+                        Keys.onPressed: (event) => {
+                            switch (event.key) {
+                            case Qt.Key_Up:
+                                if(logScrollbar.position > 0.001)
+                                    logFlick.flick(0, 500);
+                                event.accepted = true;
+                                break;
+                            case Qt.Key_Down:
+                                if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                                    logFlick.flick(0, -500);
+                                event.accepted = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }

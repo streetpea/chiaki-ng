@@ -63,20 +63,6 @@ DialogView {
         }
 
         Item {
-            Keys.onPressed: (event) => {
-                switch (event.key) {
-                case Qt.Key_Up:
-                    if(logScrollbar.position > 0.001)
-                        logFlick.flick(0, 500);
-                    event.accepted = true;
-                    break;
-                case Qt.Key_Down:
-                    if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
-                        logFlick.flick(0, -500);
-                    event.accepted = true;
-                    break;
-                }
-            }
             Dialog {
                 id: logDialog
                 parent: Overlay.overlay
@@ -87,7 +73,7 @@ DialogView {
                 closePolicy: Popup.NoAutoClose
                 standardButtons: Dialog.Cancel
                 Material.roundedScale: Material.MediumScale
-                onOpened: logArea.forceActiveFocus()
+                onOpened: logArea.forceActiveFocus(Qt.TabFocusReason)
                 onClosed: restartDialog.open()
 
                 Flickable {
@@ -107,9 +93,24 @@ DialogView {
                     Label {
                         id: logArea
                         width: logFlick.width
-                        wrapMode: TextEdit.Wrap
+                        height: logFlick.height
+                        wrapMode: Text.Wrap
                         Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
                         Keys.onEscapePressed: logDialog.close()
+                        Keys.onPressed: (event) => {
+                            switch (event.key) {
+                            case Qt.Key_Up:
+                                if(logScrollbar.position > 0.001)
+                                    logFlick.flick(0, 500);
+                                event.accepted = true;
+                                break;
+                            case Qt.Key_Down:
+                                if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                                    logFlick.flick(0, -500);
+                                event.accepted = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -125,13 +126,13 @@ DialogView {
             closePolicy: Popup.NoAutoClose
             standardButtons: Dialog.Close
             Material.roundedScale: Material.MediumScale
-            onOpened: restartArea.forceActiveFocus()
+            onOpened: restartArea.forceActiveFocus(Qt.TabFocusReason)
             onClosed: stack.pop()
 
             Flickable {
                 id: restartFlick
                 implicitWidth: 600
-                implicitHeight: 25
+                implicitHeight: 50
                 clip: true
                 contentWidth: restartArea.contentWidth
                 contentHeight: restartArea.contentHeight
@@ -140,9 +141,8 @@ DialogView {
 
                 Label {
                     id: restartArea
-                    width: restartFlick.width
-                    text: "In order for " + name.text.trim() + " to appear in Steam, Steam must be restarted!"
-                    wrapMode: TextEdit.Wrap
+                    text: "In order for " + name.text.trim() + " to appear in Steam,\nSteam must be restarted!"
+                    wrapMode: Text.Wrap
                     Keys.onReturnPressed: if (restartDialog.standardButtons == Dialog.Close) restartDialog.close()
                     Keys.onEscapePressed: restartDialog.close()
                 }
