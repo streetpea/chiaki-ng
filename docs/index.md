@@ -24,7 +24,7 @@ Visit [chiaki-ng Releases](updates/releases.md){target="_blank" rel="noopener"} 
 
 ### About `chiaki-ng`
 
-`chiaki-ng` aims to serve as a next generation of Chiaki bringing new features and changes to the existing project which is now in maintenance mode. Is is available on Linux, Windows, and MacOS.
+`chiaki-ng` aims to serve as a next generation of Chiaki bringing new features and changes to the existing project which is now in maintenance mode. It is available on Linux, Windows, and MacOS.
 
 !!! Question "Where is `chiaki-ng` available?"
 
