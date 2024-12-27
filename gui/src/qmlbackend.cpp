@@ -671,20 +671,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
 #endif
     }
-#if defined(Q_OS_WIN)
-    if(session_info.hw_decoder == "vulkan" && session_info.video_profile.codec == CHIAKI_CODEC_H265_HDR && window->amdCard())
-    {
-        qCInfo(chiakiGui) << "Using amd card with vulkan hw decoding and hdr not supported on Windows, falling back to d3d11va...";
-        session_info.hw_decoder = "d3d11va";
-    }
-#endif
-#if defined(Q_OS_LINUX)
-    if(session_info.hw_decoder == "vulkan" && session_info.video_profile.codec == CHIAKI_CODEC_H265_HDR && window->amdCard())
-    {
-        qCInfo(chiakiGui) << "Using amd card with vulkan hw decoding and hdr not supported with latest Linux driver, falling back to vaapi...";
-        session_info.hw_decoder = "vaapi";
-    }
-#endif
     if (session_info.hw_decoder == "vulkan") {
         session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
         if (!session_info.hw_device_ctx)
