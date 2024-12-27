@@ -1683,6 +1683,20 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
         controller_mapping_physical_button_mappings.insert("b11", "misc1");
         controllerMappingApply();
     }
+    QString stadia_controller = "Google Stadia Controller";
+    if((stadia_controller == controller_mapping_controller_type) && !controller_mapping_physical_button_mappings.contains("b16"))
+    {
+        if(controller_mapping_controller_mappings.contains("paddle1"))
+        {
+            QStringList individual_mapping_list = controller_mapping_controller_mappings.value("paddle1");
+            individual_mapping_list.append("b16");
+            controller_mapping_controller_mappings.insert("paddle1", individual_mapping_list);
+        }
+        else
+            controller_mapping_controller_mappings.insert("paddle1", QStringList(QString("b16")));
+        controller_mapping_physical_button_mappings.insert("b16", "paddle1");
+        controllerMappingApply();
+    }
 
     controller_mapping_applied_controller_mappings = controller_mapping_controller_mappings;
     emit currentControllerTypeChanged();
