@@ -7,6 +7,7 @@ import org.streetpea.chiaking
 Rectangle {
     id: view
     property bool allowClose: false
+    property bool textVisible: false
     color: "black"
 
     function stop() {
@@ -16,18 +17,26 @@ Rectangle {
         root.showMainView();
     }
 
-    Keys.onReturnPressed: view.stop()
-    Keys.onEscapePressed: view.stop()
+    function cancel() {
+        if(!allowClose)
+            return;
+        view.textVisible = false;
+        infoLabel.text = qsTr("Cancelling auto-connect...");
+        failTimer.start();
+    }
+
+    Keys.onEscapePressed: view.cancel()
 
     Shortcut {
         sequence: "Ctrl+Q"
-        onActivated: view.stop()
+        onActivated: view.cancel()
     }
 
     MouseArea {
         anchors.fill: parent
         enabled: view.allowClose
-        onClicked: view.stop()
+        acceptedButtons: Qt.RightButton
+        onClicked: view.cancel()
     }
 
     Label {
@@ -54,12 +63,26 @@ Rectangle {
             width: 70
             height: width
         }
+        Label {
+            id: closeMessageLabel
+            anchors {
+                topMargin: 30
+                top: spinner.bottom
+                horizontalCenter: spinner.horizontalCenter
+            }
+            opacity: textVisible ? 1.0: 0.0
+            visible: opacity
+            text: qsTr("Press %1 to cancel remote connection via PSN").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click")
+        }
     }
 
     Timer {
         interval: 1500
         running: true
-        onTriggered: view.allowClose = true
+        onTriggered: {
+            view.allowClose = true
+            view.textVisible = true
+        }
     }
 
     Timer {
@@ -73,7 +96,8 @@ Rectangle {
         target: Chiaki
 
         function onWakeupStartFailed() {
-            infoLabel.text = qsTr("Timed out waiting for console. Exiting...")
+            view.textVisible = false;
+            infoLabel.text = qsTr("Timed out waiting for console. Exiting...");
             failTimer.start();
         }
     }

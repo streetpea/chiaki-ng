@@ -37,7 +37,6 @@ Rectangle {
             item.forceActiveFocus(Qt.TabFocusReason);
     }
 
-    Keys.onReturnPressed: view.stop()
     Keys.onEscapePressed: view.stop()
 
     Shortcut {
@@ -48,6 +47,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         enabled: view.allowClose
+        acceptedButtons: Qt.RightButton
         onClicked: view.stop()
     }
 
@@ -73,6 +73,18 @@ Rectangle {
             anchors.centerIn: parent
             width: 70
             height: width
+        }
+
+        Label {
+            id: closeMessageLabel
+            anchors {
+                top: spinner.bottom
+                horizontalCenter: spinner.horizontalCenter
+                topMargin: 30
+            }
+            opacity: (textVisible && !cancelling) ? 1.0: 0.0
+            visible: opacity
+            text: qsTr("Press %1 to cancel remote connection via PSN").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click")
         }
 
         Label {
