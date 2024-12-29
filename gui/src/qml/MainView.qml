@@ -130,6 +130,15 @@ Pane {
 
             Button {
                 Layout.fillHeight: true
+                Layout.preferredWidth: 400
+                flat: true
+                focusPolicy: Qt.NoFocus
+                Material.roundedScale: Material.SmallScale
+                visible: !Chiaki.settings.psnAuthToken
+            }
+
+            Button {
+                Layout.fillHeight: true
                 Layout.preferredWidth: 300
                 flat: true
                 text: "Add Manual Host"

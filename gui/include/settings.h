@@ -287,6 +287,18 @@ class Settings : public QObject
 		void SetCodecLocalPS5(ChiakiCodec codec);
 		void SetCodecRemotePS5(ChiakiCodec codec);
 
+		int GetDisplayTargetContrast() const;
+		void SetDisplayTargetContrast(int contrast);
+
+		int GetDisplayTargetPeak() const;
+		void SetDisplayTargetPeak(int peak);
+
+		int GetDisplayTargetTrc() const;
+		void SetDisplayTargetTrc(int trc);
+
+		int GetDisplayTargetPrim() const;
+		void SetDisplayTargetPrim(int prim);
+
 		Decoder GetDecoder() const;
 		void SetDecoder(Decoder decoder);
 

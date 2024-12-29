@@ -21,7 +21,7 @@ Rectangle {
         if(!allowClose)
             return;
         view.textVisible = false;
-        infoLabel.text = qsTr("Cancelling auto-connect...");
+        infoLabel.text = qsTr("Cancelling connection...");
         failTimer.start();
     }
 
@@ -72,7 +72,7 @@ Rectangle {
             }
             opacity: textVisible ? 1.0: 0.0
             visible: opacity
-            text: qsTr("Press %1 to cancel remote connection via PSN").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click")
+            text: qsTr("Press %1 to cancel connection").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click")
         }
     }
 

@@ -595,6 +595,23 @@ DialogView {
                         Material.roundedScale: Material.SmallScale
                         visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
                     }
+
+                    Label { visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Display Settings")
+                    }
+
+                    C.Button {
+                        id: displaySettings
+                        text: qsTr("Open")
+                        onClicked: root.showDisplaySettingsDialog()
+                        Material.roundedScale: Material.SmallScale
+                        lastInFocusChain: true
+                    }
+
+                    Label {}
                 }
             }
 

@@ -923,6 +923,47 @@ void Settings::SetSuspendAction(SuspendAction action)
 	settings.setValue("settings/suspend_action", suspend_action_values[action]);
 }
 
+int Settings::GetDisplayTargetContrast() const
+{
+	return settings.value("settings/display_target_contrast", 0).toInt();
+}
+
+void Settings::SetDisplayTargetContrast(int contrast)
+{
+	settings.setValue("settings/display_target_contrast", contrast);
+}
+
+int Settings::GetDisplayTargetPeak() const
+{
+	return settings.value("settings/display_target_peak", 0).toInt();
+}
+
+void Settings::SetDisplayTargetPeak(int peak)
+{
+	settings.setValue("settings/display_target_peak", peak);
+}
+
+int Settings::GetDisplayTargetTrc() const
+{
+	return settings.value("settings/display_target_trc", 0).toInt();
+}
+
+void Settings::SetDisplayTargetTrc(int trc)
+{
+	settings.setValue("settings/display_target_trc", trc);
+}
+
+int Settings::GetDisplayTargetPrim() const
+{
+	return settings.value("settings/display_target_prim", 0).toInt();
+}
+
+void Settings::SetDisplayTargetPrim(int prim)
+{
+	settings.setValue("settings/display_target_prim", prim);
+}
+
+
 static const QMap<PlaceboUpscaler, QString> placebo_upscaler_values = {
 	{ PlaceboUpscaler::None, "none" },
 	{ PlaceboUpscaler::Nearest, "nearest" },

@@ -339,6 +339,49 @@ void QmlSettings::setCodecRemotePS5(int codec)
     emit codecRemotePS5Changed();
 }
 
+int QmlSettings::displayTargetContrast() const
+{
+    return settings->GetDisplayTargetContrast();
+}
+void QmlSettings::setDisplayTargetContrast(int contrast)
+{
+    settings->SetDisplayTargetContrast(contrast);
+    emit displayTargetContrastChanged();
+}
+
+int QmlSettings::displayTargetPeak() const
+{
+    return settings->GetDisplayTargetPeak();
+}
+
+void QmlSettings::setDisplayTargetPeak(int peak)
+{
+    settings->SetDisplayTargetPeak(peak);
+    emit displayTargetPeakChanged();
+}
+
+int QmlSettings::displayTargetPrim() const
+{
+    return settings->GetDisplayTargetPrim();
+}
+
+void QmlSettings::setDisplayTargetPrim(int prim)
+{
+    settings->SetDisplayTargetPrim(prim);
+    emit displayTargetPrimChanged();
+}
+
+int QmlSettings::displayTargetTrc() const
+{
+    return settings->GetDisplayTargetTrc();
+}
+
+void QmlSettings::setDisplayTargetTrc(int trc)
+{
+    settings->SetDisplayTargetTrc(trc);
+    emit displayTargetTrcChanged();
+}
+
 int QmlSettings::audioBufferSize() const
 {
     return settings->GetAudioBufferSizeRaw();
@@ -1391,6 +1434,10 @@ void QmlSettings::refreshAllKeys()
     emit noiseSuppressLevelChanged();
     emit echoSuppressLevelChanged();
 #endif
+    emit displayTargetContrastChanged();
+    emit displayTargetPeakChanged();
+    emit displayTargetPrimChanged();
+    emit displayTargetTrcChanged();
     emit fullscreenDoubleClickChanged();
     emit fpsLocalPS4Changed();
     emit fpsRemotePS4Changed();

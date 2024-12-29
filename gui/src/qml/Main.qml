@@ -57,6 +57,10 @@ Item {
         stack.push(settingsDialogComponent);
     }
 
+    function showDisplaySettingsDialog() {
+        stack.push(displaySettingsDialogComponent);
+    }
+
     function showPlaceboSettingsDialog() {
         stack.push(placeboSettingsDialogComponent);
     }
@@ -229,6 +233,11 @@ Item {
     Component {
         id: settingsDialogComponent
         SettingsDialog { }
+    }
+
+    Component {
+        id: displaySettingsDialogComponent
+        DisplaySettingsDialog { }
     }
 
     Component {
