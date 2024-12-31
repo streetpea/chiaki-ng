@@ -820,7 +820,10 @@ void QmlMainWindow::render()
         hint.transfer = static_cast<pl_color_transfer>(target_trc);
 
     if(target_prim)
+    {
         hint.primaries = static_cast<pl_color_primaries>(target_prim);
+        hint.hdr.prim = *pl_raw_primaries_get(hint.primaries);
+    }
 
     if(target_peak)
         hint.hdr.max_luma = target_peak;
@@ -849,7 +852,10 @@ void QmlMainWindow::render()
     struct pl_frame target_frame = {};
     pl_frame_from_swapchain(&target_frame, &sw_frame);
     if(target_prim)
+    {
         target_frame.color.primaries = static_cast<pl_color_primaries>(target_prim);
+        target_frame.color.hdr.prim = *pl_raw_primaries_get(target_frame.color.primaries);
+    }
 
     if(target_trc)
         target_frame.color.transfer = static_cast<pl_color_transfer>(target_trc);
