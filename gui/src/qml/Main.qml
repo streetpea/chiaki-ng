@@ -7,6 +7,7 @@ import org.streetpea.chiaking
 
 Item {
     id: root
+    property list<Item> restoreFocusItems
 
     Material.theme: Material.Dark
     Material.accent: "#00a7ff"
@@ -21,8 +22,91 @@ Item {
         }
         return "image://svg/button-%1#%2".arg(type).arg(name);
     }
+    function grabInput(item) {
+        Chiaki.window.grabInput();
+        restoreFocusItems.push(Window.window.activeFocusItem);
+        if (item)
+            item.forceActiveFocus(Qt.TabFocusReason);
+    }
+
+    function releaseInput() {
+        Chiaki.window.releaseInput();
+        let item = restoreFocusItems.pop();
+        if (item && item.visible)
+            item.forceActiveFocus(Qt.TabFocusReason);
+    }
+    function openDisplaySettings() {
+        if(displaySettingsLoader.item.status == Loader.ready)
+        {
+            if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
+                closeDialog();
+            displaySettingsRect.opacity = 0.8;
+            grabInput(displaySettingsLoader);
+            if (!displaySettingsLoader.item.restoreFocusItem) {
+                let item = displaySettingsLoader.item.mainItem.nextItemInFocusChain();
+                if (item)
+                    item.forceActiveFocus(Qt.TabFocusReason);
+            } else {
+                displaySettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                displaySettingsLoader.item.restoreFocusItem = null;
+            }
+        }
+    }
+    function openPlaceboSettings() {
+        if(placeboSettingsLoader.item.status == Loader.ready)
+        {
+            if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
+                closeDialog();
+            placeboSettingsRect.opacity = 0.8;
+            grabInput(placeboSettingsLoader);
+            if (!placeboSettingsLoader.item.restoreFocusItem) {
+                let item = placeboSettingsLoader.item.mainItem.nextItemInFocusChain();
+                if (item)
+                    item.forceActiveFocus(Qt.TabFocusReason);
+            } else {
+                placeboSettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                placeboSettingsLoader.item.restoreFocusItem = null;
+            }
+        }
+    }
+
+    function closeDialog() {
+       if(displaySettingsRect.opacity) {
+        displaySettingsRect.opacity = 0.0;
+        displaySettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        releaseInput();
+       }
+       else if(placeboSettingsRect.opacity) {
+        placeboSettingsRect.opacity = 0.0;
+        placeboSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        releaseInput();
+       }
+       else if(colorMappingSettingsRect.opacity) {
+        releaseInput();
+        colorMappingSettingsRect.opacity = 0.0;
+        colorMappingSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        root.openPlaceboSettings();
+       }
+       else
+        stack.pop();
+    }
 
     function showMainView() {
+        if(displaySettingsRect.opacity) {
+            displaySettingsRect.opacity = 0.0;
+            displaySettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            releaseInput();
+        }
+        else if(placeboSettingsRect.opacity) {
+            placeboSettingsRect.opacity = 0.0;
+            placeboSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            releaseInput();
+        }
+        else if(colorMappingSettingsRect.opacity) {
+            colorMappingSettingsRect.opacity = 0.0;
+            colorMappingSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            releaseInput();
+        }
         if (stack.depth > 1)
             stack.pop(stack.get(0));
         else
@@ -66,7 +150,25 @@ Item {
     }
 
     function showPlaceboColorMappingDialog() {
-        stack.push(placeboColorMappingDialogComponent);
+        if(placeboSettingsRect.opacity)
+        {
+            root.closeDialog();
+            if(colorMappingSettingsLoader.status == Loader.Ready)
+            {
+                grabInput(colorMappingSettingsLoader);
+                colorMappingSettingsRect.opacity = 0.8;
+                if (!colorMappingSettingsLoader.item.restoreFocusItem) {
+                    let item = colorMappingSettingsLoader.item.mainItem.nextItemInFocusChain();
+                    if (item)
+                        item.forceActiveFocus(Qt.TabFocusReason);
+                } else {
+                    colorMappingSettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                    colorMappingSettingsLoader.item.restoreFocusItem = null;
+                }
+            }
+        }
+        else
+            stack.push(placeboColorMappingDialogComponent);
     }
 
     function showProfileDialog() {
@@ -127,6 +229,51 @@ Item {
         }
     }
 
+    Rectangle {
+        id: placeboSettingsRect
+        opacity: 0.0
+        visible: opacity
+        height: 650
+        width: 1200
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: Material.background
+        Loader {
+            anchors.fill: parent
+            id: placeboSettingsLoader
+            sourceComponent: placeboSettingsDialogComponent
+        }
+    }
+    Rectangle {
+        id: displaySettingsRect
+        opacity: 0.0
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        height: 400
+        width: 1200
+        visible: opacity
+        color: Material.background
+        Loader {
+            anchors.fill: parent
+            id: displaySettingsLoader
+            sourceComponent: displaySettingsDialogComponent
+        }
+    }
+    Rectangle {
+        id: colorMappingSettingsRect
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        opacity: 0.0
+        height: 600
+        width: 1200
+        visible: opacity
+        color: Material.background
+        Loader {
+            anchors.fill: parent
+            id: colorMappingSettingsLoader
+            sourceComponent: placeboColorMappingDialogComponent
+        }
+    }
     Rectangle {
         anchors {
             bottom: parent.bottom

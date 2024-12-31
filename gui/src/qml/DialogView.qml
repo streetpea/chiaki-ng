@@ -17,7 +17,7 @@ Item {
     signal rejected()
 
     function close() {
-        stack.pop();
+        root.closeDialog();
     }
 
     Keys.onEscapePressed: close()

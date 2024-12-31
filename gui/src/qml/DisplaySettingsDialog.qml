@@ -11,6 +11,7 @@ import "controls" as C
 
 DialogView {
     id: dialog
+    property alias gridHeight: displayGrid.height
     title: qsTr("Display Settings")
     header: qsTr("* Defaults in () to right of value or marked with (Default)")
     buttonVisible: false
@@ -18,6 +19,7 @@ DialogView {
     Item {
         // Stream Display Settings
         GridLayout {
+            id: displayGrid
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter

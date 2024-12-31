@@ -13,7 +13,7 @@ DialogView {
     id: dialog
     function close() {
         Chiaki.window.updatePlacebo();
-        stack.pop();
+        root.closeDialog();
     }
     property string options_url: ""
     title: qsTr("Placebo Renderer Settings")

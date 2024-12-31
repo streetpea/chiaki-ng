@@ -77,31 +77,16 @@ static void MigrateSettings(QSettings *settings)
 
 static void InitializePlaceboSettings(QSettings *settings)
 {
+	if(settings->contains("placebo_settings/version"))
+		return;
 	settings->beginGroup("placebo_settings");
-	if(!settings->contains("upscaler"))
-	{
-		settings->setValue("upscaler", "ewa_lanczossharp");
-	}
-	if(!settings->contains("deband"))
-	{
-		settings->setValue("deband", "yes");
-	}
-	if(!settings->contains("peak_detect_preset"))
-	{
-		settings->setValue("peak_detect_preset", "high_quality");
-	}
-	if(!settings->contains("color_map_preset"))
-	{
-		settings->setValue("color_map_preset", "high_quality");
-	}
-	if(!settings->contains("contrast_recovery"))
-	{
-		settings->setValue("contrast_recovery", 0.3);
-	}
-	if(!settings->contains("peak_percentile"))
-	{
-		settings->setValue("peak_percentile", 99.995);
-	}
+	settings->setValue("version", "0");
+	settings->setValue("upscaler", "ewa_lanczossharp");
+	settings->setValue("deband", "yes");
+	settings->setValue("peak_detect_preset", "high_quality");
+	settings->setValue("color_map_preset", "high_quality");
+	settings->setValue("contrast_recovery", 0.3);
+	settings->setValue("peak_percentile", 99.995);
 	settings->endGroup();
 }
 
@@ -251,6 +236,7 @@ QMap<QString, QString> Settings::GetPlaceboValues()
 {
 	placebo_settings.beginGroup("placebo_settings");
 	QStringList keys = placebo_settings.allKeys();
+	keys.removeOne("version");
 	QMap<QString, QString> placeboMap;
 	foreach (const QString &key, keys)
 	{
