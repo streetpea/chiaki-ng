@@ -810,7 +810,7 @@ void QmlMainWindow::render()
         target_csp.hdr.max_luma = 0;
         target_csp.hdr.min_luma = 0;
     }
-    float target_peak = settings->GetDisplayTargetPeak() && session ? settings->GetDisplayTargetPeak() : target_csp.hdr.max_luma;
+    float target_peak = settings->GetDisplayTargetPeak() && session ? settings->GetDisplayTargetPeak() : 0;
     int target_contrast = settings->GetDisplayTargetContrast() && session ? settings->GetDisplayTargetContrast(): 0;
     int target_prim = settings->GetDisplayTargetPrim() && session ? settings->GetDisplayTargetPrim(): 0;
     int target_trc = settings->GetDisplayTargetTrc() && session ? settings->GetDisplayTargetTrc(): 0;
