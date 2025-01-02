@@ -249,7 +249,7 @@ Item {
         opacity: 0.0
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        height: 400
+        height: 500
         width: 1200
         visible: opacity
         color: Material.background
