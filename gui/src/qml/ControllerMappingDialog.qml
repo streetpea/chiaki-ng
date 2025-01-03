@@ -100,7 +100,6 @@ DialogView {
                     Button {
                         property bool firstInFocusChain: false
                         property bool lastInFocusChain: false
-                        Layout.preferredWidth: 90
                         Layout.preferredHeight: 52
                         text: {
                             if(modelData.physicalButton.length > 0)
@@ -190,7 +189,6 @@ DialogView {
                     Button {
                         property bool firstInFocusChain: false
                         property bool lastInFocusChain: index == (chiakiButtons.count - 1)
-                        Layout.preferredWidth: 90
                         Layout.preferredHeight: 52
                         text: {
                             if(modelData.physicalButton.length > 1)
