@@ -86,6 +86,7 @@ class Controller : public QObject
 		bool is_dualsense;
 		bool is_handheld;
 		bool is_steam_virtual;
+		bool is_steam_virtual_unmasked;
 		bool is_dualsense_edge;
 		bool micbutton_push;
 
@@ -124,6 +125,7 @@ class Controller : public QObject
 		bool IsDualSense();
 		bool IsHandheld();
 		bool IsSteamVirtual();
+		bool IsSteamVirtualUnmasked();
 		bool IsDualSenseEdge();
 		void resetMotionControls(bool reset);
 

@@ -2266,7 +2266,7 @@ DialogView {
             Label {
                 id: steamLabel
                 wrapMode: TextEdit.Wrap
-                text: qsTr("This controller is managed by Steam. Please use Steam to map controller or disable Steam Input for the controller before mapping here.")
+                text: qsTr("This controller is managed by Steam.\nPlease use Steam to map controller or disable Steam Input for the controller before mapping here.")
                 Keys.onReturnPressed: steamControllerMappingDialog.close();
                 Keys.onEscapePressed: steamControllerMappingDialog.close();
             }

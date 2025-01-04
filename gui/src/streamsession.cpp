@@ -887,7 +887,7 @@ void StreamSession::UpdateGamepads()
 			{
 				DisconnectHaptics();
 			}
-			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
+			if (!controller->IsHandheld() && !controller->IsSteamVirtualUnmasked())
 			{
 				haptics_handheld++;
 			}
@@ -920,7 +920,7 @@ void StreamSession::UpdateGamepads()
 				haptics_handheld++;
 #endif
 			}
-			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
+			if (!controller->IsHandheld() && !controller->IsSteamVirtualUnmasked())
 			{
 				haptics_handheld--;
 			}
@@ -1624,7 +1624,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 			for(auto controller : controllers)
 			{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtual())))
+				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtualUnmasked())))
 #else
 				if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
