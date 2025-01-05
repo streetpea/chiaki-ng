@@ -19,6 +19,13 @@ jobs:
         commit: ${{ github.sha }}
         tag: weekly-canary-release-${{ github.sha }}
         allowUpdates: true
+    - uses: sgpublic/delete-release-action@v1.1
+      with:
+        release-drop: false
+        pre-release-drop: true
+        pre-release-keep-count: 1
+        pre-release-drop-tag: true
+        draft-drop: false
     outputs:
       upload_url: ${{ steps.maker.outputs.upload_url }}
 
