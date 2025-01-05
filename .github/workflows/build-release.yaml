@@ -208,6 +208,25 @@ jobs:
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
+      - name: Package chiaki-ng
+        run: |
+          $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
+          Compress-Archive chiaki-ng-VC $RELEASE_PACKAGE_FILE
+          $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
+          echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          name: chiaki-ng-win_x64-VC-Release
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
@@ -221,8 +240,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          path: |
-            chiaki-ng-windows-installer.exe
+          path: chiaki-ng-win_x64-VC-installer.exe
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
