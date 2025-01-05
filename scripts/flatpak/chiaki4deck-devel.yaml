@@ -409,6 +409,23 @@ modules:
       url: https://github.com/miniupnp/miniupnp
       tag: miniupnpc_2_2_7
 
+  - name: SDL2
+    config-opts:
+      - --disable-arts
+      - --disable-esd
+      - --disable-nas
+      - --disable-alsa
+      - --disable-oss
+      - --disable-sndio
+      - --enable-video-wayland
+      - --enable-wayland-shared=no
+      - --enable-video-kmsdrm
+      - --disable-rpath
+    sources:
+      - type: git
+        url: https://github.com/libsdl-org/SDL.git
+        tag: release-2.30.8
+
   - name: chiaki-ng
     buildsystem: cmake-ninja
     builddir: true
