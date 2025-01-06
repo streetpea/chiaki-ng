@@ -19,8 +19,9 @@ jobs:
         commit: ${{ github.sha }}
         tag: weekly-canary-release-${{ github.sha }}
         allowUpdates: true
-    - uses: sgpublic/delete-release-action@v1.1
+    - uses: sgpublic/delete-release-action@v1.2
       with:
+        repo: 'streetpea/chiaki-ng'
         release-drop: false
         pre-release-drop: true
         pre-release-keep-count: 1
@@ -216,7 +217,7 @@ jobs:
           $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
           $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
           $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-pre-release-${{ steps.t1.outputs.time }}.zip"
-          Compress-Archive chiaki-ng-VC $RELEASE_PACKAGE_FILE
+          Compress-Archive chiaki-ng-Win $RELEASE_PACKAGE_FILE
           $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
           echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
