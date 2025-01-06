@@ -27,7 +27,7 @@ jobs:
         pre-release-drop-tag: true
         draft-drop: false
       env:
-        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
     outputs:
       upload_url: ${{ steps.maker.outputs.upload_url }}
 
