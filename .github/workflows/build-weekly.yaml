@@ -207,7 +207,7 @@ jobs:
 
       - name: Get Date
         id: t1
-        uses: Kaven-Universe/github-action-current-date-time@v1
+        uses: Kaven-Universe/github-action-current-date-time@v1.4.0
         with:
           format: "yyyy-MM-dd"
 
