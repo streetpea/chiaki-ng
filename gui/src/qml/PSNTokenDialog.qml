@@ -23,6 +23,8 @@ DialogView {
     onAccepted: {
         logDialog.open()
         Chiaki.initPsnAuth(url.text.trim(), function(msg, ok, done) {
+            if(ok)
+                Chiaki.settings.remotePlayAsk = false;
             if (!done)
                 logArea.text += msg + "\n";
             else
@@ -345,7 +347,7 @@ DialogView {
                 standardButtons: Dialog.Cancel
                 Material.roundedScale: Material.MediumScale
                 onOpened: logArea.forceActiveFocus(Qt.TabFocusReason)
-                onClosed: root.showMainView()
+                onClosed: root.showMainView();
 
                 Flickable {
                     id: logFlick

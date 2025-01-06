@@ -10,15 +10,21 @@ Pane {
     id: consolePane
     StackView.onActivated: {
         forceActiveFocus(Qt.TabFocusReason);
-        if(Chiaki.settings.remotePlayAsk)
+        if(!root.initialAsk)
         {
-            if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+            root.initialAsk = true;
+            if(Chiaki.settings.addSteamShortcutAsk)
+                root.showRemindDialog(qsTr("Official Steam artwork + controller layout"), qsTr("Would you like to either create a new non-Steam game for chiaki-ng\nor update an existing non-Steam game with the official artwork and controller layout?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, click the button or press R3 from the main menu.)"), false, () => root.showSteamShortcutDialog(true));
+            else if(Chiaki.settings.remotePlayAsk)
             {
-                Chiaki.settings.remotePlayAsk = false;
-                root.showConfirmDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), () => root.showPSNTokenDialog(false));
+                if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+                {
+                    Chiaki.settings.remotePlayAsk = false;
+                    root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
+                }
+                else
+                    Chiaki.settings.remotePlayAsk = false;
             }
-            else
-                Chiaki.settings.remotePlayAsk = false;
         }
     }
     Keys.onUpPressed: {
@@ -55,7 +61,7 @@ Pane {
             event.accepted = true;
             break;
         case Qt.Key_F1:
-            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog();
+            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog(false);
             event.accepted = true;
             break;
         case Qt.Key_F2:
@@ -100,7 +106,7 @@ Pane {
                 flat: true
                 text: "Create Steam Shortcut"
                 focusPolicy: Qt.NoFocus
-                onClicked: root.showSteamShortcutDialog()
+                onClicked: root.showSteamShortcutDialog(false)
                 Material.roundedScale: Material.SmallScale
                 visible: typeof Chiaki.createSteamShortcut === "function"
                 Image {

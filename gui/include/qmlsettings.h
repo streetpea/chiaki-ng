@@ -6,6 +6,7 @@ class QmlSettings : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool remotePlayAsk READ remotePlayAsk WRITE setRemotePlayAsk NOTIFY remotePlayAskChanged)
+    Q_PROPERTY(bool addSteamShortcutAsk READ addSteamShortcutAsk WRITE setAddSteamShortcutAsk NOTIFY addSteamShortcutAskChanged)
     Q_PROPERTY(bool hideCursor READ hideCursor WRITE setHideCursor NOTIFY hideCursorChanged)
     Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
     Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
@@ -199,6 +200,9 @@ public:
 
     bool remotePlayAsk() const;
     void setRemotePlayAsk(bool asked);
+
+    bool addSteamShortcutAsk() const;
+    void setAddSteamShortcutAsk(bool asked);
 
     bool hideCursor() const;
     void setHideCursor(bool enabled);
@@ -526,6 +530,7 @@ signals:
 #endif
     void fullscreenDoubleClickChanged();
     void remotePlayAskChanged();
+    void addSteamShortcutAskChanged();
     void hideCursorChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();

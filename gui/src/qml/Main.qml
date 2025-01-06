@@ -8,7 +8,7 @@ import org.streetpea.chiaking
 Item {
     id: root
     property list<Item> restoreFocusItems
-
+    property bool initialAsk: false
     Material.theme: Material.Dark
     Material.accent: "#00a7ff"
 
@@ -133,6 +133,16 @@ Item {
         confirmDialog.open();
     }
 
+    function showRemindDialog(title, text, remotePlay, callback) {
+        remindDialog.title = title;
+        remindDialog.text = text;
+        remindDialog.remotePlay = remotePlay;
+        remindDialog.callback = callback;
+        remindDialog.restoreFocusItem = Window.window.activeFocusItem;
+        remindDialog.open();
+    }
+
+
     function showRegistDialog(host, ps5) {
         stack.push(registDialogComponent, {host: host, ps5: ps5});
     }
@@ -179,8 +189,8 @@ Item {
         stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
     }
 
-    function showSteamShortcutDialog() {
-        stack.push(steamShortcutDialogComponent)
+    function showSteamShortcutDialog(fromReminder) {
+        stack.push(steamShortcutDialogComponent, {fromReminder: fromReminder});
     }
 
     function showPSNTokenDialog(psnurl, expired) {
@@ -315,6 +325,10 @@ Item {
 
     ConfirmDialog {
         id: confirmDialog
+    }
+
+    RemindDialog {
+        id: remindDialog
     }
 
     Connections {

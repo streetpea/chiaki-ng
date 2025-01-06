@@ -220,6 +220,10 @@ class Settings : public QObject
 
 		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
 		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }
+
+		bool GetAddSteamShortcutAsk() const           { return settings.value("settings/add_steam_shortcut_ask", true).toBool(); }
+		void SetAddSteamShortcutAsk(bool asked)       { settings.setValue("settings/add_steam_shortcut_ask", asked); }
+
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();

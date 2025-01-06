@@ -37,6 +37,17 @@ void QmlSettings::setRemotePlayAsk(bool asked)
     emit remotePlayAskChanged();
 }
 
+bool QmlSettings::addSteamShortcutAsk() const
+{
+    return settings->GetAddSteamShortcutAsk();
+}
+
+void QmlSettings::setAddSteamShortcutAsk(bool asked)
+{
+    settings->SetAddSteamShortcutAsk(asked);
+    emit addSteamShortcutAskChanged();
+}
+
 bool QmlSettings::hideCursor() const
 {
     return settings->GetHideCursor();
@@ -1414,6 +1425,7 @@ void QmlSettings::setSettings(Settings *new_settings)
 void QmlSettings::refreshAllKeys()
 {
     emit remotePlayAskChanged();
+    emit addSteamShortcutAskChanged();
     emit hideCursorChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();

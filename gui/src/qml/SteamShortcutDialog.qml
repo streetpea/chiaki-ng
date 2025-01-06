@@ -8,14 +8,28 @@ import org.streetpea.chiaking
 import "controls" as C
 
 DialogView {
+    id: dialog
     property bool opening: false
+    property bool fromReminder
     title: qsTr("Create Non-Steam Game")
     buttonText: qsTr("Create")
     buttonEnabled: name.text.trim() && !opening
+    function close() {
+        root.closeDialog();
+        if(dialog.fromReminder && Chiaki.settings.remotePlayAsk)
+        {
+            if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+                root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
+            else
+                Chiaki.settings.remotePlayAsk = false;
+        }
+    }
     onAccepted: {
         opening = true;
         logDialog.open();
         Chiaki.createSteamShortcut(name.text.trim(), options.text.trim(), function(msg, ok, done) {
+            if(ok)
+                Chiaki.settings.addSteamShortcutAsk = false;
             if (!done)
                 logArea.text += msg + "\n";
             else
@@ -127,7 +141,7 @@ DialogView {
             standardButtons: Dialog.Close
             Material.roundedScale: Material.MediumScale
             onOpened: restartArea.forceActiveFocus(Qt.TabFocusReason)
-            onClosed: stack.pop()
+            onClosed: dialog.close()
 
             Flickable {
                 id: restartFlick
