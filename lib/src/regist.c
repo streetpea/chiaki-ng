@@ -417,8 +417,7 @@ fail:
 	}
 	else if(success)
 	{
-		if(regist->info.console_pin != 0)
-			host.console_pin = regist->info.console_pin;
+		host.console_pin = regist->info.console_pin;
 		ChiakiRegistEvent event = { 0 };
 		event.type = CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS;
 		event.registered_host = &host;

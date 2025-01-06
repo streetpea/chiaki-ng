@@ -8,6 +8,7 @@ Dialog {
     id: dialog
     property alias text: label.text
     property var callback
+    property var rejectCallback
     property bool newDialogOpen: false
     property Item restoreFocusItem
     parent: Overlay.overlay
@@ -22,6 +23,15 @@ Dialog {
         callback();
     }
     onClosed: if(!newDialogOpen) { restoreFocus() }
+
+    onRejected: {
+        if(rejectCallback)
+        {
+            newDialogOpen = true;
+            restoreFocus();
+            rejectCallback();
+        }
+    }
 
     function restoreFocus() {
         if (restoreFocusItem)

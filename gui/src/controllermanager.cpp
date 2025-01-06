@@ -88,7 +88,7 @@ static QSet<QPair<uint16_t, uint16_t>> chiaki_handheld_controller_ids({
 static QSet<QPair<uint16_t, uint16_t>> chiaki_steam_virtual_controller_ids({
 	// in format (vendor id, product id)
 #ifdef Q_OS_MACOS
-    QPair<uint16_t, uint16_t<(0x045e, 0x028e), // Microsoft Xbox 360 Controller
+    QPair<uint16_t, uint16_t>(0x045e, 0x028e), // Microsoft Xbox 360 Controller
 #else
 	QPair<uint16_t, uint16_t>(0x28de, 0x11ff), // Steam Virtual Controller
 #endif

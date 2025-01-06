@@ -86,6 +86,7 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
+	bool auto_regist;
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool start_mic_unmuted;
@@ -117,6 +118,7 @@ struct StreamSessionConnectInfo
 			QByteArray morning,
 			QString initial_login_pin,
 			QString duid,
+			bool auto_regist,
 			bool fullscreen,
 			bool zoom,
 			bool stretch);
@@ -308,6 +310,7 @@ class StreamSession : public QObject
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 		void DataHolepunchProgress(bool finished);
+		void AutoRegistSucceeded(const ChiakiRegisteredHost &host);
 		void NicknameReceived(QString nickname);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();

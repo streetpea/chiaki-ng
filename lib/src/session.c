@@ -183,6 +183,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	session->log = log;
 	session->quit_reason = CHIAKI_QUIT_REASON_NONE;
 	session->target = connect_info->ps5 ? CHIAKI_TARGET_PS5_1 : CHIAKI_TARGET_PS4_10;
+	session->auto_regist = connect_info->auto_regist;
 	session->holepunch_session = connect_info->holepunch_session;
 	session->rudp = NULL;
 
@@ -468,6 +469,12 @@ static void *session_thread_func(void *arg)
 		chiaki_regist_stop(&regist);
 		chiaki_regist_fini(&regist);
 		CHECK_STOP(quit);
+	}
+	if(session->auto_regist)
+	{
+		CHIAKI_LOGI(session->log, "Console auto registered successfully");
+		session->quit_reason = CHIAKI_QUIT_REASON_STOPPED;
+		QUIT(quit);
 	}
 	CHIAKI_LOGI(session->log, "Starting session request for %s", session->connect_info.ps5 ? "PS5" : "PS4");
 
@@ -1073,9 +1080,16 @@ static void regist_cb(ChiakiRegistEvent *event, void *user)
 	{
 		case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
 			CHIAKI_LOGI(session->log, "%s successfully registered for Remote Play", event->registered_host->server_nickname);
+			if(session->auto_regist)
+			{
+				ChiakiEvent event_auto_regist = { 0 };
+				event_auto_regist.type = CHIAKI_EVENT_REGIST;
+				memcpy(&event_auto_regist.host, event->registered_host, sizeof(ChiakiRegisteredHost));
+				chiaki_session_send_event(session, &event_auto_regist);
+			}
 			memcpy(session->connect_info.morning, event->registered_host->rp_key, sizeof(session->connect_info.morning));
 			memcpy(session->connect_info.regist_key, event->registered_host->rp_regist_key, sizeof(session->connect_info.regist_key));
-			if(!session->connect_info.ps5)
+			if(!session->connect_info.ps5 && !session->auto_regist)
 			{
 				ChiakiEvent event_start = { 0 };
 				event_start.type = CHIAKI_EVENT_NICKNAME_RECEIVED;

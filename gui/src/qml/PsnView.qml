@@ -9,6 +9,7 @@ Rectangle {
     property bool allowClose: false
     property bool cancelling: false
     property bool textVisible: true
+    property bool registOnly: false
     property list<Item> restoreFocusItems
     color: "black"
 
@@ -84,7 +85,10 @@ Rectangle {
             }
             opacity: (textVisible && !cancelling) ? 1.0: 0.0
             visible: opacity
-            text: qsTr("Press %1 to cancel remote connection via PSN").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click")
+            text: {
+                var typeString = registOnly ? qsTr("automatic registration") : qsTr("remote connection via PSN")
+                qsTr("Press %1 to cancel %2").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click").arg(typeString)
+            }
         }
 
         Label {
@@ -176,8 +180,15 @@ Rectangle {
             switch(Chiaki.connectState)
             {
                 case Chiaki.PsnConnectState.LinkingConsole:
-                    infoLabel.text = qsTr("Linking chiaki-ng with PlayStation console ...")
+                    infoLabel.text = registOnly ? qsTr("Registering PlayStation console with chiaki-ng ...") : qsTr("Linking chiaki-ng with PlayStation console ...")
                     view.allowClose = false
+                    break
+                case Chiaki.PsnConnectState.RegisteringConsole:
+                    view.registOnly = true;
+                    break
+                case Chiaki.PsnConnectState.RegistrationFinished:
+                    infoLabel.text = qsTr("Successfully registered console")
+                    failTimer.restart()
                     break
                 case Chiaki.PsnConnectState.DataConnectionStart:
                     infoLabel.text = qsTr("Console Linked ... Establishing data connection with console over PSN ...")

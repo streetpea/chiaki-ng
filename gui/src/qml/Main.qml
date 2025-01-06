@@ -35,6 +35,14 @@ Item {
         if (item && item.visible)
             item.forceActiveFocus(Qt.TabFocusReason);
     }
+
+    function autoRegister(auto, host, ps5) {
+        if(auto)
+            Chiaki.autoRegister()
+        else
+            showRegistDialog(host, ps5);
+    }
+
     function openDisplaySettings() {
         if(displaySettingsLoader.item.status == Loader.ready)
         {
@@ -125,10 +133,11 @@ Item {
         stack.push(manualHostDialogComponent);
     }
 
-    function showConfirmDialog(title, text, callback) {
+    function showConfirmDialog(title, text, callback, rejectCallback = null) {
         confirmDialog.title = title;
         confirmDialog.text = text;
         confirmDialog.callback = callback;
+        confirmDialog.rejectCallback = rejectCallback;
         confirmDialog.restoreFocusItem = Window.window.activeFocusItem;
         confirmDialog.open();
     }
@@ -357,8 +366,16 @@ Item {
             errorHideTimer.start();
         }
 
-        function onRegistDialogRequested(host, ps5) {
-            showRegistDialog(host, ps5);
+        function onRegistDialogRequested(host, ps5, duid) {
+            if(!duid)
+                showRegistDialog(host, ps5);
+            else
+            {
+                if(ps5)
+                    root.showConfirmDialog(qsTr("Registration Type"), qsTr("Would you like to use automatic registration?"), (host, ps5) => root.autoRegister(true, host, ps5), (host, ps5, duid) => root.autoRegister(false, host, ps5))
+                else
+                    root.showConfirmDialog(qsTr("Registration Type"), qsTr("Would you like to use automatic registration (must be main PS4 console registered to your PSN)?"), (host, ps5) => root.autoRegister(true, host, ps5), (host, ps5, duid) => root.autoRegister(false, host, ps5))
+            }
         }
 
         function onWakeupStartInitiated() {

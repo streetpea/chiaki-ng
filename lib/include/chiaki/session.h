@@ -82,6 +82,7 @@ typedef struct chiaki_connect_info_t
 	bool video_profile_auto_downgrade; // Downgrade video_profile if server does not seem to support it.
 	bool enable_keyboard;
 	bool enable_dualsense;
+	bool auto_regist;
 	ChiakiHolepunchSession holepunch_session;
 	chiaki_socket_t *rudp_sock;
 	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
@@ -148,6 +149,7 @@ typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
 	CHIAKI_EVENT_HOLEPUNCH,
+	CHIAKI_EVENT_REGIST,
 	CHIAKI_EVENT_NICKNAME_RECEIVED,
 	CHIAKI_EVENT_KEYBOARD_OPEN,
 	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
@@ -166,6 +168,7 @@ typedef struct chiaki_event_t
 		ChiakiQuitEvent quit;
 		ChiakiKeyboardEvent keyboard;
 		ChiakiRumbleEvent rumble;
+		ChiakiRegisteredHost host;
 		ChiakiTriggerEffectsEvent trigger_effects;
 		struct
 		{
@@ -238,6 +241,7 @@ typedef struct chiaki_session_t
 	ChiakiCond state_cond;
 	ChiakiMutex state_mutex;
 	ChiakiStopPipe stop_pipe;
+	bool auto_regist;
 	bool should_stop;
 	bool ctrl_failed;
 	bool ctrl_session_id_received;

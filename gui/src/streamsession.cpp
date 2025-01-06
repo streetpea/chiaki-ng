@@ -73,6 +73,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		QByteArray morning,
 		QString initial_login_pin,
 		QString duid,
+		bool auto_regist,
 		bool fullscreen, 
 		bool zoom, 
 		bool stretch)
@@ -120,6 +121,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->psn_token = settings->GetPsnAuthToken();
 	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = std::move(duid);
+	this->auto_regist = auto_regist;
 	this->dpad_touch_increment = settings->GetDpadTouchEnabled() ? settings->GetDpadTouchIncrement(): 0;
 	this->dpad_touch_shortcut1 = settings->GetDpadTouchShortcut1();
 	if(this->dpad_touch_shortcut1 > 0)
@@ -254,6 +256,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.enable_keyboard = false;
 	chiaki_connect_info.enable_dualsense = connect_info.enable_dualsense;
 	chiaki_connect_info.packet_loss_max = connect_info.packet_loss_max;
+	chiaki_connect_info.auto_regist = connect_info.auto_regist;
 
 	dpad_touch_shortcut1 = connect_info.dpad_touch_shortcut1;
 	dpad_touch_shortcut2 = connect_info.dpad_touch_shortcut2;
@@ -1690,6 +1693,9 @@ void StreamSession::Event(ChiakiEvent *event)
 			connected = false;
 			emit ConnectedChanged();
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
+			break;
+		case CHIAKI_EVENT_REGIST:
+			emit AutoRegistSucceeded(event->host);
 			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			emit LoginPINRequested(event->login_pin_request.pin_incorrect);

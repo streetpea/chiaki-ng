@@ -224,6 +224,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                     session_info.morning,
                     session_info.initial_login_pin,
                     session_info.duid,
+                    session_info.auto_regist,
                     session_info.fullscreen,
                     session_info.zoom,
                     session_info.stretch,
@@ -394,6 +395,7 @@ void QmlBackend::profileChanged()
                     session_info.morning,
                     session_info.initial_login_pin,
                     session_info.duid,
+                    session_info.auto_regist,
                     session_info.fullscreen,
                     session_info.zoom,
                     session_info.stretch,
@@ -486,7 +488,15 @@ QVariantList QmlBackend::hosts() const
         }
         m["manual"] = manual;
         m["name"] = host.host_name;
-        m["duid"] = "";
+        QString duid = "";
+        if(!registered)
+        {
+            if(psn_nickname_hosts.contains(host.host_name))
+                duid = psn_nickname_hosts.value(host.host_name).GetDuid();
+            else if(!host.ps5)
+                duid =  psn_nickname_hosts.value(QString("Main PS4 Console")).GetDuid();
+        }
+        m["duid"] = duid;
         m["address"] = host.host_addr;
         m["ps5"] = host.ps5;
         m["mac"] = host_mac.ToString();
@@ -773,6 +783,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     connect(session, &StreamSession::NicknameReceived, this, &QmlBackend::checkNickname);
 
+    connect(session, &StreamSession::AutoRegistSucceeded, this, &QmlBackend::finishAutoRegister);
+
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
             setDiscoveryEnabled(false);
@@ -823,7 +835,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     {
         setDiscoveryEnabled(false);
         emit showPsnView();
-        setConnectState(PsnConnectState::InitiatingConnection);
+        if(session_info.auto_regist)
+            setConnectState(PsnConnectState::RegisteringConsole);
+        else
+            setConnectState(PsnConnectState::InitiatingConnection);
         emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
     }
 }
@@ -997,6 +1012,63 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
     return true;
 }
 
+void QmlBackend::autoRegister()
+{
+    auto server = regist_dialog_server;
+    resume_session = false;
+    StreamSessionConnectInfo info(
+            settings,
+            server.discovery_host.target,
+            QString(),
+            QString(),
+            QByteArray(),
+            QByteArray(),
+            0,
+            server.duid,
+            true,
+            false,
+            false,
+            false);
+
+    QString expiry_s = settings->GetPsnAuthTokenExpiry();
+    QString refresh = settings->GetPsnRefreshToken();
+    if(expiry_s.isEmpty() || refresh.isEmpty())
+        return;
+    QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
+    // give 1 minute buffer
+    QDateTime now = QDateTime::currentDateTime().addSecs(60);
+    if(now > expiry)
+    {
+        PSNToken *psnToken = new PSNToken(settings, this);
+        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
+            qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+        });
+        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
+            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+        });
+        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
+            createSession(info);
+        });
+        QString refresh_token = settings->GetPsnRefreshToken();
+        psnToken->RefreshPsnToken(std::move(refresh_token));
+    }
+    else
+        createSession(info);
+}
+
+void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
+{
+    QString nickname(host.server_nickname);
+    if(!regist_dialog_server.discovery_host.ps5 && regist_dialog_server.discovery_host.host_name != nickname)
+    {
+        emit error(tr("PS4 Console Not Main"), tr("Can't proceed...%1 is not your main PS4 console in PSN").arg(regist_dialog_server.discovery_host.host_name));
+        return;
+    }
+    settings->AddRegisteredHost(host);
+    setConnectState(PsnConnectState::RegistrationFinished);
+}
+
 void QmlBackend::connectToHost(int index, QString nickname)
 {
     auto server = displayServerAt(index);
@@ -1005,7 +1077,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
 
     if (!server.registered) {
         regist_dialog_server = server;
-        emit registDialogRequested(server.GetHostAddr(), server.IsPS5());
+        emit registDialogRequested(server.GetHostAddr(), server.IsPS5(), server.duid);
         return;
     }
 
@@ -1063,6 +1135,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 server.registered_host.GetRPKey(),
                 server.registered_host.GetConsolePin(),
                 server.duid,
+                false,
                 fullscreen,
                 zoom,
                 stretch);
@@ -1079,6 +1152,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 QByteArray(),
                 server.registered_host.GetConsolePin(),
                 server.duid,
+                false,
                 fullscreen,
                 zoom,
                 stretch);
@@ -1217,7 +1291,15 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
         server.discovery_host = discovered.at(index);
         auto host_mac = server.discovery_host.GetHostMAC();
         server.registered = settings->GetRegisteredHostRegistered(host_mac);
-        server.duid = QString();
+        QString duid = "";
+        if(!server.registered)
+        {
+            if(psn_nickname_hosts.contains(server.discovery_host.host_name))
+                duid = psn_nickname_hosts.value(server.discovery_host.host_name).GetDuid();
+            else if(!server.discovery_host.ps5)
+                duid =  psn_nickname_hosts.value(QString("Main PS4 Console")).GetDuid();
+        }
+        server.duid = duid;
         if (server.registered)
             server.registered_host = settings->GetRegisteredHost(host_mac);
         for (int i = 0; i < manual.size(); i++)
@@ -2074,23 +2156,22 @@ void QmlBackend::updatePsnHosts()
         QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
         QString duid = QString(duid_bytes.toHex());
         QString name = QString(dev.device_name);
-        if(!settings->GetNicknameRegisteredHostRegistered(name))
-            continue;
         bool ps5 = true;
         PsnHost psn_host(duid, name, ps5);
-	    if(!psn_hosts.contains(duid))
+        if(!psn_nickname_hosts.contains(name))
+            psn_nickname_hosts.insert(name, psn_host);
+	    if(!psn_hosts.contains(duid) && !settings->GetNicknameRegisteredHostRegistered(name))
 		    psn_hosts.insert(duid, psn_host);
     }
-    if (settings->GetPS4RegisteredHostsRegistered() > 0)
-    {
-        QByteArray duid_bytes(32, 'A');
-        QString duid = QString(duid_bytes.toHex());
-        QString name = QString("Main PS4 Console");
-        bool ps5 = false;
-        PsnHost psn_host(duid, name, ps5);
-	    if(!psn_hosts.contains(duid))
-		    psn_hosts.insert(duid, psn_host);
-    }
+    QByteArray duid_bytes(32, 'A');
+    QString duid = QString(duid_bytes.toHex());
+    QString name = QString("Main PS4 Console");
+    bool ps5 = false;
+    PsnHost psn_host(duid, name, ps5);
+    if(!psn_nickname_hosts.contains(name))
+        psn_nickname_hosts.insert(name, psn_host);
+    if(!psn_hosts.contains(duid) && (settings->GetPS4RegisteredHostsRegistered() > 0))
+        psn_hosts.insert(duid, psn_host);
 
     emit hostsChanged();
     qCInfo(chiakiGui) << "Updated PSN hosts";

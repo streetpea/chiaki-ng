@@ -20,7 +20,7 @@ Pane {
                 if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
                 {
                     Chiaki.settings.remotePlayAsk = false;
-                    root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
+                    root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN?\nThis enables:\n- Automatic registration\n- Playing outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
                 }
                 else
                     Chiaki.settings.remotePlayAsk = false;
@@ -271,7 +271,10 @@ Pane {
                             t += "\n" + qsTr("ID: %1 (%2)").arg(modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
                         if (modelData.duid)
                         {
-                            t += "\n" + qsTr("Remote Connection via PSN");
+                            if(modelData.discovered)
+                                t += "\n" + qsTr("Automatic Registration Available");
+                            else
+                                t += "\n" + qsTr("Remote Connection via PSN");
                         } 
                         else
                         {
