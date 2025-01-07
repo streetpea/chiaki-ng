@@ -15,6 +15,10 @@ cask "chiaki-ng" do
     url "https://github.com/streetpea/chiaki-ng/releases"
   end
 
+  postflight do
+    system "xattr -d com.apple.quarantine #{appdir}/chiaki-ng.app"
+  end
+
   app "chiaki-ng.app"
 
   zap trash: [
