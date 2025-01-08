@@ -8,6 +8,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Sleep for 1 hour to wait for release artifacts to be published before putting out Discord notification
+        run: sleep 3600s
+        shell: bash
       - name: Github Releases To Discord
         uses: SethCohen/github-releases-to-discord@v1
         with:
