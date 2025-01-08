@@ -2160,7 +2160,7 @@ void QmlBackend::updatePsnHosts()
         PsnHost psn_host(duid, name, ps5);
         if(!psn_nickname_hosts.contains(name))
             psn_nickname_hosts.insert(name, psn_host);
-	    if(!psn_hosts.contains(duid) && !settings->GetNicknameRegisteredHostRegistered(name))
+	    if(!psn_hosts.contains(duid) && settings->GetNicknameRegisteredHostRegistered(name))
 		    psn_hosts.insert(duid, psn_host);
     }
     QByteArray duid_bytes(32, 'A');
