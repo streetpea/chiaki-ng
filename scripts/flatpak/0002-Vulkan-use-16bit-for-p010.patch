@@ -17,10 +17,22 @@ index f0eb0fb7..7d1c6478 100644
          // If wholly unsupported, try falling back to the emulation formats
          // for texture operations
 diff --git a/src/vulkan/gpu_tex.c b/src/vulkan/gpu_tex.c
-index a419ffdc..ccb5a16c 100644
+index a419ffdc..ec32c546 100644
 --- a/src/vulkan/gpu_tex.c
 +++ b/src/vulkan/gpu_tex.c
-@@ -1215,7 +1215,12 @@ pl_tex pl_vulkan_wrap(pl_gpu gpu, const struct pl_vulkan_wrap_params *params)
+@@ -371,6 +371,11 @@ pl_tex vk_tex_create(pl_gpu gpu, const struct pl_tex_params *params)
+         .pQueueFamilyIndices = qfs,
+     };
+
++    if (tex_vk->img_fmt == VK_FORMAT_R10X6_UNORM_PACK16)
++        iinfo.format = VK_FORMAT_R16_UNORM;
++    else if (tex_vk->img_fmt == VK_FORMAT_R10X6G10X6_UNORM_2PACK16)
++        iinfo.format = VK_FORMAT_R16G16_UNORM;
++
+     struct vk_malloc_params mparams = {
+         .optimal = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+         .export_handle = params->export_handle,
+@@ -1215,7 +1220,12 @@ pl_tex pl_vulkan_wrap(pl_gpu gpu, const struct pl_vulkan_wrap_params *params)
      tex_vk->external_img = true;
      tex_vk->held = !fmt->num_planes;
      tex_vk->img = params->image;
