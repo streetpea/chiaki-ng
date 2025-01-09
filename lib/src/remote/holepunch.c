@@ -3930,6 +3930,9 @@ static ChiakiErrorCode check_candidates(
                     break;
                 }
             }
+        }
+        if(CHIAKI_SOCKET_IS_INVALID(candidate_sock))
+        {
             CHIAKI_LOGE(session->log, "check_candidates: Select returned an invalid socket!");
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
