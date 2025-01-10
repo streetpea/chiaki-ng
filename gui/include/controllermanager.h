@@ -122,6 +122,7 @@ class Controller : public QObject
 		void StartUpdatingMapping();
 		void IsUpdatingMappingButton(bool is_updating_mapping_button);
 		void EnableAnalogStickMapping(bool enabled);
+		void ChangeLEDColor(const uint8_t *led_color);
 		bool IsDualSense();
 		bool IsHandheld();
 		bool IsSteamVirtual();

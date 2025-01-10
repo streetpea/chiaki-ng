@@ -71,6 +71,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->gkcrypt_remote = NULL;
 	stream_connection->gkcrypt_local = NULL;
 	stream_connection->motion_counter = 0;
+	memset(stream_connection->led_state, 0, sizeof(stream_connection->led_state));
+
 	stream_connection->haptic_intensity = Strong;
 	stream_connection->trigger_intensity = Strong;
 
@@ -500,6 +502,8 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 {
 	bool reset = false;
 	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
+	memcpy(stream_connection->led_state, &stream_connection->motion_counter + 1, 3);
+	bool led_changed = false;
 	// const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
 	bool motion_reset_changed = true;
 	bool haptic_intensity_changed = false;
@@ -536,6 +540,11 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			}
 			uint32_t old_motion_counter = stream_connection->motion_counter;
 			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
+			if(memcmp(buf + 9, stream_connection->led_state, 3) != 0)
+			{
+				led_changed = true;
+				memcpy(stream_connection->led_state, buf + 9, 3);
+			}
 			// only reset if counter matches last sent
 			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
 			{
@@ -579,6 +588,11 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 				reset = true;
 			}
 			uint32_t old_motion_counter = stream_connection->motion_counter;
+			if(memcmp(buf + 1, stream_connection->led_state, 3) != 0)
+			{
+				led_changed = true;
+				memcpy(stream_connection->led_state, buf + 1, 3);
+			}
 			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf));
 			// only reset if counter matches last sent or counter is 0
 			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
@@ -621,6 +635,14 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		ChiakiEvent event = { 0 };
 		event.type = CHIAKI_EVENT_TRIGGER_INTENSITY;
 		event.intensity = stream_connection->trigger_intensity;
+		chiaki_session_send_event(stream_connection->session, &event);
+	}
+	if(led_changed)
+	{
+		CHIAKI_LOGV(stream_connection->log, "Set LED state to - red: %x, green: %x, blue: %x", stream_connection->led_state[0], stream_connection->led_state[1], stream_connection->led_state[2]);
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_LED_COLOR;
+		memcpy(event.led_state, stream_connection->led_state, 3);
 		chiaki_session_send_event(stream_connection->session, &event);
 	}
 }

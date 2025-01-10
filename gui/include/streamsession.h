@@ -164,6 +164,7 @@ class StreamSession : public QObject
 		int haptics_handheld;
 		float ps5_haptic_intensity;
 		float ps5_trigger_intensity;
+		uint8_t led_color[3];
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
 		Setsu *setsu;

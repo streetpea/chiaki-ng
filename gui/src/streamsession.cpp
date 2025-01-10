@@ -191,6 +191,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	dpad_regular_touch_switched = false;
 	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
+	memset(led_color, 0, sizeof(led_color));
 	ChiakiErrorCode err;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
@@ -929,17 +930,10 @@ void StreamSession::UpdateGamepads()
 			{
 				haptics_handheld--;
 			}
-			if (controller->IsDualSense())
+			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
 				controller->SetDualsenseMic(muted);
-				if(this->haptics_output > 0)
-					continue;
-				// Connect haptics audio device with a delay to give the sound system time to set up
-				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
-			}
-			if (controller->IsDualSenseEdge())
-			{
-				controller->SetDualsenseMic(muted);
+				controller->ChangeLEDColor(led_color);
 				if(this->haptics_output > 0)
 					continue;
 				// Connect haptics audio device with a delay to give the sound system time to set up
@@ -1760,6 +1754,16 @@ void StreamSession::Event(ChiakiEvent *event)
 			QMetaObject::invokeMethod(this, [this, left, right]() {
 				for(auto controller : controllers)
 					controller->SetRumble(left, right);
+			});
+			break;
+		}
+		case CHIAKI_EVENT_LED_COLOR: {
+			memcpy(led_color, event->led_state, 3);
+			uint8_t led_state[3];
+			memcpy(led_state, led_color, 3);
+			QMetaObject::invokeMethod(this, [this, led_state]() {
+				for(auto controller : controllers)
+					controller->ChangeLEDColor(led_state);
 			});
 			break;
 		}

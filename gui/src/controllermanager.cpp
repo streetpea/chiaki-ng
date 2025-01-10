@@ -821,10 +821,25 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 #endif
 }
 
+void Controller::ChangeLEDColor(const uint8_t *led_color)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if((!is_dualsense && !is_dualsense_edge) || !controller)
+		return;
+	DS5EffectsState_t state;
+	SDL_zero(state);
+	state.ucEnableBits2 |= 0x04; // Set LED state
+	state.ucLedRed = led_color[0];
+	state.ucLedGreen = led_color[1];
+	state.ucLedBlue = led_color[2];
+	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
+#endif
+}
+
 void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!is_dualsense || !controller)
+	if((!is_dualsense && !is_dualsense_edge) || !controller)
 		return;
 	DS5EffectsState_t state;
 	SDL_zero(state);
@@ -840,7 +855,7 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 void Controller::SetDualsenseMic(bool on)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!is_dualsense || !controller)
+	if((!is_dualsense && !is_dualsense_edge) || !controller)
 		return;
 	DS5EffectsState_t state;
 	SDL_zero(state);

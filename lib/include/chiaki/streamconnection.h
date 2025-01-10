@@ -42,6 +42,7 @@ typedef struct chiaki_stream_connection_t
 	ChiakiAudioReceiver *haptics_receiver;
 	double packet_loss_max;
 	uint32_t motion_counter;
+	uint8_t led_state[3];
 	ChiakiDualSenseEffectIntensity haptic_intensity;
 	ChiakiDualSenseEffectIntensity trigger_intensity;
 	ChiakiFeedbackSender feedback_sender;
