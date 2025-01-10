@@ -252,6 +252,7 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void HandleSDeckEvent(SDeckEvent *event);
 #endif
+		void AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type);
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);

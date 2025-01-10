@@ -1685,6 +1685,44 @@ void StreamSession::SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t p
 }
 #endif
 
+void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
+{
+	// adjust trigger intensity for supported trigger types in DualSense firmware
+	// as reported by https://gist.github.com/Nielk1/6d54cc2c00d2201ccb8c2720ad7538db
+	switch(type)
+	{
+		case 0x21:
+		case 0x26:
+		{
+			// bytes 27-29 always set to strength value
+			uint32_t strength = ((buf[5] >> 3) & 0x07) + 1;
+			uint32_t force_zones = *(uint32_t *)(buf + 2);
+			uint32_t new_strength = strength * ps5_trigger_intensity;
+			if(new_strength > 0)
+				new_strength -= 1;
+			uint32_t new_force_zones = 0;
+			for (int i = 0; i < 10; i++)
+			{
+				if((((force_zones >> (3 * i)) & 0x07) + 1) == strength)
+					new_force_zones |= (uint32_t)(new_strength << (3 * i));
+			}
+			memcpy(buf + 2, &new_force_zones, 4);
+			break;
+		}
+		case 0x25: {
+			uint8_t strength = buf[2] + 1;
+			strength *= ps5_trigger_intensity;
+			if(strength > 0)
+				strength -= 1;
+			buf[2] = strength;
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+}
+
 void StreamSession::Event(ChiakiEvent *event)
 {
 	switch(event->type)
@@ -1807,16 +1845,17 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
+			// If triggers off, return
+			if(ps5_trigger_intensity < 0.01)
+				return;
 			uint8_t type_left = event->trigger_effects.type_left;
 			uint8_t data_left[10];
 			memcpy(data_left, event->trigger_effects.left, 10);
+			AdjustAdaptiveTriggerPacket(data_left, type_left);
 			uint8_t data_right[10];
 			memcpy(data_right, event->trigger_effects.right, 10);
 			uint8_t type_right = event->trigger_effects.type_right;
-			// If triggers off, return
-			// TODO: adjust trigger intensity if weak or medium triggers are received
-			if(ps5_trigger_intensity < 0.01)
-				return;
+			AdjustAdaptiveTriggerPacket(data_right, type_right);
 			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
 				for(auto controller : controllers)
 					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);
