@@ -890,6 +890,7 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 		state.ucLedRed = led_color[0];
 		state.ucLedGreen = led_color[1];
 		state.ucLedBlue = led_color[2];
+		SDL_GameControllerSendEffect(controller, &state, sizeof(state));
 	}
 	else
 	{
@@ -898,8 +899,8 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 		state.ucLedRed = led_color[0];
 		state.ucLedGreen = led_color[1];
 		state.ucLedBlue = led_color[2];
+		SDL_GameControllerSendEffect(controller, &state, sizeof(state));
 	}
-	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
 #endif
 }
 
