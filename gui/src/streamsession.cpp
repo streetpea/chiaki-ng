@@ -175,7 +175,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	mic_resampler_buf(nullptr),
 #endif
 	haptics_resampler_buf(nullptr),
-	holepunch_session(nullptr)
+	holepunch_session(nullptr),
+	ps5_haptic_intensity(1),
+	ps5_trigger_intensity(1)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -1546,6 +1548,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
+		if(ps5_haptic_intensity < 0.01)
+			return;
 		if(buf_size != 120)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
@@ -1562,8 +1566,10 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		{
 			size_t cur = i * sample_size;
 			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
+			amplitudel *= ps5_haptic_intensity;
 			packetl.haptic_packet[i] = amplitudel;
 			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
+			amplituder *= ps5_haptic_intensity;
 			packetr.haptic_packet[i] = amplituder;
 		}
 		emit SdeckHapticPushed(packetl, packetr);
@@ -1642,6 +1648,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	}
 	if(haptics_output == 0)
 		return;
+	if(ps5_haptic_intensity < 0.01)
+		return;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
@@ -1652,6 +1660,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
+		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 4)) *= ps5_haptic_intensity;
+		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 6)) *= ps5_haptic_intensity;
 	}
 	// Resample to 48kHZ
 	if (SDL_ConvertAudio(&cvt) != 0)
@@ -1750,6 +1760,51 @@ void StreamSession::Event(ChiakiEvent *event)
 				setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, &setsu_accel_zero, false, chiaki_time_now_monotonic_us());
 			chiaki_orientation_tracker_apply_to_controller_state(&orient_tracker, &setsu_state);
 #endif
+			break;
+		}
+		case CHIAKI_EVENT_HAPTIC_INTENSITY: {
+			switch(event->intensity)
+			{
+				case Off: {
+					ps5_haptic_intensity = 0;
+					break;
+				}
+				case Strong: {
+					ps5_haptic_intensity = 1;
+					break;
+				}
+				case Weak: {
+					ps5_haptic_intensity = 0.25;
+					break;
+				}
+				case Medium: {
+					ps5_haptic_intensity = 0.5;
+					break;
+				}
+			}
+			break;
+		}
+		case CHIAKI_EVENT_TRIGGER_INTENSITY: {
+			switch(event->intensity)
+			{
+				case Off: {
+					ps5_trigger_intensity = 0;
+					break;
+				}
+				case Strong: {
+					ps5_trigger_intensity = 1;
+					break;
+				}
+				case Weak: {
+					ps5_trigger_intensity = 0.5;
+					break;
+				}
+				case Medium: {
+					ps5_trigger_intensity = 0.75;
+					break;
+				}
+			}
+			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
 			uint8_t type_left = event->trigger_effects.type_left;
@@ -1758,6 +1813,10 @@ void StreamSession::Event(ChiakiEvent *event)
 			uint8_t data_right[10];
 			memcpy(data_right, event->trigger_effects.right, 10);
 			uint8_t type_right = event->trigger_effects.type_right;
+			// If triggers off, return
+			// TODO: adjust trigger intensity if weak or medium triggers are received
+			if(ps5_trigger_intensity < 0.01)
+				return;
 			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
 				for(auto controller : controllers)
 					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);

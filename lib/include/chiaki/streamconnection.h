@@ -20,6 +20,13 @@ extern "C" {
 
 typedef struct chiaki_session_t ChiakiSession;
 
+typedef enum chiaki_dualsense_effect_intensity_t
+{
+	Off = 0,
+	Weak = 3,
+	Medium = 2,
+	Strong = 1,
+} ChiakiDualSenseEffectIntensity;
 typedef struct chiaki_stream_connection_t
 {
 	struct chiaki_session_t *session;
@@ -35,6 +42,8 @@ typedef struct chiaki_stream_connection_t
 	ChiakiAudioReceiver *haptics_receiver;
 	double packet_loss_max;
 	uint32_t motion_counter;
+	ChiakiDualSenseEffectIntensity haptic_intensity;
+	ChiakiDualSenseEffectIntensity trigger_intensity;
 	ChiakiFeedbackSender feedback_sender;
 	ChiakiCongestionControl congestion_control;
 	/**

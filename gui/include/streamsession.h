@@ -162,6 +162,8 @@ class StreamSession : public QObject
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
+		float ps5_haptic_intensity;
+		float ps5_trigger_intensity;
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
 		Setsu *setsu;
