@@ -254,6 +254,7 @@ class StreamSession : public QObject
 		void HandleSDeckEvent(SDeckEvent *event);
 #endif
 		void AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type);
+		void WaitHaptics();
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
