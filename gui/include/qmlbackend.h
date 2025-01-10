@@ -10,6 +10,8 @@
 #include <QThread>
 #include <QJSValue>
 #include <QUrl>
+#include <QFutureWatcher>
+#include <QFuture>
 
 class SystemdInhibit;
 
@@ -228,6 +230,7 @@ private:
     void updateControllerMappings();
     void updateDiscoveryHosts();
     void updatePsnHosts();
+    void updatePsnHostsThread();
     QString getExecutable();
 
     Settings *settings = {};
@@ -249,6 +252,9 @@ private:
     SystemdInhibit *sleep_inhibit = {};
     bool controller_mapping_default_mapping = false;
     bool controller_mapping_altered = false;
+    bool updating_psn_hosts = false;
+    QFutureWatcher<void> psn_hosts_watcher;
+    QFuture<void> psn_hosts_future;
     bool disable_zero_copy = false;
     Controller *controller_mapping_controller = {};
     QMap<QString, QStringList> controller_guids_to_update = {};

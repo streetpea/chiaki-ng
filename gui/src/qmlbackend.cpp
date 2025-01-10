@@ -17,6 +17,7 @@
 #include <QImageReader>
 #include <QProcessEnvironment>
 #include <QDesktopServices>
+#include <QtConcurrent>
 
 #define PSN_DEVICES_TRIES 2
 #define MAX_PSN_RECONNECT_TRIES 6
@@ -111,6 +112,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(&psn_connection_thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(this, &QmlBackend::psnConnect, worker, &PsnConnectionWorker::ConnectPsnConnection);
     connect(worker, &PsnConnectionWorker::resultReady, this, &QmlBackend::checkPsnConnection);
+    connect(&psn_hosts_watcher, &QFutureWatcher<void>::finished, [this]{ this->updating_psn_hosts = false; });
     psn_connection_thread.start();
 
     setConnectState(PsnConnectState::NotStarted);
@@ -2120,6 +2122,18 @@ void QmlBackend::refreshAuth()
 }
 
 void QmlBackend::updatePsnHosts()
+{
+    if(updating_psn_hosts)
+    {
+        qCInfo(chiakiGui) << "Already updating psn hosts, skipping...";
+        return;
+    }
+    psn_hosts_future = QtConcurrent::run(&QmlBackend::updatePsnHostsThread, this);
+    psn_hosts_watcher.setFuture(psn_hosts_future);
+    updating_psn_hosts = true;
+}
+
+void QmlBackend::updatePsnHostsThread()
 {
     QString psn_token = settings->GetPsnAuthToken();
     if(psn_token.isEmpty())
