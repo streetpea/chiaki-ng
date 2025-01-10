@@ -930,10 +930,10 @@ void StreamSession::UpdateGamepads()
 			{
 				haptics_handheld--;
 			}
+			controller->ChangeLEDColor(led_color);
 			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
 				controller->SetDualsenseMic(muted);
-				controller->ChangeLEDColor(led_color);
 				if(this->haptics_output > 0)
 					continue;
 				// Connect haptics audio device with a delay to give the sound system time to set up
