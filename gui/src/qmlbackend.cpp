@@ -1016,7 +1016,7 @@ bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const 
 
 void QmlBackend::autoRegister()
 {
-    auto server = regist_dialog_server;
+    const auto &server = regist_dialog_server;
     resume_session = false;
     StreamSessionConnectInfo info(
             settings,
@@ -1301,7 +1301,7 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
             else if(!server.discovery_host.ps5)
                 duid =  psn_nickname_hosts.value(QString("Main PS4 Console")).GetDuid();
         }
-        server.duid = duid;
+        server.duid = std::move(duid);
         if (server.registered)
             server.registered_host = settings->GetRegisteredHost(host_mac);
         for (int i = 0; i < manual.size(); i++)
