@@ -88,7 +88,7 @@ class Controller : public QObject
 		bool is_steam_virtual;
 		bool is_steam_virtual_unmasked;
 		bool is_dualsense_edge;
-		bool is_dualshock4;
+		bool has_led;
 		bool micbutton_push;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER

@@ -42,22 +42,6 @@ typedef struct
     Uint8 ucLedBlue;                    /* 46 */
 } DS5EffectsState_t;
 
-typedef struct
-{
-    Uint8 ucRumbleRight;
-    Uint8 ucRumbleLeft;
-    Uint8 ucLedRed;
-    Uint8 ucLedGreen;
-    Uint8 ucLedBlue;
-    Uint8 ucLedDelayOn;
-    Uint8 ucLedDelayOff;
-    Uint8 _rgucPad0[8];
-    Uint8 ucVolumeLeft;
-    Uint8 ucVolumeRight;
-    Uint8 ucVolumeMic;
-    Uint8 ucVolumeSpeaker;
-} DS4EffectsState_t;
-
 static QSet<QString> chiaki_motion_controller_guids({
 	// Sony on Linux
 	"03000000341a00003608000011010000",
@@ -131,13 +115,6 @@ static QSet<QPair<uint16_t, uint16_t>> chiaki_handheld_controller_ids({
 	QPair<uint16_t, uint16_t>(0x0b05, 0x1abe), // Rog Ally
 	QPair<uint16_t, uint16_t>(0x17ef, 0x6182), // Legion Go
 	QPair<uint16_t, uint16_t>(0x0db0, 0x1901), // MSI Claw
-});
-
-static QSet<QPair<uint16_t, uint16_t>> chiaki_dualshock4_controller_ids({
-	// in format (vendor id, product id)
-	QPair<uint16_t, uint16_t>(0x054c, 0x05c4), // DualShock4 Controller
-	QPair<uint16_t, uint16_t>(0x054c, 0x0ba0), // DualShock4 Wireless Adapter
-	QPair<uint16_t, uint16_t>(0x054c, 0x09cc), // DualShock4 Slim
 });
 
 static QSet<QPair<uint16_t, uint16_t>> chiaki_steam_virtual_controller_ids({
@@ -341,7 +318,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 
 Controller::Controller(int device_id, ControllerManager *manager)
 : QObject(manager), ref(0), last_motion_timestamp(0), micbutton_push(false), is_dualsense(false),
-  is_dualsense_edge(false), is_dualshock4(false), updating_mapping_button(false), is_handheld(false),
+  is_dualsense_edge(false), has_led(false), updating_mapping_button(false), is_handheld(false),
   is_steam_virtual(false), is_steam_virtual_unmasked(false), enable_analog_stick_mapping(false)
 {
 	this->id = device_id;
@@ -364,11 +341,11 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			if(SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO))
 				SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_GYRO, SDL_TRUE);
 #endif
+			has_led = SDL_GameControllerHasLED(controller);
 			auto controller_id = QPair<uint16_t, uint16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
-			is_dualshock4 = chiaki_dualshock4_controller_ids.contains(controller_id);
 			SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
 			SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
 			auto guid_controller_id = QPair<uint16_t, uint16_t>(0, 0);
@@ -880,27 +857,9 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 void Controller::ChangeLEDColor(const uint8_t *led_color)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if((!is_dualsense && !is_dualsense_edge && !is_dualshock4) || !controller)
+	if(!controller || !has_led)
 		return;
-	if(is_dualsense || is_dualsense_edge)
-	{
-		DS5EffectsState_t state;
-		SDL_zero(state);
-		state.ucEnableBits2 |= 0x04; // Set LED state
-		state.ucLedRed = led_color[0];
-		state.ucLedGreen = led_color[1];
-		state.ucLedBlue = led_color[2];
-		SDL_GameControllerSendEffect(controller, &state, sizeof(state));
-	}
-	else
-	{
-		DS4EffectsState_t state;
-		SDL_zero(state);
-		state.ucLedRed = led_color[0];
-		state.ucLedGreen = led_color[1];
-		state.ucLedBlue = led_color[2];
-		SDL_GameControllerSendEffect(controller, &state, sizeof(state));
-	}
+	SDL_GameControllerSetLED(controller, led_color[0], led_color[1], led_color[2]);
 #endif
 }
 
