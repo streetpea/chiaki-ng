@@ -147,12 +147,14 @@ jobs:
 
       - name: Build chiaki-ng
         run: |
+          $env:Path += ';${{ github.workspace }}\build\third-party\libcpp-steam-tools'
           cmake --build build --config Release --clean-first --target chiaki
 
       - name: Prepare Qt deployment package
         run: |
           mkdir chiaki-ng-Win
           cp build\gui\chiaki.exe chiaki-ng-Win
+          cp build\third-party\libcpp-steam-tools\libcpp-steam-tools.dll chiaki-ng-Win
           cp scripts\qtwebengine_import.qml gui\src\qml\
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
