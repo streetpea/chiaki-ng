@@ -2,6 +2,9 @@ name: Build chiaki-ng msys2 Windows
 
 on:
   workflow_dispatch:
+env:
+  QT_PATH: "/opt/qt"
+  QT_VERSION: "6.8.1"
 
 jobs:
   build-windows_x64-msys2:
@@ -36,7 +39,6 @@ jobs:
             json-c:p
             lcms2:p
             libdovi:p
-            libplacebo:p
             meson:p
             miniupnpc:p
             nasm:p
@@ -46,13 +48,10 @@ jobs:
             pkgconf:p
             protobuf-c:p
             python:p
+            python-psutil:p
             python-glad:p
             python-jinja:p
             python-pip:p
-            qt5-declarative:p
-            qt6-base:p
-            qt6-declarative:p
-            qt6-svg:p
             SDL2:p
             shaderc:p
             speexdsp:p
@@ -60,10 +59,14 @@ jobs:
             vulkan:p
             vulkan-headers:p
             
-      - name: Install python protobuf and zip
+      - name: Install python protobuf, aqtinstall, and zip
         run: |
-          pip install protobuf
+          pip install protobuf aqtinstall
           pacman -S git make unzip --noconfirm
+
+      - name: Install qt
+        run: |
+          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
 
       - name: Build libbplacebo
         run: |
@@ -79,80 +82,27 @@ jobs:
 
       - name: Configure chiaki-ng
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_PATH}/${QT_VERSION}/mingw_64"
 
       - name: Build chiaki-ng
         run: |
           cmake --build build --config Release --clean-first --target chiaki
           
-      - name: Deploy qt6-base:p
+      - name: Deploy chiaki-ng
         run: |
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
-          cp build/third-party/cpp-steam-tools/libcpp-steam-tools.dll chiaki-ng-Win/
-          ls /mingw64/bin/
-          cp /mingw64/bin/libcrypto-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libssl-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/SDL2.dll chiaki-ng-Win/
-          cp /mingw64/bin/avcodec-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/avutil-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/avformat-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgcc_s_seh-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libopus-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libfftw3-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libplacebo-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libspeexdsp-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libstdc++-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libbz2-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libiconv-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libhidapi-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/zlib1.dll chiaki-ng-Win/
-          cp /mingw64/bin/libglib-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgobject-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/liblzma-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libintl-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libwinpthread-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/liblcms2-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/dovi.dll chiaki-ng-Win/
-          cp /mingw64/bin/libshaderc_shared.dll chiaki-ng-Win/
-          cp /mingw64/bin/libspirv-cross-c-shared.dll chiaki-ng-Win/
-          cp /mingw64/bin/libssh2-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libbrotlienc.dll chiaki-ng-Win/
-          cp /mingw64/bin/libbrotlidec.dll chiaki-ng-Win/
-          cp /mingw64/bin/libfreetype-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgmp-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libidn2-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libpng*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libharfbuzz-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libmd4c.dll chiaki-ng-Win/
-          cp /mingw64/bin/libzstd.dll chiaki-ng-Win/
-          cp /mingw64/bin/libicuuc*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libb2-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libdouble-conversion.dll chiaki-ng-Win/
-          cp /mingw64/bin/libicuin*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libpcre2-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libp11-kit-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libtasn1-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libunistring-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libfontconfig-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libffi-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgio-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libsharpyuv-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libbrotlicommon.dll chiaki-ng-Win/
-          cp /mingw64/bin/libicudt*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgraphite*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libexpat*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgmodule-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libgomp-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libminiupnpc.dll chiaki-ng-Win/
-          cp /mingw64/bin/libpsl-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/libjson-c-*.dll chiaki-ng-Win/
-          cp /mingw64/bin/swresample-*.dll chiaki-ng-Win/
-          cp scripts/qtwebengine_import.qml gui/src/qml/
-          /mingw64/bin/windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
-          cp -R /mingw64/share/qt6/qml/QtQuick chiaki-ng-Win/qml/
-          cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ chiaki-ng-Win/qml/QtQml/
-          cp /mingw64/bin/Qt6QmlWorkerScript.dll chiaki-ng-Win/
+          export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
+          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
+          echo build/gui/chiaki.exe > tmp0.txt
+          while [ -e tmp0.txt ]
+          do
+            cp tmp0.txt tmp.txt
+            rm tmp0.txt
+            sort -u tmp.txt -o tmp.txt
+            ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | xargs -d $'\n' sh -c 'for arg do echo "$arg" >> tmp0.txt; echo "Copied $arg"; cp "$arg" chiaki-ng-Win/; done'
+          done
+          windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
