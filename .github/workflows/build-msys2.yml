@@ -68,8 +68,8 @@ jobs:
       - name: Install qt and add to path
         run: |
           aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
-          echo PATH=\""${QT_PATH}/${QT_VERSION}/mingw_64/bin:$PATH"\" >> "$HOME/.bashrc"
-          echo LD_LIBRARY_PATH=\""${QT_PATH}/${QT_VERSION}/mingw_64/lib:$LD_LIBRARY_PATH"\" >> "$HOME/.bashrc"
+          echo PATH=\""${QT_PATH}/${QT_VERSION}/mingw_64/bin:$PATH"\" >> "$GITHUB_PATH "
+          echo LD_LIBRARY_PATH=\""${QT_PATH}/${QT_VERSION}/mingw_64/lib:$LD_LIBRARY_PATH"\" >> "$GITHUB_PATH"
 
       - name: Build libbplacebo
         run: |
