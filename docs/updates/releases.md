@@ -75,6 +75,32 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.4
+
+Small patch update:
+
+- add automatic (pinless) registration for locally discovered consoles
+- adjust adaptive trigger and haptic intensity based on the PS5 settings
+- Set led (lightbar) colors during gameplay for applicable controllers in games that support this feature
+- patch bug causing stream session to fail connecting in certain instances
+- reduce app load time
+- add controller navigation icons to GUI
+- enable zero-copy decoding for hdr on Windows using the AMD radeon driver (was previously disabled due to a driver bug)
+- add Winget and Chocolatey support for Windows
+- patch bug causing remote connection via PSN to fail in an edge case
+- add Windows portable zip release to releases in addition to installer
+- change cancelling button for auto-connect and remote connection via psn to back button / escape instead of any button
+- add configurable display options
+- enable adjusting libplacebo custom renderer preset + display options via stream menu (so you can see the effects while adjusting them)
+- add reminder for create steam shortcut on platforms where it's enabled + add remind me option to remote play setup popup
+- fix controller shortcut not adding when using the create steam shortcut button and the non-Steam game already exists
+- fix unstreamable content message not appearing in some instances
+- fix issue causing L2 adaptive trigger to lock in certain games
+- fix controller mapping appearing for Steam Virtual controllers
+- fix Steam Deck desktop mode controller mode (activated by holding options button) not working with chiaki-ng
+- fix Google Stadia controller mapping
+- fix controller navigation temporarily losing focus in certain edge cases
+
 ### 1.9.3
 
 Small patch update:

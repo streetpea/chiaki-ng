@@ -49,7 +49,7 @@
         
             Make sure your client device (i.e., Steam Deck) is on the same wireless network as your PlayStation system and that the PlayStation console is either on or in sleep/rest mode. If this doesn't work, you can always try restarting your client device (i.e., Steam Deck) and connecting to the network again. If it still doesn't work you can try the Manual Registration step in step 5 below.
 
-    2. Register `chiaki-ng` with PSN to enable remote Play via PSN via the popup
+    3. Register `chiaki-ng` with PSN to enable remote Play via PSN via the popup
 
         ![Remote Play PSN Popup](images/RemotePlayPSNPopup.png)
 
@@ -77,36 +77,57 @@
 
                 If you obtain an error with a link to Sony's oauth site, it is likely the code from the link has expired and you need to create a new code by logging in again and pasting the url into chiaki-ng. The code usually expires within a few minutes. Otherwise, the error code should hopefully be self explanatory.
 
-
-    3. Register your PlayStation console
+    4. Register your PlayStation console
 
         === "Register Discovered Console (Recommended)"
 
-            1. Double click on the blue box to bring up a registration window
+            === "Automatic (pinless) Registration"
 
-                ![Registration Window](images/AddPS5Regular.png)
+                1. Make sure you have registered `chiaki-ng` with PSN following the previous step.
 
-            2. Choose your console type
+                2. Click on the pane of the console you want to register that includes the label *Automatic Registration Available*
 
-            3. If you registered for remote connection via PSN your `PSN Account-ID` will be automatically entered. Otherwise, either use PSN via the `PSN Login` button or public lookup using the `Public Lookup` button to obtain your `PSN Account-ID`.
+                    ![Automatic Registration Available](images/AutomaticRegistrationAvailable.png)
 
-            4. Get a registration code for remote play
+                3. Select yes in the dialog box asking if you would like to use automatic registration
 
-                === "PS5"
+                    ![Automatic Registration Yes](images/AutomaticRegistrationConfirm.png)
 
-                    Go to `Settings -> System -> Remote Play -> Link Device`
+                4. Wait for the console to be successfully registered and then see your registered console in the main menu
 
-                === "PS4"
+                    ![Automatic Registration Succeeded](images/AutomaticallyRegisteredConsole.png)
 
-                    Go to `Settings -> Remote Play -> Add Device`
+            === "Registration via Pin"
 
-            5. Enter the code from your device in the `Remote Play PIN` field
+                1. [Only if registered via PSN] If registered with PSN, select no to the dialog box asking if you would like to use automatic registration
 
-            6. (Optional) If you have a pin for your console, enter it in the `Console Pin` field to have `chiaki-ng` automatically enter your PIN instead of having to enter it manually each time.
+                    ![Automatic Registration No](images/AutomaticRegistrationConfirm.png)
 
-            7. Click Register (will become available when all necessary fields are filled)
+                2. Click on the pane of the console you want to register to bring up a registration window or a dialog box asking if you want to use automatic reg
 
-        === "Manual Registration"
+                    ![Registration Window](images/AddPS5Regular.png)
+
+                3. Choose your console type
+
+                4. If you registered for remote connection via PSN your `PSN Account-ID` will be automatically entered. Otherwise, either use PSN via the `PSN Login` button or public lookup using the `Public Lookup` button to obtain your `PSN Account-ID`.
+
+                5. Get a registration code for remote play
+
+                    === "PS5"
+
+                        Go to `Settings -> System -> Remote Play -> Link Device`
+
+                    === "PS4"
+
+                        Go to `Settings -> Remote Play -> Add Device`
+
+                6. Enter the code from your device in the `Remote Play PIN` field
+
+                7. (Optional) If you have a pin for your console, enter it in the `Console Pin` field to have `chiaki-ng` automatically enter your PIN instead of having to enter it manually each time.
+
+                8. Click Register (will become available when all necessary fields are filled)
+
+        === "Register By IP (for undiscoverable consoles)"
 
             1. Click the gear icon in the top right to go to `Settings`
 
