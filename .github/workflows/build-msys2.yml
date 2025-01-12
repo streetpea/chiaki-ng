@@ -94,8 +94,9 @@ jobs:
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
           ldd build/gui/chiaki.exe
-          echo "${QT_PATH}/${QT_VERSION}/mingw_64/bin" >> $GITHUB_PATH
-          echo "${{ github.workspace }}/build/third-party/cpp-steam-tools" >> $GITHUB_PATH
+          export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
+          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
+          echo $PATH
           ldd build/gui/chiaki.exe | cut -d " " -f3 | grep -iv "system32" | xargs -Ix -n1 cp x chiaki-ng-Win/
           cp scripts/qtwebengine_import.qml gui/src/qml/
           windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
