@@ -94,7 +94,8 @@ jobs:
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
           cp build/third-party/cpp-steam-tools/libcpp-steam-tools.dll chiaki-ng-Win/
-          ldd build/gui/chiaki.exe  | cut -d " " -f3 | grep -iv "system32" | xargs -Ix -n1 cp x chiaki-ng-Win/
+          ldd build/gui/chiaki.exe
+          ldd build/gui/chiaki.exe  | cut -d " " -f3 | grep -iv "system32" | xargs -Ix -n1 echo x;cp x chiaki-ng-Win/
           cp scripts/qtwebengine_import.qml gui/src/qml/
           windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
 
