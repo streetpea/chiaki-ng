@@ -3930,6 +3930,9 @@ static ChiakiErrorCode check_candidates(
                     break;
                 }
             }
+        }
+        if(CHIAKI_SOCKET_IS_INVALID(candidate_sock))
+        {
             CHIAKI_LOGE(session->log, "check_candidates: Select returned an invalid socket!");
             err = CHIAKI_ERR_UNKNOWN;
             goto cleanup_sockets;
@@ -4745,14 +4748,16 @@ static ChiakiErrorCode wait_for_session_message_ack(
         if(session->main_should_stop)
         {
             session->main_should_stop = false;
+            session_message_free(msg);
             chiaki_mutex_unlock(&session->stop_mutex);
             err = CHIAKI_ERR_CANCELED;
             return err;
         }
-        chiaki_mutex_unlock(&session->stop_mutex);
         if (msg->req_id != req_id)
         {
             CHIAKI_LOGE(session->log, "wait_for_session_message_ack: Got ACK for unexpected request ID %d", msg->req_id);
+            session_message_free(msg);
+            msg = NULL;
             continue;
         }
         finished = true;

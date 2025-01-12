@@ -46,43 +46,219 @@ DialogView {
             }
 
             TabButton {
+                id: general
                 text: qsTr("General")
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        left: general.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 1
+                }
             }
 
             TabButton {
+                id: video
                 text: qsTr("Video")
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: video.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 0
+                }
+                Image {
+                    anchors {
+                        left: video.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 2
+                }
             }
 
             TabButton {
+                id: stream
                 text: qsTr("Stream")
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: stream.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 1
+                }
+                Image {
+                    anchors {
+                        left: stream.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 3
+                }
             }
 
             TabButton {
                 text: qsTr("Audio/Wifi")
+                id: audio
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: audio.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 2
+                }
+                Image {
+                    anchors {
+                        left: audio.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 4
+                }
             }
 
             TabButton {
                 text: qsTr("Consoles")
+                id: consoles
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: consoles.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 3
+                }
+                Image {
+                    anchors {
+                        left: consoles.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 5
+                }
             }
 
             TabButton {
                 text: qsTr("Keys")
+                id: keys
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: keys.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 4
+                }
+                Image {
+                    anchors {
+                        left: keys.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 6
+                }
             }
 
             TabButton {
                 text: qsTr("Controllers")
+                id: controllers
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: controllers.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 5
+                }
+                Image {
+                    anchors {
+                        left: controllers.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 7
+                }
             }
 
             TabButton {
                 text: qsTr("Config")
+                id: config
                 focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        right: config.left
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 6
+                }
             }
         }
 
@@ -427,6 +603,23 @@ DialogView {
                         Material.roundedScale: Material.SmallScale
                         visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
                     }
+
+                    Label { visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Display Settings")
+                    }
+
+                    C.Button {
+                        id: displaySettings
+                        text: qsTr("Open")
+                        onClicked: root.showDisplaySettingsDialog()
+                        Material.roundedScale: Material.SmallScale
+                        lastInFocusChain: true
+                    }
+
+                    Label {}
                 }
             }
 
@@ -1175,6 +1368,7 @@ DialogView {
                         CheckBox {
                             property bool firstInFocusChain: false
                             property bool lastInFocusChain: false
+                            property bool lastDownInFocusChain: index > consolesView.count + hiddenConsolesView.count - 2
 
                             id: autoConnectButton
                             anchors {
@@ -1217,7 +1411,7 @@ DialogView {
                                     }
                                     break;
                                 case Qt.Key_Down:
-                                    if (!lastInFocusChain) {
+                                    if (!lastDownInFocusChain) {
                                         let item = nextItemInFocusChain();
                                         if (item)
                                             item.forceActiveFocus(Qt.TabFocusReason);
@@ -1623,6 +1817,7 @@ DialogView {
                             text: qsTr("Dpad Touchpad Emulation")
                         }
                         C.CheckBox {
+                            id: dpadTouch
                             checked: Chiaki.settings.dpadTouchEnabled
                             onToggled: Chiaki.settings.dpadTouchEnabled = !Chiaki.settings.dpadTouchEnabled
                         }
@@ -1777,7 +1972,12 @@ DialogView {
                             checked: Chiaki.settings.buttonsByPosition
                             onToggled: Chiaki.settings.buttonsByPosition = checked
                             KeyNavigation.priority: KeyNavigation.BeforeItem
-                            KeyNavigation.up: dpadShortcut1
+                            KeyNavigation.up: {
+                                if(dpadShortcut1.visible)
+                                    dpadShortcut1
+                                else
+                                    dpadTouch;
+                            }
                             KeyNavigation.down: posButtons
                             KeyNavigation.left: posButtons
                             KeyNavigation.right: posButtons
@@ -1919,7 +2119,7 @@ DialogView {
 
             RowLayout {
                 spacing: 50
-                onVisibleChanged: if (visible) forceActiveFocus()
+                onVisibleChanged: if (visible) forceActiveFocus(Qt.TabFocusReason)
                 Keys.onReturnPressed: aboutDialog.close()
                 Keys.onEscapePressed: aboutDialog.close()
 
@@ -1962,7 +2162,7 @@ DialogView {
             modal: true
             standardButtons: Dialog.Close
             closePolicy: Popup.CloseOnPressOutside
-            onOpened: keyLabel.forceActiveFocus()
+            onOpened: keyLabel.forceActiveFocus(Qt.TabFocusReason)
             onClosed: {
                 let item = chiakiKeys.itemAt(keysIndex)
                 if(item)
@@ -2007,7 +2207,7 @@ DialogView {
             standardButtons: Dialog.Close
             closePolicy: Popup.CloseOnPressOutside
             onOpened: {
-                controllerLabel.forceActiveFocus();
+                controllerLabel.forceActiveFocus(Qt.TabFocusReason);
                 Chiaki.creatingControllerMapping(true);
             }
             onClosed: {
@@ -2052,7 +2252,7 @@ DialogView {
             standardButtons: Dialog.Close
             closePolicy: Popup.NoAutoClose
             onOpened: {
-                steamLabel.forceActiveFocus();
+                steamLabel.forceActiveFocus(Qt.TabFocusReason);
             }
             onClosed: {
                 if(resetMapping)
@@ -2066,7 +2266,7 @@ DialogView {
             Label {
                 id: steamLabel
                 wrapMode: TextEdit.Wrap
-                text: qsTr("This controller is managed by Steam. Please use Steam to map controller or disable Steam Input for the controller before mapping here.")
+                text: qsTr("This controller is managed by Steam.\nPlease use Steam to map controller or disable Steam Input for the controller before mapping here.")
                 Keys.onReturnPressed: steamControllerMappingDialog.close();
                 Keys.onEscapePressed: steamControllerMappingDialog.close();
             }

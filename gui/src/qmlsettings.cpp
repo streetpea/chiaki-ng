@@ -37,6 +37,17 @@ void QmlSettings::setRemotePlayAsk(bool asked)
     emit remotePlayAskChanged();
 }
 
+bool QmlSettings::addSteamShortcutAsk() const
+{
+    return settings->GetAddSteamShortcutAsk();
+}
+
+void QmlSettings::setAddSteamShortcutAsk(bool asked)
+{
+    settings->SetAddSteamShortcutAsk(asked);
+    emit addSteamShortcutAskChanged();
+}
+
 bool QmlSettings::hideCursor() const
 {
     return settings->GetHideCursor();
@@ -337,6 +348,49 @@ void QmlSettings::setCodecRemotePS5(int codec)
 {
     settings->SetCodecRemotePS5(static_cast<ChiakiCodec>(codec));
     emit codecRemotePS5Changed();
+}
+
+int QmlSettings::displayTargetContrast() const
+{
+    return settings->GetDisplayTargetContrast();
+}
+void QmlSettings::setDisplayTargetContrast(int contrast)
+{
+    settings->SetDisplayTargetContrast(contrast);
+    emit displayTargetContrastChanged();
+}
+
+int QmlSettings::displayTargetPeak() const
+{
+    return settings->GetDisplayTargetPeak();
+}
+
+void QmlSettings::setDisplayTargetPeak(int peak)
+{
+    settings->SetDisplayTargetPeak(peak);
+    emit displayTargetPeakChanged();
+}
+
+int QmlSettings::displayTargetPrim() const
+{
+    return settings->GetDisplayTargetPrim();
+}
+
+void QmlSettings::setDisplayTargetPrim(int prim)
+{
+    settings->SetDisplayTargetPrim(prim);
+    emit displayTargetPrimChanged();
+}
+
+int QmlSettings::displayTargetTrc() const
+{
+    return settings->GetDisplayTargetTrc();
+}
+
+void QmlSettings::setDisplayTargetTrc(int trc)
+{
+    settings->SetDisplayTargetTrc(trc);
+    emit displayTargetTrcChanged();
 }
 
 int QmlSettings::audioBufferSize() const
@@ -1371,6 +1425,7 @@ void QmlSettings::setSettings(Settings *new_settings)
 void QmlSettings::refreshAllKeys()
 {
     emit remotePlayAskChanged();
+    emit addSteamShortcutAskChanged();
     emit hideCursorChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
@@ -1391,6 +1446,10 @@ void QmlSettings::refreshAllKeys()
     emit noiseSuppressLevelChanged();
     emit echoSuppressLevelChanged();
 #endif
+    emit displayTargetContrastChanged();
+    emit displayTargetPeakChanged();
+    emit displayTargetPrimChanged();
+    emit displayTargetTrcChanged();
     emit fullscreenDoubleClickChanged();
     emit fpsLocalPS4Changed();
     emit fpsRemotePS4Changed();

@@ -4,16 +4,39 @@
 
     This is for people who want to update the documentation of `chiaki-ng` and see the updates locally or if you are a regular user and are curious on how to do it. In most cases, just accessing the documentation via the site https://streetpea.github.io/chiaki-ng/ is best. If you want to access the documentation without internet access, instead of following this documentation, you should navigate to the print page (which displays the documentation in printable format). Then, Print->Save to pdf in your web browser and access the PDF freely offline.
 
-## Installing Necessary Pre-requisites
+## Installing Pre-requisites
 
-1. Install pip3 on your computer, if it's not already installed (instructions vary depending on Operating System)
-2. Install mkdocs and plugins used in chiaki-ng documentation
+=== "Using Flatpak [Linux Only]"
+    1. Install the devel flatpak and sdk
 
-    ``` bash
-    pip3 install mkdocs mkdocs-material mkdocs-git-revision-date-localized-plugin mkdocs-print-site-plugin
-    ```
+        ```bash
+        flatpak install -y --user https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.flatpakref
+        ```
+    2. Install the sdk
 
-3. Get a local copy of the source code with:
+        ```bash
+        flatpak install -y --user org.kde.Sdk//6.8
+        ```
+
+    3. Run the devel flatpak
+
+        ```bash
+        flatpak run --devel --command=bash io.github.streetpea.Chiaki4deck-devel
+        ```
+
+=== "Using System"
+
+    1. Install pip3 on your computer, if it's not already installed (instructions vary depending on Operating System)
+
+    2. Install mkdocs and plugins used in chiaki-ng documentation
+
+        ``` bash
+        pip3 install mkdocs mkdocs-material mkdocs-git-revision-date-localized-plugin mkdocs-print-site-plugin
+        ```
+
+## Updating the Documentation
+
+1. Get a local copy of the source code with:
 
     === "HTTPS"
 
@@ -33,15 +56,15 @@
         gh repo clone streetpea/chiaki-ng
         ```
 
-4. Change into the source code directory in your terminal
+2. Change into the source code directory in your terminal
 
-5. Serve the documentation in a terminal while in your source code directory with:
+3. Serve the documentation in a terminal while in your source code directory with:
 
     ``` bash
     mkdocs serve
     ``` 
 
-6. Open a web browser and access the documentation
+4. Open a web browser and access the documentation
 
     The above `mkdocs serve` command should output an address to access the documentation which by default is: http://127.0.0.1:8000 which is over localhost (only accessible locally). Go to this address to access the documentation.
 
@@ -49,7 +72,7 @@
 
         If you leave the terminal tab where you ran `mkdocs serve` open, the docs will update automatically when your save your changes to the file. This way as you make changes you can check your changes at the given web site, displaying in the same way as it will when displayed as a static website on GitHub.
 
-7. Make edits to the relevant markdown files in the `docs/` subfolder, and watch the changes display in realtime in your web browser when you save your file updates.
+5. Make edits to the relevant markdown files in the `docs/` subfolder, and watch the changes display in realtime in your web browser when you save your file updates.
 
 !!! Tip "Special Documentation Features"
 

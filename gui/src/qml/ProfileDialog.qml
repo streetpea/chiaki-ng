@@ -11,11 +11,11 @@ DialogView {
 
     buttonText: {
         if(deleteBox.visible && deleteBox.checked)
-            qsTr(" x Delete Profile")
+            qsTr("Delete Profile")
         else if(profileName.visible)
-            qsTr("✓ Create Profile")
+            qsTr("Create Profile")
         else
-            qsTr("✓ Switch Profile")
+            qsTr("Switch Profile")
     }
     buttonEnabled: {
         if(deleteBox.visible && deleteBox.checked)

@@ -10,6 +10,8 @@
 #include <QThread>
 #include <QJSValue>
 #include <QUrl>
+#include <QFutureWatcher>
+#include <QFuture>
 
 class SystemdInhibit;
 
@@ -71,6 +73,8 @@ public:
         WaitingForInternet,
         InitiatingConnection,
         LinkingConsole,
+        RegisteringConsole,
+        RegistrationFinished,
         DataConnectionStart,
         DataConnectionFinished,
         ConnectFailed,
@@ -115,6 +119,8 @@ public:
 
     bool enableAnalogStickMapping() const { return enable_analog_stick_mapping; }
     void setEnableAnalogStickMapping(bool enabled);
+
+    void finishAutoRegister(const ChiakiRegisteredHost &host);
 
     bool autoConnect() const;
 
@@ -162,6 +168,7 @@ public:
     Q_INVOKABLE void controllerMappingQuit();
     Q_INVOKABLE void controllerMappingButtonQuit();
     Q_INVOKABLE void controllerMappingApply();
+    Q_INVOKABLE void autoRegister();
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
     Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
 #endif
@@ -194,7 +201,7 @@ signals:
     void sessionError(const QString &title, const QString &text);
     void sessionPinDialogRequested();
     void sessionStopDialogRequested();
-    void registDialogRequested(const QString &host, bool ps5);
+    void registDialogRequested(const QString &host, bool ps5, const QString &duid);
     void psnLoginAccountIdDone(const QString &accountId);
     void psnLoginAccountIdError(const QString &error);
 
@@ -223,6 +230,7 @@ private:
     void updateControllerMappings();
     void updateDiscoveryHosts();
     void updatePsnHosts();
+    void updatePsnHostsThread();
     QString getExecutable();
 
     Settings *settings = {};
@@ -244,6 +252,9 @@ private:
     SystemdInhibit *sleep_inhibit = {};
     bool controller_mapping_default_mapping = false;
     bool controller_mapping_altered = false;
+    bool updating_psn_hosts = false;
+    QFutureWatcher<void> psn_hosts_watcher;
+    QFuture<void> psn_hosts_future;
     bool disable_zero_copy = false;
     Controller *controller_mapping_controller = {};
     QMap<QString, QStringList> controller_guids_to_update = {};
@@ -263,5 +274,6 @@ private:
     QString auto_connect_nickname = "";
     QString wakeup_nickname = "";
     bool wakeup_start = false;
-    QMap<QString, PsnHost> psn_hosts;
+    QMap<QString, PsnHost> psn_hosts = {};
+    QMap<QString, PsnHost> psn_nickname_hosts = {};
 };

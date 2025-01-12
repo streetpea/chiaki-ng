@@ -5,11 +5,13 @@
     <file>MainView.qml</file>
     <file>StreamView.qml</file>
     <file>ConfirmDialog.qml</file>
+    <file>RemindDialog.qml</file>
     <file>DialogView.qml</file>
     <file>ManualHostDialog.qml</file>
     <file>RegistDialog.qml</file>
     <file>SteamShortcutDialog.qml</file>
     <file>SettingsDialog.qml</file>
+    <file>DisplaySettingsDialog.qml</file>
     <file>PlaceboSettingsDialog.qml</file>
     <file>PlaceboColorMappingDialog.qml</file>
     <file>ProfileDialog.qml</file>

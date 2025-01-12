@@ -9,16 +9,22 @@ Pane {
     padding: 0
     id: consolePane
     StackView.onActivated: {
-        forceActiveFocus();
-        if(Chiaki.settings.remotePlayAsk)
+        forceActiveFocus(Qt.TabFocusReason);
+        if(!root.initialAsk)
         {
-            if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+            root.initialAsk = true;
+            if(Chiaki.settings.addSteamShortcutAsk && (typeof Chiaki.createSteamShortcut === "function"))
+                root.showRemindDialog(qsTr("Official Steam artwork + controller layout"), qsTr("Would you like to either create a new non-Steam game for chiaki-ng\nor update an existing non-Steam game with the official artwork and controller layout?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, click the button or press R3 from the main menu.)"), false, () => root.showSteamShortcutDialog(true));
+            else if(Chiaki.settings.remotePlayAsk)
             {
-                Chiaki.settings.remotePlayAsk = false;
-                root.showConfirmDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN to play outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), () => root.showPSNTokenDialog(false));
+                if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+                {
+                    Chiaki.settings.remotePlayAsk = false;
+                    root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN?\nThis enables:\n- Automatic registration\n- Playing outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
+                }
+                else
+                    Chiaki.settings.remotePlayAsk = false;
             }
-            else
-                Chiaki.settings.remotePlayAsk = false;
         }
     }
     Keys.onUpPressed: {
@@ -52,6 +58,14 @@ Pane {
             break;
         case Qt.Key_PageDown:
             if (Chiaki.settings.psnAuthToken) Chiaki.refreshPsnToken();
+            event.accepted = true;
+            break;
+        case Qt.Key_F1:
+            if (typeof Chiaki.createSteamShortcut === "function") root.showSteamShortcutDialog(false);
+            event.accepted = true;
+            break;
+        case Qt.Key_F2:
+            root.showManualHostDialog();
             event.accepted = true;
             break;
         }
@@ -88,13 +102,24 @@ Pane {
 
             Button {
                 Layout.fillHeight: true
-                Layout.preferredWidth: 400
+                Layout.preferredWidth: 350
                 flat: true
                 text: "Create Steam Shortcut"
                 focusPolicy: Qt.NoFocus
-                onClicked: root.showSteamShortcutDialog()
+                onClicked: root.showSteamShortcutDialog(false)
                 Material.roundedScale: Material.SmallScale
                 visible: typeof Chiaki.createSteamShortcut === "function"
+                Image {
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l3.svg"
+                }
             }
 
             Button {
@@ -111,14 +136,32 @@ Pane {
 
             Button {
                 Layout.fillHeight: true
-                Layout.preferredWidth: 100
+                Layout.preferredWidth: 400
                 flat: true
-                icon.source: "qrc:/icons/add-24px.svg";
-                icon.width: 50
-                icon.height: 50
+                focusPolicy: Qt.NoFocus
+                Material.roundedScale: Material.SmallScale
+                visible: !Chiaki.settings.psnAuthToken
+            }
+
+            Button {
+                Layout.fillHeight: true
+                Layout.preferredWidth: 300
+                flat: true
+                text: "Add Manual Host"
                 focusPolicy: Qt.NoFocus
                 onClicked: root.showManualHostDialog()
                 Material.roundedScale: Material.SmallScale
+                Image {
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r3.svg"
+                }
             }
 
             Button {
@@ -228,7 +271,10 @@ Pane {
                             t += "\n" + qsTr("ID: %1 (%2)").arg(modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
                         if (modelData.duid)
                         {
-                            t += "\n" + qsTr("Remote Connection via PSN");
+                            if(modelData.discovered)
+                                t += "\n" + qsTr("Automatic Registration Available");
+                            else
+                                t += "\n" + qsTr("Remote Connection via PSN");
                         } 
                         else
                         {

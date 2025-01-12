@@ -77,31 +77,16 @@ static void MigrateSettings(QSettings *settings)
 
 static void InitializePlaceboSettings(QSettings *settings)
 {
+	if(settings->contains("placebo_settings/version"))
+		return;
 	settings->beginGroup("placebo_settings");
-	if(!settings->contains("upscaler"))
-	{
-		settings->setValue("upscaler", "ewa_lanczossharp");
-	}
-	if(!settings->contains("deband"))
-	{
-		settings->setValue("deband", "yes");
-	}
-	if(!settings->contains("peak_detect_preset"))
-	{
-		settings->setValue("peak_detect_preset", "high_quality");
-	}
-	if(!settings->contains("color_map_preset"))
-	{
-		settings->setValue("color_map_preset", "high_quality");
-	}
-	if(!settings->contains("contrast_recovery"))
-	{
-		settings->setValue("contrast_recovery", 0.3);
-	}
-	if(!settings->contains("peak_percentile"))
-	{
-		settings->setValue("peak_percentile", 99.995);
-	}
+	settings->setValue("version", "0");
+	settings->setValue("upscaler", "ewa_lanczossharp");
+	settings->setValue("deband", "yes");
+	settings->setValue("peak_detect_preset", "high_quality");
+	settings->setValue("color_map_preset", "high_quality");
+	settings->setValue("contrast_recovery", 0.3);
+	settings->setValue("peak_percentile", 99.995);
 	settings->endGroup();
 }
 
@@ -251,6 +236,7 @@ QMap<QString, QString> Settings::GetPlaceboValues()
 {
 	placebo_settings.beginGroup("placebo_settings");
 	QStringList keys = placebo_settings.allKeys();
+	keys.removeOne("version");
 	QMap<QString, QString> placeboMap;
 	foreach (const QString &key, keys)
 	{
@@ -922,6 +908,47 @@ void Settings::SetSuspendAction(SuspendAction action)
 {
 	settings.setValue("settings/suspend_action", suspend_action_values[action]);
 }
+
+int Settings::GetDisplayTargetContrast() const
+{
+	return settings.value("settings/display_target_contrast", 0).toInt();
+}
+
+void Settings::SetDisplayTargetContrast(int contrast)
+{
+	settings.setValue("settings/display_target_contrast", contrast);
+}
+
+int Settings::GetDisplayTargetPeak() const
+{
+	return settings.value("settings/display_target_peak", 0).toInt();
+}
+
+void Settings::SetDisplayTargetPeak(int peak)
+{
+	settings.setValue("settings/display_target_peak", peak);
+}
+
+int Settings::GetDisplayTargetTrc() const
+{
+	return settings.value("settings/display_target_trc", 0).toInt();
+}
+
+void Settings::SetDisplayTargetTrc(int trc)
+{
+	settings.setValue("settings/display_target_trc", trc);
+}
+
+int Settings::GetDisplayTargetPrim() const
+{
+	return settings.value("settings/display_target_prim", 0).toInt();
+}
+
+void Settings::SetDisplayTargetPrim(int prim)
+{
+	settings.setValue("settings/display_target_prim", prim);
+}
+
 
 static const QMap<PlaceboUpscaler, QString> placebo_upscaler_values = {
 	{ PlaceboUpscaler::None, "none" },

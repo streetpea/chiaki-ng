@@ -12,7 +12,7 @@ DialogView {
     property bool finalClosing: false
     property bool quitButtonMapping: true
     title: Chiaki.currentControllerType
-    buttonText: qsTr("✓ Update Controller Mapping")
+    buttonText: qsTr("Update Controller Mapping")
     buttonEnabled: Chiaki.controllerMappingAltered
     onAccepted: {
         Chiaki.controllerMappingApply();
@@ -100,7 +100,6 @@ DialogView {
                     Button {
                         property bool firstInFocusChain: false
                         property bool lastInFocusChain: false
-                        Layout.preferredWidth: 90
                         Layout.preferredHeight: 52
                         text: {
                             if(modelData.physicalButton.length > 0)
@@ -190,7 +189,6 @@ DialogView {
                     Button {
                         property bool firstInFocusChain: false
                         property bool lastInFocusChain: index == (chiakiButtons.count - 1)
-                        Layout.preferredWidth: 90
                         Layout.preferredHeight: 52
                         text: {
                             if(modelData.physicalButton.length > 1)

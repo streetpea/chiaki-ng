@@ -18,14 +18,14 @@ Item {
         Chiaki.window.grabInput();
         restoreFocusItems.push(Window.window.activeFocusItem);
         if (item)
-            item.forceActiveFocus();
+            item.forceActiveFocus(Qt.TabFocusReason);
     }
 
     function releaseInput() {
         Chiaki.window.releaseInput();
         let item = restoreFocusItems.pop();
         if (item && item.visible)
-            item.forceActiveFocus();
+            item.forceActiveFocus(Qt.TabFocusReason);
     }
 
     StackView.onActivating: Chiaki.window.keepVideo = true
@@ -351,7 +351,45 @@ Item {
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQuality
                 onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality
                 KeyNavigation.left: defaultButton
+                KeyNavigation.right: displaySettingsButton
                 Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: menuView.close()
+            }
+
+            ToolButton {
+                id: displaySettingsButton
+                text: qsTr("Display")
+                padding: 20
+                checkable: false
+                icon.source: "qrc:/icons/settings-20px.svg";
+                onClicked: root.openDisplaySettings()
+                KeyNavigation.left: highQualityButton
+                KeyNavigation.right: {
+                    if(Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom)
+                        placeboSettingsButton;
+                    else
+                        displaySettingsButton;
+                }
+                Keys.onReturnPressed: {
+                    menuView.close();
+                    clicked();
+                }
+                Keys.onEscapePressed: menuView.close()
+            }
+
+            ToolButton {
+                id: placeboSettingsButton
+                text: qsTr("Placebo")
+                icon.source: "qrc:/icons/settings-20px.svg";
+                padding: 20
+                checkable: false
+                onClicked: root.openPlaceboSettings()
+                KeyNavigation.left: displaySettingsButton
+                visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
+                Keys.onReturnPressed: {
+                    menuView.close();
+                    clicked();
+                }
                 Keys.onEscapePressed: menuView.close()
             }
         }

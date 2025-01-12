@@ -17,7 +17,7 @@ Item {
     signal rejected()
 
     function close() {
-        stack.pop();
+        root.closeDialog();
     }
 
     Keys.onEscapePressed: close()
@@ -89,6 +89,9 @@ Item {
                 focusPolicy: Qt.NoFocus
                 Material.roundedScale: Material.SmallScale
                 onClicked: dialog.accepted()
+                icon.source: "qrc:/icons/options.svg";
+                icon.width: 50
+                icon.height: 50
             }
         }
 

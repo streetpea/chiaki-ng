@@ -6,6 +6,7 @@ class QmlSettings : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool remotePlayAsk READ remotePlayAsk WRITE setRemotePlayAsk NOTIFY remotePlayAskChanged)
+    Q_PROPERTY(bool addSteamShortcutAsk READ addSteamShortcutAsk WRITE setAddSteamShortcutAsk NOTIFY addSteamShortcutAskChanged)
     Q_PROPERTY(bool hideCursor READ hideCursor WRITE setHideCursor NOTIFY hideCursorChanged)
     Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
     Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
@@ -26,6 +27,10 @@ class QmlSettings : public QObject
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
 #endif
+    Q_PROPERTY(int displayTargetContrast READ displayTargetContrast WRITE setDisplayTargetContrast NOTIFY displayTargetContrastChanged)
+    Q_PROPERTY(int displayTargetPeak READ displayTargetPeak WRITE setDisplayTargetPeak NOTIFY displayTargetPeakChanged)
+    Q_PROPERTY(int displayTargetPrim READ displayTargetPrim WRITE setDisplayTargetPrim NOTIFY displayTargetPrimChanged)
+    Q_PROPERTY(int displayTargetTrc READ displayTargetTrc WRITE setDisplayTargetTrc NOTIFY displayTargetTrcChanged)
     Q_PROPERTY(bool fullscreenDoubleClick READ fullscreenDoubleClick WRITE setFullscreenDoubleClick NOTIFY fullscreenDoubleClickChanged)
     Q_PROPERTY(int fpsLocalPS4 READ fpsLocalPS4 WRITE setFpsLocalPS4 NOTIFY fpsLocalPS4Changed)
     Q_PROPERTY(int fpsRemotePS4 READ fpsRemotePS4 WRITE setFpsRemotePS4 NOTIFY fpsRemotePS4Changed)
@@ -142,6 +147,18 @@ public:
     int resolutionRemotePS5() const;
     void setResolutionRemotePS5(int resolution);
 
+    int displayTargetContrast() const;
+    void setDisplayTargetContrast(int contrast);
+
+    int displayTargetPeak() const;
+    void setDisplayTargetPeak(int peak);
+
+    int displayTargetPrim() const;
+    void setDisplayTargetPrim(int prim);
+
+    int displayTargetTrc() const;
+    void setDisplayTargetTrc(int trc);
+
     int disconnectAction() const;
     void setDisconnectAction(int action);
 
@@ -183,6 +200,9 @@ public:
 
     bool remotePlayAsk() const;
     void setRemotePlayAsk(bool asked);
+
+    bool addSteamShortcutAsk() const;
+    void setAddSteamShortcutAsk(bool asked);
 
     bool hideCursor() const;
     void setHideCursor(bool enabled);
@@ -510,6 +530,7 @@ signals:
 #endif
     void fullscreenDoubleClickChanged();
     void remotePlayAskChanged();
+    void addSteamShortcutAskChanged();
     void hideCursorChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();
@@ -521,6 +542,10 @@ signals:
     void bitrateRemotePS5Changed();
     void codecLocalPS5Changed();
     void codecRemotePS5Changed();
+    void displayTargetPeakChanged();
+    void displayTargetContrastChanged();
+    void displayTargetPrimChanged();
+    void displayTargetTrcChanged();
     void audioBufferSizeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();

@@ -804,9 +804,88 @@ void QmlMainWindow::render()
         return;
     }
 
+    struct pl_color_space target_csp = sw_frame.color_space;
+    if(!pl_color_transfer_is_hdr(target_csp.transfer))
+    {
+        target_csp.hdr.max_luma = 0;
+        target_csp.hdr.min_luma = 0;
+    }
+    float target_peak = settings->GetDisplayTargetPeak() && session ? settings->GetDisplayTargetPeak() : 0;
+    int target_contrast = settings->GetDisplayTargetContrast() && session ? settings->GetDisplayTargetContrast(): 0;
+    int target_prim = settings->GetDisplayTargetPrim() && session ? settings->GetDisplayTargetPrim(): 0;
+    int target_trc = settings->GetDisplayTargetTrc() && session ? settings->GetDisplayTargetTrc(): 0;
+    struct pl_color_space hint = current_frame.color;
+
+    if(target_trc)
+        hint.transfer = static_cast<pl_color_transfer>(target_trc);
+
+    if(target_prim)
+    {
+        hint.primaries = static_cast<pl_color_primaries>(target_prim);
+        hint.hdr.prim = *pl_raw_primaries_get(hint.primaries);
+    }
+
+    if(target_peak)
+        hint.hdr.max_luma = target_peak;
+
+    switch(target_contrast)
+    {
+        case -1:
+            hint.hdr.min_luma = 1e-7;
+            break;
+        case 0:
+            hint.hdr.min_luma = target_csp.hdr.min_luma;
+            break;
+        default:
+            // Infer max_luma for current pl_color_space
+            struct pl_nominal_luma_params hint_params = {};
+            hint_params.color = &hint;
+            hint_params.metadata = PL_HDR_METADATA_HDR10;
+            hint_params.scaling = PL_HDR_NITS;
+            hint_params.out_max = &hint.hdr.max_luma;
+            pl_color_space_nominal_luma_ex(&hint_params);
+            hint.hdr.min_luma = hint.hdr.max_luma / (float)target_contrast;
+            break;
+    }
+    pl_swapchain_colorspace_hint(placebo_swapchain, &hint);
+
     struct pl_frame target_frame = {};
     pl_frame_from_swapchain(&target_frame, &sw_frame);
+    if(target_prim)
+    {
+        target_frame.color.primaries = static_cast<pl_color_primaries>(target_prim);
+        target_frame.color.hdr.prim = *pl_raw_primaries_get(target_frame.color.primaries);
+    }
 
+    if(target_trc)
+        target_frame.color.transfer = static_cast<pl_color_transfer>(target_trc);
+
+    if(target_peak && !target_frame.color.hdr.max_luma)
+    {
+        target_frame.color.hdr.max_luma = target_peak;
+    }
+    if(!target_frame.color.hdr.min_luma)
+    {
+        switch(target_contrast)
+        {
+            case -1:
+                target_frame.color.hdr.min_luma = 1e-7;
+                break;
+            case 0:
+                target_frame.color.hdr.min_luma = target_csp.hdr.min_luma;
+                break;
+            default:
+                // Infer max_luma for current pl_color_space
+                struct pl_nominal_luma_params target_params = {};
+                target_params.color = &target_frame.color;
+                target_params.metadata = PL_HDR_METADATA_HDR10;
+                target_params.scaling = PL_HDR_NITS;
+                target_params.out_max = &target_frame.color.hdr.max_luma;
+                pl_color_space_nominal_luma_ex(&target_params);
+                target_frame.color.hdr.min_luma = target_frame.color.hdr.max_luma / (float)target_contrast;
+                break;
+        }
+    }
     if (quick_need_render) {
         quick_need_render = false;
         beginFrame();
@@ -884,7 +963,6 @@ void QmlMainWindow::render()
             }
             break;
         }
-        pl_swapchain_colorspace_hint(placebo_swapchain, &current_frame.color);
     }
 
     if (current_frame.num_planes && previous_frame.num_planes) {

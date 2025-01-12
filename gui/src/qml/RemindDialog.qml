@@ -4,11 +4,13 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import "controls" as C
 
+import org.streetpea.chiaking
+
 Dialog {
     id: dialog
     property alias text: label.text
+    property var remotePlay
     property var callback
-    property var rejectCallback
     property bool newDialogOpen: false
     property Item restoreFocusItem
     parent: Overlay.overlay
@@ -22,14 +24,22 @@ Dialog {
         restoreFocus();
         callback();
     }
-    onClosed: if(!newDialogOpen) { restoreFocus() }
-
     onRejected: {
-        if(rejectCallback)
+        if(dialog.remotePlay)
+            Chiaki.settings.remotePlayAsk = false;
+        else
+            Chiaki.settings.addSteamShortcutAsk = false;
+    }
+    onClosed: {
+        if(newDialogOpen)
+            return;
+        restoreFocus();
+        if(!remotePlay && Chiaki.settings.remotePlayAsk)
         {
-            newDialogOpen = true;
-            restoreFocus();
-            rejectCallback();
+            if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
+                root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN?\nThis enables:\n- Automatic registration\n- Playing outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
+            else
+                Chiaki.settings.remotePlayAsk = false;
         }
     }
 
@@ -52,6 +62,7 @@ Dialog {
             id: label
             Keys.onEscapePressed: dialog.reject()
             Keys.onReturnPressed: dialog.accept()
+            Keys.onYesPressed: dialog.close()
         }
 
         RowLayout {
@@ -97,6 +108,27 @@ Dialog {
                     height: 28
                     sourceSize: Qt.size(width, height)
                     source: root.controllerButton("moon")
+                }
+            }
+
+            Button {
+                Material.background: Material.accent
+                text: qsTr("Remind Me Later")
+                flat: true
+                leftPadding: 50
+                onClicked: dialog.close()
+                Material.roundedScale: Material.SmallScale
+
+                Image {
+                    anchors {
+                        left: parent.left
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: 12
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: root.controllerButton("pyramid")
                 }
             }
         }

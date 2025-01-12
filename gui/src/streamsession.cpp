@@ -73,6 +73,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		QByteArray morning,
 		QString initial_login_pin,
 		QString duid,
+		bool auto_regist,
 		bool fullscreen, 
 		bool zoom, 
 		bool stretch)
@@ -120,6 +121,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->psn_token = settings->GetPsnAuthToken();
 	this->psn_account_id = settings->GetPsnAccountId();
 	this->duid = std::move(duid);
+	this->auto_regist = auto_regist;
 	this->dpad_touch_increment = settings->GetDpadTouchEnabled() ? settings->GetDpadTouchIncrement(): 0;
 	this->dpad_touch_shortcut1 = settings->GetDpadTouchShortcut1();
 	if(this->dpad_touch_shortcut1 > 0)
@@ -166,13 +168,16 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderl(nullptr),
 	sdeck_haptics_senderr(nullptr),
+	sdeck(nullptr),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 	echo_resampler_buf(nullptr),
 	mic_resampler_buf(nullptr),
 #endif
 	haptics_resampler_buf(nullptr),
-	holepunch_session(nullptr)
+	holepunch_session(nullptr),
+	ps5_haptic_intensity(1),
+	ps5_trigger_intensity(1)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -186,6 +191,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	dpad_regular_touch_switched = false;
 	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
+	memset(led_color, 0, sizeof(led_color));
 	ChiakiErrorCode err;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
@@ -253,6 +259,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.enable_keyboard = false;
 	chiaki_connect_info.enable_dualsense = connect_info.enable_dualsense;
 	chiaki_connect_info.packet_loss_max = connect_info.packet_loss_max;
+	chiaki_connect_info.auto_regist = connect_info.auto_regist;
 
 	dpad_touch_shortcut1 = connect_info.dpad_touch_shortcut1;
 	dpad_touch_shortcut2 = connect_info.dpad_touch_shortcut2;
@@ -886,7 +893,7 @@ void StreamSession::UpdateGamepads()
 			{
 				DisconnectHaptics();
 			}
-			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
+			if (!controller->IsHandheld() && !controller->IsSteamVirtualUnmasked())
 			{
 				haptics_handheld++;
 			}
@@ -919,34 +926,30 @@ void StreamSession::UpdateGamepads()
 				haptics_handheld++;
 #endif
 			}
-			if (!controller->IsHandheld() && !controller->IsSteamVirtual())
+			if (!controller->IsHandheld() && !controller->IsSteamVirtualUnmasked())
 			{
 				haptics_handheld--;
 			}
-			if (controller->IsDualSense())
+			controller->ChangeLEDColor(led_color);
+			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
 				controller->SetDualsenseMic(muted);
 				if(this->haptics_output > 0)
 					continue;
 				// Connect haptics audio device with a delay to give the sound system time to set up
-				QTimer::singleShot(1000, this, &StreamSession::ConnectHaptics);
-			}
-			if (controller->IsDualSenseEdge())
-			{
-				controller->SetDualsenseMic(muted);
-				if(this->haptics_output > 0)
-					continue;
-				// Connect haptics audio device with a delay to give the sound system time to set up
-				QTimer::singleShot(1000, this, [this]{
-					ConnectHaptics();
-					if(!(this->haptics_output > 0))
-						QTimer::singleShot(14000, this, &StreamSession::ConnectHaptics);
-				});
+				QTimer::singleShot(1000, this, &StreamSession::WaitHaptics);
 			}
 		}
 	}
 	SendFeedbackState();
 #endif
+}
+
+void StreamSession::WaitHaptics()
+{
+	ConnectHaptics();
+	if(!(this->haptics_output > 0))
+		QTimer::singleShot(14000, this, &StreamSession::ConnectHaptics);
 }
 
 void StreamSession::DpadSendFeedbackState()
@@ -1542,6 +1545,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
+		if(ps5_haptic_intensity < 0.01)
+			return;
 		if(buf_size != 120)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
@@ -1558,8 +1563,10 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		{
 			size_t cur = i * sample_size;
 			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
+			amplitudel *= ps5_haptic_intensity;
 			packetl.haptic_packet[i] = amplitudel;
 			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
+			amplituder *= ps5_haptic_intensity;
 			packetr.haptic_packet[i] = amplituder;
 		}
 		emit SdeckHapticPushed(packetl, packetr);
@@ -1623,7 +1630,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 			for(auto controller : controllers)
 			{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtual())))
+				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtualUnmasked())))
 #else
 				if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
@@ -1638,6 +1645,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	}
 	if(haptics_output == 0)
 		return;
+	if(ps5_haptic_intensity < 0.01)
+		return;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
@@ -1648,6 +1657,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
+		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 4)) *= ps5_haptic_intensity;
+		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 6)) *= ps5_haptic_intensity;
 	}
 	// Resample to 48kHZ
 	if (SDL_ConvertAudio(&cvt) != 0)
@@ -1671,6 +1682,44 @@ void StreamSession::SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t p
 }
 #endif
 
+void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
+{
+	// adjust trigger intensity for supported trigger types in DualSense firmware
+	// as reported by https://gist.github.com/Nielk1/6d54cc2c00d2201ccb8c2720ad7538db
+	switch(type)
+	{
+		case 0x21:
+		case 0x26:
+		{
+			// bytes 27-29 always set to strength value
+			uint32_t strength = ((buf[5] >> 3) & 0x07) + 1;
+			uint32_t force_zones = *(uint32_t *)(buf + 2);
+			uint32_t new_strength = strength * ps5_trigger_intensity;
+			if(new_strength > 0)
+				new_strength -= 1;
+			uint32_t new_force_zones = 0;
+			for (int i = 0; i < 10; i++)
+			{
+				if((((force_zones >> (3 * i)) & 0x07) + 1) == strength)
+					new_force_zones |= (uint32_t)(new_strength << (3 * i));
+			}
+			memcpy(buf + 2, &new_force_zones, 4);
+			break;
+		}
+		case 0x25: {
+			uint8_t strength = buf[2] + 1;
+			strength *= ps5_trigger_intensity;
+			if(strength > 0)
+				strength -= 1;
+			buf[2] = strength;
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+}
+
 void StreamSession::Event(ChiakiEvent *event)
 {
 	switch(event->type)
@@ -1690,6 +1739,9 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit ConnectedChanged();
 			emit SessionQuit(event->quit.reason, event->quit.reason_str ? QString::fromUtf8(event->quit.reason_str) : QString());
 			break;
+		case CHIAKI_EVENT_REGIST:
+			emit AutoRegistSucceeded(event->host);
+			break;
 		case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 			emit LoginPINRequested(event->login_pin_request.pin_incorrect);
 			break;
@@ -1705,6 +1757,16 @@ void StreamSession::Event(ChiakiEvent *event)
 			QMetaObject::invokeMethod(this, [this, left, right]() {
 				for(auto controller : controllers)
 					controller->SetRumble(left, right);
+			});
+			break;
+		}
+		case CHIAKI_EVENT_LED_COLOR: {
+			memcpy(led_color, event->led_state, 3);
+			uint8_t led_state[3];
+			memcpy(led_state, led_color, 3);
+			QMetaObject::invokeMethod(this, [this, led_state]() {
+				for(auto controller : controllers)
+					controller->ChangeLEDColor(led_state);
 			});
 			break;
 		}
@@ -1743,14 +1805,64 @@ void StreamSession::Event(ChiakiEvent *event)
 				setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, &setsu_accel_zero, false, chiaki_time_now_monotonic_us());
 			chiaki_orientation_tracker_apply_to_controller_state(&orient_tracker, &setsu_state);
 #endif
+			break;
+		}
+		case CHIAKI_EVENT_HAPTIC_INTENSITY: {
+			switch(event->intensity)
+			{
+				case Off: {
+					ps5_haptic_intensity = 0;
+					break;
+				}
+				case Strong: {
+					ps5_haptic_intensity = 1;
+					break;
+				}
+				case Weak: {
+					ps5_haptic_intensity = 0.25;
+					break;
+				}
+				case Medium: {
+					ps5_haptic_intensity = 0.5;
+					break;
+				}
+			}
+			break;
+		}
+		case CHIAKI_EVENT_TRIGGER_INTENSITY: {
+			switch(event->intensity)
+			{
+				case Off: {
+					ps5_trigger_intensity = 0;
+					break;
+				}
+				case Strong: {
+					ps5_trigger_intensity = 1;
+					break;
+				}
+				case Weak: {
+					ps5_trigger_intensity = 0.5;
+					break;
+				}
+				case Medium: {
+					ps5_trigger_intensity = 0.75;
+					break;
+				}
+			}
+			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
+			// If triggers off, return
+			if(ps5_trigger_intensity < 0.01)
+				return;
 			uint8_t type_left = event->trigger_effects.type_left;
 			uint8_t data_left[10];
 			memcpy(data_left, event->trigger_effects.left, 10);
+			AdjustAdaptiveTriggerPacket(data_left, type_left);
 			uint8_t data_right[10];
 			memcpy(data_right, event->trigger_effects.right, 10);
 			uint8_t type_right = event->trigger_effects.type_right;
+			AdjustAdaptiveTriggerPacket(data_right, type_right);
 			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
 				for(auto controller : controllers)
 					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);

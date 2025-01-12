@@ -3,7 +3,7 @@
   <id>re.chiaki.Chiaki4deck</id>
   <launchable type="desktop-id">chiaking.desktop</launchable>
   <name>chiaki-ng</name>
-  <summary>Free and Open Source Client for PlayStation Remote Play modified for Steam Deck</summary>
+  <summary>Free and Open Source Client for PlayStation Remote Play</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <developer_name>Street Pea</developer_name>
@@ -11,7 +11,7 @@
   <url type="donation">https://buymeacoffee.com/streetpea</url>
   <url type="help">https://streetpea.github.io/chiaki-ng/setup/</url>
   <url type="bugtracker">https://github.com/streetpea/chiaki-ng/issues</url>
-  <url type="contact">https://discord.gg/ZFPvd2vD</url>
+  <url type="contact">https://discord.gg/tAMbRuwXDH</url>
   <description>
     <p>
       chiaki-ng is the next-generation of Chiaki, adding new features and ongoing support as the original project (Chiaki) is in maintenance mode. It is a free and Open Source Client for PlayStation 4 and PlayStation 5 Remote Play. It can be used to play in real time on a PlayStation as long as there is a network connection.
@@ -25,6 +25,39 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-1-12" version="1.9.4">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>add automatic (pinless) registration for locally discovered consoles</li>
+          <li>Set led (lightbar) colors during gameplay for applicable controllers in games that support this feature</li>
+          <li>adjust adaptive trigger and haptic intensity based on the PS5 settings</li>
+          <li>patch bug causing stream session to fail connecting in certain instances</li>
+          <li>reduce app load time</li>
+          <li>add controller navigation icons to GUI</li>
+          <li>patch bug causing remote connection via PSN to fail in an edge case</li>
+          <li>change cancelling button for auto-connect and remote connection via psn to back button / escape instead of any button</li>
+          <li>add configurable display options</li>
+          <li>enable adjusting libplacebo custom renderer preset + display options via stream menu (so you can see the effects while adjusting them)</li>
+          <li>add reminder for create steam shortcut on platforms where it's enabled + add remind me option to remote play setup popup</li>
+          <li>fix controller shortcut not adding when using the create steam shortcut button and the non-Steam game already exists</li>
+          <li>fix unstreamable content message not appearing in some instances</li>
+          <li>fix issue causing L2 adaptive trigger to lock in certain games</li>
+          <li>fix controller mapping appearing for Steam Virtual controllers</li>
+          <li>fix Steam Deck desktop mode controller mode (activated by holding options button) not working with chiaki-ng</li>
+          <li>fix Google Stadia controller mapping</li>
+          <li>fix controller navigation temporarily losing focus in certain edge cases</li>
+        </ul>
+      </description>
+    </release>
+    <release date="2024-12-12" version="1.9.3">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>fix bug that can cause chiaki-ng to fail to start after new PlayStation firmware update if user has a login pin adn some other edge cases</li>
+        </ul>
+      </description>
+    </release>
     <release date="2024-12-03" version="1.9.2">
       <description>
         <p>This release provides the following improvements:</p>

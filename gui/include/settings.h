@@ -220,6 +220,10 @@ class Settings : public QObject
 
 		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
 		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }
+
+		bool GetAddSteamShortcutAsk() const           { return settings.value("settings/add_steam_shortcut_ask", true).toBool(); }
+		void SetAddSteamShortcutAsk(bool asked)       { settings.setValue("settings/add_steam_shortcut_ask", asked); }
+
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		uint32_t GetLogLevelMask();
@@ -286,6 +290,18 @@ class Settings : public QObject
 		void SetCodecPS4(ChiakiCodec codec);
 		void SetCodecLocalPS5(ChiakiCodec codec);
 		void SetCodecRemotePS5(ChiakiCodec codec);
+
+		int GetDisplayTargetContrast() const;
+		void SetDisplayTargetContrast(int contrast);
+
+		int GetDisplayTargetPeak() const;
+		void SetDisplayTargetPeak(int peak);
+
+		int GetDisplayTargetTrc() const;
+		void SetDisplayTargetTrc(int trc);
+
+		int GetDisplayTargetPrim() const;
+		void SetDisplayTargetPrim(int prim);
 
 		Decoder GetDecoder() const;
 		void SetDecoder(Decoder decoder);

@@ -7,7 +7,8 @@ import org.streetpea.chiaking
 
 Item {
     id: root
-
+    property list<Item> restoreFocusItems
+    property bool initialAsk: false
     Material.theme: Material.Dark
     Material.accent: "#00a7ff"
 
@@ -21,8 +22,99 @@ Item {
         }
         return "image://svg/button-%1#%2".arg(type).arg(name);
     }
+    function grabInput(item) {
+        Chiaki.window.grabInput();
+        restoreFocusItems.push(Window.window.activeFocusItem);
+        if (item)
+            item.forceActiveFocus(Qt.TabFocusReason);
+    }
+
+    function releaseInput() {
+        Chiaki.window.releaseInput();
+        let item = restoreFocusItems.pop();
+        if (item && item.visible)
+            item.forceActiveFocus(Qt.TabFocusReason);
+    }
+
+    function autoRegister(auto, host, ps5) {
+        if(auto)
+            Chiaki.autoRegister()
+        else
+            showRegistDialog(host, ps5);
+    }
+
+    function openDisplaySettings() {
+        if(displaySettingsLoader.item.status == Loader.ready)
+        {
+            if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
+                closeDialog();
+            displaySettingsRect.opacity = 0.8;
+            grabInput(displaySettingsLoader);
+            if (!displaySettingsLoader.item.restoreFocusItem) {
+                let item = displaySettingsLoader.item.mainItem.nextItemInFocusChain();
+                if (item)
+                    item.forceActiveFocus(Qt.TabFocusReason);
+            } else {
+                displaySettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                displaySettingsLoader.item.restoreFocusItem = null;
+            }
+        }
+    }
+    function openPlaceboSettings() {
+        if(placeboSettingsLoader.item.status == Loader.ready)
+        {
+            if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
+                closeDialog();
+            placeboSettingsRect.opacity = 0.8;
+            grabInput(placeboSettingsLoader);
+            if (!placeboSettingsLoader.item.restoreFocusItem) {
+                let item = placeboSettingsLoader.item.mainItem.nextItemInFocusChain();
+                if (item)
+                    item.forceActiveFocus(Qt.TabFocusReason);
+            } else {
+                placeboSettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                placeboSettingsLoader.item.restoreFocusItem = null;
+            }
+        }
+    }
+
+    function closeDialog() {
+       if(displaySettingsRect.opacity) {
+        displaySettingsRect.opacity = 0.0;
+        displaySettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        releaseInput();
+       }
+       else if(placeboSettingsRect.opacity) {
+        placeboSettingsRect.opacity = 0.0;
+        placeboSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        releaseInput();
+       }
+       else if(colorMappingSettingsRect.opacity) {
+        releaseInput();
+        colorMappingSettingsRect.opacity = 0.0;
+        colorMappingSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        root.openPlaceboSettings();
+       }
+       else
+        stack.pop();
+    }
 
     function showMainView() {
+        if(displaySettingsRect.opacity) {
+            displaySettingsRect.opacity = 0.0;
+            displaySettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            releaseInput();
+        }
+        else if(placeboSettingsRect.opacity) {
+            placeboSettingsRect.opacity = 0.0;
+            placeboSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            releaseInput();
+        }
+        else if(colorMappingSettingsRect.opacity) {
+            colorMappingSettingsRect.opacity = 0.0;
+            colorMappingSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            releaseInput();
+        }
         if (stack.depth > 1)
             stack.pop(stack.get(0));
         else
@@ -41,13 +133,24 @@ Item {
         stack.push(manualHostDialogComponent);
     }
 
-    function showConfirmDialog(title, text, callback) {
+    function showConfirmDialog(title, text, callback, rejectCallback = null) {
         confirmDialog.title = title;
         confirmDialog.text = text;
         confirmDialog.callback = callback;
+        confirmDialog.rejectCallback = rejectCallback;
         confirmDialog.restoreFocusItem = Window.window.activeFocusItem;
         confirmDialog.open();
     }
+
+    function showRemindDialog(title, text, remotePlay, callback) {
+        remindDialog.title = title;
+        remindDialog.text = text;
+        remindDialog.remotePlay = remotePlay;
+        remindDialog.callback = callback;
+        remindDialog.restoreFocusItem = Window.window.activeFocusItem;
+        remindDialog.open();
+    }
+
 
     function showRegistDialog(host, ps5) {
         stack.push(registDialogComponent, {host: host, ps5: ps5});
@@ -57,12 +160,34 @@ Item {
         stack.push(settingsDialogComponent);
     }
 
+    function showDisplaySettingsDialog() {
+        stack.push(displaySettingsDialogComponent);
+    }
+
     function showPlaceboSettingsDialog() {
         stack.push(placeboSettingsDialogComponent);
     }
 
     function showPlaceboColorMappingDialog() {
-        stack.push(placeboColorMappingDialogComponent);
+        if(placeboSettingsRect.opacity)
+        {
+            root.closeDialog();
+            if(colorMappingSettingsLoader.status == Loader.Ready)
+            {
+                grabInput(colorMappingSettingsLoader);
+                colorMappingSettingsRect.opacity = 0.8;
+                if (!colorMappingSettingsLoader.item.restoreFocusItem) {
+                    let item = colorMappingSettingsLoader.item.mainItem.nextItemInFocusChain();
+                    if (item)
+                        item.forceActiveFocus(Qt.TabFocusReason);
+                } else {
+                    colorMappingSettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                    colorMappingSettingsLoader.item.restoreFocusItem = null;
+                }
+            }
+        }
+        else
+            stack.push(placeboColorMappingDialogComponent);
     }
 
     function showProfileDialog() {
@@ -73,8 +198,8 @@ Item {
         stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
     }
 
-    function showSteamShortcutDialog() {
-        stack.push(steamShortcutDialogComponent)
+    function showSteamShortcutDialog(fromReminder) {
+        stack.push(steamShortcutDialogComponent, {fromReminder: fromReminder});
     }
 
     function showPSNTokenDialog(psnurl, expired) {
@@ -124,6 +249,51 @@ Item {
     }
 
     Rectangle {
+        id: placeboSettingsRect
+        opacity: 0.0
+        visible: opacity
+        height: 650
+        width: 1200
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: Material.background
+        Loader {
+            anchors.fill: parent
+            id: placeboSettingsLoader
+            sourceComponent: placeboSettingsDialogComponent
+        }
+    }
+    Rectangle {
+        id: displaySettingsRect
+        opacity: 0.0
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        height: 500
+        width: 1200
+        visible: opacity
+        color: Material.background
+        Loader {
+            anchors.fill: parent
+            id: displaySettingsLoader
+            sourceComponent: displaySettingsDialogComponent
+        }
+    }
+    Rectangle {
+        id: colorMappingSettingsRect
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        opacity: 0.0
+        height: 600
+        width: 1200
+        visible: opacity
+        color: Material.background
+        Loader {
+            anchors.fill: parent
+            id: colorMappingSettingsLoader
+            sourceComponent: placeboColorMappingDialogComponent
+        }
+    }
+    Rectangle {
         anchors {
             bottom: parent.bottom
             horizontalCenter: parent.horizontalCenter
@@ -166,6 +336,10 @@ Item {
         id: confirmDialog
     }
 
+    RemindDialog {
+        id: remindDialog
+    }
+
     Connections {
         target: Chiaki
 
@@ -192,8 +366,16 @@ Item {
             errorHideTimer.start();
         }
 
-        function onRegistDialogRequested(host, ps5) {
-            showRegistDialog(host, ps5);
+        function onRegistDialogRequested(host, ps5, duid) {
+            if(!duid)
+                showRegistDialog(host, ps5);
+            else
+            {
+                if(ps5)
+                    root.showConfirmDialog(qsTr("Registration Type"), qsTr("Would you like to use automatic registration?"), (host, ps5) => root.autoRegister(true, host, ps5), (host, ps5, duid) => root.autoRegister(false, host, ps5))
+                else
+                    root.showConfirmDialog(qsTr("Registration Type"), qsTr("Would you like to use automatic registration (must be main PS4 console registered to your PSN)?"), (host, ps5) => root.autoRegister(true, host, ps5), (host, ps5, duid) => root.autoRegister(false, host, ps5))
+            }
         }
 
         function onWakeupStartInitiated() {
@@ -229,6 +411,11 @@ Item {
     Component {
         id: settingsDialogComponent
         SettingsDialog { }
+    }
+
+    Component {
+        id: displaySettingsDialogComponent
+        DisplaySettingsDialog { }
     }
 
     Component {

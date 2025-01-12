@@ -70,7 +70,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->ecdh_secret = NULL;
 	stream_connection->gkcrypt_remote = NULL;
 	stream_connection->gkcrypt_local = NULL;
-	stream_connection->motion_counter = 0;
+	stream_connection->streaminfo_early_buf = NULL;
+	stream_connection->streaminfo_early_buf_size = 0;
+	memset(stream_connection->motion_counter, 0, sizeof(stream_connection->motion_counter));
+	memset(stream_connection->led_state, 0, sizeof(stream_connection->led_state));
+
+	stream_connection->haptic_intensity = Strong;
+	stream_connection->trigger_intensity = Strong;
 
 	ChiakiErrorCode err = chiaki_mutex_init(&stream_connection->state_mutex, false);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -253,13 +259,18 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 		err = CHIAKI_ERR_UNKNOWN;
 		goto disconnect;
 	}
-
 	CHIAKI_LOGI(session->log, "StreamConnection successfully received bang");
-
 	stream_connection->state = STATE_EXPECT_STREAMINFO;
 	stream_connection->state_finished = false;
 	stream_connection->state_failed = false;
-	err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, stream_connection);
+	if(stream_connection->streaminfo_early_buf)
+	{
+		stream_connection_takion_data_expect_streaminfo(stream_connection, stream_connection->streaminfo_early_buf, stream_connection->streaminfo_early_buf_size);
+		free(stream_connection->streaminfo_early_buf);
+		stream_connection->streaminfo_early_buf = NULL;
+	}
+	if(!stream_connection->state_finished)
+		err = chiaki_cond_timedwait_pred(&stream_connection->state_cond, &stream_connection->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, stream_connection);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 	CHECK_STOP(disconnect);
 
@@ -322,6 +333,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 
 disconnect:
 	CHIAKI_LOGI(session->log, "StreamConnection is disconnecting");
+	if(stream_connection->streaminfo_early_buf)
+	{
+		free(stream_connection->streaminfo_early_buf);
+		stream_connection->streaminfo_early_buf = NULL;
+	}
 	stream_connection_send_disconnect(stream_connection);
 
 	if(stream_connection->should_stop)
@@ -351,12 +367,16 @@ err_video_receiver:
 	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 err_haptics_receiver:
+	chiaki_mutex_lock(&stream_connection->state_mutex);
 	chiaki_audio_receiver_free(stream_connection->haptics_receiver);
 	stream_connection->haptics_receiver = NULL;
+	chiaki_mutex_unlock(&stream_connection->state_mutex);
 
 err_audio_receiver:
+	chiaki_mutex_lock(&stream_connection->state_mutex);
 	chiaki_audio_receiver_free(stream_connection->audio_receiver);
 	stream_connection->audio_receiver = NULL;
+	chiaki_mutex_unlock(&stream_connection->state_mutex);
 	if(!socket)
 		free(takion_info.sa);
 	return err;
@@ -473,11 +493,37 @@ static void stream_connection_takion_data_trigger_effects(ChiakiStreamConnection
 	chiaki_session_send_event(stream_connection->session, &event);
 }
 
+static char* DualSenseIntensity(ChiakiDualSenseEffectIntensity intensity)
+{
+	switch(intensity)
+	{
+		case Strong:
+			return "Strong";
+			break;
+		case Weak:
+			return "Weak";
+			break;
+		case Medium:
+			return "Medium";
+			break;
+		case Off:
+			return "Off";
+			break;
+		default:
+			return "Invalid";
+			break;
+	}
+}
 static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
 	bool reset = false;
 	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
+	memcpy(stream_connection->led_state, stream_connection->motion_counter + 1, sizeof(stream_connection->led_state));
+	bool led_changed = false;
 	// const uint8_t unknown0[] = { 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00 };
+	bool motion_reset_changed = true;
+	bool haptic_intensity_changed = false;
+	bool trigger_intensity_changed = false;
 
 	switch(buf_size)
 	{
@@ -488,6 +534,16 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			// int16_t unknown = ntohs(*(chiaki_unaligned_uint16_t *)(buf + 2));
 			uint32_t timestamp = ntohs(*(chiaki_unaligned_uint32_t *)(buf + 4));
 			// check if motion normal is used, else motion reset
+			if(stream_connection->haptic_intensity != buf[12])
+			{
+				stream_connection->haptic_intensity = buf[12];
+				haptic_intensity_changed = true;
+			}
+			if(stream_connection->trigger_intensity != buf[13])
+			{
+				stream_connection->trigger_intensity = buf[13];
+				trigger_intensity_changed = true;
+			}
 			if(memcmp(buf + 8, motion_normal, 4) == 0)
 			{
 				reset = false;
@@ -498,13 +554,23 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 				reset = true;
 				CHIAKI_LOGV(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
 			}
-			uint32_t old_motion_counter = stream_connection->motion_counter;
-			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
-			// only reset if counter matches last sent
-			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
+			uint32_t old_motion_counter = *(uint32_t *)stream_connection->motion_counter;
+			*(uint32_t *)stream_connection->motion_counter = ntohl(*(uint32_t*)(buf + 8));
+			if(memcmp(buf + 9, stream_connection->led_state, 3) != 0)
 			{
-				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
-				return;
+				led_changed = true;
+				memcpy(stream_connection->led_state, buf + 9, 3);
+			}
+			// only reset if counter matches last sent
+			if(reset && old_motion_counter && old_motion_counter != (*(uint32_t *)stream_connection->motion_counter))
+			{
+				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, *(uint32_t *)stream_connection->motion_counter);
+				motion_reset_changed = false;
+			}
+			// If motion counter already normal, skip
+			if(!reset && !(*(uint32_t *)stream_connection->motion_counter) && !old_motion_counter)
+			{
+				motion_reset_changed = false;
 			}
 			break;
 			// if(!memcmp(buf + 12, unknown0, 13) == 0)
@@ -517,6 +583,18 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		case 0x11:
 		{
 			// check if motion normal is used, else motion reset
+			CHIAKI_LOGI(stream_connection->log, "Pad info packet: ");
+			chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_INFO, buf, buf_size);
+			if(stream_connection->haptic_intensity != buf[12])
+			{
+				stream_connection->haptic_intensity = buf[12];
+				haptic_intensity_changed = true;
+			}
+			if(stream_connection->trigger_intensity != buf[13])
+			{
+				stream_connection->trigger_intensity = buf[13];
+				trigger_intensity_changed = true;
+			}
 			if(memcmp(buf, motion_normal, 4) == 0)
 			{
 				reset = false;
@@ -525,13 +603,23 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			{
 				reset = true;
 			}
-			uint32_t old_motion_counter = stream_connection->motion_counter;
-			stream_connection->motion_counter = ntohl(*(uint32_t*)(buf));
-			// only reset if counter matches last sent or counter is 0
-			if(reset && old_motion_counter && old_motion_counter != stream_connection->motion_counter)
+			uint32_t old_motion_counter = *(uint32_t *)stream_connection->motion_counter;
+			if(memcmp(buf + 1, stream_connection->led_state, 3) != 0)
 			{
-				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, stream_connection->motion_counter);
-				return;
+				led_changed = true;
+				memcpy(stream_connection->led_state, buf + 1, 3);
+			}
+			*(uint32_t *)stream_connection->motion_counter = ntohl(*(uint32_t*)(buf));
+			// only reset if counter matches last sent or counter is 0
+			if(reset && old_motion_counter && old_motion_counter != (*(uint32_t *)stream_connection->motion_counter))
+			{
+				CHIAKI_LOGV(stream_connection->log, "Updated motion counter from %"PRIu32" to %"PRIu32, old_motion_counter, *(uint32_t *)stream_connection->motion_counter);
+				motion_reset_changed = false;
+			}
+			// If motion counter already normal, skip
+			if(!reset && !(*(uint32_t *)stream_connection->motion_counter) && !old_motion_counter)
+			{
+				motion_reset_changed = false;
 			}
 			break;
 		}
@@ -542,10 +630,37 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			return;
 		}
 	}
-	ChiakiEvent event = { 0 };
-	event.type = CHIAKI_EVENT_MOTION_RESET;
-	event.data_motion.motion_reset = reset;
-	chiaki_session_send_event(stream_connection->session, &event);
+	if(motion_reset_changed)
+	{
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_MOTION_RESET;
+		event.data_motion.motion_reset = reset;
+		chiaki_session_send_event(stream_connection->session, &event);
+	}
+	if(haptic_intensity_changed)
+	{
+		CHIAKI_LOGI(stream_connection->log, "Set haptic intensity to: %s", DualSenseIntensity(stream_connection->haptic_intensity));
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_HAPTIC_INTENSITY;
+		event.intensity = stream_connection->haptic_intensity;
+		chiaki_session_send_event(stream_connection->session, &event);
+	}
+	if(trigger_intensity_changed)
+	{
+		CHIAKI_LOGI(stream_connection->log, "Set adaptive trigger intensity to: %s", DualSenseIntensity(stream_connection->trigger_intensity));
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_TRIGGER_INTENSITY;
+		event.intensity = stream_connection->trigger_intensity;
+		chiaki_session_send_event(stream_connection->session, &event);
+	}
+	if(led_changed)
+	{
+		CHIAKI_LOGV(stream_connection->log, "Set LED state to - red: %x, green: %x, blue: %x", stream_connection->led_state[0], stream_connection->led_state[1], stream_connection->led_state[2]);
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_LED_COLOR;
+		memcpy(event.led_state, stream_connection->led_state, 3);
+		chiaki_session_send_event(stream_connection->session, &event);
+	}
 }
 
 static void stream_connection_takion_data_handle_disconnect(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
@@ -683,9 +798,20 @@ static void stream_connection_takion_data_expect_bang(ChiakiStreamConnection *st
 			stream_connection_takion_data_handle_disconnect(stream_connection, buf, buf_size);
 			return;
 		}
+		if(msg.type == tkproto_TakionMessage_PayloadType_STREAMINFO)
+		{
+			if(!stream_connection->streaminfo_early_buf)
+			{
+				stream_connection->streaminfo_early_buf = malloc(buf_size);
+				memcpy(stream_connection->streaminfo_early_buf, buf, buf_size);
+				stream_connection->streaminfo_early_buf_size = buf_size;
+				CHIAKI_LOGI(stream_connection->log, "StreamConnection received streaminfo early, saving ...");
+				return;
+			}
 
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected bang payload but received something else: %d", msg.type);
-		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, buf_size);
+		}
+		CHIAKI_LOGW(stream_connection->log, "StreamConnection expected bang payload but received something else: %d", msg.type);
+		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_WARNING, buf, buf_size);
 		return;
 	}
 
@@ -833,8 +959,8 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 			return;
 		}
 
-		CHIAKI_LOGE(stream_connection->log, "StreamConnection expected streaminfo payload but received something else");
-		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_VERBOSE, buf, buf_size);
+		CHIAKI_LOGW(stream_connection->log, "StreamConnection expected streaminfo payload but received something else");
+		chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_WARNING, buf, buf_size);
 		return;
 	}
 

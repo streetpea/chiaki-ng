@@ -10,6 +10,38 @@
 #include <SDL.h>
 #endif
 
+/* PS5 trigger effect documentation:
+   https://controllers.fandom.com/wiki/Sony_DualSense#FFB_Trigger_Modes
+
+   Taken from SDL2, licensed under the zlib license,
+   Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+   https://github.com/libsdl-org/SDL/blob/release-2.24.1/test/testgamecontroller.c#L263-L289
+*/
+typedef struct
+{
+    Uint8 ucEnableBits1;                /* 0 */
+    Uint8 ucEnableBits2;                /* 1 */
+    Uint8 ucRumbleRight;                /* 2 */
+    Uint8 ucRumbleLeft;                 /* 3 */
+    Uint8 ucHeadphoneVolume;            /* 4 */
+    Uint8 ucSpeakerVolume;              /* 5 */
+    Uint8 ucMicrophoneVolume;           /* 6 */
+    Uint8 ucAudioEnableBits;            /* 7 */
+    Uint8 ucMicLightMode;               /* 8 */
+    Uint8 ucAudioMuteBits;              /* 9 */
+    Uint8 rgucRightTriggerEffect[11];   /* 10 */
+    Uint8 rgucLeftTriggerEffect[11];    /* 21 */
+    Uint8 rgucUnknown1[6];              /* 32 */
+    Uint8 ucLedFlags;                   /* 38 */
+    Uint8 rgucUnknown2[2];              /* 39 */
+    Uint8 ucLedAnim;                    /* 41 */
+    Uint8 ucLedBrightness;              /* 42 */
+    Uint8 ucPadLights;                  /* 43 */
+    Uint8 ucLedRed;                     /* 44 */
+    Uint8 ucLedGreen;                   /* 45 */
+    Uint8 ucLedBlue;                    /* 46 */
+} DS5EffectsState_t;
+
 static QSet<QString> chiaki_motion_controller_guids({
 	// Sony on Linux
 	"03000000341a00003608000011010000",
@@ -67,27 +99,31 @@ static QSet<QString> chiaki_motion_controller_guids({
 	"030000008f0e00001431000000000000",
 });
 
-static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_controller_ids({
+static QSet<QPair<uint16_t, uint16_t>> chiaki_dualsense_controller_ids({
 	// in format (vendor id, product id)
-	QPair<int16_t, int16_t>(0x054c, 0x0ce6), // DualSense controller
+	QPair<uint16_t, uint16_t>(0x054c, 0x0ce6), // DualSense controller
 });
 
-static QSet<QPair<int16_t, int16_t>> chiaki_dualsense_edge_controller_ids({
+static QSet<QPair<uint16_t, uint16_t>> chiaki_dualsense_edge_controller_ids({
 	// in format (vendor id, product id)
-	QPair<int16_t, int16_t>(0x054c, 0x0df2), // DualSense Edge controller
+	QPair<uint16_t, uint16_t>(0x054c, 0x0df2), // DualSense Edge controller
 });
 
-static QSet<QPair<int16_t, int16_t>> chiaki_handheld_controller_ids({
+static QSet<QPair<uint16_t, uint16_t>> chiaki_handheld_controller_ids({
 	// in format (vendor id, product id)
-	QPair<int16_t, int16_t>(0x28de, 0x1205), // Steam Deck
-	QPair<int16_t, int16_t>(0x0b05, 0x1abe), // Rog Ally
-	QPair<int16_t, int16_t>(0x17ef, 0x6182), // Legion Go
-	QPair<int16_t, int16_t>(0x0db0, 0x1901), // MSI Claw
+	QPair<uint16_t, uint16_t>(0x28de, 0x1205), // Steam Deck
+	QPair<uint16_t, uint16_t>(0x0b05, 0x1abe), // Rog Ally
+	QPair<uint16_t, uint16_t>(0x17ef, 0x6182), // Legion Go
+	QPair<uint16_t, uint16_t>(0x0db0, 0x1901), // MSI Claw
 });
 
-static QSet<QPair<int16_t, int16_t>> chiaki_steam_virtual_controller_ids({
+static QSet<QPair<uint16_t, uint16_t>> chiaki_steam_virtual_controller_ids({
 	// in format (vendor id, product id)
-	QPair<int16_t, int16_t>(0x28de, 0x11ff), // Steam Virtual Controller
+#ifdef Q_OS_MACOS
+    QPair<uint16_t, uint16_t>(0x045e, 0x028e), // Microsoft Xbox 360 Controller
+#else
+	QPair<uint16_t, uint16_t>(0x28de, 0x11ff), // Steam Virtual Controller
+#endif
 });
 
 static ControllerManager *instance = nullptr;
@@ -282,8 +318,8 @@ void ControllerManager::ControllerClosed(Controller *controller)
 
 Controller::Controller(int device_id, ControllerManager *manager)
 : QObject(manager), ref(0), last_motion_timestamp(0), micbutton_push(false), is_dualsense(false),
-  is_dualsense_edge(false), updating_mapping_button(false), is_handheld(false),
-  is_steam_virtual(false), enable_analog_stick_mapping(false)
+  is_dualsense_edge(false), has_led(false), updating_mapping_button(false), is_handheld(false),
+  is_steam_virtual(false), is_steam_virtual_unmasked(false), enable_analog_stick_mapping(false)
 {
 	this->id = device_id;
 	this->manager = manager;
@@ -305,11 +341,23 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			if(SDL_GameControllerHasSensor(controller, SDL_SENSOR_GYRO))
 				SDL_GameControllerSetSensorEnabled(controller, SDL_SENSOR_GYRO, SDL_TRUE);
 #endif
-			auto controller_id = QPair<int16_t, int16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
+			has_led = SDL_GameControllerHasLED(controller);
+			auto controller_id = QPair<uint16_t, uint16_t>(SDL_GameControllerGetVendor(controller), SDL_GameControllerGetProduct(controller));
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
-			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(controller_id);
 			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
+			SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
+			SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
+			auto guid_controller_id = QPair<uint16_t, uint16_t>(0, 0);
+			uint16_t guid_version = 0;
+			SDL_GetJoystickGUIDInfo(guid, &guid_controller_id.first, &guid_controller_id.second, &guid_version, NULL);
+#ifdef Q_OS_MACOS
+			is_steam_virtual = (guid_version == 0 && chiaki_steam_virtual_controller_ids.contains(guid_controller_id));
+			is_steam_virtual_unmasked = (guid_version == 0 && chiaki_steam_virtual_controller_ids.contains(controller_id));
+#else
+			is_steam_virtual = chiaki_steam_virtual_controller_ids.contains(guid_controller_id);
+			is_steam_virtual_unmasked = chiaki_steam_virtual_controller_ids.contains(controller_id);
+#endif
 			break;
 		}
 	}
@@ -806,10 +854,19 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 #endif
 }
 
+void Controller::ChangeLEDColor(const uint8_t *led_color)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller || !has_led)
+		return;
+	SDL_GameControllerSetLED(controller, led_color[0], led_color[1], led_color[2]);
+#endif
+}
+
 void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!is_dualsense || !controller)
+	if((!is_dualsense && !is_dualsense_edge) || !controller)
 		return;
 	DS5EffectsState_t state;
 	SDL_zero(state);
@@ -825,7 +882,7 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 void Controller::SetDualsenseMic(bool on)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	if(!is_dualsense || !controller)
+	if((!is_dualsense && !is_dualsense_edge) || !controller)
 		return;
 	DS5EffectsState_t state;
 	SDL_zero(state);
@@ -889,6 +946,16 @@ bool Controller::IsSteamVirtual()
 	if(!controller)
 		return false;
 	return is_steam_virtual;
+#endif
+	return false;
+}
+
+bool Controller::IsSteamVirtualUnmasked()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return false;
+	return is_steam_virtual_unmasked;
 #endif
 	return false;
 }

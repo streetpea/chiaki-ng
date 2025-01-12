@@ -1,4 +1,4 @@
-name: Build chiaki-ng weekly
+name: Create chiaki-ng release
 
 on:
   push:
@@ -19,9 +19,14 @@ jobs:
       run: |
         echo -e "Linux Flatpak Release on Flathub as io.github.streetpea.Chiaki4deck\n" > release_notes.md
         echo -e "Use brew to manage updates for the MacOS release with:\n" >> release_notes.md
-        echo -e "brew install --cask streetpea/streetpea/chiaki-ng\n" >> release_notes.md
-        echo -e "Windows Release, MacOS Release, and Linux Appimage Release attached.\n" >> release_notes.md
-        echo -e "Note: Pipewire required for appimage. For Linux pipewire is required for DualSense haptics.\nFor flatpak you can run with --env=SDL_AUDIODRIVER=pulse to use pulse instead of pipewire if you really want that (doing this means DualSense haptics won't work)\n" >> release_notes.md
+        echo -e "\`brew install --cask streetpea/streetpea/chiaki-ng\`\n" >> release_notes.md
+        echo -e "Use winget to manage updates for the Windows release with:\n" >> release_notes.md
+        echo -e "\`winget install --id=StreetPea.chiaki-ng -e\`\n" >> release_notes.md
+        echo -e "Use chocolatey to manage updates for the Windows release with:\n" >> release_notes.md
+        echo -e "\`choco install chiaki-ng\`\n\n" >> release_notes.md
+        echo -e "Windows Release (x86_64), MacOS Release (arm64 and x86_64), and Linux Appimage Release (arm64 and x86_64) attached.\n" >> release_notes.md
+        echo -e "Note: Pipewire required for appimage. For Linux, pipewire is required for DualSense haptics.\nFor flatpak, you can run with \`--env=SDL_AUDIODRIVER=pulse\` to use pulse instead of pipewire if you really want that (doing this means DualSense haptics won't work)\n" >> release_notes.md
+        echo -e "Note2: Appimage requires the following libraries to be installed on your system (these files need to be the correct ones for your system to work properly so can't be packaged with the appimage):\n\`\`\`\nlibhidapi\nlibvulkan\nlibva\n\`\`\`\n" >> release_notes.md
         echo -e "## Updates\n" >> release_notes.md
         git tag -l --format='%(contents)' ${GITHUB_REF_NAME} >> release_notes.md
 
@@ -143,6 +148,7 @@ jobs:
           git clone --recursive https://github.com/haasn/libplacebo.git
           cd libplacebo
           git checkout --recurse-submodules ${{ env.libplacebo_tag }}
+          git apply --ignore-whitespace --verbose ../scripts/flatpak/0002-Vulkan-use-16bit-for-p010.patch
           meson setup `
           --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
           --native-file ../meson.ini `
@@ -206,6 +212,25 @@ jobs:
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
+      - name: Package chiaki-ng
+        run: |
+          $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
+          Compress-Archive chiaki-ng-Win $RELEASE_PACKAGE_FILE
+          $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
+          echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          name: chiaki-ng-win_x64-VC-Release
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
@@ -219,8 +244,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          path: |
-            chiaki-ng-windows-installer.exe
+          path: chiaki-ng-win_x64-VC-installer.exe
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
@@ -304,15 +328,74 @@ jobs:
           cp scripts/qtwebengine_import.qml gui/src/qml/
 
       - name: Run build script
-        working-directory: chiaki-ng/scripts
+        working-directory: chiaki-ng
         run: |
-          ./run-podman-build-appimage.sh
+          set -xe
+          podman run --rm \
+            -v "`pwd`:/build/chiaki" \
+            -w "/build/chiaki" \
+            --device /dev/fuse \
+            --cap-add SYS_ADMIN \
+            -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \
+            /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
+          cp appimage/chiaki-ng.AppImage appimage/chiaki-ng.AppImage_x86_64
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            chiaki-ng/appimage/chiaki-ng.AppImage
+            chiaki-ng/appimage/chiaki-ng.AppImage_x86_64
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
+  build-appimage_arm64:
+    name: Build chiaki-ng appimage_arm64
+    permissions:
+      contents: write
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Podman
+        run: |
+          sudo apt update
+          sudo apt-get -y install podman
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: 'chiaki-ng'
+
+      - name: Add QmlWebEngine Import
+        working-directory: chiaki-ng
+        run: |
+          cp scripts/qtwebengine_import.qml gui/src/qml/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: "arm64"
+
+      - name: Run build script
+        working-directory: chiaki-ng
+        run: |
+          set -xe
+          podman run --rm \
+            -v "`pwd`:/build/chiaki" \
+            -w "/build/chiaki" \
+            --platform linux/arm64 \
+            --device /dev/fuse \
+            --cap-add SYS_ADMIN \
+            -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \
+            /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
+          cp appimage/chiaki-ng.AppImage appimage/chiaki-ng.AppImage_arm64
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          path: |
+            chiaki-ng/appimage/chiaki-ng.AppImage_arm64
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}

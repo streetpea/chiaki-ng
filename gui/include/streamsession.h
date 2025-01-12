@@ -86,6 +86,7 @@ struct StreamSessionConnectInfo
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
+	bool auto_regist;
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool start_mic_unmuted;
@@ -117,6 +118,7 @@ struct StreamSessionConnectInfo
 			QByteArray morning,
 			QString initial_login_pin,
 			QString duid,
+			bool auto_regist,
 			bool fullscreen,
 			bool zoom,
 			bool stretch);
@@ -160,6 +162,9 @@ class StreamSession : public QObject
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
+		float ps5_haptic_intensity;
+		float ps5_trigger_intensity;
+		uint8_t led_color[3];
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
 		Setsu *setsu;
@@ -248,6 +253,8 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void HandleSDeckEvent(SDeckEvent *event);
 #endif
+		void AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type);
+		void WaitHaptics();
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);
@@ -308,6 +315,7 @@ class StreamSession : public QObject
 		void SessionQuit(ChiakiQuitReason reason, const QString &reason_str);
 		void LoginPINRequested(bool incorrect);
 		void DataHolepunchProgress(bool finished);
+		void AutoRegistSucceeded(const ChiakiRegisteredHost &host);
 		void NicknameReceived(QString nickname);
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();

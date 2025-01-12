@@ -82,6 +82,7 @@ typedef struct chiaki_connect_info_t
 	bool video_profile_auto_downgrade; // Downgrade video_profile if server does not seem to support it.
 	bool enable_keyboard;
 	bool enable_dualsense;
+	bool auto_regist;
 	ChiakiHolepunchSession holepunch_session;
 	chiaki_socket_t *rudp_sock;
 	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
@@ -148,6 +149,7 @@ typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
 	CHIAKI_EVENT_HOLEPUNCH,
+	CHIAKI_EVENT_REGIST,
 	CHIAKI_EVENT_NICKNAME_RECEIVED,
 	CHIAKI_EVENT_KEYBOARD_OPEN,
 	CHIAKI_EVENT_KEYBOARD_TEXT_CHANGE,
@@ -156,6 +158,9 @@ typedef enum {
 	CHIAKI_EVENT_QUIT,
 	CHIAKI_EVENT_TRIGGER_EFFECTS,
 	CHIAKI_EVENT_MOTION_RESET,
+	CHIAKI_EVENT_LED_COLOR,
+	CHIAKI_EVENT_HAPTIC_INTENSITY,
+	CHIAKI_EVENT_TRIGGER_INTENSITY,
 } ChiakiEventType;
 
 typedef struct chiaki_event_t
@@ -166,7 +171,9 @@ typedef struct chiaki_event_t
 		ChiakiQuitEvent quit;
 		ChiakiKeyboardEvent keyboard;
 		ChiakiRumbleEvent rumble;
+		ChiakiRegisteredHost host;
 		ChiakiTriggerEffectsEvent trigger_effects;
+		uint8_t led_state[0x3];
 		struct
 		{
 			bool pin_incorrect; // false on first request, true if the pin entered before was incorrect
@@ -179,6 +186,7 @@ typedef struct chiaki_event_t
 		{
 			bool motion_reset; // true if resetting motion to zero at current value, false if returning motion to normal
 		} data_motion;
+		ChiakiDualSenseEffectIntensity intensity;
 		char server_nickname[0x20];
 	};
 } ChiakiEvent;
@@ -238,6 +246,7 @@ typedef struct chiaki_session_t
 	ChiakiCond state_cond;
 	ChiakiMutex state_mutex;
 	ChiakiStopPipe stop_pipe;
+	bool auto_regist;
 	bool should_stop;
 	bool ctrl_failed;
 	bool ctrl_session_id_received;

@@ -17,12 +17,14 @@ DialogView {
         else
             qsTr("Setup Automatic PSN Remote Connection")
     }
-    buttonText: qsTr("✓ Setup")
+    buttonText: qsTr("Setup")
     buttonEnabled: url.text.trim()
     buttonVisible: false
     onAccepted: {
         logDialog.open()
         Chiaki.initPsnAuth(url.text.trim(), function(msg, ok, done) {
+            if(ok)
+                Chiaki.settings.remotePlayAsk = false;
             if (!done)
                 logArea.text += msg + "\n";
             else
@@ -334,20 +336,6 @@ DialogView {
         }
 
         Item {
-            Keys.onPressed: (event) => {
-                switch (event.key) {
-                case Qt.Key_Up:
-                    if(logScrollbar.position > 0.001)
-                        logFlick.flick(0, 500);
-                    event.accepted = true;
-                    break;
-                case Qt.Key_Down:
-                    if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
-                        logFlick.flick(0, -500);
-                    event.accepted = true;
-                    break;
-                }
-            }
             Dialog {
                 id: logDialog
                 parent: Overlay.overlay
@@ -358,8 +346,8 @@ DialogView {
                 closePolicy: Popup.NoAutoClose
                 standardButtons: Dialog.Cancel
                 Material.roundedScale: Material.MediumScale
-                onOpened: logArea.forceActiveFocus()
-                onClosed: root.showMainView()
+                onOpened: logArea.forceActiveFocus(Qt.TabFocusReason)
+                onClosed: root.showMainView();
 
                 Flickable {
                     id: logFlick
@@ -381,6 +369,20 @@ DialogView {
                         wrapMode: TextEdit.Wrap
                         Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
                         Keys.onEscapePressed: logDialog.close()
+                        Keys.onPressed: (event) => {
+                            switch (event.key) {
+                            case Qt.Key_Up:
+                                if(logScrollbar.position > 0.001)
+                                    logFlick.flick(0, 500);
+                                event.accepted = true;
+                                break;
+                            case Qt.Key_Down:
+                                if(logScrollbar.position < 1.0 - logScrollbar.size - 0.001)
+                                    logFlick.flick(0, -500);
+                                event.accepted = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
