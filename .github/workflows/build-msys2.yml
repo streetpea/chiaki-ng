@@ -65,10 +65,9 @@ jobs:
           pip install protobuf aqtinstall
           pacman -S git make unzip --noconfirm
 
-      - name: Install qt and add to path
+      - name: Install qt
         run: |
           aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
-          echo "${QT_PATH}/${QT_VERSION}/mingw64/bin" >> $GITHUB_PATH
 
       - name: Build libbplacebo
         run: |
@@ -94,8 +93,9 @@ jobs:
         run: |
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
-          cp build/third-party/cpp-steam-tools/libcpp-steam-tools.dll chiaki-ng-Win/
           ldd build/gui/chiaki.exe
+          echo "${QT_PATH}/${QT_VERSION}/mingw_64/bin" >> $GITHUB_PATH
+          echo "${{ github.workspace }}/build/third-party/cpp-steam-tools" >> $GITHUB_PATH
           ldd build/gui/chiaki.exe | cut -d " " -f3 | grep -iv "system32" | xargs -Ix -n1 cp x chiaki-ng-Win/
           cp scripts/qtwebengine_import.qml gui/src/qml/
           windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
