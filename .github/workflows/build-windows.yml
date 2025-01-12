@@ -147,7 +147,7 @@ jobs:
 
       - name: Build chiaki-ng
         run: |
-          echo "${{ github.workspace }}\build\third-party\libcpp-steam-tools" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8'
+          echo "${{ github.workspace }}\build\third-party\libcpp-steam-tools" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           cmake --build build --config Release --clean-first --target chiaki
 
       - name: Prepare Qt deployment package
