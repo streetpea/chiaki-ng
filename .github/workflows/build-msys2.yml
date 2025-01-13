@@ -52,6 +52,10 @@ jobs:
             python-glad:p
             python-jinja:p
             python-pip:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
+            qt5-declarative:p
             SDL2:p
             shaderc:p
             speexdsp:p
@@ -64,9 +68,9 @@ jobs:
           pip install protobuf aqtinstall
           pacman -S git make unzip --noconfirm
 
-      - name: Install qt
-        run: |
-          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
+      # - name: Install qt
+      #   run: |
+      #     aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
 
       - name: Build libbplacebo
         run: |
@@ -82,7 +86,7 @@ jobs:
 
       - name: Configure chiaki-ng
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_PATH}/${QT_VERSION}/mingw_64"
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF #-DCMAKE_PREFIX_PATH="${QT_PATH}/${QT_VERSION}/mingw_64"
 
       - name: Build chiaki-ng
         run: |
@@ -92,18 +96,23 @@ jobs:
         run: |
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
-          export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
-          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
+          # export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
+          # export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
+          # export PATH="${HOME}/chiaki-ng/build/third-party/cpp-steam-tools:${PATH}"
           echo build/gui/chiaki.exe > tmp0.txt
-          while [ -e tmp0.txt ]
+          i=0
+          while [ -e tmp0.txt && i -lt 10 ]
           do
+            i++
             cp tmp0.txt tmp.txt
             rm tmp0.txt
             sort -u tmp.txt -o tmp.txt
             ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | xargs -d $'\n' sh -c 'for arg do echo "$arg" >> tmp0.txt; cp "$arg" chiaki-ng-Win/; done'
           done
-          cp scripts/qtwebengine_import.qml gui/src/qml/
           windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
+          cp -R /mingw64/share/qt6/qml/QtQuick chiaki-ng-Win/qml/
+          cp -R /mingw64/share/qt6/qml/QtQml/WorkerScript/ chiaki-ng-Win/qml/QtQml/
+          cp /mingw64/bin/Qt6QmlWorkerScript.dll chiaki-ng-Win/
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
