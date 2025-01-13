@@ -10,6 +10,7 @@ import "controls" as C
 DialogView {
     id: dialog
     property bool opening: false
+    property bool succeeded: false
     property bool fromReminder
     title: qsTr("Create Non-Steam Game")
     buttonText: qsTr("Create")
@@ -29,7 +30,10 @@ DialogView {
         logDialog.open();
         Chiaki.createSteamShortcut(name.text.trim(), options.text.trim(), function(msg, ok, done) {
             if(ok)
+            {
+                succeeded = true;
                 Chiaki.settings.addSteamShortcutAsk = false;
+            }
             if (!done)
                 logArea.text += msg + "\n";
             else
@@ -88,7 +92,7 @@ DialogView {
                 standardButtons: Dialog.Cancel
                 Material.roundedScale: Material.MediumScale
                 onOpened: logArea.forceActiveFocus(Qt.TabFocusReason)
-                onClosed: restartDialog.open()
+                onClosed: if(succeeded) { restartDialog.open(); }
 
                 Flickable {
                     id: logFlick

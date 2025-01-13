@@ -10,6 +10,7 @@ import "controls" as C
 DialogView {
     id: dialog
     property var psnurl
+    property bool succeeded: false
     property var expired
     title: {
         if(expired)
@@ -35,6 +36,7 @@ DialogView {
         });
     }
     StackView.onActivated: {
+        Chiaki.settings.remotePlayAsk = true;
         nativeTokenForm.visible = true;
         nativeTokenForm.forceActiveFocus(Qt.TabFocusReason);
     }
