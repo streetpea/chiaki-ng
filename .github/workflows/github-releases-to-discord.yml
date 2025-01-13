@@ -1,7 +1,7 @@
-name: GitHub Releases to discord
+name: GitHub Releases to discord release
 on:
   release:
-    types: [published]
+    types: [released]
 
 jobs:
   github-releases-to-discord:
@@ -19,7 +19,7 @@ jobs:
           color: "2105893"
           username: "Release Changelog"
           avatar_url: "https://cdn.discordapp.com/avatars/487431320314576937/bd64361e4ba6313d561d54e78c9e7171.png"
-          content: "||@everyone||"
+          content: "||@everyone A new relase has dropped at https://github.com/streetpea/chiaki-ng/releases/tag/${GITHUB_REF_NAME}||"
           footer_title: "Changelog"
           footer_icon_url: "https://cdn.discordapp.com/avatars/487431320314576937/bd64361e4ba6313d561d54e78c9e7171.png"
           footer_timestamp: true
