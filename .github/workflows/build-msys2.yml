@@ -97,7 +97,14 @@ jobs:
           export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
           export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
           echo $PATH
-          ldd build/gui/chiaki.exe | cut -d " " -f3 | grep -iv "system32" | xargs -Ix -n1 cp x chiaki-ng-Win/
+          echo build/gui/chiaki.exe > tmp0.txt
+          while [ -e tmp0.txt ]
+          do
+            cp tmp0.txt tmp.txt
+            rm tmp0.txt
+            sort -u tmp.txt -o tmp.txt
+            ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | xargs -d $'\n' sh -c 'for arg do echo "$arg" >> tmp0.txt; echo "copied $arg"; cp "$arg" chiaki-ng-Win/; done'
+          done
           cp scripts/qtwebengine_import.qml gui/src/qml/
           windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
 
