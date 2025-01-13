@@ -12,6 +12,13 @@ jobs:
     permissions:
       contents: write
     steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref }}
+    - name: generate release notes
+      working-directory: ${{ github.workspace }}
+      run: |
+        echo -e "Weekly Test Build\n" > release_notes.md
     - uses: ncipollo/release-action@v1
       id: maker
       with:
@@ -19,6 +26,8 @@ jobs:
         commit: ${{ github.sha }}
         tag: weekly-canary-release-${{ github.sha }}
         allowUpdates: true
+        bodyFile: "${{ github.workspace }}/release_notes.md"
+        token: "{{ secrets.RELEASE_PAT }}"
     - uses: sgpublic/delete-release-action@v1.2
       with:
         repo: 'streetpea/chiaki-ng'
