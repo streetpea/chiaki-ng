@@ -304,6 +304,16 @@ uint32_t Settings::GetLogLevelMask()
 	return mask;
 }
 
+QRect Settings::GetGeometry() const
+{
+	return settings.value("settings/geometry", QRect()).toRect();
+}
+
+void Settings::SetGeometry(QRect geometry)
+{
+	settings.setValue("settings/geometry", geometry);
+}
+
 static const QMap<RumbleHapticsIntensity, QString> intensities = {
 	{ RumbleHapticsIntensity::Off, "Off" },
 	{ RumbleHapticsIntensity::VeryWeak, "Very weak"},
