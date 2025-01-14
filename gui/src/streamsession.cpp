@@ -86,6 +86,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	audio_out_device = settings->GetAudioOutDevice();
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
+	audio_volume = settings->GetAudioVolume();
 	log_file = CreateLogFilename();
 	// local connection
 	if(duid.isEmpty() && isLocalAddress(host))
@@ -222,6 +223,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
+	audio_volume = connect_info.audio_volume;
 	start_mic_unmuted = connect_info.start_mic_unmuted;
 	audio_out_device_name = connect_info.audio_out_device;
 	audio_in_device_name = connect_info.audio_in_device;
@@ -1130,7 +1132,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	if(speech_processing_enabled)
 	{
 		SDL_AudioCVT cvt;
-		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 1, 48000, AUDIO_S16LSB, 2, 48000);
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
 		cvt.len = mic_buf.size_bytes;
 		mic_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
 		if(!mic_resampler_buf)
@@ -1140,7 +1142,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 		}
 
 		SDL_AudioCVT cvt2;
-		SDL_BuildAudioCVT(&cvt2, AUDIO_S16LSB, 2, 48000, AUDIO_S16LSB, 1, 48000);
+		SDL_BuildAudioCVT(&cvt2, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
 		cvt2.len = cvt.len * cvt.len_ratio;
 		echo_resampler_buf = (uint8_t*) calloc(cvt2.len * cvt2.len_mult, sizeof(uint8_t));
 		if(!echo_resampler_buf)
@@ -1212,7 +1214,7 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 		if(speech_processing_enabled)
 		{
 			// change samples to stereo after processing with SPEEX
-			SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 1, 48000, AUDIO_S16LSB, 2, 48000);
+			SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
 			cvt.len = mic_buf.size_bytes;
 			cvt.buf = mic_resampler_buf;
 			if(!echo_to_cancel.isEmpty())
@@ -1314,7 +1316,7 @@ void StreamSession::InitHaptics()
 #endif
 
 	SDL_AudioCVT cvt;
-	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
+	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
 	cvt.len = 240;  // 10 16bit stereo samples
 	haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
 	if(!haptics_resampler_buf)
@@ -1348,7 +1350,7 @@ void StreamSession::ConnectHaptics()
 	SDL_AudioSpec want, have;
 	SDL_zero(want);
 	want.freq = 48000;
-	want.format = AUDIO_S16LSB;
+	want.format = AUDIO_S16SYS;
 	want.channels = 4;
 	want.samples = 480; // 10ms buffer
 	want.callback = NULL;
@@ -1480,13 +1482,16 @@ void StreamSession::ConnectSdeckHaptics()
 }
 #endif
 
-void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
+void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 {
-	if(!audio_out)
+	if(!audio_out || !audio_volume)
 		return;
 
-	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
+	// 2 Channels per sample
+	int16_t buf[samples_count * 2];
+	SDL_memset(buf, 0, sizeof(buf));
 
+	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
 	// Start draining queue when the latency gets too high
 	if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
 		audio_out_drain_queue = true;
@@ -1498,13 +1503,16 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 			return;
 		audio_out_drain_queue = false;
 	}
-
+	if(audio_volume < SDL_MIX_MAXVOLUME)
+		SDL_MixAudioFormat((uint8_t *)buf, (uint8_t *)og_buf, AUDIO_S16SYS, sizeof(buf), audio_volume);
+	else
+		memcpy(buf, og_buf, sizeof(buf));
 #if CHIAKI_GUI_ENABLE_SPEEX
 	// change samples to mono for processing with SPEEX
 	if(echo_resampler_buf && speech_processing_enabled && !muted)
 	{
 		SDL_AudioCVT cvt;
-		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 2, 48000, AUDIO_S16LSB, 1, 48000);
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
 		cvt.len = mic_buf.size_bytes * 2;
 		cvt.buf = echo_resampler_buf;
 		memcpy(echo_resampler_buf, buf, mic_buf.size_bytes * 2);
@@ -1649,7 +1657,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
-	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
+	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
 	cvt.len = buf_size * 2;
 	cvt.buf = haptics_resampler_buf;
 	// Remix to 4 channels

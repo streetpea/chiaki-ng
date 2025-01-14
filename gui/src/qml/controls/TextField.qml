@@ -5,6 +5,7 @@ import QtQuick.Controls.Material
 TextField {
     property bool firstInFocusChain: false
     property bool lastInFocusChain: false
+    property bool sendOutput: false
     readOnly: true
 
     onActiveFocusChanged: {
@@ -19,7 +20,8 @@ TextField {
                 let item = nextItemInFocusChain(false);
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
-                event.accepted = true;
+                if(!sendOutput)
+                    event.accepted = true;
             }
             break;
         case Qt.Key_Down:
@@ -27,7 +29,8 @@ TextField {
                 let item = nextItemInFocusChain();
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
-                event.accepted = true;
+                if(!sendOutput)
+                    event.accepted = true;
             }
             break;
         case Qt.Key_Return:

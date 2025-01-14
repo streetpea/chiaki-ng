@@ -81,6 +81,7 @@ struct StreamSessionConnectInfo
 	ChiakiConnectVideoProfile video_profile;
 	double packet_loss_max;
 	unsigned int audio_buffer_size;
+	int audio_volume;
 	bool fullscreen;
 	bool zoom;
 	bool stretch;
@@ -157,6 +158,7 @@ class StreamSession : public QObject
 		bool allow_unmute;
 		int input_block;
 		QString host;
+		int audio_volume;
 		double measured_bitrate = 0;
 		double average_packet_loss = 0;
 		QList<double> packet_loss_history;
@@ -287,6 +289,7 @@ class StreamSession : public QObject
 		double GetAveragePacketLoss()	{ return average_packet_loss; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
+		void SetAudioVolume(int volume) { audio_volume = volume; }
 		bool GetCantDisplay()	{ return cant_display; }
 		ChiakiErrorCode ConnectPsnConnection(QString duid, bool ps5);
 		void CancelPsnConnection(bool stop_thread);

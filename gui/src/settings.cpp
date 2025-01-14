@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <settings.h>
+#include <SDL.h>
 #include <QFile>
 #include <QFileInfo>
 #include <QUrl>
@@ -647,6 +648,16 @@ QString Settings::GetHardwareDecoder() const
 void Settings::SetHardwareDecoder(const QString &hw_decoder)
 {
 	settings.setValue("settings/hw_decoder", hw_decoder);
+}
+
+int Settings::GetAudioVolume() const
+{
+	return settings.value("settings/audio_volume", SDL_MIX_MAXVOLUME).toInt();
+}
+
+void Settings::SetAudioVolume(int volume)
+{
+	settings.setValue("settings/audio_volume", volume);
 }
 
 unsigned int Settings::GetAudioBufferSize() const

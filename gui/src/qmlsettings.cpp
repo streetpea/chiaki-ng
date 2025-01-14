@@ -404,6 +404,17 @@ void QmlSettings::setAudioBufferSize(int size)
     emit audioBufferSizeChanged();
 }
 
+int QmlSettings::audioVolume() const
+{
+    return settings->GetAudioVolume();
+}
+
+void QmlSettings::setAudioVolume(int volume)
+{
+    settings->SetAudioVolume(volume);
+    emit audioVolumeChanged();
+}
+
 QString QmlSettings::audioInDevice() const
 {
     return settings->GetAudioInDevice();
@@ -1462,6 +1473,7 @@ void QmlSettings::refreshAllKeys()
     emit codecLocalPS5Changed();
     emit codecRemotePS5Changed();
     emit audioBufferSizeChanged();
+    emit audioVolumeChanged();
     emit audioOutDeviceChanged();
     emit audioInDeviceChanged();
     emit wifiDroppedNotifChanged();

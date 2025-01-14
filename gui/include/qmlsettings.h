@@ -43,6 +43,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int codecLocalPS5 READ codecLocalPS5 WRITE setCodecLocalPS5 NOTIFY codecLocalPS5Changed)
     Q_PROPERTY(int codecRemotePS5 READ codecRemotePS5 WRITE setCodecRemotePS5 NOTIFY codecRemotePS5Changed)
     Q_PROPERTY(int audioBufferSize READ audioBufferSize WRITE setAudioBufferSize NOTIFY audioBufferSizeChanged)
+    Q_PROPERTY(int audioVolume READ audioVolume WRITE setAudioVolume NOTIFY audioVolumeChanged)
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
@@ -232,6 +233,9 @@ public:
 
     int audioBufferSize() const;
     void setAudioBufferSize(int size);
+
+    int audioVolume() const;
+    void setAudioVolume(int volume);
 
     QString audioInDevice() const;
     void setAudioInDevice(const QString &device);
@@ -547,6 +551,7 @@ signals:
     void displayTargetPrimChanged();
     void displayTargetTrcChanged();
     void audioBufferSizeChanged();
+    void audioVolumeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
     void wifiDroppedNotifChanged();

@@ -231,6 +231,7 @@ private:
     void updateDiscoveryHosts();
     void updatePsnHosts();
     void updatePsnHostsThread();
+    void updateAudioVolume();
     QString getExecutable();
 
     Settings *settings = {};

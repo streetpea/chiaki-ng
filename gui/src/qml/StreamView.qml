@@ -221,9 +221,9 @@ Item {
 
             ToolButton {
                 id: closeButton
-                Layout.rightMargin: 40
+                Layout.rightMargin: 20
                 text: "×"
-                padding: 20
+                padding: 10
                 font.pixelSize: 50
                 down: activeFocus
                 onClicked: {
@@ -232,21 +232,57 @@ Item {
                     else
                         root.showMainView();
                 }
-                KeyNavigation.right: muteButton
+                KeyNavigation.right: volumeSlider
                 Keys.onReturnPressed: clicked()
                 Keys.onEscapePressed: menuView.close()
             }
 
+            ToolSeparator {
+                Layout.leftMargin: -10
+                Layout.rightMargin: 10
+            }
+
+            Slider {
+                id: volumeSlider
+                Layout.rightMargin: 20
+                orientation: Qt.Vertical
+                from: 0
+                to: 128
+                Layout.preferredHeight: 100
+                padding: 10
+                stepSize: 1
+                value: Chiaki.settings.audioVolume
+                onMoved: Chiaki.settings.audioVolume = value
+                KeyNavigation.left: closeButton
+                KeyNavigation.right: muteButton
+                Keys.onEscapePressed: menuView.close()
+                Label {
+                    anchors {
+                        top: parent.bottom
+                        horizontalCenter: parent.horizontalCenter
+                        leftMargin: 10
+                    }
+                    text: {
+                        ((parent.value / 128.0) * 100).toFixed(0) + qsTr("% Volume")
+                    }
+                }
+            }
+
+            ToolSeparator {
+                Layout.leftMargin: -10
+                Layout.rightMargin: -10
+            }
+
             ToolButton {
                 id: muteButton
-                Layout.rightMargin: 40
+                Layout.rightMargin: 20
                 text: qsTr("Mic")
-                padding: 20
+                padding: 10
                 checkable: true
                 enabled: Chiaki.session && Chiaki.session.connected
                 checked: Chiaki.session && !Chiaki.session.muted
                 onToggled: Chiaki.session.muted = !Chiaki.session.muted
-                KeyNavigation.left: closeButton
+                KeyNavigation.left: volumeSlider
                 KeyNavigation.right: zoomButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
@@ -255,7 +291,7 @@ Item {
             ToolButton {
                 id: zoomButton
                 text: qsTr("Zoom")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Zoom
@@ -310,7 +346,7 @@ Item {
                 id: stretchButton
                 Layout.rightMargin: 50
                 text: qsTr("Stretch")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Stretch
@@ -328,7 +364,7 @@ Item {
             ToolButton {
                 id: defaultButton
                 text: qsTr("Default")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Default
                 onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default
@@ -346,11 +382,30 @@ Item {
             ToolButton {
                 id: highQualityButton
                 text: qsTr("High Quality")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQuality
                 onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality
                 KeyNavigation.left: defaultButton
+                KeyNavigation.right: customButton
+                Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: menuView.close()
+            }
+
+            ToolSeparator {
+                Layout.leftMargin: -10
+                Layout.rightMargin: -10
+            }
+
+            ToolButton {
+                id: customButton
+                text: qsTr("Custom")
+                Layout.rightMargin: 40
+                padding: 10
+                checkable: true
+                checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
+                onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom
+                KeyNavigation.left: highQualityButton
                 KeyNavigation.right: displaySettingsButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
@@ -359,7 +414,7 @@ Item {
             ToolButton {
                 id: displaySettingsButton
                 text: qsTr("Display")
-                padding: 20
+                padding: 10
                 checkable: false
                 icon.source: "qrc:/icons/settings-20px.svg";
                 onClicked: root.openDisplaySettings()
@@ -381,7 +436,7 @@ Item {
                 id: placeboSettingsButton
                 text: qsTr("Placebo")
                 icon.source: "qrc:/icons/settings-20px.svg";
-                padding: 20
+                padding: 10
                 checkable: false
                 onClicked: root.openPlaceboSettings()
                 KeyNavigation.left: displaySettingsButton
@@ -423,7 +478,7 @@ Item {
             anchors {
                 right: parent.right
                 bottom: parent.bottom
-                margins: 50
+                margins: 30
             }
             text: {
                 if (!Chiaki.session)

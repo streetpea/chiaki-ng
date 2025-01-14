@@ -32,6 +32,20 @@ DialogView {
             bar.incrementCurrentIndex();
             event.accepted = true;
             break;
+        case Qt.Key_Up:
+            if(bar.currentIndex != 3)
+                return;
+            if(audiowifiScrollbar.position > 0.001)
+                audiowifiFlick.flick(0, 500);
+            event.accepted = true;
+            break;
+        case Qt.Key_Down:
+            if(bar.currentIndex != 3)
+                return;
+            if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
+                audiowifiFlick.flick(0, -500);
+            event.accepted = true;
+            break;
         }
     }
 
@@ -1073,238 +1087,335 @@ DialogView {
 
             Item {
                 // Audio and Wifi
-                GridLayout {
+                Flickable {
+                    id: audiowifiFlick
+                    implicitWidth: parent.width ? parent.width: 0
+                    implicitHeight: parent.height ? parent.height: 0
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
+                        fill: parent
                         topMargin: 20
+                        leftMargin: 200
                     }
-                    columns: 3
-                    rowSpacing: 10
-                    columnSpacing: 20
-                    onVisibleChanged: if (visible) Chiaki.settings.refreshAudioDevices()
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Output Device:")
+                    clip: true
+                    contentWidth: audiowifigrid.width
+                    contentHeight: audiowifigrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        id: audiowifiScrollbar
+                        policy: ScrollBar.AlwaysOn
+                        visible: audiowifiFlick.contentHeight > audiowifiFlick.implicitHeight
                     }
+                    GridLayout {
+                        id: audiowifigrid
+                        columns: 3
+                        rowSpacing: 10
+                        columnSpacing: 20
+                        onVisibleChanged: if (visible) Chiaki.settings.refreshAudioDevices()
 
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        popup.x: (width - popup.width) / 2
-                        popup.width: 700
-                        popup.font.pixelSize: 16
-                        firstInFocusChain: true
-                        model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
-                        currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioOutDevice))
-                        onActivated: (index) => Chiaki.settings.audioOutDevice = index ? model[index] : ""
-                    }
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Output Device:")
+                        }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Input Device:")
-                    }
-
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        popup.x: (width - popup.width) / 2
-                        popup.width: 700
-                        popup.font.pixelSize: 16
-                        model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
-                        currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
-                        onActivated: (index) => Chiaki.settings.audioInDevice = index ? model[index] : ""
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Buffer Size:")
-                    }
-
-                    C.TextField {
-                        Layout.preferredWidth: 400
-                        text: Chiaki.settings.audioBufferSize || ""
-                        placeholderText: qsTr("Default (5760)")
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.audioBufferSize = parseInt(text);
-                            } else {
-                                Chiaki.settings.audioBufferSize = 0;
-                                text = "";
+                        C.ComboBox {
+                            Layout.preferredWidth: 400
+                            popup.x: (width - popup.width) / 2
+                            popup.width: 700
+                            popup.font.pixelSize: 16
+                            firstInFocusChain: true
+                            model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
+                            currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioOutDevice))
+                            onActivated: (index) => Chiaki.settings.audioOutDevice = index ? model[index] : ""
+                            Keys.onPressed: (event) => {
+                                if (event.modifiers)
+                                    return;
+                                switch (event.key) {
+                                    case Qt.Key_Up:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position > 0.001)
+                                            audiowifiFlick.flick(0, 500);
+                                        event.accepted = true;
+                                        break;
+                                    case Qt.Key_Down:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
+                                            audiowifiFlick.flick(0, -500);
+                                        event.accepted = true;
+                                        break;
+                                }
                             }
                         }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 1920 && num <= 19200;
-                        }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(5760)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Start Mic Unmuted:")
-                    }
-
-                    C.CheckBox {
-                        checked: Chiaki.settings.startMicUnmuted
-                        onToggled: Chiaki.settings.startMicUnmuted = checked
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Unchecked)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Speech Processing:")
-                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
-                    }
-
-                    C.CheckBox {
-                        text: qsTr("Noise suppression + echo cancellation")
-                        checked: Chiaki.settings.speechProcessing
-                        onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
-                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Unchecked)")
-                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Noise To Suppress:")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 0
-                        to: 60
-                        stepSize: 1
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                        value: Chiaki.settings.noiseSuppressLevel
-                        onMoved: Chiaki.settings.noiseSuppressLevel = value
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1 dB").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Auto)")
                         }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(6 dB)")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Echo To Suppress:")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 0
-                        to: 60
-                        stepSize: 1
-                        value: Chiaki.settings.echoSuppressLevel
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                        onMoved: Chiaki.settings.echoSuppressLevel = value
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1 dB").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Input Device:")
                         }
-                    }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(30 dB)")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Wifi Instability Notification Triggers:")
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 0
-                        to: 100
-                        stepSize: 1
-                        value: Chiaki.settings.wifiDroppedNotif
-                        onMoved: Chiaki.settings.wifiDroppedNotif = value
+                        C.ComboBox {
+                            Layout.preferredWidth: 400
+                            popup.x: (width - popup.width) / 2
+                            popup.width: 700
+                            popup.font.pixelSize: 16
+                            model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
+                            currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
+                            onActivated: (index) => Chiaki.settings.audioInDevice = index ? model[index] : ""
+                            Keys.onPressed: (event) => {
+                                if (event.modifiers)
+                                    return;
+                                switch (event.key) {
+                                    case Qt.Key_Up:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position > 0.001)
+                                            audiowifiFlick.flick(0, 500);
+                                        event.accepted = true;
+                                        break;
+                                    case Qt.Key_Down:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
+                                            audiowifiFlick.flick(0, -500);
+                                        event.accepted = true;
+                                        break;
+                                }
+                            }
+                        }
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1% dropped packets").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Auto)")
                         }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(3%)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Packet Loss Reported Max:")
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        lastInFocusChain: true
-                        from: 0
-                        to: 100
-                        stepSize: 1
-                        value: Chiaki.settings.packetLossMax
-                        onMoved: Chiaki.settings.packetLossMax = value
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1% packet loss").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Buffer Size:")
                         }
-                    }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(5%)")
+                        C.TextField {
+                            Layout.preferredWidth: 400
+                            sendOutput: true
+                            text: Chiaki.settings.audioBufferSize || ""
+                            placeholderText: qsTr("Default (5760)")
+                            Material.accent: text && !validate() ? Material.Red : undefined
+                            onEditingFinished: {
+                                if (validate()) {
+                                    Chiaki.settings.audioBufferSize = parseInt(text);
+                                } else {
+                                    Chiaki.settings.audioBufferSize = 0;
+                                    text = "";
+                                }
+                            }
+                            function validate() {
+                                var num = parseInt(text);
+                                return num >= 1920 && num <= 19200;
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(5760)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Audio Volume:")
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 128
+                            stepSize: 1
+                            value: Chiaki.settings.audioVolume
+                            onMoved: Chiaki.settings.audioVolume = value
+                            sendOutput: true
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: {
+                                    ((parent.value / 128.0) * 100).toFixed(0) + qsTr("% volume")
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(100%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Start Mic Unmuted:")
+                        }
+
+                        C.CheckBox {
+                            sendOutput: true
+                            checked: Chiaki.settings.startMicUnmuted
+                            onToggled: Chiaki.settings.startMicUnmuted = checked
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Speech Processing:")
+                            visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                        }
+
+                        C.CheckBox {
+                            sendOutput: true
+                            text: qsTr("Noise suppression + echo cancellation")
+                            checked: Chiaki.settings.speechProcessing
+                            onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
+                            visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                            visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Noise To Suppress:")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 60
+                            stepSize: 1
+                            sendOutput: true
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                            value: Chiaki.settings.noiseSuppressLevel
+                            onMoved: Chiaki.settings.noiseSuppressLevel = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1 dB").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(6 dB)")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Echo To Suppress:")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 60
+                            stepSize: 1
+                            sendOutput: true
+                            value: Chiaki.settings.echoSuppressLevel
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                            onMoved: Chiaki.settings.echoSuppressLevel = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1 dB").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(30 dB)")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Wifi Instability Notification Triggers:")
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            sendOutput: true
+                            value: Chiaki.settings.wifiDroppedNotif
+                            onMoved: Chiaki.settings.wifiDroppedNotif = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1% dropped packets").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(3%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Packet Loss Reported Max:")
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            lastInFocusChain: true
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            sendOutput: true
+                            value: Chiaki.settings.packetLossMax
+                            onMoved: Chiaki.settings.packetLossMax = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1% packet loss").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(5%)")
+                        }
                     }
                 }
             }

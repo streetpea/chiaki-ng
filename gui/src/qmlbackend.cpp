@@ -116,6 +116,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     psn_connection_thread.start();
 
     setConnectState(PsnConnectState::NotStarted);
+    connect(settings_qml, &QmlSettings::audioVolumeChanged, this, &QmlBackend::updateAudioVolume);
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::HiddenHostsUpdated, this, &QmlBackend::hiddenHostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
@@ -276,6 +277,12 @@ QmlSettings *QmlBackend::qmlSettings() const
 StreamSession *QmlBackend::qmlSession() const
 {
     return session;
+}
+
+void QmlBackend::updateAudioVolume()
+{
+    if(session)
+        session->SetAudioVolume(settings->GetAudioVolume());
 }
 
 QList<QmlController*> QmlBackend::qmlControllers() const

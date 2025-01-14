@@ -330,6 +330,9 @@ class Settings : public QObject
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);
 
+		int GetAudioVolume() const;
+		void SetAudioVolume(int volume);
+
 		unsigned int GetAudioBufferSizeDefault() const;
 
 		/**
