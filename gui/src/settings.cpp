@@ -314,6 +314,16 @@ void Settings::SetGeometry(QRect geometry)
 	settings.setValue("settings/geometry", geometry);
 }
 
+QRect Settings::GetStreamGeometry() const
+{
+	return settings.value("settings/stream_geometry", QRect()).toRect();
+}
+
+void Settings::SetStreamGeometry(QRect geometry)
+{
+	settings.setValue("settings/stream_geometry", geometry);
+}
+
 static const QMap<RumbleHapticsIntensity, QString> intensities = {
 	{ RumbleHapticsIntensity::Off, "Off" },
 	{ RumbleHapticsIntensity::VeryWeak, "Very weak"},
@@ -602,6 +612,7 @@ void Settings::SetPacketLossMax(float packet_loss_max)
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
 	{ WindowType::CustomResolution, "Custom Resolution"},
+	{ WindowType::AdjustableResolution, "Adjust Manually"},
 	{ WindowType::Fullscreen, "Fullscreen" },
 	{ WindowType::Zoom, "Zoom" },
 	{ WindowType::Stretch, "Stretch" }

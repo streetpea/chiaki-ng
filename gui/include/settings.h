@@ -69,6 +69,7 @@ enum class PlaceboPreset {
 enum class WindowType {
 	SelectedResolution,
 	CustomResolution,
+	AdjustableResolution,
 	Fullscreen,
 	Zoom,
 	Stretch
@@ -221,6 +222,9 @@ class Settings : public QObject
 
 		QRect GetGeometry() const;
 		void SetGeometry(QRect geometry);
+
+		QRect GetStreamGeometry() const;
+		void SetStreamGeometry(QRect geometry);
 
 		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
 		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }

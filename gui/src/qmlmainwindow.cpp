@@ -1130,6 +1130,8 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::Resize:
         if(!session)
             settings->SetGeometry(geometry());
+        else if(settings->GetWindowType() == WindowType::AdjustableResolution && windowState() != Qt::WindowFullScreen && isWindowAdjustable())
+            settings->SetStreamGeometry(geometry());
         if (isExposed())
             updateSwapchain();
         break;
