@@ -283,6 +283,7 @@ void QmlMainWindow::show()
         {
             setGeometry(settings->GetGeometry());
             showNormal();
+            setGeometry(settings->GetGeometry());
         }
         else
             showMaximized();
@@ -521,13 +522,18 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         }
         if(!session)
         {
-            if(!this->settings->GetGeometry().isEmpty() && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
+            setStreamWindowAdjustable(false);
+            if(qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope")
             {
-                setGeometry(this->settings->GetGeometry());
-                normalTime();
+                setStreamWindowAdjustable(false);
+                if(!this->settings->GetGeometry().isEmpty())
+                {
+                    setGeometry(this->settings->GetGeometry());
+                    normalTime();
+                }
+                else
+                    showMaximized();
             }
-            else
-                showMaximized();
         }
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
@@ -590,12 +596,15 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 
 void QmlMainWindow::normalTime()
 {
-    showNormal();
+    if(windowState() == Qt::WindowFullScreen)
+        showNormal();
     QTimer::singleShot(1000, this, [this]{
         if(session)
             setStreamWindowAdjustable(true);
         else
+        {
             setWindowAdjustable(true);
+        }
     });
 }
 
@@ -1150,7 +1159,7 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::Resize:
         if(!session && isWindowAdjustable())
             settings->SetGeometry(geometry());
-        else if(settings->GetWindowType() == WindowType::AdjustableResolution && windowState() != Qt::WindowFullScreen && isStreamWindowAdjustable())
+        else if(session && settings->GetWindowType() == WindowType::AdjustableResolution && isStreamWindowAdjustable())
             settings->SetStreamGeometry(geometry());
         if (isExposed())
             updateSwapchain();
