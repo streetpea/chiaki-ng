@@ -516,8 +516,6 @@ static char* DualSenseIntensity(ChiakiDualSenseEffectIntensity intensity)
 }
 static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
-	bool reset = false;
-	const uint8_t motion_normal[] = { 0x00, 0x00, 0x00, 0x00 };
 	memcpy(stream_connection->led_state, stream_connection->motion_counter + 1, sizeof(stream_connection->led_state));
 	bool led_changed = false;
 	bool motion_reset = false;
