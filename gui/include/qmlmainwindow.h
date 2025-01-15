@@ -84,6 +84,12 @@ public:
     bool isWindowAdjustable() { return is_window_adjustable; }
     void setWindowAdjustable(bool adjustable) { is_window_adjustable = adjustable; }
 
+    void fullscreenTime();
+    void normalTime();
+
+    bool isStreamWindowAdjustable() { return is_stream_window_adjustable; }
+    void setStreamWindowAdjustable(bool adjustable) { is_stream_window_adjustable = adjustable; }
+
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
 
@@ -127,6 +133,7 @@ private:
     int grab_input = 0;
     int dropped_frames = 0;
     bool is_window_adjustable = false;
+    bool is_stream_window_adjustable = false;
     int dropped_frames_current = 0;
     VideoMode video_mode = VideoMode::Normal;
     float zoom_factor = 0;

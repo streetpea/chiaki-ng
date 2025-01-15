@@ -100,7 +100,7 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
         setVideoMode(VideoMode::Stretch);
 
     if (connect_info.fullscreen || connect_info.zoom || connect_info.stretch)
-        showFullScreen();
+        fullscreenTime();
 
     connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
 }
@@ -155,14 +155,14 @@ void QmlMainWindow::updateWindowType(WindowType type)
     case WindowType::CustomResolution:
         break;
     case WindowType::Fullscreen:
-        showFullScreen();
+        fullscreenTime();
         break;
     case WindowType::Zoom:
-        showFullScreen();
+        fullscreenTime();
         setVideoMode(VideoMode::Zoom);
         break;
     case WindowType::Stretch:
-        showFullScreen();
+        fullscreenTime();
         setVideoMode(VideoMode::Stretch);
         break;
     default:
@@ -276,7 +276,7 @@ void QmlMainWindow::show()
     resize(screen_size);
 
     if (qEnvironmentVariable("XDG_CURRENT_DESKTOP") == "gamescope")
-        showFullScreen();
+        fullscreenTime();
     else
     {
         if(!settings->GetGeometry().isEmpty())
@@ -286,6 +286,7 @@ void QmlMainWindow::show()
         }
         else
             showMaximized();
+        setWindowAdjustable(true);
     }
 }
 
@@ -523,7 +524,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
             if(!this->settings->GetGeometry().isEmpty() && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
             {
                 setGeometry(this->settings->GetGeometry());
-                showNormal();
+                normalTime();
             }
             else
                 showMaximized();
@@ -587,6 +588,25 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     setZoomFactor(settings->GetZoomFactor());
 }
 
+void QmlMainWindow::normalTime()
+{
+    showNormal();
+    QTimer::singleShot(1000, this, [this]{
+        if(session)
+            setStreamWindowAdjustable(true);
+        else
+            setWindowAdjustable(true);
+    });
+}
+
+void QmlMainWindow::fullscreenTime()
+{
+    if(session)
+        setStreamWindowAdjustable(false);
+    else
+        setWindowAdjustable(false);
+    showFullScreen();
+}
 void QmlMainWindow::update()
 {
     Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
@@ -1016,9 +1036,9 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
         switch (event->key()) {
         case Qt::Key_F11:
             if (windowState() != Qt::WindowFullScreen)
-                showFullScreen();
+                fullscreenTime();
             else
-                showNormal();
+                normalTime();
             return true;
         default:
             break;
@@ -1081,9 +1101,9 @@ bool QmlMainWindow::event(QEvent *event)
             break;
         if (session && !grab_input) {
             if (windowState() != Qt::WindowFullScreen)
-                showFullScreen();
+                fullscreenTime();
             else
-                showNormal();
+                normalTime();
         }
         break;
     case QEvent::KeyPress:
@@ -1128,9 +1148,9 @@ bool QmlMainWindow::event(QEvent *event)
             QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
         break;
     case QEvent::Resize:
-        if(!session)
+        if(!session && isWindowAdjustable())
             settings->SetGeometry(geometry());
-        else if(settings->GetWindowType() == WindowType::AdjustableResolution && windowState() != Qt::WindowFullScreen && isWindowAdjustable())
+        else if(settings->GetWindowType() == WindowType::AdjustableResolution && windowState() != Qt::WindowFullScreen && isStreamWindowAdjustable())
             settings->SetStreamGeometry(geometry());
         if (isExposed())
             updateSwapchain();

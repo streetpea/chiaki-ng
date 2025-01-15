@@ -808,9 +808,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
         else if(settings->GetWindowType() == WindowType::AdjustableResolution && !settings->GetStreamGeometry().isEmpty())
         {
+            window->normalTime();
             window->setGeometry(settings->GetStreamGeometry());
-            window->showNormal();
-            window->setWindowAdjustable(true);
         }
         else
             window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
@@ -1086,6 +1085,7 @@ void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
 
 void QmlBackend::connectToHost(int index, QString nickname)
 {
+    window->setWindowAdjustable(false);
     auto server = displayServerAt(index);
     if (!server.valid)
         return;
