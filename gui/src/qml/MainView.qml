@@ -10,7 +10,7 @@ Pane {
     id: consolePane
     StackView.onActivated: {
         forceActiveFocus(Qt.TabFocusReason);
-        if(!root.initialAsk)
+        if(!Chiaki.autoConnect && !root.initialAsk)
         {
             root.initialAsk = true;
             if(Chiaki.settings.addSteamShortcutAsk && (typeof Chiaki.createSteamShortcut === "function"))
