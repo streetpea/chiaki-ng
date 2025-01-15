@@ -5,6 +5,8 @@ import QtQuick.Controls.Material
 ComboBox {
     property bool firstInFocusChain: false
     property bool lastInFocusChain: false
+    implicitContentWidthPolicy: ComboBox.WidestText
+
     Keys.onPressed: (event) => {
         switch (event.key) {
         case Qt.Key_Up:

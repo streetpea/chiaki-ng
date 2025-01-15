@@ -81,6 +81,9 @@ public:
 
     bool amdCard() const;
 
+    bool isWindowAdjustable() { return is_window_adjustable; }
+    void setWindowAdjustable(bool adjustable) { is_window_adjustable = adjustable; }
+
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
 
@@ -123,6 +126,7 @@ private:
     bool keep_video = false;
     int grab_input = 0;
     int dropped_frames = 0;
+    bool is_window_adjustable = false;
     int dropped_frames_current = 0;
     VideoMode video_mode = VideoMode::Normal;
     float zoom_factor = 0;

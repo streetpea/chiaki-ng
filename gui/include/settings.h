@@ -10,6 +10,7 @@
 #include <QSettings>
 #include <QList>
 #include <QMap>
+#include <QRect>
 
 enum class ControllerButtonExt
 {
@@ -68,6 +69,7 @@ enum class PlaceboPreset {
 enum class WindowType {
 	SelectedResolution,
 	CustomResolution,
+	AdjustableResolution,
 	Fullscreen,
 	Zoom,
 	Stretch
@@ -217,6 +219,12 @@ class Settings : public QObject
 
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
+
+		QRect GetGeometry() const;
+		void SetGeometry(QRect geometry);
+
+		QRect GetStreamGeometry() const;
+		void SetStreamGeometry(QRect geometry);
 
 		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
 		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }

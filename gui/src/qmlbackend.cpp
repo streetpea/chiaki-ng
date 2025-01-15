@@ -806,6 +806,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
             window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
         }
+        else if(settings->GetWindowType() == WindowType::AdjustableResolution && !settings->GetStreamGeometry().isEmpty())
+        {
+            window->setGeometry(settings->GetStreamGeometry());
+            window->showNormal();
+            window->setWindowAdjustable(true);
+        }
         else
             window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
     }
@@ -1116,6 +1122,8 @@ void QmlBackend::connectToHost(int index, QString nickname)
     case WindowType::SelectedResolution:
         break;
     case WindowType::CustomResolution:
+        break;
+    case WindowType::AdjustableResolution:
         break;
     case WindowType::Fullscreen:
         fullscreen = true;
