@@ -129,7 +129,7 @@ class Controller : public QObject
 		bool IsSteamVirtual();
 		bool IsSteamVirtualUnmasked();
 		bool IsDualSenseEdge();
-		void resetMotionControls(bool reset);
+		void resetMotionControls();
 
 	signals:
 		void StateChanged();

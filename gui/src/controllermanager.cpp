@@ -960,15 +960,12 @@ bool Controller::IsSteamVirtualUnmasked()
 	return false;
 }
 
-void Controller::resetMotionControls(bool reset)
+void Controller::resetMotionControls()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	if(reset)
-		chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
-	else
-		chiaki_accel_new_zero_set_inactive(&accel_zero, false); 
+	chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
 	chiaki_orientation_tracker_init(&orientation_tracker);
 	chiaki_orientation_tracker_update(
 		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,

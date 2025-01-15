@@ -182,10 +182,6 @@ typedef struct chiaki_event_t
 		{
 			bool finished; // false when punching hole, true when finished
 		} data_holepunch;
-		struct
-		{
-			bool motion_reset; // true if resetting motion to zero at current value, false if returning motion to normal
-		} data_motion;
 		ChiakiDualSenseEffectIntensity intensity;
 		char server_nickname[0x20];
 	};

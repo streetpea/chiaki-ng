@@ -1779,22 +1779,14 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 		}
 		case CHIAKI_EVENT_MOTION_RESET: {
-			bool reset = event->data_motion.motion_reset;
-			if(reset)
-				CHIAKI_LOGI(GetChiakiLog(), "Resetting motion controls...");
-			else
-				CHIAKI_LOGI(GetChiakiLog(), "Returning motion controls to normal...");
-			QMetaObject::invokeMethod(this, [this, reset]() {
+			QMetaObject::invokeMethod(this, [this]() {
 				for(auto controller : controllers)
-					controller->resetMotionControls(reset);
+					controller->resetMotionControls();
 			});
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 			if(sdeck)
 			{
-				if(reset)
-					chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
-				else
-					chiaki_accel_new_zero_set_inactive(&sdeck_accel_zero, false);
+				chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
 				chiaki_orientation_tracker_init(&sdeck_orient_tracker);
 				chiaki_orientation_tracker_update(
 					&sdeck_orient_tracker, sdeck_state.gyro_x, sdeck_state.gyro_y, sdeck_state.gyro_z,
@@ -1803,10 +1795,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			}
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
-			if(reset)
-				chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
-			else
-				chiaki_accel_new_zero_set_inactive(&setsu_accel_zero, false);
+			chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
 			chiaki_orientation_tracker_init(&orient_tracker);
 			chiaki_orientation_tracker_update(
 				&orient_tracker, setsu_state.gyro_x, setsu_state.gyro_y, setsu_state.gyro_z,
