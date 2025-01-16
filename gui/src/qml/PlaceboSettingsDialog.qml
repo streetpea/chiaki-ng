@@ -11,10 +11,6 @@ import "controls" as C
 
 DialogView {
     id: dialog
-    function close() {
-        Chiaki.window.updatePlacebo();
-        root.closeDialog();
-    }
     property string options_url: ""
     title: qsTr("Placebo Renderer Settings")
     header: qsTr("* Defaults in () to right of value or marked with (Default)")

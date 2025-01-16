@@ -95,8 +95,8 @@ public:
 
     Q_INVOKABLE void grabInput();
     Q_INVOKABLE void releaseInput();
-    Q_INVOKABLE void updatePlacebo();
 
+    void updatePlacebo();
     void show();
     void presentFrame(AVFrame *frame, int32_t frames_lost);
 

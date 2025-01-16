@@ -640,6 +640,7 @@ signals:
     void placeboToneMappingToneLutSizeChanged();
     void placeboToneMappingContrastRecoveryChanged();
     void placeboToneMappingContrastSmoothnessChanged();
+    void placeboChanged();
 
 private:
     Settings *settings = {};
