@@ -283,7 +283,6 @@ void QmlMainWindow::show()
         {
             setGeometry(settings->GetGeometry());
             showNormal();
-            setGeometry(settings->GetGeometry());
         }
         else
             showMaximized();
@@ -597,7 +596,10 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 void QmlMainWindow::normalTime()
 {
     if(windowState() == Qt::WindowFullScreen)
+    {
         showNormal();
+        setMinimumSize(QSize(0, 0));
+    }
     QTimer::singleShot(1000, this, [this]{
         if(session)
             setStreamWindowAdjustable(true);
@@ -614,6 +616,7 @@ void QmlMainWindow::fullscreenTime()
         setStreamWindowAdjustable(false);
     else
         setWindowAdjustable(false);
+    setMinimumSize(size());
     showFullScreen();
 }
 void QmlMainWindow::update()
