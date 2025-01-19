@@ -153,11 +153,14 @@ void QmlMainWindow::updateWindowType(WindowType type)
 {
     switch (type) {
     case WindowType::SelectedResolution:
+        setVideoMode(VideoMode::Normal);
         break;
     case WindowType::CustomResolution:
+        setVideoMode(VideoMode::Normal);
         break;
     case WindowType::Fullscreen:
         fullscreenTime();
+        setVideoMode(VideoMode::Normal);
         break;
     case WindowType::Zoom:
         fullscreenTime();
@@ -531,7 +534,6 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
             setStreamWindowAdjustable(false);
             if(qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope")
             {
-                setStreamWindowAdjustable(false);
                 if(!this->settings->GetGeometry().isEmpty())
                 {
                     setGeometry(this->settings->GetGeometry());
@@ -619,6 +621,8 @@ void QmlMainWindow::normalTime()
 
 void QmlMainWindow::fullscreenTime()
 {
+    if(windowState() == Qt::WindowFullScreen)
+        return;
     if(session)
         setStreamWindowAdjustable(false);
     else

@@ -75,6 +75,18 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.5
+
+Bug fix release:
+
+- Make sure popup dialogs don't appear during autoconnect
+- Use existing appids from steam shortcuts to prevent losing images and proton prefixes when creating a new shortcut
+- Improve motion controller reset detection
+- Add steam shortcut creation to Windows msvc build
+- Allow adjusting volume in-app
+- Resize gui to last set size upon opening + add stream option for adjustable stream window
+- Change default bitrate from 30,000 to 15,000 to match the official remote play app's default
+
 ### 1.9.4
 
 Small patch update:

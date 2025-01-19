@@ -25,7 +25,20 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
-    <release date="2024-1-12" version="1.9.4">
+    <release date="2025-1-19" version="1.9.5">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>add automatic (pinless) registration for locally discovered consoles</li>
+          <li>Make sure popup dialogs don't appear during autoconnect</li>
+          <li>Improve motion controller reset detection</li>
+          <li>Allow adjusting volume in-app</li>
+          <li>Resize gui to last set size upon opening + add stream option for adjustable stream window</li>
+          <li>Change default bitrate from 30,000 to 15,000 to match the official remote play app's default</li>
+        </ul>
+      </description>
+    </release>
+    <release date="2025-1-12" version="1.9.4">
       <description>
         <p>This release provides the following improvements:</p>
         <ul>
