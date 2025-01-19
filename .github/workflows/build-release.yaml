@@ -36,7 +36,7 @@ jobs:
         prerelease: false
         allowUpdates: true
         bodyFile: "${{ github.workspace }}/release_notes.md"
-        token: "{{ secrets.RELEASE_PAT }}"
+        token: "${{ secrets.RELEASE_PAT }}"
     outputs:
       upload_url: ${{ steps.maker.outputs.upload_url }}
 
