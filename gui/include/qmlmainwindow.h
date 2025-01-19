@@ -44,6 +44,7 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(VideoMode videoMode READ videoMode WRITE setVideoMode NOTIFY videoModeChanged)
     Q_PROPERTY(float ZoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY zoomFactorChanged)
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
+    Q_PROPERTY(bool directStream READ directStream NOTIFY directStreamChanged)
 
 public:
     enum class VideoMode {
@@ -69,6 +70,8 @@ public:
 
     bool hasVideo() const;
     int droppedFrames() const;
+
+    bool directStream() const;
 
     bool keepVideo() const;
     void setKeepVideo(bool keep);
@@ -110,6 +113,7 @@ signals:
     void zoomFactorChanged();
     void videoPresetChanged();
     void menuRequested();
+    void directStreamChanged();
 
 private:
     void init(Settings *settings, bool exit_app_on_stream_exit = false);
@@ -129,6 +133,7 @@ private:
 
     bool has_video = false;
     bool amd_card = false;
+    bool direct_stream = false;
     bool keep_video = false;
     int grab_input = 0;
     int dropped_frames = 0;

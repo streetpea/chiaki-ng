@@ -91,6 +91,8 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
     : QWindow()
     , settings(connect_info.settings)
 {
+    direct_stream = true;
+    emit directStreamChanged();
     init(connect_info.settings);
     backend->createSession(connect_info);
 
@@ -208,6 +210,11 @@ void QmlMainWindow::releaseInput()
         setCursor(Qt::BlankCursor);
     if (session)
         session->BlockInput(grab_input);
+}
+
+bool QmlMainWindow::directStream() const
+{
+    return direct_stream;
 }
 
 QmlMainWindow::VideoMode QmlMainWindow::videoMode() const
