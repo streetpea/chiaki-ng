@@ -540,7 +540,7 @@ void Settings::SetCodecRemotePS5(ChiakiCodec codec)
 
 unsigned int Settings::GetAudioBufferSizeDefault() const
 {
-	return 5760;
+	return 9600;
 }
 
 unsigned int Settings::GetAudioBufferSizeRaw() const

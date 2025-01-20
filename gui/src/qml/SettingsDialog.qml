@@ -1200,32 +1200,33 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Buffer Size:")
+                            text: qsTr("Audio Buffer Size:")
                         }
 
-                        C.TextField {
-                            Layout.preferredWidth: 400
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 1
+                            to: 10
+                            stepSize: 1
+                            value: Chiaki.settings.audioBufferSize / 1920 ? Chiaki.settings.audioBufferSize / 1920 : 5
+                            onMoved: Chiaki.settings.audioBufferSize = value * 1920;
                             sendOutput: true
-                            text: Chiaki.settings.audioBufferSize || ""
-                            placeholderText: qsTr("Default (5760)")
-                            Material.accent: text && !validate() ? Material.Red : undefined
-                            onEditingFinished: {
-                                if (validate()) {
-                                    Chiaki.settings.audioBufferSize = parseInt(text);
-                                } else {
-                                    Chiaki.settings.audioBufferSize = 0;
-                                    text = "";
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
                                 }
-                            }
-                            function validate() {
-                                var num = parseInt(text);
-                                return num >= 1920 && num <= 19200;
+                                text: {
+                                    (parent.value * 10) + qsTr(" ms")
+                                }
                             }
                         }
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("(5760)")
+                            text: qsTr("(50 ms)")
                         }
 
                         Label {
