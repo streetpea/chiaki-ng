@@ -908,7 +908,7 @@ DialogView {
                         }
                         function validate() {
                             var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            return num >= 2000 && num <= 50000;
                         }
                     }
 
@@ -947,7 +947,7 @@ DialogView {
                         }
                         function validate() {
                             var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            return num >= 2000 && num <= 50000;
                         }
                     }
 
@@ -986,7 +986,7 @@ DialogView {
                         }
                         function validate() {
                             var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            return num >= 2000 && num <= 50000;
                         }
                     }
 
@@ -1025,7 +1025,7 @@ DialogView {
                         }
                         function validate() {
                             var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            return num >= 2000 && num <= 50000;
                         }
                     }
 
