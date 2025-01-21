@@ -874,158 +874,136 @@ DialogView {
                         text: qsTr("Bitrate:")
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateLocalPS4
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS4
-                        text: Chiaki.settings.bitrateLocalPS4 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionLocalPS4) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 15000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateLocalPS4 / 1000 ? Chiaki.settings.bitrateLocalPS4 / 1000 : bitrate
+                        onMoved: Chiaki.settings.bitrateLocalPS4 = value * 1000;
                         KeyNavigation.up: fpsLocalPS4
-                        KeyNavigation.right: bitrateRemotePS4
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateLocalPS4 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateLocalPS4 = 0;
-                                text = "";
+                        KeyNavigation.down: bitrateLocalPS4
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 50000;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
                         }
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateRemotePS4
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS4
-                        text: Chiaki.settings.bitrateRemotePS4 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionRemotePS4) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 15000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
-                        lastInFocusChain: true
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateRemotePS4 / 1000 ? Chiaki.settings.bitrateRemotePS4 / 1000 : bitrate
+                        onMoved: Chiaki.settings.bitrateRemotePS4 = value * 1000;
                         KeyNavigation.up: fpsRemotePS4
-                        KeyNavigation.left: bitrateLocalPS4
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateRemotePS4 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateRemotePS4 = 0;
-                                text = "";
+                        KeyNavigation.down: bitrateRemotePS4
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+                        lastInFocusChain: true
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 50000;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
                         }
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateLocalPS5
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS5
-                        text: Chiaki.settings.bitrateLocalPS5 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionLocalPS5) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 15000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateLocalPS5 / 1000 ? Chiaki.settings.bitrateLocalPS5 / 1000 : bitrate
+                        onMoved: Chiaki.settings.bitrateLocalPS5 = value * 1000;
                         KeyNavigation.up: fpsLocalPS5
-                        KeyNavigation.right: bitrateRemotePS5
                         KeyNavigation.down: codecLocalPS5
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateLocalPS5 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateLocalPS5 = 0;
-                                text = "";
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 50000;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
                         }
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateRemotePS5
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS5
-                        text: Chiaki.settings.bitrateRemotePS5 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionRemotePS5) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 15000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateRemotePS5 / 1000 ? Chiaki.settings.bitrateRemotePS5 / 1000 : bitrate
+                        onMoved: Chiaki.settings.bitrateRemotePS5 = value * 1000;
                         KeyNavigation.up: fpsRemotePS5
-                        KeyNavigation.left: bitrateLocalPS5
                         KeyNavigation.down: codecRemotePS5
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateRemotePS5 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateRemotePS5 = 0;
-                                text = "";
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+                        lastInFocusChain: true
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 50000;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
                         }
                     }
 
