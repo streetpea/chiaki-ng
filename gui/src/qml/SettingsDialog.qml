@@ -725,7 +725,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolutionLocalPS4 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionLocalPS4 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionLocalPS4 = index + 1
+                            Chiaki.settings.bitrateLocalPS4 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS4
                         KeyNavigation.right: resolutionRemotePS4
                         KeyNavigation.down: fpsLocalPS4
@@ -743,7 +746,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolutionRemotePS4 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionRemotePS4 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionRemotePS4 = index + 1
+                            Chiaki.settings.bitrateRemotePS4 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS4
                         KeyNavigation.left: resolutionLocalPS4
                         KeyNavigation.down: fpsRemotePS4
@@ -761,7 +767,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (Default)")]
                         currentIndex: Chiaki.settings.resolutionLocalPS5 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionLocalPS5 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionLocalPS5 = index + 1
+                            Chiaki.settings.bitrateLocalPS5 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS5
                         KeyNavigation.right: resolutionRemotePS5
                         KeyNavigation.up: consoleSelection
@@ -779,7 +788,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p")]
                         currentIndex: Chiaki.settings.resolutionRemotePS5 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionRemotePS5 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionRemotePS5 = index + 1
+                            Chiaki.settings.bitrateRemotePS5 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS5
                         KeyNavigation.left: resolutionLocalPS5
                         KeyNavigation.up: consoleSelection
