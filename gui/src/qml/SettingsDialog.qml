@@ -891,7 +891,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateLocalPS4 / 1000 ? Chiaki.settings.bitrateLocalPS4 / 1000 : bitrate
+                        value: Chiaki.settings.bitrateLocalPS4 / 1000 ? (Chiaki.settings.bitrateLocalPS4 / 1000).toFixed(0) : bitrate
                         onMoved: Chiaki.settings.bitrateLocalPS4 = value * 1000;
                         KeyNavigation.up: fpsLocalPS4
                         KeyNavigation.down: bitrateLocalPS4
@@ -923,7 +923,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateRemotePS4 / 1000 ? Chiaki.settings.bitrateRemotePS4 / 1000 : bitrate
+                        value: Chiaki.settings.bitrateRemotePS4 / 1000 ? (Chiaki.settings.bitrateRemotePS4 / 1000).toFixed(0) : bitrate
                         onMoved: Chiaki.settings.bitrateRemotePS4 = value * 1000;
                         KeyNavigation.up: fpsRemotePS4
                         KeyNavigation.down: bitrateRemotePS4
@@ -957,7 +957,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateLocalPS5 / 1000 ? Chiaki.settings.bitrateLocalPS5 / 1000 : bitrate
+                        value: Chiaki.settings.bitrateLocalPS5 / 1000 ? (Chiaki.settings.bitrateLocalPS5 / 1000).toFixed(0) : bitrate
                         onMoved: Chiaki.settings.bitrateLocalPS5 = value * 1000;
                         KeyNavigation.up: fpsLocalPS5
                         KeyNavigation.down: codecLocalPS5
@@ -990,7 +990,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateRemotePS5 / 1000 ? Chiaki.settings.bitrateRemotePS5 / 1000 : bitrate
+                        value: Chiaki.settings.bitrateRemotePS5 / 1000 ? (Chiaki.settings.bitrateRemotePS5 / 1000).toFixed(0) : bitrate
                         onMoved: Chiaki.settings.bitrateRemotePS5 = value * 1000;
                         KeyNavigation.up: fpsRemotePS5
                         KeyNavigation.down: codecRemotePS5
@@ -1186,7 +1186,7 @@ DialogView {
                             from: 1
                             to: 10
                             stepSize: 1
-                            value: Chiaki.settings.audioBufferSize / 1920 ? Chiaki.settings.audioBufferSize / 1920 : 5
+                            value: Chiaki.settings.audioBufferSize / 1920 ? (Chiaki.settings.audioBufferSize / 1920).toFixed(0) : 5
                             onMoved: Chiaki.settings.audioBufferSize = value * 1920;
                             sendOutput: true
 
