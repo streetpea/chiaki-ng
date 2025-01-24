@@ -74,6 +74,13 @@ typedef enum {
 	CHIAKI_TAKION_EVENT_TYPE_AV
 } ChiakiTakionEventType;
 
+typedef enum {
+	CHIAKI_NONE_DISABLED = 0,  //(bits: 00)
+	CHIAKI_AUDIO_DISABLED = 1, //(bits: 01)
+	CHIAKI_VIDEO_DISABLED = 2, //(bits: 10)
+	CHIAKI_AUDIO_VIDEO_DISABLED = 3 //(bits: 11)
+} ChiakiDisableAudioVideo;
+
 typedef struct chiaki_takion_event_t
 {
 	ChiakiTakionEventType type;
@@ -105,7 +112,7 @@ typedef struct chiaki_takion_connect_info_t
 	bool ip_dontfrag;
 	ChiakiTakionCallback cb;
 	void *cb_user;
-	bool disable_audio_video;
+	ChiakiDisableAudioVideo disable_audio_video;
 	bool enable_crypt;
 	bool enable_dualsense;
 	uint8_t protocol_version;
@@ -118,8 +125,8 @@ typedef struct chiaki_takion_t
 	ChiakiLog *log;
 	uint8_t version;
 
-	// Only acks audio and video but doesn't send them on for further processing
-	bool disable_audio_video;
+	// Whether or not audio or video is disabled from further processing beyond basic ack
+	ChiakiDisableAudioVideo disable_audio_video;
 	/**
 	 * Whether encryption should be used.
 	 *

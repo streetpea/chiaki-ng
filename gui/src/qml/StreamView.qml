@@ -35,7 +35,7 @@ Item {
         id: loadingView
         anchors.fill: parent
         color: "black"
-        opacity: sessionError || sessionLoading || Chiaki.settings.audioVideoDisabled ? 1.0 : 0.0
+        opacity: sessionError || sessionLoading || (Chiaki.settings.audioVideoDisabled & 0x02) ? 1.0 : 0.0
         visible: opacity
 
         Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -65,10 +65,18 @@ Item {
                 text: {
                     if(Chiaki.settings.dpadTouchEnabled)
                     {
-                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
+                        if(Chiaki.settings.audioVideoDisabled == 0x01)
+                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
+                        else
+                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
                     }
                     else
-                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                    {
+                        if(Chiaki.settings.audioVideoDisabled == 0x01)
+                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                        else
+                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                    }
                 }
                 visible: sessionLoading
             }
@@ -79,9 +87,9 @@ Item {
                     bottom: spinner.top
                     horizontalCenter: spinner.horizontalCenter
                 }
-                text: qsTr("Audio and Video Disabled")
+                text: (Chiaki.settings.audioVideoDisabled & 0x01) ? qsTr("Audio and Video Disabled") : qsTr("Video Disabled")
                 font.pixelSize: 24
-                visible: !sessionLoading && !sessionError && Chiaki.settings.audioVideoDisabled
+                visible: !sessionLoading && !sessionError && (Chiaki.settings.audioVideoDisabled & 0x02)
             }
 
             Label {
@@ -93,8 +101,8 @@ Item {
                 }
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 20
-                text: qsTr("You have disabled audio and video in your settings.\nTo re-enable audio/video uncheck Disable Audio and Video in the General tab of the settings.")
-                visible: !sessionLoading && !sessionError && Chiaki.settings.audioVideoDisabled
+                text: (Chiaki.settings.audioVideoDisabled & 0x01) ? qsTr("You have disabled audio and video in your settings.\nTo re-enable change Audio/Video to Audio and Video Enabled in the General tab of the settings.") : qsTr("You have disabled video in your settings.\nTo re-enable change Audio/Video to Audio and Video Enabled in the General tab of the settings.")
+                visible: !sessionLoading && !sessionError && (Chiaki.settings.audioVideoDisabled & 0x02)
             }
 
             Label {
@@ -733,7 +741,7 @@ Item {
         target: Chiaki.session
 
         function onConnectedChanged() {
-            if (Chiaki.settings.audioVideoDisabled)
+            if (Chiaki.settings.audioVideoDisabled & 0x02)
                 sessionLoading = false;
         }
     }

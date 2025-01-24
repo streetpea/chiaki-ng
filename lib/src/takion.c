@@ -1086,8 +1086,7 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 				takion_postpone_packet(takion, buf, buf_size);
 			else
 			{
-				if(!takion->disable_audio_video)
-					takion_handle_packet_av(takion, base_type, buf, buf_size);
+				takion_handle_packet_av(takion, base_type, buf, buf_size);
 				free(buf);
 			}
 			break;
@@ -1423,7 +1422,10 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	// HHIxIIx
 
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
-
+	if((takion->disable_audio_video & CHIAKI_AUDIO_DISABLED) && (base_type == TAKION_PACKET_TYPE_AUDIO))
+		return;
+	if((takion->disable_audio_video & CHIAKI_VIDEO_DISABLED) && (base_type == TAKION_PACKET_TYPE_VIDEO))
+		return;
 	ChiakiTakionAVPacket packet;
 	ChiakiErrorCode err = takion->av_packet_parse(&packet, &takion->key_state, buf, buf_size);
 	if(err != CHIAKI_ERR_SUCCESS)

@@ -59,14 +59,14 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
-bool QmlSettings::audioVideoDisabled() const
+int QmlSettings::audioVideoDisabled() const
 {
-    return settings->GetAudioVideoDisabled();
+    return static_cast<int>(settings->GetAudioVideoDisabled());
 }
 
-void QmlSettings::setAudioVideoDisabled(bool disabled)
+void QmlSettings::setAudioVideoDisabled(int disabled)
 {
-    settings->SetAudioVideoDisabled(disabled);
+    settings->SetAudioVideoDisabled(static_cast<ChiakiDisableAudioVideo>(disabled));
     emit audioVideoDisabledChanged();
 }
 
