@@ -35,7 +35,7 @@ Item {
         id: loadingView
         anchors.fill: parent
         color: "black"
-        opacity: sessionError || sessionLoading ? 1.0 : 0.0
+        opacity: sessionError || sessionLoading || Chiaki.settings.audioVideoDisabled ? 1.0 : 0.0
         visible: opacity
 
         Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -71,6 +71,30 @@ Item {
                         qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
                 }
                 visible: sessionLoading
+            }
+
+            Label {
+                id: audioVideoDisabledTitleLabel
+                anchors {
+                    bottom: spinner.top
+                    horizontalCenter: spinner.horizontalCenter
+                }
+                text: qsTr("Audio and Video Disabled")
+                font.pixelSize: 24
+                visible: !sessionLoading && !sessionError && Chiaki.settings.audioVideoDisabled
+            }
+
+            Label {
+                id: audioVideoDisabledTextLabel
+                anchors {
+                    top: audioVideoDisabledTitleLabel.bottom
+                    horizontalCenter: audioVideoDisabledTitleLabel.horizontalCenter
+                    topMargin: 10
+                }
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 20
+                text: qsTr("You have disabled audio and video in your settings.\nTo re-enable audio/video uncheck Disable Audio and Video in the General tab of the settings.")
+                visible: !sessionLoading && !sessionError && Chiaki.settings.audioVideoDisabled
             }
 
             Label {
@@ -703,6 +727,14 @@ Item {
             if (sessionPinDialog.opened || sessionStopDialog.opened)
                 return;
             menuView.toggle();
+        }
+    }
+    Connections {
+        target: Chiaki.session
+
+        function onConnectedChanged() {
+            if (Chiaki.settings.audioVideoDisabled)
+                sessionLoading = false;
         }
     }
 }

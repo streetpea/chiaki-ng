@@ -217,6 +217,9 @@ class Settings : public QObject
 
 		QMap<QString, QString> GetPlaceboValues();
 
+		bool GetAudioVideoDisabled() const       { return settings.value("settings/audio_video_disabled", false).toBool(); }
+		void SetAudioVideoDisabled(bool disabled) { settings.setValue("settings/audio_video_disabled", disabled); }
+
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
 

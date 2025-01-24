@@ -183,6 +183,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->log = info->log;
 	takion->close_socket = info->close_socket;
 	takion->version = info->protocol_version;
+	takion->disable_audio_video = info->disable_audio_video;
 
 	switch(takion->version)
 	{
@@ -1085,7 +1086,8 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 				takion_postpone_packet(takion, buf, buf_size);
 			else
 			{
-				takion_handle_packet_av(takion, base_type, buf, buf_size);
+				if(!takion->disable_audio_video)
+					takion_handle_packet_av(takion, base_type, buf, buf_size);
 				free(buf);
 			}
 			break;

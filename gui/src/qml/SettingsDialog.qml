@@ -437,6 +437,23 @@ DialogView {
                             Material.roundedScale: Material.SmallScale
                         }
                     }
+                    Label {
+
+                    }
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Disable Audio and Video:")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.audioVideoDisabled
+                        onToggled: Chiaki.settings.audioVideoDisabled = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
                 }
             }
 

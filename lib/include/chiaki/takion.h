@@ -105,6 +105,7 @@ typedef struct chiaki_takion_connect_info_t
 	bool ip_dontfrag;
 	ChiakiTakionCallback cb;
 	void *cb_user;
+	bool disable_audio_video;
 	bool enable_crypt;
 	bool enable_dualsense;
 	uint8_t protocol_version;
@@ -117,6 +118,8 @@ typedef struct chiaki_takion_t
 	ChiakiLog *log;
 	uint8_t version;
 
+	// Only acks audio and video but doesn't send them on for further processing
+	bool disable_audio_video;
 	/**
 	 * Whether encryption should be used.
 	 *
