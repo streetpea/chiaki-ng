@@ -400,6 +400,23 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Audio/Video:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Audio and Video Enabled"), qsTr("Audio Disabled"), qsTr("Video Disabled"), qsTr("Audio and Video Disabled")]
+                        currentIndex: Chiaki.settings.audioVideoDisabled
+                        onActivated: index => Chiaki.settings.audioVideoDisabled = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Audio and Video Enabled)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Verbose Logging:")
                     }
 
@@ -433,29 +450,13 @@ DialogView {
                                 leftMargin: parent.paintedWidth + 20
                             }
                             text: qsTr("Open")
+                            lastInFocusChain: true
                             onClicked: Qt.openUrlExternally("file://" + parent.text);
                             Material.roundedScale: Material.SmallScale
                         }
                     }
                     Label {
 
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Audio/Video:")
-                    }
-
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        model: [qsTr("Audio and Video Enabled"), qsTr("Audio Disabled"), qsTr("Video Disabled"), qsTr("Audio and Video Disabled")]
-                        currentIndex: Chiaki.settings.audioVideoDisabled
-                        onActivated: index => Chiaki.settings.audioVideoDisabled = index
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Audio and Video Enabled)")
                     }
                 }
             }
@@ -1061,6 +1062,7 @@ DialogView {
                         }
                         KeyNavigation.up: bitrateLocalPS5
                         KeyNavigation.right: codecRemotePS5
+                        KeyNavigation.down: codecLocalPS5
                         KeyNavigation.priority: {
                             if(!popup.visible)
                                 KeyNavigation.BeforeItem
