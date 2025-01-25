@@ -1107,7 +1107,7 @@ DialogView {
                     anchors {
                         fill: parent
                         topMargin: 20
-                        leftMargin: 200
+                        leftMargin: parent.width ? (parent.width / 2 - audiowifigrid.width / 2) : 0
                     }
                     clip: true
                     contentWidth: audiowifigrid.width
@@ -1374,7 +1374,7 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Wifi Instability Notification Triggers:")
+                            text: qsTr("Weak Wifi Notification:")
                         }
 
                         C.Slider {
@@ -1392,7 +1392,7 @@ DialogView {
                                     verticalCenter: parent.verticalCenter
                                     leftMargin: 10
                                 }
-                                text: qsTr("%1% dropped packets").arg(parent.value)
+                                text: qsTr(">= %1% dropped packets").arg(parent.value)
                             }
                         }
 
