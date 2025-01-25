@@ -1608,24 +1608,18 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 			case RumbleHapticsIntensity::Normal:
 				break;
 			case RumbleHapticsIntensity::Strong:
-				temp_left = left * 1.5;
-				temp_right = right * 1.5;
-				if(temp_left > UINT16_MAX)
-					temp_left = UINT16_MAX;
-				if(temp_right > UINT16_MAX)
-					temp_right = UINT16_MAX;
+				temp_left = (uint32_t)left * 1.5;
+				temp_right = (uint32_t)right * 1.5;
+				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
+				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
 				left = temp_left;
 				right = temp_right;
 				break;
 			case RumbleHapticsIntensity::VeryStrong:
-				temp_left = left * 2;
-				temp_right = right * 2;
-				if(temp_left > UINT16_MAX)
-					temp_left = UINT16_MAX;
-				if(temp_right > UINT16_MAX)
-					temp_right = UINT16_MAX;
-				left = temp_left;
-				right = temp_right;
+				temp_left = (uint32_t)left * 2;
+				temp_right = (uint32_t)right * 2;
+				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
+				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
 				break;
 		}
 		QMetaObject::invokeMethod(this, [this, left, right]() {
