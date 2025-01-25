@@ -399,7 +399,10 @@ Item {
                 padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Default
-                onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.Default
+                }
                 KeyNavigation.left: stretchButton
                 KeyNavigation.right: highQualityButton
                 Keys.onReturnPressed: toggled()
@@ -417,7 +420,10 @@ Item {
                 padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQuality
-                onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQuality
+                }
                 KeyNavigation.left: defaultButton
                 KeyNavigation.right: customButton
                 Keys.onReturnPressed: toggled()
@@ -436,7 +442,10 @@ Item {
                 padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
-                onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.Custom
+                }
                 KeyNavigation.left: highQualityButton
                 KeyNavigation.right: displaySettingsButton
                 Keys.onReturnPressed: toggled()
