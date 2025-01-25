@@ -1422,10 +1422,7 @@ void StreamSession::ConnectSdeckHaptics()
 			{
 				uint64_t next_timestamp = sdeck_hapticl.head().timestamp;
 				if(next_timestamp > (current_tick + 10))
-				{
 					memset(sdeck_haptics_senderl + 30 * i, 0, 30);
-					continue;
-				}
 				else
 				{
 					haptic_packetl = sdeck_hapticl.dequeue();
@@ -1440,10 +1437,7 @@ void StreamSession::ConnectSdeckHaptics()
 			{
 				uint64_t next_timestamp = sdeck_hapticr.head().timestamp;
 				if(next_timestamp > (current_tick + 10))
-				{
 					memset(sdeck_haptics_senderr + 30 * i, 0, 30);
-					continue;
-				}
 				else
 				{
 					haptic_packetr = sdeck_hapticr.dequeue();
