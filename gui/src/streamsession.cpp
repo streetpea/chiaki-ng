@@ -1707,8 +1707,8 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 			uint32_t strength = ((buf[5] >> 3) & 0x07) + 1;
 			uint32_t force_zones = *(uint32_t *)(buf + 2);
 			uint32_t new_strength = strength * ps5_trigger_intensity;
-			if(new_strength > 0)
-				new_strength -= 1;
+			new_strength = (new_strength > 0) ? (new_strength - 1) : 0;
+			new_strength = (new_strength > 7) ? 7 : new_strength;
 			uint32_t new_force_zones = 0;
 			for (int i = 0; i < 10; i++)
 			{
@@ -1721,8 +1721,8 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 		case 0x25: {
 			uint8_t strength = buf[2] + 1;
 			strength *= ps5_trigger_intensity;
-			if(strength > 0)
-				strength -= 1;
+			strength = (strength > 0) ? (strength - 1) : 0;
+			strength = (strength > 7) ? 7 : strength;
 			buf[2] = strength;
 			break;
 		}
@@ -1838,15 +1838,15 @@ void StreamSession::Event(ChiakiEvent *event)
 					break;
 				}
 				case Strong: {
-					ps5_trigger_intensity = 1;
+					ps5_trigger_intensity = 1.0;
 					break;
 				}
 				case Weak: {
-					ps5_trigger_intensity = 0.5;
+					ps5_trigger_intensity = 0.25;
 					break;
 				}
 				case Medium: {
-					ps5_trigger_intensity = 0.75;
+					ps5_trigger_intensity = 0.5;
 					break;
 				}
 			}
