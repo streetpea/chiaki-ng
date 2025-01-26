@@ -83,8 +83,8 @@ public:
     void setZoomFactor(float factor);
 
     bool amdCard() const;
-
-    bool isWindowAdjustable() { return is_window_adjustable; }
+    bool wasMaximized() const { return was_maximized; };
+    bool isWindowAdjustable() const { return is_window_adjustable; }
     void setWindowAdjustable(bool adjustable) { is_window_adjustable = adjustable; }
 
     void fullscreenTime();
@@ -132,6 +132,7 @@ private:
     QObject *focusObject() const override;
 
     bool has_video = false;
+    bool was_maximized = false;
     bool amd_card = false;
     bool direct_stream = false;
     bool keep_video = false;

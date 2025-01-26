@@ -606,7 +606,13 @@ void QmlMainWindow::normalTime()
 {
     if(windowState() == Qt::WindowFullScreen)
     {
-        showNormal();
+        if(was_maximized)
+        {
+            showMaximized();
+            was_maximized = false;
+        }
+        else
+            showNormal();
         setMinimumSize(QSize(0, 0));
     }
     QTimer::singleShot(1000, this, [this]{
@@ -628,6 +634,10 @@ void QmlMainWindow::fullscreenTime()
     else
         setWindowAdjustable(false);
     setMinimumSize(size());
+    if(windowState() == Qt::WindowMaximized)
+        was_maximized = true;
+    else
+        was_maximized = false;
     showFullScreen();
 }
 void QmlMainWindow::update()
@@ -1169,6 +1179,12 @@ bool QmlMainWindow::event(QEvent *event)
             updateSwapchain();
         else
             QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
+        break;
+    case QEvent::Move:
+        if(!session && isWindowAdjustable())
+            settings->SetGeometry(geometry());
+        else if(session && settings->GetWindowType() == WindowType::AdjustableResolution && isStreamWindowAdjustable())
+            settings->SetStreamGeometry(geometry());
         break;
     case QEvent::Resize:
         if(!session && isWindowAdjustable())
