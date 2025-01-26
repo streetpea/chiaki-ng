@@ -254,7 +254,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	chiaki_random_bytes_crypt(session->connect_info.did + sizeof(did_prefix), sizeof(session->connect_info.did) - sizeof(did_prefix) - sizeof(did_suffix));
 	memcpy(session->connect_info.did + sizeof(session->connect_info.did) - sizeof(did_suffix), did_suffix, sizeof(did_suffix));
 
-	session->connect_info.video_profile = connect_info->video_profile;
+	if(connect_info->audio_video_disabled & CHIAKI_VIDEO_DISABLED)
+		chiaki_connect_video_profile_preset(&session->connect_info.video_profile, CHIAKI_VIDEO_RESOLUTION_PRESET_360p, 0);
+	else
+		session->connect_info.video_profile = connect_info->video_profile;
+	session->connect_info.disable_audio_video = connect_info->audio_video_disabled;
 	session->connect_info.video_profile_auto_downgrade = connect_info->video_profile_auto_downgrade;
 	session->connect_info.enable_keyboard = connect_info->enable_keyboard;
 	session->connect_info.enable_dualsense = connect_info->enable_dualsense;

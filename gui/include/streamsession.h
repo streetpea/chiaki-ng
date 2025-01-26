@@ -88,6 +88,7 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool auto_regist;
+	ChiakiDisableAudioVideo audio_video_disabled;
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool start_mic_unmuted;
@@ -227,6 +228,8 @@ class StreamSession : public QObject
 		SDL_AudioDeviceID audio_in;
 		size_t audio_out_sample_size;
 		bool audio_out_drain_queue;
+		bool haptics_out_drain_queue;
+		size_t haptics_buffer_size;
 		unsigned int audio_buffer_size;
 		ChiakiHolepunchSession holepunch_session;
 #if CHIAKI_GUI_ENABLE_SPEEX

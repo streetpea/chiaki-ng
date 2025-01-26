@@ -149,6 +149,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_run(ChiakiStreamConnectio
 
 	ChiakiTakionConnectInfo takion_info;
 	takion_info.log = stream_connection->log;
+	takion_info.disable_audio_video = stream_connection->session->connect_info.disable_audio_video;
 	takion_info.close_socket = true;
 	if(!socket)
 	{

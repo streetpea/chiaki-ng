@@ -59,6 +59,17 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
+int QmlSettings::audioVideoDisabled() const
+{
+    return static_cast<int>(settings->GetAudioVideoDisabled());
+}
+
+void QmlSettings::setAudioVideoDisabled(int disabled)
+{
+    settings->SetAudioVideoDisabled(static_cast<ChiakiDisableAudioVideo>(disabled));
+    emit audioVideoDisabledChanged();
+}
+
 int QmlSettings::resolutionLocalPS4() const
 {
     return settings->GetResolutionLocalPS4();
@@ -1500,6 +1511,7 @@ void QmlSettings::refreshAllKeys()
     emit remotePlayAskChanged();
     emit addSteamShortcutAskChanged();
     emit hideCursorChanged();
+    emit audioVideoDisabledChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
     emit resolutionLocalPS5Changed();

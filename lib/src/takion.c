@@ -183,6 +183,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	takion->log = info->log;
 	takion->close_socket = info->close_socket;
 	takion->version = info->protocol_version;
+	takion->disable_audio_video = info->disable_audio_video;
 
 	switch(takion->version)
 	{
@@ -1421,9 +1422,12 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	// HHIxIIx
 
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
-
+	if((takion->disable_audio_video & CHIAKI_VIDEO_DISABLED) && (base_type == TAKION_PACKET_TYPE_VIDEO))
+		return;
 	ChiakiTakionAVPacket packet;
 	ChiakiErrorCode err = takion->av_packet_parse(&packet, &takion->key_state, buf, buf_size);
+	if((takion->disable_audio_video & CHIAKI_AUDIO_DISABLED) && (base_type == TAKION_PACKET_TYPE_AUDIO) && !packet.is_haptics)
+		return;
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_BUF_TOO_SMALL)

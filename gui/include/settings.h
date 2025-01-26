@@ -217,6 +217,9 @@ class Settings : public QObject
 
 		QMap<QString, QString> GetPlaceboValues();
 
+		ChiakiDisableAudioVideo GetAudioVideoDisabled() const       { return static_cast<ChiakiDisableAudioVideo>(settings.value("settings/audio_video_disabled", 0).toInt()); }
+		void SetAudioVideoDisabled(ChiakiDisableAudioVideo disabled) { settings.setValue("settings/audio_video_disabled", disabled); }
+
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
 
