@@ -2150,7 +2150,7 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            Layout.leftMargin: 150
+                            Layout.leftMargin: 200
                             text: qsTr("(console setting)")
                         }
                     }
@@ -2193,7 +2193,7 @@ DialogView {
                         }
 
                         Label {
-                            Layout.leftMargin: 150
+                            Layout.leftMargin: 200
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("(console setting)")
                         }

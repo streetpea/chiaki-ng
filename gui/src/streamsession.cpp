@@ -1604,8 +1604,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 			sumr += amplituder;
 		}
 		uint16_t left = 0, right = 0;
-		left = suml / buf_count;
-		right = sumr / buf_count;
+		left = (suml / buf_count) + INT16_MAX;
+		right = (sumr / buf_count) + INT16_MAX;
 		uint32_t temp_left = 0;
 		uint32_t temp_right = 0;
 		switch(rumble_haptics_intensity)
