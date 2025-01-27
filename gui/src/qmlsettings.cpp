@@ -59,6 +59,28 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
+float QmlSettings::triggerOverride() const
+{
+    return settings->GetTriggerOverride();
+}
+
+void QmlSettings::setTriggerOverride(float override)
+{
+    settings->SetTriggerOverride(override);
+    emit triggerOverrideChanged();
+}
+
+float QmlSettings::hapticOverride() const
+{
+    return settings->GetHapticOverride();
+}
+
+void QmlSettings::setHapticOverride(float override)
+{
+    settings->SetHapticOverride(override);
+    emit hapticOverrideChanged();
+}
+
 int QmlSettings::audioVideoDisabled() const
 {
     return static_cast<int>(settings->GetAudioVideoDisabled());
@@ -1519,6 +1541,8 @@ void QmlSettings::refreshAllKeys()
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
+    emit hapticOverrideChanged();
+    emit triggerOverrideChanged();
     emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();
     emit startMicUnmutedChanged();

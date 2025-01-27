@@ -265,6 +265,12 @@ class Settings : public QObject
 		bool GetFullscreenDoubleClickEnabled() const	   { return settings.value("settings/fullscreen_doubleclick", false).toBool(); }
 		void SetFullscreenDoubleClickEnabled(bool enabled) { settings.setValue("settings/fullscreen_doubleclick", enabled); }
 
+		float GetTriggerOverride() const 			{ return settings.value("settings/trigger_override", 1.0).toFloat(); }
+		void SetTriggerOverride(float override)	{ settings.setValue("settings/trigger_override", override); }
+
+		float GetHapticOverride() const 			{ return settings.value("settings/haptic_override", 1.0).toFloat(); }
+		void SetHapticOverride(float override)	{ settings.setValue("settings/haptic_override", override); }
+
 		ChiakiVideoResolutionPreset GetResolutionLocalPS4() const;
 		ChiakiVideoResolutionPreset GetResolutionRemotePS4() const;
 		ChiakiVideoResolutionPreset GetResolutionLocalPS5() const;

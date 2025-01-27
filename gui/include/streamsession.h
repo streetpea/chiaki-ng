@@ -88,6 +88,8 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool auto_regist;
+	float trigger_override;
+	float haptic_override;
 	ChiakiDisableAudioVideo audio_video_disabled;
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
@@ -202,6 +204,8 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		ChiakiControllerState dpad_touch_state;
 		uint16_t dpad_touch_increment;
+		float trigger_override;
+		float haptic_override;
 		bool dpad_regular;
 		bool dpad_regular_touch_switched;
 		uint dpad_touch_shortcut1;

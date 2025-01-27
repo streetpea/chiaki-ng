@@ -924,7 +924,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateLocalPS4 / 1000 ? (Chiaki.settings.bitrateLocalPS4 / 1000).toFixed(0) : bitrate
+                        value: Chiaki.settings.bitrateLocalPS4 / 1000 ? (Chiaki.settings.bitrateLocalPS4 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateLocalPS4 = value * 1000;
                         KeyNavigation.up: fpsLocalPS4
                         KeyNavigation.down: bitrateLocalPS4
@@ -935,7 +935,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
@@ -956,7 +956,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateRemotePS4 / 1000 ? (Chiaki.settings.bitrateRemotePS4 / 1000).toFixed(0) : bitrate
+                        value: Chiaki.settings.bitrateRemotePS4 / 1000 ? (Chiaki.settings.bitrateRemotePS4 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateRemotePS4 = value * 1000;
                         KeyNavigation.up: fpsRemotePS4
                         KeyNavigation.down: bitrateRemotePS4
@@ -969,7 +969,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
@@ -990,7 +990,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateLocalPS5 / 1000 ? (Chiaki.settings.bitrateLocalPS5 / 1000).toFixed(0) : bitrate
+                        value: Chiaki.settings.bitrateLocalPS5 / 1000 ? (Chiaki.settings.bitrateLocalPS5 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateLocalPS5 = value * 1000;
                         KeyNavigation.up: fpsLocalPS5
                         KeyNavigation.down: codecLocalPS5
@@ -1002,7 +1002,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
@@ -1023,7 +1023,7 @@ DialogView {
                         from: 2
                         to: 50
                         stepSize: 1
-                        value: Chiaki.settings.bitrateRemotePS5 / 1000 ? (Chiaki.settings.bitrateRemotePS5 / 1000).toFixed(0) : bitrate
+                        value: Chiaki.settings.bitrateRemotePS5 / 1000 ? (Chiaki.settings.bitrateRemotePS5 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateRemotePS5 = value * 1000;
                         KeyNavigation.up: fpsRemotePS5
                         KeyNavigation.down: codecRemotePS5
@@ -1036,7 +1036,7 @@ DialogView {
                                 verticalCenter: parent.verticalCenter
                                 leftMargin: 10
                             }
-                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate)
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
@@ -1220,7 +1220,7 @@ DialogView {
                             from: 1
                             to: 10
                             stepSize: 1
-                            value: Chiaki.settings.audioBufferSize / 1920 ? (Chiaki.settings.audioBufferSize / 1920).toFixed(0) : 5
+                            value: Chiaki.settings.audioBufferSize / 1920 ? (Chiaki.settings.audioBufferSize / 1920) : 5
                             onMoved: Chiaki.settings.audioBufferSize = value * 1920;
                             sendOutput: true
 
@@ -1231,7 +1231,7 @@ DialogView {
                                     leftMargin: 10
                                 }
                                 text: {
-                                    (parent.value * 10) + qsTr(" ms")
+                                    (parent.value * 10).toFixed(0) + qsTr(" ms")
                                 }
                             }
                         }
@@ -1909,7 +1909,7 @@ DialogView {
             }
 
             Item {
-                // Controller Mapping
+                // Controllers
                 ColumnLayout {
                     anchors {
                         top: parent.top
@@ -2103,15 +2103,99 @@ DialogView {
                                 else
                                     dpadTouch;
                             }
-                            KeyNavigation.down: posButtons
+                            KeyNavigation.down: hapticOverride
                             KeyNavigation.left: posButtons
                             KeyNavigation.right: posButtons
-                            lastInFocusChain: true
                         }
 
                         Label {
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("(Unchecked)")
+                        }
+                    }
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("True Haptics Intensity:")
+                        }
+
+                        C.Slider {
+                            id: hapticOverride
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 2
+                            stepSize: 0.1
+                            value: Chiaki.settings.hapticOverride
+                            onMoved: Chiaki.settings.hapticOverride = value;
+                            KeyNavigation.down: triggerOverride
+                            KeyNavigation.left: hapticOverride
+                            KeyNavigation.right: hapticOverride
+                            KeyNavigation.up: posButtons
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: {
+                                    if(parent.value > 0.99 && parent.value < 1.01)
+                                        qsTr("console setting")
+                                    else
+                                        (parent.value * 100).toFixed(0) + qsTr(" %")
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            Layout.leftMargin: 150
+                            text: qsTr("(console setting)")
+                        }
+                    }
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Adaptive Trigger Intensity:")
+                        }
+
+                        C.Slider {
+                            id: triggerOverride
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 2
+                            stepSize: 0.1
+                            value: Chiaki.settings.triggerOverride
+                            onMoved: Chiaki.settings.triggerOverride = value;
+
+                            KeyNavigation.down: triggerOverride
+                            KeyNavigation.left: triggerOverride
+                            KeyNavigation.right: triggerOverride
+                            KeyNavigation.up: hapticOverride
+                            lastInFocusChain: true
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: {
+                                    if(parent.value > 0.99 && parent.value < 1.01)
+                                        qsTr("console setting")
+                                    else
+                                        (parent.value * 100).toFixed(0) + qsTr(" %")
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.leftMargin: 150
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(console setting)")
                         }
                     }
                 }

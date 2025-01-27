@@ -111,6 +111,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
 	this->audio_video_disabled = settings->GetAudioVideoDisabled();
+	this->haptic_override = settings->GetHapticOverride();
+	this->trigger_override = settings->GetTriggerOverride();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
@@ -269,6 +271,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	dpad_touch_shortcut2 = connect_info.dpad_touch_shortcut2;
 	dpad_touch_shortcut3 = connect_info.dpad_touch_shortcut3;
 	dpad_touch_shortcut4 = connect_info.dpad_touch_shortcut4;
+	haptic_override = connect_info.haptic_override;
+	trigger_override = connect_info.trigger_override;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)
 	{
@@ -1551,8 +1555,9 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
-		if(ps5_haptic_intensity < 0.01)
+		if(ps5_haptic_intensity < 0.01 || haptic_override < 0.01)
 			return;
+		float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps5_haptic_intensity;
 		if(buf_size != 120)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
@@ -1569,10 +1574,14 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		{
 			size_t cur = i * sample_size;
 			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
-			amplitudel *= ps5_haptic_intensity;
+			int32_t adjustedl = (int32_t)amplitudel * intensity;
+			adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
+			amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
 			packetl.haptic_packet[i] = amplitudel;
 			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
-			amplituder *= ps5_haptic_intensity;
+			int32_t adjustedr = (int32_t)amplituder * intensity;
+			adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
+			amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
 			packetr.haptic_packet[i] = amplituder;
 		}
 		emit SdeckHapticPushed(packetl, packetr);
@@ -1647,6 +1656,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	if(ps5_haptic_intensity < 0.01)
 		return;
+	float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps5_haptic_intensity;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
@@ -1657,8 +1667,16 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
-		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 4)) *= ps5_haptic_intensity;
-		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 6)) *= ps5_haptic_intensity;
+		int16_t amplitudel = (*(int16_t *)(haptics_resampler_buf + (i * 2) + 4));
+		int32_t adjustedl = (int32_t)amplitudel * intensity;
+		adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
+		amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
+		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 4)) = amplitudel;
+		int16_t amplituder = (*(int16_t *)(haptics_resampler_buf + (i * 2) + 6));
+		int32_t adjustedr = (int32_t)amplituder * intensity;
+		adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
+		amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
+		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 6)) = amplituder;
 	}
 	// Resample to 48kHZ
 	if (SDL_ConvertAudio(&cvt) != 0)
@@ -1698,6 +1716,7 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 {
 	// adjust trigger intensity for supported trigger types in DualSense firmware
 	// as reported by https://gist.github.com/Nielk1/6d54cc2c00d2201ccb8c2720ad7538db
+	float intensity = trigger_override < 0.99 || trigger_override > 1.01 ? trigger_override : ps5_trigger_intensity;
 	switch(type)
 	{
 		case 0x21:
@@ -1706,7 +1725,7 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 			// bytes 27-29 always set to strength value
 			uint32_t strength = ((buf[5] >> 3) & 0x07) + 1;
 			uint32_t force_zones = *(uint32_t *)(buf + 2);
-			uint32_t new_strength = strength * ps5_trigger_intensity;
+			uint32_t new_strength = strength * intensity;
 			new_strength = (new_strength > 0) ? (new_strength - 1) : 0;
 			new_strength = (new_strength > 7) ? 7 : new_strength;
 			uint32_t new_force_zones = 0;
@@ -1720,7 +1739,7 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 		}
 		case 0x25: {
 			uint8_t strength = buf[2] + 1;
-			strength *= ps5_trigger_intensity;
+			strength *= intensity;
 			strength = (strength > 0) ? (strength - 1) : 0;
 			strength = (strength > 7) ? 7 : strength;
 			buf[2] = strength;
@@ -1816,7 +1835,7 @@ void StreamSession::Event(ChiakiEvent *event)
 					break;
 				}
 				case Strong: {
-					ps5_haptic_intensity = 1;
+					ps5_haptic_intensity = 1.0;
 					break;
 				}
 				case Weak: {
@@ -1854,7 +1873,7 @@ void StreamSession::Event(ChiakiEvent *event)
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
 			// If triggers off, return
-			if(ps5_trigger_intensity < 0.01)
+			if(ps5_trigger_intensity < 0.01 || trigger_override < 0.01)
 				return;
 			uint8_t type_left = event->trigger_effects.type_left;
 			uint8_t data_left[10];
