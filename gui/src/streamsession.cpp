@@ -12,6 +12,7 @@
 #include "../../lib/src/utils.h"
 
 #include <QKeyEvent>
+#include <QtMath>
 
 #include <cstring>
 
@@ -29,6 +30,7 @@
 #define PS5_TOUCHPAD_MAX_X 1919.0f
 #define PS5_TOUCHPAD_MAX_Y 1079.0f
 #define SESSION_RETRY_SECONDS 20
+#define HAPTIC_RUMBLE_MIN_STRENGTH 100
 
 #define MICROPHONE_SAMPLES 480
 #ifdef Q_OS_LINUX
@@ -1591,7 +1593,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	if((rumble_haptics_intensity != RumbleHapticsIntensity::Off) && haptics_output == 0)
 	{
 		int16_t amplitudel = 0, amplituder = 0;
-		int32_t suml = 0, sumr = 0;
+		uint32_t suml = 0, sumr = 0;
 		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples
 
 		size_t buf_count = buf_size / sample_size;
@@ -1600,37 +1602,40 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 
 			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
 			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
-			suml += amplitudel;
-			sumr += amplituder;
+			suml += static_cast<uint32_t>(qFabs(amplitudel)) * 2;
+			sumr += static_cast<uint32_t>(qFabs(amplituder)) * 2;
 		}
-		uint16_t left = 0, right = 0;
-		left = (suml / buf_count) + INT16_MAX;
-		right = (sumr / buf_count) + INT16_MAX;
-		uint32_t temp_left = 0;
-		uint32_t temp_right = 0;
+		uint32_t temp_left = (suml / buf_count);
+		uint32_t temp_right = (sumr / buf_count);
+		uint16_t left = 0;
+		uint16_t right = 0;
+		temp_left = (temp_left > HAPTIC_RUMBLE_MIN_STRENGTH) ? temp_left + 1000 : 0;
+		temp_right = (temp_right > HAPTIC_RUMBLE_MIN_STRENGTH) ? temp_right + 1000 : 0;
+		if(temp_left == 0 && temp_right == 0)
+			return;
 		switch(rumble_haptics_intensity)
 		{
 			case RumbleHapticsIntensity::VeryWeak:
-				left /= 50;
-				right /= 50;
+				left = temp_left / 5;
+				right = temp_right / 5;
 				break;
 			case RumbleHapticsIntensity::Weak:
-				left /=25;
-				right /=25;
+				left = temp_left / 2;
+				right = temp_right / 2;
 				break;
 			case RumbleHapticsIntensity::Normal:
-				break;
-			case RumbleHapticsIntensity::Strong:
-				temp_left = (uint32_t)left * 1.5;
-				temp_right = (uint32_t)right * 1.5;
-				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
-				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
 				left = temp_left;
 				right = temp_right;
 				break;
+			case RumbleHapticsIntensity::Strong:
+				temp_left *= 2;
+				temp_right *= 2;
+				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
+				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
+				break;
 			case RumbleHapticsIntensity::VeryStrong:
-				temp_left = (uint32_t)left * 2;
-				temp_right = (uint32_t)right * 2;
+				temp_left *= 5;
+				temp_right *= 5;
 				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
 				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
 				break;
@@ -1667,16 +1672,16 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
-		int16_t amplitudel = (*(int16_t *)(haptics_resampler_buf + (i * 2) + 4));
-		int32_t adjustedl = (int32_t)amplitudel * intensity;
+		int16_t amplitudel = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4));
+		int32_t adjustedl = static_cast<int32_t>(amplitudel) * intensity;
 		adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
 		amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
-		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 4)) = amplitudel;
-		int16_t amplituder = (*(int16_t *)(haptics_resampler_buf + (i * 2) + 6));
-		int32_t adjustedr = (int32_t)amplituder * intensity;
+		(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4)) = amplitudel;
+		int16_t amplituder = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6));
+		int32_t adjustedr = static_cast<int32_t>(amplituder) * intensity;
 		adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
 		amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
-		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 6)) = amplituder;
+		(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6)) = amplituder;
 	}
 	// Resample to 48kHZ
 	if (SDL_ConvertAudio(&cvt) != 0)
@@ -1724,7 +1729,7 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 		{
 			// bytes 27-29 always set to strength value
 			uint32_t strength = ((buf[5] >> 3) & 0x07) + 1;
-			uint32_t force_zones = *(uint32_t *)(buf + 2);
+			uint32_t force_zones = *reinterpret_cast<uint32_t *>(buf + 2);
 			uint32_t new_strength = strength * intensity;
 			new_strength = (new_strength > 0) ? (new_strength - 1) : 0;
 			new_strength = (new_strength > 7) ? 7 : new_strength;
@@ -1732,7 +1737,7 @@ void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
 			for (int i = 0; i < 10; i++)
 			{
 				if((((force_zones >> (3 * i)) & 0x07) + 1) == strength)
-					new_force_zones |= (uint32_t)(new_strength << (3 * i));
+					new_force_zones |= static_cast<uint32_t>(new_strength << (3 * i));
 			}
 			memcpy(buf + 2, &new_force_zones, 4);
 			break;
