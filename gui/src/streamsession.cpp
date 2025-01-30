@@ -182,7 +182,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	haptics_resampler_buf(nullptr),
 	holepunch_session(nullptr),
-	ps5_haptic_intensity(1),
+	ps_rumble_intensity(1),
 	ps5_trigger_intensity(1)
 {
 	mic_buf.buf = nullptr;
@@ -1557,9 +1557,9 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
-		if(ps5_haptic_intensity < 0.01 || haptic_override < 0.01)
+		if(ps_rumble_intensity < 0.01 || haptic_override < 0.01)
 			return;
-		float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps5_haptic_intensity;
+		float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps_rumble_intensity;
 		if(buf_size != 120)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
@@ -1659,9 +1659,9 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	}
 	if(haptics_output == 0)
 		return;
-	if(ps5_haptic_intensity < 0.01)
+	if(ps_rumble_intensity < 0.01)
 		return;
-	float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps5_haptic_intensity;
+	float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps_rumble_intensity;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
@@ -1790,9 +1790,11 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_RUMBLE: {
 			uint8_t left = event->rumble.left;
 			uint8_t right = event->rumble.right;
+			if(ps_rumble_intensity < 0.01)
+				return;
 			QMetaObject::invokeMethod(this, [this, left, right]() {
 				for(auto controller : controllers)
-					controller->SetRumble(left, right);
+					controller->SetRumble(left * ps_rumble_intensity, right * ps_rumble_intensity);
 			});
 			break;
 		}
@@ -1836,19 +1838,19 @@ void StreamSession::Event(ChiakiEvent *event)
 			switch(event->intensity)
 			{
 				case Off: {
-					ps5_haptic_intensity = 0;
+					ps_rumble_intensity = 0;
 					break;
 				}
 				case Strong: {
-					ps5_haptic_intensity = 1.0;
+					ps_rumble_intensity = 1.0;
 					break;
 				}
 				case Weak: {
-					ps5_haptic_intensity = 0.25;
+					ps_rumble_intensity = 0.25;
 					break;
 				}
 				case Medium: {
-					ps5_haptic_intensity = 0.5;
+					ps_rumble_intensity = 0.5;
 					break;
 				}
 			}

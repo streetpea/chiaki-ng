@@ -167,7 +167,7 @@ class StreamSession : public QObject
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
-		float ps5_haptic_intensity;
+		float ps_rumble_intensity;
 		float ps5_trigger_intensity;
 		uint8_t led_color[3];
 		QHash<int, Controller *> controllers;
