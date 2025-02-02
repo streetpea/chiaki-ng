@@ -183,7 +183,7 @@ signals:
     void currentControllerTypeChanged();
     void controllerMappingInProgressChanged();
     void controllerMappingDefaultMappingChanged();
-    void controllerMappingButtonSelected(QStringList original_button_map, int chiaki_button_value, QString chiaki_button_name);
+    void controllerMappingButtonSelected(QString button);
     void controllerMappingAlteredChanged();
     void controllerMappingSteamControllerSelected();
     void enableAnalogStickMappingChanged();

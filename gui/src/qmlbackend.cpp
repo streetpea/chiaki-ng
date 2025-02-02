@@ -1600,36 +1600,7 @@ void QmlBackend::controllerMappingChangeButton(QString button)
 {
     if(!controller_mapping_in_progress || !controller_mapping_controller)
         return;
-    QStringList mapping_selection = controller_mapping_applied_controller_mappings.value(button);
-	QMap<QString, int> button_map =
-	{
-		{"a", CHIAKI_CONTROLLER_BUTTON_CROSS},
-		{"b", CHIAKI_CONTROLLER_BUTTON_MOON},
-		{"x", CHIAKI_CONTROLLER_BUTTON_BOX},
-		{"y", CHIAKI_CONTROLLER_BUTTON_PYRAMID},
-		{"dpleft", CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT},
-		{"dpright", CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT},
-		{"dpup", CHIAKI_CONTROLLER_BUTTON_DPAD_UP},
-		{"dpdown", CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN},
-		{"leftshoulder", CHIAKI_CONTROLLER_BUTTON_L1},
-		{"rightshoulder", CHIAKI_CONTROLLER_BUTTON_R1},
-		{"leftstick", CHIAKI_CONTROLLER_BUTTON_L3},
-		{"rightstick", CHIAKI_CONTROLLER_BUTTON_R3},
-		{"start", CHIAKI_CONTROLLER_BUTTON_OPTIONS},
-		{"back", CHIAKI_CONTROLLER_BUTTON_SHARE},
-		{"touchpad", CHIAKI_CONTROLLER_BUTTON_TOUCHPAD},
-		{"guide", CHIAKI_CONTROLLER_BUTTON_PS},
-		{"lefttrigger", CHIAKI_CONTROLLER_ANALOG_BUTTON_L2},
-		{"righttrigger", CHIAKI_CONTROLLER_ANALOG_BUTTON_R2},
-		{"leftx", static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X)},
-		{"lefty", static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y)},
-		{"rightx", static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X)},
-		{"righty", static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y)},
-        {"misc1", static_cast<int>(ControllerButtonExt::MISC1)},
-	};
-    int chiaki_button_value = button_map.value(button);
-    QString chiaki_button_name = Settings::GetChiakiControllerButtonName(chiaki_button_value);
-    emit controllerMappingButtonSelected(std::move(mapping_selection), chiaki_button_value, std::move(chiaki_button_name));
+    emit controllerMappingButtonSelected(std::move(button));
 }
 
 void QmlBackend::updateButton(int chiaki_button, QString physical_button, int new_index)
@@ -1759,37 +1730,6 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
         {
             controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
         }
-    }
-    QStringList xbox_share_button_controllers;
-    xbox_share_button_controllers.append("Xbox One Controller");
-    xbox_share_button_controllers.append("Xbox Series X Controller");
-    xbox_share_button_controllers.append("Xbox Wireless Controller");
-    if((xbox_share_button_controllers.contains(controller_mapping_controller_type)) && !controller_mapping_physical_button_mappings.contains("b11"))
-    {
-        if(controller_mapping_controller_mappings.contains("misc1"))
-        {
-            QStringList individual_mapping_list = controller_mapping_controller_mappings.value("misc1");
-            individual_mapping_list.append("b11");
-            controller_mapping_controller_mappings.insert("misc1", individual_mapping_list);
-        }
-        else
-            controller_mapping_controller_mappings.insert("misc1", QStringList(QString("b11")));
-        controller_mapping_physical_button_mappings.insert("b11", "misc1");
-        controllerMappingApply();
-    }
-    QString stadia_controller = "Google Stadia Controller";
-    if((stadia_controller == controller_mapping_controller_type) && !controller_mapping_physical_button_mappings.contains("b16"))
-    {
-        if(controller_mapping_controller_mappings.contains("paddle1"))
-        {
-            QStringList individual_mapping_list = controller_mapping_controller_mappings.value("paddle1");
-            individual_mapping_list.append("b16");
-            controller_mapping_controller_mappings.insert("paddle1", individual_mapping_list);
-        }
-        else
-            controller_mapping_controller_mappings.insert("paddle1", QStringList(QString("b16")));
-        controller_mapping_physical_button_mappings.insert("b16", "paddle1");
-        controllerMappingApply();
     }
 
     controller_mapping_applied_controller_mappings = controller_mapping_controller_mappings;
