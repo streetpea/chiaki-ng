@@ -90,6 +90,7 @@ class Controller : public QObject
 		bool is_dualsense_edge;
 		bool has_led;
 		bool micbutton_push;
+		uint16_t firmware_version;
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		QMap<QPair<Sint64, Sint64>, uint8_t> touch_ids;
@@ -117,7 +118,8 @@ class Controller : public QObject
 		QString GetGUIDString();
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);
-		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
+		void SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength);
+		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t trigger_intensity);
 		void SetDualsenseMic(bool on);
 		void SetHapticRumble(uint16_t left, uint16_t right, int ms);
 		void StartUpdatingMapping();

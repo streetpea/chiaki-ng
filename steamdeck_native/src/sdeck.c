@@ -343,10 +343,10 @@ void find_repeat(double * data, const int num_samples, const double frequency, c
 	const int repeat_max = 20;
 	*total_avg = 0;
 	*repeat_count = 0;
-	printf("\ninterval length is %i, num_samples is: %i\n", interval_length, num_samples);
+	// printf("\ninterval length is %i, num_samples is: %i\n", interval_length, num_samples);
 	for (int i = 0; i < num_samples; i++)
 	{
-		avg += abs(data[i]);
+		avg += fabs(data[i]);
 		if ((i + 1) % interval_length == 0)
 		{
 			avg /= interval_length;
@@ -389,7 +389,7 @@ int play_pcm_haptic(SDeck *sdeck, uint8_t position, int16_t *buf, const int num_
 	avg = 5 * freq_power;
 	if (avg < avg_min)
 		return 0;
-	repeat = STEAM_DECK_HAPTIC_INTENSITY * num_elements * freq / (double)sampling_rate;
+	repeat = (STEAM_DECK_HAPTIC_INTENSITY * num_elements * freq) / (double)sampling_rate;
 	repeat = (repeat > 1) ? repeat : 1;
 	playtime = sdeck_haptic_ratio(sdeck, position, freq, interval, 0.2, repeat);
 	if (playtime < 0)

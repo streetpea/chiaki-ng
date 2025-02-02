@@ -88,6 +88,8 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool auto_regist;
+	float trigger_override;
+	float haptic_override;
 	ChiakiDisableAudioVideo audio_video_disabled;
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
@@ -166,7 +168,8 @@ class StreamSession : public QObject
 		bool cant_display = false;
 		int haptics_handheld;
 		float ps5_haptic_intensity;
-		float ps5_trigger_intensity;
+		int ps5_rumble_intensity;
+		int ps5_trigger_intensity;
 		uint8_t led_color[3];
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -202,6 +205,8 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		ChiakiControllerState dpad_touch_state;
 		uint16_t dpad_touch_increment;
+		float trigger_override;
+		float haptic_override;
 		bool dpad_regular;
 		bool dpad_regular_touch_switched;
 		uint dpad_touch_shortcut1;
