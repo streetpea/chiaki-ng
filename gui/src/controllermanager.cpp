@@ -32,7 +32,7 @@ typedef struct
     Uint8 rgucRightTriggerEffect[11];   /* 10 */
     Uint8 rgucLeftTriggerEffect[11];    /* 21 */
     Uint8 rgucUnknown1[6];              /* 32 */
-    Uint8 ucLedFlags;                   /* 38 */
+    Uint8 ucEnableBits3;                /* 38 */
     Uint8 rgucUnknown2[2];              /* 39 */
     Uint8 ucLedAnim;                    /* 41 */
     Uint8 ucLedBrightness;              /* 42 */
@@ -318,7 +318,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 
 Controller::Controller(int device_id, ControllerManager *manager)
 : QObject(manager), ref(0), last_motion_timestamp(0), micbutton_push(false), is_dualsense(false),
-  is_dualsense_edge(false), has_led(false), updating_mapping_button(false), is_handheld(false),
+  is_dualsense_edge(false), has_led(false), firmware_version(0), updating_mapping_button(false), is_handheld(false),
   is_steam_virtual(false), is_steam_virtual_unmasked(false), enable_analog_stick_mapping(false)
 {
 	this->id = device_id;
@@ -346,6 +346,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
+			firmware_version = SDL_GameControllerGetFirmwareVersion(controller);
 			SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
 			SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
 			auto guid_controller_id = QPair<uint16_t, uint16_t>(0, 0);
@@ -372,7 +373,7 @@ Controller::~Controller()
 	{
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
-		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
+		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x07);
 		SDL_GameControllerClose(controller);
 	}
 #endif
@@ -854,6 +855,28 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 #endif
 }
 
+void Controller::SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength)
+{
+	DS5EffectsState_t state;
+	SDL_zero(state);
+	if(firmware_version < 0x0224)
+	{
+		state.ucEnableBits1 |= 0x01;
+		state.ucRumbleLeft = left >> 1;
+		state.ucRumbleRight = right >> 1;
+	}
+	else
+	{
+		state.ucEnableBits3 |= 0x04;
+		state.ucRumbleLeft = left;
+		state.ucRumbleRight = right;
+	}
+	state.rgucUnknown1[4] = strength;
+	state.ucEnableBits1 |= 0x02;
+	state.ucEnableBits2 |= 0x40;
+	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
+}
+
 void Controller::ChangeLEDColor(const uint8_t *led_color)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -863,7 +886,7 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 #endif
 }
 
-void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
+void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t strength)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if((!is_dualsense && !is_dualsense_edge) || !controller)
@@ -871,6 +894,8 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 	DS5EffectsState_t state;
 	SDL_zero(state);
 	state.ucEnableBits1 |= (0x04 /* left trigger */ | 0x08 /* right trigger */);
+	state.rgucUnknown1[4] = strength;
+	state.ucEnableBits2 |= 0x40;
 	state.rgucLeftTriggerEffect[0] = type_left;
 	SDL_memcpy(state.rgucLeftTriggerEffect + 1, data_left, 10);
 	state.rgucRightTriggerEffect[0] = type_right;

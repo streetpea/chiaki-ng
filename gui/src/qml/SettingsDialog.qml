@@ -2129,9 +2129,9 @@ DialogView {
                             stepSize: 0.1
                             value: Chiaki.settings.hapticOverride
                             onMoved: Chiaki.settings.hapticOverride = value;
-                            KeyNavigation.down: triggerOverride
                             KeyNavigation.left: hapticOverride
                             KeyNavigation.right: hapticOverride
+                            lastInFocusChain: true
                             KeyNavigation.up: posButtons
                             Label {
                                 anchors {
@@ -2151,50 +2151,6 @@ DialogView {
                         Label {
                             Layout.alignment: Qt.AlignRight
                             Layout.leftMargin: 200
-                            text: qsTr("(console setting)")
-                        }
-                    }
-                    RowLayout {
-                        spacing: 10
-                        Layout.alignment: Qt.AlignHCenter
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("Adaptive Trigger Intensity:")
-                        }
-
-                        C.Slider {
-                            id: triggerOverride
-                            Layout.preferredWidth: 250
-                            from: 0
-                            to: 2
-                            stepSize: 0.1
-                            value: Chiaki.settings.triggerOverride
-                            onMoved: Chiaki.settings.triggerOverride = value;
-
-                            KeyNavigation.down: triggerOverride
-                            KeyNavigation.left: triggerOverride
-                            KeyNavigation.right: triggerOverride
-                            KeyNavigation.up: hapticOverride
-                            lastInFocusChain: true
-
-                            Label {
-                                anchors {
-                                    left: parent.right
-                                    verticalCenter: parent.verticalCenter
-                                    leftMargin: 10
-                                }
-                                text: {
-                                    if(parent.value > 0.99 && parent.value < 1.01)
-                                        qsTr("console setting")
-                                    else
-                                        (parent.value * 100).toFixed(0) + qsTr(" %")
-                                }
-                            }
-                        }
-
-                        Label {
-                            Layout.leftMargin: 200
-                            Layout.alignment: Qt.AlignRight
                             text: qsTr("(console setting)")
                         }
                     }

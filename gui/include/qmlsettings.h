@@ -28,7 +28,6 @@ class QmlSettings : public QObject
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
 #endif
-    Q_PROPERTY(float triggerOverride READ triggerOverride WRITE setTriggerOverride NOTIFY triggerOverrideChanged)
     Q_PROPERTY(float hapticOverride READ hapticOverride WRITE setHapticOverride NOTIFY hapticOverrideChanged)
     Q_PROPERTY(int displayTargetContrast READ displayTargetContrast WRITE setDisplayTargetContrast NOTIFY displayTargetContrastChanged)
     Q_PROPERTY(int displayTargetPeak READ displayTargetPeak WRITE setDisplayTargetPeak NOTIFY displayTargetPeakChanged)
@@ -216,9 +215,6 @@ public:
 
     float hapticOverride() const;
     void setHapticOverride(float override);
-
-    float triggerOverride() const;
-    void setTriggerOverride(float override);
 
     int fpsLocalPS4() const;
     void setFpsLocalPS4(int fps);
@@ -549,7 +545,6 @@ signals:
     void addSteamShortcutAskChanged();
     void hideCursorChanged();
     void hapticOverrideChanged();
-    void triggerOverrideChanged();
     void audioVideoDisabledChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();
