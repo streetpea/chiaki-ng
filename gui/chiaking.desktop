@@ -4,4 +4,4 @@ Name=chiaki-ng
 Comment=PlayStation Remote Play Client
 Exec=chiaki
 Icon=chiaking
-Categories=Game;
+Categories=Game;Network;RemoteAccess;
