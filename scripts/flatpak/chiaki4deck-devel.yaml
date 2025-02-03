@@ -105,40 +105,6 @@ modules:
         url: https://files.pythonhosted.org/packages/ba/dd/f8a01b146bf45ac12a829bbc599e6590aa6a6849ace7d28c42d77041d6ab/protobuf-4.21.12.tar.gz
         sha256: 7cd532c4566d0e6feafecc1059d04c7915aec8e182d1cf7adee8b24ef1e2e6ab
 
-  - name: libpipewire
-    buildsystem: meson
-    config-opts:
-      - -Dexamples=disabled
-      - -Daudiotestsrc=disabled
-      - -Djack=disabled
-      - -Droc=disabled
-      - -Dvideotestsrc=disabled
-      - -Dvolume=disabled
-      - -Dvulkan=disabled
-      - -Ddocs=disabled
-      - -Dman=disabled
-      - -Dbluez5-codec-ldac=disabled
-      - -Dbluez5-codec-aptx=disabled
-      - -Dlibcamera=disabled
-      - -Dpipewire-v4l2=disabled
-      - -Dlibcanberra=disabled
-      - -Dbluez5-codec-lc3=disabled
-      - -Dbluez5-codec-lc3plus=disabled
-      - -Dlv2=disabled
-      - -Dsystemd=disabled
-      - -Dsdl2=disabled
-      - -Dsession-managers=[]
-      - -Dudevrulesdir=$(pkg-config --variable=udevdir udev)/rules.d
-    cleanup:
-      - /etc
-      - /bin
-      - /include
-      - /lib/pkgconfig
-    sources:
-      - type: git
-        url: https://gitlab.freedesktop.org/pipewire/pipewire.git
-        tag: 0.3.62
-
   - name: python3-requests
     buildsystem: simple
     build-commands:
