@@ -245,6 +245,9 @@ class Settings : public QObject
 		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
 
+		bool GetShowStreamStats() const            { return settings.value("settings/show_stream_stats", false).toBool(); }
+		void SetShowStreamStats(bool enabled)      { settings.setValue("settings/show_stream_stats", enabled); }
+
 		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
 		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
 

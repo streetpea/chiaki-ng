@@ -193,6 +193,99 @@ Item {
     }
 
     Item {
+        id: streamStats
+        anchors.fill: parent
+        visible: Chiaki.settings.showStreamStats && !menuView.visible && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
+        Label {
+            anchors {
+                right: statsConsoleNameLabel.right
+                bottom: statsConsoleNameLabel.top
+                bottomMargin: 5
+                rightMargin: 5
+
+            }
+            text: "Mbps"
+            font.pixelSize: 18
+            visible: Chiaki.session
+
+            Label {
+                anchors {
+                    right: parent.left
+                    baseline: parent.baseline
+                    rightMargin: 5
+                }
+                text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
+                color: Material.accent
+                font.bold: true
+                font.pixelSize: 28
+            }
+        }
+
+        Label {
+            id: statsConsoleNameLabel
+            anchors {
+                right: parent.right
+                bottom: parent.bottom
+                bottomMargin: 30
+            }
+            ColumnLayout {
+                anchors {
+                    right: parent.right
+                    top: parent.top
+                    bottom: parent.bottom
+                    rightMargin: 5
+                }
+                RowLayout {
+                    Layout.alignment: Qt.AlignRight
+                    Label {
+                        id: statsPacketLossLabel
+                        text: qsTr("packet loss")
+                        font.pixelSize: 15
+                        opacity: parent.visible
+                        visible: opacity
+
+                        Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                        Label {
+                            anchors {
+                                right: parent.left
+                                baseline: parent.baseline
+                                rightMargin: 5
+                            }
+                            text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
+                            font.bold: true
+                            color: "#ef9a9a" // Material.Red
+                            font.pixelSize: 18
+                        }
+                    }
+                }
+
+                Label {
+                    text: qsTr("dropped frames")
+                    font.pixelSize: 15
+                    opacity: parent.visible
+                    visible: opacity
+
+                    Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                    Label {
+                        id: statsDroppedFramesLabel
+                        anchors {
+                            right: parent.left
+                            baseline: parent.baseline
+                            rightMargin: 5
+                        }
+                        text: visible ? Chiaki.window.droppedFrames : ""
+                        color: "#ef9a9a" // Material.Red
+                        font.bold: true
+                        font.pixelSize: 18
+                    }
+                }
+            }
+        }
+    }
+
+    Item {
         id: menuView
         property bool closing: false
         anchors {

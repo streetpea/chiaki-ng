@@ -1408,7 +1408,6 @@ DialogView {
 
                         C.Slider {
                             Layout.preferredWidth: 250
-                            lastInFocusChain: true
                             from: 0
                             to: 100
                             stepSize: 1
@@ -1429,6 +1428,21 @@ DialogView {
                         Label {
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("(5%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Show Stream Stats During Gameplay")
+                        }
+                        C.CheckBox {
+                            lastInFocusChain: true
+                            checked: Chiaki.settings.showStreamStats
+                            onToggled: Chiaki.settings.showStreamStats = !Chiaki.settings.showStreamStats
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
                         }
                     }
                 }
@@ -2180,6 +2194,7 @@ DialogView {
 
                     C.Button {
                         id: profile
+                        firstInFocusChain: true
                         text: qsTr("Manage Profiles")
                         onClicked: {
                             root.showProfileDialog()

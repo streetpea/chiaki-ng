@@ -59,6 +59,17 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
+bool QmlSettings::showStreamStats() const
+{
+    return settings->GetShowStreamStats();
+}
+
+void QmlSettings::setShowStreamStats(bool enabled)
+{
+    settings->SetShowStreamStats(enabled);
+    emit showStreamStatsChanged();
+}
+
 float QmlSettings::hapticOverride() const
 {
     return settings->GetHapticOverride();
@@ -1534,6 +1545,7 @@ void QmlSettings::refreshAllKeys()
     emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();
     emit startMicUnmutedChanged();
+    emit showStreamStatsChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     emit verticalDeckChanged();
     emit steamDeckHapticsChanged();
