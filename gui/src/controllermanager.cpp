@@ -389,7 +389,7 @@ Controller::~Controller()
 	{
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
-		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x07);
+		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x00);
 		SDL_GameControllerClose(controller);
 	}
 #endif

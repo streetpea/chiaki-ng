@@ -198,6 +198,9 @@ class StreamSession : public QObject
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
 #endif
+		QQueue<uint8_t> ds_rumble_haptics;
+		bool ds_rumble_haptics_connected;
+		bool ds_rumble_haptics_on;
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
 		ChiakiControllerState touch_state;
@@ -277,6 +280,8 @@ class StreamSession : public QObject
 		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void ConnectSdeckHaptics();
 #endif
+		void DualSenseQueueRumbleHaptics(uint8_t strength);
+		void ConnectDualSenseRumbleHaptics();
 
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
@@ -320,6 +325,7 @@ class StreamSession : public QObject
 
 	signals:
 		void FfmpegFrameAvailable();
+		void DualSenseRumbleHapticPushed(uint8_t strength);
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
 #endif

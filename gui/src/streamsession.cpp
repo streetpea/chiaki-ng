@@ -22,6 +22,7 @@
 #define NEW_DPAD_TOUCH_INTERVAL_MS 500
 #define DPAD_TOUCH_UPDATE_INTERVAL_MS 10
 #define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 4 // send packets every interval * packets per analysis
+#define DUALSENSE_HAPTIC_PACKETS_PER_RUMBLE 3
 #define STEAMDECK_HAPTIC_SAMPLING_RATE 3000
 // DualShock4 touchpad is 1920 x 942
 #define PS4_TOUCHPAD_MAX_X 1920.0f
@@ -183,7 +184,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	holepunch_session(nullptr),
 	ps5_haptic_intensity(1),
 	ps5_rumble_intensity(0),
-	ps5_trigger_intensity(0x07)
+	ps5_trigger_intensity(0x07),
+	ds_rumble_haptics_connected(false),
+	ds_rumble_haptics_on(false)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -1341,6 +1344,71 @@ void StreamSession::DisconnectHaptics()
 	}
 }
 
+void StreamSession::ConnectDualSenseRumbleHaptics()
+{
+	if(ds_rumble_haptics_connected)
+		return;
+	ds_rumble_haptics = {};
+	ds_rumble_haptics.reserve(20);
+	connect(this, &StreamSession::DualSenseRumbleHapticPushed, this, &StreamSession::DualSenseQueueRumbleHaptics);
+	auto ds_rumble_haptics_interval = DUALSENSE_HAPTIC_PACKETS_PER_RUMBLE * 10;
+	auto ds_rumble_haptics_timer = new QTimer(this);
+	connect(ds_rumble_haptics_timer, &QTimer::timeout, this, [this]{
+		bool changed = false;
+		uint16_t strength = 0;
+		uint8_t ds_intensity = 0;
+		switch(rumble_haptics_intensity)
+		{
+				case RumbleHapticsIntensity::VeryWeak:
+					ds_intensity = 4;
+					break;
+				case RumbleHapticsIntensity::Weak:
+					ds_intensity = 3;
+					break;
+				case RumbleHapticsIntensity::Normal:
+					ds_intensity = 2;
+					break;
+				case RumbleHapticsIntensity::Strong:
+					ds_intensity = 1;
+					break;
+				case RumbleHapticsIntensity::VeryStrong:
+					ds_intensity = 0;
+					break;
+				default:
+					break;
+		}
+		for(size_t i = 0; i < DUALSENSE_HAPTIC_PACKETS_PER_RUMBLE; i++)
+		{
+			if(!ds_rumble_haptics.isEmpty())
+				strength += ds_rumble_haptics.dequeue();
+		}
+		strength /= DUALSENSE_HAPTIC_PACKETS_PER_RUMBLE;
+		if(strength > 0 || ds_rumble_haptics_on)
+		{
+			QMetaObject::invokeMethod(this, [this, strength, ds_intensity]() {
+				for(auto controller : controllers)
+				{
+					if(controller->IsDualSense())
+						controller->SetDualSenseRumble(strength, strength, ds_intensity);
+				}
+			});
+		}
+		if(strength > 0)
+			ds_rumble_haptics_on = true;
+		else
+			ds_rumble_haptics_on = false;
+	});
+	ds_rumble_haptics_timer->start(ds_rumble_haptics_interval);
+	ds_rumble_haptics_connected = true;
+}
+
+void StreamSession::DualSenseQueueRumbleHaptics(uint8_t strength)
+{
+	if(!ds_rumble_haptics_connected)
+		return;
+	ds_rumble_haptics.enqueue(strength);
+}
+
 void StreamSession::ConnectHaptics()
 {
 	if (this->haptics_output > 0)
@@ -1351,6 +1419,7 @@ void StreamSession::ConnectHaptics()
 	if (!haptics_resampler_buf)
 	{
 		CHIAKI_LOGW(this->log.GetChiakiLog(), "Haptics resampler buf wasn't allocated, can't use haptics.");
+		ConnectDualSenseRumbleHaptics();
 		return;
 	}
 #ifdef Q_OS_MACOS
@@ -1383,6 +1452,7 @@ void StreamSession::ConnectHaptics()
 		return;
 	}
 	CHIAKI_LOGW(log.GetChiakiLog(), "DualSense features were enabled and a DualSense is connected, but could not find the DualSense audio device!");
+	ConnectDualSenseRumbleHaptics();
 	return;
 }
 
@@ -1606,6 +1676,8 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		}
 		uint32_t temp_left = (suml / buf_count);
 		uint32_t temp_right = (sumr / buf_count);
+		uint16_t original_strength = (temp_left > temp_right) ? temp_left : temp_right;
+		uint8_t dualsense_strength = ((original_strength >> 8) > 1) ? (original_strength >> 8) : 1;
 		uint16_t left = 0;
 		uint16_t right = 0;
 		temp_left = (temp_left > HAPTIC_RUMBLE_MIN_STRENGTH) ? temp_left : 0;
@@ -1638,11 +1710,15 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
 				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
 				break;
+			default:
+				left = temp_left;
+				right = temp_right;
+				break;
 		}
 		// Set minimum rumble value if above rumble min for controllers that shift up to 9 bits when rumbling
 		left = ((left > 0 && left < (1 << 9)) ? (1 << 9) : left);
 		right = ((right > 0 && right < (1 << 9)) ? (1 << 9) : right);
-		QMetaObject::invokeMethod(this, [this, left, right]() {
+		QMetaObject::invokeMethod(this, [this, left, right, dualsense_strength]() {
 			for(auto controller : controllers)
 			{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -1651,10 +1727,11 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 				if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
 					continue;
-				if(left > right)
-					controller->SetHapticRumble(left, left, 10);
+				uint16_t strength = (left > right) ? left : right;
+				if(controller->IsDualSense())
+					emit DualSenseRumbleHapticPushed(dualsense_strength);
 				else
-					controller->SetHapticRumble(right, right, 10);
+					controller->SetHapticRumble(strength, strength, 10);
 			}
 		});
 		return;
@@ -1758,9 +1835,9 @@ void StreamSession::Event(ChiakiEvent *event)
 			QMetaObject::invokeMethod(this, [this, left, right]() {
 				for(auto controller : controllers)
 				{
-					if((ps5_rumble_intensity > -1 || (left == 0 && right == 0)))
+					if(ps5_rumble_intensity > -1)
 					{
-						if(controller->IsDualSense() || false)
+						if(controller->IsDualSense())
 							controller->SetDualSenseRumble(left, right, ps5_rumble_intensity);
 						else
 							controller->SetRumble(left, right);
