@@ -121,7 +121,7 @@ class Controller : public QObject
 		void SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength);
 		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t trigger_intensity);
 		void SetDualsenseMic(bool on);
-		void SetHapticRumble(uint16_t left, uint16_t right, int ms);
+		void SetHapticRumble(uint16_t left, uint16_t right);
 		void StartUpdatingMapping();
 		void IsUpdatingMappingButton(bool is_updating_mapping_button);
 		void EnableAnalogStickMapping(bool enabled);

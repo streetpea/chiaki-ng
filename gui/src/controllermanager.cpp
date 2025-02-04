@@ -390,6 +390,7 @@ Controller::~Controller()
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
 		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x00);
+		this->SetRumble(0,0);
 		SDL_GameControllerClose(controller);
 	}
 #endif
@@ -830,12 +831,12 @@ void Controller::SetDualsenseMic(bool on)
 #endif
 }
 
-void Controller::SetHapticRumble(uint16_t left, uint16_t right, int ms)
+void Controller::SetHapticRumble(uint16_t left, uint16_t right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	SDL_GameControllerRumble(controller, left, right, ms);
+	SDL_GameControllerRumble(controller, left, right, 5000);
 #endif
 }
 
