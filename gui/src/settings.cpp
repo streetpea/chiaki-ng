@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <settings.h>
+#include <SDL.h>
 #include <QFile>
 #include <QFileInfo>
 #include <QUrl>
@@ -304,6 +305,26 @@ uint32_t Settings::GetLogLevelMask()
 	return mask;
 }
 
+QRect Settings::GetGeometry() const
+{
+	return settings.value("settings/geometry", QRect()).toRect();
+}
+
+void Settings::SetGeometry(QRect geometry)
+{
+	settings.setValue("settings/geometry", geometry);
+}
+
+QRect Settings::GetStreamGeometry() const
+{
+	return settings.value("settings/stream_geometry", QRect()).toRect();
+}
+
+void Settings::SetStreamGeometry(QRect geometry)
+{
+	settings.setValue("settings/stream_geometry", geometry);
+}
+
 static const QMap<RumbleHapticsIntensity, QString> intensities = {
 	{ RumbleHapticsIntensity::Off, "Off" },
 	{ RumbleHapticsIntensity::VeryWeak, "Very weak"},
@@ -519,7 +540,7 @@ void Settings::SetCodecRemotePS5(ChiakiCodec codec)
 
 unsigned int Settings::GetAudioBufferSizeDefault() const
 {
-	return 5760;
+	return 9600;
 }
 
 unsigned int Settings::GetAudioBufferSizeRaw() const
@@ -592,6 +613,7 @@ void Settings::SetPacketLossMax(float packet_loss_max)
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
 	{ WindowType::CustomResolution, "Custom Resolution"},
+	{ WindowType::AdjustableResolution, "Adjust Manually"},
 	{ WindowType::Fullscreen, "Fullscreen" },
 	{ WindowType::Zoom, "Zoom" },
 	{ WindowType::Stretch, "Stretch" }
@@ -647,6 +669,16 @@ QString Settings::GetHardwareDecoder() const
 void Settings::SetHardwareDecoder(const QString &hw_decoder)
 {
 	settings.setValue("settings/hw_decoder", hw_decoder);
+}
+
+int Settings::GetAudioVolume() const
+{
+	return settings.value("settings/audio_volume", SDL_MIX_MAXVOLUME).toInt();
+}
+
+void Settings::SetAudioVolume(int volume)
+{
+	settings.setValue("settings/audio_volume", volume);
 }
 
 unsigned int Settings::GetAudioBufferSize() const

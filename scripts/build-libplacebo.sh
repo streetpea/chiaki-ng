@@ -18,4 +18,3 @@ DIR=./build || exit 1
 meson setup --prefix /usr -Dxxhash=disabled $DIR || exit 1
 ninja -C$DIR || exit 1
 ninja -Cbuild install || exit 1
-ln -s /usr/local/lib/lib

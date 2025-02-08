@@ -10,7 +10,7 @@ Pane {
     id: consolePane
     StackView.onActivated: {
         forceActiveFocus(Qt.TabFocusReason);
-        if(!root.initialAsk)
+        if(!Chiaki.autoConnect && !root.initialAsk && !Chiaki.window.directStream)
         {
             root.initialAsk = true;
             if(Chiaki.settings.addSteamShortcutAsk && (typeof Chiaki.createSteamShortcut === "function"))
@@ -18,10 +18,7 @@ Pane {
             else if(Chiaki.settings.remotePlayAsk)
             {
                 if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
-                {
-                    Chiaki.settings.remotePlayAsk = false;
                     root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN?\nThis enables:\n- Automatic registration\n- Playing outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
-                }
                 else
                     Chiaki.settings.remotePlayAsk = false;
             }

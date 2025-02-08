@@ -32,7 +32,7 @@ typedef struct
     Uint8 rgucRightTriggerEffect[11];   /* 10 */
     Uint8 rgucLeftTriggerEffect[11];    /* 21 */
     Uint8 rgucUnknown1[6];              /* 32 */
-    Uint8 ucLedFlags;                   /* 38 */
+    Uint8 ucEnableBits3;                /* 38 */
     Uint8 rgucUnknown2[2];              /* 39 */
     Uint8 ucLedAnim;                    /* 41 */
     Uint8 ucLedBrightness;              /* 42 */
@@ -230,6 +230,10 @@ void ControllerManager::HandleEvents()
 			case SDL_JOYDEVICEREMOVED:
 				UpdateAvailableControllers();
 				break;
+			case SDL_JOYAXISMOTION:
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+			case SDL_JOYHATMOTION:
 			case SDL_CONTROLLERBUTTONUP:
 			case SDL_CONTROLLERBUTTONDOWN:
 			case SDL_CONTROLLERAXISMOTION:
@@ -254,7 +258,6 @@ void ControllerManager::ControllerEvent(SDL_Event event)
 	switch(event.type)
 	{
 		case SDL_CONTROLLERBUTTONDOWN:
-			start_updating_mapping = true;
 			device_id = event.cbutton.which;
 			break;
 		case SDL_CONTROLLERBUTTONUP:
@@ -268,7 +271,6 @@ void ControllerManager::ControllerEvent(SDL_Event event)
 			device_id = event.csensor.which;
 			break;
 		case SDL_CONTROLLERTOUCHPADDOWN:
-			start_updating_mapping = true;
 			device_id = event.ctouchpad.which;
 			break;
 		case SDL_CONTROLLERTOUCHPADMOTION:
@@ -276,6 +278,20 @@ void ControllerManager::ControllerEvent(SDL_Event event)
 			device_id = event.ctouchpad.which;
 			break;
 #endif
+		case SDL_JOYAXISMOTION:
+			device_id = event.jaxis.which;
+			break;
+		case SDL_JOYBUTTONDOWN:
+			start_updating_mapping = true;
+			device_id = event.jbutton.which;
+			break;
+		case SDL_JOYBUTTONUP:
+			device_id = event.jbutton.which;
+			break;
+		case SDL_JOYHATMOTION:
+			start_updating_mapping = true;
+			device_id = event.jhat.which;
+			break;
 		default:
 			return;
 	}
@@ -318,7 +334,7 @@ void ControllerManager::ControllerClosed(Controller *controller)
 
 Controller::Controller(int device_id, ControllerManager *manager)
 : QObject(manager), ref(0), last_motion_timestamp(0), micbutton_push(false), is_dualsense(false),
-  is_dualsense_edge(false), has_led(false), updating_mapping_button(false), is_handheld(false),
+  is_dualsense_edge(false), has_led(false), firmware_version(0), updating_mapping_button(false), is_handheld(false),
   is_steam_virtual(false), is_steam_virtual_unmasked(false), enable_analog_stick_mapping(false)
 {
 	this->id = device_id;
@@ -346,6 +362,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 			is_dualsense = chiaki_dualsense_controller_ids.contains(controller_id);
 			is_handheld = chiaki_handheld_controller_ids.contains(controller_id);
 			is_dualsense_edge = chiaki_dualsense_edge_controller_ids.contains(controller_id);
+			firmware_version = SDL_GameControllerGetFirmwareVersion(controller);
 			SDL_Joystick *js = SDL_GameControllerGetJoystick(controller);
 			SDL_JoystickGUID guid = SDL_JoystickGetGUID(js);
 			auto guid_controller_id = QPair<uint16_t, uint16_t>(0, 0);
@@ -372,7 +389,8 @@ Controller::~Controller()
 	{
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
-		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
+		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x00);
+		this->SetRumble(0,0);
 		SDL_GameControllerClose(controller);
 	}
 #endif
@@ -398,6 +416,29 @@ void Controller::UpdateState(SDL_Event event)
 {
 	switch(event.type)
 	{
+		case SDL_JOYAXISMOTION:
+			if(updating_mapping_button && enable_analog_stick_mapping)
+			{
+				emit NewButtonMapping(QString("a%1").arg(QString::number(event.jaxis.axis)));
+				updating_mapping_button = false;
+			}
+			return;
+		case SDL_JOYBUTTONDOWN:
+			if(updating_mapping_button)
+			{
+				emit NewButtonMapping(QString("b%1").arg(QString::number(event.jbutton.button)));
+				updating_mapping_button = false;
+			}
+			return;
+		case SDL_JOYBUTTONUP:
+			return;
+		case SDL_JOYHATMOTION:
+			if(updating_mapping_button)
+			{
+				emit NewButtonMapping(QString("h%1.%2").arg(QString::number(event.jhat.hat)).arg(QString::number(event.jhat.value)));
+				updating_mapping_button = false;
+			}
+			return;
 		case SDL_CONTROLLERBUTTONDOWN:
 		case SDL_CONTROLLERBUTTONUP:
 			if(!HandleButtonEvent(event.cbutton))
@@ -431,168 +472,63 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 	switch(event.button)
 	{
 		case SDL_CONTROLLER_BUTTON_A:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("a");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_CROSS;
 			break;
 		case SDL_CONTROLLER_BUTTON_B:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("b");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_MOON;
 			break;
 		case SDL_CONTROLLER_BUTTON_X:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("x");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_BOX;
 			break;
 		case SDL_CONTROLLER_BUTTON_Y:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("y");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_PYRAMID;
 			break;
 		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("dpleft");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
 			break;
 		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("dpright");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
 			break;
 		case SDL_CONTROLLER_BUTTON_DPAD_UP:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("dpup");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
 			break;
 		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("dpdown");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
 			break;
 		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("leftshoulder");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_L1;
 			break;
 		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("rightshoulder");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_R1;
 			break;
 		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("leftstick");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_L3;
 			break;
 		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("rightstick");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_R3;
 			break;
 		case SDL_CONTROLLER_BUTTON_START:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("start");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_OPTIONS;
 			break;
 		case SDL_CONTROLLER_BUTTON_BACK:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("back");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_SHARE;
 			break;
 		case SDL_CONTROLLER_BUTTON_GUIDE:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("guide");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_PS;
 			break;
 		case SDL_CONTROLLER_BUTTON_MISC1:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("misc1");
-				updating_mapping_button = false;
-			}
 			micbutton_push = true;
 			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE1:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("paddle1");
-				updating_mapping_button = false;
-			}
 			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE2:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("paddle2");
-				updating_mapping_button = false;
-			}
 			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE3:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("paddle3");
-				updating_mapping_button = false;
-			}
 			return false;
 		case SDL_CONTROLLER_BUTTON_PADDLE4:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("paddle4");
-				updating_mapping_button = false;
-			}
 			return false;
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 		case SDL_CONTROLLER_BUTTON_TOUCHPAD:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("touchpad");
-				updating_mapping_button = false;
-			}
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 			break;
 #endif
@@ -622,51 +558,21 @@ inline bool Controller::HandleAxisEvent(SDL_ControllerAxisEvent event) {
 	switch(event.axis)
 	{
 		case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("lefttrigger");
-				updating_mapping_button = false;
-			}
 			state.l2_state = (uint8_t)(event.value >> 7);
 			break;
 		case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-			if(updating_mapping_button)
-			{
-				emit NewButtonMapping("righttrigger");
-				updating_mapping_button = false;
-			}
 			state.r2_state = (uint8_t)(event.value >> 7);
 			break;
 		case SDL_CONTROLLER_AXIS_LEFTX:
-			if(updating_mapping_button && enable_analog_stick_mapping)
-			{
-				emit NewButtonMapping("leftx");
-				updating_mapping_button = false;
-			}
 			state.left_x = event.value;
 			break;
 		case SDL_CONTROLLER_AXIS_LEFTY:
-			if(updating_mapping_button && enable_analog_stick_mapping)
-			{
-				emit NewButtonMapping("lefty");
-				updating_mapping_button = false;
-			}
 			state.left_y = event.value;
 			break;
 		case SDL_CONTROLLER_AXIS_RIGHTX:
-			if(updating_mapping_button && enable_analog_stick_mapping)
-			{
-				emit NewButtonMapping("rightx");
-				updating_mapping_button = false;
-			}
 			state.right_x = event.value;
 			break;
 		case SDL_CONTROLLER_AXIS_RIGHTY:
-			if(updating_mapping_button && enable_analog_stick_mapping)
-			{
-				emit NewButtonMapping("righty");
-				updating_mapping_button = false;
-			}
 			state.right_y = event.value;
 			break;
 		default:
@@ -854,6 +760,28 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 #endif
 }
 
+void Controller::SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength)
+{
+	DS5EffectsState_t state;
+	SDL_zero(state);
+	if(firmware_version < 0x0224)
+	{
+		state.ucEnableBits1 |= 0x01;
+		state.ucRumbleLeft = left >> 1;
+		state.ucRumbleRight = right >> 1;
+	}
+	else
+	{
+		state.ucEnableBits3 |= 0x04;
+		state.ucRumbleLeft = left;
+		state.ucRumbleRight = right;
+	}
+	state.rgucUnknown1[4] = strength;
+	state.ucEnableBits1 |= 0x02;
+	state.ucEnableBits2 |= 0x40;
+	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
+}
+
 void Controller::ChangeLEDColor(const uint8_t *led_color)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -863,7 +791,7 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 #endif
 }
 
-void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
+void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t strength)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if((!is_dualsense && !is_dualsense_edge) || !controller)
@@ -871,6 +799,8 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 	DS5EffectsState_t state;
 	SDL_zero(state);
 	state.ucEnableBits1 |= (0x04 /* left trigger */ | 0x08 /* right trigger */);
+	state.rgucUnknown1[4] = strength;
+	state.ucEnableBits2 |= 0x40;
 	state.rgucLeftTriggerEffect[0] = type_left;
 	SDL_memcpy(state.rgucLeftTriggerEffect + 1, data_left, 10);
 	state.rgucRightTriggerEffect[0] = type_right;
@@ -901,12 +831,12 @@ void Controller::SetDualsenseMic(bool on)
 #endif
 }
 
-void Controller::SetHapticRumble(uint16_t left, uint16_t right, int ms)
+void Controller::SetHapticRumble(uint16_t left, uint16_t right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	SDL_GameControllerRumble(controller, left, right, ms);
+	SDL_GameControllerRumble(controller, left, right, 5000);
 #endif
 }
 
@@ -960,15 +890,12 @@ bool Controller::IsSteamVirtualUnmasked()
 	return false;
 }
 
-void Controller::resetMotionControls(bool reset)
+void Controller::resetMotionControls()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	if(reset)
-		chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
-	else
-		chiaki_accel_new_zero_set_inactive(&accel_zero, false); 
+	chiaki_accel_new_zero_set_active(&accel_zero, real_accel.accel_x, real_accel.accel_y, real_accel.accel_z, false);
 	chiaki_orientation_tracker_init(&orientation_tracker);
 	chiaki_orientation_tracker_update(
 		&orientation_tracker, state.gyro_x, state.gyro_y, state.gyro_z,

@@ -59,6 +59,39 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
+bool QmlSettings::showStreamStats() const
+{
+    return settings->GetShowStreamStats();
+}
+
+void QmlSettings::setShowStreamStats(bool enabled)
+{
+    settings->SetShowStreamStats(enabled);
+    emit showStreamStatsChanged();
+}
+
+float QmlSettings::hapticOverride() const
+{
+    return settings->GetHapticOverride();
+}
+
+void QmlSettings::setHapticOverride(float override)
+{
+    settings->SetHapticOverride(override);
+    emit hapticOverrideChanged();
+}
+
+int QmlSettings::audioVideoDisabled() const
+{
+    return static_cast<int>(settings->GetAudioVideoDisabled());
+}
+
+void QmlSettings::setAudioVideoDisabled(int disabled)
+{
+    settings->SetAudioVideoDisabled(static_cast<ChiakiDisableAudioVideo>(disabled));
+    emit audioVideoDisabledChanged();
+}
+
 int QmlSettings::resolutionLocalPS4() const
 {
     return settings->GetResolutionLocalPS4();
@@ -404,6 +437,17 @@ void QmlSettings::setAudioBufferSize(int size)
     emit audioBufferSizeChanged();
 }
 
+int QmlSettings::audioVolume() const
+{
+    return settings->GetAudioVolume();
+}
+
+void QmlSettings::setAudioVolume(int volume)
+{
+    settings->SetAudioVolume(volume);
+    emit audioVolumeChanged();
+}
+
 QString QmlSettings::audioInDevice() const
 {
     return settings->GetAudioInDevice();
@@ -643,6 +687,7 @@ void QmlSettings::setPlaceboUpscaler(int upscaler)
 {
     settings->SetPlaceboUpscaler(static_cast<PlaceboUpscaler>(upscaler));
     emit placeboUpscalerChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboPlaneUpscaler() const
@@ -653,6 +698,7 @@ void QmlSettings::setPlaceboPlaneUpscaler(int upscaler)
 {
     settings->SetPlaceboPlaneUpscaler(static_cast<PlaceboUpscaler>(upscaler));
     emit placeboPlaneUpscalerChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboDownscaler() const
@@ -663,6 +709,7 @@ void QmlSettings::setPlaceboDownscaler(int downscaler)
 {
     settings->SetPlaceboDownscaler(static_cast<PlaceboDownscaler>(downscaler));
     emit placeboDownscalerChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboPlaneDownscaler() const
@@ -673,6 +720,7 @@ void QmlSettings::setPlaceboPlaneDownscaler(int downscaler)
 {
     settings->SetPlaceboPlaneDownscaler(static_cast<PlaceboDownscaler>(downscaler));
     emit placeboPlaneDownscalerChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboFrameMixer() const
@@ -683,6 +731,7 @@ void QmlSettings::setPlaceboFrameMixer(int mixer)
 {
     settings->SetPlaceboFrameMixer(static_cast<PlaceboFrameMixer>(mixer));
     emit placeboFrameMixerChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboAntiringingStrength() const
@@ -693,6 +742,7 @@ void QmlSettings::setPlaceboAntiringingStrength(float strength)
 {
     settings->SetPlaceboAntiringingStrength(strength);
     emit placeboAntiringingStrengthChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboDebandEnabled() const
@@ -703,6 +753,7 @@ void QmlSettings::setPlaceboDebandEnabled(bool enabled)
 {
     settings->SetPlaceboDebandEnabled(enabled);
     emit placeboDebandEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboDebandPreset() const
@@ -713,6 +764,7 @@ void QmlSettings::setPlaceboDebandPreset(int preset)
 {
     settings->SetPlaceboDebandPreset(static_cast<PlaceboDebandPreset>(preset));
     emit placeboDebandPresetChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboDebandIterations() const
@@ -723,6 +775,7 @@ void QmlSettings::setPlaceboDebandIterations(int iterations)
 {
     settings->SetPlaceboDebandIterations(iterations);
     emit placeboDebandIterationsChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboDebandThreshold() const
@@ -733,6 +786,7 @@ void QmlSettings::setPlaceboDebandThreshold(float threshold)
 {
     settings->SetPlaceboDebandThreshold(threshold);
     emit placeboDebandThresholdChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboDebandRadius() const
@@ -743,6 +797,7 @@ void QmlSettings::setPlaceboDebandRadius(float radius)
 {
     settings->SetPlaceboDebandRadius(radius);
     emit placeboDebandRadiusChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboDebandGrain() const
@@ -753,6 +808,7 @@ void QmlSettings::setPlaceboDebandGrain(float grain)
 {
     settings->SetPlaceboDebandGrain(grain);
     emit placeboDebandGrainChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboSigmoidEnabled() const
@@ -763,6 +819,7 @@ void QmlSettings::setPlaceboSigmoidEnabled(bool enabled)
 {
     settings->SetPlaceboSigmoidEnabled(enabled);
     emit placeboSigmoidEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboSigmoidPreset() const
@@ -773,6 +830,7 @@ void QmlSettings::setPlaceboSigmoidPreset(int preset)
 {
     settings->SetPlaceboSigmoidPreset(static_cast<PlaceboSigmoidPreset>(preset));
     emit placeboSigmoidPresetChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboSigmoidCenter() const
@@ -783,6 +841,7 @@ void QmlSettings::setPlaceboSigmoidCenter(float center)
 {
     settings->SetPlaceboSigmoidCenter(center);
     emit placeboSigmoidCenterChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboSigmoidSlope() const
@@ -793,6 +852,7 @@ void QmlSettings::setPlaceboSigmoidSlope(float slope)
 {
     settings->SetPlaceboSigmoidSlope(slope);
     emit placeboSigmoidSlopeChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboColorAdjustmentEnabled() const
@@ -803,6 +863,7 @@ void QmlSettings::setPlaceboColorAdjustmentEnabled(bool enabled)
 {
     settings->SetPlaceboColorAdjustmentEnabled(enabled);
     emit placeboColorAdjustmentEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboColorAdjustmentPreset() const
@@ -813,6 +874,7 @@ void QmlSettings::setPlaceboColorAdjustmentPreset(int preset)
 {
     settings->SetPlaceboColorAdjustmentPreset(static_cast<PlaceboColorAdjustmentPreset>(preset));
     emit placeboColorAdjustmentPresetChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboColorAdjustmentBrightness() const
@@ -823,6 +885,7 @@ void QmlSettings::setPlaceboColorAdjustmentBrightness(float brightness)
 {
     settings->SetPlaceboColorAdjustmentBrightness(brightness);
     emit placeboColorAdjustmentBrightnessChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboColorAdjustmentContrast() const
@@ -833,6 +896,7 @@ void QmlSettings::setPlaceboColorAdjustmentContrast(float contrast)
 {
     settings->SetPlaceboColorAdjustmentContrast(contrast);
     emit placeboColorAdjustmentContrastChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboColorAdjustmentSaturation() const
@@ -843,6 +907,7 @@ void QmlSettings::setPlaceboColorAdjustmentSaturation(float saturation)
 {
     settings->SetPlaceboColorAdjustmentSaturation(saturation);
     emit placeboColorAdjustmentSaturationChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboColorAdjustmentHue() const
@@ -853,6 +918,7 @@ void QmlSettings::setPlaceboColorAdjustmentHue(float hue)
 {
     settings->SetPlaceboColorAdjustmentHue(hue);
     emit placeboColorAdjustmentHueChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboColorAdjustmentGamma() const
@@ -863,6 +929,7 @@ void QmlSettings::setPlaceboColorAdjustmentGamma(float gamma)
 {
     settings->SetPlaceboColorAdjustmentGamma(gamma);
     emit placeboColorAdjustmentGammaChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboColorAdjustmentTemperature() const
@@ -873,6 +940,7 @@ void QmlSettings::setPlaceboColorAdjustmentTemperature(float temperature)
 {
     settings->SetPlaceboColorAdjustmentTemperature(temperature);
     emit placeboColorAdjustmentTemperatureChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboPeakDetectionEnabled() const
@@ -883,6 +951,7 @@ void QmlSettings::setPlaceboPeakDetectionEnabled(bool enabled)
 {
     settings->SetPlaceboPeakDetectionEnabled(enabled);
     emit placeboPeakDetectionEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboPeakDetectionPreset() const
@@ -893,6 +962,7 @@ void QmlSettings::setPlaceboPeakDetectionPreset(int preset)
 {
     settings->SetPlaceboPeakDetectionPreset(static_cast<PlaceboPeakDetectionPreset>(preset));
     emit placeboPeakDetectionPresetChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboPeakDetectionPeakSmoothingPeriod() const
@@ -903,6 +973,7 @@ void QmlSettings::setPlaceboPeakDetectionPeakSmoothingPeriod(float period)
 {
     settings->SetPlaceboPeakDetectionPeakSmoothingPeriod(period);
     emit placeboPeakDetectionPeakSmoothingPeriodChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboPeakDetectionSceneThresholdLow() const
@@ -913,6 +984,7 @@ void QmlSettings::setPlaceboPeakDetectionSceneThresholdLow(float threshold_low)
 {
     settings->SetPlaceboPeakDetectionSceneThresholdLow(threshold_low);
     emit placeboPeakDetectionSceneThresholdLowChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboPeakDetectionSceneThresholdHigh() const
@@ -923,6 +995,7 @@ void QmlSettings::setPlaceboPeakDetectionSceneThresholdHigh(float threshold_high
 {
     settings->SetPlaceboPeakDetectionSceneThresholdHigh(threshold_high);
     emit placeboPeakDetectionSceneThresholdHighChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboPeakDetectionPeakPercentile() const
@@ -933,6 +1006,7 @@ void QmlSettings::setPlaceboPeakDetectionPeakPercentile(float percentile)
 {
     settings->SetPlaceboPeakDetectionPeakPercentile(percentile);
     emit placeboPeakDetectionPeakPercentileChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboPeakDetectionBlackCutoff() const
@@ -943,6 +1017,7 @@ void QmlSettings::setPlaceboPeakDetectionBlackCutoff(float cutoff)
 {
     settings->SetPlaceboPeakDetectionBlackCutoff(cutoff);
     emit placeboPeakDetectionBlackCutoffChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboPeakDetectionAllowDelayedPeak() const
@@ -953,6 +1028,7 @@ void QmlSettings::setPlaceboPeakDetectionAllowDelayedPeak(bool allowed)
 {
     settings->SetPlaceboPeakDetectionAllowDelayedPeak(allowed);
     emit placeboPeakDetectionAllowDelayedPeakChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboColorMappingEnabled() const
@@ -963,6 +1039,7 @@ void QmlSettings::setPlaceboColorMappingEnabled(bool enabled)
 {
     settings->SetPlaceboColorMappingEnabled(enabled);
     emit placeboColorMappingEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboColorMappingPreset() const
@@ -973,6 +1050,7 @@ void QmlSettings::setPlaceboColorMappingPreset(int preset)
 {
     settings->SetPlaceboColorMappingPreset(static_cast<PlaceboColorMappingPreset>(preset));
     emit placeboColorMappingPresetChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboGamutMappingFunction() const
@@ -983,6 +1061,7 @@ void QmlSettings::setPlaceboGamutMappingFunction(int function)
 {
     settings->SetPlaceboGamutMappingFunction(static_cast<PlaceboGamutMappingFunction>(function));
     emit placeboGamutMappingFunctionChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboGamutMappingPerceptualDeadzone() const
@@ -993,6 +1072,7 @@ void QmlSettings::setPlaceboGamutMappingPerceptualDeadzone(float deadzone)
 {
     settings->SetPlaceboGamutMappingPerceptualDeadzone(deadzone);
     emit placeboGamutMappingPerceptualDeadzoneChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboGamutMappingPerceptualStrength() const
@@ -1003,6 +1083,7 @@ void QmlSettings::setPlaceboGamutMappingPerceptualStrength(float strength)
 {
     settings->SetPlaceboGamutMappingPerceptualStrength(strength);
     emit placeboGamutMappingPerceptualStrengthChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboGamutMappingColorimetricGamma() const
@@ -1013,6 +1094,7 @@ void QmlSettings::setPlaceboGamutMappingColorimetricGamma(float gamma)
 {
     settings->SetPlaceboGamutMappingColorimetricGamma(gamma);
     emit placeboGamutMappingColorimetricGammaChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboGamutMappingSoftClipKnee() const
@@ -1023,6 +1105,7 @@ void QmlSettings::setPlaceboGamutMappingSoftClipKnee(float knee)
 {
     settings->SetPlaceboGamutMappingSoftClipKnee(knee);
     emit placeboGamutMappingSoftClipKneeChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboGamutMappingSoftClipDesat() const
@@ -1033,6 +1116,7 @@ void QmlSettings::setPlaceboGamutMappingSoftClipDesat(float desat)
 {
     settings->SetPlaceboGamutMappingSoftClipDesat(desat);
     emit placeboGamutMappingSoftClipDesatChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboGamutMappingLut3dSizeI() const
@@ -1043,6 +1127,7 @@ void QmlSettings::setPlaceboGamutMappingLut3dSizeI(int size)
 {
     settings->SetPlaceboGamutMappingLut3dSizeI(size);
     emit placeboGamutMappingLut3dSizeIChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboGamutMappingLut3dSizeC() const
@@ -1053,6 +1138,7 @@ void QmlSettings::setPlaceboGamutMappingLut3dSizeC(int size)
 {
     settings->SetPlaceboGamutMappingLut3dSizeC(size);
     emit placeboGamutMappingLut3dSizeCChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboGamutMappingLut3dSizeH() const
@@ -1063,6 +1149,7 @@ void QmlSettings::setPlaceboGamutMappingLut3dSizeH(int size)
 {
     settings->SetPlaceboGamutMappingLut3dSizeH(size);
     emit placeboGamutMappingLut3dSizeHChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboGamutMappingLut3dTricubicEnabled() const
@@ -1073,6 +1160,7 @@ void QmlSettings::setPlaceboGamutMappingLut3dTricubicEnabled(bool enabled)
 {
     settings->SetPlaceboGamutMappingLut3dTricubicEnabled(enabled);
     emit placeboGamutMappingLut3dTricubicEnabledChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboGamutMappingGamutExpansionEnabled() const
@@ -1083,6 +1171,7 @@ void QmlSettings::setPlaceboGamutMappingGamutExpansionEnabled(bool enabled)
 {
     settings->SetPlaceboGamutMappingGamutExpansionEnabled(enabled);
     emit placeboGamutMappingGamutExpansionEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboToneMappingFunction() const
@@ -1093,6 +1182,7 @@ void QmlSettings::setPlaceboToneMappingFunction(int function)
 {
     settings->SetPlaceboToneMappingFunction(static_cast<PlaceboToneMappingFunction>(function));
     emit placeboToneMappingFunctionChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingKneeAdaptation() const
@@ -1103,6 +1193,7 @@ void QmlSettings::setPlaceboToneMappingKneeAdaptation(float adaptation)
 {
     settings->SetPlaceboToneMappingKneeAdaptation(adaptation);
     emit placeboToneMappingKneeAdaptationChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingKneeMinimum() const
@@ -1113,6 +1204,7 @@ void QmlSettings::setPlaceboToneMappingKneeMinimum(float min)
 {
     settings->SetPlaceboToneMappingKneeMinimum(min);
     emit placeboToneMappingKneeMinimumChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingKneeMaximum() const
@@ -1123,6 +1215,7 @@ void QmlSettings::setPlaceboToneMappingKneeMaximum(float max)
 {
     settings->SetPlaceboToneMappingKneeMaximum(max);
     emit placeboToneMappingKneeMaximumChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingKneeDefault() const
@@ -1133,6 +1226,7 @@ void QmlSettings::setPlaceboToneMappingKneeDefault(float default_knee)
 {
     settings->SetPlaceboToneMappingKneeDefault(default_knee);
     emit placeboToneMappingKneeDefaultChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingKneeOffset() const
@@ -1143,6 +1237,7 @@ void QmlSettings::setPlaceboToneMappingKneeOffset(float offset)
 {
     settings->SetPlaceboToneMappingKneeOffset(offset);
     emit placeboToneMappingKneeOffsetChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingSlopeTuning() const
@@ -1153,6 +1248,7 @@ void QmlSettings::setPlaceboToneMappingSlopeTuning(float tuning)
 {
     settings->SetPlaceboToneMappingSlopeTuning(tuning);
     emit placeboToneMappingSlopeTuningChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingSlopeOffset() const
@@ -1163,6 +1259,7 @@ void QmlSettings::setPlaceboToneMappingSlopeOffset(float offset)
 {
     settings->SetPlaceboToneMappingSlopeOffset(offset);
     emit placeboToneMappingSlopeOffsetChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingSplineContrast() const
@@ -1173,6 +1270,7 @@ void QmlSettings::setPlaceboToneMappingSplineContrast(float contrast)
 {
     settings->SetPlaceboToneMappingSplineContrast(contrast);
     emit placeboToneMappingSplineContrastChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingReinhardContrast() const
@@ -1183,6 +1281,7 @@ void QmlSettings::setPlaceboToneMappingReinhardContrast(float contrast)
 {
     settings->SetPlaceboToneMappingReinhardContrast(contrast);
     emit placeboToneMappingReinhardContrastChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingLinearKnee() const
@@ -1193,6 +1292,7 @@ void QmlSettings::setPlaceboToneMappingLinearKnee(float knee)
 {
     settings->SetPlaceboToneMappingLinearKnee(knee);
     emit placeboToneMappingLinearKneeChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingExposure() const
@@ -1203,6 +1303,7 @@ void QmlSettings::setPlaceboToneMappingExposure(float exposure)
 {
     settings->SetPlaceboToneMappingExposure(exposure);
     emit placeboToneMappingExposureChanged();
+    emit placeboChanged();
 }
 
 bool QmlSettings::placeboToneMappingInverseToneMappingEnabled() const
@@ -1213,6 +1314,7 @@ void QmlSettings::setPlaceboToneMappingInverseToneMappingEnabled(bool enabled)
 {
     settings->SetPlaceboToneMappingInverseToneMappingEnabled(enabled);
     emit placeboToneMappingInverseToneMappingEnabledChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboToneMappingMetadata() const
@@ -1223,6 +1325,7 @@ void QmlSettings::setPlaceboToneMappingMetadata(int metadata)
 {
     settings->SetPlaceboToneMappingMetadata(static_cast<PlaceboToneMappingMetadata>(metadata));
     emit placeboToneMappingMetadataChanged();
+    emit placeboChanged();
 }
 
 int QmlSettings::placeboToneMappingToneLutSize() const
@@ -1233,6 +1336,7 @@ void QmlSettings::setPlaceboToneMappingToneLutSize(int size)
 {
     settings->SetPlaceboToneMappingToneLutSize(size);
     emit placeboToneMappingToneLutSizeChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingContrastRecovery() const
@@ -1243,6 +1347,7 @@ void QmlSettings::setPlaceboToneMappingContrastRecovery(float recovery)
 {
     settings->SetPlaceboToneMappingContrastRecovery(recovery);
     emit placeboToneMappingContrastRecoveryChanged();
+    emit placeboChanged();
 }
 
 float QmlSettings::placeboToneMappingContrastSmoothness() const
@@ -1253,6 +1358,7 @@ void QmlSettings::setPlaceboToneMappingContrastSmoothness(float smoothness)
 {
     settings->SetPlaceboToneMappingContrastSmoothness(smoothness);
     emit placeboToneMappingContrastSmoothnessChanged();
+    emit placeboChanged();
 }
 
 QString QmlSettings::logDirectory() const
@@ -1427,6 +1533,7 @@ void QmlSettings::refreshAllKeys()
     emit remotePlayAskChanged();
     emit addSteamShortcutAskChanged();
     emit hideCursorChanged();
+    emit audioVideoDisabledChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();
     emit resolutionLocalPS5Changed();
@@ -1434,9 +1541,11 @@ void QmlSettings::refreshAllKeys()
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
+    emit hapticOverrideChanged();
     emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();
     emit startMicUnmutedChanged();
+    emit showStreamStatsChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     emit verticalDeckChanged();
     emit steamDeckHapticsChanged();
@@ -1462,6 +1571,7 @@ void QmlSettings::refreshAllKeys()
     emit codecLocalPS5Changed();
     emit codecRemotePS5Changed();
     emit audioBufferSizeChanged();
+    emit audioVolumeChanged();
     emit audioOutDeviceChanged();
     emit audioInDeviceChanged();
     emit wifiDroppedNotifChanged();
@@ -1553,6 +1663,7 @@ void QmlSettings::refreshAllPlaceboKeys()
     emit placeboToneMappingMetadataChanged();
     emit placeboToneMappingToneLutSizeChanged();
     emit placeboToneMappingContrastRecoveryChanged();
+    emit placeboChanged();
 }
 
 void QmlSettings::exportSettings()

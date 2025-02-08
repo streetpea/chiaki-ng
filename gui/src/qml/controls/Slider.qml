@@ -5,6 +5,7 @@ import QtQuick.Controls.Material
 Slider {
     property bool firstInFocusChain: false
     property bool lastInFocusChain: false
+    property bool sendOutput: false
 
     Keys.onPressed: (event) => {
         switch (event.key) {
@@ -13,7 +14,8 @@ Slider {
                 let item = nextItemInFocusChain(false);
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
-                event.accepted = true;
+                if(!sendOutput)
+                    event.accepted = true;
             }
             break;
         case Qt.Key_Down:
@@ -21,7 +23,8 @@ Slider {
                 let item = nextItemInFocusChain();
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
-                event.accepted = true;
+                if(!sendOutput)
+                    event.accepted = true;
             }
             break;
         }

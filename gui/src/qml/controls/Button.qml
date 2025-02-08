@@ -5,6 +5,7 @@ import QtQuick.Controls.Material
 Button {
     property bool firstInFocusChain: false
     property bool lastInFocusChain: false
+    property bool sendOutput: false
 
     Material.background: visualFocus ? Material.accent : undefined
 
@@ -23,7 +24,8 @@ Button {
                 let item = nextItemInFocusChain(false);
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
-                event.accepted = true;
+                if(!sendOutput)
+                    event.accepted = true;
             }
             break;
         case Qt.Key_Down:
@@ -31,7 +33,8 @@ Button {
                 let item = nextItemInFocusChain();
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
-                event.accepted = true;
+                if(!sendOutput)
+                    event.accepted = true;
             }
             break;
         case Qt.Key_Return:

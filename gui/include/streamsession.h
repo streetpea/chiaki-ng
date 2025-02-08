@@ -81,12 +81,16 @@ struct StreamSessionConnectInfo
 	ChiakiConnectVideoProfile video_profile;
 	double packet_loss_max;
 	unsigned int audio_buffer_size;
+	int audio_volume;
 	bool fullscreen;
 	bool zoom;
 	bool stretch;
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool auto_regist;
+	float trigger_override;
+	float haptic_override;
+	ChiakiDisableAudioVideo audio_video_disabled;
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool start_mic_unmuted;
@@ -157,13 +161,15 @@ class StreamSession : public QObject
 		bool allow_unmute;
 		int input_block;
 		QString host;
+		int audio_volume;
 		double measured_bitrate = 0;
 		double average_packet_loss = 0;
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
 		float ps5_haptic_intensity;
-		float ps5_trigger_intensity;
+		int ps5_rumble_intensity;
+		int ps5_trigger_intensity;
 		uint8_t led_color[3];
 		QHash<int, Controller *> controllers;
 #if CHIAKI_GUI_ENABLE_SETSU
@@ -192,6 +198,11 @@ class StreamSession : public QObject
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
 #endif
+		QQueue<uint8_t> ds_rumble_haptics;
+		QQueue<uint16_t> reg_rumble_haptics;
+		bool rumble_haptics_connected;
+		bool ds_rumble_haptics_on;
+		bool reg_rumble_haptics_on;
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
 		ChiakiControllerState touch_state;
@@ -199,6 +210,8 @@ class StreamSession : public QObject
 		int8_t mouse_touch_id;
 		ChiakiControllerState dpad_touch_state;
 		uint16_t dpad_touch_increment;
+		float trigger_override;
+		float haptic_override;
 		bool dpad_regular;
 		bool dpad_regular_touch_switched;
 		uint dpad_touch_shortcut1;
@@ -225,6 +238,8 @@ class StreamSession : public QObject
 		SDL_AudioDeviceID audio_in;
 		size_t audio_out_sample_size;
 		bool audio_out_drain_queue;
+		bool haptics_out_drain_queue;
+		size_t haptics_buffer_size;
 		unsigned int audio_buffer_size;
 		ChiakiHolepunchSession holepunch_session;
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -267,6 +282,9 @@ class StreamSession : public QObject
 		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void ConnectSdeckHaptics();
 #endif
+		void DualSenseQueueRumbleHaptics(uint8_t strength);
+		void RegQueueRumbleHaptics(uint16_t strength);
+		void ConnectRumbleHaptics();
 
 	public:
 		explicit StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent = nullptr);
@@ -287,6 +305,7 @@ class StreamSession : public QObject
 		double GetAveragePacketLoss()	{ return average_packet_loss; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
+		void SetAudioVolume(int volume) { audio_volume = volume; }
 		bool GetCantDisplay()	{ return cant_display; }
 		ChiakiErrorCode ConnectPsnConnection(QString duid, bool ps5);
 		void CancelPsnConnection(bool stop_thread);
@@ -309,6 +328,8 @@ class StreamSession : public QObject
 
 	signals:
 		void FfmpegFrameAvailable();
+		void DualSenseRumbleHapticPushed(uint8_t strength);
+		void RegRumbleHapticPushed(uint16_t strength);
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
 #endif

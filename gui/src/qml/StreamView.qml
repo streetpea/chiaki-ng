@@ -35,7 +35,7 @@ Item {
         id: loadingView
         anchors.fill: parent
         color: "black"
-        opacity: sessionError || sessionLoading ? 1.0 : 0.0
+        opacity: sessionError || sessionLoading || (Chiaki.settings.audioVideoDisabled & 0x02) ? 1.0 : 0.0
         visible: opacity
 
         Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -65,12 +65,44 @@ Item {
                 text: {
                     if(Chiaki.settings.dpadTouchEnabled)
                     {
-                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
+                        if(Chiaki.settings.audioVideoDisabled == 0x01)
+                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
+                        else
+                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
                     }
                     else
-                        qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                    {
+                        if(Chiaki.settings.audioVideoDisabled == 0x01)
+                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                        else
+                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                    }
                 }
                 visible: sessionLoading
+            }
+
+            Label {
+                id: audioVideoDisabledTitleLabel
+                anchors {
+                    bottom: spinner.top
+                    horizontalCenter: spinner.horizontalCenter
+                }
+                text: (Chiaki.settings.audioVideoDisabled & 0x01) ? qsTr("Audio and Video Disabled") : qsTr("Video Disabled")
+                font.pixelSize: 24
+                visible: !sessionLoading && !sessionError && (Chiaki.settings.audioVideoDisabled & 0x02)
+            }
+
+            Label {
+                id: audioVideoDisabledTextLabel
+                anchors {
+                    top: audioVideoDisabledTitleLabel.bottom
+                    horizontalCenter: audioVideoDisabledTitleLabel.horizontalCenter
+                    topMargin: 10
+                }
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 20
+                text: (Chiaki.settings.audioVideoDisabled & 0x01) ? qsTr("You have disabled audio and video in your settings.\nTo re-enable change Audio/Video to Audio and Video Enabled in the General tab of the settings.") : qsTr("You have disabled video in your settings.\nTo re-enable change Audio/Video to Audio and Video Enabled in the General tab of the settings.")
+                visible: !sessionLoading && !sessionError && (Chiaki.settings.audioVideoDisabled & 0x02)
             }
 
             Label {
@@ -161,6 +193,99 @@ Item {
     }
 
     Item {
+        id: streamStats
+        anchors.fill: parent
+        visible: Chiaki.settings.showStreamStats && !menuView.visible && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
+        Label {
+            anchors {
+                right: statsConsoleNameLabel.right
+                bottom: statsConsoleNameLabel.top
+                bottomMargin: 5
+                rightMargin: 5
+
+            }
+            text: "Mbps"
+            font.pixelSize: 18
+            visible: Chiaki.session
+
+            Label {
+                anchors {
+                    right: parent.left
+                    baseline: parent.baseline
+                    rightMargin: 5
+                }
+                text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
+                color: Material.accent
+                font.bold: true
+                font.pixelSize: 28
+            }
+        }
+
+        Label {
+            id: statsConsoleNameLabel
+            anchors {
+                right: parent.right
+                bottom: parent.bottom
+                bottomMargin: 30
+            }
+            ColumnLayout {
+                anchors {
+                    right: parent.right
+                    top: parent.top
+                    bottom: parent.bottom
+                    rightMargin: 5
+                }
+                RowLayout {
+                    Layout.alignment: Qt.AlignRight
+                    Label {
+                        id: statsPacketLossLabel
+                        text: qsTr("packet loss")
+                        font.pixelSize: 15
+                        opacity: parent.visible
+                        visible: opacity
+
+                        Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                        Label {
+                            anchors {
+                                right: parent.left
+                                baseline: parent.baseline
+                                rightMargin: 5
+                            }
+                            text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
+                            font.bold: true
+                            color: "#ef9a9a" // Material.Red
+                            font.pixelSize: 18
+                        }
+                    }
+                }
+
+                Label {
+                    text: qsTr("dropped frames")
+                    font.pixelSize: 15
+                    opacity: parent.visible
+                    visible: opacity
+
+                    Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                    Label {
+                        id: statsDroppedFramesLabel
+                        anchors {
+                            right: parent.left
+                            baseline: parent.baseline
+                            rightMargin: 5
+                        }
+                        text: visible ? Chiaki.window.droppedFrames : ""
+                        color: "#ef9a9a" // Material.Red
+                        font.bold: true
+                        font.pixelSize: 18
+                    }
+                }
+            }
+        }
+    }
+
+    Item {
         id: menuView
         property bool closing: false
         anchors {
@@ -221,9 +346,9 @@ Item {
 
             ToolButton {
                 id: closeButton
-                Layout.rightMargin: 40
+                Layout.rightMargin: 20
                 text: "×"
-                padding: 20
+                padding: 10
                 font.pixelSize: 50
                 down: activeFocus
                 onClicked: {
@@ -232,21 +357,57 @@ Item {
                     else
                         root.showMainView();
                 }
-                KeyNavigation.right: muteButton
+                KeyNavigation.right: volumeSlider
                 Keys.onReturnPressed: clicked()
                 Keys.onEscapePressed: menuView.close()
             }
 
+            ToolSeparator {
+                Layout.leftMargin: -10
+                Layout.rightMargin: 10
+            }
+
+            Slider {
+                id: volumeSlider
+                Layout.rightMargin: 20
+                orientation: Qt.Vertical
+                from: 0
+                to: 128
+                Layout.preferredHeight: 100
+                padding: 10
+                stepSize: 1
+                value: Chiaki.settings.audioVolume
+                onMoved: Chiaki.settings.audioVolume = value
+                KeyNavigation.left: closeButton
+                KeyNavigation.right: muteButton
+                Keys.onEscapePressed: menuView.close()
+                Label {
+                    anchors {
+                        top: parent.bottom
+                        horizontalCenter: parent.horizontalCenter
+                        leftMargin: 10
+                    }
+                    text: {
+                        ((parent.value / 128.0) * 100).toFixed(0) + qsTr("% Volume")
+                    }
+                }
+            }
+
+            ToolSeparator {
+                Layout.leftMargin: -10
+                Layout.rightMargin: -10
+            }
+
             ToolButton {
                 id: muteButton
-                Layout.rightMargin: 40
+                Layout.rightMargin: 20
                 text: qsTr("Mic")
-                padding: 20
+                padding: 10
                 checkable: true
                 enabled: Chiaki.session && Chiaki.session.connected
                 checked: Chiaki.session && !Chiaki.session.muted
                 onToggled: Chiaki.session.muted = !Chiaki.session.muted
-                KeyNavigation.left: closeButton
+                KeyNavigation.left: volumeSlider
                 KeyNavigation.right: zoomButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
@@ -255,7 +416,7 @@ Item {
             ToolButton {
                 id: zoomButton
                 text: qsTr("Zoom")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Zoom ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Zoom
@@ -310,7 +471,7 @@ Item {
                 id: stretchButton
                 Layout.rightMargin: 50
                 text: qsTr("Stretch")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch
                 onToggled: Chiaki.window.videoMode = Chiaki.window.videoMode == ChiakiWindow.VideoMode.Stretch ? ChiakiWindow.VideoMode.Normal : ChiakiWindow.VideoMode.Stretch
@@ -328,10 +489,13 @@ Item {
             ToolButton {
                 id: defaultButton
                 text: qsTr("Default")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Default
-                onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.Default
+                }
                 KeyNavigation.left: stretchButton
                 KeyNavigation.right: highQualityButton
                 Keys.onReturnPressed: toggled()
@@ -346,11 +510,36 @@ Item {
             ToolButton {
                 id: highQualityButton
                 text: qsTr("High Quality")
-                padding: 20
+                padding: 10
                 checkable: true
                 checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQuality
-                onToggled: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQuality
+                }
                 KeyNavigation.left: defaultButton
+                KeyNavigation.right: customButton
+                Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: menuView.close()
+            }
+
+            ToolSeparator {
+                Layout.leftMargin: -10
+                Layout.rightMargin: -10
+            }
+
+            ToolButton {
+                id: customButton
+                text: qsTr("Custom")
+                Layout.rightMargin: 40
+                padding: 10
+                checkable: true
+                checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.Custom
+                }
+                KeyNavigation.left: highQualityButton
                 KeyNavigation.right: displaySettingsButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuView.close()
@@ -359,7 +548,7 @@ Item {
             ToolButton {
                 id: displaySettingsButton
                 text: qsTr("Display")
-                padding: 20
+                padding: 10
                 checkable: false
                 icon.source: "qrc:/icons/settings-20px.svg";
                 onClicked: root.openDisplaySettings()
@@ -381,7 +570,7 @@ Item {
                 id: placeboSettingsButton
                 text: qsTr("Placebo")
                 icon.source: "qrc:/icons/settings-20px.svg";
-                padding: 20
+                padding: 10
                 checkable: false
                 onClicked: root.openPlaceboSettings()
                 KeyNavigation.left: displaySettingsButton
@@ -423,7 +612,7 @@ Item {
             anchors {
                 right: parent.right
                 bottom: parent.bottom
-                margins: 50
+                margins: 30
             }
             text: {
                 if (!Chiaki.session)
@@ -648,6 +837,14 @@ Item {
             if (sessionPinDialog.opened || sessionStopDialog.opened)
                 return;
             menuView.toggle();
+        }
+    }
+    Connections {
+        target: Chiaki.session
+
+        function onConnectedChanged() {
+            if (Chiaki.settings.audioVideoDisabled & 0x02)
+                sessionLoading = false;
         }
     }
 }

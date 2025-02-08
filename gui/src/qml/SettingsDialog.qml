@@ -32,6 +32,20 @@ DialogView {
             bar.incrementCurrentIndex();
             event.accepted = true;
             break;
+        case Qt.Key_Up:
+            if(bar.currentIndex != 3)
+                return;
+            if(audiowifiScrollbar.position > 0.001)
+                audiowifiFlick.flick(0, 500);
+            event.accepted = true;
+            break;
+        case Qt.Key_Down:
+            if(bar.currentIndex != 3)
+                return;
+            if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
+                audiowifiFlick.flick(0, -500);
+            event.accepted = true;
+            break;
         }
     }
 
@@ -386,6 +400,23 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Audio/Video:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Audio and Video Enabled"), qsTr("Audio Disabled"), qsTr("Video Disabled"), qsTr("Audio and Video Disabled")]
+                        currentIndex: Chiaki.settings.audioVideoDisabled
+                        onActivated: index => Chiaki.settings.audioVideoDisabled = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Audio and Video Enabled)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Verbose Logging:")
                     }
 
@@ -419,9 +450,13 @@ DialogView {
                                 leftMargin: parent.paintedWidth + 20
                             }
                             text: qsTr("Open")
+                            lastInFocusChain: true
                             onClicked: Qt.openUrlExternally("file://" + parent.text);
                             Material.roundedScale: Material.SmallScale
                         }
+                    }
+                    Label {
+
                     }
                 }
             }
@@ -462,7 +497,8 @@ DialogView {
 
                     C.ComboBox {
                         Layout.preferredWidth: 400
-                        model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
+                        popup.width: 500
+                        model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Adjust Resolution Manually"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
                         currentIndex: Chiaki.settings.windowType
                         onActivated: (index) => Chiaki.settings.windowType = index;
                     }
@@ -710,7 +746,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolutionLocalPS4 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionLocalPS4 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionLocalPS4 = index + 1
+                            Chiaki.settings.bitrateLocalPS4 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS4
                         KeyNavigation.right: resolutionRemotePS4
                         KeyNavigation.down: fpsLocalPS4
@@ -728,7 +767,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p (PS5 and PS4 Pro)")]
                         currentIndex: Chiaki.settings.resolutionRemotePS4 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionRemotePS4 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionRemotePS4 = index + 1
+                            Chiaki.settings.bitrateRemotePS4 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS4
                         KeyNavigation.left: resolutionLocalPS4
                         KeyNavigation.down: fpsRemotePS4
@@ -746,7 +788,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p"), qsTr("1080p (Default)")]
                         currentIndex: Chiaki.settings.resolutionLocalPS5 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionLocalPS5 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionLocalPS5 = index + 1
+                            Chiaki.settings.bitrateLocalPS5 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS5
                         KeyNavigation.right: resolutionRemotePS5
                         KeyNavigation.up: consoleSelection
@@ -764,7 +809,10 @@ DialogView {
                         Layout.preferredWidth: 400
                         model: [qsTr("360p"), qsTr("540p"), qsTr("720p (Default)"), qsTr("1080p")]
                         currentIndex: Chiaki.settings.resolutionRemotePS5 - 1
-                        onActivated: (index) => Chiaki.settings.resolutionRemotePS5 = index + 1
+                        onActivated: (index) => {
+                            Chiaki.settings.resolutionRemotePS5 = index + 1
+                            Chiaki.settings.bitrateRemotePS5 = 0
+                        }
                         visible: selectedConsole == SettingsDialog.Console.PS5
                         KeyNavigation.left: resolutionLocalPS5
                         KeyNavigation.up: consoleSelection
@@ -859,158 +907,136 @@ DialogView {
                         text: qsTr("Bitrate:")
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateLocalPS4
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS4
-                        text: Chiaki.settings.bitrateLocalPS4 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionLocalPS4) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 30000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateLocalPS4 / 1000 ? (Chiaki.settings.bitrateLocalPS4 / 1000) : bitrate
+                        onMoved: Chiaki.settings.bitrateLocalPS4 = value * 1000;
                         KeyNavigation.up: fpsLocalPS4
-                        KeyNavigation.right: bitrateRemotePS4
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateLocalPS4 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateLocalPS4 = 0;
-                                text = "";
+                        KeyNavigation.down: bitrateLocalPS4
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateRemotePS4
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS4
-                        text: Chiaki.settings.bitrateRemotePS4 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionRemotePS4) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 30000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
-                        lastInFocusChain: true
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateRemotePS4 / 1000 ? (Chiaki.settings.bitrateRemotePS4 / 1000) : bitrate
+                        onMoved: Chiaki.settings.bitrateRemotePS4 = value * 1000;
                         KeyNavigation.up: fpsRemotePS4
-                        KeyNavigation.left: bitrateLocalPS4
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateRemotePS4 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateRemotePS4 = 0;
-                                text = "";
+                        KeyNavigation.down: bitrateRemotePS4
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+                        lastInFocusChain: true
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateLocalPS5
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS5
-                        text: Chiaki.settings.bitrateLocalPS5 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionLocalPS5) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 30000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateLocalPS5 / 1000 ? (Chiaki.settings.bitrateLocalPS5 / 1000) : bitrate
+                        onMoved: Chiaki.settings.bitrateLocalPS5 = value * 1000;
                         KeyNavigation.up: fpsLocalPS5
-                        KeyNavigation.right: bitrateRemotePS5
                         KeyNavigation.down: codecLocalPS5
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateLocalPS5 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateLocalPS5 = 0;
-                                text = "";
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
-                    C.TextField {
+                    C.Slider {
                         id: bitrateRemotePS5
-                        Layout.preferredWidth: 400
                         visible: selectedConsole == SettingsDialog.Console.PS5
-                        text: Chiaki.settings.bitrateRemotePS5 || ""
-                        placeholderText: {
-                            var bitrate = 0;
+                        property var bitrate: {
+                            var rate = 0;
                             switch (Chiaki.settings.resolutionRemotePS5) {
-                            case 1: bitrate = 2000; break; // 360p
-                            case 2: bitrate = 6000; break; // 540p
-                            case 3: bitrate = 10000; break; // 720p
-                            case 4: bitrate = 30000; break; // 1080p
+                            case 1: rate = 2; break; // 360p
+                            case 2: rate = 6; break; // 540p
+                            case 3: rate = 10; break; // 720p
+                            case 4: rate = 15; break; // 1080p
                             }
-                            return qsTr("Automatic (%1)").arg(bitrate);
+                            return rate;
                         }
+                        Layout.preferredWidth: 200
+                        from: 2
+                        to: 50
+                        stepSize: 1
+                        value: Chiaki.settings.bitrateRemotePS5 / 1000 ? (Chiaki.settings.bitrateRemotePS5 / 1000) : bitrate
+                        onMoved: Chiaki.settings.bitrateRemotePS5 = value * 1000;
                         KeyNavigation.up: fpsRemotePS5
-                        KeyNavigation.left: bitrateLocalPS5
                         KeyNavigation.down: codecRemotePS5
-                        KeyNavigation.priority: {
-                            if(readOnly)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
-                        }
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.bitrateRemotePS5 = parseInt(text);
-                            } else {
-                                Chiaki.settings.bitrateRemotePS5 = 0;
-                                text = "";
+                        KeyNavigation.priority: KeyNavigation.BeforeItem
+                        lastInFocusChain: true
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
                             }
-                        }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 2000 && num <= 99999;
+                            text: (parent.value) + qsTr(" Mbps") + qsTr(" (%1 Mbps)").arg(parent.bitrate.toFixed(0))
                         }
                     }
 
@@ -1036,6 +1062,7 @@ DialogView {
                         }
                         KeyNavigation.up: bitrateLocalPS5
                         KeyNavigation.right: codecRemotePS5
+                        KeyNavigation.down: codecLocalPS5
                         KeyNavigation.priority: {
                             if(!popup.visible)
                                 KeyNavigation.BeforeItem
@@ -1073,238 +1100,350 @@ DialogView {
 
             Item {
                 // Audio and Wifi
-                GridLayout {
+                Flickable {
+                    id: audiowifiFlick
+                    implicitWidth: parent.width ? parent.width: 0
+                    implicitHeight: parent.height ? parent.height: 0
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
+                        fill: parent
                         topMargin: 20
+                        leftMargin: parent.width ? (parent.width / 2 - audiowifigrid.width / 2) : 0
                     }
-                    columns: 3
-                    rowSpacing: 10
-                    columnSpacing: 20
-                    onVisibleChanged: if (visible) Chiaki.settings.refreshAudioDevices()
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Output Device:")
+                    clip: true
+                    contentWidth: audiowifigrid.width
+                    contentHeight: audiowifigrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        id: audiowifiScrollbar
+                        policy: ScrollBar.AlwaysOn
+                        visible: audiowifiFlick.contentHeight > audiowifiFlick.implicitHeight
                     }
+                    GridLayout {
+                        id: audiowifigrid
+                        columns: 3
+                        rowSpacing: 10
+                        columnSpacing: 20
+                        onVisibleChanged: if (visible) Chiaki.settings.refreshAudioDevices()
 
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        popup.x: (width - popup.width) / 2
-                        popup.width: 700
-                        popup.font.pixelSize: 16
-                        firstInFocusChain: true
-                        model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
-                        currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioOutDevice))
-                        onActivated: (index) => Chiaki.settings.audioOutDevice = index ? model[index] : ""
-                    }
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Output Device:")
+                        }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Input Device:")
-                    }
-
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        popup.x: (width - popup.width) / 2
-                        popup.width: 700
-                        popup.font.pixelSize: 16
-                        model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
-                        currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
-                        onActivated: (index) => Chiaki.settings.audioInDevice = index ? model[index] : ""
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Buffer Size:")
-                    }
-
-                    C.TextField {
-                        Layout.preferredWidth: 400
-                        text: Chiaki.settings.audioBufferSize || ""
-                        placeholderText: qsTr("Default (5760)")
-                        Material.accent: text && !validate() ? Material.Red : undefined
-                        onEditingFinished: {
-                            if (validate()) {
-                                Chiaki.settings.audioBufferSize = parseInt(text);
-                            } else {
-                                Chiaki.settings.audioBufferSize = 0;
-                                text = "";
+                        C.ComboBox {
+                            Layout.preferredWidth: 400
+                            popup.x: (width - popup.width) / 2
+                            popup.width: 700
+                            popup.font.pixelSize: 16
+                            firstInFocusChain: true
+                            model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
+                            currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioOutDevice))
+                            onActivated: (index) => Chiaki.settings.audioOutDevice = index ? model[index] : ""
+                            Keys.onPressed: (event) => {
+                                if (event.modifiers)
+                                    return;
+                                switch (event.key) {
+                                    case Qt.Key_Up:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position > 0.001)
+                                            audiowifiFlick.flick(0, 500);
+                                        event.accepted = true;
+                                        break;
+                                    case Qt.Key_Down:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
+                                            audiowifiFlick.flick(0, -500);
+                                        event.accepted = true;
+                                        break;
+                                }
                             }
                         }
-                        function validate() {
-                            var num = parseInt(text);
-                            return num >= 1920 && num <= 19200;
-                        }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(5760)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Start Mic Unmuted:")
-                    }
-
-                    C.CheckBox {
-                        checked: Chiaki.settings.startMicUnmuted
-                        onToggled: Chiaki.settings.startMicUnmuted = checked
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Unchecked)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Speech Processing:")
-                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
-                    }
-
-                    C.CheckBox {
-                        text: qsTr("Noise suppression + echo cancellation")
-                        checked: Chiaki.settings.speechProcessing
-                        onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
-                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Unchecked)")
-                        visible: typeof Chiaki.settings.speechProcessing !== "undefined"
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Noise To Suppress:")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 0
-                        to: 60
-                        stepSize: 1
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                        value: Chiaki.settings.noiseSuppressLevel
-                        onMoved: Chiaki.settings.noiseSuppressLevel = value
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1 dB").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Auto)")
                         }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(6 dB)")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Echo To Suppress:")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 0
-                        to: 60
-                        stepSize: 1
-                        value: Chiaki.settings.echoSuppressLevel
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                        onMoved: Chiaki.settings.echoSuppressLevel = value
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1 dB").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Input Device:")
                         }
-                    }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(30 dB)")
-                        visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Wifi Instability Notification Triggers:")
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        from: 0
-                        to: 100
-                        stepSize: 1
-                        value: Chiaki.settings.wifiDroppedNotif
-                        onMoved: Chiaki.settings.wifiDroppedNotif = value
+                        C.ComboBox {
+                            Layout.preferredWidth: 400
+                            popup.x: (width - popup.width) / 2
+                            popup.width: 700
+                            popup.font.pixelSize: 16
+                            model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
+                            currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
+                            onActivated: (index) => Chiaki.settings.audioInDevice = index ? model[index] : ""
+                            Keys.onPressed: (event) => {
+                                if (event.modifiers)
+                                    return;
+                                switch (event.key) {
+                                    case Qt.Key_Up:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position > 0.001)
+                                            audiowifiFlick.flick(0, 500);
+                                        event.accepted = true;
+                                        break;
+                                    case Qt.Key_Down:
+                                        if(bar.currentIndex != 3)
+                                            return;
+                                        if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
+                                            audiowifiFlick.flick(0, -500);
+                                        event.accepted = true;
+                                        break;
+                                }
+                            }
+                        }
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1% dropped packets").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Auto)")
                         }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(3%)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Packet Loss Reported Max:")
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 250
-                        lastInFocusChain: true
-                        from: 0
-                        to: 100
-                        stepSize: 1
-                        value: Chiaki.settings.packetLossMax
-                        onMoved: Chiaki.settings.packetLossMax = value
 
                         Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1% packet loss").arg(parent.value)
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Audio Buffer Size:")
                         }
-                    }
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(5%)")
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 1
+                            to: 10
+                            stepSize: 1
+                            value: Chiaki.settings.audioBufferSize / 1920 ? (Chiaki.settings.audioBufferSize / 1920) : 5
+                            onMoved: Chiaki.settings.audioBufferSize = value * 1920;
+                            sendOutput: true
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: {
+                                    (parent.value * 10).toFixed(0) + qsTr(" ms")
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(50 ms)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Audio Volume:")
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 128
+                            stepSize: 1
+                            value: Chiaki.settings.audioVolume
+                            onMoved: Chiaki.settings.audioVolume = value
+                            sendOutput: true
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: {
+                                    ((parent.value / 128.0) * 100).toFixed(0) + qsTr("% volume")
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(100%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Start Mic Unmuted:")
+                        }
+
+                        C.CheckBox {
+                            sendOutput: true
+                            checked: Chiaki.settings.startMicUnmuted
+                            onToggled: Chiaki.settings.startMicUnmuted = checked
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Speech Processing:")
+                            visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                        }
+
+                        C.CheckBox {
+                            sendOutput: true
+                            text: qsTr("Noise suppression + echo cancellation")
+                            checked: Chiaki.settings.speechProcessing
+                            onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
+                            visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                            visible: typeof Chiaki.settings.speechProcessing !== "undefined"
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Noise To Suppress:")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 60
+                            stepSize: 1
+                            sendOutput: true
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                            value: Chiaki.settings.noiseSuppressLevel
+                            onMoved: Chiaki.settings.noiseSuppressLevel = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1 dB").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(6 dB)")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Echo To Suppress:")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 60
+                            stepSize: 1
+                            sendOutput: true
+                            value: Chiaki.settings.echoSuppressLevel
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                            onMoved: Chiaki.settings.echoSuppressLevel = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1 dB").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(30 dB)")
+                            visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Weak Wifi Notification:")
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            sendOutput: true
+                            value: Chiaki.settings.wifiDroppedNotif
+                            onMoved: Chiaki.settings.wifiDroppedNotif = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr(">= %1% dropped packets").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(3%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Packet Loss Reported Max:")
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            sendOutput: true
+                            value: Chiaki.settings.packetLossMax
+                            onMoved: Chiaki.settings.packetLossMax = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1% packet loss").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(5%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Show Stream Stats During Gameplay")
+                        }
+                        C.CheckBox {
+                            lastInFocusChain: true
+                            checked: Chiaki.settings.showStreamStats
+                            onToggled: Chiaki.settings.showStreamStats = !Chiaki.settings.showStreamStats
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                        }
                     }
                 }
             }
@@ -1784,7 +1923,7 @@ DialogView {
             }
 
             Item {
-                // Controller Mapping
+                // Controllers
                 ColumnLayout {
                     anchors {
                         top: parent.top
@@ -1978,15 +2117,55 @@ DialogView {
                                 else
                                     dpadTouch;
                             }
-                            KeyNavigation.down: posButtons
+                            KeyNavigation.down: hapticOverride
                             KeyNavigation.left: posButtons
                             KeyNavigation.right: posButtons
-                            lastInFocusChain: true
                         }
 
                         Label {
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("(Unchecked)")
+                        }
+                    }
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("True Haptics Intensity:")
+                        }
+
+                        C.Slider {
+                            id: hapticOverride
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 2
+                            stepSize: 0.1
+                            value: Chiaki.settings.hapticOverride
+                            onMoved: Chiaki.settings.hapticOverride = value;
+                            KeyNavigation.left: hapticOverride
+                            KeyNavigation.right: hapticOverride
+                            lastInFocusChain: true
+                            KeyNavigation.up: posButtons
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: {
+                                    if(parent.value > 0.99 && parent.value < 1.01)
+                                        qsTr("console setting")
+                                    else
+                                        (parent.value * 100).toFixed(0) + qsTr(" %")
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            Layout.leftMargin: 200
+                            text: qsTr("(console setting)")
                         }
                     }
                 }
@@ -2015,6 +2194,7 @@ DialogView {
 
                     C.Button {
                         id: profile
+                        firstInFocusChain: true
                         text: qsTr("Manage Profiles")
                         onClicked: {
                             root.showProfileDialog()

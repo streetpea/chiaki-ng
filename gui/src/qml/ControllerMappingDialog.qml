@@ -43,7 +43,7 @@ DialogView {
             id: analogStickMapping
             property bool firstInFocusChain: true
             property bool lastInFocusChain: false
-            text: qsTr("Allow mapping analog sticks' x/y-axis")
+            text: qsTr("Allow mapping analog sticks and L2/R2")
             checked: Chiaki.enableAnalogStickMapping
             onToggled: Chiaki.enableAnalogStickMapping = checked
             Keys.onPressed: (event) => {
@@ -330,103 +330,6 @@ DialogView {
             }
         }
 
-        Dialog {
-            id: chooseButtonDialog
-            property int buttonValue
-            property var buttons
-            property var oldButtonName
-            property int buttonIndex
-            property int mappingIndex
-            focus: false
-            parent: Overlay.overlay
-            x: Math.round((root.width - width) / 2)
-            y: Math.round((root.height - height) / 2)
-            title: qsTr("Choose Button")
-            modal: true
-            standardButtons: Dialog.Close
-            onOpened: {
-                quitButtonMapping = false;
-                button0.forceActiveFocus((Qt.TabFocusReason));
-            }
-            onClosed: {
-                if(quitButtonMapping)
-                    Chiaki.controllerMappingButtonQuit();
-                else
-                    quitButtonMapping = true;
-                let item = chiakiButtons.itemAt(mappingIndex)
-                if(item)
-                {
-                    let item2 = item.children[buttonIndex + 1];
-                    if(item2)
-                        item2.forceActiveFocus(Qt.TabFocusReason);
-                }
-                focus = false;
-            }
-            Material.roundedScale: Material.MediumScale
-
-            function show(opts) {
-                buttons = opts.buttonList;
-                oldButtonName = opts.oldChiakiButtonName;
-                buttonValue = opts.buttonValue;
-                buttonIndex = opts.buttonIndex;
-                mappingIndex = opts.mappingIndex;
-                open();
-            }
-
-            ColumnLayout {
-                spacing: 20
-                Label {
-                    id: chooseButtonLabel
-                    Layout.preferredWidth: 400
-                    text: qsTr("Choose ") + qsTr(" between the 2 physical buttons currently mapped to " + chooseButtonDialog.oldButtonName)
-                }
-
-                RowLayout {
-                    Layout.topMargin: 30
-                    Layout.alignment: Qt.AlignCenter
-                    spacing: 30
-
-                    C.Button {
-                        id: button0
-                        firstInFocusChain: true
-                        Layout.preferredWidth: 170
-                        Layout.preferredHeight: 52
-                        text: {
-                            if(typeof chooseButtonDialog.buttons !== "undefined")
-                                chooseButtonDialog.buttons[0]
-                        }
-                        Material.roundedScale: Material.MediumScale
-                        KeyNavigation.priority: KeyNavigation.BeforeItem
-                        KeyNavigation.right: button1
-                        onClicked: {
-                            Chiaki.updateButton(chooseButtonDialog.buttonValue, chooseButtonDialog.buttons[0], chooseButtonDialog.buttonIndex);
-                            quitButtonMapping = false;
-                            chooseButtonDialog.close();
-                        }
-                    }
-
-                    C.Button {
-                        id: button1
-                        lastInFocusChain: true
-                        Layout.preferredWidth: 170
-                        Layout.preferredHeight: 52
-                        text: {
-                            if(typeof chooseButtonDialog.buttons !== "undefined")
-                                chooseButtonDialog.buttons[1]
-                        }
-                        Material.roundedScale: Material.MediumScale
-                        KeyNavigation.priority: KeyNavigation.BeforeItem
-                        KeyNavigation.left: button0
-                        onClicked: {
-                            Chiaki.updateButton(chooseButtonDialog.buttonValue, chooseButtonDialog.buttons[1], chooseButtonDialog.buttonIndex);
-                            quitButtonMapping = false;
-                            chooseButtonDialog.close();
-                        }
-                    }
-                }
-            }
-        }
-
         Connections {
             target: Chiaki
 
@@ -436,28 +339,11 @@ DialogView {
                     dialog.close();
             }
 
-            function onControllerMappingButtonSelected(original_button_map, chiaki_button_value, chiaki_button_name)
+            function onControllerMappingButtonSelected(pressedButton, chiaki_button_value, chiaki_button_name)
             {
-                if(original_button_map.length > 1)
-                {
-                    buttonDialog.resetFocus = false;
-                    buttonDialog.close();
-                    chooseButtonDialog.show({
-                        buttonList: original_button_map,
-                        oldChiakiButton: chiaki_button_value,
-                        oldChiakiButtonName: chiaki_button_name,
-                        buttonValue: buttonDialog.buttonValue,
-                        buttonIndex: buttonDialog.buttonIndex,
-                        mappingIndex: buttonDialog.mappingIndex,
-                    });
-                }
-                else
-                {
-                    Chiaki.updateButton(buttonDialog.buttonValue, original_button_map[0], buttonDialog.buttonIndex);
-                    quitButtonMapping = false;
-                    buttonDialog.close();
-                }
-
+                Chiaki.updateButton(buttonDialog.buttonValue, pressedButton, buttonDialog.buttonIndex);
+                quitButtonMapping = false;
+                buttonDialog.close();
             }
         }
     }

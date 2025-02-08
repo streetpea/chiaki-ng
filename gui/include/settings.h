@@ -10,6 +10,7 @@
 #include <QSettings>
 #include <QList>
 #include <QMap>
+#include <QRect>
 
 enum class ControllerButtonExt
 {
@@ -68,6 +69,7 @@ enum class PlaceboPreset {
 enum class WindowType {
 	SelectedResolution,
 	CustomResolution,
+	AdjustableResolution,
 	Fullscreen,
 	Zoom,
 	Stretch
@@ -215,8 +217,17 @@ class Settings : public QObject
 
 		QMap<QString, QString> GetPlaceboValues();
 
+		ChiakiDisableAudioVideo GetAudioVideoDisabled() const       { return static_cast<ChiakiDisableAudioVideo>(settings.value("settings/audio_video_disabled", 0).toInt()); }
+		void SetAudioVideoDisabled(ChiakiDisableAudioVideo disabled) { settings.setValue("settings/audio_video_disabled", disabled); }
+
 		bool GetDiscoveryEnabled() const		{ return settings.value("settings/auto_discovery", true).toBool(); }
 		void SetDiscoveryEnabled(bool enabled)	{ settings.setValue("settings/auto_discovery", enabled); }
+
+		QRect GetGeometry() const;
+		void SetGeometry(QRect geometry);
+
+		QRect GetStreamGeometry() const;
+		void SetStreamGeometry(QRect geometry);
 
 		bool GetRemotePlayAsk() const           { return settings.value("settings/remote_play_ask", true).toBool(); }
 		void SetRemotePlayAsk(bool asked)       { settings.setValue("settings/remote_play_ask", asked); }
@@ -233,6 +244,9 @@ class Settings : public QObject
 
 		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
+
+		bool GetShowStreamStats() const            { return settings.value("settings/show_stream_stats", false).toBool(); }
+		void SetShowStreamStats(bool enabled)      { settings.setValue("settings/show_stream_stats", enabled); }
 
 		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
 		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
@@ -253,6 +267,9 @@ class Settings : public QObject
 
 		bool GetFullscreenDoubleClickEnabled() const	   { return settings.value("settings/fullscreen_doubleclick", false).toBool(); }
 		void SetFullscreenDoubleClickEnabled(bool enabled) { settings.setValue("settings/fullscreen_doubleclick", enabled); }
+
+		float GetHapticOverride() const 			{ return settings.value("settings/haptic_override", 1.0).toFloat(); }
+		void SetHapticOverride(float override)	{ settings.setValue("settings/haptic_override", override); }
 
 		ChiakiVideoResolutionPreset GetResolutionLocalPS4() const;
 		ChiakiVideoResolutionPreset GetResolutionRemotePS4() const;
@@ -329,6 +346,9 @@ class Settings : public QObject
 
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);
+
+		int GetAudioVolume() const;
+		void SetAudioVolume(int volume);
 
 		unsigned int GetAudioBufferSizeDefault() const;
 

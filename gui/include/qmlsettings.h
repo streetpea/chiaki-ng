@@ -8,6 +8,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(bool remotePlayAsk READ remotePlayAsk WRITE setRemotePlayAsk NOTIFY remotePlayAskChanged)
     Q_PROPERTY(bool addSteamShortcutAsk READ addSteamShortcutAsk WRITE setAddSteamShortcutAsk NOTIFY addSteamShortcutAskChanged)
     Q_PROPERTY(bool hideCursor READ hideCursor WRITE setHideCursor NOTIFY hideCursorChanged)
+    Q_PROPERTY(int audioVideoDisabled READ audioVideoDisabled WRITE setAudioVideoDisabled NOTIFY audioVideoDisabledChanged)
     Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
     Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
     Q_PROPERTY(int resolutionLocalPS5 READ resolutionLocalPS5 WRITE setResolutionLocalPS5 NOTIFY resolutionLocalPS5Changed)
@@ -27,6 +28,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
 #endif
+    Q_PROPERTY(bool showStreamStats READ showStreamStats WRITE setShowStreamStats NOTIFY showStreamStatsChanged)
+    Q_PROPERTY(float hapticOverride READ hapticOverride WRITE setHapticOverride NOTIFY hapticOverrideChanged)
     Q_PROPERTY(int displayTargetContrast READ displayTargetContrast WRITE setDisplayTargetContrast NOTIFY displayTargetContrastChanged)
     Q_PROPERTY(int displayTargetPeak READ displayTargetPeak WRITE setDisplayTargetPeak NOTIFY displayTargetPeakChanged)
     Q_PROPERTY(int displayTargetPrim READ displayTargetPrim WRITE setDisplayTargetPrim NOTIFY displayTargetPrimChanged)
@@ -43,6 +46,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int codecLocalPS5 READ codecLocalPS5 WRITE setCodecLocalPS5 NOTIFY codecLocalPS5Changed)
     Q_PROPERTY(int codecRemotePS5 READ codecRemotePS5 WRITE setCodecRemotePS5 NOTIFY codecRemotePS5Changed)
     Q_PROPERTY(int audioBufferSize READ audioBufferSize WRITE setAudioBufferSize NOTIFY audioBufferSizeChanged)
+    Q_PROPERTY(int audioVolume READ audioVolume WRITE setAudioVolume NOTIFY audioVolumeChanged)
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
@@ -147,6 +151,12 @@ public:
     int resolutionRemotePS5() const;
     void setResolutionRemotePS5(int resolution);
 
+    int audioVideoDisabled() const;
+    void setAudioVideoDisabled(int disabled);
+
+    bool showStreamStats() const;
+    void setShowStreamStats(bool enabled);
+
     int displayTargetContrast() const;
     void setDisplayTargetContrast(int contrast);
 
@@ -207,6 +217,9 @@ public:
     bool hideCursor() const;
     void setHideCursor(bool enabled);
 
+    float hapticOverride() const;
+    void setHapticOverride(float override);
+
     int fpsLocalPS4() const;
     void setFpsLocalPS4(int fps);
     int fpsRemotePS4() const;
@@ -232,6 +245,9 @@ public:
 
     int audioBufferSize() const;
     void setAudioBufferSize(int size);
+
+    int audioVolume() const;
+    void setAudioVolume(int volume);
 
     QString audioInDevice() const;
     void setAudioInDevice(const QString &device);
@@ -532,6 +548,9 @@ signals:
     void remotePlayAskChanged();
     void addSteamShortcutAskChanged();
     void hideCursorChanged();
+    void hapticOverrideChanged();
+    void audioVideoDisabledChanged();
+    void showStreamStatsChanged();
     void fpsLocalPS4Changed();
     void fpsRemotePS4Changed();
     void fpsLocalPS5Changed();
@@ -547,6 +566,7 @@ signals:
     void displayTargetPrimChanged();
     void displayTargetTrcChanged();
     void audioBufferSizeChanged();
+    void audioVolumeChanged();
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
     void wifiDroppedNotifChanged();
@@ -635,6 +655,7 @@ signals:
     void placeboToneMappingToneLutSizeChanged();
     void placeboToneMappingContrastRecoveryChanged();
     void placeboToneMappingContrastSmoothnessChanged();
+    void placeboChanged();
 
 private:
     Settings *settings = {};

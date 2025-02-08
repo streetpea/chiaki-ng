@@ -12,6 +12,7 @@
 #include "../../lib/src/utils.h"
 
 #include <QKeyEvent>
+#include <QtMath>
 
 #include <cstring>
 
@@ -21,6 +22,7 @@
 #define NEW_DPAD_TOUCH_INTERVAL_MS 500
 #define DPAD_TOUCH_UPDATE_INTERVAL_MS 10
 #define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 4 // send packets every interval * packets per analysis
+#define RUMBLE_HAPTICS_PACKETS_PER_RUMBLE 3
 #define STEAMDECK_HAPTIC_SAMPLING_RATE 3000
 // DualShock4 touchpad is 1920 x 942
 #define PS4_TOUCHPAD_MAX_X 1920.0f
@@ -29,6 +31,7 @@
 #define PS5_TOUCHPAD_MAX_X 1919.0f
 #define PS5_TOUCHPAD_MAX_Y 1079.0f
 #define SESSION_RETRY_SECONDS 20
+#define HAPTIC_RUMBLE_MIN_STRENGTH 100
 
 #define MICROPHONE_SAMPLES 480
 #ifdef Q_OS_LINUX
@@ -86,6 +89,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	audio_out_device = settings->GetAudioOutDevice();
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
+	audio_volume = settings->GetAudioVolume();
 	log_file = CreateLogFilename();
 	// local connection
 	if(duid.isEmpty() && isLocalAddress(host))
@@ -109,6 +113,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
 	this->packet_loss_max = settings->GetPacketLossMax();
+	this->audio_video_disabled = settings->GetAudioVideoDisabled();
+	this->haptic_override = settings->GetHapticOverride();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	this->enable_steamdeck_haptics = settings->GetSteamDeckHapticsEnabled();
 	this->vertical_sdeck = settings->GetVerticalDeckEnabled();
@@ -177,7 +183,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	haptics_resampler_buf(nullptr),
 	holepunch_session(nullptr),
 	ps5_haptic_intensity(1),
-	ps5_trigger_intensity(1)
+	ps5_rumble_intensity(0),
+	ps5_trigger_intensity(0x07),
+	rumble_haptics_connected(false),
+	ds_rumble_haptics_on(false),
+	reg_rumble_haptics_on(false)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -222,6 +232,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
+	audio_volume = connect_info.audio_volume;
 	start_mic_unmuted = connect_info.start_mic_unmuted;
 	audio_out_device_name = connect_info.audio_out_device;
 	audio_in_device_name = connect_info.audio_in_device;
@@ -260,11 +271,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	chiaki_connect_info.enable_dualsense = connect_info.enable_dualsense;
 	chiaki_connect_info.packet_loss_max = connect_info.packet_loss_max;
 	chiaki_connect_info.auto_regist = connect_info.auto_regist;
+	chiaki_connect_info.audio_video_disabled = connect_info.audio_video_disabled;
 
 	dpad_touch_shortcut1 = connect_info.dpad_touch_shortcut1;
 	dpad_touch_shortcut2 = connect_info.dpad_touch_shortcut2;
 	dpad_touch_shortcut3 = connect_info.dpad_touch_shortcut3;
 	dpad_touch_shortcut4 = connect_info.dpad_touch_shortcut4;
+	haptic_override = connect_info.haptic_override;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi && chiaki_connect_info.video_profile.codec != CHIAKI_CODEC_H264)
 	{
@@ -439,6 +452,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		}
 #endif
 		rumble_haptics_intensity = connect_info.rumble_haptics_intensity;
+		ConnectRumbleHaptics();
 	}
 	UpdateGamepads();
 
@@ -479,8 +493,15 @@ StreamSession::~StreamSession()
 	}
 #endif
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	for(auto controller : controllers)
-		controller->Unref();
+	QMetaObject::invokeMethod(this, [this]() {
+		for(auto controller : controllers)
+		{
+			const uint8_t clear_effect[10] = { 0 };
+			controller->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x00);
+			controller->SetRumble(0,0);
+			controller->Unref();
+		}
+	});
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_free(setsu);
@@ -1130,7 +1151,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	if(speech_processing_enabled)
 	{
 		SDL_AudioCVT cvt;
-		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 1, 48000, AUDIO_S16LSB, 2, 48000);
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
 		cvt.len = mic_buf.size_bytes;
 		mic_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
 		if(!mic_resampler_buf)
@@ -1140,7 +1161,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 		}
 
 		SDL_AudioCVT cvt2;
-		SDL_BuildAudioCVT(&cvt2, AUDIO_S16LSB, 2, 48000, AUDIO_S16LSB, 1, 48000);
+		SDL_BuildAudioCVT(&cvt2, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
 		cvt2.len = cvt.len * cvt.len_ratio;
 		echo_resampler_buf = (uint8_t*) calloc(cvt2.len * cvt2.len_mult, sizeof(uint8_t));
 		if(!echo_resampler_buf)
@@ -1212,7 +1233,7 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 		if(speech_processing_enabled)
 		{
 			// change samples to stereo after processing with SPEEX
-			SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 1, 48000, AUDIO_S16LSB, 2, 48000);
+			SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
 			cvt.len = mic_buf.size_bytes;
 			cvt.buf = mic_resampler_buf;
 			if(!echo_to_cancel.isEmpty())
@@ -1293,6 +1314,8 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 void StreamSession::InitHaptics()
 {
 	haptics_output = 0;
+	haptics_out_drain_queue = false;
+	haptics_buffer_size = 480; //10ms * number of ms delay configured
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderr = nullptr;
 	sdeck_haptics_senderl = nullptr;
@@ -1314,7 +1337,7 @@ void StreamSession::InitHaptics()
 #endif
 
 	SDL_AudioCVT cvt;
-	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
+	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
 	cvt.len = 240;  // 10 16bit stereo samples
 	haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
 	if(!haptics_resampler_buf)
@@ -1328,6 +1351,89 @@ void StreamSession::DisconnectHaptics()
 		SDL_CloseAudioDevice(haptics_output);
 		this->haptics_output = 0;
 	}
+}
+
+void StreamSession::ConnectRumbleHaptics()
+{
+	if(rumble_haptics_connected)
+		return;
+	ds_rumble_haptics = {};
+	ds_rumble_haptics.reserve(20);
+	reg_rumble_haptics = {};
+	reg_rumble_haptics.reserve(20);
+	connect(this, &StreamSession::DualSenseRumbleHapticPushed, this, &StreamSession::DualSenseQueueRumbleHaptics);
+	connect(this, &StreamSession::RegRumbleHapticPushed, this, &StreamSession::RegQueueRumbleHaptics);
+	auto rumble_haptics_interval = RUMBLE_HAPTICS_PACKETS_PER_RUMBLE * 10;
+	auto rumble_haptics_timer = new QTimer(this);
+	connect(rumble_haptics_timer, &QTimer::timeout, this, [this]{
+		bool changed = false;
+		uint16_t ds_strength = 0;
+		uint32_t reg_strength = 0;
+		uint8_t ds_intensity = 0;
+		switch(rumble_haptics_intensity)
+		{
+				case RumbleHapticsIntensity::VeryWeak:
+					ds_intensity = 4;
+					break;
+				case RumbleHapticsIntensity::Weak:
+					ds_intensity = 3;
+					break;
+				case RumbleHapticsIntensity::Normal:
+					ds_intensity = 2;
+					break;
+				case RumbleHapticsIntensity::Strong:
+					ds_intensity = 1;
+					break;
+				case RumbleHapticsIntensity::VeryStrong:
+					ds_intensity = 0;
+					break;
+				default:
+					break;
+		}
+		for(size_t i = 0; i < RUMBLE_HAPTICS_PACKETS_PER_RUMBLE; i++)
+		{
+			if(!ds_rumble_haptics.isEmpty())
+				ds_strength += ds_rumble_haptics.dequeue();
+			if(!reg_rumble_haptics.isEmpty())
+				reg_strength += reg_rumble_haptics.dequeue();
+		}
+		ds_strength /= RUMBLE_HAPTICS_PACKETS_PER_RUMBLE;
+		reg_strength /= RUMBLE_HAPTICS_PACKETS_PER_RUMBLE;
+		QMetaObject::invokeMethod(this, [this, ds_strength, reg_strength, ds_intensity]() {
+			for(auto controller : controllers)
+			{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtualUnmasked())))
+#else
+				if(haptics_handheld < 1 && controller->IsHandheld())
+#endif
+					continue;
+				if(controller->IsDualSense() && (ds_strength > 0 || ds_rumble_haptics_on))
+					controller->SetDualSenseRumble(ds_strength, ds_strength, ds_intensity);
+
+				if(!controller->IsDualSense() && (reg_strength > 0 || reg_rumble_haptics_on))
+					controller->SetHapticRumble(reg_strength, reg_strength);
+			}
+		});
+		ds_rumble_haptics_on = ds_strength > 0 ? true : false;
+		reg_rumble_haptics_on = reg_strength > 0 ? true : false;
+	});
+	rumble_haptics_timer->start(rumble_haptics_interval);
+	rumble_haptics_connected = true;
+}
+
+void StreamSession::DualSenseQueueRumbleHaptics(uint8_t strength)
+{
+	if(!rumble_haptics_connected)
+		return;
+	ds_rumble_haptics.enqueue(strength);
+}
+
+void StreamSession::RegQueueRumbleHaptics(uint16_t strength)
+{
+	if(!rumble_haptics_connected)
+		return;
+	reg_rumble_haptics.enqueue(strength);
 }
 
 void StreamSession::ConnectHaptics()
@@ -1348,9 +1454,9 @@ void StreamSession::ConnectHaptics()
 	SDL_AudioSpec want, have;
 	SDL_zero(want);
 	want.freq = 48000;
-	want.format = AUDIO_S16LSB;
+	want.format = AUDIO_S16SYS;
 	want.channels = 4;
-	want.samples = 480; // 10ms buffer
+	want.samples = haptics_buffer_size;
 	want.callback = NULL;
 
 	const char *device_name = nullptr;
@@ -1420,10 +1526,7 @@ void StreamSession::ConnectSdeckHaptics()
 			{
 				uint64_t next_timestamp = sdeck_hapticl.head().timestamp;
 				if(next_timestamp > (current_tick + 10))
-				{
 					memset(sdeck_haptics_senderl + 30 * i, 0, 30);
-					continue;
-				}
 				else
 				{
 					haptic_packetl = sdeck_hapticl.dequeue();
@@ -1438,10 +1541,7 @@ void StreamSession::ConnectSdeckHaptics()
 			{
 				uint64_t next_timestamp = sdeck_hapticr.head().timestamp;
 				if(next_timestamp > (current_tick + 10))
-				{
 					memset(sdeck_haptics_senderr + 30 * i, 0, 30);
-					continue;
-				}
 				else
 				{
 					haptic_packetr = sdeck_hapticr.dequeue();
@@ -1480,13 +1580,16 @@ void StreamSession::ConnectSdeckHaptics()
 }
 #endif
 
-void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
+void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 {
-	if(!audio_out)
+	if(!audio_out || !audio_volume)
 		return;
 
-	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
+	// 2 Channels per sample
+	int16_t buf[samples_count * 2];
+	SDL_memset(buf, 0, sizeof(buf));
 
+	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
 	// Start draining queue when the latency gets too high
 	if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
 		audio_out_drain_queue = true;
@@ -1498,13 +1601,16 @@ void StreamSession::PushAudioFrame(int16_t *buf, size_t samples_count)
 			return;
 		audio_out_drain_queue = false;
 	}
-
+	if(audio_volume < SDL_MIX_MAXVOLUME)
+		SDL_MixAudioFormat((uint8_t *)buf, (uint8_t *)og_buf, AUDIO_S16SYS, sizeof(buf), audio_volume);
+	else
+		memcpy(buf, og_buf, sizeof(buf));
 #if CHIAKI_GUI_ENABLE_SPEEX
 	// change samples to mono for processing with SPEEX
 	if(echo_resampler_buf && speech_processing_enabled && !muted)
 	{
 		SDL_AudioCVT cvt;
-		SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 2, 48000, AUDIO_S16LSB, 1, 48000);
+		SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
 		cvt.len = mic_buf.size_bytes * 2;
 		cvt.buf = echo_resampler_buf;
 		memcpy(echo_resampler_buf, buf, mic_buf.size_bytes * 2);
@@ -1545,8 +1651,9 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
-		if(ps5_haptic_intensity < 0.01)
+		if(ps5_haptic_intensity < 0.01 || haptic_override < 0.01)
 			return;
+		float intensity = (haptic_override < 0.99 || haptic_override > 1.01) ? haptic_override : ps5_haptic_intensity;
 		if(buf_size != 120)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
@@ -1563,10 +1670,14 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		{
 			size_t cur = i * sample_size;
 			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
-			amplitudel *= ps5_haptic_intensity;
+			int32_t adjustedl = (int32_t)amplitudel * intensity;
+			adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
+			amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
 			packetl.haptic_packet[i] = amplitudel;
 			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
-			amplituder *= ps5_haptic_intensity;
+			int32_t adjustedr = (int32_t)amplituder * intensity;
+			adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
+			amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
 			packetr.haptic_packet[i] = amplituder;
 		}
 		emit SdeckHapticPushed(packetl, packetr);
@@ -1576,7 +1687,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	if((rumble_haptics_intensity != RumbleHapticsIntensity::Off) && haptics_output == 0)
 	{
 		int16_t amplitudel = 0, amplituder = 0;
-		int32_t suml = 0, sumr = 0;
+		uint32_t suml = 0, sumr = 0;
 		const size_t sample_size = 2 * sizeof(int16_t); // stereo samples
 
 		size_t buf_count = buf_size / sample_size;
@@ -1585,71 +1696,83 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 
 			memcpy(&amplitudel, buf + cur, sizeof(int16_t));
 			memcpy(&amplituder, buf + cur + sizeof(int16_t), sizeof(int16_t));
-			suml += amplitudel;
-			sumr += amplituder;
+			suml += static_cast<uint32_t>(qFabs(amplitudel)) * 2;
+			sumr += static_cast<uint32_t>(qFabs(amplituder)) * 2;
 		}
-		uint16_t left = 0, right = 0;
-		left = suml / buf_count;
-		right = sumr / buf_count;
-		uint32_t temp_left = 0;
-		uint32_t temp_right = 0;
+		uint32_t temp_left = (suml / buf_count);
+		uint32_t temp_right = (sumr / buf_count);
+		uint16_t original_strength = (temp_left > temp_right) ? temp_left : temp_right;
+		uint8_t dualsense_strength = ((original_strength >> 8) > 1) ? (original_strength >> 8) : 1;
+		uint16_t left = 0;
+		uint16_t right = 0;
+		temp_left = (temp_left > HAPTIC_RUMBLE_MIN_STRENGTH) ? temp_left : 0;
+		temp_right = (temp_right > HAPTIC_RUMBLE_MIN_STRENGTH) ? temp_right : 0;
+		if(temp_left == 0 && temp_right == 0)
+			return;
 		switch(rumble_haptics_intensity)
 		{
 			case RumbleHapticsIntensity::VeryWeak:
-				left /= 50;
-				right /= 50;
+				left = temp_left / 5;
+				right = temp_right / 5;
 				break;
 			case RumbleHapticsIntensity::Weak:
-				left /=25;
-				right /=25;
+				left = temp_left / 2;
+				right = temp_right / 2;
 				break;
 			case RumbleHapticsIntensity::Normal:
-				break;
-			case RumbleHapticsIntensity::Strong:
-				temp_left = left * 1.5;
-				temp_right = right * 1.5;
-				if(temp_left > UINT16_MAX)
-					temp_left = UINT16_MAX;
-				if(temp_right > UINT16_MAX)
-					temp_right = UINT16_MAX;
 				left = temp_left;
 				right = temp_right;
 				break;
+			case RumbleHapticsIntensity::Strong:
+				temp_left *= 2;
+				temp_right *= 2;
+				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
+				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
+				break;
 			case RumbleHapticsIntensity::VeryStrong:
-				temp_left = left * 2;
-				temp_right = right * 2;
-				if(temp_left > UINT16_MAX)
-					temp_left = UINT16_MAX;
-				if(temp_right > UINT16_MAX)
-					temp_right = UINT16_MAX;
+				temp_left *= 5;
+				temp_right *= 5;
+				left = (temp_left > UINT16_MAX) ? UINT16_MAX : temp_left;
+				right = (temp_right > UINT16_MAX) ? UINT16_MAX : temp_right;
+				break;
+			default:
 				left = temp_left;
 				right = temp_right;
 				break;
 		}
-		QMetaObject::invokeMethod(this, [this, left, right]() {
-			for(auto controller : controllers)
-			{
+		// Set minimum rumble value if above rumble min for controllers that shift up to 9 bits when rumbling
+		left = ((left > 0 && left < (1 << 9)) ? (1 << 9) : left);
+		right = ((right > 0 && right < (1 << 9)) ? (1 << 9) : right);
+		uint16_t strength = (left > right) ? left : right;
+		bool send_reg_rumble_haptics = false;
+		bool send_ds_rumble_haptics = false;
+		for(auto controller : controllers)
+		{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-				if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtualUnmasked())))
+			if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtualUnmasked())))
 #else
-				if(haptics_handheld < 1 && controller->IsHandheld())
+			if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
-					continue;
-				if(left > right)
-					controller->SetHapticRumble(left, left, 10);
-				else
-					controller->SetHapticRumble(right, right, 10);
-			}
-		});
+				continue;
+			if(controller->IsDualSense())
+				send_ds_rumble_haptics = true;
+			else
+				send_reg_rumble_haptics = true;
+		}
+		if(send_ds_rumble_haptics)
+			emit DualSenseRumbleHapticPushed(dualsense_strength);
+		if(send_reg_rumble_haptics)
+			emit RegRumbleHapticPushed(strength);
 		return;
 	}
 	if(haptics_output == 0)
 		return;
 	if(ps5_haptic_intensity < 0.01)
 		return;
+	float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps5_haptic_intensity;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
-	SDL_BuildAudioCVT(&cvt, AUDIO_S16LSB, 4, 3000, AUDIO_S16LSB, 4, 48000);
+	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
 	cvt.len = buf_size * 2;
 	cvt.buf = haptics_resampler_buf;
 	// Remix to 4 channels
@@ -1657,14 +1780,34 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
 		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
-		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 4)) *= ps5_haptic_intensity;
-		(*(int16_t *)(haptics_resampler_buf + (i * 2) + 6)) *= ps5_haptic_intensity;
+		int16_t amplitudel = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4));
+		int32_t adjustedl = static_cast<int32_t>(amplitudel) * intensity;
+		adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
+		amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
+		(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4)) = amplitudel;
+		int16_t amplituder = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6));
+		int32_t adjustedr = static_cast<int32_t>(amplituder) * intensity;
+		adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
+		amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
+		(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6)) = amplituder;
 	}
 	// Resample to 48kHZ
 	if (SDL_ConvertAudio(&cvt) != 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample haptics audio: %s", SDL_GetError());
 		return;
+	}
+
+	// Start draining queue when the latency gets too high
+	if(SDL_GetQueuedAudioSize(haptics_output) > 3 * haptics_buffer_size)
+		haptics_out_drain_queue = true;
+
+	if(haptics_out_drain_queue)
+	{
+		// Stop when the queue is smaller than configured buffer size
+		if(SDL_GetQueuedAudioSize(haptics_output) >= haptics_buffer_size)
+			return;
+		haptics_out_drain_queue = false;
 	}
 
 	if (SDL_QueueAudio(haptics_output, cvt.buf, cvt.len_cvt) < 0)
@@ -1681,44 +1824,6 @@ void StreamSession::SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t p
 	sdeck_hapticr.enqueue(packetr);
 }
 #endif
-
-void StreamSession::AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type)
-{
-	// adjust trigger intensity for supported trigger types in DualSense firmware
-	// as reported by https://gist.github.com/Nielk1/6d54cc2c00d2201ccb8c2720ad7538db
-	switch(type)
-	{
-		case 0x21:
-		case 0x26:
-		{
-			// bytes 27-29 always set to strength value
-			uint32_t strength = ((buf[5] >> 3) & 0x07) + 1;
-			uint32_t force_zones = *(uint32_t *)(buf + 2);
-			uint32_t new_strength = strength * ps5_trigger_intensity;
-			if(new_strength > 0)
-				new_strength -= 1;
-			uint32_t new_force_zones = 0;
-			for (int i = 0; i < 10; i++)
-			{
-				if((((force_zones >> (3 * i)) & 0x07) + 1) == strength)
-					new_force_zones |= (uint32_t)(new_strength << (3 * i));
-			}
-			memcpy(buf + 2, &new_force_zones, 4);
-			break;
-		}
-		case 0x25: {
-			uint8_t strength = buf[2] + 1;
-			strength *= ps5_trigger_intensity;
-			if(strength > 0)
-				strength -= 1;
-			buf[2] = strength;
-			break;
-		}
-		default: {
-			break;
-		}
-	}
-}
 
 void StreamSession::Event(ChiakiEvent *event)
 {
@@ -1754,9 +1859,19 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_RUMBLE: {
 			uint8_t left = event->rumble.left;
 			uint8_t right = event->rumble.right;
+			if(ps5_haptic_intensity < 0.01)
+				return;
 			QMetaObject::invokeMethod(this, [this, left, right]() {
 				for(auto controller : controllers)
-					controller->SetRumble(left, right);
+				{
+					if(ps5_rumble_intensity > -1)
+					{
+						if(controller->IsDualSense())
+							controller->SetDualSenseRumble(left, right, ps5_rumble_intensity);
+						else
+							controller->SetRumble(left, right);
+					}
+				}
 			});
 			break;
 		}
@@ -1771,22 +1886,14 @@ void StreamSession::Event(ChiakiEvent *event)
 			break;
 		}
 		case CHIAKI_EVENT_MOTION_RESET: {
-			bool reset = event->data_motion.motion_reset;
-			if(reset)
-				CHIAKI_LOGI(GetChiakiLog(), "Resetting motion controls...");
-			else
-				CHIAKI_LOGI(GetChiakiLog(), "Returning motion controls to normal...");
-			QMetaObject::invokeMethod(this, [this, reset]() {
+			QMetaObject::invokeMethod(this, [this]() {
 				for(auto controller : controllers)
-					controller->resetMotionControls(reset);
+					controller->resetMotionControls();
 			});
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 			if(sdeck)
 			{
-				if(reset)
-					chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
-				else
-					chiaki_accel_new_zero_set_inactive(&sdeck_accel_zero, false);
+				chiaki_accel_new_zero_set_active(&sdeck_accel_zero, sdeck_real_accel.accel_x, sdeck_real_accel.accel_y, sdeck_real_accel.accel_z, false);
 				chiaki_orientation_tracker_init(&sdeck_orient_tracker);
 				chiaki_orientation_tracker_update(
 					&sdeck_orient_tracker, sdeck_state.gyro_x, sdeck_state.gyro_y, sdeck_state.gyro_z,
@@ -1795,10 +1902,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			}
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
-			if(reset)
-				chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
-			else
-				chiaki_accel_new_zero_set_inactive(&setsu_accel_zero, false);
+			chiaki_accel_new_zero_set_active(&setsu_accel_zero, setsu_real_accel.accel_x, setsu_real_accel.accel_y, setsu_real_accel.accel_z, false);
 			chiaki_orientation_tracker_init(&orient_tracker);
 			chiaki_orientation_tracker_update(
 				&orient_tracker, setsu_state.gyro_x, setsu_state.gyro_y, setsu_state.gyro_z,
@@ -1812,18 +1916,22 @@ void StreamSession::Event(ChiakiEvent *event)
 			{
 				case Off: {
 					ps5_haptic_intensity = 0;
+					ps5_rumble_intensity = -1;
 					break;
 				}
 				case Strong: {
-					ps5_haptic_intensity = 1;
+					ps5_haptic_intensity = 1.0;
+					ps5_rumble_intensity = 0;
 					break;
 				}
 				case Weak: {
 					ps5_haptic_intensity = 0.25;
+					ps5_rumble_intensity = 3;
 					break;
 				}
 				case Medium: {
 					ps5_haptic_intensity = 0.5;
+					ps5_rumble_intensity = 2;
 					break;
 				}
 			}
@@ -1837,15 +1945,15 @@ void StreamSession::Event(ChiakiEvent *event)
 					break;
 				}
 				case Strong: {
-					ps5_trigger_intensity = 1;
+					ps5_trigger_intensity = 0x07;
 					break;
 				}
 				case Weak: {
-					ps5_trigger_intensity = 0.5;
+					ps5_trigger_intensity = 0x97;
 					break;
 				}
 				case Medium: {
-					ps5_trigger_intensity = 0.75;
+					ps5_trigger_intensity = 0x67;
 					break;
 				}
 			}
@@ -1853,19 +1961,17 @@ void StreamSession::Event(ChiakiEvent *event)
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
 			// If triggers off, return
-			if(ps5_trigger_intensity < 0.01)
+			if(ps5_trigger_intensity < 1)
 				return;
 			uint8_t type_left = event->trigger_effects.type_left;
 			uint8_t data_left[10];
 			memcpy(data_left, event->trigger_effects.left, 10);
-			AdjustAdaptiveTriggerPacket(data_left, type_left);
 			uint8_t data_right[10];
 			memcpy(data_right, event->trigger_effects.right, 10);
 			uint8_t type_right = event->trigger_effects.type_right;
-			AdjustAdaptiveTriggerPacket(data_right, type_right);
 			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
 				for(auto controller : controllers)
-					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);
+					controller->SetTriggerEffects(type_left, data_left, type_right, data_right, ps5_trigger_intensity);
 			});
 			break;
 		}
