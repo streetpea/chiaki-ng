@@ -12,7 +12,8 @@ separate-locales: false
 finish-args:
   - --share=network
   - --share=ipc
-  - --socket=x11
+  - --socket=fallback-x11
+  - --socket=wayland
   - --device=all
   - --allow=bluetooth
   - --socket=pulseaudio
@@ -186,6 +187,11 @@ modules:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
         tag: release-2.32.0
+
+  - name: vulkanso
+    buildsystem: simple
+    build-commands:
+      - ln -s /usr/lib/$(uname -m)-linux-gnu/libvulkan.so.1 /app/lib/libvulkan.so
 
   - name: chiaki-ng
     buildsystem: cmake-ninja
