@@ -160,7 +160,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/json-c/json-c.git
-        tag: json-c-0.17-20230812
+        tag: json-c-0.18-20240915
 
   - name: miniupnpc
     buildsystem: cmake-ninja
@@ -168,7 +168,7 @@ modules:
     sources:
     - type: git
       url: https://github.com/miniupnp/miniupnp
-      tag: miniupnpc_2_2_7
+      tag: miniupnpc_2_3_0
 
   - name: SDL2
     config-opts:
@@ -185,7 +185,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.30.8
+        tag: release-2.32.0
 
   - name: chiaki-ng
     buildsystem: cmake-ninja
