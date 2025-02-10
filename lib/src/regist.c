@@ -516,7 +516,7 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 		//if(ai->ai_protocol != IPPROTO_UDP)
 		//	continue;
 
-		if(ai->ai_family != AF_INET)
+		if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
 			continue;
 
 		if(ai->ai_addrlen > *send_addr_len)
@@ -597,6 +597,7 @@ connect_fail:
 	}
 	if(!connected)
 	{
+		CHIAKI_LOGI(regist->log, "Regist connect failed: tried all addresses");
 		if(!CHIAKI_SOCKET_IS_INVALID(sock))
 		{
 			CHIAKI_SOCKET_CLOSE(sock);
