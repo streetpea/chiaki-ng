@@ -510,12 +510,13 @@ done:
 static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *send_addr, socklen_t *send_addr_len)
 {
 	chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
+	bool connected = false;
 	for(struct addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
 	{
 		//if(ai->ai_protocol != IPPROTO_UDP)
 		//	continue;
 
-		if(ai->ai_family != AF_INET && ai->ai_family != AF_INET6)
+		if(ai->ai_family != AF_INET)
 			continue;
 
 		if(ai->ai_addrlen > *send_addr_len)
@@ -556,16 +557,18 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 			}
 			else
 			{
-				struct sockaddr_in6 host_addr;
-				host_addr.sin6_addr = in6addr_any;
-				host_addr.sin6_port = 0;
-				host_addr.sin6_family = AF_INET6;
-				r = bind(sock, (struct sockaddr *)&host_addr, sizeof(host_addr));
+				struct in6_addr ip;
+				memcpy(&ip, &(((struct sockaddr_in6 *)send_addr)->sin6_addr), sizeof(struct in6_addr));
+				((struct sockaddr_in6 *)send_addr)->sin6_addr = in6addr_any;
+				((struct sockaddr_in6 *)send_addr)->sin6_port = 0;
+				((struct sockaddr_in6 *)send_addr)->sin6_family = AF_INET6;
+				r = bind(sock, send_addr, *send_addr_len);
+				memcpy(&(((struct sockaddr_in6 *)send_addr)->sin6_addr), &ip, sizeof(struct in6_addr));
 			}
 			if(r < 0)
 			{
-				CHIAKI_LOGE(regist->log, "Regist failed to bind socket");
-				goto connect_fail;
+				CHIAKI_LOGE(regist->log, "Regist failed to bind socket, trying next address...");
+				continue;
 			}
 		}
 		else
@@ -574,14 +577,15 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 			if(r < 0)
 			{
 #ifdef _WIN32
-				CHIAKI_LOGE(regist->log, "Regist connect failed, error %u", WSAGetLastError());
+				CHIAKI_LOGE(regist->log, "Regist connect failed, error %u. Trying next address...", WSAGetLastError());
 #else
 				int errsv = errno;
-				CHIAKI_LOGE(regist->log, "Regist connect failed: %s", strerror(errsv));
+				CHIAKI_LOGE(regist->log, "Regist connect failed, error: %s. Trying next address...", strerror(errsv));
 #endif
-				goto connect_fail;
+				continue;
 			}
 		}
+		connected = true;
 		break;
 
 connect_fail:
@@ -591,7 +595,14 @@ connect_fail:
 			sock = CHIAKI_INVALID_SOCKET;
 		}
 	}
-
+	if(!connected)
+	{
+		if(!CHIAKI_SOCKET_IS_INVALID(sock))
+		{
+			CHIAKI_SOCKET_CLOSE(sock);
+			sock = CHIAKI_INVALID_SOCKET;
+		}
+	}
 	return sock;
 }
 
