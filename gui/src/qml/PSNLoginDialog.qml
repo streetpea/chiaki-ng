@@ -217,7 +217,6 @@ DialogView {
                                 offTheRecord: true
                             }
                             settings {
-                                dnsPrefetchEnabled: true
                                 // Load larger touch icons
                                 touchIconsEnabled: true
                             }
