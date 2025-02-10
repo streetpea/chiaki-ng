@@ -232,6 +232,7 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
+                        web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bQtWebEngine[^ ]*/, '')
                         web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
