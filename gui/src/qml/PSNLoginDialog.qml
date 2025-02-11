@@ -142,7 +142,7 @@ DialogView {
                 interval: 0
                 running: false
                 onTriggered: {
-                    webView.web.reload();
+                    webView.web.reloadAndBypassCache();
                 }
             }
 
@@ -214,7 +214,8 @@ DialogView {
                         import org.streetpea.chiaking
                         WebEngineView {
                             profile {
-                                offTheRecord: true
+                                offTheRecord: false
+                                storageName: 'psn-token-storage'
                             }
                             settings {
                                 // Load larger touch icons
