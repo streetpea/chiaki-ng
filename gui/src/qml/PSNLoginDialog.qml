@@ -214,8 +214,7 @@ DialogView {
                         import org.streetpea.chiaking
                         WebEngineView {
                             profile {
-                                offTheRecord: false
-                                storageName: 'psn-token-storage'
+                                offTheRecord: true
                             }
                             settings {
                                 // Load larger touch icons
@@ -233,7 +232,7 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
-                        web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bQtWebEngine[^ ]*/, '')
+                        web.profile.httpUserAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
                         web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
