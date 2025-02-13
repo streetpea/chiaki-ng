@@ -389,7 +389,7 @@ Controller::~Controller()
 	{
 		// Clear trigger effects, SDL doesn't do it automatically
 		const uint8_t clear_effect[10] = { 0 };
-		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x00);
+		this->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
 		this->SetRumble(0,0);
 		SDL_GameControllerClose(controller);
 	}
@@ -756,28 +756,17 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	SDL_GameControllerRumble(controller, (uint16_t)left << 8, (uint16_t)right << 8, 5000);
+	SDL_GameControllerRumble(controller, (uint16_t)left << 9, (uint16_t)right << 9, 5000);
 #endif
 }
 
-void Controller::SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength)
+void Controller::SetDualSenseIntensity(uint8_t trigger_intensity, uint8_t rumble_intensity)
 {
+	if((!is_dualsense && !is_dualsense_edge) || !controller)
+		return;
 	DS5EffectsState_t state;
 	SDL_zero(state);
-	if(firmware_version < 0x0224)
-	{
-		state.ucEnableBits1 |= 0x01;
-		state.ucRumbleLeft = left >> 1;
-		state.ucRumbleRight = right >> 1;
-	}
-	else
-	{
-		state.ucEnableBits3 |= 0x04;
-		state.ucRumbleLeft = left;
-		state.ucRumbleRight = right;
-	}
-	state.rgucUnknown1[4] = strength;
-	state.ucEnableBits1 |= 0x02;
+	state.rgucUnknown1[4] = trigger_intensity | rumble_intensity;
 	state.ucEnableBits2 |= 0x40;
 	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
 }
@@ -791,7 +780,7 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 #endif
 }
 
-void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t strength)
+void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if((!is_dualsense && !is_dualsense_edge) || !controller)
@@ -799,8 +788,6 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 	DS5EffectsState_t state;
 	SDL_zero(state);
 	state.ucEnableBits1 |= (0x04 /* left trigger */ | 0x08 /* right trigger */);
-	state.rgucUnknown1[4] = strength;
-	state.ucEnableBits2 |= 0x40;
 	state.rgucLeftTriggerEffect[0] = type_left;
 	SDL_memcpy(state.rgucLeftTriggerEffect + 1, data_left, 10);
 	state.rgucRightTriggerEffect[0] = type_right;

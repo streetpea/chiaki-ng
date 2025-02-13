@@ -2157,14 +2157,14 @@ DialogView {
                                     if(parent.value > 0.99 && parent.value < 1.01)
                                         qsTr("console setting")
                                     else
-                                        (parent.value * 100).toFixed(0) + qsTr(" %")
+                                        (parent.value * 100).toFixed(0) + qsTr(" % console setting")
                                 }
                             }
                         }
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            Layout.leftMargin: 200
+                            Layout.leftMargin: 250
                             text: qsTr("(console setting)")
                         }
                     }

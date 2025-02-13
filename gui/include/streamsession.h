@@ -88,7 +88,6 @@ struct StreamSessionConnectInfo
 	bool enable_keyboard;
 	bool enable_dualsense;
 	bool auto_regist;
-	float trigger_override;
 	float haptic_override;
 	ChiakiDisableAudioVideo audio_video_disabled;
 	RumbleHapticsIntensity rumble_haptics_intensity;
@@ -167,7 +166,7 @@ class StreamSession : public QObject
 		QList<double> packet_loss_history;
 		bool cant_display = false;
 		int haptics_handheld;
-		float ps5_haptic_intensity;
+		float rumble_multiplier;
 		int ps5_rumble_intensity;
 		int ps5_trigger_intensity;
 		uint8_t led_color[3];
@@ -198,11 +197,9 @@ class StreamSession : public QObject
 		bool sdeck_orient_dirty;
 		bool vertical_sdeck;
 #endif
-		QQueue<uint8_t> ds_rumble_haptics;
-		QQueue<uint16_t> reg_rumble_haptics;
+		QQueue<uint16_t> rumble_haptics;
 		bool rumble_haptics_connected;
-		bool ds_rumble_haptics_on;
-		bool reg_rumble_haptics_on;
+		bool rumble_haptics_on;
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
 		ChiakiControllerState touch_state;
@@ -282,8 +279,7 @@ class StreamSession : public QObject
 		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void ConnectSdeckHaptics();
 #endif
-		void DualSenseQueueRumbleHaptics(uint8_t strength);
-		void RegQueueRumbleHaptics(uint16_t strength);
+		void QueueRumbleHaptics(uint16_t strength);
 		void ConnectRumbleHaptics();
 
 	public:
@@ -328,8 +324,7 @@ class StreamSession : public QObject
 
 	signals:
 		void FfmpegFrameAvailable();
-		void DualSenseRumbleHapticPushed(uint8_t strength);
-		void RegRumbleHapticPushed(uint16_t strength);
+		void RumbleHapticPushed(uint16_t strength);
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		void SdeckHapticPushed(haptic_packet_t packetl, haptic_packet_t packetr);
 #endif

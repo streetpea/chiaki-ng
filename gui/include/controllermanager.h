@@ -118,8 +118,8 @@ class Controller : public QObject
 		QString GetGUIDString();
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);
-		void SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength);
-		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t trigger_intensity);
+		void SetDualSenseIntensity(uint8_t trigger_intensity, uint8_t rumble_intensity);
+		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
 		void SetDualsenseMic(bool on);
 		void SetHapticRumble(uint16_t left, uint16_t right);
 		void StartUpdatingMapping();

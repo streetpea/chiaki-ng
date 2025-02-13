@@ -233,7 +233,8 @@ DialogView {
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
                         web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bQtWebEngine[^ ]*/, '')
-                        web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bChrome[^ ]*/, 'Chrome/135.0.0.0 ')                        web.url = Chiaki.psnLoginUrl();
+                        web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bChrome[^ ]*/, 'Chrome/135.0.0.0 ')
+                        web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);

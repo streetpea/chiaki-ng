@@ -182,12 +182,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	haptics_resampler_buf(nullptr),
 	holepunch_session(nullptr),
-	ps5_haptic_intensity(1),
-	ps5_rumble_intensity(0),
-	ps5_trigger_intensity(0x07),
+	rumble_multiplier(1),
+	ps5_rumble_intensity(0x00),
+	ps5_trigger_intensity(0x00),
 	rumble_haptics_connected(false),
-	ds_rumble_haptics_on(false),
-	reg_rumble_haptics_on(false)
+	rumble_haptics_on(false)
 {
 	mic_buf.buf = nullptr;
 	connected = false;
@@ -497,7 +496,7 @@ StreamSession::~StreamSession()
 		for(auto controller : controllers)
 		{
 			const uint8_t clear_effect[10] = { 0 };
-			controller->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect, 0x00);
+			controller->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
 			controller->SetRumble(0,0);
 			controller->Unref();
 		}
@@ -954,6 +953,9 @@ void StreamSession::UpdateGamepads()
 			controller->ChangeLEDColor(led_color);
 			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
+				uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
+				uint8_t rumble_intensity = (ps5_rumble_intensity < 0) ? 0x0F : ps5_rumble_intensity;
+				controller->SetDualSenseIntensity(trigger_intensity, rumble_intensity);
 				controller->SetDualsenseMic(muted);
 				if(this->haptics_output > 0)
 					continue;
@@ -1357,49 +1359,21 @@ void StreamSession::ConnectRumbleHaptics()
 {
 	if(rumble_haptics_connected)
 		return;
-	ds_rumble_haptics = {};
-	ds_rumble_haptics.reserve(20);
-	reg_rumble_haptics = {};
-	reg_rumble_haptics.reserve(20);
-	connect(this, &StreamSession::DualSenseRumbleHapticPushed, this, &StreamSession::DualSenseQueueRumbleHaptics);
-	connect(this, &StreamSession::RegRumbleHapticPushed, this, &StreamSession::RegQueueRumbleHaptics);
+	rumble_haptics = {};
+	rumble_haptics.reserve(20);
+	connect(this, &StreamSession::RumbleHapticPushed, this, &StreamSession::QueueRumbleHaptics);
 	auto rumble_haptics_interval = RUMBLE_HAPTICS_PACKETS_PER_RUMBLE * 10;
 	auto rumble_haptics_timer = new QTimer(this);
 	connect(rumble_haptics_timer, &QTimer::timeout, this, [this]{
 		bool changed = false;
-		uint16_t ds_strength = 0;
-		uint32_t reg_strength = 0;
-		uint8_t ds_intensity = 0;
-		switch(rumble_haptics_intensity)
-		{
-				case RumbleHapticsIntensity::VeryWeak:
-					ds_intensity = 4;
-					break;
-				case RumbleHapticsIntensity::Weak:
-					ds_intensity = 3;
-					break;
-				case RumbleHapticsIntensity::Normal:
-					ds_intensity = 2;
-					break;
-				case RumbleHapticsIntensity::Strong:
-					ds_intensity = 1;
-					break;
-				case RumbleHapticsIntensity::VeryStrong:
-					ds_intensity = 0;
-					break;
-				default:
-					break;
-		}
+		uint32_t strength = 0;
 		for(size_t i = 0; i < RUMBLE_HAPTICS_PACKETS_PER_RUMBLE; i++)
 		{
-			if(!ds_rumble_haptics.isEmpty())
-				ds_strength += ds_rumble_haptics.dequeue();
-			if(!reg_rumble_haptics.isEmpty())
-				reg_strength += reg_rumble_haptics.dequeue();
+			if(!rumble_haptics.isEmpty())
+				strength += rumble_haptics.dequeue();
 		}
-		ds_strength /= RUMBLE_HAPTICS_PACKETS_PER_RUMBLE;
-		reg_strength /= RUMBLE_HAPTICS_PACKETS_PER_RUMBLE;
-		QMetaObject::invokeMethod(this, [this, ds_strength, reg_strength, ds_intensity]() {
+		strength /= RUMBLE_HAPTICS_PACKETS_PER_RUMBLE;
+		QMetaObject::invokeMethod(this, [this, strength]() {
 			for(auto controller : controllers)
 			{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -1408,32 +1382,22 @@ void StreamSession::ConnectRumbleHaptics()
 				if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
 					continue;
-				if(controller->IsDualSense() && (ds_strength > 0 || ds_rumble_haptics_on))
-					controller->SetDualSenseRumble(ds_strength, ds_strength, ds_intensity);
 
-				if(!controller->IsDualSense() && (reg_strength > 0 || reg_rumble_haptics_on))
-					controller->SetHapticRumble(reg_strength, reg_strength);
+				if(strength > 0 || rumble_haptics_on)
+					controller->SetHapticRumble(strength, strength);
 			}
 		});
-		ds_rumble_haptics_on = ds_strength > 0 ? true : false;
-		reg_rumble_haptics_on = reg_strength > 0 ? true : false;
+		rumble_haptics_on = strength > 0 ? true : false;
 	});
 	rumble_haptics_timer->start(rumble_haptics_interval);
 	rumble_haptics_connected = true;
 }
 
-void StreamSession::DualSenseQueueRumbleHaptics(uint8_t strength)
+void StreamSession::QueueRumbleHaptics(uint16_t strength)
 {
 	if(!rumble_haptics_connected)
 		return;
-	ds_rumble_haptics.enqueue(strength);
-}
-
-void StreamSession::RegQueueRumbleHaptics(uint16_t strength)
-{
-	if(!rumble_haptics_connected)
-		return;
-	reg_rumble_haptics.enqueue(strength);
+	rumble_haptics.enqueue(strength);
 }
 
 void StreamSession::ConnectHaptics()
@@ -1651,9 +1615,9 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
-		if(ps5_haptic_intensity < 0.01 || haptic_override < 0.01)
+		if(ps5_rumble_intensity < 0 || haptic_override < 0.01)
 			return;
-		float intensity = (haptic_override < 0.99 || haptic_override > 1.01) ? haptic_override : ps5_haptic_intensity;
+		float intensity = haptic_override * rumble_multiplier;
 		if(buf_size != 120)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Haptic audio of incompatible size: %zu", buf_size);
@@ -1702,7 +1666,6 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		uint32_t temp_left = (suml / buf_count);
 		uint32_t temp_right = (sumr / buf_count);
 		uint16_t original_strength = (temp_left > temp_right) ? temp_left : temp_right;
-		uint8_t dualsense_strength = ((original_strength >> 8) > 1) ? (original_strength >> 8) : 1;
 		uint16_t left = 0;
 		uint16_t right = 0;
 		temp_left = (temp_left > HAPTIC_RUMBLE_MIN_STRENGTH) ? temp_left : 0;
@@ -1744,8 +1707,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		left = ((left > 0 && left < (1 << 9)) ? (1 << 9) : left);
 		right = ((right > 0 && right < (1 << 9)) ? (1 << 9) : right);
 		uint16_t strength = (left > right) ? left : right;
-		bool send_reg_rumble_haptics = false;
-		bool send_ds_rumble_haptics = false;
+		bool send_rumble_haptics = false;
 		for(auto controller : controllers)
 		{
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -1754,42 +1716,47 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 			if(haptics_handheld < 1 && controller->IsHandheld())
 #endif
 				continue;
-			if(controller->IsDualSense())
-				send_ds_rumble_haptics = true;
-			else
-				send_reg_rumble_haptics = true;
+			send_rumble_haptics = true;
 		}
-		if(send_ds_rumble_haptics)
-			emit DualSenseRumbleHapticPushed(dualsense_strength);
-		if(send_reg_rumble_haptics)
-			emit RegRumbleHapticPushed(strength);
+		if(send_rumble_haptics)
+			emit RumbleHapticPushed(strength);
 		return;
 	}
 	if(haptics_output == 0)
 		return;
-	if(ps5_haptic_intensity < 0.01)
+	if(ps5_rumble_intensity < 0)
 		return;
-	float intensity = haptic_override < 0.99 || haptic_override > 1.01 ? haptic_override : ps5_haptic_intensity;
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
 	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
 	cvt.len = buf_size * 2;
 	cvt.buf = haptics_resampler_buf;
 	// Remix to 4 channels
-	for (int i=0; i < buf_size; i+=4)
+	if(haptic_override > 0.99 && haptic_override < 1.01)
 	{
-		SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
-		SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
-		int16_t amplitudel = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4));
-		int32_t adjustedl = static_cast<int32_t>(amplitudel) * intensity;
-		adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
-		amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
-		(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4)) = amplitudel;
-		int16_t amplituder = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6));
-		int32_t adjustedr = static_cast<int32_t>(amplituder) * intensity;
-		adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
-		amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
-		(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6)) = amplituder;
+		for (int i=0; i < buf_size; i+=4)
+		{
+			SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
+			SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
+		}
+	}
+	else
+	{
+		for (int i=0; i < buf_size; i+=4)
+		{
+			SDL_memset(haptics_resampler_buf + i * 2, 0, 4);
+			SDL_memcpy(haptics_resampler_buf + (i * 2) + 4, buf + i, 4);
+			int16_t amplitudel = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4));
+			int32_t adjustedl = static_cast<int32_t>(amplitudel) * haptic_override;
+			adjustedl = (adjustedl > INT16_MAX) ? INT16_MAX : adjustedl;
+			amplitudel = (adjustedl < INT16_MIN) ? INT16_MIN : adjustedl;
+			(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 4)) = amplitudel;
+			int16_t amplituder = (*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6));
+			int32_t adjustedr = static_cast<int32_t>(amplituder) * haptic_override;
+			adjustedr = (adjustedr > INT16_MAX) ? INT16_MAX : adjustedr;
+			amplituder = (adjustedr < INT16_MIN) ? INT16_MIN : adjustedr;
+			(*reinterpret_cast<int16_t *>(haptics_resampler_buf + (i * 2) + 6)) = amplituder;
+		}
 	}
 	// Resample to 48kHZ
 	if (SDL_ConvertAudio(&cvt) != 0)
@@ -1857,20 +1824,19 @@ void StreamSession::Event(ChiakiEvent *event)
 			emit NicknameReceived(event->server_nickname);
 			break;
 		case CHIAKI_EVENT_RUMBLE: {
+			if(ps5_rumble_intensity < 0)
+				return;
 			uint8_t left = event->rumble.left;
 			uint8_t right = event->rumble.right;
-			if(ps5_haptic_intensity < 0.01)
-				return;
-			QMetaObject::invokeMethod(this, [this, left, right]() {
+			uint8_t left_adj = left * rumble_multiplier;
+			uint8_t right_adj = right * rumble_multiplier;
+			QMetaObject::invokeMethod(this, [this, left, right, left_adj, right_adj]() {
 				for(auto controller : controllers)
 				{
-					if(ps5_rumble_intensity > -1)
-					{
-						if(controller->IsDualSense())
-							controller->SetDualSenseRumble(left, right, ps5_rumble_intensity);
-						else
-							controller->SetRumble(left, right);
-					}
+					if(controller->IsDualSense() || controller->IsDualSenseEdge())
+						controller->SetRumble(left, right);
+					else
+						controller->SetRumble(left_adj, right_adj);
 				}
 			});
 			break;
@@ -1915,53 +1881,64 @@ void StreamSession::Event(ChiakiEvent *event)
 			switch(event->intensity)
 			{
 				case Off: {
-					ps5_haptic_intensity = 0;
 					ps5_rumble_intensity = -1;
+					rumble_multiplier = 0;
 					break;
 				}
 				case Strong: {
-					ps5_haptic_intensity = 1.0;
-					ps5_rumble_intensity = 0;
+					ps5_rumble_intensity = 0x00;
+					rumble_multiplier = 1.0;
 					break;
 				}
 				case Weak: {
-					ps5_haptic_intensity = 0.25;
-					ps5_rumble_intensity = 3;
+					ps5_rumble_intensity = 0x03;
+					rumble_multiplier = 0.33;
 					break;
 				}
 				case Medium: {
-					ps5_haptic_intensity = 0.5;
-					ps5_rumble_intensity = 2;
+					ps5_rumble_intensity = 0x02;
+					rumble_multiplier = 0.5;
 					break;
 				}
 			}
+			uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
+			uint8_t rumble_intensity = (ps5_rumble_intensity < 0) ? 0x0F : ps5_rumble_intensity;
+			QMetaObject::invokeMethod(this, [this, trigger_intensity, rumble_intensity]() {
+				for(auto controller : controllers)
+					controller->SetDualSenseIntensity(trigger_intensity, rumble_intensity);
+			});
 			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_INTENSITY: {
 			switch(event->intensity)
 			{
 				case Off: {
-					ps5_trigger_intensity = 0;
+					ps5_trigger_intensity = -1;
 					break;
 				}
 				case Strong: {
-					ps5_trigger_intensity = 0x07;
+					ps5_trigger_intensity = 0x00;
 					break;
 				}
 				case Weak: {
-					ps5_trigger_intensity = 0x97;
+					ps5_trigger_intensity = 0x90;
 					break;
 				}
 				case Medium: {
-					ps5_trigger_intensity = 0x67;
+					ps5_trigger_intensity = 0x60;
 					break;
 				}
 			}
+			uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
+			uint8_t rumble_intensity = (ps5_rumble_intensity < 0) ? 0x0F : ps5_rumble_intensity;
+			QMetaObject::invokeMethod(this, [this, trigger_intensity, rumble_intensity]() {
+				for(auto controller : controllers)
+					controller->SetDualSenseIntensity(trigger_intensity, rumble_intensity);
+			});
 			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
-			// If triggers off, return
-			if(ps5_trigger_intensity < 1)
+			if(ps5_trigger_intensity < 0)
 				return;
 			uint8_t type_left = event->trigger_effects.type_left;
 			uint8_t data_left[10];
@@ -1971,7 +1948,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			uint8_t type_right = event->trigger_effects.type_right;
 			QMetaObject::invokeMethod(this, [this, type_left, data_left, type_right, data_right]() {
 				for(auto controller : controllers)
-					controller->SetTriggerEffects(type_left, data_left, type_right, data_right, ps5_trigger_intensity);
+					controller->SetTriggerEffects(type_left, data_left, type_right, data_right);
 			});
 			break;
 		}
