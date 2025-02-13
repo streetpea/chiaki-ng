@@ -11,7 +11,11 @@
 #include "steamtools.h"
 #endif
 
+#ifdef CHIAKI_HAVE_WEBENGINE
+#include <QWebEngineClientHints>
+#endif
 #include <QUrlQuery>
+#include <QtGlobal>
 #include <QGuiApplication>
 #include <QPixmap>
 #include <QImageReader>
@@ -1091,6 +1095,23 @@ void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
     settings->AddRegisteredHost(host);
     setConnectState(PsnConnectState::RegistrationFinished);
 }
+
+#ifdef CHIAKI_HAVE_WEBENGINE
+void QmlBackend::setWebEngineHints(QQuickWebEngineProfile *profile, QString version)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+    auto hints = profile->clientHints();
+    hints->setPlatform("Windows");
+    hints->setPlatformVersion("14.0.0");
+    hints->setFullVersion(QString("%1.0.0.0").arg(version));
+    QMap<QString, QVariant> fullVersionList;
+    fullVersionList.insert("Not A(Brand", "8.0.0.0");
+    fullVersionList.insert("Chromium", QString("%1.0.0.0").arg(version));
+    fullVersionList.insert("Google Chrome", QString("%1.0.0.0").arg(version));
+    hints->setFullVersionList(fullVersionList);
+#endif
+}
+#endif
 
 void QmlBackend::connectToHost(int index, QString nickname)
 {

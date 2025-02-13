@@ -232,8 +232,9 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
-                        web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bQtWebEngine[^ ]*/, '')
-                        web.profile.httpUserAgent = web.profile.httpUserAgent.replace(/\bChrome[^ ]*/, 'Chrome/135.0.0.0 ')
+                        var chrome_version = "135"
+                        web.profile.httpUserAgent = qsTr("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%1.0.0.0 Safari/537.36").arg(chrome_version)
+                        Chiaki.setWebEngineHints(web.profile, chrome_version);
                         web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
