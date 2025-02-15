@@ -148,7 +148,7 @@ DialogView {
                 running: false
                 onTriggered: {
                     Chiaki.clearCookies(webView.web.profile);
-                    webView.web.reloadAndBypassCache();
+                    webView.web.profile.clearHttpCache();
                 }
             }
 
@@ -223,6 +223,9 @@ DialogView {
                             profile {
                                 offTheRecord: false
                                 storageName: 'psn-token'
+                                onClearHttpCacheCompleted: {
+                                    webView.web.reload();
+                                }
                             }
                             settings {
                                 // Load larger touch icons
