@@ -13,6 +13,7 @@
 
 #ifdef CHIAKI_HAVE_WEBENGINE
 #include <QWebEngineClientHints>
+#include <QWebEngineCookieStore>
 #endif
 #include <QUrlQuery>
 #include <QtGlobal>
@@ -1097,6 +1098,12 @@ void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
 }
 
 #ifdef CHIAKI_HAVE_WEBENGINE
+void QmlBackend::clearCookies(QQuickWebEngineProfile *profile)
+{
+    auto cookieStore = profile->cookieStore();
+    cookieStore->deleteAllCookies();
+}
+
 void QmlBackend::setWebEngineHints(QQuickWebEngineProfile *profile, QString version)
 {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)

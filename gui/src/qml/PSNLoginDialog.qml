@@ -75,7 +75,7 @@ DialogView {
                         Layout.fillHeight: true
                         Layout.preferredWidth: 300
                         flat: true
-                        text: "reload webpage"
+                        text: "reload + clear cookies"
                         Image {
                             anchors {
                                 left: parent.left
@@ -142,6 +142,7 @@ DialogView {
                 interval: 0
                 running: false
                 onTriggered: {
+                    Chiaki.clearCookies(webView.web.profile);
                     webView.web.reloadAndBypassCache();
                 }
             }
@@ -214,7 +215,8 @@ DialogView {
                         import org.streetpea.chiaking
                         WebEngineView {
                             profile {
-                                offTheRecord: true
+                                offTheRecord: false
+                                storageName: 'psn-token'
                             }
                             settings {
                                 // Load larger touch icons

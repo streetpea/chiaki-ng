@@ -177,6 +177,7 @@ public:
 #endif
 #ifdef CHIAKI_HAVE_WEBENGINE
     Q_INVOKABLE void setWebEngineHints(QQuickWebEngineProfile *profile, QString version);
+    Q_INVOKABLE void clearCookies(QQuickWebEngineProfile *profile);
 #endif
 
 signals:
