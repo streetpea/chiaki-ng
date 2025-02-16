@@ -10,8 +10,8 @@ import "controls" as C
 DialogView {
     id: dialog
     property var psnurl
-    property bool succeeded: false
     property var expired
+    property bool closing: false
     title: {
         if(expired)
             qsTr("Credentials Expired: Refresh PSN Remote Connection")
@@ -39,8 +39,15 @@ DialogView {
         Chiaki.settings.remotePlayAsk = true;
         nativeTokenForm.visible = true;
         nativeTokenForm.forceActiveFocus(Qt.TabFocusReason);
-        if(webView.web)
-            webView.web.profile.clearHttpCache();
+    }
+    function close() {
+        if(webView.web && Chiaki.settings.remotePlayAsk)
+        {
+            dialog.closing = true;
+            reloadTimer.start();
+        }
+        else
+            root.closeDialog(); 
     }
 
     Item {
@@ -227,11 +234,10 @@ DialogView {
                                 offTheRecord: false
                                 storageName: 'psn-token'
                                 onClearHttpCacheCompleted: {
-                                    if(webView.started)
-                                        webView.web.reload();
+                                    if(dialog.closing)
+                                        root.closeDialog();
                                     else
-                                        webView.web.url = Chiaki.psnLoginUrl();
-                                    webView.started = true;
+                                        webView.web.reload();
                                 }
                             }
                             settings {
@@ -262,6 +268,7 @@ DialogView {
                         var chrome_version = "135"
                         web.profile.httpUserAgent = qsTr("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%1.0.0.0 Safari/537.36").arg(chrome_version)
                         Chiaki.setWebEngineHints(web.profile, chrome_version);
+                        web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);

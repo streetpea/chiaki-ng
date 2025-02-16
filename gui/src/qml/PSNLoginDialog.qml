@@ -12,6 +12,7 @@ DialogView {
     property var callback: null
     property bool login
     property bool submitting: false
+    property bool closing: false
     property var psnurl: ""
     title: qsTr("PSN Login")
     buttonVisible: false
@@ -26,8 +27,6 @@ DialogView {
         {
             nativeLoginForm.visible = true;
             nativeLoginForm.forceActiveFocus(Qt.TabFocusReason);
-            if(webView.web)
-                webView.web.profile.clearHttpCache();
         }
         else
         {
@@ -36,6 +35,15 @@ DialogView {
             usernameField.readOnly = false;
             Qt.inputMethod.show();
         }
+    }
+    function close() {
+        if(webView.web && Chiaki.settings.remotePlayAsk)
+        {
+            dialog.closing = true;
+            reloadTimer.start();
+        }
+        else
+            root.closeDialog();
     }
 
    Item {
@@ -210,7 +218,6 @@ DialogView {
                     leftMargin: 10
                     rightMargin: 10
                 }
-                property bool started: false
                 Component.onCompleted: {
                     try {
                         web = Qt.createQmlObject("
@@ -221,11 +228,10 @@ DialogView {
                                 offTheRecord: false
                                 storageName: 'psn-token'
                                 onClearHttpCacheCompleted: {
-                                    if(webView.started)
-                                        webView.web.reload();
+                                    if(dialog.closing)
+                                        root.closeDialog();
                                     else
-                                        webView.web.url = Chiaki.psnLoginUrl();
-                                    webView.started = true;
+                                        webView.web.reload();
                                 }
                             }
                             settings {
@@ -247,6 +253,7 @@ DialogView {
                         var chrome_version = "135"
                         web.profile.httpUserAgent = qsTr("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%1.0.0.0 Safari/537.36").arg(chrome_version)
                         Chiaki.setWebEngineHints(web.profile, chrome_version);
+                        webView.web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);
