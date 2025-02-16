@@ -12,7 +12,9 @@
 #endif
 
 #ifdef CHIAKI_HAVE_WEBENGINE
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
 #include <QWebEngineClientHints>
+#endif
 #include <QWebEngineCookieStore>
 #endif
 #include <QUrlQuery>
