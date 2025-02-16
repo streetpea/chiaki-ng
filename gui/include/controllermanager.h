@@ -33,6 +33,8 @@ class ControllerManager : public QObject
 #endif
 		QMap<int, Controller *> open_controllers;
 		bool creating_controller_mapping;
+		bool joystick_allow_background_events;
+		bool is_app_active;
 
 		void ControllerClosed(Controller *controller);
 
@@ -49,6 +51,8 @@ class ControllerManager : public QObject
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();
 		void SetButtonsByPos();
+		void SetAllowJoystickBackgroundEvents(bool enabled);
+		void SetIsAppActive(bool active);
 		void creatingControllerMapping(bool creating_controller_mapping);
 		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);

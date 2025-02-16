@@ -131,6 +131,11 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
+    connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, this, &QmlBackend::setAllowJoystickBackgroundEvents);
+    connect(window, &QmlMainWindow::activeChanged, this, &QmlBackend::setIsAppActive);
+    setAllowJoystickBackgroundEvents();
+    setIsAppActive();
+    ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
     updateControllers();
     updateControllerMappings();
     connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
@@ -1433,6 +1438,16 @@ bool QmlBackend::sendWakeup(const QString &host, const QByteArray &regist_key, b
         emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
         return false;
     }
+}
+
+void QmlBackend::setAllowJoystickBackgroundEvents()
+{
+    ControllerManager::GetInstance()->SetAllowJoystickBackgroundEvents(settings->GetAllowJoystickBackgroundEvents());
+}
+
+void QmlBackend::setIsAppActive()
+{
+    ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
 }
 
 void QmlBackend::updateControllers()

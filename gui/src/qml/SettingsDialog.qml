@@ -1948,6 +1948,27 @@ DialogView {
                             reset: true
                         });
                     }
+
+                    RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Background Controller Events:")
+                        }
+                        C.CheckBox {
+                            text: qsTr("Process controller input when application is in background")
+                            checked: {
+                                Chiaki.settings.allowJoystickBackgroundEvents
+                            }
+                            onToggled: Chiaki.settings.allowJoystickBackgroundEvents = checked
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Checked)")
+                        }
+                    }
                     RowLayout {
                         spacing: 10
                         Layout.alignment: Qt.AlignHCenter

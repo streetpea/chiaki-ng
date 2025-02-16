@@ -138,7 +138,8 @@ ControllerManager *ControllerManager::GetInstance()
 }
 
 ControllerManager::ControllerManager(QObject *parent)
-	: QObject(parent), creating_controller_mapping(false)
+	: QObject(parent), creating_controller_mapping(false),
+	joystick_allow_background_events(true), is_app_active(true)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	SDL_SetMainReady();
@@ -167,6 +168,16 @@ ControllerManager::~ControllerManager()
 	open_controllers.clear();
 	SDL_Quit();
 #endif
+}
+
+void ControllerManager::SetAllowJoystickBackgroundEvents(bool enabled)
+{
+	this->joystick_allow_background_events = enabled;
+}
+
+void ControllerManager::SetIsAppActive(bool active)
+{
+	this->is_app_active = active;
 }
 
 void ControllerManager::SetButtonsByPos()
@@ -243,7 +254,8 @@ void ControllerManager::HandleEvents()
 			case SDL_CONTROLLERTOUCHPADMOTION:
 			case SDL_CONTROLLERTOUCHPADUP:
 #endif
-				ControllerEvent(event);
+				if(joystick_allow_background_events || is_app_active)
+					ControllerEvent(event);
 				break;
 		}
 	}
@@ -756,6 +768,8 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
+	left = (left > 127) ? 127: left;
+	right = (right > 127) ? 127: right;
 	SDL_GameControllerRumble(controller, (uint16_t)left << 9, (uint16_t)right << 9, 5000);
 #endif
 }

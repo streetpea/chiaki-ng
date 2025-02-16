@@ -39,6 +39,8 @@ DialogView {
         Chiaki.settings.remotePlayAsk = true;
         nativeTokenForm.visible = true;
         nativeTokenForm.forceActiveFocus(Qt.TabFocusReason);
+        if(webView.web)
+            webView.web.profile.clearHttpCache();
     }
 
     Item {
@@ -78,7 +80,7 @@ DialogView {
                     Button {
                         id: reloadButton
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 300
+                        Layout.preferredWidth: 350
                         flat: true
                         text: "reload + clear cookies"
                         Image {
@@ -204,7 +206,7 @@ DialogView {
             }
             Item {
                 id: webView
-                property Item web
+                property Item web: null
                 anchors {
                     top: psnTokenToolbar.bottom
                     bottom: parent.bottom
@@ -213,6 +215,7 @@ DialogView {
                     leftMargin: 10
                     rightMargin: 10
                 }
+                property bool started: false
                 Component.onCompleted: {
                     try {
                         web = Qt.createQmlObject("
@@ -224,7 +227,11 @@ DialogView {
                                 offTheRecord: false
                                 storageName: 'psn-token'
                                 onClearHttpCacheCompleted: {
-                                    webView.web.reload();
+                                    if(webView.started)
+                                        webView.web.reload();
+                                    else
+                                        webView.web.url = Chiaki.psnLoginUrl();
+                                    webView.started = true;
                                 }
                             }
                             settings {
@@ -255,7 +262,6 @@ DialogView {
                         var chrome_version = "135"
                         web.profile.httpUserAgent = qsTr("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%1.0.0.0 Safari/537.36").arg(chrome_version)
                         Chiaki.setWebEngineHints(web.profile, chrome_version);
-                        web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);

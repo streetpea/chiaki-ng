@@ -273,6 +273,17 @@ void QmlSettings::setEchoSuppressLevel(int level)
 }
 #endif
 
+bool QmlSettings::allowJoystickBackgroundEvents() const
+{
+    return settings->GetAllowJoystickBackgroundEvents();
+}
+
+void QmlSettings::setAllowJoystickBackgroundEvents(bool enabled)
+{
+    settings->SetAllowJoystickBackgroundEvents(enabled);
+    emit allowJoystickBackgroundEventsChanged();
+}
+
 int QmlSettings::fpsLocalPS4() const
 {
     return settings->GetFPSLocalPS4();
@@ -1544,6 +1555,7 @@ void QmlSettings::refreshAllKeys()
     emit hapticOverrideChanged();
     emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();
+    emit allowJoystickBackgroundEventsChanged();
     emit startMicUnmutedChanged();
     emit showStreamStatsChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE

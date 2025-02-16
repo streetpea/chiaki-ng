@@ -73,7 +73,7 @@ DialogView {
                     Button {
                         id: reloadButton
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 300
+                        Layout.preferredWidth: 350
                         flat: true
                         text: "reload + clear cookies"
                         Image {

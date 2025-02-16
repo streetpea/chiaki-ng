@@ -57,6 +57,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
+    Q_PROPERTY(bool allowJoystickBackgroundEvents READ allowJoystickBackgroundEvents WRITE setAllowJoystickBackgroundEvents NOTIFY allowJoystickBackgroundEventsChanged)
     Q_PROPERTY(QString logDirectory READ logDirectory CONSTANT)
     Q_PROPERTY(QStringList availableDecoders READ availableDecoders CONSTANT)
     Q_PROPERTY(QStringList availableAudioInDevices READ availableAudioInDevices NOTIFY audioDevicesChanged)
@@ -191,6 +192,9 @@ public:
 
     bool buttonsByPosition() const;
     void setButtonsByPosition(bool buttonsByPosition);
+
+    bool allowJoystickBackgroundEvents() const;
+    void setAllowJoystickBackgroundEvents(bool allowJoystickBackgroundEvents);
 
     bool startMicUnmuted() const;
     void setStartMicUnmuted(bool startMicUnmuted);
@@ -534,6 +538,7 @@ signals:
     void logVerboseChanged();
     void rumbleHapticsIntensityChanged();
     void buttonsByPositionChanged();
+    void allowJoystickBackgroundEventsChanged();
     void startMicUnmutedChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     void verticalDeckChanged();

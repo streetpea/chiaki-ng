@@ -139,6 +139,10 @@ public:
 
     bool closeRequested();
 
+    void setAllowJoystickBackgroundEvents();
+
+    void setIsAppActive();
+
     void profileChanged();
 
     bool zeroCopy()        { return !disable_zero_copy; };
