@@ -12,6 +12,7 @@
 #endif
 
 #ifdef CHIAKI_HAVE_WEBENGINE
+#define CHROME_VERSION "135"
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
 #include <QWebEngineClientHints>
 #endif
@@ -267,6 +268,8 @@ QmlBackend::~QmlBackend()
         delete session;
         session = nullptr;
     }
+    if(request_interceptor)
+        delete request_interceptor;
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
@@ -1111,19 +1114,31 @@ void QmlBackend::clearCookies(QQuickWebEngineProfile *profile)
     cookieStore->deleteAllCookies();
 }
 
-void QmlBackend::setWebEngineHints(QQuickWebEngineProfile *profile, QString version)
+void QmlBackend::setWebEngineHints(QQuickWebEngineProfile *profile)
 {
+    auto userAgent = profile->httpUserAgent();
+    userAgent = userAgent.replace(QRegularExpression(" \\bQtWebEngine[^ ]*\\b"), "");
+    userAgent = userAgent.replace(QRegularExpression("\\bChrome[^ ]*\\b"), QString("Chrome/%1.0.0.0").arg(CHROME_VERSION));
+#ifdef Q_OS_WINDOWS
+    userAgent = userAgent.replace("Windows NT 6.2", "Windows NT 10.0");
+    userAgent += QString(" Edg/%1.0.0.0").arg(CHROME_VERSION);
+#endif
+    profile->setHttpUserAgent(userAgent);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
     auto hints = profile->clientHints();
-    hints->setPlatform("Windows");
-    hints->setPlatformVersion("14.0.0");
-    hints->setFullVersion(QString("%1.0.0.0").arg(version));
+    hints->setFullVersion(QString("%1.0.0.0").arg(CHROME_VERSION));
     QMap<QString, QVariant> fullVersionList;
-    fullVersionList.insert("Not A(Brand", "8.0.0.0");
-    fullVersionList.insert("Chromium", QString("%1.0.0.0").arg(version));
-    fullVersionList.insert("Google Chrome", QString("%1.0.0.0").arg(version));
+    fullVersionList.insert("Not A(Brand", "99.0.0.0");
+#ifdef Q_OS_WINDOWS
+    fullVersionList.insert("Microsoft Edge", QString("%1.0.0.0").arg(CHROME_VERSION));
+#else
+    fullVersionList.insert("Google Chrome", QString("%1.0.0.0").arg(CHROME_VERSION));
+#endif
+    fullVersionList.insert("Chromium", QString("%1.0.0.0").arg(CHROME_VERSION));
     hints->setFullVersionList(fullVersionList);
 #endif
+    request_interceptor = new SecUaRequestInterceptor(CHROME_VERSION);
+    profile->setUrlRequestInterceptor(request_interceptor);
 }
 #endif
 

@@ -243,6 +243,7 @@ DialogView {
                             settings {
                                 // Load larger touch icons
                                 touchIconsEnabled: true
+                                localContentCanAccessRemoteUrls: true
                             }
 
                             onContextMenuRequested: (request) => request.accepted = true;
@@ -265,9 +266,7 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
-                        var chrome_version = "135"
-                        web.profile.httpUserAgent = qsTr("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%1.0.0.0 Safari/537.36").arg(chrome_version)
-                        Chiaki.setWebEngineHints(web.profile, chrome_version);
+                        Chiaki.setWebEngineHints(web.profile);
                         web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {

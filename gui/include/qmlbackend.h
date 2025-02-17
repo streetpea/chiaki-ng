@@ -14,6 +14,7 @@
 #include <QFuture>
 #ifdef CHIAKI_HAVE_WEBENGINE
 #include <QQuickWebEngineProfile>
+#include <QWebEngineUrlRequestInterceptor>
 #endif
 
 class SystemdInhibit;
@@ -49,6 +50,23 @@ signals:
     void resultReady(const ChiakiErrorCode &err);
 };
 
+#ifdef CHIAKI_HAVE_WEBENGINE
+class SecUaRequestInterceptor : public QWebEngineUrlRequestInterceptor {
+    Q_OBJECT
+
+public:
+    SecUaRequestInterceptor(QString version, QObject *p = Q_NULLPTR) : QWebEngineUrlRequestInterceptor(p) { chrome_version = version; };
+    void interceptRequest(QWebEngineUrlRequestInfo &info) override {
+#ifdef Q_OS_WINDOWS
+        info.setHttpHeader("Sec-Ch-Ua", QString("\"Not(A:Brand\";v=\"99\", \"Microsoft Edge\";v=\"%1\", \"Chromium\";v=\"%1\"").arg(chrome_version).toUtf8());
+#else
+        info.setHttpHeader("Sec-Ch-Ua", QString("\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"%1\", \"Chromium\";v=\"%1\"").arg(chrome_version).toUtf8());
+#endif
+    }
+private:
+    QString chrome_version;
+};
+#endif
 class QmlBackend : public QObject
 {
     Q_OBJECT
@@ -180,7 +198,7 @@ public:
     Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
 #endif
 #ifdef CHIAKI_HAVE_WEBENGINE
-    Q_INVOKABLE void setWebEngineHints(QQuickWebEngineProfile *profile, QString version);
+    Q_INVOKABLE void setWebEngineHints(QQuickWebEngineProfile *profile);
     Q_INVOKABLE void clearCookies(QQuickWebEngineProfile *profile);
 #endif
 
@@ -288,4 +306,7 @@ private:
     bool wakeup_start = false;
     QMap<QString, PsnHost> psn_hosts = {};
     QMap<QString, PsnHost> psn_nickname_hosts = {};
+#ifdef CHIAKI_HAVE_WEBENGINE
+    SecUaRequestInterceptor * request_interceptor = {};
+#endif
 };
