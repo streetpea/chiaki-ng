@@ -41,13 +41,16 @@ DialogView {
         nativeTokenForm.forceActiveFocus(Qt.TabFocusReason);
     }
     function close() {
-        if(webView.web && Chiaki.settings.remotePlayAsk)
+        if(webView.web)
         {
             dialog.closing = true;
-            reloadTimer.start();
+            if(Chiaki.settings.remotePlayAsk)
+                reloadTimer.start();
+            else
+                cacheClearTimer.start();
         }
         else
-            root.closeDialog(); 
+            root.closeDialog();
     }
 
     Item {
@@ -157,6 +160,15 @@ DialogView {
                 running: false
                 onTriggered: {
                     Chiaki.clearCookies(webView.web.profile);
+                    webView.web.profile.clearHttpCache();
+                }
+            }
+
+            Timer {
+                id: cacheClearTimer
+                interval: 0
+                running: false
+                onTriggered: {
                     webView.web.profile.clearHttpCache();
                 }
             }
