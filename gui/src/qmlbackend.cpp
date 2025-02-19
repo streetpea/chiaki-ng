@@ -1074,7 +1074,7 @@ void QmlBackend::autoRegister()
     QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
     // give 1 minute buffer
     QDateTime now = QDateTime::currentDateTime().addSecs(60);
-    if(now > expiry)
+    if(now.secsTo(expiry) < 1)
     {
         PSNToken *psnToken = new PSNToken(settings, this);
         connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
@@ -1245,7 +1245,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
         QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
         // give 1 minute buffer
         QDateTime now = QDateTime::currentDateTime().addSecs(60);
-        if(now > expiry)
+        if(now.secsTo(expiry) < 1)
         {
             PSNToken *psnToken = new PSNToken(settings, this);
             connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
