@@ -1791,9 +1791,11 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
             individual_mapping_list = update_list + individual_mapping_list;
         }
         controller_mapping_controller_mappings.insert(key, individual_mapping_list);
-        for(int j = 0; j < individual_mapping_list.length(); j++)
+        // only add buttons to physical mapping list
+        if(key != "crc" && key != "platform" && key != "type" && key != "hint" && !key.startsWith("sdk"))
         {
-            controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
+            for(int j = 0; j < individual_mapping_list.length(); j++)
+                controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
         }
     }
 
