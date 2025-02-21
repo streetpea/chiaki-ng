@@ -267,8 +267,10 @@ QmlBackend::~QmlBackend()
         delete session;
         session = nullptr;
     }
+#ifdef CHIAKI_HAVE_WEBENGINE
     if(request_interceptor)
         delete request_interceptor;
+#endif
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
