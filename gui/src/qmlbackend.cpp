@@ -851,6 +851,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             wakeup_start = true;
             wakeup_start_timer->start(WAKEUP_WAIT_SECONDS * 1000);
             emit wakeupStartInitiated();
+            updateDiscoveryHosts();
         }
         else
         {
@@ -1180,7 +1181,6 @@ void QmlBackend::connectToHost(int index, QString nickname)
             emit hostsChanged();
         });
         wakeup_nickname = nickname;
-
     }
 
     bool fullscreen = false, zoom = false, stretch = false;
