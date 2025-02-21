@@ -186,7 +186,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.32.0
+        tag: release-2.30.8
 
   - name: vulkanso
     buildsystem: simple

@@ -922,7 +922,7 @@ DialogView {
                         }
                         Layout.preferredWidth: 200
                         from: 2
-                        to: 50
+                        to: 100
                         stepSize: 1
                         value: Chiaki.settings.bitrateLocalPS4 / 1000 ? (Chiaki.settings.bitrateLocalPS4 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateLocalPS4 = value * 1000;
@@ -954,7 +954,7 @@ DialogView {
                         }
                         Layout.preferredWidth: 200
                         from: 2
-                        to: 50
+                        to: 100
                         stepSize: 1
                         value: Chiaki.settings.bitrateRemotePS4 / 1000 ? (Chiaki.settings.bitrateRemotePS4 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateRemotePS4 = value * 1000;
@@ -988,7 +988,7 @@ DialogView {
                         }
                         Layout.preferredWidth: 200
                         from: 2
-                        to: 50
+                        to: 100
                         stepSize: 1
                         value: Chiaki.settings.bitrateLocalPS5 / 1000 ? (Chiaki.settings.bitrateLocalPS5 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateLocalPS5 = value * 1000;
@@ -1021,7 +1021,7 @@ DialogView {
                         }
                         Layout.preferredWidth: 200
                         from: 2
-                        to: 50
+                        to: 100
                         stepSize: 1
                         value: Chiaki.settings.bitrateRemotePS5 / 1000 ? (Chiaki.settings.bitrateRemotePS5 / 1000) : bitrate
                         onMoved: Chiaki.settings.bitrateRemotePS5 = value * 1000;
