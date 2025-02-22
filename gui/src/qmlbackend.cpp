@@ -254,6 +254,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             }
         }
     });
+    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
     refreshPsnToken();
 }
 
@@ -435,6 +436,7 @@ void QmlBackend::profileChanged()
             }
         }
     });
+    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
     refreshPsnToken();
     emit hostsChanged();
     emit hiddenHostsChanged();

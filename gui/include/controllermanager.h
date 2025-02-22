@@ -59,6 +59,7 @@ class ControllerManager : public QObject
 
 	signals:
 		void AvailableControllersUpdated();
+		void ControllerMoved();
 };
 
 class Controller : public QObject

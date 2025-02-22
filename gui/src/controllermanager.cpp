@@ -477,6 +477,7 @@ void Controller::UpdateState(SDL_Event event)
 
 	}
 	emit StateChanged();
+	emit manager->ControllerMoved();
 }
 
 inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
