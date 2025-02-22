@@ -35,8 +35,10 @@ class ControllerManager : public QObject
 		bool creating_controller_mapping;
 		bool joystick_allow_background_events;
 		bool is_app_active;
+		bool moved;
 
 		void ControllerClosed(Controller *controller);
+		void CheckMoved();
 
 	private slots:
 		void UpdateAvailableControllers();
