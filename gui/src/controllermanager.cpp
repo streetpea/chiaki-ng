@@ -777,30 +777,39 @@ ChiakiControllerState Controller::GetState()
 	return state;
 }
 
+void Controller::SetDualSenseRumble(uint8_t left, uint8_t right)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	if(!is_dualsense && !is_dualsense_edge)
+		return;
+	DS5EffectsState_t state;
+	SDL_zero(state);
+	if(firmware_version < 0x0224)
+	{
+		state.ucEnableBits1 |= 0x01;
+		state.ucRumbleLeft = left >> 1;
+		state.ucRumbleRight = right >> 1;
+	}
+	else
+	{
+		state.ucEnableBits3 |= 0x04;
+		state.ucRumbleLeft = left;
+		state.ucRumbleRight = right;
+	}
+	state.ucEnableBits1 |= 0x02;
+	SDL_GameControllerSendEffect(controller, &state, sizeof(state));
+#endif
+}
+
 void Controller::SetRumble(uint8_t left, uint8_t right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
 	if(is_dualsense || is_dualsense_edge)
-	{
-		DS5EffectsState_t state;
-		SDL_zero(state);
-		if(firmware_version < 0x0224)
-		{
-			state.ucEnableBits1 |= 0x01;
-			state.ucRumbleLeft = left >> 1;
-			state.ucRumbleRight = right >> 1;
-		}
-		else
-		{
-			state.ucEnableBits3 |= 0x04;
-			state.ucRumbleLeft = left;
-			state.ucRumbleRight = right;
-		}
-		state.ucEnableBits1 |= 0x02;
-		SDL_GameControllerSendEffect(controller, &state, sizeof(state));
-	}
+		SetDualSenseRumble(left, right);
 	else
 		SDL_GameControllerRumble(controller, (uint16_t)left << 8, (uint16_t)right << 8, 5000);
 #endif
@@ -869,7 +878,10 @@ void Controller::SetHapticRumble(uint16_t left, uint16_t right)
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
-	SDL_GameControllerRumble(controller, left, right, 5000);
+	if(is_dualsense || is_dualsense_edge)
+		SetDualSenseRumble(left >> 8, right >> 8);
+	else
+		SDL_GameControllerRumble(controller, left, right, 5000);
 #endif
 }
 

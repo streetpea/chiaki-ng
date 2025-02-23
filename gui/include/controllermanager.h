@@ -75,6 +75,7 @@ class Controller : public QObject
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		void UpdateState(SDL_Event event);
+		void SetDualSenseRumble(uint8_t left, uint8_t right);
 		bool HandleButtonEvent(SDL_ControllerButtonEvent event);
 		bool HandleAxisEvent(SDL_ControllerAxisEvent event);
 #if SDL_VERSION_ATLEAST(2, 0, 14)
