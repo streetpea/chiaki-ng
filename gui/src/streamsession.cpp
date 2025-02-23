@@ -385,6 +385,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &StreamSession::UpdateGamepads);
+	connect(this, &StreamSession::DualSenseIntensityChanged, ControllerManager::GetInstance(), &ControllerManager::SetDualSenseIntensity);
 	if(connect_info.buttons_by_pos)
 		ControllerManager::GetInstance()->SetButtonsByPos();
 #endif
@@ -955,7 +956,6 @@ void StreamSession::UpdateGamepads()
 			{
 				uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
 				uint8_t rumble_intensity = (ps5_rumble_intensity < 0) ? 0x0F : ps5_rumble_intensity;
-				controller->SetDualSenseIntensity(trigger_intensity, rumble_intensity);
 				controller->SetDualsenseMic(muted);
 				if(this->haptics_output > 0)
 					continue;
@@ -1833,6 +1833,12 @@ void StreamSession::Event(ChiakiEvent *event)
 			QMetaObject::invokeMethod(this, [this, left, right, left_adj, right_adj]() {
 				for(auto controller : controllers)
 				{
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+					if(haptics_handheld < 1 && (controller->IsHandheld() || (sdeck && controller->IsSteamVirtualUnmasked())))
+#else
+					if(haptics_handheld < 1 && controller->IsHandheld())
+#endif
+						continue;
 					if(controller->IsDualSense() || controller->IsDualSenseEdge())
 						controller->SetRumble(left, right);
 					else
@@ -1903,10 +1909,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			}
 			uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
 			uint8_t rumble_intensity = (ps5_rumble_intensity < 0) ? 0x0F : ps5_rumble_intensity;
-			QMetaObject::invokeMethod(this, [this, trigger_intensity, rumble_intensity]() {
-				for(auto controller : controllers)
-					controller->SetDualSenseIntensity(trigger_intensity, rumble_intensity);
-			});
+			emit DualSenseIntensityChanged(trigger_intensity | rumble_intensity);
 			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_INTENSITY: {
@@ -1931,10 +1934,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			}
 			uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
 			uint8_t rumble_intensity = (ps5_rumble_intensity < 0) ? 0x0F : ps5_rumble_intensity;
-			QMetaObject::invokeMethod(this, [this, trigger_intensity, rumble_intensity]() {
-				for(auto controller : controllers)
-					controller->SetDualSenseIntensity(trigger_intensity, rumble_intensity);
-			});
+			emit DualSenseIntensityChanged(trigger_intensity | rumble_intensity);
 			break;
 		}
 		case CHIAKI_EVENT_TRIGGER_EFFECTS: {
