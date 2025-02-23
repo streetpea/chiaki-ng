@@ -22,6 +22,7 @@ export PATH="`pwd`/appimage/protoc/bin:$PATH"
 scripts/build-ffmpeg.sh appimage
 scripts/build-sdl2.sh appimage
 scripts/build-libplacebo.sh appimage
+scripts/build-hidapi.sh appimage
 
 rm -rf build_appimage && mkdir -p build_appimage
 cd build_appimage 
@@ -61,6 +62,5 @@ chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
     --plugin qt \
     --exclude-library='libva*' \
     --exclude-library='libvulkan*' \
-    --exclude-library='libhidapi*' \
     --output appimage
 mv chiaki-ng-${ARCH}.AppImage chiaki-ng.AppImage
