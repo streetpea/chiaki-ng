@@ -1439,6 +1439,14 @@ void StreamSession::ConnectHaptics()
 		}
 		SDL_PauseAudioDevice(haptics_output, 0);
 		CHIAKI_LOGI(log.GetChiakiLog(), "Haptics Audio Device '%s' opened with %d channels @ %d Hz, buffer size %u (driver=%s)", device_name, have.channels, have.freq, have.size, SDL_GetCurrentAudioDriver());
+		QMetaObject::invokeMethod(this, [this]() {
+			const uint8_t clear_effect[10] = { 0 };
+			for(auto controller : controllers)
+			{
+				if(controller->IsDualSense() || controller->IsDualSenseEdge())
+					controller->SetTriggerEffects(0x05, clear_effect, 0x05, clear_effect);
+			}
+		});
 		return;
 	}
 	CHIAKI_LOGW(log.GetChiakiLog(), "DualSense features were enabled and a DualSense is connected, but could not find the DualSense audio device!");
