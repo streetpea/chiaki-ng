@@ -1316,7 +1316,6 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 void StreamSession::InitHaptics()
 {
 	haptics_output = 0;
-	haptics_out_drain_queue = false;
 	haptics_buffer_size = 480; //10ms * number of ms delay configured
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	sdeck_haptics_senderr = nullptr;
@@ -1771,14 +1770,6 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample haptics audio: %s", SDL_GetError());
 		return;
-	}
-
-	if(haptics_out_drain_queue)
-	{
-		// Stop when the queue is smaller than configured buffer size
-		if(SDL_GetQueuedAudioSize(haptics_output) >= haptics_buffer_size)
-			return;
-		haptics_out_drain_queue = false;
 	}
 
 	if (SDL_QueueAudio(haptics_output, cvt.buf, cvt.len_cvt) < 0)
