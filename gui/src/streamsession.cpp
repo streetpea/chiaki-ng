@@ -1773,10 +1773,6 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	}
 
-	// Start draining queue when the latency gets too high
-	if(SDL_GetQueuedAudioSize(haptics_output) > 3 * haptics_buffer_size)
-		haptics_out_drain_queue = true;
-
 	if(haptics_out_drain_queue)
 	{
 		// Stop when the queue is smaller than configured buffer size
