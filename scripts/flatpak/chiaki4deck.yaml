@@ -26,7 +26,8 @@ finish-args:
   - --system-talk-name=org.freedesktop.login1
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
-  - --filesystem=host
+  - --filesystem=host-os:ro
+  - --filesystem=/home
 cleanup-commands:
   - /app/cleanup-BaseApp.sh
 build-options:
