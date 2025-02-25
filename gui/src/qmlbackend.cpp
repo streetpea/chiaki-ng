@@ -125,6 +125,11 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     setConnectState(PsnConnectState::NotStarted);
     connect(settings_qml, &QmlSettings::audioVolumeChanged, this, &QmlBackend::updateAudioVolume);
     connect(settings_qml, &QmlSettings::placeboChanged, window, &QmlMainWindow::updatePlacebo);
+    connect(settings_qml, &QmlSettings::streamMenuEnabledChanged, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut1Changed, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut2Changed, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut3Changed, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut4Changed, this, &QmlBackend::updateStreamShortcut);
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::HiddenHostsUpdated, this, &QmlBackend::hiddenHostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
@@ -1476,6 +1481,34 @@ void QmlBackend::setIsAppActive()
     ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
 }
 
+uint32_t QmlBackend::getStreamShortcut() const
+{
+    if(!settings->GetStreamMenuEnabled())
+        return 0;
+	uint32_t stream_menu_shortcut1 = settings->GetStreamMenuShortcut1();
+	if(stream_menu_shortcut1 > 0)
+		stream_menu_shortcut1 = 1 << (stream_menu_shortcut1 - 1);
+	uint32_t stream_menu_shortcut2 = settings->GetStreamMenuShortcut2();
+	if(stream_menu_shortcut2 > 0)
+		stream_menu_shortcut2 = 1 << (stream_menu_shortcut2 - 1);
+	uint32_t stream_menu_shortcut3 = settings->GetStreamMenuShortcut3();
+	if(stream_menu_shortcut3 > 0)
+		stream_menu_shortcut3 = 1 << (stream_menu_shortcut3 - 1);
+	uint32_t stream_menu_shortcut4 = settings->GetStreamMenuShortcut4();
+	if(stream_menu_shortcut4 > 0)
+		stream_menu_shortcut4 = 1 << (stream_menu_shortcut4 - 1);
+    uint32_t shortcut = stream_menu_shortcut1 | stream_menu_shortcut2 | stream_menu_shortcut3 | stream_menu_shortcut4;
+    return shortcut;
+}
+
+void QmlBackend::updateStreamShortcut()
+{
+    uint32_t shortcut = getStreamShortcut();
+    for (const auto &controller : std::as_const(controllers)) {
+       controller->setEscapeShortcut(shortcut);
+    }
+}
+
 void QmlBackend::updateControllers()
 {
     bool changed = false;
@@ -1496,13 +1529,14 @@ void QmlBackend::updateControllers()
         it = controllers.erase(it);
         changed = true;
     }
+    uint32_t stream_shortcut = getStreamShortcut();
     for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
         if (controllers.contains(id))
             continue;
         auto controller = ControllerManager::GetInstance()->OpenController(id);
         if (!controller)
             continue;
-        controllers[id] = new QmlController(controller, window, this);
+        controllers[id] = new QmlController(controller, stream_shortcut ,window, this);
         QString vidpid = controller->GetVIDPIDString();
         QString guid = controller->GetGUIDString();
         QStringList existing_vidpid;

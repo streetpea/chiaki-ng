@@ -77,6 +77,11 @@ class QmlSettings : public QObject
     Q_PROPERTY(uint dpadTouchShortcut2 READ dpadTouchShortcut2 WRITE setDpadTouchShortcut2 NOTIFY dpadTouchShortcut2Changed)
     Q_PROPERTY(uint dpadTouchShortcut3 READ dpadTouchShortcut3 WRITE setDpadTouchShortcut3 NOTIFY dpadTouchShortcut3Changed)
     Q_PROPERTY(uint dpadTouchShortcut4 READ dpadTouchShortcut4 WRITE setDpadTouchShortcut4 NOTIFY dpadTouchShortcut4Changed)
+    Q_PROPERTY(bool streamMenuEnabled READ streamMenuEnabled WRITE setStreamMenuEnabled NOTIFY streamMenuEnabledChanged)
+    Q_PROPERTY(uint streamMenuShortcut1 READ streamMenuShortcut1 WRITE setStreamMenuShortcut1 NOTIFY streamMenuShortcut1Changed)
+    Q_PROPERTY(uint streamMenuShortcut2 READ streamMenuShortcut2 WRITE setStreamMenuShortcut2 NOTIFY streamMenuShortcut2Changed)
+    Q_PROPERTY(uint streamMenuShortcut3 READ streamMenuShortcut3 WRITE setStreamMenuShortcut3 NOTIFY streamMenuShortcut3Changed)
+    Q_PROPERTY(uint streamMenuShortcut4 READ streamMenuShortcut4 WRITE setStreamMenuShortcut4 NOTIFY streamMenuShortcut4Changed)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
     Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
@@ -502,6 +507,21 @@ public:
     uint dpadTouchShortcut4() const;
     void setDpadTouchShortcut4(uint button);
 
+    bool streamMenuEnabled() const;
+    void setStreamMenuEnabled(bool enabled);
+
+    uint streamMenuShortcut1() const;
+    void setStreamMenuShortcut1(uint button);
+
+    uint streamMenuShortcut2() const;
+    void setStreamMenuShortcut2(uint button);
+
+    uint streamMenuShortcut3() const;
+    void setStreamMenuShortcut3(uint button);
+
+    uint streamMenuShortcut4() const;
+    void setStreamMenuShortcut4(uint button);
+
     QString currentProfile() const;
     void setCurrentProfile(const QString &profile);
 
@@ -527,6 +547,7 @@ public:
     Q_INVOKABLE void importPlaceboSettings();
     Q_INVOKABLE void deleteProfile(QString profile);
     Q_INVOKABLE QString stringForDpadShortcut() const;
+    Q_INVOKABLE QString stringForStreamMenuShortcut() const;
 
 signals:
     void resolutionLocalPS4Changed();
@@ -594,6 +615,11 @@ signals:
     void dpadTouchShortcut2Changed();
     void dpadTouchShortcut3Changed();
     void dpadTouchShortcut4Changed();
+    void streamMenuEnabledChanged();
+    void streamMenuShortcut1Changed();
+    void streamMenuShortcut2Changed();
+    void streamMenuShortcut3Changed();
+    void streamMenuShortcut4Changed();
     void controllerMappingChanged();
     void packetLossMaxChanged();
     void currentProfileChanged();

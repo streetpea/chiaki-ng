@@ -261,6 +261,8 @@ private:
     void updatePsnHosts();
     void updatePsnHostsThread();
     void updateAudioVolume();
+    uint32_t getStreamShortcut() const;
+    void updateStreamShortcut();
     QString getExecutable();
 
     Settings *settings = {};

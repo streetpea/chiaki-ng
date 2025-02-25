@@ -405,6 +405,21 @@ class Settings : public QObject
 		uint GetDpadTouchShortcut4() const;
 		void SetDpadTouchShortcut4(uint button);
 
+		bool GetStreamMenuEnabled() const;
+		void SetStreamMenuEnabled(bool enabled);
+
+		uint GetStreamMenuShortcut1() const;
+		void SetStreamMenuShortcut1(uint button);
+
+		uint GetStreamMenuShortcut2() const;
+		void SetStreamMenuShortcut2(uint button);
+
+		uint GetStreamMenuShortcut3() const;
+		void SetStreamMenuShortcut3(uint button);
+
+		uint GetStreamMenuShortcut4() const;
+		void SetStreamMenuShortcut4(uint button);
+
 		void DeleteProfile(QString profile);
 
 		QString GetPsnAccountId() const;

@@ -679,6 +679,49 @@ void QmlSettings::setDpadTouchShortcut4(uint button) {
     emit dpadTouchShortcut4Changed();
 }
 
+bool QmlSettings::streamMenuEnabled() const
+{
+    return settings->GetStreamMenuEnabled();
+}
+
+void QmlSettings::setStreamMenuEnabled(bool enabled)
+{
+    settings->SetStreamMenuEnabled(enabled);
+    emit streamMenuEnabledChanged();
+}
+
+uint QmlSettings::streamMenuShortcut1() const {
+	return settings->GetStreamMenuShortcut1();
+}
+void QmlSettings::setStreamMenuShortcut1(uint button) {
+	settings->SetStreamMenuShortcut1(button);
+    emit streamMenuShortcut1Changed();
+}
+
+uint QmlSettings::streamMenuShortcut2() const {
+	return settings->GetStreamMenuShortcut2();
+}
+void QmlSettings::setStreamMenuShortcut2(uint button) {
+	settings->SetStreamMenuShortcut2(button);
+    emit streamMenuShortcut2Changed();
+}
+
+uint QmlSettings::streamMenuShortcut3() const {
+	return settings->GetStreamMenuShortcut3();
+}
+void QmlSettings::setStreamMenuShortcut3(uint button) {
+	settings->SetStreamMenuShortcut3(button);
+    emit streamMenuShortcut3Changed();
+}
+
+uint QmlSettings::streamMenuShortcut4() const {
+	return settings->GetStreamMenuShortcut4();
+}
+void QmlSettings::setStreamMenuShortcut4(uint button) {
+	settings->SetStreamMenuShortcut4(button);
+    emit streamMenuShortcut4Changed();
+}
+
 QString QmlSettings::currentProfile() const
 {
     return settings->GetCurrentProfile();
@@ -1496,6 +1539,42 @@ QString QmlSettings::stringForDpadShortcut() const
     return shortcut_string;
 }
 
+QString QmlSettings::stringForStreamMenuShortcut() const
+{
+    QString shortcut_string = "";
+    bool plus_next = false;
+    uint shortcut1 = settings->GetStreamMenuShortcut1();
+    uint shortcut2 = settings->GetStreamMenuShortcut2();
+    uint shortcut3 = settings->GetStreamMenuShortcut3();
+    uint shortcut4 = settings->GetStreamMenuShortcut4();
+    if(shortcut1)
+    {
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut1 - 1)));
+        plus_next = true;
+    }
+    if(shortcut2)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        plus_next = true;
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut2 - 1)));
+    }
+    if(shortcut3)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        plus_next = true;
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut3 - 1)));
+    }
+    if(shortcut4)
+    {
+        if(plus_next)
+            shortcut_string.append("+");
+        shortcut_string.append(Settings::GetChiakiControllerButtonName(1 << (shortcut4 - 1)));
+    }
+    return shortcut_string;
+}
+
 void QmlSettings::deleteRegisteredHost(int index)
 {
     settings->RemoveRegisteredHost(settings->GetRegisteredHosts().value(index).GetServerMAC());
@@ -1605,6 +1684,11 @@ void QmlSettings::refreshAllKeys()
     emit dpadTouchShortcut2Changed();
     emit dpadTouchShortcut3Changed();
     emit dpadTouchShortcut4Changed();
+    emit streamMenuEnabledChanged();
+    emit streamMenuShortcut1Changed();
+    emit streamMenuShortcut2Changed();
+    emit streamMenuShortcut3Changed();
+    emit streamMenuShortcut4Changed();
     emit controllerMappingChanged();
     emit packetLossMaxChanged();
     emit currentProfileChanged();

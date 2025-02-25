@@ -21,15 +21,10 @@ static QVector<QPair<uint32_t, Qt::Key>> key_map = {
     { CHIAKI_CONTROLLER_BUTTON_R3, Qt::Key_F2},
 };
 
-static uint32_t escape_shortcut =
-    CHIAKI_CONTROLLER_BUTTON_L1 |
-    CHIAKI_CONTROLLER_BUTTON_R1 |
-    CHIAKI_CONTROLLER_BUTTON_L3 |
-    CHIAKI_CONTROLLER_BUTTON_R3;
-
-QmlController::QmlController(Controller *c, QObject *t, QObject *parent)
+QmlController::QmlController(Controller *c, uint32_t shortcut, QObject *t, QObject *parent)
     : QObject(parent)
     , target(t)
+    , escape_shortcut(shortcut)
     , controller(c)
 {
     repeat_timer = new QTimer(this);

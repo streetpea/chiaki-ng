@@ -14,7 +14,7 @@ class QmlController : public QObject
     Q_PROPERTY(bool playStation READ isPS CONSTANT)
 
 public:
-    QmlController(Controller *controller, QObject *target, QObject *parent = nullptr);
+    QmlController(Controller *controller, uint32_t shortcut, QObject *target, QObject *parent = nullptr);
     ~QmlController();
 
     bool isDualSense() const;
@@ -22,6 +22,7 @@ public:
     bool isSteamVirtual() const;
     bool isDualSenseEdge() const;
     bool isPS() const;
+    void setEscapeShortcut(uint32_t shortcut) { escape_shortcut = shortcut; };
     QString GetGUID() const;
     QString GetVIDPID() const;
 
@@ -29,6 +30,7 @@ private:
     void sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
 
     QObject *target = {};
+    uint32_t escape_shortcut = 0;
     uint32_t old_buttons = 0;
     Controller *controller = {};
     QTimer *repeat_timer = {};
