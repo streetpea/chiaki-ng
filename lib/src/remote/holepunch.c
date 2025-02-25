@@ -2426,10 +2426,10 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
         }
         case GATEWAY_STATUS_FOUND: {
             memcpy(candidate_local->addr, session->gw.lan_ip, sizeof(session->gw.lan_ip));
-            have_addr = get_client_addr_remote_upnp(session->log, &session->gw, candidate_remote->addr);
             if(upnp_add_udp_port_mapping(session->log, &session->gw, local_port, local_port))
             {
                 CHIAKI_LOGI(session->log, "holepunch_session_create_offer: Added local UPNP port mapping to port %u", local_port);
+                have_addr = get_client_addr_remote_upnp(session->log, &session->gw, candidate_remote->addr);
             }
             else
             {
@@ -3441,10 +3441,10 @@ static bool get_client_addr_remote_upnp(ChiakiLog *log, UPNPGatewayInfo *gw_info
 /**
  * Adds a port mapping to the gateway.
  *
+ * @param log The log to write to
  * @param gw_info The UPNPGatewayInfo structure containing the gateway information.
  * @param port_internal The internal port to map.
  * @param port_external The external port to map.
- * @param ip_local The local IP address to map to.
  * @return true if the port mapping was successfully added, false otherwise.
 */
 static bool upnp_add_udp_port_mapping(ChiakiLog* log, UPNPGatewayInfo *gw_info, uint16_t port_internal, uint16_t port_external)

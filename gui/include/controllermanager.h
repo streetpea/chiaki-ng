@@ -33,8 +33,13 @@ class ControllerManager : public QObject
 #endif
 		QMap<int, Controller *> open_controllers;
 		bool creating_controller_mapping;
+		bool joystick_allow_background_events;
+		bool is_app_active;
+		bool moved;
+		uint8_t dualsense_intensity;
 
 		void ControllerClosed(Controller *controller);
+		void CheckMoved();
 
 	private slots:
 		void UpdateAvailableControllers();
@@ -49,12 +54,17 @@ class ControllerManager : public QObject
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();
 		void SetButtonsByPos();
+		void SetAllowJoystickBackgroundEvents(bool enabled);
+		void SetIsAppActive(bool active);
+		void SetDualSenseIntensity(uint8_t intensity) { dualsense_intensity = intensity; };
+		uint8_t GetDualSenseIntensity() { return dualsense_intensity; };
 		void creatingControllerMapping(bool creating_controller_mapping);
 		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);
 
 	signals:
 		void AvailableControllersUpdated();
+		void ControllerMoved();
 };
 
 class Controller : public QObject
@@ -68,6 +78,7 @@ class Controller : public QObject
 
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 		void UpdateState(SDL_Event event);
+		void SetDualSenseRumble(uint8_t left, uint8_t right);
 		bool HandleButtonEvent(SDL_ControllerButtonEvent event);
 		bool HandleAxisEvent(SDL_ControllerAxisEvent event);
 #if SDL_VERSION_ATLEAST(2, 0, 14)
@@ -118,8 +129,7 @@ class Controller : public QObject
 		QString GetGUIDString();
 		ChiakiControllerState GetState();
 		void SetRumble(uint8_t left, uint8_t right);
-		void SetDualSenseRumble(uint8_t left, uint8_t right, uint8_t strength);
-		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right, uint8_t trigger_intensity);
+		void SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right);
 		void SetDualsenseMic(bool on);
 		void SetHapticRumble(uint16_t left, uint16_t right);
 		void StartUpdatingMapping();

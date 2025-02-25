@@ -198,9 +198,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_connect(ChiakiStopPipe *stop_pipe
 #endif
 	}
 
-	struct sockaddr peer;
+	struct sockaddr_storage peer;
 	socklen_t peerlen = sizeof(peer);
-	if(getpeername(fd, &peer, &peerlen) == 0)
+	if(getpeername(fd, (struct sockaddr *)(&peer), &peerlen) == 0)
 		return CHIAKI_ERR_SUCCESS;
 
 	if(errno != ENOTCONN)

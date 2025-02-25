@@ -353,7 +353,7 @@ jobs:
 
   build-appimage_arm64:
     name: Build chiaki-ng appimage_arm64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: write
     needs: create-release
@@ -374,11 +374,6 @@ jobs:
         run: |
           cp scripts/qtwebengine_import.qml gui/src/qml/
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: "arm64"
-
       - name: Run build script
         working-directory: chiaki-ng
         run: |
@@ -386,7 +381,6 @@ jobs:
           podman run --rm \
             -v "`pwd`:/build/chiaki" \
             -w "/build/chiaki" \
-            --platform linux/arm64 \
             --device /dev/fuse \
             --cap-add SYS_ADMIN \
             -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \

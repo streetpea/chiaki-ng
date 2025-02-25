@@ -11,7 +11,14 @@
 #include "steamtools.h"
 #endif
 
+#ifdef CHIAKI_HAVE_WEBENGINE
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+#include <QWebEngineClientHints>
+#endif
+#include <QWebEngineCookieStore>
+#endif
 #include <QUrlQuery>
+#include <QtGlobal>
 #include <QGuiApplication>
 #include <QPixmap>
 #include <QImageReader>
@@ -118,6 +125,11 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     setConnectState(PsnConnectState::NotStarted);
     connect(settings_qml, &QmlSettings::audioVolumeChanged, this, &QmlBackend::updateAudioVolume);
     connect(settings_qml, &QmlSettings::placeboChanged, window, &QmlMainWindow::updatePlacebo);
+    connect(settings_qml, &QmlSettings::streamMenuEnabledChanged, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut1Changed, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut2Changed, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut3Changed, this, &QmlBackend::updateStreamShortcut);
+    connect(settings_qml, &QmlSettings::streamMenuShortcut4Changed, this, &QmlBackend::updateStreamShortcut);
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
     connect(settings, &Settings::HiddenHostsUpdated, this, &QmlBackend::hiddenHostsChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
@@ -126,6 +138,11 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     discovery_manager.SetSettings(settings);
     setDiscoveryEnabled(true);
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
+    connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, this, &QmlBackend::setAllowJoystickBackgroundEvents);
+    connect(window, &QmlMainWindow::activeChanged, this, &QmlBackend::setIsAppActive);
+    setAllowJoystickBackgroundEvents();
+    setIsAppActive();
+    ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
     updateControllers();
     updateControllerMappings();
     connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
@@ -242,6 +259,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             }
         }
     });
+    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
     refreshPsnToken();
 }
 
@@ -255,6 +273,10 @@ QmlBackend::~QmlBackend()
         delete session;
         session = nullptr;
     }
+#ifdef CHIAKI_HAVE_WEBENGINE
+    if(request_interceptor)
+        delete request_interceptor;
+#endif
     frame_thread->quit();
     frame_thread->wait();
     delete frame_thread->parent();
@@ -419,6 +441,7 @@ void QmlBackend::profileChanged()
             }
         }
     });
+    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
     refreshPsnToken();
     emit hostsChanged();
     emit hiddenHostsChanged();
@@ -835,6 +858,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             wakeup_start = true;
             wakeup_start_timer->start(WAKEUP_WAIT_SECONDS * 1000);
             emit wakeupStartInitiated();
+            updateDiscoveryHosts();
         }
         else
         {
@@ -1060,7 +1084,7 @@ void QmlBackend::autoRegister()
     QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
     // give 1 minute buffer
     QDateTime now = QDateTime::currentDateTime().addSecs(60);
-    if(now > expiry)
+    if(now.secsTo(expiry) < 1)
     {
         PSNToken *psnToken = new PSNToken(settings, this);
         connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
@@ -1091,6 +1115,47 @@ void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
     settings->AddRegisteredHost(host);
     setConnectState(PsnConnectState::RegistrationFinished);
 }
+
+#ifdef CHIAKI_HAVE_WEBENGINE
+void QmlBackend::clearCookies(QQuickWebEngineProfile *profile)
+{
+    auto cookieStore = profile->cookieStore();
+    cookieStore->deleteAllCookies();
+}
+
+void QmlBackend::setWebEngineHints(QQuickWebEngineProfile *profile)
+{
+    QDate starting_release_date(2025, 02, 18);
+    QDate today = QDate::currentDate();
+    auto daysSinceStart = starting_release_date.daysTo(today);
+    qint64 versionsSinceStart = daysSinceStart / 28;
+    qint64 release = 133 + versionsSinceStart;
+    QString chrome_version = QString::number(release);
+    auto userAgent = profile->httpUserAgent();
+    userAgent = userAgent.replace(QRegularExpression(" \\bQtWebEngine[^ ]*\\b"), "");
+    userAgent = userAgent.replace(QRegularExpression("\\bChrome[^ ]*\\b"), QString("Chrome/%1.0.0.0").arg(chrome_version));
+#ifdef Q_OS_WINDOWS
+    userAgent = userAgent.replace("Windows NT 6.2", "Windows NT 10.0");
+    userAgent += QString(" Edg/%1.0.0.0").arg(chrome_version);
+#endif
+    profile->setHttpUserAgent(userAgent);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+    auto hints = profile->clientHints();
+    hints->setFullVersion(QString("%1.0.0.0").arg(chrome_version));
+    QMap<QString, QVariant> fullVersionList;
+    fullVersionList.insert("Not A(Brand", "99.0.0.0");
+#ifdef Q_OS_WINDOWS
+    fullVersionList.insert("Microsoft Edge", QString("%1.0.0.0").arg(chrome_version));
+#else
+    fullVersionList.insert("Google Chrome", QString("%1.0.0.0").arg(chrome_version));
+#endif
+    fullVersionList.insert("Chromium", QString("%1.0.0.0").arg(chrome_version));
+    hints->setFullVersionList(fullVersionList);
+#endif
+    request_interceptor = new SecUaRequestInterceptor(chrome_version);
+    profile->setUrlRequestInterceptor(request_interceptor);
+}
+#endif
 
 void QmlBackend::connectToHost(int index, QString nickname)
 {
@@ -1123,7 +1188,6 @@ void QmlBackend::connectToHost(int index, QString nickname)
             emit hostsChanged();
         });
         wakeup_nickname = nickname;
-
     }
 
     bool fullscreen = false, zoom = false, stretch = false;
@@ -1190,7 +1254,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
         QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
         // give 1 minute buffer
         QDateTime now = QDateTime::currentDateTime().addSecs(60);
-        if(now > expiry)
+        if(now.secsTo(expiry) < 1)
         {
             PSNToken *psnToken = new PSNToken(settings, this);
             connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
@@ -1407,6 +1471,44 @@ bool QmlBackend::sendWakeup(const QString &host, const QByteArray &regist_key, b
     }
 }
 
+void QmlBackend::setAllowJoystickBackgroundEvents()
+{
+    ControllerManager::GetInstance()->SetAllowJoystickBackgroundEvents(settings->GetAllowJoystickBackgroundEvents());
+}
+
+void QmlBackend::setIsAppActive()
+{
+    ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
+}
+
+uint32_t QmlBackend::getStreamShortcut() const
+{
+    if(!settings->GetStreamMenuEnabled())
+        return 0;
+	uint32_t stream_menu_shortcut1 = settings->GetStreamMenuShortcut1();
+	if(stream_menu_shortcut1 > 0)
+		stream_menu_shortcut1 = 1 << (stream_menu_shortcut1 - 1);
+	uint32_t stream_menu_shortcut2 = settings->GetStreamMenuShortcut2();
+	if(stream_menu_shortcut2 > 0)
+		stream_menu_shortcut2 = 1 << (stream_menu_shortcut2 - 1);
+	uint32_t stream_menu_shortcut3 = settings->GetStreamMenuShortcut3();
+	if(stream_menu_shortcut3 > 0)
+		stream_menu_shortcut3 = 1 << (stream_menu_shortcut3 - 1);
+	uint32_t stream_menu_shortcut4 = settings->GetStreamMenuShortcut4();
+	if(stream_menu_shortcut4 > 0)
+		stream_menu_shortcut4 = 1 << (stream_menu_shortcut4 - 1);
+    uint32_t shortcut = stream_menu_shortcut1 | stream_menu_shortcut2 | stream_menu_shortcut3 | stream_menu_shortcut4;
+    return shortcut;
+}
+
+void QmlBackend::updateStreamShortcut()
+{
+    uint32_t shortcut = getStreamShortcut();
+    for (const auto &controller : std::as_const(controllers)) {
+       controller->setEscapeShortcut(shortcut);
+    }
+}
+
 void QmlBackend::updateControllers()
 {
     bool changed = false;
@@ -1427,13 +1529,14 @@ void QmlBackend::updateControllers()
         it = controllers.erase(it);
         changed = true;
     }
+    uint32_t stream_shortcut = getStreamShortcut();
     for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
         if (controllers.contains(id))
             continue;
         auto controller = ControllerManager::GetInstance()->OpenController(id);
         if (!controller)
             continue;
-        controllers[id] = new QmlController(controller, window, this);
+        controllers[id] = new QmlController(controller, stream_shortcut ,window, this);
         QString vidpid = controller->GetVIDPIDString();
         QString guid = controller->GetGUIDString();
         QStringList existing_vidpid;
@@ -1726,9 +1829,11 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
             individual_mapping_list = update_list + individual_mapping_list;
         }
         controller_mapping_controller_mappings.insert(key, individual_mapping_list);
-        for(int j = 0; j < individual_mapping_list.length(); j++)
+        // only add buttons to physical mapping list
+        if(key != "crc" && key != "platform" && key != "type" && key != "hint" && !key.startsWith("sdk"))
         {
-            controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
+            for(int j = 0; j < individual_mapping_list.length(); j++)
+                controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
         }
     }
 

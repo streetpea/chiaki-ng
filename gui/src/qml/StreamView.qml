@@ -66,16 +66,16 @@ Item {
                     if(Chiaki.settings.dpadTouchEnabled)
                     {
                         if(Chiaki.settings.audioVideoDisabled == 0x01)
-                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
+                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
                         else
-                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
+                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O") + "\n" + qsTr("Press %1 to toggle between regular dpad and dpad touch").arg(Chiaki.settings.stringForDpadShortcut())
                     }
                     else
                     {
                         if(Chiaki.settings.audioVideoDisabled == 0x01)
-                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                            qsTr("Audio Disabled in settings\n") + qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O")
                         else
-                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? "L1+R1+L3+R3" : "Ctrl+O")
+                            qsTr("Press %1 to open stream menu").arg(Chiaki.controllers.length ? Chiaki.settings.stringForStreamMenuShortcut() : "Ctrl+O")
                     }
                 }
                 visible: sessionLoading

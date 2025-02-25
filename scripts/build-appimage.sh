@@ -22,6 +22,7 @@ export PATH="`pwd`/appimage/protoc/bin:$PATH"
 scripts/build-ffmpeg.sh appimage
 scripts/build-sdl2.sh appimage
 scripts/build-libplacebo.sh appimage
+scripts/build-hidapi.sh appimage
 
 rm -rf build_appimage && mkdir -p build_appimage
 cd build_appimage 
@@ -52,35 +53,14 @@ export LD_LIBRARY_PATH="${QT_PATH}/${QT_VERSION}/${GCC_STRING}/lib:$(pwd)/../bui
 export QML_SOURCES_PATHS="$(pwd)/../gui/src/qml"
 export EXTRA_QT_MODULES="waylandclient;waylandcompositor"
 export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so;libqeglfs.so;libqminimal.so;libqminimalegl.so;libqvkkhrdisplay.so;libqvnc.so;libqoffscreen.so;libqlinuxfb.so"
-if [ "$(uname -m)" = "aarch64" ]
-then
-    curl -LO https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-aarch64-static
-    chmod +x qemu-aarch64-static
-    curl -LO https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage
-    chmod +x appimagetool-aarch64.AppImage
-    ./qemu-aarch64-static ./linuxdeploy-${ARCH}.AppImage \
-        --appdir="${appdir}" \
-        -e "${appdir}/usr/bin/chiaki" \
-        -d "${appdir}/usr/share/applications/chiaking.desktop" \
-        --exclude-library='libva*' \
-        --exclude-library='libvulkan*' \
-        --exclude-library='libhidapi*'
-    curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
-    chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
-    ./qemu-aarch64-static ./linuxdeploy-plugin-qt-${ARCH}.AppImage --appdir="${appdir}"
-    ./qemu-aarch64-static ./appimagetool-aarch64.AppImage "${appdir}"
-else
-    curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
-    chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
-    ./linuxdeploy-${ARCH}.AppImage \
-        --appdir="${appdir}" \
-        -e "${appdir}/usr/bin/chiaki" \
-        -d "${appdir}/usr/share/applications/chiaking.desktop" \
-        --plugin qt \
-        --exclude-library='libva*' \
-        --exclude-library='libvulkan*' \
-        --exclude-library='libhidapi*' \
-        --output appimage
-fi
-
+curl -L -O https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
+chmod +x linuxdeploy-plugin-qt-${ARCH}.AppImage
+./linuxdeploy-${ARCH}.AppImage \
+    --appdir="${appdir}" \
+    -e "${appdir}/usr/bin/chiaki" \
+    -d "${appdir}/usr/share/applications/chiaking.desktop" \
+    --plugin qt \
+    --exclude-library='libva*' \
+    --exclude-library='libvulkan*' \
+    --output appimage
 mv chiaki-ng-${ARCH}.AppImage chiaki-ng.AppImage

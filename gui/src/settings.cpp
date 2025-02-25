@@ -167,7 +167,7 @@ static void MigrateControllerMappings(QSettings *settings)
 }
 
 Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
-	time_format("yyyy-MM-dd  HH:mm:ss"),
+	time_format("yyyy-MM-dd HH:mm:ss t"),
 	settings(QCoreApplication::organizationName(), conf.isEmpty() ? QCoreApplication::applicationName() : QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), conf)),
 	default_settings(QCoreApplication::organizationName(), QCoreApplication::applicationName()),
 	placebo_settings(QCoreApplication::organizationName(), QStringLiteral("pl_render_params"))
@@ -848,6 +848,44 @@ uint Settings::GetDpadTouchShortcut4() const {
 }
 void Settings::SetDpadTouchShortcut4(uint button) {
 	settings.setValue("settings/dpad_touch_shortcut4", button);
+}
+
+bool Settings::GetStreamMenuEnabled() const
+{
+	return settings.value("settings/stream_menu_enabled", true).toBool();
+}
+
+void Settings::SetStreamMenuEnabled(bool enabled)
+{
+	settings.setValue("settings/stream_menu_enabled", enabled);
+}
+
+uint Settings::GetStreamMenuShortcut1() const {
+	return settings.value("settings/stream_menu_shortcut1", 9).toUInt();
+}
+void Settings::SetStreamMenuShortcut1(uint button) {
+	settings.setValue("settings/stream_menu_shortcut1", button);
+}
+
+uint Settings::GetStreamMenuShortcut2() const {
+	return settings.value("settings/stream_menu_shortcut2", 10).toUInt();
+}
+void Settings::SetStreamMenuShortcut2(uint button) {
+	settings.setValue("settings/stream_menu_shortcut2", button);
+}
+
+uint Settings::GetStreamMenuShortcut3() const {
+	return settings.value("settings/stream_menu_shortcut3", 11).toUInt();
+}
+void Settings::SetStreamMenuShortcut3(uint button) {
+	settings.setValue("settings/stream_menu_shortcut3", button);
+}
+
+uint Settings::GetStreamMenuShortcut4() const {
+	return settings.value("settings/stream_menu_shortcut4", 12).toUInt();
+}
+void Settings::SetStreamMenuShortcut4(uint button) {
+	settings.setValue("settings/stream_menu_shortcut4", button);
 }
 
 QString Settings::GetPsnAccountId() const

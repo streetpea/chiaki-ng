@@ -53,6 +53,25 @@ void SystemdInhibit::inhibit()
 #endif
 }
 
+void SystemdInhibit::simulateUserActivity()
+{
+#ifdef CHIAKI_HAVE_DBUS
+    QDBusMessage call = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.ScreenSaver"),
+                                                       QStringLiteral("/ScreenSaver"),
+                                                       QStringLiteral("org.freedesktop.ScreenSaver"),
+                                                       QStringLiteral("SimulateUserActivity"));
+    call;
+
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(call), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, watcher]() {
+        watcher->deleteLater();
+        const QDBusPendingReply<void> reply = *watcher;
+        if (reply.isError())
+            qWarning() << "Simulate User Activity Error:" << reply.error().name() << reply.error().message();
+    });
+#endif
+}
+
 void SystemdInhibit::login1PrepareForSleep(bool start)
 {
     if (start)

@@ -12,6 +12,7 @@ DialogView {
     property var callback: null
     property bool login
     property bool submitting: false
+    property bool closing: false
     property var psnurl: ""
     title: qsTr("PSN Login")
     buttonVisible: false
@@ -34,6 +35,18 @@ DialogView {
             usernameField.readOnly = false;
             Qt.inputMethod.show();
         }
+    }
+    function close() {
+        if(webView.web)
+        {
+            dialog.closing = true;
+            if(Chiaki.settings.remotePlayAsk)
+                reloadTimer.start();
+            else
+                cacheClearTimer.start();
+        }
+        else
+            root.closeDialog();
     }
 
    Item {
@@ -73,9 +86,9 @@ DialogView {
                     Button {
                         id: reloadButton
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 300
+                        Layout.preferredWidth: 350
                         flat: true
-                        text: "reload webpage"
+                        text: "reload + clear cookies"
                         Image {
                             anchors {
                                 left: parent.left
@@ -142,7 +155,17 @@ DialogView {
                 interval: 0
                 running: false
                 onTriggered: {
-                    webView.web.reload();
+                    Chiaki.clearCookies(webView.web.profile);
+                    webView.web.profile.clearHttpCache();
+                }
+            }
+
+            Timer {
+                id: cacheClearTimer
+                interval: 0
+                running: false
+                onTriggered: {
+                    webView.web.profile.clearHttpCache();
                 }
             }
 
@@ -198,7 +221,7 @@ DialogView {
             }
             Item {
                 id: webView
-                property Item web
+                property Item web: null
                 anchors {
                     top: psnLoginToolbar.bottom
                     bottom: parent.bottom
@@ -214,10 +237,16 @@ DialogView {
                         import org.streetpea.chiaking
                         WebEngineView {
                             profile {
-                                offTheRecord: true
+                                offTheRecord: false
+                                storageName: 'psn-token'
+                                onClearHttpCacheCompleted: {
+                                    if(dialog.closing)
+                                        root.closeDialog();
+                                    else
+                                        webView.web.reload();
+                                }
                             }
                             settings {
-                                dnsPrefetchEnabled: true
                                 // Load larger touch icons
                                 touchIconsEnabled: true
                             }
@@ -233,7 +262,8 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
-                        web.url = Chiaki.psnLoginUrl();
+                        Chiaki.setWebEngineHints(web.profile);
+                        webView.web.url = Chiaki.psnLoginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);
