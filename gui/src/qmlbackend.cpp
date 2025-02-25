@@ -722,27 +722,39 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
 #endif
     if (session_info.hw_decoder == "vulkan") {
-        session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
-        if (!session_info.hw_device_ctx)
-        {
-            session_info.hw_decoder.clear();
-            qCInfo(chiakiGui) << "vulkan video decoding not supported by your gpu driver, retrying other hw video decoders";
 #if defined(Q_OS_LINUX)
-            if(availableDecoders.contains("vaapi"))
-            {
-                qCInfo(chiakiGui) << "Falling back to vaapi";
-                session_info.hw_decoder = "vaapi";
-            }
-#elif defined(Q_OS_WIN)
-            if(availableDecoders.contains("d3d11va"))
-            {
-                qCInfo(chiakiGui) << "Falling back to d3d11va";
-                session_info.hw_decoder = "d3d11va";
-            }
-#endif
+        if(qEnvironmentVariableIsSet("APPIMAGE") && (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos")))
+        {
+            qCInfo(chiakiGui) << "Auto hw decoder falling back to vaapi because radv has a bug with vulkan hw decode in SteamOS 3.6";
+            session_info.hw_decoder = "vaapi";
         }
-        if(session_info.hw_decoder.isEmpty())
-            qCInfo(chiakiGui) << "Falling back to software decoder";
+        else
+        {
+#endif
+            session_info.hw_device_ctx = window->vulkanHwDeviceCtx();
+            if (!session_info.hw_device_ctx)
+            {
+                session_info.hw_decoder.clear();
+                qCInfo(chiakiGui) << "vulkan video decoding not supported by your gpu driver, retrying other hw video decoders";
+#if defined(Q_OS_LINUX)
+                if(availableDecoders.contains("vaapi"))
+                {
+                    qCInfo(chiakiGui) << "Falling back to vaapi";
+                    session_info.hw_decoder = "vaapi";
+                }
+#elif defined(Q_OS_WIN)
+                if(availableDecoders.contains("d3d11va"))
+                {
+                    qCInfo(chiakiGui) << "Falling back to d3d11va";
+                    session_info.hw_decoder = "d3d11va";
+                }
+#endif
+            }
+            if(session_info.hw_decoder.isEmpty())
+                qCInfo(chiakiGui) << "Falling back to software decoder";
+#if defined(Q_OS_LINUX)
+        }
+#endif
     }
 
     try {

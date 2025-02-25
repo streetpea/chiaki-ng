@@ -18,15 +18,20 @@
 
 ### MacOS
 - Homebrew
-  Use brew to manage updates for the MacOS release with:
-  `brew install --cask streetpea/streetpea/chiaki-ng`
+  ```
+  brew install --cask streetpea/streetpea/chiaki-ng
+  ```
 -  Attached releases (arm64 and x86_64) attached
 
 ### Windows:
 - winget
-  `winget install --id=StreetPea.chiaki-ng -e`
+  ```
+  winget install --id=StreetPea.chiaki-ng -e
+  ```
 - chocolatey
-  `choco install chiaki-ng`
+  ```
+  choco install chiaki-ng
+  ```
  - Attached releases (installer and portable)
 
 ## Additional Notes
