@@ -1098,7 +1098,9 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
         emit menuRequested();
         return true;
     case Qt::Key_Q:
+#ifndef Q_OS_MACOS
         close();
+#endif
         return true;
     default:
         return false;

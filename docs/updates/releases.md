@@ -75,6 +75,33 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.6
+
+Quality of life improvements and bug fixes:
+
+- improve controller mapping by adding support for many more controllers and improving support of existing controllers
+- greatly improve success rate for generating remote connection via PSN tokens via in-app browser
+- fix issue where console that becomes available right after clicking on it is never recognized as available, causing you to have to relaunch to begin a session
+- add option to disable audio and/or video
+- add ability to disable or alter stream shortcut
+- fix issue where remote connection via PSN fails if UPNP gateway is discovered but mapping fails
+- prevent Linux guests from sleeping/turning on screensaver if there is active controller movement
+- remove dependency on hidapi-hidraw from appimage
+- add native wayland support for flatpak and appimage
+- fix delay in adaptive triggers when using DualSense in bluetooth mode
+- tweak haptic rumble code for higher accuracy
+- add option to set stream stats to always on in audio/wifi
+- adjust rumble intensity based off of console setting
+- fix address not automatically being filled in for regular registration
+- improve DualSense controller rumble
+- fix issue where DualSense could lose its haptics/rumble after connecting while low on battery
+- allow configuring true haptic intensity manually
+- small improvements to settings UI
+- change audio size buffer to slider in 10ms increments
+- change bitrate to slider in 1 Mbps increments
+- change bitrate to default for its resolution when changing resolution
+- disable Steam on-screen keyboard in desktop mode on Steam Deck as it performs erratically
+
 ### 1.9.5
 
 Bug fix release:
