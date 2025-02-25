@@ -27,7 +27,8 @@ finish-args:
   - --filesystem=xdg-run/pipewire-0
   - --filesystem=xdg-run/gamescope-0
   - --filesystem=host-os:ro
-  - --filesystem=/home
+  - --filesystem=xdg-download
+  - --filesystem=xdg-documents
 cleanup-commands:
   - /app/cleanup-BaseApp.sh
 build-options:
