@@ -41,7 +41,7 @@
 
                 2. `Enable turning on PS4 from Network`
 
-    2. Open `chiaki-ng` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.chiaki-ng` via `konsole`) and your PlayStation system should be automatically discovered.
+    2. Open `chiaki-ng` (click the Steam icon in the bottom left and search for it in the `Games` section via GUI or `flatpak run io.github.streetpea.Chiaki4deck` via `konsole`) and your PlayStation system should be automatically discovered.
 
         ![Unregistered PS5](images/UnregisteredPS5.png)
 
