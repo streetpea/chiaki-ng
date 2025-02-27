@@ -69,6 +69,9 @@ int real_main(int argc, char *argv[])
 	QGuiApplication::setApplicationDisplayName("chiaki-ng");
 	QGuiApplication::setDesktopFileName("chiaki-ng");
 
+	// TODO: When upgrading to SDL3, this also needs to be set on "SDL_HINT_APP_ID"
+	QApplication::setDesktopFileName("io.github.streetpea.Chiaki4deck");
+
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
 	const size_t cSize = strlen(argv[0])+1;
@@ -93,7 +96,7 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-    SDL_SetHint(SDL_HINT_APP_NAME, "chiaki-ng");
+    	SDL_SetHint(SDL_HINT_APP_NAME, "chiaki-ng");
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
