@@ -96,7 +96,7 @@ int real_main(int argc, char *argv[])
 		return 1;
 	}
 
-    	SDL_SetHint(SDL_HINT_APP_NAME, "chiaki-ng");
+	SDL_SetHint(SDL_HINT_APP_NAME, "chiaki-ng");
 
 	if(SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
