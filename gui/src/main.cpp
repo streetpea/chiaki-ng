@@ -67,10 +67,13 @@ int real_main(int argc, char *argv[])
 	QGuiApplication::setApplicationName("Chiaki");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
 	QGuiApplication::setApplicationDisplayName("chiaki-ng");
-	QGuiApplication::setDesktopFileName("chiaki-ng");
 
 	// TODO: When upgrading to SDL3, this also needs to be set on "SDL_HINT_APP_ID"
-	QApplication::setDesktopFileName("io.github.streetpea.Chiaki4deck");
+	if (QFile::exists("/.flatpak-info")) {
+		QApplication::setDesktopFileName("io.github.streetpea.Chiaki4deck");
+	} else {
+		QApplication::setDesktopFileName("chiaki-ng");
+	}
 
 	qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu");
 #if defined(Q_OS_WIN)
