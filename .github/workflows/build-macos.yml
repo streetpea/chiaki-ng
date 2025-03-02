@@ -6,7 +6,7 @@ on:
 jobs:
   build-mac_x64:
     name: Build macOSX x86_64 version
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,7 +19,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
+          brew install streetpea/streetpea/qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
 
       - name: Configure chiaki-ng
         run: |
@@ -36,7 +36,7 @@ jobs:
           cp scripts/qtwebengine_import.qml gui/src/qml/
           $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           mkdir -p chiaki-ng.app/Contents/Resources/vulkan/icd.d
-          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.11-artifacts/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
           cp MoltenVK/MoltenVK/dylib/macOS/* chiaki-ng.app/Contents/Resources/vulkan/icd.d
           $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
@@ -67,7 +67,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install streetpea/streetpea/qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
 
       - name: Configure chiaki-ng
         run: |
@@ -84,7 +84,7 @@ jobs:
           echo "import QtWebEngine; WebEngineView {}" > "$PWD/gui/src/qml/qtwebengine_import.qml"
           $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           mkdir -p chiaki-ng.app/Contents/Resources/vulkan/icd.d
-          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.11-artifacts/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
           cp MoltenVK/MoltenVK/dylib/macOS/* chiaki-ng.app/Contents/Resources/vulkan/icd.d
           $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
