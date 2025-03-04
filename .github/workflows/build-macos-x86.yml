@@ -38,6 +38,10 @@ jobs:
           wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.11-artifacts/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
           cp MoltenVK/MoltenVK/dylib/macOS/* chiaki-ng.app/Contents/Resources/vulkan/icd.d
           $(brew --prefix)/opt/chiaki-ng-qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          if [[ -d chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app ]]
+          then
+            ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          fi
           ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
