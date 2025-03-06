@@ -126,6 +126,8 @@ class Settings
 
 		int GetHostRPKeyType(Host * host);
 		bool SetHostRPKeyType(Host * host, std::string value);
+
+		void SetHostAddr(Host* host, const std::string& addr);
 };
 
 #endif // CHIAKI_SETTINGS_H
