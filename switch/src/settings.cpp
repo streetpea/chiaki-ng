@@ -635,4 +635,17 @@ void Settings::SetCPUOverclock(Host *host, std::string value)
 	int v = atoi(value.c_str());
 	this->SetCPUOverclock(host, v);
 }
+
+void Settings::SetHostAddr(Host *host, const std::string& addr)
+{
+    if (host == nullptr)
+    {
+        CHIAKI_LOGE(&this->log, "Cannot SetHostAddr on nullptr host");
+        return;
+    }
+	
+    host->host_addr = addr;
+    this->WriteFile();
+}
+
 #endif
