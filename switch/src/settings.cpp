@@ -362,6 +362,17 @@ std::string Settings::GetHostAddr(Host *host)
 	return "";
 }
 
+void Settings::SetHostAddr(Host * host, std::string host_addr)
+{
+    if (host == nullptr)
+    {
+        CHIAKI_LOGE(&this->log, "Cannot SetHostAddr on nullptr host");
+        return;
+    }
+	
+    host->host_addr = host_addr;
+}
+
 std::string Settings::GetPSNOnlineID(Host *host)
 {
 	if(host == nullptr || host->psn_online_id.length() == 0)

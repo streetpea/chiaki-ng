@@ -95,6 +95,7 @@ class Settings
 
 		std::string GetHostName(Host * host);
 		std::string GetHostAddr(Host * host);
+		void SetHostAddr(Host * host, std::string host_addr);
 
 		std::string GetPSNOnlineID(Host * host);
 		void SetPSNOnlineID(Host * host, std::string psn_online_id);

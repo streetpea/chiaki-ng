@@ -511,21 +511,35 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	ls->addView(haptic);
 
 	if(host != nullptr)
-	{
-		// message delimiter
-		brls::Label *info = new brls::Label(brls::LabelStyle::REGULAR,
-			"Host information", true);
-		ls->addView(info);
-
-		std::string host_name_string = this->settings->GetHostName(host);
-		brls::ListItem *host_name = new brls::ListItem("PS Hostname");
-		host_name->setValue(host_name_string.c_str());
-		ls->addView(host_name);
-
-		std::string host_addr_string = settings->GetHostAddr(host);
-		brls::ListItem *host_addr = new brls::ListItem("PS Address");
-		host_addr->setValue(host_addr_string.c_str());
-		ls->addView(host_addr);
+	{	
+	    brls::Label *info = new brls::Label(brls::LabelStyle::REGULAR,
+		"Host information", true);
+	    ls->addView(info);
+	
+	    std::string host_name_string = this->settings->GetHostName(host);
+	    brls::ListItem *host_name = new brls::ListItem("PS Hostname");
+	    host_name->setValue(host_name_string.c_str());
+	    ls->addView(host_name);
+	
+	    std::string host_addr_string = settings->GetHostAddr(host);		
+		brls::InputListItem *host_addr = new brls::InputListItem("Remote IP/name",
+		host_addr_string, "IP address or fqdn", "", 255,
+		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_FORWSLASH |
+			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_BACKSLASH);		
+		
+	    auto host_addr_cb = [this, host, host_addr](brls::View *view)
+		{
+			std::string new_addr = host_addr->getValue();	
+			this->settings->SetHostAddr(host, new_addr);	
+			this->settings->WriteFile();		
+			brls::Application::notify("PS Address updated successfully");
+	    };
+	
+	    host_addr->getClickEvent()->subscribe(host_addr_cb);
+	    ls->addView(host_addr);
 
 		brls::ListItem *host_regist_state_item = new brls::ListItem("Register Status");
 		host_regist_state_item->setValue(!settings->GetHostRPKey(host).empty() ? "registered" : "unregistered");
