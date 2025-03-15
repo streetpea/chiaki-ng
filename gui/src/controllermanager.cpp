@@ -826,6 +826,15 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 #endif
 }
 
+void Controller::ChangePlayerIndex(const uint8_t player_index)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!controller)
+		return;
+	SDL_GameControllerSetPlayerIndex(controller, player_index);
+#endif
+}
+
 void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER

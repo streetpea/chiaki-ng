@@ -72,7 +72,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stream_connection_init(ChiakiStreamConnecti
 	stream_connection->gkcrypt_local = NULL;
 	stream_connection->streaminfo_early_buf = NULL;
 	stream_connection->streaminfo_early_buf_size = 0;
-	memset(stream_connection->motion_counter, 0, sizeof(stream_connection->motion_counter));
+	stream_connection->player_index = 0;
 	memset(stream_connection->led_state, 0, sizeof(stream_connection->led_state));
 
 	stream_connection->haptic_intensity = Strong;
@@ -517,8 +517,8 @@ static char* DualSenseIntensity(ChiakiDualSenseEffectIntensity intensity)
 }
 static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *stream_connection, uint8_t *buf, size_t buf_size)
 {
-	memcpy(stream_connection->led_state, stream_connection->motion_counter + 1, sizeof(stream_connection->led_state));
 	bool led_changed = false;
+	bool player_index_changed = false;
 	bool motion_reset = false;
 	bool haptic_intensity_changed = false;
 	bool trigger_intensity_changed = false;
@@ -549,6 +549,11 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 				motion_reset = true;
 				CHIAKI_LOGV(stream_connection->log, "StreamConnection received motion reset request in response to feedback packet with seqnum %"PRIu16"x , %"PRIu32" seconds after stream began", feedback_packet_seq_num, timestamp);
 			}
+			if(buf[8] != stream_connection->player_index)
+			{
+				player_index_changed = true;
+				stream_connection->player_index = buf[8];
+			}
 			if(memcmp(buf + 9, stream_connection->led_state, 3) != 0)
 			{
 				led_changed = true;
@@ -570,6 +575,11 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 			if(buf[4])
 			{
 				motion_reset = true;
+			}
+			if(buf[0] != stream_connection->player_index)
+			{
+				player_index_changed = true;
+				stream_connection->player_index = buf[0];
 			}
 			if(memcmp(buf + 1, stream_connection->led_state, 3) != 0)
 			{
@@ -614,6 +624,14 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 		ChiakiEvent event = { 0 };
 		event.type = CHIAKI_EVENT_LED_COLOR;
 		memcpy(event.led_state, stream_connection->led_state, 3);
+		chiaki_session_send_event(stream_connection->session, &event);
+	}
+	if(player_index_changed)
+	{
+		CHIAKI_LOGV(stream_connection->log, "Set player index to - %d", stream_connection->player_index);
+		ChiakiEvent event = { 0 };
+		event.type = CHIAKI_EVENT_PLAYER_INDEX;
+		event.player_index = stream_connection->player_index;
 		chiaki_session_send_event(stream_connection->session, &event);
 	}
 }

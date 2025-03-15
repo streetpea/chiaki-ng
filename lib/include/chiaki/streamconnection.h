@@ -45,6 +45,7 @@ typedef struct chiaki_stream_connection_t
 	double packet_loss_max;
 	uint8_t motion_counter[4];
 	uint8_t led_state[3];
+	uint8_t player_index;
 	ChiakiDualSenseEffectIntensity haptic_intensity;
 	ChiakiDualSenseEffectIntensity trigger_intensity;
 	ChiakiFeedbackSender feedback_sender;

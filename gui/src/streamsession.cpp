@@ -200,6 +200,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	dpad_regular_touch_switched = false;
 	rumble_haptics_intensity = RumbleHapticsIntensity::Off;
 	input_block = 0;
+	player_index = 0;
 	memset(led_color, 0, sizeof(led_color));
 	ChiakiErrorCode err;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
@@ -951,7 +952,10 @@ void StreamSession::UpdateGamepads()
 			{
 				haptics_handheld--;
 			}
-			controller->ChangeLEDColor(led_color);
+			QTimer::singleShot(1000, this, [this, controller] {
+				controller->ChangePlayerIndex(player_index);
+				controller->ChangeLEDColor(led_color);
+			});
 			if (controller->IsDualSense() || controller->IsDualSenseEdge())
 			{
 				uint8_t trigger_intensity = (ps5_trigger_intensity < 0) ? 0xF0 : ps5_trigger_intensity;
@@ -1849,6 +1853,14 @@ void StreamSession::Event(ChiakiEvent *event)
 			QMetaObject::invokeMethod(this, [this, led_state]() {
 				for(auto controller : controllers)
 					controller->ChangeLEDColor(led_state);
+			});
+			break;
+		}
+		case CHIAKI_EVENT_PLAYER_INDEX: {
+			player_index = event->player_index;
+			QMetaObject::invokeMethod(this, [this]() {
+				for(auto controller : controllers)
+					controller->ChangePlayerIndex(player_index);
 			});
 			break;
 		}
