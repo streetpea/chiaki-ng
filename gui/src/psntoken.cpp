@@ -42,10 +42,12 @@ void PSNToken::handleAccessTokenResponse(const QString& url, const QJsonDocument
     settings->SetPsnRefreshToken(std::move(refresh_token));
     settings->SetPsnAuthTokenExpiry(std::move(access_token_expiry));
     emit PSNTokenSuccess();
+    emit Finished();
 }
 
 void PSNToken::handleErrorResponse(const QString& url, const QString& error, const QNetworkReply::NetworkError& err) {
     emit PSNTokenError(QString("[E] : Url (%1) returned error (%2) with error code (%3)").arg(url).arg(error).arg(err));
     if(err == QNetworkReply::ProtocolInvalidOperationError)
         emit UnauthorizedError();
+    emit Finished();
 }

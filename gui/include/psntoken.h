@@ -21,6 +21,7 @@ signals:
     void PSNTokenSuccess();
     void PSNTokenError(const QString error);
     void UnauthorizedError();
+    void Finished();
 
 private:
     QString basicAuthHeader;

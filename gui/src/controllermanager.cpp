@@ -167,8 +167,6 @@ ControllerManager::ControllerManager(QObject *parent)
 ControllerManager::~ControllerManager()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
-	for (Controller *controller : std::as_const(open_controllers))
-		delete controller;
 	open_controllers.clear();
 	SDL_Quit();
 #endif

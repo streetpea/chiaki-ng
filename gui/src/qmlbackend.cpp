@@ -200,15 +200,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             }
         });
         connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
-        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
-        });
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
+            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
             resume_session = false;
             psn_reconnect_tries = 0;
             psn_reconnect_timer->stop();
             createSession(session_info);
         });
+        connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
         QString refresh_token = this->settings->GetPsnRefreshToken();
         psnToken->RefreshPsnToken(std::move(refresh_token));
     });
@@ -270,21 +269,18 @@ QmlBackend::~QmlBackend()
         chiaki_log_mutex.lock();
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
-        delete session;
+        session->deleteLater();
         session = nullptr;
     }
 #ifdef CHIAKI_HAVE_WEBENGINE
     if(request_interceptor)
-        delete request_interceptor;
+        request_interceptor->deleteLater();
 #endif
     frame_thread->quit();
     frame_thread->wait();
-    delete frame_thread->parent();
-    delete psn_auto_connect_timer;
-    delete psn_reconnect_timer;
+    frame_thread->parent()->deleteLater();
     psn_connection_thread.quit();
     psn_connection_thread.wait();
-    delete psn_connection_thread.parent();
 }
 
 QmlMainWindow *QmlBackend::qmlWindow() const
@@ -318,7 +314,7 @@ void QmlBackend::profileChanged()
     QString profile = settings->GetCurrentProfile();
     Settings *settings_copy = new Settings(profile);
     if(settings_allocd)
-        delete settings;
+        settings->deleteLater();
     settings_allocd = true;
     settings = settings_copy;
     emit hostsChanged();
@@ -335,8 +331,8 @@ void QmlBackend::profileChanged()
 
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
     auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
-    delete psn_reconnect_timer;
-    delete psn_auto_connect_timer;
+    psn_reconnect_timer->deleteLater();
+    psn_auto_connect_timer->deleteLater();
     psn_auto_connect_timer = new QTimer(this);
     psn_auto_connect_timer->setSingleShot(true);
     psn_reconnect_tries = 0;
@@ -395,10 +391,11 @@ void QmlBackend::profileChanged()
             psn_reconnect_timer->stop();
             createSession(session_info);
         });
+        connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
         QString refresh_token = this->settings->GetPsnRefreshToken();
         psnToken->RefreshPsnToken(std::move(refresh_token));
     });
-    delete sleep_inhibit;
+    sleep_inhibit->deleteLater();
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
         qCInfo(chiakiGui) << "About to sleep";
@@ -618,7 +615,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.lock();
                 chiaki_log_ctx = nullptr;
                 chiaki_log_mutex.unlock();
-                delete session;
+                session->deleteLater();
                 session = nullptr;
                 setDiscoveryEnabled(true);
             }
@@ -630,7 +627,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.lock();
                 chiaki_log_ctx = nullptr;
                 chiaki_log_mutex.unlock();
-                delete session;
+                session->deleteLater();
                 session = nullptr;
                 setDiscoveryEnabled(true);
             }
@@ -642,7 +639,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.lock();
                 chiaki_log_ctx = nullptr;
                 chiaki_log_mutex.unlock();
-                delete session;
+                session->deleteLater();
                 session = nullptr;
                 setDiscoveryEnabled(true);
             }
@@ -658,7 +655,7 @@ void QmlBackend::psnSessionStart()
         chiaki_log_mutex.lock();
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
-        delete session;
+        session->deleteLater();
         session = nullptr;
         emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
         return;
@@ -881,7 +878,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
                 chiaki_log_mutex.lock();
                 chiaki_log_ctx = nullptr;
                 chiaki_log_mutex.unlock();
-                delete session;
+                session->deleteLater();
                 session = nullptr;
                 return;
             }
@@ -1109,6 +1106,7 @@ void QmlBackend::autoRegister()
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
             createSession(info);
         });
+        connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
         QString refresh_token = settings->GetPsnRefreshToken();
         psnToken->RefreshPsnToken(std::move(refresh_token));
     }
@@ -1279,6 +1277,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
                 createSession(info);
             });
+                connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
             QString refresh_token = settings->GetPsnRefreshToken();
             psnToken->RefreshPsnToken(std::move(refresh_token));
         }
@@ -1346,7 +1345,6 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
     }
     PSNAccountID *psnId = new PSNAccountID(settings, this);
     connect(psnId, &PSNAccountID::AccountIDResponse, this, [this, psnId](const QString &accountId) {
-        psnId->deleteLater();
         emit psnLoginAccountIdDone(accountId);
     });
     connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
@@ -1354,6 +1352,7 @@ bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
         qCWarning(chiakiGui) << "Could not retrieve psn token or account Id!" << error;
         emit psnLoginAccountIdError(error);
     });
+    connect(psnId, &PSNAccountID::Finished, psnId, &QObject::deleteLater);
     psnId->GetPsnAccountId(code);
     emit psnTokenChanged();
     return true;
@@ -1985,7 +1984,7 @@ void QmlBackend::updateDiscoveryHosts()
                     chiaki_log_mutex.lock();
                     chiaki_log_ctx = nullptr;
                     chiaki_log_mutex.unlock();
-                    delete session;
+                    session->deleteLater();
                     session = nullptr;
                 }
                 if(session_start_succeeded)
@@ -2183,6 +2182,7 @@ void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
         if (cb.isCallable())
             cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
     });
+    connect(psnId, &PSNAccountID::Finished, psnId, &QObject::deleteLater);
     psnId->GetPsnAccountId(code);
     emit psnTokenChanged();
 }
@@ -2198,6 +2198,7 @@ void QmlBackend::refreshAuth()
         qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
     });
     connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
+    connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
     QString refresh_token = settings->GetPsnRefreshToken();
     psnToken->RefreshPsnToken(std::move(refresh_token));
 }

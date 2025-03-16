@@ -522,16 +522,6 @@ StreamSession::~StreamSession()
 		chiaki_ffmpeg_decoder_fini(ffmpeg_decoder);
 		delete ffmpeg_decoder;
 	}
-	if(dpad_touch_stop_timer)
-	{
-		delete dpad_touch_stop_timer;
-		dpad_touch_stop_timer = nullptr;
-	}
-	if(dpad_touch_timer)
-	{
-		delete dpad_touch_timer;
-		dpad_touch_timer = nullptr;
-	}
 	if (haptics_output > 0)
 	{
 		SDL_CloseAudioDevice(haptics_output);
