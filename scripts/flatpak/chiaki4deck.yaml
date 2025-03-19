@@ -29,6 +29,7 @@ finish-args:
   - --filesystem=host-os:ro
   - --filesystem=xdg-download
   - --filesystem=xdg-documents
+  - --filesystem=~/.steam/steam
 cleanup-commands:
   - /app/cleanup-BaseApp.sh
 build-options:

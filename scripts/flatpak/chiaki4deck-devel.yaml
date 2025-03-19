@@ -30,6 +30,7 @@ finish-args:
   - --filesystem=host-os:ro
   - --filesystem=xdg-download
   - --filesystem=xdg-documents
+  - --filesystem=~/.steam/steam
 
 build-options:
   arch:
