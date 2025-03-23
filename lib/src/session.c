@@ -182,6 +182,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_init(ChiakiSession *session, Chiaki
 	session->auto_regist = connect_info->auto_regist;
 	session->holepunch_session = connect_info->holepunch_session;
 	session->rudp = NULL;
+	session->dontfrag = true;
 
 	ChiakiErrorCode err = chiaki_cond_init(&session->state_cond);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -628,6 +629,7 @@ ctrl_failed:
 		session->mtu_in = 1454;
 		session->mtu_out = 1454;
 		session->rtt_us = 1000;
+		session->dontfrag = false;
 	}
 #endif
 	if(session->rudp)
