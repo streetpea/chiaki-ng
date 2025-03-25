@@ -50,6 +50,7 @@
 
 #define TAKION_EXPECT_TIMEOUT_MS 5000
 
+#define MAX_CONNECT_RESEND_TRIES 3
 /**
  * Base type of Takion packets. Lower nibble of the first byte in datagrams.
  */
@@ -819,19 +820,27 @@ static ChiakiErrorCode takion_handshake(ChiakiTakion *takion, uint32_t *seq_num_
 	init_payload.outbound_streams = TAKION_OUTBOUND_STREAMS;
 	init_payload.inbound_streams = TAKION_INBOUND_STREAMS;
 	init_payload.initial_seq_num = takion->seq_num_local;
-	err = takion_send_message_init(takion, &init_payload);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to send init");
-		return err;
-	}
-
-	CHIAKI_LOGI(takion->log, "Takion sent init");
-
-	// INIT_ACK <-
-
+	int tries = 0;
 	TakionMessagePayloadInitAck init_ack_payload;
-	err = takion_recv_message_init_ack(takion, &init_ack_payload);
+	for(; tries < MAX_CONNECT_RESEND_TRIES; tries++)
+	{
+		if(tries > 0)
+			CHIAKI_LOGW(takion->log, "Takion hasn't received init ack yet, retrying init [attempt %d] ...", tries + 1);
+		memset(&init_ack_payload, 0, sizeof(TakionMessagePayloadInitAck));
+		err = takion_send_message_init(takion, &init_payload);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to send init");
+			return err;
+		}
+
+		CHIAKI_LOGI(takion->log, "Takion sent init");
+
+		// INIT_ACK <-
+		err = takion_recv_message_init_ack(takion, &init_ack_payload);
+		if(err == CHIAKI_ERR_SUCCESS)
+			break;
+	}
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to receive init ack");
@@ -857,20 +866,27 @@ static ChiakiErrorCode takion_handshake(ChiakiTakion *takion, uint32_t *seq_num_
 	}
 
 	// COOKIE ->
-
-	err = takion_send_message_cookie(takion, init_ack_payload.cookie);
-	if(err != CHIAKI_ERR_SUCCESS)
+	tries = 0;
+	for(; tries < MAX_CONNECT_RESEND_TRIES; tries++)
 	{
-		CHIAKI_LOGE(takion->log, "Takion failed to send cookie");
-		return err;
+		if(tries > 0)
+			CHIAKI_LOGW(takion->log, "Takion hasn't received cookie ack yet, resending cookie [attempt %d] ...", tries + 1);
+		err = takion_send_message_cookie(takion, init_ack_payload.cookie);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to send cookie");
+			return err;
+		}
+
+		CHIAKI_LOGI(takion->log, "Takion sent cookie");
+
+
+		// COOKIE_ACK <-
+
+		err = takion_recv_message_cookie_ack(takion);
+		if(err == CHIAKI_ERR_SUCCESS)
+			break;
 	}
-
-	CHIAKI_LOGI(takion->log, "Takion sent cookie");
-
-
-	// COOKIE_ACK <-
-
-	err = takion_recv_message_cookie_ack(takion);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to receive cookie ack");
