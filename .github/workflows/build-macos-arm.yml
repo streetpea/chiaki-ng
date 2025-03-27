@@ -14,16 +14,16 @@ jobs:
 
       - name: Install protobuf
         run: |
-          pip3 install --user protobuf --break-system-packages
+          pip3 install --user 'protobuf>=5,<6' --break-system-packages
       - name: Install brew dependencies
         run: |
           brew update
           brew uninstall pkgconfig || true
-          brew install --force streetpea/streetpea/chiaki-ng-qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install --force streetpea/streetpea/chiaki-ng-qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc
 
       - name: Configure chiaki-ng
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/@openssl@3;$(brew --prefix)/opt/chiaki-ng-qt@6"
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/@openssl@3;$(brew --prefix)/opt/chiaki-ng-qt@6;$(brew --prefix)/opt/protobuf@29"
 
       - name: Build chiaki-ng
         run: |
