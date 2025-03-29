@@ -29,6 +29,7 @@
 #define SENKUSHA_PORT 9297
 
 #define EXPECT_TIMEOUT_MS 5000
+#define CONNECT_TIMEOUT_MS 30000
 
 #define SENKUSHA_PING_COUNT_DEFAULT 10
 #define EXPECT_PONG_TIMEOUT_MS 1000
@@ -173,7 +174,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_senkusha_run(ChiakiSenkusha *senkusha, uint
 		QUIT(quit);
 	}
 
-	err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, EXPECT_TIMEOUT_MS, state_finished_cond_check, senkusha);
+	err = chiaki_cond_timedwait_pred(&senkusha->state_cond, &senkusha->state_mutex, CONNECT_TIMEOUT_MS, state_finished_cond_check, senkusha);
 	assert(err == CHIAKI_ERR_SUCCESS || err == CHIAKI_ERR_TIMEOUT);
 	if(!senkusha->state_finished)
 	{

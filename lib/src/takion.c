@@ -50,6 +50,7 @@
 
 #define TAKION_EXPECT_TIMEOUT_MS 5000
 
+#define MAX_CONNECT_RESEND_TRIES 3
 /**
  * Base type of Takion packets. Lower nibble of the first byte in datagrams.
  */
@@ -377,6 +378,35 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 				goto error_sock;
 			}
 			CHIAKI_LOGI(takion->log, "Takion enabled Don't Fragment Bit");
+#endif
+		}
+		else
+		{
+#if defined(_WIN32)
+			const DWORD dontfragment_val = 0;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAGMENT, (const CHIAKI_SOCKET_BUF_TYPE)&dontfragment_val, sizeof(dontfragment_val));
+#elif defined(__FreeBSD__) || defined(__SWITCH__) || defined(__APPLE__)
+			if(mac_dontfrag)
+			{
+				const int dontfrag_val = 0;
+				r = setsockopt(takion->sock, IPPROTO_IP, IP_DONTFRAG, (const CHIAKI_SOCKET_BUF_TYPE)&dontfrag_val, sizeof(dontfrag_val));
+			}
+#elif defined(IP_PMTUDISC_DO)
+			const int mtu_discover_val = IP_PMTUDISC_DONT;
+			r = setsockopt(takion->sock, IPPROTO_IP, IP_MTU_DISCOVER, (const CHIAKI_SOCKET_BUF_TYPE)&mtu_discover_val, sizeof(mtu_discover_val));
+#else
+			// macOS older than MacOS Big Sur (11) and OpenBSD
+#define NO_DONTFRAG
+#endif
+
+#ifndef NO_DONTFRAG
+			if(r < 0 && mac_dontfrag)
+			{
+				CHIAKI_LOGE(takion->log, "Takion failed to unset setsockopt IP_MTU_DISCOVER: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
+				ret = CHIAKI_ERR_NETWORK;
+				goto error_sock;
+			}
+			CHIAKI_LOGI(takion->log, "Takion disabled Don't Fragment Bit");
 #endif
 		}
 
@@ -790,19 +820,27 @@ static ChiakiErrorCode takion_handshake(ChiakiTakion *takion, uint32_t *seq_num_
 	init_payload.outbound_streams = TAKION_OUTBOUND_STREAMS;
 	init_payload.inbound_streams = TAKION_INBOUND_STREAMS;
 	init_payload.initial_seq_num = takion->seq_num_local;
-	err = takion_send_message_init(takion, &init_payload);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(takion->log, "Takion failed to send init");
-		return err;
-	}
-
-	CHIAKI_LOGI(takion->log, "Takion sent init");
-
-	// INIT_ACK <-
-
+	int tries = 0;
 	TakionMessagePayloadInitAck init_ack_payload;
-	err = takion_recv_message_init_ack(takion, &init_ack_payload);
+	for(; tries < MAX_CONNECT_RESEND_TRIES; tries++)
+	{
+		if(tries > 0)
+			CHIAKI_LOGW(takion->log, "Takion hasn't received init ack yet, retrying init [attempt %d] ...", tries + 1);
+		memset(&init_ack_payload, 0, sizeof(TakionMessagePayloadInitAck));
+		err = takion_send_message_init(takion, &init_payload);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to send init");
+			return err;
+		}
+
+		CHIAKI_LOGI(takion->log, "Takion sent init");
+
+		// INIT_ACK <-
+		err = takion_recv_message_init_ack(takion, &init_ack_payload);
+		if(err == CHIAKI_ERR_SUCCESS)
+			break;
+	}
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to receive init ack");
@@ -828,20 +866,27 @@ static ChiakiErrorCode takion_handshake(ChiakiTakion *takion, uint32_t *seq_num_
 	}
 
 	// COOKIE ->
-
-	err = takion_send_message_cookie(takion, init_ack_payload.cookie);
-	if(err != CHIAKI_ERR_SUCCESS)
+	tries = 0;
+	for(; tries < MAX_CONNECT_RESEND_TRIES; tries++)
 	{
-		CHIAKI_LOGE(takion->log, "Takion failed to send cookie");
-		return err;
+		if(tries > 0)
+			CHIAKI_LOGW(takion->log, "Takion hasn't received cookie ack yet, resending cookie [attempt %d] ...", tries + 1);
+		err = takion_send_message_cookie(takion, init_ack_payload.cookie);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(takion->log, "Takion failed to send cookie");
+			return err;
+		}
+
+		CHIAKI_LOGI(takion->log, "Takion sent cookie");
+
+
+		// COOKIE_ACK <-
+
+		err = takion_recv_message_cookie_ack(takion);
+		if(err == CHIAKI_ERR_SUCCESS)
+			break;
 	}
-
-	CHIAKI_LOGI(takion->log, "Takion sent cookie");
-
-
-	// COOKIE_ACK <-
-
-	err = takion_recv_message_cookie_ack(takion);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to receive cookie ack");
