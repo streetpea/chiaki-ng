@@ -554,7 +554,7 @@ static void *session_thread_func(void *arg)
 		session->login_pin = NULL;
 		session->login_pin_size = 0;
 		// wait for session id or new login pin request
-		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_TIMEOUT_MS, session_check_state_pred_ctrl_start, session);
+		err = chiaki_cond_timedwait_pred(&session->state_cond, &session->state_mutex, SESSION_EXPECT_CTRL_START_MS, session_check_state_pred_ctrl_start, session);
 		CHECK_STOP(quit_ctrl);
 	}
 
@@ -618,6 +618,12 @@ ctrl_failed:
 
 	err = chiaki_senkusha_run(&senkusha, &session->mtu_in, &session->mtu_out, &session->rtt_us, data_sock);
 	chiaki_senkusha_fini(&senkusha);
+	CHECK_STOP(quit_ctrl);
+	if(session->ctrl_failed)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl has failed since session started, exiting");
+		QUIT(quit_ctrl);
+	}
 
 	if(err == CHIAKI_ERR_SUCCESS)
 		CHIAKI_LOGI(session->log, "Senkusha completed successfully");
