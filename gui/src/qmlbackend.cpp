@@ -1124,6 +1124,7 @@ void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
     }
     settings->AddRegisteredHost(host);
     setConnectState(PsnConnectState::RegistrationFinished);
+    updatePsnHosts();
 }
 
 #ifdef CHIAKI_HAVE_WEBENGINE

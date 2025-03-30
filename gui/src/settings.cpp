@@ -1955,6 +1955,7 @@ void Settings::SaveRegisteredHosts(QSettings *qsettings)
 void Settings::AddRegisteredHost(const RegisteredHost &host)
 {
 	registered_hosts[host.GetServerMAC()] = host;
+	nickname_registered_hosts[host.GetServerNickname()] = host;
 	SaveRegisteredHosts();
 	emit RegisteredHostsUpdated();
 }
