@@ -1,6 +1,6 @@
 
 ![chiaki-ng Logo](gui/res/chiaking-logo-white.svg#gh-dark-mode-only)
-![chiaki-ng Logo](gui/res/chiaking-logo.svg#gh-light)
+![chiaki-ng Logo](gui/res/chiaking-logo.svg#gh-light-mode-only)
 
 # [chiaki-ng](https://streetpea.github.io/chiaki-ng/)
 
