@@ -1,4 +1,4 @@
-name: Build chiaki-ng weekly
+name: Build chiaki-ng pull request
 
 on:
   pull_request:
