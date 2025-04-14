@@ -34,7 +34,7 @@ CHIAKI_EXPORT uint64_t chiaki_stream_stats_bitrate(ChiakiStreamStats *stats, uin
 	return (stats->bytes * 8 * framerate) / stats->frames;
 }
 
-#define UNIT_SLOTS_MAX 256
+#define UNIT_SLOTS_MAX 512
 
 struct chiaki_frame_unit_t
 {
