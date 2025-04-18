@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+
       - name: Setup Vulkan
         run: |
           $ProgressPreference = 'SilentlyContinue'
@@ -41,23 +42,26 @@ jobs:
         uses: aminya/setup-cpp@v1
         with:
           compiler: llvm-18
+          vcvarsall: true
+          cmake: true
+          ninja: true
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: amd64_arm64
+          arch: arm64
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           architecture: "arm64"
 
       - name: Install pip dependencies
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade setuptools wheel
-          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          python3 -m pip install --user --upgrade scons protobuf pyinstaller
           python3 -m pip install --user --upgrade meson
           python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
