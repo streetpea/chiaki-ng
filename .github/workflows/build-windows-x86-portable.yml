@@ -45,6 +45,8 @@ jobs:
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
 
       - name: Setup Python
         uses: actions/setup-python@v5
