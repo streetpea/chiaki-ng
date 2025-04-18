@@ -1,15 +1,12 @@
-name: Build chiaki-ng pull request
+name: Build chiaki-ng Windows portable (VC)
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 jobs:
   build-win_x64:
     name: Build chiaki-ng win_x64 (VC)
     runs-on: windows-latest
-    permissions:
-      contents: write
     env:
       CC: clang-cl.exe
       CXX: clang-cl.exe
@@ -145,7 +142,6 @@ jobs:
           -DCHIAKI_ENABLE_CLI=OFF `
           -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON `
           -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF `
-          -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF `
           -DPYTHON_EXECUTABLE="${{ env.pythonLocation }}\python.exe" `
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}\${{ env.dep_folder }};${{ env.VULKAN_SDK }}"
 
@@ -157,6 +153,7 @@ jobs:
         run: |
           mkdir chiaki-ng-Win
           cp build\gui\chiaki.exe chiaki-ng-Win
+          cp build\third-party\cpp-steam-tools\cpp-steam-tools.dll chiaki-ng-Win
           cp scripts\qtwebengine_import.qml gui\src\qml\
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
@@ -182,7 +179,7 @@ jobs:
           $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
           $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
           $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-pre-release-${{ github.sha }}.zip"
+          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-test-build-${{ github.sha }}.zip"
           Compress-Archive chiaki-ng-Win $RELEASE_PACKAGE_FILE
           $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
           echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
@@ -192,194 +189,5 @@ jobs:
         with:
           name: chiaki-ng-win_x64-VC-Release
           path: ${{ env.RELEASE_PACKAGE_PATH }}
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
-        with:
-          path: "scripts/chiaki-ng.iss"
-          options: /O+
-
-      - name: Rename installer
-        run: |
-          cp chiaki-ng-windows-installer.exe chiaki-ng-win_x64-VC-installer.exe
-
-      - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chiaki-ng-win_x64-VC-installer.exe
-          path: chiaki-ng-win_x64-VC-installer.exe
-          if-no-files-found: error
-          retention-days: 7
-
-  build-mac_arm64_github:
-    name: Build macOSX arm64 version Github
-    runs-on: macos-14
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install protobuf
-        run: |
-          pip3 install --user 'protobuf>=5,<6' --break-system-packages
-      - name: Install brew dependencies
-        run: |
-          brew update
-          brew uninstall pkgconfig || true
-          brew install streetpea/streetpea/chiaki-ng-qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc
-
-      - name: Configure chiaki-ng
-        run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/@openssl@3;$(brew --prefix)/opt/chiaki-ng-qt@6;$(brew --prefix)/opt/protobuf@29"
-
-      - name: Build chiaki-ng
-        run: |
-          export CPATH=$(brew --prefix)/opt/ffmpeg/include
-          cmake --build build --config Release --clean-first --target chiaki
-
-      - name: Deploy chiaki-ng
-        run: |
-          cp -a build/gui/chiaki.app chiaki-ng.app
-          cp scripts/qtwebengine_import.qml gui/src/qml/
-          $(brew --prefix)/opt/chiaki-ng-qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
-          mkdir -p chiaki-ng.app/Contents/Resources/vulkan/icd.d
-          wget https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.11-artifacts/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
-          cp MoltenVK/MoltenVK/dylib/macOS/* chiaki-ng.app/Contents/Resources/vulkan/icd.d
-          $(brew --prefix)/opt/chiaki-ng-qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
-          ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
-          ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
-          codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
-          hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
-          codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.dmg
-          cp chiaki-ng.dmg chiaki-ng-macos_arm64-Release.dmg
-
-      - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chiaki-ng-macos_arm64-Release.dmg
-          path: chiaki-ng-macos_arm64-Release.dmg
-          if-no-files-found: error
-          retention-days: 7
-
-  build-appimage_x64:
-    name: Build chiaki-ng appimage_x64
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Setup Podman
-        run: |
-          sudo apt update
-          sudo apt-get -y install podman
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          path: 'chiaki-ng'
-
-      - name: Add QmlWebEngine Import
-        working-directory: chiaki-ng
-        run: |
-          cp scripts/qtwebengine_import.qml gui/src/qml/
-
-      - name: Run build script
-        working-directory: chiaki-ng
-        run: |
-          set -xe
-          podman run --rm \
-            -v "`pwd`:/build/chiaki" \
-            -w "/build/chiaki" \
-            --device /dev/fuse \
-            --cap-add SYS_ADMIN \
-            -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \
-            /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
-          cp appimage/chiaki-ng.AppImage appimage/chiaki-ng.AppImage_x86_64
-
-      - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chiaki-ng.AppImage_x86_64
-          path: chiaki-ng/appimage/chiaki-ng.AppImage_x86_64
-          if-no-files-found: error
-          retention-days: 7
-
-  build-appimage_arm64:
-    name: Build chiaki-ng appimage_arm64
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: write
-    steps:
-      - name: Setup Podman
-        run: |
-          sudo apt update
-          sudo apt-get -y install podman
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          path: 'chiaki-ng'
-
-      - name: Add QmlWebEngine Import
-        working-directory: chiaki-ng
-        run: |
-          cp scripts/qtwebengine_import.qml gui/src/qml/
-
-      - name: Run build script
-        working-directory: chiaki-ng
-        run: |
-          set -xe
-          podman run --rm \
-            -v "`pwd`:/build/chiaki" \
-            -w "/build/chiaki" \
-            --device /dev/fuse \
-            --cap-add SYS_ADMIN \
-            -t docker.io/streetpea/chiaki-ng-builder:qt6.7 \
-            /bin/bash -c "sudo -E scripts/build-appimage.sh /build/appdir"
-          cp appimage/chiaki-ng.AppImage appimage/chiaki-ng.AppImage_arm64
-
-      - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chiaki-ng.AppImage_arm64
-          path: chiaki-ng/appimage/chiaki-ng.AppImage_arm64
-          if-no-files-found: error
-          retention-days: 7
-
-  build-switch_x64:
-    name: Build chiaki-ng switch_x64
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Setup Docker
-        run: |
-          sudo apt update
-          sudo apt-get -y install docker-ce-cli
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          path: 'chiaki-ng'
-
-      - name: Run build script
-        working-directory: chiaki-ng
-        run: |
-          chmod +x scripts/switch/run-docker-build-chiaki.sh
-          scripts/switch/run-docker-build-chiaki.sh
-
-      - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chiaki-ng.nro
-          path: chiaki-ng/build_switch/switch/chiaki-ng.nro
           if-no-files-found: error
           retention-days: 7

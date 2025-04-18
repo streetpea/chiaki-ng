@@ -99,7 +99,7 @@ jobs:
       - name: Setup ffmpeg
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/r52/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
           Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -DestinationPath "."
           Rename-Item "ffmpeg-n7.1-latest-win64-gpl-shared-7.1" "${{ env.dep_folder }}"
 

@@ -1,17 +1,17 @@
-name: Build chiaki-ng Windows portable (VC)
+name: Build chiaki-ng Windows arm64 portable (VC)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-win_x64:
-    name: Build chiaki-ng win_x64 (VC)
-    runs-on: windows-latest
+  build-win_arm64:
+    name: Build chiaki-ng win_arm64 (VC)
+    runs-on: windows-11-arm
     env:
       CC: clang-cl.exe
       CXX: clang-cl.exe
       VULKAN_SDK: C:\VulkanSDK\
-      triplet: x64-windows
+      triplet: arm64-windows
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
@@ -25,13 +25,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
       - name: Setup Vulkan
         run: |
           $ProgressPreference = 'SilentlyContinue'
           $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
           echo Version $ver
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/warm/InstallVulkanARM64-$ver.exe" -OutFile VulkanSDK.exe
           echo Downloaded
           .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
 
@@ -39,18 +38,20 @@ jobs:
         run: choco install ninja
 
       - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
+        uses: aminya/setup-cpp@v1
         with:
-          version: 18
+          compiler: llvm-18
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          architecture: "x64"
+          architecture: "arm64"
 
       - name: Install pip dependencies
         run: |
@@ -66,37 +67,15 @@ jobs:
           version: "6.8.*"
           host: 'windows'
           target: 'desktop'
+          arch: 'win64_msvc2022_arm64'
           modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
 
       - name: Setup ffmpeg
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/r52/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
-          Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -DestinationPath "."
-          Rename-Item "ffmpeg-n7.1-latest-win64-gpl-shared-7.1" "${{ env.dep_folder }}"
-
-      - name: Build SPIRV-Cross
-        run: |
-          git clone https://github.com/KhronosGroup/SPIRV-Cross.git
-          cd SPIRV-Cross
-          cmake `
-          -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\${{ env.dep_folder }}" `
-          -DSPIRV_CROSS_SHARED=ON `
-          -S . `
-          -B build `
-          -G Ninja
-          cmake --build build --config Release
-          cmake --install build
-
-      - name: Setup shaderc
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          $url = ((Invoke-WebRequest -UseBasicParsing -Uri "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2019_release.html").Content | Select-String -Pattern 'url=(.*)"').Matches.Groups[1].Value
-          Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile .\shaderc.zip
-          Expand-Archive -LiteralPath "shaderc.zip" -DestinationPath "."
-          cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
-          rm "./install" -r -force
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip"
+          Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip" -DestinationPath "."
+          Rename-Item "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip" "${{ env.dep_folder }}"
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -165,12 +144,12 @@ jobs:
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\shaderc*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
@@ -187,7 +166,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_x64-VC-Release
+          name: chiaki-ng-win_arm64-VC-Release
           path: ${{ env.RELEASE_PACKAGE_PATH }}
           if-no-files-found: error
           retention-days: 7
