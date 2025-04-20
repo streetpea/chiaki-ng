@@ -2,9 +2,6 @@ name: Build chiaki-ng msys2 arm64 Windows
 
 on:
   workflow_dispatch:
-env:
-  QT_PATH: "/opt/qt"
-  QT_VERSION: "6.8.2"
 
 jobs:
   build-windows_arm64-msys2:
@@ -24,7 +21,7 @@ jobs:
           submodules: recursive
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: mingw64
+          msystem: clangarm64
           update: true
           install: git
           pacboy: >-
@@ -52,6 +49,9 @@ jobs:
             python-glad:p
             python-jinja:p
             python-pip:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
             SDL2:p
             shaderc:p
             speexdsp:p
@@ -59,30 +59,26 @@ jobs:
             vulkan:p
             vulkan-headers:p
             
-      - name: Install python protobuf, aqtinstall, and zip
+      - name: Install python protobuf and zip
         run: |
-          pip install protobuf aqtinstall
+          pip install protobuf
           pacman -S git make unzip --noconfirm
-
-      - name: Install qt
-        run: |
-          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
 
       - name: Build libbplacebo
         run: |
-          scripts/build-libplacebo-windows.sh
+          scripts/build-libplacebo-windows-arm.sh
 
       - name: Setup ffmpeg
         run: |
           curl -LO https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip
           unzip ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip
-          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/bin/." /mingw64/bin
-          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/include/." /mingw64/include
-          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/lib/." /mingw64/lib
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/bin/." /clangarm64/bin
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/include/." /clangarm64/include
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/lib/." /clangarm64/lib
 
       - name: Configure chiaki-ng
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_PATH}/${QT_VERSION}/mingw_64"
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
 
       - name: Build chiaki-ng
         run: |
