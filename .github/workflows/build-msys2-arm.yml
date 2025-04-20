@@ -1,4 +1,4 @@
-name: Build chiaki-ng msys2 x86 Windows
+name: Build chiaki-ng msys2 arm64 Windows
 
 on:
   workflow_dispatch:
@@ -7,9 +7,9 @@ env:
   QT_VERSION: "6.8.2"
 
 jobs:
-  build-windows_x64-msys2:
-    name: Build windows msys2 version
-    runs-on: windows-latest
+  build-windows_arm64-msys2:
+    name: Build windows msys2 arm version
+    runs-on: windows-11-arm
     defaults:
       run:
         shell: msys2 {0}
@@ -74,11 +74,11 @@ jobs:
 
       - name: Setup ffmpeg
         run: |
-          curl -LO https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip
-          unzip ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip
-          cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/bin/." /mingw64/bin
-          cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/include/." /mingw64/include
-          cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/lib/." /mingw64/lib
+          curl -LO https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip
+          unzip ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/bin/." /mingw64/bin
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/include/." /mingw64/include
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/lib/." /mingw64/lib
 
       - name: Configure chiaki-ng
         run: |
