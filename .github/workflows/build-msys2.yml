@@ -46,7 +46,7 @@ jobs:
             openssl:p
             opus:p
             pkgconf:p
-            protobuf-c:p
+            protobuf:p
             python:p
             python-psutil:p
             python-glad:p

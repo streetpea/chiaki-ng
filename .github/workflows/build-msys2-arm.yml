@@ -46,7 +46,7 @@ jobs:
             openssl:p
             opus:p
             pkgconf:p
-            protobuf-c:p
+            protobuf:p
             python:p
             python-psutil:p
             python-glad:p
@@ -113,7 +113,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_x64-MSYS2-Release.zip
+          name: chiaki-ng-win_arm64-MSYS2-Release.zip
           path: chiaki-ng-windows-installer.exe
           if-no-files-found: error
           retention-days: 7
