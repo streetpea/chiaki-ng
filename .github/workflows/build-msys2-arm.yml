@@ -2,6 +2,9 @@ name: Build chiaki-ng msys2 arm64 Windows
 
 on:
   workflow_dispatch:
+env:
+  QT_PATH: "/opt/qt"
+  QT_VERSION: "6.8.2"
 
 jobs:
   build-windows_arm64-msys2:
@@ -38,6 +41,9 @@ jobs:
             libdovi:p
             meson:p
             miniupnpc:p
+            libwinpthread:p
+            winpthreads:p
+            gcc:p
             nasm:p
             ninja:p
             openssl:p
@@ -46,12 +52,10 @@ jobs:
             protobuf:p
             python:p
             python-psutil:p
+            python-pipx:p
             python-glad:p
             python-jinja:p
             python-pip:p
-            qt6-base:p
-            qt6-declarative:p
-            qt6-svg:p
             SDL2:p
             shaderc:p
             speexdsp:p
@@ -59,10 +63,14 @@ jobs:
             vulkan:p
             vulkan-headers:p
             
-      - name: Install python protobuf and zip
+      - name: Install aqtinstall, and zip
         run: |
-          pip install protobuf
+          /clangarm64/bin/pipx install aqtinstall
           pacman -S git make unzip --noconfirm
+
+      - name: Install qt
+        run: |
+          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_msvc2022_arm64 -m qtpositioning qtwebchannel qtwebsockets qtserialport
 
       - name: Build libbplacebo
         run: |
@@ -87,18 +95,18 @@ jobs:
       - name: Deploy chiaki-ng
         run: |
           mkdir chiaki-ng-Win
-          cp build/gui/chiaki.exe chiaki-ng-Win
-          export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
+          cp build/gui/chiaki.exe chiaki-ng-Win/
           export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
-          echo build/gui/chiaki.exe > tmp0.txt
+          export PATH="${QT_PATH}/${QT_VERSION}/win64_msvc2022_arm64/bin:${PATH}"
+          echo chiaki-ng-Win/chiaki.exe > tmp0.txt
           while [ -e tmp0.txt ]
           do
             cp tmp0.txt tmp.txt
             rm tmp0.txt
             sort -u tmp.txt -o tmp.txt
-            ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | xargs -d $'\n' sh -c 'for arg do echo "$arg" >> tmp0.txt; echo "Copied $arg"; cp "$arg" chiaki-ng-Win/; done'
+            ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | grep -iv "not" | xargs -d $'\n' sh -c 'for arg do if [ -n "$arg" ] && [ ! -e "chiaki-ng-Win/${arg##*/}" ]; then echo "Copied $arg"; cp "$arg" chiaki-ng-Win/ ; echo "$arg" >> tmp0.txt; fi; done'
           done
-          windeployqt6.exe --no-translations --qmldir=$PWD/gui/src/qml --release chiaki-ng-Win/chiaki.exe
+          windeployqt-qt6.exe --no-translations --qmldir=gui/src/qml --release chiaki-ng-Win/chiaki.exe
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2

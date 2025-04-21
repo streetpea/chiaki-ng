@@ -65,15 +65,6 @@ jobs:
           python3 -m pip install --user --upgrade meson
           python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
-      - name: Setup Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.*"
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2022_arm64'
-          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
-
       - name: Setup ffmpeg
         run: |
           $ProgressPreference = 'SilentlyContinue'
@@ -87,6 +78,15 @@ jobs:
           vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
           runVcpkgInstall: true
           vcpkgJsonGlob: "vcpkg.json"
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.*"
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_arm64'
+          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
 
       - name: Build libplacebo
         run: |
@@ -138,8 +138,9 @@ jobs:
           cp build\gui\chiaki.exe chiaki-ng-Win
           cp build\third-party\cpp-steam-tools\cpp-steam-tools.dll chiaki-ng-Win
           cp scripts\qtwebengine_import.qml gui\src\qml\
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libwinpthread-.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\fftw3.dll" chiaki-ng-Win

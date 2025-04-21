@@ -203,8 +203,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_connect(ChiakiStopPipe *stop_pipe
 	if(getpeername(fd, (struct sockaddr *)(&peer), &peerlen) == 0)
 		return CHIAKI_ERR_SUCCESS;
 
+#ifdef _WIN32
+	int err = WSAGetLastError();
+	if(err != WSAENOTCONN)
+		return CHIAKI_ERR_UNKNOWN;
+#else
 	if(errno != ENOTCONN)
 		return CHIAKI_ERR_UNKNOWN;
+#endif
 
 #ifdef _WIN32
 	int sockerr;
