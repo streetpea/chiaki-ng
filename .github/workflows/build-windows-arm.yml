@@ -16,6 +16,7 @@ jobs:
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
       libplacebo_tag: v7.349.0
+      QT_VERSION: "6.8.*"
 
     defaults:
       run:
@@ -26,15 +27,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      - name: Setup Vulkan
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
-          echo Version $ver
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/warm/InstallVulkanARM64-$ver.exe" -OutFile VulkanSDK.exe
-          echo Downloaded
-          .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
 
       - name: Set up Ninja
         run: choco install ninja
@@ -52,6 +44,30 @@ jobs:
         with:
           arch: arm64
 
+      - name: Get my vcpkg-triplets
+        run: |
+          cd ${{ github.workspace }}
+          git clone https://github.com/streetpea/my-vcpkg-triplets.git
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
+          runVcpkgInstall: true
+          vcpkgJsonGlob: "vcpkg.json"
+        env:
+          VCPKG_OVERLAY_TRIPLETS: "${{ github.workspace }}/my-vcpkg-triplets"
+          VCPKG_TARGET_TRIPLET: "arm64-win-llvm-lto"
+
+      - name: Setup Vulkan
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
+          echo Version $ver
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/warm/InstallVulkanARM64-$ver.exe" -OutFile VulkanSDK.exe
+          echo Downloaded
+          .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -64,8 +80,17 @@ jobs:
           python3 -m pip install --upgrade setuptools wheel
           python3 -m pip install --user --upgrade scons protobuf pyinstaller
           python3 -m pip install --user --upgrade meson
+          python3 -m pip install --user git+https://github.com/streetpea/aqtinstall.git@master
           python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
+      - name: Setup Qt
+        run: |
+            python3 -m aqt install-qt windows desktop "${env:QT_VERSION}" win64_msvc2022_arm64_cross_compiled --autodesktop --outputdir "${{ github.workspace }}\Qt" -m qtpositioning qtwebchannel qtwebsockets qtserialport
+            echo "${{ github.workspace }}\Qt\${env:QT_VERSION}\win64_msvc2022_arm64_cross_compiled\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            echo "QT_ROOT_DIR=${{ github.workspace }}\Qt\${env:QT_VERSION}\win64_msvc2022_arm64_cross_compiled\" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "QT_PLUGIN_PATH=${{ github.workspace }}\Qt\${env:QT_VERSION}\win64_msvc2022_arm64_cross_compiled\plugins" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "QML2_IMPORT_PATH=${{ github.workspace }}\Qt\${env:QT_VERSION}\win64_msvc2022_arm64_cross_compiled\qml" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+  
       - name: Setup ffmpeg
         run: |
           $ProgressPreference = 'SilentlyContinue'
@@ -73,21 +98,28 @@ jobs:
           Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip" -DestinationPath "."
           Rename-Item "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip" "${{ env.dep_folder }}"
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
-          runVcpkgInstall: true
-          vcpkgJsonGlob: "vcpkg.json"
+      - name: Build SPIRV-Cross
+        run: |
+          git clone https://github.com/KhronosGroup/SPIRV-Cross.git
+          cd SPIRV-Cross
+          cmake `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\${{ env.dep_folder }}" `
+          -DSPIRV_CROSS_SHARED=ON `
+          -S . `
+          -B build `
+          -G Ninja
+          cmake --build build --config Release
+          cmake --install build
 
-      - name: Setup Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.*"
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2022_arm64'
-          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
+      - name: Setup shaderc
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $url = ((Invoke-WebRequest -UseBasicParsing -Uri "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2019_release.html").Content | Select-String -Pattern 'url=(.*)"').Matches.Groups[1].Value
+          Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile .\shaderc.zip
+          Expand-Archive -LiteralPath "shaderc.zip" -DestinationPath "."
+          cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
+          rm "./install" -r -force
 
       - name: Build libplacebo
         run: |
@@ -138,9 +170,7 @@ jobs:
           mkdir chiaki-ng-Win
           cp build\gui\chiaki.exe chiaki-ng-Win
           cp build\third-party\cpp-steam-tools\cpp-steam-tools.dll chiaki-ng-Win
-          cp scripts\qtwebengine_import.qml gui\src\qml\
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libwinpthread-.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-Win
@@ -150,12 +180,12 @@ jobs:
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\shaderc*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 

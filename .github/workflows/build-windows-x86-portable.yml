@@ -58,7 +58,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade setuptools wheel
-          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          python3 -m pip install --user --upgrade scons protobuf pyinstaller
           python3 -m pip install --user --upgrade meson
           python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 

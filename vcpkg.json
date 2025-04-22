@@ -3,7 +3,6 @@
   "version": "1.7.4",
   "dependencies": [
     "pkgconf",
-    "shaderc",
     "sdl2",
     "protobuf",
     "openssl",
@@ -14,7 +13,6 @@
     "fftw3",
     "lcms",
     "speexdsp",
-    "pthreads",
     "vulkan"
   ]
 }
