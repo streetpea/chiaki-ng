@@ -1,6 +1,6 @@
 {
   "name": "chiaki-ng",
-  "version": "1.7.4",
+  "version": "1.9.6",
   "dependencies": [
     "pkgconf",
     "sdl2",

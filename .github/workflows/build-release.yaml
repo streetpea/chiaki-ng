@@ -29,193 +29,124 @@ jobs:
     outputs:
       upload_url: ${{ steps.maker.outputs.upload_url }}
 
-  build-win_x64:
-    name: Build chiaki-ng win_x64 (VC)
+  build-windows_x64-msys2:
+    name: Build windows msys2 version
     runs-on: windows-latest
     permissions:
       contents: write
     needs: create-release
-    env:
-      CC: clang-cl.exe
-      CXX: clang-cl.exe
-      VULKAN_SDK: C:\VulkanSDK\
-      triplet: x64-windows
-      vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
-      VCPKG_INSTALLED_DIR: ./vcpkg_installed/
-      dep_folder: deps
-      libplacebo_tag: v7.349.0
-
     defaults:
       run:
-        shell: powershell
-
+        shell: msys2 {0}
     steps:
+      - name: Disable autocrlf
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-
-      - name: Setup Vulkan
+          submodules: recursive
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: git
+          pacboy: >-
+            ca-certificates:p
+            cc:p
+            cmake:p
+            curl:p
+            diffutils:p
+            fast_float:p
+            fftw:p
+            hidapi:p
+            json-c:p
+            lcms2:p
+            libdovi:p
+            meson:p
+            miniupnpc:p
+            nasm:p
+            ninja:p
+            openssl:p
+            opus:p
+            pkgconf:p
+            protobuf:p
+            python:p
+            python-psutil:p
+            python-glad:p
+            python-jinja:p
+            python-pip:p
+            SDL2:p
+            shaderc:p
+            speexdsp:p
+            spirv-cross:p
+            vulkan:p
+            vulkan-headers:p
+            
+      - name: Install python protobuf, aqtinstall, and zip
         run: |
-          $ProgressPreference = 'SilentlyContinue'
-          $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
-          echo Version $ver
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
-          echo Downloaded
-          .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
+          pip install protobuf aqtinstall
+          pacman -S git make unzip zip --noconfirm
 
-      - name: Set up Ninja
-        run: choco install ninja
-
-      - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: 18
-
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          architecture: "x64"
-
-      - name: Install pip dependencies
+      - name: Install qt
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade setuptools wheel
-          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
-          python3 -m pip install --user --upgrade meson
-          python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
+          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
 
-      - name: Setup Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.*"
-          host: 'windows'
-          target: 'desktop'
-          modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
+      - name: Build libbplacebo
+        run: |
+          scripts/build-libplacebo-windows.sh
 
       - name: Setup ffmpeg
         run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
-          Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -DestinationPath "."
-          Rename-Item "ffmpeg-n7.1-latest-win64-gpl-shared-7.1" "${{ env.dep_folder }}"
-
-      - name: Build SPIRV-Cross
-        run: |
-          git clone https://github.com/KhronosGroup/SPIRV-Cross.git
-          cd SPIRV-Cross
-          cmake `
-          -DCMAKE_BUILD_TYPE=Release `
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\${{ env.dep_folder }}" `
-          -DSPIRV_CROSS_SHARED=ON `
-          -S . `
-          -B build `
-          -G Ninja
-          cmake --build build --config Release
-          cmake --install build
-
-      - name: Setup shaderc
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          $url = ((Invoke-WebRequest -UseBasicParsing -Uri "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2019_release.html").Content | Select-String -Pattern 'url=(.*)"').Matches.Groups[1].Value
-          Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile .\shaderc.zip
-          Expand-Archive -LiteralPath "shaderc.zip" -DestinationPath "."
-          cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
-          rm "./install" -r -force
-
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
-          runVcpkgInstall: true
-          vcpkgJsonGlob: "vcpkg.json"
-
-      - name: Build libplacebo
-        run: |
-          git clone --recursive https://github.com/haasn/libplacebo.git
-          cd libplacebo
-          git checkout --recurse-submodules ${{ env.libplacebo_tag }}
-          git apply --ignore-whitespace --verbose ../scripts/flatpak/0002-Vulkan-use-16bit-for-p010.patch
-          meson setup `
-          --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
-          --native-file ../meson.ini `
-          "--pkg-config-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\lib\pkgconfig','${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\share\pkgconfig','${{ github.workspace }}\${{ env.dep_folder }}\lib\pkgconfig']" `
-          "--cmake-prefix-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}', '${{ env.VULKAN_SDK }}', '${{ github.workspace }}\${{ env.dep_folder }}']" `
-          -Dc_args="/I ${{ env.VULKAN_SDK }}Include" `
-          -Dcpp_args="/I ${{ env.VULKAN_SDK }}Include" `
-          -Dc_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
-          -Dcpp_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
-          -Ddemos=false `
-          ./build
-          ninja -C./build
-          ninja -C./build install
-
-      - name: Apply Patches
-        run: |
-          git apply --ignore-whitespace --verbose --directory=third-party/gf-complete/ scripts/windows-vc/gf-complete.patch
-          git apply --ignore-whitespace --verbose scripts/windows-vc/libplacebo-pc.patch
+          curl -LO https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip
+          unzip ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip
+          cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/bin/." /mingw64/bin
+          cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/include/." /mingw64/include
+          cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/lib/." /mingw64/lib
 
       - name: Configure chiaki-ng
         run: |
-          cmake `
-          -S . `
-          -B build `
-          -G Ninja `
-          -DCMAKE_TOOLCHAIN_FILE:STRING="vcpkg/scripts/buildsystems/vcpkg.cmake" `
-          -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE `
-          -DCMAKE_BUILD_TYPE=Release `
-          -DCHIAKI_ENABLE_CLI=OFF `
-          -DCHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER=ON `
-          -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF `
-          -DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF `
-          -DPYTHON_EXECUTABLE="${{ env.pythonLocation }}\python.exe" `
-          -DCMAKE_PREFIX_PATH="${{ github.workspace }}\${{ env.dep_folder }};${{ env.VULKAN_SDK }}"
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_PATH}/${QT_VERSION}/mingw_64"
 
       - name: Build chiaki-ng
         run: |
           cmake --build build --config Release --clean-first --target chiaki
-
-      - name: Prepare Qt deployment package
+          
+      - name: Deploy chiaki-ng
         run: |
           mkdir chiaki-ng-Win
-          cp build\gui\chiaki.exe chiaki-ng-Win
-          cp scripts\qtwebengine_import.qml gui\src\qml\
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\fftw3.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\opus.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\libspeexdsp.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\lcms2.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\miniupnpc.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\bin\json-c.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\swresample-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avcodec-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avutil-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\avformat-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
-          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
-          windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
+          cp build/gui/chiaki.exe chiaki-ng-Win
+          export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
+          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
+          echo chiaki-ng-Win/chiaki.exe > tmp0.txt
+          while [ -e tmp0.txt ]
+          do
+            cp tmp0.txt tmp.txt
+            rm tmp0.txt
+            sort -u tmp.txt -o tmp.txt
+            ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | grep -iv "not" | xargs -d $'\n' sh -c 'for arg do if [ -n "$arg" ] && [ ! -e "chiaki-ng-Win/${arg##*/}" ]; then echo "Copied $arg"; cp "$arg" chiaki-ng-Win/ ; echo "$arg" >> tmp0.txt; fi; done'
+          done
+          windeployqt6.exe --no-translations --qmldir=gui/src/qml --release chiaki-ng-Win/chiaki.exe
 
       - name: Package chiaki-ng
         run: |
-          $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
-          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
-          Compress-Archive chiaki-ng-Win $RELEASE_PACKAGE_FILE
-          $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
-          echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          CHIAKI_VERSION_MAJOR="$(grep 'CHIAKI_VERSION_MAJOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_MINOR="$(grep 'CHIAKI_VERSION_MINOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_PATCH="$(grep 'CHIAKI_VERSION_PATCH' CMakeLists.txt | grep -Eo '[0-9]')"
+          RELEASE_PACKAGE_FILE="chiaki-ng-win_x64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
+          zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
+          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
+
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: "scripts/chiaki-ng.iss"
+          options: /O+
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          name: chiaki-ng-win_x64-VC-Release
           path: ${{ env.RELEASE_PACKAGE_PATH }}
           upload-release-files: true
           if-no-files-found: error
@@ -229,12 +160,154 @@ jobs:
 
       - name: Rename installer
         run: |
-          cp chiaki-ng-windows-installer.exe chiaki-ng-win_x64-VC-installer.exe
+          cp chiaki-ng-windows-installer.exe chiaki-ng-win_x64-MSYS2-installer.exe
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
-          path: chiaki-ng-win_x64-VC-installer.exe
+          path: chiaki-ng-win_x64-MSYS2-installer.exe
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
+  build-windows_arm64-msys2:
+    name: Build windows msys2 arm version
+    runs-on: windows-11-arm
+    permissions:
+      contents: write
+    needs: create-release
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Disable autocrlf
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: clangarm64
+          update: true
+          install: git
+          pacboy: >-
+            ca-certificates:p
+            cc:p
+            cmake:p
+            curl:p
+            diffutils:p
+            fast_float:p
+            fftw:p
+            hidapi:p
+            json-c:p
+            lcms2:p
+            libdovi:p
+            meson:p
+            miniupnpc:p
+            gcc:p
+            nasm:p
+            ninja:p
+            openssl:p
+            opus:p
+            pkgconf:p
+            protobuf:p
+            python:p
+            python-psutil:p
+            python-glad:p
+            python-jinja:p
+            python-pip:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
+            SDL2:p
+            shaderc:p
+            speexdsp:p
+            spirv-cross:p
+            vulkan:p
+            vulkan-headers:p
+            
+      - name: Install python protobuf and zip
+        run: |
+          pip install protobuf
+          pacman -S git make unzip zip --noconfirm
+
+      - name: Build libbplacebo
+        run: |
+          scripts/build-libplacebo-windows-arm.sh
+
+      - name: Setup ffmpeg
+        run: |
+          curl -LO https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip
+          unzip ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1.zip
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/bin/." /clangarm64/bin
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/include/." /clangarm64/include
+          cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/lib/." /clangarm64/lib
+
+      - name: Configure chiaki-ng
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
+
+      - name: Build chiaki-ng
+        run: |
+          cmake --build build --config Release --clean-first --target chiaki
+          
+      - name: Deploy chiaki-ng
+        run: |
+          mkdir chiaki-ng-Win
+          cp build/gui/chiaki.exe chiaki-ng-Win/
+          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:/clangarm64/share/qt6/bin/:${PATH}"
+          export QT_PLUGIN_PATH="/clangarm64/share/qt6/plugins"
+          export QML2_IMPORT_PATH="/clangarm64/share/qt6/qml"
+          echo chiaki-ng-Win/chiaki.exe > tmp0.txt
+          while [ -e tmp0.txt ]
+          do
+            cp tmp0.txt tmp.txt
+            rm tmp0.txt
+            sort -u tmp.txt -o tmp.txt
+            ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | grep -iv "not" | xargs -d $'\n' sh -c 'for arg do if [ -n "$arg" ] && [ ! -e "chiaki-ng-Win/${arg##*/}" ]; then echo "Copied $arg"; cp "$arg" chiaki-ng-Win/ ; echo "$arg" >> tmp0.txt; fi; done'
+          done
+          windeployqt6.exe --no-translations --qmldir=gui/src/qml chiaki-ng-Win/chiaki.exe
+
+      - name: Package chiaki-ng
+        run: |
+          CHIAKI_VERSION_MAJOR="$(grep 'CHIAKI_VERSION_MAJOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_MINOR="$(grep 'CHIAKI_VERSION_MINOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_PATCH="$(grep 'CHIAKI_VERSION_PATCH' CMakeLists.txt | grep -Eo '[0-9]')"
+          RELEASE_PACKAGE_FILE="chiaki-ng-win_arm64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
+          zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
+          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_EN
+
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: "scripts/chiaki-ng.iss"
+          options: /O+
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          upload-release-files: true
+          if-no-files-found: error
+          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
+      - name: Compile .ISS to .EXE Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: "scripts/chiaki-ng.iss"
+          options: /O+
+
+      - name: Rename installer
+        run: |
+          cp chiaki-ng-windows-installer.exe chiaki-ng-win_arm64-MSYS2-installer.exe
+
+      - name: Upload chiaki-ng Artifact
+        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
+        with:
+          path: chiaki-ng-win_arm64-MSYS2-installer.exe
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}

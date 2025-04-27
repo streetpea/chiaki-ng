@@ -45,22 +45,12 @@ jobs:
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: arm64
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           architecture: "x64"
-
-      - name: Install pip dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade setuptools wheel
-          python3 -m pip install --user --upgrade scons protobuf pyinstaller
-          python3 -m pip install --user --upgrade meson
-          python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
       - name: Setup Qt
         uses: jurplel/install-qt-action@v4
@@ -69,6 +59,14 @@ jobs:
           host: 'windows'
           target: 'desktop'
           modules: 'qtwebengine qtpositioning qtwebchannel qtwebsockets qtserialport'
+
+      - name: Install pip dependencies
+        run: |
+          ${{ env.pythonLocation }}\python.exe -m pip install --upgrade pip
+          ${{ env.pythonLocation }}\python.exe -m pip install --upgrade setuptools wheel
+          ${{ env.pythonLocation }}\python.exe -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          ${{ env.pythonLocation }}\python.exe -m pip install --user --upgrade meson
+          ${{ env.pythonLocation }}\python.exe -c 'import google.protobuf; print(google.protobuf.__file__)'
 
       - name: Setup ffmpeg
         run: |

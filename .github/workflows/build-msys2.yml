@@ -62,7 +62,7 @@ jobs:
       - name: Install python protobuf, aqtinstall, and zip
         run: |
           pip install protobuf aqtinstall
-          pacman -S git make unzip --noconfirm
+          pacman -S git make unzip zip --noconfirm
 
       - name: Install qt
         run: |
@@ -104,6 +104,23 @@ jobs:
           done
           windeployqt6.exe --no-translations --qmldir=gui/src/qml --release chiaki-ng-Win/chiaki.exe
 
+      - name: Package chiaki-ng
+        run: |
+          CHIAKI_VERSION_MAJOR="$(grep 'CHIAKI_VERSION_MAJOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_MINOR="$(grep 'CHIAKI_VERSION_MINOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_PATCH="$(grep 'CHIAKI_VERSION_PATCH' CMakeLists.txt | grep -Eo '[0-9]')"
+          RELEASE_PACKAGE_FILE="chiaki-ng-win_x64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-test-build-${{ github.sha }}.zip"
+          zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
+          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-win_x64-MSYS2-Release-portable.zip
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
@@ -113,7 +130,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_x64-MSYS2-Release.zip
+          name: chiaki-ng-win_x64-MSYS2-Release-installer.exe
           path: chiaki-ng-windows-installer.exe
           if-no-files-found: error
           retention-days: 7

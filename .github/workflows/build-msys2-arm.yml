@@ -2,9 +2,6 @@ name: Build chiaki-ng msys2 arm64 Windows
 
 on:
   workflow_dispatch:
-env:
-  QT_PATH: "/opt/qt"
-  QT_VERSION: "6.8.2"
 
 jobs:
   build-windows_arm64-msys2:
@@ -41,8 +38,6 @@ jobs:
             libdovi:p
             meson:p
             miniupnpc:p
-            libwinpthread:p
-            winpthreads:p
             gcc:p
             nasm:p
             ninja:p
@@ -52,10 +47,12 @@ jobs:
             protobuf:p
             python:p
             python-psutil:p
-            python-pipx:p
             python-glad:p
             python-jinja:p
             python-pip:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
             SDL2:p
             shaderc:p
             speexdsp:p
@@ -63,14 +60,10 @@ jobs:
             vulkan:p
             vulkan-headers:p
             
-      - name: Install aqtinstall, and zip
+      - name: Install python protobuf and zip
         run: |
-          /clangarm64/bin/pipx install aqtinstall
-          pacman -S git make unzip --noconfirm
-
-      - name: Install qt
-        run: |
-          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_msvc2022_arm64 -m qtpositioning qtwebchannel qtwebsockets qtserialport
+          pip install protobuf
+          pacman -S git make unzip zip --noconfirm
 
       - name: Build libbplacebo
         run: |
@@ -96,8 +89,9 @@ jobs:
         run: |
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win/
-          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
-          export PATH="${QT_PATH}/${QT_VERSION}/win64_msvc2022_arm64/bin:${PATH}"
+          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:/clangarm64/share/qt6/bin/:${PATH}"
+          export QT_PLUGIN_PATH="/clangarm64/share/qt6/plugins"
+          export QML2_IMPORT_PATH="/clangarm64/share/qt6/qml"
           echo chiaki-ng-Win/chiaki.exe > tmp0.txt
           while [ -e tmp0.txt ]
           do
@@ -106,7 +100,24 @@ jobs:
             sort -u tmp.txt -o tmp.txt
             ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | grep -iv "not" | xargs -d $'\n' sh -c 'for arg do if [ -n "$arg" ] && [ ! -e "chiaki-ng-Win/${arg##*/}" ]; then echo "Copied $arg"; cp "$arg" chiaki-ng-Win/ ; echo "$arg" >> tmp0.txt; fi; done'
           done
-          windeployqt-qt6.exe --no-translations --qmldir=gui/src/qml --release chiaki-ng-Win/chiaki.exe
+          windeployqt6.exe --no-translations --qmldir=gui/src/qml chiaki-ng-Win/chiaki.exe
+
+      - name: Package chiaki-ng
+        run: |
+          CHIAKI_VERSION_MAJOR="$(grep 'CHIAKI_VERSION_MAJOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_MINOR="$(grep 'CHIAKI_VERSION_MINOR' CMakeLists.txt | grep -Eo '[0-9]')"
+          CHIAKI_VERSION_PATCH="$(grep 'CHIAKI_VERSION_PATCH' CMakeLists.txt | grep -Eo '[0-9]')"
+          RELEASE_PACKAGE_FILE="chiaki-ng-win_arm64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-test-build-${{ github.sha }}.zip"
+          zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
+          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-win_arm64-MSYS2-Release-portable.zip
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
@@ -117,7 +128,7 @@ jobs:
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-ng-win_arm64-MSYS2-Release.zip
+          name: chiaki-ng-win_arm64-MSYS2-Release-installer.exe
           path: chiaki-ng-windows-installer.exe
           if-no-files-found: error
           retention-days: 7
