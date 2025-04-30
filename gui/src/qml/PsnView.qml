@@ -163,6 +163,7 @@ Rectangle {
 
         TextField {
             id: pinField
+            echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
             implicitWidth: 200
             validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
             Keys.onReturnPressed: {

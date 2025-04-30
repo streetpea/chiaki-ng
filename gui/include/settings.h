@@ -248,6 +248,9 @@ class Settings : public QObject
 		bool GetShowStreamStats() const            { return settings.value("settings/show_stream_stats", false).toBool(); }
 		void SetShowStreamStats(bool enabled)      { settings.setValue("settings/show_stream_stats", enabled); }
 
+		bool GetStreamerMode() const		{ return settings.value("settings/streamer_mode", false).toBool(); }
+		void SetStreamerMode(bool enabled)	{ settings.setValue("settings/streamer_mode", enabled); }
+
 		bool GetButtonsByPosition() const 		{ return settings.value("settings/buttons_by_pos", false).toBool(); }
 		void SetButtonsByPosition(bool enabled) { settings.setValue("settings/buttons_by_pos", enabled); }
 

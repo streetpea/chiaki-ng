@@ -34,6 +34,7 @@ DialogView {
                         TextField {
                             id: pin
                             validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
+                            echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                             Layout.preferredWidth: 400
                         }
         }

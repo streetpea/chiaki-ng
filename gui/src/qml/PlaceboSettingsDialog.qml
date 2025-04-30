@@ -119,6 +119,7 @@ DialogView {
 
                     TextField {
                         id: openurl
+                        echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                         text: options_url
                         visible: false
                         Layout.preferredWidth: 400

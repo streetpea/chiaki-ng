@@ -34,6 +34,7 @@ DialogView {
 
             C.TextField {
                 id: hostField
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 Layout.preferredWidth: 400
                 firstInFocusChain: true
             }
@@ -61,7 +62,7 @@ DialogView {
                     for (; i < Chiaki.settings.registeredHosts.length; ++i) {
                         let host = Chiaki.settings.registeredHosts[i];
                         m.push({
-                            name: "%1 (%2)".arg(host.mac).arg(host.name),
+                            name: "%1 (%2)".arg(Chiaki.settings.streamerMode ? "hidden" : host.mac).arg(host.name),
                             index: i,
                         });
                     }
