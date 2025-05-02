@@ -728,6 +728,7 @@ void QmlMainWindow::destroySwapchain()
 
     pl_swapchain_destroy(&placebo_swapchain);
     vk_funcs.vkDestroySurfaceKHR(placebo_vk_inst->instance, surface, nullptr);
+    swapchain_size = QSize();
 }
 
 void QmlMainWindow::resizeSwapchain()
