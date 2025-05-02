@@ -70,6 +70,17 @@ void QmlSettings::setShowStreamStats(bool enabled)
     emit showStreamStatsChanged();
 }
 
+bool QmlSettings::streamerMode() const
+{
+    return settings->GetStreamerMode();
+}
+
+void QmlSettings::setStreamerMode(bool enabled)
+{
+    settings->SetStreamerMode(enabled);
+    emit streamerModeChanged();
+}
+
 float QmlSettings::hapticOverride() const
 {
     return settings->GetHapticOverride();
@@ -1637,6 +1648,7 @@ void QmlSettings::refreshAllKeys()
     emit allowJoystickBackgroundEventsChanged();
     emit startMicUnmutedChanged();
     emit showStreamStatsChanged();
+    emit streamerModeChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
     emit verticalDeckChanged();
     emit steamDeckHapticsChanged();

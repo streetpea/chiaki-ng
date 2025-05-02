@@ -314,7 +314,7 @@ DialogView {
                     GridLayout {
                         Layout.alignment: Qt.AlignHCenter
                         columns: 3
-                        rowSpacing: 10
+                        rowSpacing: 5
                         columnSpacing: 20
 
                         Label {
@@ -444,6 +444,20 @@ DialogView {
                         Label {
 
                         }
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Streamer Mode (Hides Sensitive Info)")
+                        }
+                        C.CheckBox {
+                            checked: Chiaki.settings.streamerMode
+                            onToggled: Chiaki.settings.streamerMode = !Chiaki.settings.streamerMode
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Unchecked)")
+                        }
+
                         Label {
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("Stream Menu Shortcut Enabled")
@@ -1601,7 +1615,7 @@ DialogView {
                     clip: true
                     model: Chiaki.settings.registeredHosts
                     delegate: ItemDelegate {
-                        text: "%1 (%2, %3)".arg(modelData.mac).arg(modelData.ps5 ? "PS5" : "PS4").arg(modelData.name)
+                        text: "%1 (%2, %3)".arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.ps5 ? "PS5" : "PS4").arg(modelData.name)
                         height: 80
                         width: parent ? parent.width : 0
                         leftPadding: autoConnectButton.width + 40
@@ -1797,7 +1811,7 @@ DialogView {
                     }
                     model: Chiaki.hiddenHosts
                     delegate: ItemDelegate {
-                        text: "%1 (%2)".arg(modelData.mac).arg(modelData.name)
+                        text: "%1 (%2)".arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.name)
                         height: 80
                         width: parent ? parent.width : 0
 

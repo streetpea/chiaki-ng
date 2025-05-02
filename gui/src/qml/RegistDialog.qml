@@ -49,6 +49,7 @@ DialogView {
 
             C.TextField {
                 id: hostField
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 Layout.preferredWidth: 400
                 firstInFocusChain: true
             }
@@ -61,6 +62,7 @@ DialogView {
 
             C.TextField {
                 id: onlineId
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 visible: ps4_7.checked
                 placeholderText: qsTr("username, case-sensitive")
                 Layout.preferredWidth: 400
@@ -75,6 +77,7 @@ DialogView {
             C.TextField {
                 id: accountId
                 visible: !ps4_7.checked
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 placeholderText: qsTr("base64")
                 Layout.preferredWidth: 400 - loginButton.width - 10
                 KeyNavigation.priority: {
@@ -136,6 +139,7 @@ DialogView {
                 id: pin
                 validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
                 Layout.preferredWidth: 400
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 KeyNavigation.priority: {
                     if(readOnly)
                         KeyNavigation.BeforeItem
@@ -152,6 +156,7 @@ DialogView {
 
             C.TextField {
                 id: cpin
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 validator: RegularExpressionValidator { regularExpression: /^$|[0-9]{4}/ }
                 Layout.preferredWidth: 400
             }

@@ -618,8 +618,8 @@ Item {
                 if (!Chiaki.session)
                     return "";
                 if (Chiaki.session.connected)
-                    return qsTr("Connected to <b>%1</b>").arg(Chiaki.session.host);
-                return qsTr("Connecting to <b>%1</b>").arg(Chiaki.session.host);
+                    return qsTr("Connected to <b>%1</b>").arg(Chiaki.settings.streamerMode ? "hidden" : Chiaki.session.host);
+                return qsTr("Connecting to <b>%1</b>").arg(Chiaki.settings.streamerMode ? "hidden" : Chiaki.session.host);
             }
 
             RowLayout {
@@ -775,6 +775,7 @@ Item {
 
         TextField {
             id: pinField
+            echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
             implicitWidth: 200
             validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
             Keys.onReturnPressed: {
