@@ -34,6 +34,9 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      QT_PATH: "/opt/qt"
+      QT_VERSION: '6.8.*'
     needs: create-release
     defaults:
       run:
@@ -278,7 +281,7 @@ jobs:
           CHIAKI_VERSION_PATCH="$(grep 'CHIAKI_VERSION_PATCH' CMakeLists.txt | grep -Eo '[0-9]')"
           RELEASE_PACKAGE_FILE="chiaki-ng-win_arm64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH.zip"
           zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
-          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_EN
+          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2

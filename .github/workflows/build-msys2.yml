@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 env:
   QT_PATH: "/opt/qt"
-  QT_VERSION: "6.8.2"
+  QT_VERSION: '6.8.*'
 
 jobs:
   build-windows_x64-msys2:

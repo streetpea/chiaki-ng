@@ -1,0 +1,54 @@
+name: Build Flatpak Package chiaki-ng x64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          git \
+          flatpak \
+          flatpak-builder
+
+      - name: Setup Flatpak Builder Environment
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install org.kde.Sdk//6.8 -y
+          flatpak install org.kde.Platform//6.8 -y
+          flatpak update --appstream --assumeyes
+
+      - name: Build Flatpak package
+        working-directory: chiaki-ng
+        run: |
+          flatpak-builder --repo=chiaki-ng --force-clean build-dir io.github.streetpea.Chiaki4deck.yaml
+
+      - name: Bundle Flatpak app
+        working-directory: chiaki-ng
+        run: |
+          flatpak build-bundle chiaki-ng chiaki-ng-x64.flatpak io.github.streetpea.Chiaki4deck --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+          flatpak build-bundle chiaki-ng --runtime chiaki-ng-x64-debug.flatpak io.github.streetpea.Chiaki4deck.Debug --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-x64.flatpak
+          path: chiaki-ng/chiaki-ng-x64.flatpak
+          if-no-files-found: error
+          retention-days: 1
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-x64-debug.flatpak
+          path: chiaki-ng/chiaki-ng-x64-debug.flatpak
+          if-no-files-found: error
+          retention-days: 1
