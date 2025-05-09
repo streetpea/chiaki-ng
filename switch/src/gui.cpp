@@ -152,11 +152,11 @@ void HostInterface::Wakeup(brls::View *view)
 		int r = host->Wakeup();
 		if(r == 0)
 		{
-			brls::Application::notify("PlayStation Wakeup packet sent");
+			brls::Application::notify("Wakeup packet sent to PlayStation");
 		}
 		else
 		{
-			brls::Application::notify("PlayStation Wakeup packet failed");
+			brls::Application::notify("Wakeup packet sent, no response from PlayStation");
 		}
 	}
 }
@@ -175,7 +175,7 @@ void HostInterface::Connect(brls::View *view)
 	if(this->host->IsDiscovered() && !this->host->IsReady())
 	{
 		// host in standby mode
-		DIALOG(ptoyp, "Please turn on your PlayStation");
+		DIALOG(ptoyp, "Your PlayStation is off, please turn it on");
 		return;
 	}
 
@@ -252,7 +252,7 @@ void HostInterface::EnterPin(bool isError)
 	brls::Application::unblockInputs();
 	// if this is triggered as a result 
 	if(isError){
-		brls::Application::notify("Wrong pin");
+		brls::Application::notify("Wrong PIN");
 	}
 	
 	brls::Application::pushView(new EnterPinView(this->host, isError));
@@ -293,10 +293,10 @@ bool MainApplication::Load()
 	// 	brls::Logger::error("Failed to initiate Video");
 	// }
 
-	brls::Logger::info("Load sdl/hid controller");
+	brls::Logger::info("Load SDL/HiD controller");
 	if(!io->InitController())
 	{
-		brls::Logger::error("Faled to initiate Controller");
+		brls::Logger::error("Failed to initiate Controller");
 	}
 
 	// Create a view
@@ -339,7 +339,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 {
 	std::string psn_account_id_string = this->settings->GetPSNAccountID(host);
 	brls::InputListItem *psn_account_id = new brls::InputListItem("PSN Account ID", psn_account_id_string,
-		"Account ID in base64 format", "PS5 or PS4 v7.0 and greater", CHIAKI_PSN_ACCOUNT_ID_SIZE * 2,
+		"Account ID in base64 format", "PS5 or PS4 System Software version 7.00 and greater", CHIAKI_PSN_ACCOUNT_ID_SIZE * 2,
 		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
 			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
 			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
@@ -355,8 +355,8 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	ls->addView(psn_account_id);
 
 	
-	brls::InputListItem *lookup_account_id = new brls::InputListItem("Lookup PSN ID from public account",
-		"", "PSN Account name", "Privacy must be set to public for this to work!", 16,
+	brls::InputListItem *lookup_account_id = new brls::InputListItem("Lookup Account ID by username",
+		"", "PSN Account name", "Only works if the PSN account's privacy settings are set to public!", 16,
 		brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_SPACE |
 			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_AT |
 			brls::KeyboardKeyDisableBitmask::KEYBOARD_DISABLE_PERCENT |
@@ -463,7 +463,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	}
 
 	brls::SelectListItem *fps = new brls::SelectListItem(
-		"FPS", { "60", "30" }, value);
+		"FPS", { "60fps", "30fps" }, value);
 
 	auto fps_cb = [this, host](int result) {
 		ChiakiVideoFPSPreset value = CHIAKI_VIDEO_FPS_PRESET_60;
@@ -486,7 +486,7 @@ bool MainApplication::BuildConfigurationMenu(brls::List *ls, Host *host)
 	value = this->settings->GetHaptic(host);
 
 	brls::SelectListItem *haptic = new brls::SelectListItem(
-		"Haptic", { "Disabled", "Weak", "Strong" }, value);
+		"Haptics", { "Disabled", "Weak", "Strong" }, value);
 
 	auto haptic_cb = [this, host](int result) {
 		HapticPreset value = HAPTIC_PRESET_DIABLED;
@@ -578,8 +578,8 @@ void MainApplication::BuildAddHostConfigurationMenu(brls::List *add_host)
 	// brls::ListItem* port = new brls::ListItem("Remote session port",  "tcp/udp 9295");
 	// brls::ListItem* port = new brls::ListItem("Remote stream port",  "udp 9296");
 	// brls::ListItem* port = new brls::ListItem("Remote Senkusha port",  "udp 9297");
-	brls::SelectListItem *ps_version = new brls::SelectListItem("PlayStation Version",
-		{ "PS5", "PS4 > 8", "7 < PS4 < 8", "PS4 < 7" });
+	brls::SelectListItem *ps_version = new brls::SelectListItem("Target PlayStation System",
+		{ "PS5", "PS4 System Version > 8.00", "7.00 < PS4 System Version < 8.00", "PS4 System Version < 7.00" }); //This may look like a pointless change but it does actually make things a bit clearer for the user
 	add_host->addView(ps_version);
 
 	brls::ListItem *register_host = new brls::ListItem("Register");
