@@ -306,33 +306,32 @@ bool MainApplication::Load()
 
 	brls::List *config = new brls::List();
 	brls::List *add_host = new brls::List();
-
 	BuildConfigurationMenu(config);
 	BuildAddHostConfigurationMenu(add_host);
-	this->rootFrame->addTab("Configuration", config);
-	this->rootFrame->addTab("Add Host", add_host);
-	// ----------------
-	this->rootFrame->addSeparator();
-
-	// Add the root view to the stack
-	brls::Application::pushView(this->rootFrame);
 
 	std::map<std::string, Host> *hosts = this->settings->GetHostsMap();
-	while(brls::Application::mainLoop())
+	for (auto it = hosts->begin(); it != hosts->end(); ++it)
 	{
-		for(auto it = hosts->begin(); it != hosts->end(); it++)
+		if (this->host_menuitems.find(&it->second) == this->host_menuitems.end() &&
+		    (it->second.HasRPkey() || it->second.IsDiscovered()))
 		{
-			// add host to the gui only if the host is registered or discovered
-			if(this->host_menuitems.find(&it->second) == this->host_menuitems.end() && (it->second.HasRPkey() == true || it->second.IsDiscovered() == true))
-			{
-				HostInterface *new_host = new HostInterface(&it->second);
-				this->host_menuitems[&it->second] = new_host;
-				// create host if udefined
-				BuildConfigurationMenu(new_host, &it->second);
-				this->rootFrame->addTab(it->second.GetHostName().c_str(), new_host);
-			}
+		HostInterface *new_host = new HostInterface(&it->second);
+		this->host_menuitems[&it->second] = new_host;
+		BuildConfigurationMenu(new_host, &it->second);
+		this->rootFrame->addTab(it->second.GetHostName().c_str(), new_host);
 		}
 	}
+
+	// Static tabs under the registered targets
+	this->rootFrame->addSeparator();
+	this->rootFrame->addTab("Configuration", config);
+	this->rootFrame->addTab("Add Manual Host", add_host);
+
+	brls::Application::pushView(this->rootFrame);
+
+	while (brls::Application::mainLoop()) {
+	}
+	
 	return true;
 }
 
