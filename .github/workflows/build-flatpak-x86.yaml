@@ -1,4 +1,4 @@
-name: Build Flatpak Package chiaki-ng x64
+name: Build chiaki-ng flatpak x64
 
 on:
   workflow_dispatch:
@@ -31,7 +31,7 @@ jobs:
       - name: Build Flatpak package
         working-directory: chiaki-ng
         run: |
-          flatpak-builder --repo=chiaki-ng --force-clean build-dir io.github.streetpea.Chiaki4deck.yaml
+          flatpak-builder --repo=chiaki-ng --force-clean build-dir scripts/flatpak/io.github.streetpea.Chiaki4deck.yaml
 
       - name: Bundle Flatpak app
         working-directory: chiaki-ng
