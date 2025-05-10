@@ -110,7 +110,9 @@ jobs:
 
       - name: Configure chiaki-ng
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_PATH}/${QT_VERSION}/mingw_64"
+          export QT_DIR=$(find ${QT_PATH} -maxdepth 1 -type d -name "[0-9]*")
+          echo "${QT_DIR}/mingw_64/bin" >> $GITHUB_PATH
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_DIR}/mingw_64"
 
       - name: Build chiaki-ng
         run: |
@@ -120,7 +122,6 @@ jobs:
         run: |
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
-          export PATH="${QT_PATH}/${QT_VERSION}/mingw_64/bin:${PATH}"
           export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
           echo chiaki-ng-Win/chiaki.exe > tmp0.txt
           while [ -e tmp0.txt ]
