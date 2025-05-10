@@ -36,7 +36,7 @@ cleanup-commands:
 build-options:
   arch:
     aarch64:
-      prepend-pkg-config-path: /app/lib/aarch64-linux-gnu/pkgconfig
+      prepend-pkg-config-path: "/app/lib/pkgconfig:/app/lib64/pkgconfig:/app/lib/aarch64-linux-gnu/pkgconfig:/app/lib64/aarch64-linux-gnu/pkgconfig"
     x86_64:
       prepend-pkg-config-path: "/app/lib/pkgconfig:/app/lib64/pkgconfig:/app/lib/x86_64-linux-gnu/pkgconfig:/app/lib64/x86_64-linux-gnu/pkgconfig"
 

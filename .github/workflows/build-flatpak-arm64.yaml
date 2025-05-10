@@ -6,12 +6,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
+    name: Build chiaki-ng flatpak_arm64
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+          path: 'chiaki-ng'
 
       - name: Install dependencies
         run: |
@@ -26,6 +28,7 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install org.kde.Sdk//6.8 -y
           flatpak install org.kde.Platform//6.8 -y
+          flatpak install io.qt.qtwebengine.BaseApp//6.8 -y
           flatpak update --appstream --assumeyes
 
       - name: Build Flatpak package
