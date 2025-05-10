@@ -25,6 +25,21 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2025-5-10" version="1.9.7">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>add streamer option for people sharing their screen (hiding sensitive info from UI)</li>
+          <li>limit filesystem access for flatpak to least necessary privileges</li>
+          <li>fix potential freeze when switching between workspaces</li>
+          <li>set player index based on data coming from console</li>
+          <li>disable fragmentation after senkusha to opfix potenttimize performance</li>
+          <li>fix issue where console could fail to start a session when waiting for login pin</li>
+          <li>enable psn hosts to appear immediately after registering a console (instead of only after restarting the program after registration)</li>
+          <li>increase max slots as the current slot limit could cause problems at high bitrates</li>
+        </ul>
+      </description>
+    </release>
     <release date="2025-2-25" version="1.9.6">
       <description>
         <p>This release provides the following improvements:</p>

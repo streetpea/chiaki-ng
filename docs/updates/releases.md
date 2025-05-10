@@ -75,6 +75,20 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.7
+
+Small improvements and bug fixes:
+
+- add Windows Arm build
+- add streamer option for people sharing their screen (hiding sensitive info from UI)
+- limit filesystem access for flatpak to least necessary privileges
+- fix potential freeze when switching between workspaces
+- set player index based on data coming from console
+- disable fragmentation after senkusha to optimize performance
+- fix issue where console could fail to start a session when waiting for login pin
+- enable psn hosts to appear immediately after registering a console (instead of only after restarting the program after registration)
+- increase max slots as the current slot limit could cause problems at high bitrates
+
 ### 1.9.6
 
 Quality of life improvements and bug fixes:
