@@ -122,8 +122,8 @@ jobs:
 
       - name: Configure chiaki-ng
         run: |
-          export QT_DIR=$(find ${QT_PATH} -maxdepth 1 -type d -name "[0-9]*")
-          echo "${QT_DIR}/mingw_64/bin" >> $GITHUB_PATH
+          export QT_DIR="$(find ${QT_PATH} -maxdepth 1 -type d -name "${QT_VERSION}")"
+          echo "QT_DIR=${QT_DIR}" >> $GITHUB_ENV
           cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_DIR}/mingw_64"
 
       - name: Build chiaki-ng
@@ -135,6 +135,7 @@ jobs:
           mkdir chiaki-ng-Win
           cp build/gui/chiaki.exe chiaki-ng-Win
           export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
+          export PATH="${QT_DIR}/mingw_64/bin:${PATH}"        
           echo chiaki-ng-Win/chiaki.exe > tmp0.txt
           while [ -e tmp0.txt ]
           do
@@ -153,12 +154,6 @@ jobs:
           RELEASE_PACKAGE_FILE="chiaki-ng-win_x64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-test-build-${{ github.sha }}.zip"
           zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
           echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
-
-      - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
-        with:
-          path: "scripts/chiaki-ng.iss"
-          options: /O+
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
@@ -295,12 +290,6 @@ jobs:
           RELEASE_PACKAGE_FILE="chiaki-ng-win_arm64-MSYS2-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-test-build-${{ github.sha }}.zip"
           zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
           echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
-
-      - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
-        with:
-          path: "scripts/chiaki-ng.iss"
-          options: /O+
 
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
