@@ -34,7 +34,7 @@ jobs:
           $ProgressPreference = 'SilentlyContinue'
           $ver = (Invoke-WebRequest -Uri "https://vulkan.lunarg.com/sdk/latest.json" | ConvertFrom-Json).windows
           echo Version $ver
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/VulkanSDK-$ver-Installer.exe" -OutFile VulkanSDK.exe
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$ver/windows/vulkansdk-windows-X64-$ver.exe" -OutFile VulkanSDK.exe
           echo Downloaded
           .\VulkanSDK.exe --root ${{ env.VULKAN_SDK }}  --accept-licenses --default-answer --confirm-command install
 
@@ -103,7 +103,7 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
-          runVcpkgInstall: false
+          runVcpkgInstall: true
           vcpkgJsonGlob: "vcpkg.json"
 
       - name: Build libplacebo
@@ -129,6 +129,7 @@ jobs:
       - name: Apply Patches
         run: |
           git apply --ignore-whitespace --verbose --directory=third-party/gf-complete/ scripts/windows-vc/gf-complete.patch
+          git apply --ignore-whitespace --verbose scripts/windows-vc/libplacebo-pc.patch
 
       - name: Configure chiaki-ng
         run: |
@@ -173,6 +174,24 @@ jobs:
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
+
+      - name: Package chiaki-ng
+        run: |
+          $CHIAKI_VERSION_MAJOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MAJOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_MINOR = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_MINOR ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $CHIAKI_VERSION_PATCH = (Select-String -Path .\CMakeLists.txt -Pattern 'set\(CHIAKI_VERSION_PATCH ([0-9]+)\)') | %{$_.Matches.Groups[1].value}
+          $RELEASE_PACKAGE_FILE = "chiaki-ng-win_x64-VC-portable-$CHIAKI_VERSION_MAJOR.$CHIAKI_VERSION_MINOR.$CHIAKI_VERSION_PATCH-test-build-${{ github.sha }}.zip"
+          Compress-Archive chiaki-ng-Win $RELEASE_PACKAGE_FILE
+          $release_filepath = Get-ChildItem $RELEASE_PACKAGE_FILE | %{$_[0].FullName}
+          echo "RELEASE_PACKAGE_PATH=$release_filepath" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-win_x64-VC-Release
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Compile .ISS to .EXE Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
