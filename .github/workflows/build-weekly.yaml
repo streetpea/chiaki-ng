@@ -499,7 +499,9 @@ jobs:
   build-flatpak_x64:
     name: Build chiaki-ng flatpak bundle x64
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+    needs: create-release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -554,7 +556,9 @@ jobs:
   build-flatpak_arm64:
     name: Build chiaki-ng flatpak bundle arm64
     runs-on: ubuntu-24.04-arm
-    
+    permissions:
+      contents: write
+    needs: create-release
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

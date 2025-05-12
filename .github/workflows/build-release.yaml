@@ -32,6 +32,9 @@ jobs:
   build-win_x64:
     name: Build chiaki-ng win_x64 (VC)
     runs-on: windows-latest
+    permissions:
+      contents: write
+    needs: create-release
     env:
       CC: clang-cl.exe
       CXX: clang-cl.exe

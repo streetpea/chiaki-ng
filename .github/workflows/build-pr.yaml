@@ -8,6 +8,8 @@ jobs:
   build-windows_x64-msys2:
     name: Build windows msys2 version
     runs-on: windows-latest
+    permissions:
+      contents: write
     env:
       QT_PATH: "/opt/qt"
       QT_VERSION: '6.8.*'
