@@ -753,6 +753,33 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#198" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.9.8
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#197" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.9.7
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#196" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.9.6
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#195" class="md-nav__link">
     <span class="md-ellipsis">
       1.9.5
@@ -1376,6 +1403,33 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#198" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.9.8
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#197" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.9.7
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#196" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.9.6
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#195" class="md-nav__link">
     <span class="md-ellipsis">
       1.9.5
@@ -1853,6 +1907,50 @@
 </div>
 </div>
 <h2 id="releases-newest-first">Releases (Newest First)<a class="headerlink" href="#releases-newest-first" title="Permanent link">&para;</a></h2>
+<h3 id="198">1.9.8<a class="headerlink" href="#198" title="Permanent link">&para;</a></h3>
+<p>(Windows Only) Bug Fix</p>
+<ul>
+<li>fix remote connection over PSN for Windows</li>
+</ul>
+<h3 id="197">1.9.7<a class="headerlink" href="#197" title="Permanent link">&para;</a></h3>
+<p>Small improvements and bug fixes:</p>
+<ul>
+<li>add Windows Arm build</li>
+<li>add streamer option for people sharing their screen (hiding sensitive info from UI)</li>
+<li>limit filesystem access for flatpak to least necessary privileges</li>
+<li>fix potential freeze when switching between workspaces</li>
+<li>set player index based on data coming from console</li>
+<li>disable fragmentation after senkusha to optimize performance</li>
+<li>fix issue where console could fail to start a session when waiting for login pin</li>
+<li>enable psn hosts to appear immediately after registering a console (instead of only after restarting the program after registration)</li>
+<li>increase max slots as the current slot limit could cause problems at high bitrates</li>
+</ul>
+<h3 id="196">1.9.6<a class="headerlink" href="#196" title="Permanent link">&para;</a></h3>
+<p>Quality of life improvements and bug fixes:</p>
+<ul>
+<li>improve controller mapping by adding support for many more controllers and improving support of existing controllers</li>
+<li>greatly improve success rate for generating remote connection via PSN tokens via in-app browser</li>
+<li>fix issue where console that becomes available right after clicking on it is never recognized as available, causing you to have to relaunch to begin a session</li>
+<li>add option to disable audio and/or video</li>
+<li>add ability to disable or alter stream shortcut</li>
+<li>fix issue where remote connection via PSN fails if UPNP gateway is discovered but mapping fails</li>
+<li>prevent Linux guests from sleeping/turning on screensaver if there is active controller movement</li>
+<li>remove dependency on hidapi-hidraw from appimage</li>
+<li>add native wayland support for flatpak and appimage</li>
+<li>fix delay in adaptive triggers when using DualSense in bluetooth mode</li>
+<li>tweak haptic rumble code for higher accuracy</li>
+<li>add option to set stream stats to always on in audio/wifi</li>
+<li>adjust rumble intensity based off of console setting</li>
+<li>fix address not automatically being filled in for regular registration</li>
+<li>improve DualSense controller rumble</li>
+<li>fix issue where DualSense could lose its haptics/rumble after connecting while low on battery</li>
+<li>allow configuring true haptic intensity manually</li>
+<li>small improvements to settings UI</li>
+<li>change audio size buffer to slider in 10ms increments</li>
+<li>change bitrate to slider in 1 Mbps increments</li>
+<li>change bitrate to default for its resolution when changing resolution</li>
+<li>disable Steam on-screen keyboard in desktop mode on Steam Deck as it performs erratically</li>
+</ul>
 <h3 id="195">1.9.5<a class="headerlink" href="#195" title="Permanent link">&para;</a></h3>
 <p>Bug fix release:</p>
 <ul>
@@ -2315,7 +2413,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">January 19, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">May 19, 2025</span>
   </span>
 
     
