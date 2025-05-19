@@ -75,6 +75,12 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.8
+
+(Windows Only) Bug Fix
+
+- fix remote connection over PSN for Windows
+
 ### 1.9.7
 
 Small improvements and bug fixes:
