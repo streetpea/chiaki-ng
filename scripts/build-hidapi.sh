@@ -6,7 +6,7 @@ cd "./$1"
 shift
 ROOT="`pwd`"
 
-TAG="hidapi-0.14.0"
+TAG="hidapi-0.15.0"
 if [ ! -d "hidapi" ]; then
 git clone --recursive https://github.com/libusb/hidapi.git || exit 1
 fi

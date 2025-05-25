@@ -145,7 +145,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libusb/hidapi.git
-        tag: hidapi-0.14.0
+        tag: hidapi-0.15.0
     cleanup:
       - /lib/*.la
       - /lib/pkgconfig
