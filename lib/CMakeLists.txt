@@ -149,15 +149,7 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
 target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
 
-
-if (CHIAKI_ENABLE_SWITCH_CURL)
-	target_link_libraries(chiaki-lib CURL::libcurl)
-elseif (CHIAKI_USE_SYSTEM_CURL)
-	target_link_libraries(chiaki-lib CURL::libcurl_shared)
-else()
-	target_link_libraries(chiaki-lib CURL::libcurl_static)
-endif()
-
+target_link_libraries(chiaki-lib CURL::libcurl)
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)
