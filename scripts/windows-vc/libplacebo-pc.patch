@@ -1,9 +1,0 @@
-diff --git a/deps/lib/pkgconfig/libplacebo.pc b/deps/lib/pkgconfig/libplacebo.pc
-index 561cafc..e77f8f5 100644
---- a/deps/lib/pkgconfig/libplacebo.pc
-+++ b/deps/lib/pkgconfig/libplacebo.pc
-@@ -20,3 +20,3 @@ Version: 7.346.0
- Requires.private: shaderc >= 2019.1, spirv-cross-c-shared >= 0.29.0, vulkan, lcms2 >= 2.9
--Libs: -L${libdir} -lplacebo
-+Libs: -L${libdir} -llibplacebo
- Libs.private: -lshlwapi -lversion

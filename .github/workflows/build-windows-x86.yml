@@ -106,16 +106,22 @@ jobs:
           runVcpkgInstall: true
           vcpkgJsonGlob: "vcpkg.json"
 
+      - name: Copy pkgconf to expected path
+        run: |
+          mkdir -p "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf"
+          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\pkgconf.exe" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\pkgconf.exe"
+
       - name: Build libplacebo
         run: |
+          $env:Path += ";${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf"
           git clone --recursive https://github.com/haasn/libplacebo.git
           cd libplacebo
           git checkout --recurse-submodules ${{ env.libplacebo_tag }}
           meson setup `
           --prefix "${{ github.workspace }}\${{ env.dep_folder }}" `
           --native-file ../meson.ini `
-          "--pkg-config-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\lib\pkgconfig','${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\share\pkgconfig','${{ github.workspace }}\${{ env.dep_folder }}\lib\pkgconfig']" `
-          "--cmake-prefix-path=['${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}', '${{ env.VULKAN_SDK }}', '${{ github.workspace }}\${{ env.dep_folder }}']" `
+          "--pkg-config-path=['${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\lib\pkgconfig','${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\share\pkgconfig','${{ github.workspace }}\${{ env.dep_folder }}\lib\pkgconfig']" `
+          "--cmake-prefix-path=['${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}', '${{ env.VULKAN_SDK }}', '${{ github.workspace }}\${{ env.dep_folder }}']" `
           -Dc_args="/I ${{ env.VULKAN_SDK }}Include" `
           -Dcpp_args="/I ${{ env.VULKAN_SDK }}Include" `
           -Dc_link_args="/LIBPATH:${{ env.VULKAN_SDK }}Lib" `
@@ -128,8 +134,6 @@ jobs:
       - name: Apply Patches
         run: |
           git apply --ignore-whitespace --verbose --directory=third-party/gf-complete/ scripts/windows-vc/gf-complete.patch
-          cat "${{ github.workspace }}/${{ env.dep_folder }}/deps/lib/pkgconfig/libplacebo.pc"
-          git apply --ignore-whitespace --verbose scripts/windows-vc/libplacebo-pc.patch
 
       - name: Configure chiaki-ng
         run: |
