@@ -446,7 +446,7 @@ DialogView {
                         }
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Streamer Mode (Hides Sensitive Info)")
+                            text: qsTr("Streamer Mode (Hides Info)")
                         }
                         C.CheckBox {
                             checked: Chiaki.settings.streamerMode
