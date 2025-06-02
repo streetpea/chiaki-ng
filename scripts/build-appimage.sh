@@ -11,7 +11,10 @@ fi
 
 export QT_DIR="$(find ${QT_PATH} -maxdepth 1 -type d -name "${QT_VERSION}")"
 export PATH="${QT_DIR}/${GCC_STRING}/bin:$PATH"
-
+if [ -f "${HOME}/chiaki-venv/bin/activate" ]
+then
+   source "${HOME}/chiaki-venv/bin/activate"
+fi
 
 # sometimes there are errors in linuxdeploy in docker/podman when the appdir is on a mount
 appdir=${1:-`pwd`/appimage/appdir}
