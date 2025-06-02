@@ -540,15 +540,16 @@ jobs:
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            chiaki-ng-x64.flatpak
+            chiaki-ng/chiaki-ng-x64.flatpak
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            chiaki-ng-x64-debug.flatpak
+            chiaki-ng/chiaki-ng-x64-debug.flatpak
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
@@ -592,26 +593,21 @@ jobs:
         run: |
           flatpak build-bundle chiaki-ng chiaki-ng-arm64.flatpak io.github.streetpea.Chiaki4deck --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
           flatpak build-bundle chiaki-ng --runtime chiaki-ng-arm64-debug.flatpak io.github.streetpea.Chiaki4deck.Debug --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-      - name: Upload chiaki-ng Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chiaki-ng-arm64.flatpak
-          path: chiaki-ng/chiaki-ng-arm64.flatpak
-          if-no-files-found: error
-          retention-days: 1
+
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            chiaki-ng-arm64.flatpak
+            chiaki-ng/chiaki-ng-arm64.flatpak
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
+
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:
           path: |
-            chiaki-ng-arm64-debug.flatpak
+            chiaki-ng/chiaki-ng-arm64-debug.flatpak
           upload-release-files: true
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
