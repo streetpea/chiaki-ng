@@ -123,10 +123,10 @@ jobs:
           cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
           rm "./install" -r -force
 
-      - name: Make build directory and add pkconf to path
+      - name: Copy pkgconf to expected path
         run: |
-          mkdir build
-          echo "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          mkdir -p "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf"
+          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\pkgconf.exe" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\pkgconf.exe"
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11

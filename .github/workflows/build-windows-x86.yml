@@ -113,7 +113,6 @@ jobs:
 
       - name: Build libplacebo
         run: |
-          $env:Path += ";${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf"
           git clone --recursive https://github.com/haasn/libplacebo.git
           cd libplacebo
           git checkout --recurse-submodules ${{ env.libplacebo_tag }}
