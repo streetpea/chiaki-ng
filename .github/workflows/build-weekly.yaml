@@ -41,6 +41,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.maker.outputs.upload_url }}
 
+  build-win_x64:
     name: Build chiaki-ng win_x64 (VC)
     runs-on: windows-latest
     permissions:
