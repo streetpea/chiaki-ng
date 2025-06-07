@@ -10,9 +10,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
-    env:
-      QT_PATH: "/opt/qt"
-      QT_VERSION: '6.8.*'
     defaults:
       run:
         shell: msys2 {0}
@@ -44,6 +41,7 @@ jobs:
             libdovi:p
             meson:p
             miniupnpc:p
+            gcc:p
             nasm:p
             ninja:p
             openssl:p
@@ -55,6 +53,9 @@ jobs:
             python-glad:p
             python-jinja:p
             python-pip:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
             SDL2:p
             shaderc:p
             speexdsp:p
@@ -62,14 +63,10 @@ jobs:
             vulkan:p
             vulkan-headers:p
             
-      - name: Install python protobuf, aqtinstall, and zip
+      - name: Install python protobuf and zip
         run: |
-          pip install protobuf aqtinstall
+          pip install protobuf
           pacman -S git make unzip zip --noconfirm
-
-      - name: Install qt
-        run: |
-          aqt install-qt -O "${QT_PATH}" windows desktop "${QT_VERSION}" win64_mingw -m qtpositioning qtwebchannel qtwebsockets qtserialport
 
       - name: Build libbplacebo
         run: |
@@ -85,9 +82,8 @@ jobs:
 
       - name: Configure chiaki-ng
         run: |
-          export QT_DIR="$(find ${QT_PATH} -maxdepth 1 -type d -name "${QT_VERSION}")"
-          echo "QT_DIR=${QT_DIR}" >> $GITHUB_ENV
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCMAKE_PREFIX_PATH="${QT_DIR}/mingw_64"
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
+
       - name: Build chiaki-ng
         run: |
           cmake --build build --config Release --clean-first --target chiaki
@@ -95,9 +91,10 @@ jobs:
       - name: Deploy chiaki-ng
         run: |
           mkdir chiaki-ng-Win
-          cp build/gui/chiaki.exe chiaki-ng-Win
-          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:${PATH}"
-          export PATH="${QT_DIR}/mingw_64/bin:${PATH}"
+          cp build/gui/chiaki.exe chiaki-ng-Win/
+          export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:/mingw64/share/qt6/bin/:${PATH}"
+          export QT_PLUGIN_PATH="/mingw64/share/qt6/plugins"
+          export QML2_IMPORT_PATH="/mingw64/share/qt6/qml"
           echo chiaki-ng-Win/chiaki.exe > tmp0.txt
           while [ -e tmp0.txt ]
           do
@@ -106,7 +103,7 @@ jobs:
             sort -u tmp.txt -o tmp.txt
             ldd $(<tmp.txt) | grep -v ":" | cut -d " " -f3 | grep -iv "system32" | grep -iv "not" | xargs -d $'\n' sh -c 'for arg do if [ -n "$arg" ] && [ ! -e "chiaki-ng-Win/${arg##*/}" ]; then echo "Copied $arg"; cp "$arg" chiaki-ng-Win/ ; echo "$arg" >> tmp0.txt; fi; done'
           done
-          windeployqt6.exe --no-translations --qmldir=gui/src/qml --release chiaki-ng-Win/chiaki.exe
+          windeployqt6.exe --no-translations --qmldir=gui/src/qml chiaki-ng-Win/chiaki.exe
 
       - name: Package chiaki-ng
         run: |
