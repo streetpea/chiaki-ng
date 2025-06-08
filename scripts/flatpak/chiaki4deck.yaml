@@ -3,6 +3,8 @@ branch: chiaki4deck
 runtime: org.kde.Platform
 runtime-version: '6.8'
 sdk: org.kde.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.bazel
 base: io.qt.qtwebengine.BaseApp
 base-version: '6.8'
 command: chiaki
@@ -43,8 +45,12 @@ modules:
   - name: protobuf-compilers
     sources:
       - type: archive
-        url: https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
-        sha256: 4eab9b524aa5913c6fffb20b2a8abf5ef7f95a80bc0701f3a6dbb4c607f73460
+        url: https://github.com/protocolbuffers/protobuf/releases/download/v31.1/protobuf-31.1.tar.gz
+        sha256: 12bfd76d27b9ac3d65c00966901609e020481b9474ef75c7ff4601ac06fa0b82
+    buildsystem: simple
+    build-commands:
+      - bazel build :protoc :protobuf
+
 
   - name: libplacebo
     buildsystem: meson
@@ -174,22 +180,26 @@ modules:
       url: https://github.com/miniupnp/miniupnp
       tag: miniupnpc_2_3_0
 
-  - name: SDL2
+  - name: SDL3
+    buildsystem: cmake-ninja
     config-opts:
-      - --disable-arts
-      - --disable-esd
-      - --disable-nas
-      - --disable-alsa
-      - --disable-oss
-      - --disable-sndio
-      - --enable-video-wayland
-      - --enable-wayland-shared=no
-      - --enable-video-kmsdrm
-      - --disable-rpath
+      - -DSDL_TESTS=OFF
+      - -DSDL_EXAMPLES=OFF
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.30.8
+        tag: release-3.2.16
+
+  - name: sdl2-compat
+    sources:
+      - type: git
+        url: https://github.com/libsdl-org/sdl2-compat
+        tag: release-2.32.56
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DSDL2COMPAT_TESTS=OFF
+    post-install:
+      - mv /app/lib/pkgconfig/sdl2-compat.pc /app/lib/pkgconfig/sdl2.pc
 
   - name: vulkanso
     buildsystem: simple

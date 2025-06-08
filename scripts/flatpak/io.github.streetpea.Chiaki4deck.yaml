@@ -178,22 +178,26 @@ modules:
       url: https://github.com/miniupnp/miniupnp
       tag: miniupnpc_2_3_0
 
-  - name: SDL2
+  - name: SDL3
+    buildsystem: cmake-ninja
     config-opts:
-      - --disable-arts
-      - --disable-esd
-      - --disable-nas
-      - --disable-alsa
-      - --disable-oss
-      - --disable-sndio
-      - --enable-video-wayland
-      - --enable-wayland-shared=no
-      - --enable-video-kmsdrm
-      - --disable-rpath
+      - -DSDL_TESTS=OFF
+      - -DSDL_EXAMPLES=OFF
     sources:
       - type: git
         url: https://github.com/libsdl-org/SDL.git
-        tag: release-2.30.8
+        tag: release-3.2.16
+
+  - name: sdl2-compat
+    sources:
+      - type: git
+        url: https://github.com/libsdl-org/sdl2-compat
+        tag: release-2.32.56
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DSDL2COMPAT_TESTS=OFF
+    post-install:
+      - mv /app/lib/pkgconfig/sdl2-compat.pc /app/lib/pkgconfig/sdl2.pc
 
   - name: vulkanso
     buildsystem: simple
