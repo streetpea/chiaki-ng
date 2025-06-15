@@ -7,6 +7,9 @@
 #include "psntoken.h"
 #include "systemdinhibit.h"
 #include "chiaki/remote/holepunch.h"
+#ifdef Q_OS_MACOS
+#include "macWakeSleep.h"
+#endif
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 #include "steamtools.h"
 #endif
@@ -217,48 +220,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     });
     psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
-    connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
-        qCInfo(chiakiGui) << "About to sleep";
-        if (session) {
-            if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
-                session->GoToBed();
-            session->Stop();
-            if(!session_info.duid.isEmpty())
-                psnCancel(true);
-            resume_session = true;
-        }
-    });
-    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this]() {
-        qCInfo(chiakiGui) << "Resumed from sleep";
-        if (resume_session) {
-            qCInfo(chiakiGui) << "Resuming session...";
-            resume_session = false;
-            if(session_info.duid.isEmpty())
-            {
-                createSession({
-                    session_info.settings,
-                    session_info.target,
-                    session_info.host,
-                    session_info.nickname,
-                    session_info.regist_key,
-                    session_info.morning,
-                    session_info.initial_login_pin,
-                    session_info.duid,
-                    session_info.auto_regist,
-                    session_info.fullscreen,
-                    session_info.zoom,
-                    session_info.stretch,
-                });
-            }
-            else
-            {
-                emit showPsnView();
-                setConnectState(PsnConnectState::WaitingForInternet);
-                psn_reconnect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
-            }
-        }
-    });
+    connect(sleep_inhibit, &SystemdInhibit::sleep, this, &QmlBackend::goToSleep);
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, &QmlBackend::resumeFromSleep);
     connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
+#ifdef Q_OS_MACOS
+    mac_wake_sleep = new MacWakeSleep(this);
+    connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
+    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
+#endif
     refreshPsnToken();
 }
 
@@ -302,6 +271,50 @@ void QmlBackend::updateAudioVolume()
 {
     if(session)
         session->SetAudioVolume(settings->GetAudioVolume());
+}
+
+void QmlBackend::goToSleep()
+{
+    qCInfo(chiakiGui) << "About to sleep";
+    if (session) {
+        if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
+            session->GoToBed();
+        session->Stop();
+        if(!session_info.duid.isEmpty())
+            psnCancel(true);
+        resume_session = true;
+    }
+}
+void QmlBackend::resumeFromSleep()
+{
+    qCInfo(chiakiGui) << "Resumed from sleep";
+    if (resume_session) {
+        qCInfo(chiakiGui) << "Resuming session...";
+        resume_session = false;
+        if(session_info.duid.isEmpty())
+        {
+            createSession({
+                session_info.settings,
+                session_info.target,
+                session_info.host,
+                session_info.nickname,
+                session_info.regist_key,
+                session_info.morning,
+                session_info.initial_login_pin,
+                session_info.duid,
+                session_info.auto_regist,
+                session_info.fullscreen,
+                session_info.zoom,
+                session_info.stretch,
+            });
+        }
+        else
+        {
+            emit showPsnView();
+            setConnectState(PsnConnectState::WaitingForInternet);
+            psn_reconnect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+        }
+    }
 }
 
 QList<QmlController*> QmlBackend::qmlControllers() const
@@ -397,48 +410,15 @@ void QmlBackend::profileChanged()
     });
     sleep_inhibit->deleteLater();
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
-    connect(sleep_inhibit, &SystemdInhibit::sleep, this, [this]() {
-        qCInfo(chiakiGui) << "About to sleep";
-        if (session) {
-            if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
-                session->GoToBed();
-            session->Stop();
-            if(!session_info.duid.isEmpty())
-                psnCancel(true);
-            resume_session = true;
-        }
-    });
-    connect(sleep_inhibit, &SystemdInhibit::resume, this, [this]() {
-        qCInfo(chiakiGui) << "Resumed from sleep";
-        if (resume_session) {
-            qCInfo(chiakiGui) << "Resuming session...";
-            resume_session = false;
-            if(session_info.duid.isEmpty())
-            {
-                createSession({
-                    session_info.settings,
-                    session_info.target,
-                    session_info.host,
-                    session_info.nickname,
-                    session_info.regist_key,
-                    session_info.morning,
-                    session_info.initial_login_pin,
-                    session_info.duid,
-                    session_info.auto_regist,
-                    session_info.fullscreen,
-                    session_info.zoom,
-                    session_info.stretch,
-                });
-            }
-            else
-            {
-                emit showPsnView();
-                setConnectState(PsnConnectState::WaitingForInternet);
-                psn_reconnect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
-            }
-        }
-    });
+    connect(sleep_inhibit, &SystemdInhibit::sleep, this, &QmlBackend::goToSleep);
+    connect(sleep_inhibit, &SystemdInhibit::resume, this, &QmlBackend::resumeFromSleep);
     connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
+#ifdef Q_OS_MACOS
+    mac_wake_sleep->deleteLater();
+    mac_wake_sleep = new MacWakeSleep(this);
+    connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
+    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
+#endif
     refreshPsnToken();
     emit hostsChanged();
     emit hiddenHostsChanged();

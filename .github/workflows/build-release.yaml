@@ -123,17 +123,17 @@ jobs:
           cp "./install/*" "./${{ env.dep_folder }}" -Force -Recurse
           rm "./install" -r -force
 
-      - name: Copy pkgconf to expected path
-        run: |
-          mkdir -p "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf"
-          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\pkgconf.exe" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\pkgconf.exe"
-
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: ${{ env.vcpkg_baseline }}
           runVcpkgInstall: true
           vcpkgJsonGlob: "vcpkg.json"
+
+      - name: Copy pkgconf to expected path
+        run: |
+          mkdir -p "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf"
+          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\pkgconf.exe" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\pkgconf.exe"
 
       - name: Build libplacebo
         run: |

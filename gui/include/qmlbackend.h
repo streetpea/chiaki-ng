@@ -18,6 +18,9 @@
 #endif
 
 class SystemdInhibit;
+#ifdef Q_OS_MACOS
+    class MacWakeSleep;
+#endif
 
 class QmlRegist : public QObject
 {
@@ -163,6 +166,8 @@ public:
 
     void profileChanged();
 
+    void goToSleep();
+
     bool zeroCopy()        { return !disable_zero_copy; };
     void disableZeroCopy() { disable_zero_copy = true; };
 
@@ -261,6 +266,7 @@ private:
     void updatePsnHosts();
     void updatePsnHostsThread();
     void updateAudioVolume();
+    void resumeFromSleep();
     uint32_t getStreamShortcut() const;
     void updateStreamShortcut();
     QString getExecutable();
@@ -282,6 +288,9 @@ private:
     DisplayServer regist_dialog_server;
     StreamSessionConnectInfo session_info = {};
     SystemdInhibit *sleep_inhibit = {};
+#ifdef Q_OS_MACOS
+    MacWakeSleep *mac_wake_sleep = {};
+#endif
     bool controller_mapping_default_mapping = false;
     bool controller_mapping_altered = false;
     bool updating_psn_hosts = false;
