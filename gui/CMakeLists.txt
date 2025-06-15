@@ -77,6 +77,11 @@ if(APPLE)
 		include/macWakeSleep.h
 		src/macWakeSleep.cpp
 	)
+elseif(WIN32)
+	list(APPEND SOURCE_FILES
+		include/windowsWakeSleep.h
+		src/windowsWakeSleep.cpp
+	)
 endif()
 
 add_executable(chiaki WIN32
