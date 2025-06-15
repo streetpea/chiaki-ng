@@ -1,6 +1,6 @@
 #include "systemdinhibit.h"
 
-#ifdef CHIAKI_HAVE_DBUS
+#if defined(CHIAKI_HAVE_DBUS) && !defined(Q_OS_MACOS)
 #include <fcntl.h>
 #include <unistd.h>
 #include <QDBusMessage>
@@ -17,7 +17,7 @@ SystemdInhibit::SystemdInhibit(const QString &who, const QString &why, const QSt
     , what(what)
     , mode(mode)
 {
-#ifdef CHIAKI_HAVE_DBUS
+#if defined(CHIAKI_HAVE_DBUS) && !defined(Q_OS_MACOS)
     QDBusConnection::systemBus().connect(QStringLiteral("org.freedesktop.login1"),
                                          QStringLiteral("/org/freedesktop/login1"),
                                          QStringLiteral("org.freedesktop.login1.Manager"),
@@ -29,7 +29,7 @@ SystemdInhibit::SystemdInhibit(const QString &who, const QString &why, const QSt
 
 void SystemdInhibit::inhibit()
 {
-#ifdef CHIAKI_HAVE_DBUS
+#if defined(CHIAKI_HAVE_DBUS) && !defined(Q_OS_MACOS)
     QDBusMessage call = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.login1"),
                                                        QStringLiteral("/org/freedesktop/login1"),
                                                        QStringLiteral("org.freedesktop.login1.Manager"),
@@ -55,7 +55,7 @@ void SystemdInhibit::inhibit()
 
 void SystemdInhibit::simulateUserActivity()
 {
-#ifdef CHIAKI_HAVE_DBUS
+#if defined(CHIAKI_HAVE_DBUS) && !defined(Q_OS_MACOS)
     QDBusMessage call = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.ScreenSaver"),
                                                        QStringLiteral("/ScreenSaver"),
                                                        QStringLiteral("org.freedesktop.ScreenSaver"),
@@ -82,7 +82,7 @@ void SystemdInhibit::login1PrepareForSleep(bool start)
 
 void SystemdInhibit::release()
 {
-#ifdef CHIAKI_HAVE_DBUS
+#if defined(CHIAKI_HAVE_DBUS) && !defined(Q_OS_MACOS)
     if (fd >= 0)
         close(fd);
     fd = -1;
