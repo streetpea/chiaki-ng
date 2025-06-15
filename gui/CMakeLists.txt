@@ -74,6 +74,8 @@ if(APPLE)
 	list(APPEND SOURCE_FILES
 		include/macMicPermission.h
 		src/macMicPermission.m
+		include/macWakeSleep.h
+		src/macWakeSleep.cpp
 	)
 endif()
 
@@ -94,7 +96,7 @@ if(CHIAKI_ENABLE_CLI)
 endif()
 
 target_link_libraries(chiaki Qt::Core Qt::Gui Qt::GuiPrivate Qt::Concurrent Qt::Svg Qt::Qml Qt::Quick Qt::Widgets)
-if (${Qt6DBus_FOUND} AND NOT WIN32)
+if (${Qt6DBus_FOUND} AND NOT WIN32 AND NOT APPLE)
 	target_link_libraries(chiaki Qt::DBus)
 	target_compile_definitions(chiaki PRIVATE CHIAKI_HAVE_DBUS)
 endif()
@@ -126,7 +128,7 @@ if(NOT CHIAKI_ENABLE_FFMPEG_DECODER)
 	message(FATAL_ERROR "Chiaki GUI requires CHIAKI_ENABLE_FFMPEG_DECODER=ON")
 endif()
 if(APPLE)
-	target_link_libraries(chiaki "-framework AVFoundation")
+	target_link_libraries(chiaki "-framework AVFoundation" "-framework IOKit")
 endif()
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalyzer")
