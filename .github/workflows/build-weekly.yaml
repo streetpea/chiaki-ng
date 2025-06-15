@@ -145,7 +145,7 @@ jobs:
       - name: Copy pkgconf to expected path
         run: |
           mkdir -p "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf"
-          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\pkgconf.exe" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\pkgconf.exe"
+          cp -r "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\*" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\"
 
       - name: Build libplacebo
         run: |
