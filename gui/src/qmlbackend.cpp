@@ -9,6 +9,8 @@
 #include "chiaki/remote/holepunch.h"
 #ifdef Q_OS_MACOS
 #include "macWakeSleep.h"
+#elif defined(Q_OS_WINDOWS)
+#include "windowsWakeSleep.h"
 #endif
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 #include "steamtools.h"
@@ -227,6 +229,10 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     mac_wake_sleep = new MacWakeSleep(this);
     connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
     connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
+#elif defined(Q_OS_WINDOWS)
+    windows_wake_sleep = new WindowsWakeSleep(this);
+    connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
+    connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
     refreshPsnToken();
 }
@@ -287,6 +293,10 @@ void QmlBackend::goToSleep()
 }
 void QmlBackend::resumeFromSleep()
 {
+#ifdef Q_OS_WINDOWS
+    if(windows_wake_sleep->getWakeState() == WindowsWakeState::AboutToSleep)
+        return;
+#endif
     qCInfo(chiakiGui) << "Resumed from sleep";
     if (resume_session) {
         qCInfo(chiakiGui) << "Resuming session...";
@@ -418,6 +428,11 @@ void QmlBackend::profileChanged()
     mac_wake_sleep = new MacWakeSleep(this);
     connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
     connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
+#elif defined(Q_OS_WINDOWS)
+    windows_wake_sleep->deleteLater();
+    windows_wake_sleep = new WindowsWakeSleep(this);
+    connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
+    connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
     refreshPsnToken();
     emit hostsChanged();
@@ -791,6 +806,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         sleep_inhibit->release();
         setDiscoveryEnabled(true);
+#ifdef Q_OS_WINDOWS
+        if(windows_wake_sleep->getWakeState() == WindowsWakeState::Awake)
+            resumeFromSleep();
+        else
+            windows_wake_sleep->setWakeState(WindowsWakeState::Sleeping);
+#endif
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
