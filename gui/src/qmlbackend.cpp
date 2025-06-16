@@ -295,7 +295,11 @@ void QmlBackend::resumeFromSleep()
 {
 #ifdef Q_OS_WINDOWS
     if(windows_wake_sleep->getWakeState() == WindowsWakeState::AboutToSleep)
+    {
+        windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
         return;
+    }
+    windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
 #endif
     qCInfo(chiakiGui) << "Resumed from sleep";
     if (resume_session) {
@@ -807,8 +811,9 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         sleep_inhibit->release();
         setDiscoveryEnabled(true);
 #ifdef Q_OS_WINDOWS
+        qCInfo(chiakiGui) << "Checking sleep state: ";
         if(windows_wake_sleep->getWakeState() == WindowsWakeState::Awake)
-            resumeFromSleep();
+            QTimer::singleShot(2000, this, &QmlBackend::resumeFromSleep);
         else
             windows_wake_sleep->setWakeState(WindowsWakeState::Sleeping);
 #endif

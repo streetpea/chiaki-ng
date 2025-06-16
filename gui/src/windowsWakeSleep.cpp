@@ -15,28 +15,21 @@ static ULONG MySleepCallBack(PVOID windowsWakeSleep, ULONG messageType, PVOID Se
             /* System is suspending
                 Perform needed actions before system goes to sleep
             */
-            windows_wake_sleep->setWakeState(WindowsWakeState::AboutToSleep);
-            windows_wake_sleep->sleeping();
-
- 
+            windows_wake_sleep->aboutToSleep();
 
         case PBT_APMRESUMESUSPEND:
 
             /* System is resuming from suspend
                 Perform needed action after waking up
             */
-            windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
             windows_wake_sleep->awake();
             break;
-
- 
 
         case PBT_APMRESUMEAUTOMATIC:
 
             /* System is resuming automatically (i.e., scheduled wake-up)
                 Perform needed action after waking up
             */
-            windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
             windows_wake_sleep->awake();
             break; 
 
@@ -106,5 +99,6 @@ void WindowsWakeSleep::awake()
 
 void WindowsWakeSleep::aboutToSleep()
 {
+    setWakeState(WindowsWakeState::AboutToSleep);
     emit sleeping();
 }
