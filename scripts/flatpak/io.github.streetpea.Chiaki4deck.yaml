@@ -77,12 +77,15 @@ modules:
       - --enable-libdrm
       - --enable-avcodec
       - --enable-vulkan
+      - --enable-libv4l2
       - --enable-decoder=h264
       - --enable-decoder=hevc
       - --enable-hwaccel=h264_vaapi
       - --enable-hwaccel=hevc_vaapi
       - --enable-hwaccel=h264_vulkan
       - --enable-hwaccel=hevc_vulkan
+      - --enable-hwaccel=h264_v4l2m2m
+      - --enable-hwaccel=hevc_v4l2m2m
     sources:
       - type: archive
         url: https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz

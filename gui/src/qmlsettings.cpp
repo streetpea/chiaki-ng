@@ -1443,6 +1443,7 @@ QStringList QmlSettings::availableDecoders() const
         "vulkan",
 #if defined(Q_OS_LINUX)
         "vaapi",
+        "v4l2m2m"
 #elif defined(Q_OS_MACOS)
         "videotoolbox",
 #elif defined(Q_OS_WIN)
