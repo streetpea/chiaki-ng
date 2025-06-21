@@ -824,7 +824,7 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 				CHIAKI_LOGE(session->log, "Failed to set session socket to non-blocking: %s", chiaki_error_string(err));
 
 			chiaki_mutex_unlock(&session->state_mutex);
-			err = chiaki_stop_pipe_connect(&session->stop_pipe, session_sock, sa, ai->ai_addrlen);
+			err = chiaki_stop_pipe_connect(&session->stop_pipe, session_sock, sa, ai->ai_addrlen, 5000);
 			chiaki_mutex_lock(&session->state_mutex);
 			if(err == CHIAKI_ERR_CANCELED)
 			{

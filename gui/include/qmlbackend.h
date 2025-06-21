@@ -20,6 +20,8 @@
 class SystemdInhibit;
 #ifdef Q_OS_MACOS
     class MacWakeSleep;
+#elif defined(Q_OS_WINDOWS)
+    class WindowsWakeSleep;
 #endif
 
 class QmlRegist : public QObject
@@ -290,6 +292,8 @@ private:
     SystemdInhibit *sleep_inhibit = {};
 #ifdef Q_OS_MACOS
     MacWakeSleep *mac_wake_sleep = {};
+#elif defined(Q_OS_WINDOWS)
+    WindowsWakeSleep *windows_wake_sleep = {};
 #endif
     bool controller_mapping_default_mapping = false;
     bool controller_mapping_altered = false;
