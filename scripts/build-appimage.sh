@@ -23,6 +23,7 @@ rm -rf appimage && mkdir -p appimage
 
 scripts/fetch-protoc.sh appimage
 export PATH="`pwd`/appimage/protoc/bin:$PATH"
+scripts/build-v4l2.sh appimage
 scripts/build-ffmpeg.sh appimage
 scripts/build-sdl2.sh appimage
 scripts/build-libplacebo.sh appimage
