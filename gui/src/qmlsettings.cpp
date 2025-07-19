@@ -1802,6 +1802,15 @@ void QmlSettings::importSettings()
     refreshAllKeys();
 }
 
+QString QmlSettings::chooseSteamBasePath()
+{
+    QString fileName = QFileDialog::getExistingDirectory(QApplication::focusWidget(), tr("Choose Steam Base Path"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks | QFileDialog::DontUseNativeDialog);
+    printf("Chosen filename: %s", fileName.toUtf8().constData());
+    return fileName;
+}
+
 void QmlSettings::exportPlaceboSettings()
 {
     QString fileName = QFileDialog::getSaveFileName(QApplication::focusWidget(), tr("Export Placebo Renderer Settings To File"),

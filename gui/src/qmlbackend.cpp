@@ -2042,7 +2042,7 @@ QString QmlBackend::getExecutable() {
     return QCoreApplication::applicationFilePath();
 }
 
-void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback)
+void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback, QString steamDir)
 {
     QJSValue cb = callback;
     QString controller_layout_workshop_id = "3049833406";
@@ -2072,7 +2072,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
         if (icb.isCallable())
             icb.call({errorMessage, false, true});
     };
-    SteamTools* steam_tools = new SteamTools(infoLambda, errorLambda);
+    SteamTools* steam_tools = new SteamTools(infoLambda, errorLambda, steamDir);
     bool steamExists = steam_tools->steamExists();
     if(!steamExists)
     {

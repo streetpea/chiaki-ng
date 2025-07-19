@@ -202,7 +202,7 @@ public:
     Q_INVOKABLE void controllerMappingApply();
     Q_INVOKABLE void autoRegister();
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
-    Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback);
+    Q_INVOKABLE void createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback, QString steamDir);
 #endif
 #ifdef CHIAKI_HAVE_WEBENGINE
     Q_INVOKABLE void setWebEngineHints(QQuickWebEngineProfile *profile);
