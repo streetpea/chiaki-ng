@@ -355,6 +355,14 @@ jobs:
           zip -r $RELEASE_PACKAGE_FILE chiaki-ng-Win
           echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
 
+      - name: Download d3d12 files
+        run : |
+          mkdir d3d12SDK
+          cd d3d12SDK
+          curl -Lo d3d12sdk.zip https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.714.0-preview
+          unzip d3d12sdk.zip
+          cp build/native/bin/arm64/*.dll ../chiaki-ng-Win/
+
       - name: Upload chiaki-ng Artifact
         uses: nanoufo/action-upload-artifacts-and-release-assets@v2
         with:

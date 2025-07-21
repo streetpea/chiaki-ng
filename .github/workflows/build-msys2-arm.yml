@@ -102,6 +102,14 @@ jobs:
           done
           windeployqt6.exe --no-translations --qmldir=gui/src/qml chiaki-ng-Win/chiaki.exe
 
+      - name: Download d3d12 files
+        run : |
+          mkdir d3d12SDK
+          cd d3d12SDK
+          curl -Lo d3d12sdk.zip https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.714.0-preview
+          unzip d3d12sdk.zip
+          cp build/native/bin/arm64/*.dll ../chiaki-ng-Win/
+
       - name: Package chiaki-ng
         run: |
           CHIAKI_VERSION_MAJOR="$(grep 'CHIAKI_VERSION_MAJOR' CMakeLists.txt | grep -Eo '[0-9]')"
