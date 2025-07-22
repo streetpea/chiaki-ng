@@ -108,7 +108,8 @@ jobs:
           cd d3d12SDK
           curl -Lo d3d12sdk.zip https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.714.0-preview
           unzip d3d12sdk.zip
-          cp build/native/bin/arm64/*.dll ../chiaki-ng-Win/
+          mkdir ../chiaki-ng-Win/D3D12
+          cp build/native/bin/arm64/*.dll ../chiaki-ng-Win/D3D12/
 
       - name: Package chiaki-ng
         run: |
