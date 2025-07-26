@@ -107,6 +107,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->fullscreen = fullscreen;
 	this->zoom = zoom;
 	this->stretch = stretch;
+	this->keyboard_controller_enabled = settings->GetKeyboardEnabled();
+	this->mouse_touch_enabled = settings->GetMouseTouchEnabled();
 	this->enable_keyboard = false; // TODO: from settings
 	this->enable_dualsense = true;
 	this->rumble_haptics_intensity = settings->GetRumbleHapticsIntensity();
@@ -258,7 +260,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	}
 #endif
 	audio_buffer_size = connect_info.audio_buffer_size;
-
+	mouse_touch_enabled = connect_info.mouse_touch_enabled;
+	keyboard_controller_enabled = connect_info.keyboard_controller_enabled;
 	host = connect_info.host;
 	QByteArray host_str = connect_info.host.toUtf8();
 
@@ -642,6 +645,8 @@ void StreamSession::GoHome()
 
 void StreamSession::HandleMousePressEvent(QMouseEvent *event)
 {
+	if(!mouse_touch_enabled)
+		return;
 	// left button for touchpad gestures, others => touchpad click
 	if (event->button() != Qt::MouseButton::LeftButton)
 		keyboard_state.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
@@ -650,6 +655,8 @@ void StreamSession::HandleMousePressEvent(QMouseEvent *event)
 
 void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 {
+	if(!mouse_touch_enabled)
+		return;
 	// left button => end of touchpad gesture
 	if (event->button() == Qt::LeftButton)
 	{
@@ -665,6 +672,8 @@ void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 
 void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height)
 {
+	if(!mouse_touch_enabled)
+		return;
 	// left button with move => touchpad gesture, otherwise ignore
 	if (event->buttons() == Qt::LeftButton)
 	{
@@ -683,6 +692,8 @@ void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal 
 
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 {
+	if(!keyboard_controller_enabled)
+		return;
 	if(key_map.contains(Qt::Key(event->key())) == false)
 		return;
 
