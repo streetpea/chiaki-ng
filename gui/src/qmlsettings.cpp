@@ -636,6 +636,28 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
     emit psnAccountIdChanged();
 }
 
+bool QmlSettings::mouseTouchEnabled() const
+{
+    return settings->GetMouseTouchEnabled();
+}
+
+void QmlSettings::setMouseTouchEnabled(bool enabled)
+{
+    settings->SetMouseTouchEnabled(enabled);
+    emit mouseTouchEnabledChanged();
+}
+
+bool QmlSettings::keyboardEnabled() const
+{
+    return settings->GetKeyboardEnabled();
+}
+
+void QmlSettings::setKeyboardEnabled(bool enabled)
+{
+    settings->SetKeyboardEnabled(enabled);
+    emit keyboardEnabledChanged();
+}
+
 bool QmlSettings::dpadTouchEnabled() const
 {
     return settings->GetDpadTouchEnabled();
