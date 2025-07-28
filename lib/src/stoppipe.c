@@ -170,7 +170,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 #endif
 }
 
-CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_connect(ChiakiStopPipe *stop_pipe, chiaki_socket_t fd, struct sockaddr *addr, size_t addrlen)
+CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_connect(ChiakiStopPipe *stop_pipe, chiaki_socket_t fd, struct sockaddr *addr, size_t addrlen, uint64_t timeout_ms)
 {
 	int r = connect(fd, addr, (socklen_t)addrlen);
 	if(r >= 0)
@@ -178,7 +178,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_connect(ChiakiStopPipe *stop_pipe
 
 	if(CHIAKI_SOCKET_EINPROGRESS)
 	{
-		ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, fd, true, UINT64_MAX);
+		ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, fd, true, timeout_ms);
 		if(err != CHIAKI_ERR_SUCCESS)
 			return err;
 	}

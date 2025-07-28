@@ -636,6 +636,28 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
     emit psnAccountIdChanged();
 }
 
+bool QmlSettings::mouseTouchEnabled() const
+{
+    return settings->GetMouseTouchEnabled();
+}
+
+void QmlSettings::setMouseTouchEnabled(bool enabled)
+{
+    settings->SetMouseTouchEnabled(enabled);
+    emit mouseTouchEnabledChanged();
+}
+
+bool QmlSettings::keyboardEnabled() const
+{
+    return settings->GetKeyboardEnabled();
+}
+
+void QmlSettings::setKeyboardEnabled(bool enabled)
+{
+    settings->SetKeyboardEnabled(enabled);
+    emit keyboardEnabledChanged();
+}
+
 bool QmlSettings::dpadTouchEnabled() const
 {
     return settings->GetDpadTouchEnabled();
@@ -1800,6 +1822,15 @@ void QmlSettings::importSettings()
         return;
     settings->ImportSettings(std::move(fileName));
     refreshAllKeys();
+}
+
+QString QmlSettings::chooseSteamBasePath()
+{
+    QString fileName = QFileDialog::getExistingDirectory(QApplication::focusWidget(), tr("Choose Steam Base Path"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation),
+                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks | QFileDialog::DontUseNativeDialog);
+    printf("Chosen filename: %s", fileName.toUtf8().constData());
+    return fileName;
 }
 
 void QmlSettings::exportPlaceboSettings()

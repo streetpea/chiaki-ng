@@ -1110,7 +1110,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 			CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
 
 		chiaki_mutex_unlock(&ctrl->notif_mutex);
-		err = chiaki_stop_pipe_connect(&ctrl->notif_pipe, sock, sa, addr->ai_addrlen);
+		err = chiaki_stop_pipe_connect(&ctrl->notif_pipe, sock, sa, addr->ai_addrlen, 5000);
 		chiaki_mutex_lock(&ctrl->notif_mutex);
 		free(sa);
 		if(err != CHIAKI_ERR_SUCCESS)

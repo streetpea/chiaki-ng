@@ -106,11 +106,6 @@ jobs:
           runVcpkgInstall: true
           vcpkgJsonGlob: "vcpkg.json"
 
-      - name: Copy pkgconf to expected path
-        run: |
-          mkdir -p "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf"
-          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\tools\pkgconf\pkgconf.exe" "${{ github.workspace }}\vcpkg_installed\${{ env.triplet }}\tools\pkgconf\pkgconf.exe"
-
       - name: Build libplacebo
         run: |
           git clone --recursive https://github.com/haasn/libplacebo.git

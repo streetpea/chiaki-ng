@@ -9,6 +9,8 @@
 #include "chiaki/remote/holepunch.h"
 #ifdef Q_OS_MACOS
 #include "macWakeSleep.h"
+#elif defined(Q_OS_WINDOWS)
+#include "windowsWakeSleep.h"
 #endif
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 #include "steamtools.h"
@@ -227,6 +229,10 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     mac_wake_sleep = new MacWakeSleep(this);
     connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
     connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
+#elif defined(Q_OS_WINDOWS)
+    windows_wake_sleep = new WindowsWakeSleep(this);
+    connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
+    connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
     refreshPsnToken();
 }
@@ -287,7 +293,14 @@ void QmlBackend::goToSleep()
 }
 void QmlBackend::resumeFromSleep()
 {
-    qCInfo(chiakiGui) << "Resumed from sleep";
+#ifdef Q_OS_WINDOWS
+    if(windows_wake_sleep->getWakeState() == WindowsWakeState::AboutToSleep)
+    {
+        windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
+        return;
+    }
+    windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
+#endif
     if (resume_session) {
         qCInfo(chiakiGui) << "Resuming session...";
         resume_session = false;
@@ -418,6 +431,11 @@ void QmlBackend::profileChanged()
     mac_wake_sleep = new MacWakeSleep(this);
     connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
     connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
+#elif defined(Q_OS_WINDOWS)
+    windows_wake_sleep->deleteLater();
+    windows_wake_sleep = new WindowsWakeSleep(this);
+    connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
+    connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
     refreshPsnToken();
     emit hostsChanged();
@@ -791,6 +809,13 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         sleep_inhibit->release();
         setDiscoveryEnabled(true);
+#ifdef Q_OS_WINDOWS
+        qCInfo(chiakiGui) << "Checking sleep state: ";
+        if(windows_wake_sleep->getWakeState() == WindowsWakeState::Awake)
+            QTimer::singleShot(2000, this, &QmlBackend::resumeFromSleep);
+        else
+            windows_wake_sleep->setWakeState(WindowsWakeState::Sleeping);
+#endif
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
@@ -2017,7 +2042,7 @@ QString QmlBackend::getExecutable() {
     return QCoreApplication::applicationFilePath();
 }
 
-void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback)
+void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions, const QJSValue &callback, QString steamDir)
 {
     QJSValue cb = callback;
     QString controller_layout_workshop_id = "3049833406";
@@ -2047,7 +2072,7 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
         if (icb.isCallable())
             icb.call({errorMessage, false, true});
     };
-    SteamTools* steam_tools = new SteamTools(infoLambda, errorLambda);
+    SteamTools* steam_tools = new SteamTools(infoLambda, errorLambda, steamDir);
     bool steamExists = steam_tools->steamExists();
     if(!steamExists)
     {

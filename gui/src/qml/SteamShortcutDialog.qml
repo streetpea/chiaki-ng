@@ -42,19 +42,21 @@ DialogView {
                 logDialog.standardButtons = Dialog.Close;
                 opening = false;
             }
-        });
+        }, shortcutGrid.steamBasePath);
     }
 
     Item {
         GridLayout {
+            id: shortcutGrid
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
                 topMargin: 20
             }
             columns: 2
-            rowSpacing: 10
+            rowSpacing: 40
             columnSpacing: 20
+            property var steamBasePath: ""
 
             Label {
                 Layout.alignment: Qt.AlignRight
@@ -77,6 +79,29 @@ DialogView {
                 id: options
                 text: Chiaki.settings.currentProfile ? qsTr("--profile=") + Chiaki.settings.currentProfile : ""
                 Layout.preferredWidth: 400
+            }
+
+            Label {
+                Layout.alignment: Qt.AlignRight
+                text: qsTr("Custom Steam Base Path (Optional)")
+            }
+
+            Label {
+                Layout.alignment: Qt.AlignRight
+                Layout.preferredWidth: 400
+                text: shortcutGrid.steamBasePath
+            }
+
+            Label {
+            }
+
+            C.Button {
+                id: choosePathButton
+                text: qsTr("Choose new steam base path")
+                onClicked: {
+                    shortcutGrid.steamBasePath = Chiaki.settings.chooseSteamBasePath();
+                }
+                Material.roundedScale: Material.SmallScale
             }
         }
 

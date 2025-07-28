@@ -390,6 +390,12 @@ class Settings : public QObject
 		QString GetCurrentProfile() const;
 		void SetCurrentProfile(QString profile);
 
+		bool GetKeyboardEnabled() const;
+		void SetKeyboardEnabled(bool enabled);
+
+		bool GetMouseTouchEnabled() const;
+		void SetMouseTouchEnabled(bool enabled);
+
 		bool GetDpadTouchEnabled() const;
 		void SetDpadTouchEnabled(bool enabled);
 
