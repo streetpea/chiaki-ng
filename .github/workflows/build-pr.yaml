@@ -187,6 +187,7 @@ jobs:
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.dmg
+          cp chiaki-ng.dmg chiaki-ng-macos_arm64-Release.dmg
 
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
