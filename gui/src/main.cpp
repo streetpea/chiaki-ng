@@ -10,6 +10,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
 #include <QApplication>
+#include <QNetworkProxyFactory>
 #include <QtTypes>
 
 #ifdef CHIAKI_ENABLE_CLI
@@ -67,6 +68,7 @@ int real_main(int argc, char *argv[])
 	QGuiApplication::setApplicationName("Chiaki");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
 	QGuiApplication::setApplicationDisplayName("chiaki-ng");
+	QNetworkProxyFactory::setUseSystemConfiguration(true);
 #if defined(Q_OS_LINUX)
 	if(qEnvironmentVariableIsSet("FLATPAK_ID"))
 		QGuiApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID"));

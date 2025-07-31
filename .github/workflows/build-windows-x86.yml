@@ -15,6 +15,7 @@ jobs:
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       dep_folder: deps
       libplacebo_tag: v7.349.0
+      sdl2_compat_tag: 2.32.56
 
     defaults:
       run:
@@ -71,6 +72,13 @@ jobs:
           Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -OutFile ".\ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip"
           Expand-Archive -LiteralPath "ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip" -DestinationPath "."
           Rename-Item "ffmpeg-n7.1-latest-win64-gpl-shared-7.1" "${{ env.dep_folder }}"
+
+      - name: Setup sdl2-compat
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -UseBasicParsing -Uri https://github.com/libsdl-org/sdl2-compat/releases/download/release-${{ env.sdl2_compat_tag }}/sdl2-compat-${{ env.sdl2_compat_tag }}-win32-x64.zip -OutFile sdl2-compat-${{ env.sdl2_compat_tag }}-win32-x64.zip
+          Expand-Archive -LiteralPath "sdl2-compat-${{ env.sdl2_compat_tag }}-win32-x64.zip" -DestinationPath ".\sdl2-compat-${{ env.sdl2_compat_tag }}-win32-x64"
+          Get-ChildItem -Path ".\sdl2-compat-${{ env.sdl2_compat_tag }}-win32-x64\*" -Include "*.dll" | Copy-Item -Destination "${{ env.dep_folder }}\bin"
 
       - name: Build SPIRV-Cross
         run: |
@@ -156,7 +164,6 @@ jobs:
           cp scripts\qtwebengine_import.qml gui\src\qml\
           cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\bin\libcrypto-*-x64.dll" chiaki-ng-Win
           cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\bin\libssl-*-x64.dll" chiaki-ng-Win
-          cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\bin\SDL2.dll" chiaki-ng-Win
           cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\bin\hidapi.dll" chiaki-ng-Win
           cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\bin\fftw3.dll" chiaki-ng-Win
           cp "${env:VCPKG_INSTALLED_DIR}\${{ env.triplet }}\bin\opus.dll" chiaki-ng-Win
@@ -171,6 +178,8 @@ jobs:
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\libplacebo-*.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\shaderc_shared.dll" chiaki-ng-Win
           cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\spirv-cross-c-shared.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\SDL2.dll" chiaki-ng-Win
+          cp "${{ github.workspace }}\${{ env.dep_folder }}\bin\SDL3.dll" chiaki-ng-Win
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
       - name: Package chiaki-ng

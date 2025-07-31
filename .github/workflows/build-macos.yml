@@ -43,6 +43,7 @@ jobs:
           then
             ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
           fi
+          cp /usr/local/lib/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL3.dylib
           ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
@@ -94,6 +95,7 @@ jobs:
           then
             ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
           fi
+          cp /usr/local/lib/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL3.dylib
           ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
