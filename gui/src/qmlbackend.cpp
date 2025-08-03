@@ -709,13 +709,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
 #endif
     }
-#if defined(Q_OS_WIN)
-    if(session_info.hw_decoder == "vulkan" && session_info.video_profile.codec == CHIAKI_CODEC_H265_HDR && window->amdCard())
-    {
-        qCInfo(chiakiGui) << "Using amd card with vulkan hw decoding and hdr not supported on Windows, falling back to d3d11va...";
-        session_info.hw_decoder = "d3d11va";
-    }
-#endif
     if (session_info.hw_decoder == "vulkan") {
 #if defined(Q_OS_LINUX)
         if(qEnvironmentVariableIsSet("APPIMAGE") && (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos")))
