@@ -1,0 +1,57 @@
+name: Build chiaki-ng devel flatpak x64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build chiaki-ng devel flatpak_x64
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          path: 'chiaki-ng'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          git \
+          flatpak \
+          flatpak-builder
+
+      - name: Setup Flatpak Builder Environment
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install org.kde.Sdk//6.9 -y
+          flatpak install org.kde.Platform//6.9 -y
+          flatpak install io.qt.qtwebengine.BaseApp//6.9 -y
+          flatpak update --appstream --assumeyes
+
+      - name: Build Flatpak package
+        working-directory: chiaki-ng
+        run: |
+          flatpak-builder --repo=chiaki-ng-devel --force-clean build-dir scripts/flatpak/io.github.streetpea.Chiaki4deck-devel.yaml
+
+      - name: Bundle Flatpak app
+        working-directory: chiaki-ng
+        run: |
+          flatpak build-bundle chiaki-ng-devel chiaki-ng-devel-x64.flatpak io.github.streetpea.Chiaki4deck-devel --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+          flatpak build-bundle chiaki-ng-devel --runtime chiaki-ng-devel-x64-debug.flatpak io.github.streetpea.Chiaki4deck-devel.Debug --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-devel-x64.flatpak
+          path: chiaki-ng/chiaki-ng-devel-x64.flatpak
+          if-no-files-found: error
+          retention-days: 1
+      - name: Upload chiaki-ng Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-ng-devel-x64-debug.flatpak
+          path: chiaki-ng/chiaki-ng-devel-x64-debug.flatpak
+          if-no-files-found: error
+          retention-days: 1
