@@ -25,6 +25,15 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2025-8-10" version="1.9.9">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>allow using custom path for Steam when creating Steam shortcut</li>
+          <li>allow disabling keyboard and mouse touch</li>
+        </ul>
+      </description>
+    </release>
     <release date="2025-5-10" version="1.9.7">
       <description>
         <p>This release provides the following improvements:</p>
