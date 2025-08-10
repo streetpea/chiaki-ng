@@ -16,7 +16,7 @@ jobs:
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
       libplacebo_tag: 1f1ba06aa2a83a2c75ade4150b7c0bba10531088
-      QT_VERSION: "6.8.*"
+      QT_VERSION: "6.9.*"
 
     defaults:
       run:
