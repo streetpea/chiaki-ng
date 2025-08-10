@@ -60,8 +60,6 @@ modules:
         tag: 1f1ba06aa2a83a2c75ade4150b7c0bba10531088
       - type: patch
         path: 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
-      - type: patch
-        path: 0002-Vulkan-use-16bit-for-p010.patch
 
   - name: ffmpeg
     cleanup:
