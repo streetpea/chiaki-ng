@@ -15,7 +15,7 @@
     2. Install the sdk
 
         ```bash
-        flatpak install -y --user org.kde.Sdk//6.8
+        flatpak install -y --user org.kde.Sdk//6.9
         ```
 
     3. Run the devel flatpak

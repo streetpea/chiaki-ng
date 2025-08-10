@@ -1,9 +1,9 @@
 app-id: io.github.streetpea.Chiaki4deck
 runtime: org.kde.Platform
-runtime-version: '6.8'
+runtime-version: '6.9'
 sdk: org.kde.Sdk
 base: io.qt.qtwebengine.BaseApp
-base-version: '6.8'
+base-version: '6.9'
 command: chiaki
 rename-icon: chiaking
 rename-desktop-file: chiaking.desktop
