@@ -40,7 +40,7 @@ jobs:
         working-directory: chiaki-ng
         run: |
           flatpak build-bundle chiaki-ng-devel chiaki-ng-devel-x64.flatpak io.github.streetpea.Chiaki4deck-devel --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-          flatpak build-bundle chiaki-ng-devel --runtime chiaki-ng-devel-x64-debug.flatpak io.github.streetpea.Chiaki4deck-devel.Debug --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+          flatpak build-bundle chiaki-ng-devel --runtime chiaki-ng-devel-x64-debug.flatpak io.github.streetpea.Chiaki4deck_devel.Debug --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
       - name: Upload chiaki-ng Artifact
         uses: actions/upload-artifact@v4
         with:
