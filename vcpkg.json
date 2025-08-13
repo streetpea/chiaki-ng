@@ -1,16 +1,14 @@
 {
   "name": "chiaki-ng",
-  "version": "1.9.8",
+  "version": "1.9.9",
   "dependencies": [
     "pkgconf",
     "sdl2",
     "protobuf",
     "openssl",
-    "hidapi",
     "json-c",
     "miniupnpc",
     "opus",
-    "fftw3",
     "lcms",
     "speexdsp",
     "vulkan"
