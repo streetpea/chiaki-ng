@@ -29,7 +29,7 @@
 
 #define SESSION_CTRL_PORT 9295
 
-#define CTRL_EXPECT_TIMEOUT 5000
+#define CTRL_EXPECT_TIMEOUT 9000
 
 typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_SESSION_ID = 0x33,
