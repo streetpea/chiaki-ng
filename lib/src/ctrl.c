@@ -29,7 +29,7 @@
 
 #define SESSION_CTRL_PORT 9295
 
-#define CTRL_EXPECT_TIMEOUT 9000
+#define CTRL_EXPECT_TIMEOUT 5000
 
 typedef enum ctrl_message_type_t {
 	CTRL_MESSAGE_TYPE_SESSION_ID = 0x33,
@@ -1282,6 +1282,14 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
 	else
 		err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->notif_pipe, CTRL_EXPECT_TIMEOUT);
+	if (err == CHIAKI_ERR_TIMEOUT)
+	{
+		CHIAKI_LOGI(session->log, "Initial ctrl startup request timed out, resending ...");
+		if(session->rudp)
+			err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
+		else
+			err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->notif_pipe, CTRL_EXPECT_TIMEOUT);
+	}
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err != CHIAKI_ERR_CANCELED)
