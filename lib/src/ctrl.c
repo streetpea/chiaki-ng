@@ -1285,10 +1285,19 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if (err == CHIAKI_ERR_TIMEOUT)
 	{
 		CHIAKI_LOGI(session->log, "Initial ctrl startup request timed out, resending ...");
+		memset(buf, 0, sizeof(buf));
 		if(session->rudp)
 			err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
 		else
+		{
+			int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)send_buf, (size_t)request_len, 0);
+			if(sent < 0)
+			{
+				CHIAKI_LOGE(session->log, "Failed to send ctrl request");
+				goto error;
+			}
 			err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->notif_pipe, CTRL_EXPECT_TIMEOUT);
+		}
 	}
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
