@@ -67,6 +67,9 @@ int real_main(int argc, char *argv[])
 	QGuiApplication::setApplicationName("Chiaki");
 	QGuiApplication::setApplicationVersion(CHIAKI_VERSION);
 	QGuiApplication::setApplicationDisplayName("chiaki-ng");
+#if defined(Q_OS_MACOS)
+	qputenv("QT_MTL_NO_TRANSACTION", "1");
+#endif
 #if defined(Q_OS_LINUX)
 	if(qEnvironmentVariableIsSet("FLATPAK_ID"))
 		QGuiApplication::setDesktopFileName(qEnvironmentVariable("FLATPAK_ID"));
