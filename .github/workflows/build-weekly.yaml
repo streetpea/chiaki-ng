@@ -440,7 +440,7 @@ jobs:
     permissions:
       contents: write
     needs: create-release
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
         with:

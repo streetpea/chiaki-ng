@@ -190,7 +190,7 @@ jobs:
 
   build-mac_x64:
     name: Build macOSX x86_64 version
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
         with:
