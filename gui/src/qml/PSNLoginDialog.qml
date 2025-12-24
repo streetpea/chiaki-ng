@@ -27,6 +27,8 @@ DialogView {
         {
             nativeLoginForm.visible = true;
             nativeLoginForm.forceActiveFocus(Qt.TabFocusReason);
+            if(Qt.platform.os == "linux")
+                extBrowserButton.clicked();
         }
         else
         {
