@@ -90,7 +90,7 @@ modules:
   - name: python3-google
     buildsystem: simple
     build-commands:
-      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} google"
+      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} --no-build-isolation google"
     sources:
       - type: file
         url: https://files.pythonhosted.org/packages/3e/db/5ba900920642414333bdc3cb397075381d63eafc7e75c2373bbc560a9fa1/soupsieve-2.0.1.tar.gz
@@ -105,7 +105,7 @@ modules:
   - name: python3-protobuf
     buildsystem: simple
     build-commands:
-      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} protobuf"
+      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} --no-build-isolation protobuf"
     sources:
       - type: file
         url: https://files.pythonhosted.org/packages/ba/dd/f8a01b146bf45ac12a829bbc599e6590aa6a6849ace7d28c42d77041d6ab/protobuf-4.21.12.tar.gz
@@ -114,7 +114,7 @@ modules:
   - name: python3-requests
     buildsystem: simple
     build-commands:
-      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} requests"
+      - "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} --no-build-isolation requests"
     sources:
       - type: file
         url: https://files.pythonhosted.org/packages/ea/b7/e0e3c1c467636186c39925827be42f16fee389dc404ac29e930e9136be70/idna-2.10.tar.gz
