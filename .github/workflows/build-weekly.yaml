@@ -228,7 +228,7 @@ jobs:
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
 
       - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
           path: "scripts/chiaki-ng.iss"
           options: /O+
@@ -364,7 +364,7 @@ jobs:
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
 
       - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
           path: "scripts/chiaki-ng.iss"
           options: /O+
