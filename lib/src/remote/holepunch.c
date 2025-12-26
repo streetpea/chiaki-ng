@@ -2061,11 +2061,6 @@ static void* websocket_thread_func(void *user) {
     bool expecting_pong = false;
     while (true)
     {
-        // Previously the critical section was the entire loop
-        // and the locks were acquired BEFORE entering the loop, and 
-        // after unlocked at the end.
-        // This breaks any case where the code never reaches the end of the loop,
-        // for example, the GOTOs, or the continue path (when check CHIAKI_ERR_CANCELED)
         chiaki_mutex_lock(&session->stop_mutex);
         bool should_stop = session->ws_thread_should_stop;
         chiaki_mutex_unlock(&session->stop_mutex);
@@ -3630,11 +3625,6 @@ static ChiakiErrorCode check_candidates(
     memcpy(candidates, candidates_received, num_candidates * sizeof(Candidate));
     int responses_received[num_candidates + EXTRA_CANDIDATE_ADDRESSES];
     fd_set fds;
-    FD_ZERO(&fds);
-    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
-        FD_SET(session->ipv4_sock, &fds);
-    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
-        FD_SET(session->ipv6_sock, &fds);
     bool failed = true;
     char service_remote[6];
     struct addrinfo hints;
@@ -3799,54 +3789,51 @@ static ChiakiErrorCode check_candidates(
     // Wait for responses
     uint8_t response_buf[88];
 
-    chiaki_socket_t maxfd = -1;
-    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
-        maxfd = session->ipv4_sock;
-    if(session->ipv6_sock > maxfd)
-        maxfd = session->ipv6_sock;
-    if(session->stun_random_allocation)
-    {
-        for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
-        {
-            if(socks[i] > maxfd)
-                maxfd = socks[i];
-            FD_SET(socks[i], &fds);
-        }
-    }
-    maxfd = maxfd + 1;
-
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
-
     chiaki_socket_t selected_sock = CHIAKI_INVALID_SOCKET;
     Candidate *selected_candidate = NULL;
     bool received_response = false;
     bool responded = false;
     bool connecting = false;
     int retry_counter = 0;
+    chiaki_socket_t maxfd = -1;
+    struct timeval tv;
 
     while (!selected_candidate)
     {
-#ifdef __SWITCH__
         // Reset fd_set before each select() call 
         FD_ZERO(&fds);
+        maxfd = -1;
         if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
+        {
             FD_SET(session->ipv4_sock, &fds);
+            maxfd = session->ipv4_sock;
+        }
         if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+        {
             FD_SET(session->ipv6_sock, &fds);
+            if(session->ipv6_sock > maxfd)
+                maxfd = session->ipv6_sock;
+        }
         if(session->stun_random_allocation)
         {
             for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
             {
-                if(!CHIAKI_SOCKET_IS_INVALID(socks[i]))
-                    FD_SET(socks[i], &fds);
+                if(socks[i] > maxfd)
+                    maxfd = socks[i];
+                FD_SET(socks[i], &fds);
             }
         }
-        // Reset timeout before each select()
-        tv.tv_sec = 0;
-        tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
-#endif
+        maxfd = maxfd + 1;
+        if(connecting)
+        {
+            tv.tv_sec = SELECT_CANDIDATE_CONNECTION_SEC;
+            tv.tv_usec = 0;
+        }
+        else
+        {
+            tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
+            tv.tv_sec = 0;
+        }
         int ret = select(maxfd, &fds, NULL, NULL, &tv);
 #ifdef _WIN32
 	    if (ret < 0 && WSAGetLastError() != WSAEINTR)
@@ -3864,13 +3851,6 @@ static ChiakiErrorCode check_candidates(
                 if(retry_counter < SELECT_CANDIDATE_TRIES && !received_response)
                 {
                     retry_counter++;
-                    tv.tv_sec = 0;
-                    tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
-                    FD_ZERO(&fds);
-                    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
-                        FD_SET(session->ipv4_sock, &fds);
-                    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
-                        FD_SET(session->ipv6_sock, &fds);
                     Candidate *candidate = NULL;
                     chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
                     CHIAKI_LOGI(session->log, "check_candidates: Resending requests to all candidates TRY %d... waiting for 1st response", retry_counter);
@@ -3893,22 +3873,12 @@ static ChiakiErrorCode check_candidates(
                             CHIAKI_LOGE(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                             continue;
                         }
-                        if(session->stun_random_allocation && (candidate->type == CANDIDATE_TYPE_STATIC || candidate->type == CANDIDATE_TYPE_STUN))
-                        {
-                            for(int j=0; j<RANDOM_ALLOCATION_SOCKS_NUMBER; j++)
-                            {
-                                if(!CHIAKI_SOCKET_IS_INVALID(socks[j]))
-                                    FD_SET(socks[j], &fds);
-                            }
-                        }
                     }
                     continue;                    
                 }
                 else if(received_response && !connecting)
                 {
                     connecting = true;
-                    tv.tv_sec = SELECT_CANDIDATE_CONNECTION_SEC;
-                    tv.tv_usec = 0;
                     continue;
                 }
                 // No responsive candidate within timeout, terminate with error
