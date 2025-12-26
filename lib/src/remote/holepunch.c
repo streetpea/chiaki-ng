@@ -2059,10 +2059,20 @@ static void* websocket_thread_func(void *user) {
     size_t rlen;
     size_t wlen;
     bool expecting_pong = false;
-    chiaki_mutex_lock(&session->stop_mutex);
-    while (!session->ws_thread_should_stop)
+    while (true)
     {
+        // Previously the critical section was the entire loop
+        // and the locks were acquired BEFORE entering the loop, and 
+        // after unlocked at the end.
+        // This breaks any case where the code never reaches the end of the loop,
+        // for example, the GOTOs, or the continue path (when check CHIAKI_ERR_CANCELED)
+        chiaki_mutex_lock(&session->stop_mutex);
+        bool should_stop = session->ws_thread_should_stop;
         chiaki_mutex_unlock(&session->stop_mutex);
+
+        if (should_stop)
+            break;
+
         now = chiaki_time_now_monotonic_us();
 
         if (expecting_pong && now - last_ping_sent > 5LL * SECOND_US)
@@ -2201,11 +2211,9 @@ static void* websocket_thread_func(void *user) {
                 goto cleanup_json;
             }
         }
-        chiaki_mutex_lock(&session->stop_mutex);
     }
 
 cleanup_json:
-    chiaki_mutex_unlock(&session->stop_mutex);
     json_tokener_free(tok);
     free(buf);
 cleanup:
@@ -2324,6 +2332,8 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
     }
 
     uint16_t local_port = ntohs(client_addr.sin_port);
+#ifndef __SWITCH__
+    // Switch doesn't support IPv6 - skip IPv6 socket creation
     session->ipv6_sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
     {
@@ -2363,6 +2373,7 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup_socket;
     }
+#endif // __SWITCH__
 
     size_t our_offer_msg_req_id = session->local_req_id;
     session->local_req_id++;
@@ -3817,6 +3828,25 @@ static ChiakiErrorCode check_candidates(
 
     while (!selected_candidate)
     {
+#ifdef __SWITCH__
+        // Reset fd_set before each select() call 
+        FD_ZERO(&fds);
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
+            FD_SET(session->ipv4_sock, &fds);
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+            FD_SET(session->ipv6_sock, &fds);
+        if(session->stun_random_allocation)
+        {
+            for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
+            {
+                if(!CHIAKI_SOCKET_IS_INVALID(socks[i]))
+                    FD_SET(socks[i], &fds);
+            }
+        }
+        // Reset timeout before each select()
+        tv.tv_sec = 0;
+        tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
+#endif
         int ret = select(maxfd, &fds, NULL, NULL, &tv);
 #ifdef _WIN32
 	    if (ret < 0 && WSAGetLastError() != WSAEINTR)
@@ -4758,9 +4788,11 @@ static ChiakiErrorCode wait_for_session_message_ack(
             CHIAKI_LOGE(session->log, "wait_for_session_message_ack: Got ACK for unexpected request ID %d", msg->req_id);
             session_message_free(msg);
             msg = NULL;
+            chiaki_mutex_unlock(&session->stop_mutex);
             continue;
         }
         finished = true;
+        chiaki_mutex_unlock(&session->stop_mutex);
         chiaki_mutex_lock(&session->notif_mutex);
         session_message_free(msg);
         chiaki_mutex_unlock(&session->notif_mutex);
