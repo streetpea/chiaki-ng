@@ -51,6 +51,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 	video_receiver->frames_lost = 0;
 	memset(video_receiver->reference_frames, -1, sizeof(video_receiver->reference_frames));
 	chiaki_bitstream_init(&video_receiver->bitstream, video_receiver->log, video_receiver->session->connect_info.video_profile.codec);
+	video_receiver->waiting_for_idr = false;
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receiver)
@@ -170,6 +171,12 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		{
 			ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)(video_receiver->frame_index_prev_complete + 1);
 			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
+			if(video_receiver->session->connect_info.enable_idr_on_fec_failure)
+			{
+				stream_connection_send_idr_request(&video_receiver->session->stream_connection);
+				video_receiver->waiting_for_idr = true;
+				CHIAKI_LOGI(video_receiver->log, "FEC failed, waiting for IDR frame");
+			}
 			video_receiver->frames_lost += video_receiver->frame_index_cur - next_frame_expected + 1;
 			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
 		}
@@ -183,6 +190,21 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 	ChiakiBitstreamSlice slice;
 	if(chiaki_bitstream_slice(&video_receiver->bitstream, frame, frame_size, &slice))
 	{
+		if(video_receiver->waiting_for_idr)
+		{
+			if(slice.slice_type == CHIAKI_BITSTREAM_SLICE_I)
+			{
+				video_receiver->waiting_for_idr = false;
+				CHIAKI_LOGI(video_receiver->log, "Received IDR frame, resuming decode");
+			}
+			else
+			{
+				CHIAKI_LOGV(video_receiver->log, "Skipping P-frame %d while waiting for IDR", (int)video_receiver->frame_index_cur);
+				video_receiver->frame_index_prev = video_receiver->frame_index_cur;
+				return CHIAKI_ERR_SUCCESS;
+			}
+		}
+
 		if(slice.slice_type == CHIAKI_BITSTREAM_SLICE_P)
 		{
 			ChiakiSeqNum16 ref_frame_index = video_receiver->frame_index_cur - slice.reference_frame - 1;
