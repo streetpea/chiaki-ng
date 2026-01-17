@@ -28,6 +28,8 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.rumbleEnabledKey -> preferences.rumbleEnabled
 		preferences.motionEnabledKey -> preferences.motionEnabled
 		preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled
+		preferences.debandingEnabledKey -> preferences.debandingEnabled
+		preferences.touchscreenTouchpadEnabledKey -> preferences.touchscreenTouchpadEnabled
 		else -> defValue
 	}
 
@@ -40,37 +42,48 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 			preferences.rumbleEnabledKey -> preferences.rumbleEnabled = value
 			preferences.motionEnabledKey -> preferences.motionEnabled = value
 			preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled = value
+			preferences.debandingEnabledKey -> preferences.debandingEnabled = value
+			preferences.touchscreenTouchpadEnabledKey -> preferences.touchscreenTouchpadEnabled = value
 		}
 	}
 
-	override fun getString(key: String, defValue: String?) = when(key)
+	override fun getInt(key: String?, defValue: Int) = defValue
+
+	override fun putInt(key: String?, value: Int) {}
+
+	override fun getString(key: String, defValue: String?) = when
 	{
-		preferences.resolutionKey -> preferences.resolution.value
-		preferences.fpsKey -> preferences.fps.value
-		preferences.bitrateKey -> preferences.bitrate?.toString() ?: ""
-		preferences.codecKey -> preferences.codec.value
+		key == preferences.resolutionKey -> preferences.resolution.value
+		key == preferences.fpsKey -> preferences.fps.value
+		key == preferences.bitrateKey -> preferences.bitrate?.toString() ?: ""
+		key == preferences.codecKey -> preferences.codec.value
+		key.startsWith("mapping_") -> preferences.sharedPreferences.getString(key, defValue)
 		else -> defValue
 	}
 
 	override fun putString(key: String, value: String?)
 	{
-		when(key)
+		when
 		{
-			preferences.resolutionKey ->
+			key == preferences.resolutionKey ->
 			{
 				val resolution = Preferences.Resolution.values().firstOrNull { it.value == value } ?: return
 				preferences.resolution = resolution
 			}
-			preferences.fpsKey ->
+			key == preferences.fpsKey ->
 			{
 				val fps = Preferences.FPS.values().firstOrNull { it.value == value } ?: return
 				preferences.fps = fps
 			}
-			preferences.bitrateKey -> preferences.bitrate = value?.toIntOrNull()
-			preferences.codecKey ->
+			key == preferences.bitrateKey -> preferences.bitrate = value?.toIntOrNull()
+			key == preferences.codecKey ->
 			{
 				val codec = Preferences.Codec.values().firstOrNull { it.value == value } ?: return
 				preferences.codec = codec
+			}
+			key.startsWith("mapping_") -> 
+			{
+				preferences.sharedPreferences.edit().putString(key, value).apply()
 			}
 		}
 	}

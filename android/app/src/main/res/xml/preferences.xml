@@ -26,6 +26,13 @@
             app:icon="@drawable/ic_rumble" />
 
         <SwitchPreference
+            app:key="preferences_touchscreen_touchpad_enabled"
+            app:title="Touchscreen as Touchpad"
+            app:summary="Use the stream area as a touchpad"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_gamepad" />
+
+        <SwitchPreference
             app:key="@string/preferences_motion_enabled_key"
             app:title="@string/preferences_motion_enabled_title"
             app:summary="@string/preferences_motion_enabled_summary"
@@ -76,6 +83,73 @@
             app:title="@string/preferences_codec_title"
             app:summary="%s"
             app:icon="@drawable/ic_codec"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="category_mapping"
+        app:title="Controller Mapping">
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_cross"
+            app:title="Cross (Select)"
+            app:defaultValue="96" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_circle"
+            app:title="Circle (Back)"
+            app:defaultValue="97" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_square"
+            app:title="Square"
+            app:defaultValue="99" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_triangle"
+            app:title="Triangle"
+            app:defaultValue="100" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_l1"
+            app:title="L1 (Left Bumper)"
+            app:defaultValue="102" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_r1"
+            app:title="R1 (Right Bumper)"
+            app:defaultValue="103" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_l2"
+            app:title="L2 (Left Trigger)"
+            app:defaultValue="104" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_r2"
+            app:title="R2 (Right Trigger)"
+            app:defaultValue="105" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_l3"
+            app:title="L3 (Left Stick Click)"
+            app:defaultValue="106" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_r3"
+            app:title="R3 (Right Stick Click)"
+            app:defaultValue="107" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_options"
+            app:title="Options (Start)"
+            app:defaultValue="108" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_share"
+            app:title="Share (Select)"
+            app:defaultValue="109" />
+        <com.metallic.chiaki.settings.KeyMappingPreference
+            app:key="mapping_ps"
+            app:title="PS Button"
+            app:defaultValue="110" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="category_video_deband"
+        app:title="Post-processing">
+        <SwitchPreference
+            app:key="@string/preferences_debanding_key"
+            app:title="@string/preferences_debanding_title"
+            app:summary="@string/preferences_debanding_summary"
+            app:icon="@drawable/ic_resolution" />
     </PreferenceCategory>
 
     <PreferenceCategory

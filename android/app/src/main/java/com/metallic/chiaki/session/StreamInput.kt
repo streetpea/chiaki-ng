@@ -126,47 +126,39 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		if(event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP)
 			return false
 
-		when(event.keyCode)
-		{
-			KeyEvent.KEYCODE_BUTTON_L2 -> {
-				keyControllerState.l2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
-				return true
-			}
-			KeyEvent.KEYCODE_BUTTON_R2 -> {
-				keyControllerState.r2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
-				return true
-			}
+		val keyCode = event.keyCode
+		val action = event.action == KeyEvent.ACTION_DOWN
+
+		// Check for L2/R2 (can be digital or analog, here we handle digital key event)
+		if (keyCode == preferences.mappingL2) {
+			keyControllerState.l2State = if(action) UByte.MAX_VALUE else 0U
+			controllerStateUpdated()
+			return true
+		}
+		if (keyCode == preferences.mappingR2) {
+			keyControllerState.r2State = if(action) UByte.MAX_VALUE else 0U
+			controllerStateUpdated()
+			return true
 		}
 
-		val buttonMask: UInt = when(event.keyCode)
+		val buttonMask: UInt = when(keyCode)
 		{
-			// dpad handled by MotionEvents
-			//KeyEvent.KEYCODE_DPAD_LEFT -> ControllerState.BUTTON_DPAD_LEFT
-			//KeyEvent.KEYCODE_DPAD_RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
-			//KeyEvent.KEYCODE_DPAD_UP -> ControllerState.BUTTON_DPAD_UP
-			//KeyEvent.KEYCODE_DPAD_DOWN -> ControllerState.BUTTON_DPAD_DOWN
-			KeyEvent.KEYCODE_BUTTON_A -> if(swapCrossMoon) ControllerState.BUTTON_MOON else ControllerState.BUTTON_CROSS
-			KeyEvent.KEYCODE_BUTTON_B -> if(swapCrossMoon) ControllerState.BUTTON_CROSS else ControllerState.BUTTON_MOON
-			KeyEvent.KEYCODE_BUTTON_X -> if(swapCrossMoon) ControllerState.BUTTON_PYRAMID else ControllerState.BUTTON_BOX
-			KeyEvent.KEYCODE_BUTTON_Y -> if(swapCrossMoon) ControllerState.BUTTON_BOX else ControllerState.BUTTON_PYRAMID
-			KeyEvent.KEYCODE_BUTTON_L1 -> ControllerState.BUTTON_L1
-			KeyEvent.KEYCODE_BUTTON_R1 -> ControllerState.BUTTON_R1
-			KeyEvent.KEYCODE_BUTTON_THUMBL -> ControllerState.BUTTON_L3
-			KeyEvent.KEYCODE_BUTTON_THUMBR -> ControllerState.BUTTON_R3
-			KeyEvent.KEYCODE_BUTTON_SELECT -> ControllerState.BUTTON_SHARE
-			KeyEvent.KEYCODE_BUTTON_START -> ControllerState.BUTTON_OPTIONS
-			KeyEvent.KEYCODE_BUTTON_C -> ControllerState.BUTTON_PS
-			KeyEvent.KEYCODE_BUTTON_MODE -> ControllerState.BUTTON_PS
+			preferences.mappingCross -> ControllerState.BUTTON_CROSS
+			preferences.mappingCircle -> ControllerState.BUTTON_MOON
+			preferences.mappingSquare -> ControllerState.BUTTON_BOX
+			preferences.mappingTriangle -> ControllerState.BUTTON_PYRAMID
+			preferences.mappingL1 -> ControllerState.BUTTON_L1
+			preferences.mappingR1 -> ControllerState.BUTTON_R1
+			preferences.mappingL3 -> ControllerState.BUTTON_L3
+			preferences.mappingR3 -> ControllerState.BUTTON_R3
+			preferences.mappingShare -> ControllerState.BUTTON_SHARE
+			preferences.mappingOptions -> ControllerState.BUTTON_OPTIONS
+			preferences.mappingPs -> ControllerState.BUTTON_PS
 			else -> return false
 		}
 
 		keyControllerState.buttons = keyControllerState.buttons.run {
-			when(event.action)
-			{
-				KeyEvent.ACTION_DOWN -> this or buttonMask
-				KeyEvent.ACTION_UP -> this and buttonMask.inv()
-				else -> this
-			}
+			if(action) this or buttonMask else this and buttonMask.inv()
 		}
 
 		controllerStateUpdated()

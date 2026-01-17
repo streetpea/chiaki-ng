@@ -15,8 +15,7 @@ import io.reactivex.schedulers.Schedulers
 
 class EditManualConsoleViewModel(val database: AppDatabase, manualHostId: Long?): ViewModel()
 {
-	val registeredHosts by lazy {
-		database.registeredHostDao().getAll().observeOn(AndroidSchedulers.mainThread())
+	val registeredHosts = database.registeredHostDao().getAll().observeOn(AndroidSchedulers.mainThread())
 			.doOnNext { hosts ->
 				val selectedHost = selectedRegisteredHost.value
 				if(selectedHost != null)
@@ -24,7 +23,6 @@ class EditManualConsoleViewModel(val database: AppDatabase, manualHostId: Long?)
 			}
 			.map { listOf(null) + it }
 			.toLiveData()
-	}
 
 	val existingHost: LiveData<ManualHost>? =
 		if(manualHostId != null)

@@ -18,6 +18,18 @@
             android:id="@+id/surfaceView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
+        <android.opengl.GLSurfaceView
+            android:id="@+id/debandSurfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
+        <com.metallic.chiaki.touchcontrols.TouchpadView
+            android:id="@+id/streamTouchpadView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            app:drawableIdle="@android:color/transparent"
+            app:drawablePressed="@android:color/transparent" />
     </com.metallic.chiaki.stream.AspectRatioFrameLayout>
 
     <ProgressBar
@@ -32,11 +44,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <fragment
-        android:id="@+id/touchpadOnlyFragment"
-        android:name="com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/overlay"
@@ -64,16 +71,6 @@
                 android:layout_marginLeft="8dp"
                 android:textColor="@color/stream_text"/>
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/touchpadOnlySwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="200dp"
-                android:text="Touchpad only"
-                android:textColor="@color/stream_text"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:switchPadding="8dp" />
 
             <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/displayModeToggle"

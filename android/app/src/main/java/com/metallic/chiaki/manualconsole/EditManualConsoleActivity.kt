@@ -61,7 +61,7 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
 			binding.registeredHostTextView.setText(titleForRegisteredHost(it))
 		})
 
-		viewModel.registeredHosts.observe(this, Observer { hosts ->
+		viewModel.registeredHosts.observe(this, Observer { hosts: List<RegisteredHost?> ->
 			binding.registeredHostTextView.setAdapter(ArrayAdapter<String>(this, R.layout.dropdown_menu_popup_item,
 				hosts.map { titleForRegisteredHost(it) }))
 			binding.registeredHostTextView.onItemClickListener = object: AdapterView.OnItemClickListener {

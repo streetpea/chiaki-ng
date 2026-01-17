@@ -25,8 +25,7 @@ class MainViewModel(val database: AppDatabase, val preferences: Preferences): Vi
 			.addTo(disposable)
 	}
 
-	val displayHosts by lazy {
-		Observables.combineLatest(
+	val displayHosts = Observables.combineLatest(
 			database.manualHostDao().getAll().toObservable(),
 			database.registeredHostDao().getAll().toObservable(),
 			discoveryManager.discoveredHosts)
@@ -41,11 +40,8 @@ class MainViewModel(val database: AppDatabase, val preferences: Preferences): Vi
 				}
 			}
 			.toLiveData()
-	}
 
-	val discoveryActive by lazy {
-		discoveryManager.discoveryActive.toLiveData()
-	}
+	val discoveryActive = discoveryManager.discoveryActive.toLiveData()
 
 	fun deleteManualHost(manualHost: ManualHost)
 	{

@@ -43,6 +43,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 		session?.stop()
 		session?.dispose()
 		session = null
+		surface = null
 		_state.value = StreamStateIdle
 		//surfaceTexture?.release()
 	}
@@ -96,14 +97,14 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 	fun attachToSurfaceView(surfaceView: SurfaceView)
 	{
 		surfaceView.holder.addCallback(object: SurfaceHolder.Callback {
-			override fun surfaceCreated(holder: SurfaceHolder) { }
-
-			override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int)
+			override fun surfaceCreated(holder: SurfaceHolder)
 			{
 				val surface = holder.surface
 				this@StreamSession.surface = surface
 				session?.setSurface(surface)
 			}
+
+			override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) { }
 
 			override fun surfaceDestroyed(holder: SurfaceHolder)
 			{
@@ -111,6 +112,27 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 				session?.setSurface(null)
 			}
 		})
+		
+		val surface = surfaceView.holder.surface
+		if (surface?.isValid == true) {
+			this.surface = surface
+			session?.setSurface(surface)
+		}
+	}
+
+	/**
+	 * Attach to a custom Surface (e.g., from GLSurfaceView with debanding)
+	 */
+	fun attachToSurface(surface: Surface)
+	{
+		this.surface = surface
+		session?.setSurface(surface)
+	}
+
+	fun detachSurface()
+	{
+		this.surface = null
+		session?.setSurface(null)
 	}
 
 	fun attachToTextureView(textureView: TextureView)

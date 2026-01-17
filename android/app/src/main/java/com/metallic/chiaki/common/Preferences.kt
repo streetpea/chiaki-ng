@@ -48,7 +48,7 @@ class Preferences(context: Context)
 		val codecAll = Codec.values()
 	}
 
-	private val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+	internal val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 	private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
 		when(key)
 		{
@@ -68,10 +68,6 @@ class Preferences(context: Context)
 		get() = sharedPreferences.getBoolean(onScreenControlsEnabledKey, true)
 		set(value) { sharedPreferences.edit().putBoolean(onScreenControlsEnabledKey, value).apply() }
 
-	val touchpadOnlyEnabledKey get() = resources.getString(R.string.preferences_touchpad_only_enabled_key)
-	var touchpadOnlyEnabled
-		get() = sharedPreferences.getBoolean(touchpadOnlyEnabledKey, false)
-		set(value) { sharedPreferences.edit().putBoolean(touchpadOnlyEnabledKey, value).apply() }
 
 	val rumbleEnabledKey get() = resources.getString(R.string.preferences_rumble_enabled_key)
 	var rumbleEnabled
@@ -98,6 +94,85 @@ class Preferences(context: Context)
 		get() = sharedPreferences.getBoolean(swapCrossMoonKey, false)
 		set(value) { sharedPreferences.edit().putBoolean(swapCrossMoonKey, value).apply() }
 
+	val debandingEnabledKey get() = resources.getString(R.string.preferences_debanding_key)
+	var debandingEnabled
+		get() = sharedPreferences.getBoolean(debandingEnabledKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(debandingEnabledKey, value).apply() }
+
+	val touchscreenTouchpadEnabledKey get() = "preferences_touchscreen_touchpad_enabled"
+	var touchscreenTouchpadEnabled
+		get() = sharedPreferences.getBoolean(touchscreenTouchpadEnabledKey, false)
+		set(value) { sharedPreferences.edit().putBoolean(touchscreenTouchpadEnabledKey, value).apply() }
+
+	// Mapping Keys
+	fun getMappingKey(buttonName: String) = "mapping_$buttonName"
+	
+	private fun getMapping(buttonName: String, default: Int): Int {
+		return sharedPreferences.getString(getMappingKey(buttonName), default.toString())?.toIntOrNull() ?: default
+	}
+	
+	private fun setMapping(buttonName: String, value: Int) {
+		sharedPreferences.edit().putString(getMappingKey(buttonName), value.toString()).apply()
+	}
+
+	var mappingCross: Int 
+		get() = getMapping("cross", 96)
+		set(value) = setMapping("cross", value)
+		
+	var mappingCircle: Int
+		get() = getMapping("circle", 97)
+		set(value) = setMapping("circle", value)
+		
+	var mappingSquare: Int
+		get() = getMapping("square", 99)
+		set(value) = setMapping("square", value)
+		
+	var mappingTriangle: Int
+		get() = getMapping("triangle", 100)
+		set(value) = setMapping("triangle", value)
+		
+	var mappingL1: Int
+		get() = getMapping("l1", 102)
+		set(value) = setMapping("l1", value)
+		
+	var mappingR1: Int
+		get() = getMapping("r1", 103)
+		set(value) = setMapping("r1", value)
+		
+	var mappingL2: Int
+		get() = getMapping("l2", 104)
+		set(value) = setMapping("l2", value)
+		
+	var mappingR2: Int
+		get() = getMapping("r2", 105)
+		set(value) = setMapping("r2", value)
+		
+	var mappingL3: Int
+		get() = getMapping("l3", 106)
+		set(value) = setMapping("l3", value)
+		
+	var mappingR3: Int
+		get() = getMapping("r3", 107)
+		set(value) = setMapping("r3", value)
+		
+	var mappingOptions: Int
+		get() = getMapping("options", 108)
+		set(value) = setMapping("options", value)
+		
+	var mappingShare: Int
+		get() = getMapping("share", 109)
+		set(value) = setMapping("share", value)
+		
+	var mappingPs: Int
+		get() = getMapping("ps", 110)
+		set(value) = setMapping("ps", value)
+
+	val sharpnessIntensityKey get() = "preferences_sharpness_intensity"
+	var sharpnessIntensity: Float
+		get() = sharedPreferences.getInt(sharpnessIntensityKey, 0).toFloat() / 100f
+		set(value) { sharedPreferences.edit().putInt(sharpnessIntensityKey, (value * 100f).toInt()).apply() }
+
+
 	val resolutionKey get() = resources.getString(R.string.preferences_resolution_key)
 	var resolution
 		get() = sharedPreferences.getString(resolutionKey, resolutionDefault.value)?.let { value ->
@@ -112,7 +187,7 @@ class Preferences(context: Context)
 		}  ?: fpsDefault
 		set(value) { sharedPreferences.edit().putString(fpsKey, value.value).apply() }
 
-	fun validateBitrate(bitrate: Int) = max(2000, min(50000, bitrate))
+	fun validateBitrate(bitrate: Int) = max(2000, min(100000, bitrate))
 	val bitrateKey get() = resources.getString(R.string.preferences_bitrate_key)
 	var bitrate
 		get() = sharedPreferences.getInt(bitrateKey, 0).let { if(it == 0) null else validateBitrate(it) }

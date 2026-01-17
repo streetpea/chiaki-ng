@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity()
 			updateEmptyInfo()
 		})
 
-		viewModel.discoveryActive.observe(this, Observer { active ->
+		viewModel.discoveryActive.observe(this, Observer { active: Boolean ->
 			discoveryMenuItem?.let { updateDiscoveryMenuItem(it, active) }
 			updateEmptyInfo()
 		})

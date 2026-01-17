@@ -24,7 +24,6 @@ import com.metallic.chiaki.lib.ConnectVideoProfile
 import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
-import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
 import kotlin.math.min
@@ -71,32 +70,32 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		viewModel.onScreenControlsEnabled.observe(this, Observer {
 			if(binding.onScreenControlsSwitch.isChecked != it)
 				binding.onScreenControlsSwitch.isChecked = it
-			if(binding.onScreenControlsSwitch.isChecked)
-				binding.touchpadOnlySwitch.isChecked = false
 		})
 		binding.onScreenControlsSwitch.setOnCheckedChangeListener { _, isChecked ->
 			viewModel.setOnScreenControlsEnabled(isChecked)
 			showOverlay()
 		}
 
-		viewModel.touchpadOnlyEnabled.observe(this, Observer {
-			if(binding.touchpadOnlySwitch.isChecked != it)
-				binding.touchpadOnlySwitch.isChecked = it
-			if(binding.touchpadOnlySwitch.isChecked)
-				binding.onScreenControlsSwitch.isChecked = false
-		})
-		binding.touchpadOnlySwitch.setOnCheckedChangeListener { _, isChecked ->
-			viewModel.setTouchpadOnlyEnabled(isChecked)
-			showOverlay()
-		}
 
 		binding.displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
 			adjustStreamViewAspect()
 			showOverlay()
 		}
 
-		//viewModel.session.attachToTextureView(textureView)
-		viewModel.session.attachToSurfaceView(binding.surfaceView)
+// Setup video output based on debanding preference
+		setupVideoOutput()
+		
+		val prefs = Preferences(this)
+		if (prefs.touchscreenTouchpadEnabled) {
+			binding.streamTouchpadView.visibility = View.VISIBLE
+			binding.streamTouchpadView.controllerState
+				.subscribe { 
+					lastStreamTouchpadControllerState = it
+					updateCombinedTouchState()
+				}
+				.addTo(controlsDisposable)
+		}
+
 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
 		adjustStreamViewAspect()
 
@@ -116,6 +115,42 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		}
 	}
 
+	private var debandRenderer: DebandRenderer? = null
+
+	private fun setupVideoOutput() {
+		val prefs = Preferences(this)
+		viewModel.session.detachSurface()
+		
+		if (prefs.debandingEnabled) {
+			// Use GLSurfaceView with debanding shader
+			binding.surfaceView.visibility = View.GONE
+			binding.debandSurfaceView.visibility = View.VISIBLE
+			
+			debandRenderer = DebandRenderer { surface ->
+				viewModel.session.attachToSurface(surface)
+			}
+			
+			binding.debandSurfaceView.setEGLContextClientVersion(3)
+			binding.debandSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 0, 0)
+			binding.debandSurfaceView.holder.setFormat(android.graphics.PixelFormat.RGBA_8888)
+			binding.debandSurfaceView.setRenderer(debandRenderer)
+			debandRenderer!!.sharpness = prefs.sharpnessIntensity
+			binding.debandSurfaceView.renderMode = android.opengl.GLSurfaceView.RENDERMODE_CONTINUOUSLY
+		} else {
+			// Use standard SurfaceView (no shader processing)
+			binding.surfaceView.visibility = View.VISIBLE
+			binding.debandSurfaceView.visibility = View.GONE
+			viewModel.session.attachToSurfaceView(binding.surfaceView)
+		}
+	}
+
+	private var lastFragmentControllerState = com.metallic.chiaki.lib.ControllerState()
+	private var lastStreamTouchpadControllerState = com.metallic.chiaki.lib.ControllerState()
+
+	private fun updateCombinedTouchState() {
+		viewModel.input.touchControllerState = lastFragmentControllerState or lastStreamTouchpadControllerState
+	}
+
 	private val controlsDisposable = CompositeDisposable()
 
 	override fun onAttachFragment(fragment: Fragment)
@@ -124,11 +159,12 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 		if(fragment is TouchControlsFragment)
 		{
 			fragment.controllerState
-				.subscribe { viewModel.input.touchControllerState = it }
+				.subscribe { 
+					lastFragmentControllerState = it
+					updateCombinedTouchState()
+				}
 				.addTo(controlsDisposable)
 			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
-			if(fragment is TouchpadOnlyFragment)
-				fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
 		}
 	}
 
@@ -136,18 +172,25 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	{
 		super.onResume()
 		hideSystemUI()
+		if (Preferences(this).debandingEnabled) {
+			binding.debandSurfaceView.onResume()
+		}
 		viewModel.session.resume()
 	}
 
 	override fun onPause()
 	{
 		super.onPause()
+		if (Preferences(this).debandingEnabled) {
+			binding.debandSurfaceView.onPause()
+		}
 		viewModel.session.pause()
 	}
 
 	override fun onDestroy()
 	{
 		super.onDestroy()
+		debandRenderer?.release()
 		controlsDisposable.dispose()
 	}
 
@@ -174,7 +217,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 			.alpha(1.0f)
 			.setListener(object: AnimatorListenerAdapter()
 			{
-				override fun onAnimationEnd(animation: Animator?)
+				override fun onAnimationEnd(animation: Animator)
 				{
 					binding.overlay.alpha = 1.0f
 				}
@@ -189,7 +232,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 			.alpha(0.0f)
 			.setListener(object: AnimatorListenerAdapter()
 			{
-				override fun onAnimationEnd(animation: Animator?)
+				override fun onAnimationEnd(animation: Animator)
 				{
 					binding.overlay.isGone = true
 				}
@@ -311,6 +354,8 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 					dialog.show()
 				}
 			}
+			// These states don't need special handling
+			StreamStateIdle, StreamStateConnecting, StreamStateConnected -> { }
 		}
 	}
 

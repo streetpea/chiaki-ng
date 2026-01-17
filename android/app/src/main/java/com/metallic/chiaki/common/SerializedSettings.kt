@@ -24,7 +24,8 @@ import io.reactivex.rxkotlin.Singles
 import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import okio.Buffer
-import okio.Okio
+import okio.buffer
+import okio.source
 import java.io.File
 import java.io.IOException
 
@@ -164,7 +165,7 @@ fun importSettingsFromUri(activity: Activity, uri: Uri, disposable: CompositeDis
 	try
 	{
 		val inputStream = activity.contentResolver.openInputStream(uri) ?: throw IOException()
-		val buffer = Okio.buffer(Okio.source(inputStream))
+		val buffer = inputStream.source().buffer()
 		val reader = JsonReader.of(buffer)
 		val adapter = moshi().serializedSettingsAdapter()
 

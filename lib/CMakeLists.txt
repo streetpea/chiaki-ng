@@ -39,10 +39,7 @@ set(HEADER_FILES
 		include/chiaki/opusdecoder.h
 		include/chiaki/opusencoder.h
 		include/chiaki/orientation.h
-		include/chiaki/bitstream.h
-		include/chiaki/remote/holepunch.h
-		include/chiaki/remote/rudp.h
-		include/chiaki/remote/rudpsendbuffer.h)
+		include/chiaki/bitstream.h)
 
 set(SOURCE_FILES
 		src/common.c
@@ -84,10 +81,19 @@ set(SOURCE_FILES
 		src/opusdecoder.c
 		src/opusencoder.c
 		src/orientation.c
-		src/bitstream.c
+		src/bitstream.c)
+
+# RUDP/holepunch files require miniupnpc, only include if enabled
+if(CHIAKI_ENABLE_RUDP)
+	list(APPEND HEADER_FILES
+		include/chiaki/remote/holepunch.h
+		include/chiaki/remote/rudp.h
+		include/chiaki/remote/rudpsendbuffer.h)
+	list(APPEND SOURCE_FILES
 		src/remote/holepunch.c
 		src/remote/rudp.c
 		src/remote/rudpsendbuffer.c)
+endif()
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND HEADER_FILES include/chiaki/ffmpegdecoder.h)
@@ -138,6 +144,46 @@ if (CHIAKI_IS_SWITCH)
 	find_library(JSONC_LIB json-c ${PORTLIBS}/lib)
 	target_link_libraries(chiaki-lib ${JSONC_LIB})
 	target_include_directories(chiaki-lib PUBLIC "${PORTLIBS}/include/json-c")
+elseif(ANDROID)
+	# Use FetchContent for Android (no pkg-config)
+	include(FetchContent)
+	
+	# json-c
+	FetchContent_Declare(
+		json-c
+		GIT_REPOSITORY https://github.com/json-c/json-c.git
+		GIT_TAG json-c-0.16-20220414
+	)
+	set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+	set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+	set(DISABLE_WERROR ON CACHE BOOL "" FORCE)
+	FetchContent_GetProperties(json-c)
+	if(NOT json-c_POPULATED)
+		FetchContent_Populate(json-c)
+		# Patch json-c to disable apps and tests
+		file(READ "${json-c_SOURCE_DIR}/CMakeLists.txt" JSONC_CMAKE)
+		string(REPLACE "add_subdirectory(apps)" "# add_subdirectory(apps)" JSONC_CMAKE "${JSONC_CMAKE}")
+		string(REPLACE "add_subdirectory(tests)" "# add_subdirectory(tests)" JSONC_CMAKE "${JSONC_CMAKE}")
+		file(WRITE "${json-c_SOURCE_DIR}/CMakeLists.txt" "${JSONC_CMAKE}")
+		add_subdirectory(${json-c_SOURCE_DIR} ${json-c_BINARY_DIR})
+	endif()
+	target_link_libraries(chiaki-lib json-c)
+	target_include_directories(chiaki-lib PUBLIC ${json-c_SOURCE_DIR} ${json-c_BINARY_DIR})
+	# Create symlink for #include <json-c/json_object.h>
+	file(MAKE_DIRECTORY ${json-c_BINARY_DIR}/json-c)
+	file(GLOB JSONC_HEADERS "${json-c_SOURCE_DIR}/*.h")
+	foreach(header ${JSONC_HEADERS})
+		get_filename_component(header_name ${header} NAME)
+		file(CREATE_LINK ${header} ${json-c_BINARY_DIR}/json-c/${header_name} COPY_ON_ERROR)
+	endforeach()
+	# Also copy generated headers
+	file(GLOB JSONC_GEN_HEADERS "${json-c_BINARY_DIR}/*.h")
+	foreach(header ${JSONC_GEN_HEADERS})
+		get_filename_component(header_name ${header} NAME)
+		if(NOT EXISTS ${json-c_BINARY_DIR}/json-c/${header_name})
+			file(CREATE_LINK ${header} ${json-c_BINARY_DIR}/json-c/${header_name} COPY_ON_ERROR)
+		endif()
+	endforeach()
 else()
 	find_package(PkgConfig REQUIRED)
 	pkg_search_module(json-c REQUIRED json-c IMPORTED_TARGET)
@@ -145,9 +191,37 @@ else()
 	target_link_libraries(chiaki-lib PkgConfig::json-c)
 endif()
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
-target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
+# miniupnpc - only needed if RUDP is enabled
+if(CHIAKI_ENABLE_RUDP)
+	if(ANDROID)
+		# Use FetchContent for Android
+		FetchContent_Declare(
+			miniupnpc
+			GIT_REPOSITORY https://github.com/miniupnp/miniupnp.git
+			GIT_TAG miniupnpc_2_2_5
+			SOURCE_SUBDIR miniupnpc
+		)
+		set(UPNPC_BUILD_STATIC ON CACHE BOOL "" FORCE)
+		set(UPNPC_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+		set(UPNPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+		set(UPNPC_BUILD_SAMPLE OFF CACHE BOOL "" FORCE)
+		FetchContent_MakeAvailable(miniupnpc)
+		target_link_libraries(chiaki-lib libminiupnpc-static)
+		# Add include directory for miniupnpc (holepunch.c uses #include <miniupnpc/miniupnpc.h>)
+		# miniupnpc headers are in _SOURCE_DIR/miniupnpc/include/ but we need miniupnpc/ subdir
+		file(MAKE_DIRECTORY ${miniupnpc_SOURCE_DIR}/miniupnpc/include/miniupnpc)
+		file(GLOB MINIUPNPC_HEADERS "${miniupnpc_SOURCE_DIR}/miniupnpc/include/*.h")
+		foreach(header ${MINIUPNPC_HEADERS})
+			get_filename_component(header_name ${header} NAME)
+			file(CREATE_LINK ${header} ${miniupnpc_SOURCE_DIR}/miniupnpc/include/miniupnpc/${header_name} COPY_ON_ERROR)
+		endforeach()
+		target_include_directories(chiaki-lib PRIVATE ${miniupnpc_SOURCE_DIR}/miniupnpc/include)
+	else()
+		find_package(PkgConfig REQUIRED)
+		pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
+		target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
+	endif()
+endif()
 
 target_link_libraries(chiaki-lib CURL::libcurl)
 

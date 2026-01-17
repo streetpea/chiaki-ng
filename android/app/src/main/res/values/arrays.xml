@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="mapping_button_entries">
+        <item>Button A</item>
+        <item>Button B</item>
+        <item>Button X</item>
+        <item>Button Y</item>
+        <item>L1 (Bumper)</item>
+        <item>R1 (Bumper)</item>
+        <item>L2 (Trigger)</item>
+        <item>R2 (Trigger)</item>
+        <item>L3 (Stick Click)</item>
+        <item>R3 (Stick Click)</item>
+        <item>Start / Options</item>
+        <item>Select / Share</item>
+        <item>Mode / PS</item>
+        <item>Button 1</item>
+        <item>Button 2</item>
+        <item>Button 3</item>
+        <item>Button 4</item>
+        <item>Button 5</item>
+        <item>Button 6</item>
+        <item>Button 7</item>
+        <item>Button 8</item>
+    </string-array>
+    <string-array name="mapping_button_values">
+        <item>96</item>
+        <item>97</item>
+        <item>99</item>
+        <item>100</item>
+        <item>102</item>
+        <item>103</item>
+        <item>104</item>
+        <item>105</item>
+        <item>106</item>
+        <item>107</item>
+        <item>108</item>
+        <item>109</item>
+        <item>110</item>
+        <item>188</item>
+        <item>189</item>
+        <item>190</item>
+        <item>191</item>
+        <item>192</item>
+        <item>193</item>
+        <item>194</item>
+        <item>195</item>
+    </string-array>
+</resources>
