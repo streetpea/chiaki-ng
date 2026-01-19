@@ -88,6 +88,7 @@ typedef struct chiaki_connect_info_t
 	chiaki_socket_t *rudp_sock;
 	uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
 	double packet_loss_max;
+	bool enable_idr_on_fec_failure;
 } ChiakiConnectInfo;
 
 
@@ -217,6 +218,7 @@ typedef struct chiaki_session_t
 		bool enable_keyboard;
 		bool enable_dualsense;
 		uint8_t psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE];
+		bool enable_idr_on_fec_failure;
 	} connect_info;
 
 	ChiakiTarget target;
