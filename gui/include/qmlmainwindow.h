@@ -14,6 +14,7 @@ extern "C" {
 #include <libplacebo/options.h>
 #include <libplacebo/vulkan.h>
 #include <libplacebo/renderer.h>
+#include <libplacebo/utils/frame_queue.h>
 #include <libplacebo/log.h>
 #include <libplacebo/cache.h>
 }
@@ -70,6 +71,7 @@ public:
 
     bool hasVideo() const;
     int droppedFrames() const;
+    void increaseDroppedFrames();
 
     bool directStream() const;
 
@@ -93,6 +95,8 @@ public:
     bool isStreamWindowAdjustable() { return is_stream_window_adjustable; }
     void setStreamWindowAdjustable(bool adjustable) { is_stream_window_adjustable = adjustable; }
 
+    QmlBackend *getBackend();
+
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
 
@@ -101,7 +105,7 @@ public:
 
     void updatePlacebo();
     void show();
-    void presentFrame(AVFrame *frame, int32_t frames_lost);
+    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost);
 
     AVBufferRef *vulkanHwDeviceCtx();
 
@@ -132,6 +136,15 @@ private:
     QObject *focusObject() const override;
 
     bool has_video = false;
+    struct pl_queue_params qparams{
+    .drift_compensation = 1e-3,
+    .interpolation_threshold = 0.01,
+    .timeout = 0,
+    };
+    struct pl_frame_mix frame_mix;
+    uint64_t ts_start = 0;
+    double queue_pts_origin = -1.0;
+    bool playback_started = false;
     bool was_maximized = false;
     bool amd_card = false;
     bool direct_stream = false;
@@ -157,15 +170,12 @@ private:
     pl_vulkan placebo_vulkan = {};
     pl_swapchain placebo_swapchain = {};
     pl_renderer placebo_renderer = {};
+    pl_queue placebo_queue = {};
     std::array<pl_tex, 8> placebo_tex{};
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     int vk_decode_queue_index = -1;
     QSize swapchain_size;
-    QMutex frame_mutex;
     QThread *render_thread = {};
-    AVFrame *av_frame = {};
-    pl_frame current_frame = {};
-    pl_frame previous_frame = {};
     std::atomic<bool> render_scheduled = {false};
 
     QVulkanInstance *qt_vk_inst = {};
