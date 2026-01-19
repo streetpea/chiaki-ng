@@ -75,6 +75,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(bool mouseTouchEnabled READ mouseTouchEnabled WRITE setMouseTouchEnabled NOTIFY mouseTouchEnabledChanged)
     Q_PROPERTY(bool keyboardEnabled READ keyboardEnabled WRITE setKeyboardEnabled NOTIFY keyboardEnabledChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
+    Q_PROPERTY(bool iDROnFECFailureEnabled READ iDROnFECFailureEnabled WRITE setIDROnFECFailureEnabled NOTIFY iDROnFECFailureEnabledChanged)
     Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
     Q_PROPERTY(uint dpadTouchShortcut1 READ dpadTouchShortcut1 WRITE setDpadTouchShortcut1 NOTIFY dpadTouchShortcut1Changed)
     Q_PROPERTY(uint dpadTouchShortcut2 READ dpadTouchShortcut2 WRITE setDpadTouchShortcut2 NOTIFY dpadTouchShortcut2Changed)
@@ -203,6 +204,9 @@ public:
 
     bool buttonsByPosition() const;
     void setButtonsByPosition(bool buttonsByPosition);
+
+    bool iDROnFECFailureEnabled() const;
+    void setIDROnFECFailureEnabled(bool enabled);
 
     bool allowJoystickBackgroundEvents() const;
     void setAllowJoystickBackgroundEvents(bool allowJoystickBackgroundEvents);
@@ -638,6 +642,7 @@ signals:
     void streamMenuShortcut4Changed();
     void controllerMappingChanged();
     void packetLossMaxChanged();
+    void iDROnFECFailureEnabledChanged();
     void currentProfileChanged();
     void profilesChanged();
     void placeboUpscalerChanged();

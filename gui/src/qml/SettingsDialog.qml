@@ -1548,8 +1548,25 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
+                            text: qsTr("Request IDR Frame on FEC Failure")
+                        }
+
+                        C.CheckBox {
+                            lastInFocusChain: true
+                            checked: Chiaki.settings.iDROnFECFailureEnabled
+                            onToggled: Chiaki.settings.iDROnFECFailureEnabled = !Chiaki.settings.iDROnFECFailureEnabled
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Checked)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
                             text: qsTr("Show Stream Stats During Gameplay")
                         }
+
                         C.CheckBox {
                             lastInFocusChain: true
                             checked: Chiaki.settings.showStreamStats

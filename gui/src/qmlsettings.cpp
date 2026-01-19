@@ -192,6 +192,17 @@ void QmlSettings::setRumbleHapticsIntensity(int intensity)
     emit rumbleHapticsIntensityChanged();
 }
 
+bool QmlSettings::iDROnFECFailureEnabled() const
+{
+    return settings->GetIDROnFECFailureEnabled();
+}
+
+void QmlSettings::setIDROnFECFailureEnabled(bool enabled)
+{
+    settings->SetIDROnFECFailureEnabled(enabled);
+    emit iDROnFECFailureEnabledChanged();
+}
+
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 bool QmlSettings::steamDeckHaptics() const
 {
