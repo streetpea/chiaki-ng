@@ -2,6 +2,7 @@
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
 #include "chiaki/log.h"
+#include "chiaki/time.h"
 #include "streamsession.h"
 
 #include <qpa/qplatformnativeinterface.h>
@@ -47,6 +48,47 @@ static void placebo_log_cb(void *user, pl_log_level level, const char *msg)
         qCCritical(chiakiGui).noquote() << "[libplacebo]" << msg;
         break;
     }
+}
+
+static bool map_frame(pl_gpu gpu, pl_tex *tex,
+                      const struct pl_source_frame *src,
+                      struct pl_frame *out_frame)
+{
+    AVFrame *frame = reinterpret_cast<AVFrame *>(src->frame_data);
+    QmlMainWindow *q = reinterpret_cast<QmlMainWindow *>(frame->opaque);
+    pl_avframe_params av_params{
+        .frame      = frame,
+        .tex        = tex,};
+    bool ok = pl_map_avframe_ex(gpu, out_frame, &av_params
+    );
+
+    av_frame_free(&frame); // references are preserved by `out_frame`
+    if (!ok) {
+        fprintf(stderr, "Failed mapping AVFrame!\n");
+        qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
+        if(q->getBackend() && q->getBackend()->zeroCopy())
+        {
+            qCInfo(chiakiGui) << "Mapping frame failed, trying without zero copy!";
+            q->getBackend()->disableZeroCopy();
+        }
+        return false;
+    }
+    return true;
+}
+
+static void unmap_frame(pl_gpu gpu, struct pl_frame *frame,
+                        const struct pl_source_frame *src)
+{
+    pl_unmap_avframe(gpu, frame);
+}
+
+static void discard_frame(const struct pl_source_frame *src)
+{
+    AVFrame *frame = reinterpret_cast<AVFrame *>(src->frame_data);
+    QmlMainWindow *q = reinterpret_cast<QmlMainWindow *>(frame->opaque);
+    q->increaseDroppedFrames();
+    av_frame_free(&frame);
+    qCInfo(chiakiGui) << "Dropped frame with PTS" << src->pts;
 }
 
 static QString shader_cache_path()
@@ -126,9 +168,6 @@ QmlMainWindow::~QmlMainWindow()
 
     av_buffer_unref(&vulkan_hw_dev_ctx);
 
-    pl_unmap_avframe(placebo_vulkan->gpu, &current_frame);
-    pl_unmap_avframe(placebo_vulkan->gpu, &previous_frame);
-
     pl_tex_destroy(placebo_vulkan->gpu, &quick_tex);
     pl_vulkan_sem_destroy(placebo_vulkan->gpu, &quick_sem);
 
@@ -141,6 +180,7 @@ QmlMainWindow::~QmlMainWindow()
         fclose(file);
     }
     pl_cache_destroy(&placebo_cache);
+    pl_queue_destroy(&placebo_queue);
     pl_renderer_destroy(&placebo_renderer);
     pl_vulkan_destroy(&placebo_vulkan);
     pl_vk_inst_destroy(&placebo_vk_inst);
@@ -184,9 +224,19 @@ int QmlMainWindow::droppedFrames() const
     return dropped_frames;
 }
 
+void QmlMainWindow::increaseDroppedFrames()
+{
+    dropped_frames++;
+}
+
 bool QmlMainWindow::keepVideo() const
 {
     return keep_video;
+}
+
+QmlBackend * QmlMainWindow::getBackend()
+{
+    return backend;
 }
 
 void QmlMainWindow::setKeepVideo(bool keep)
@@ -299,17 +349,33 @@ void QmlMainWindow::show()
     }
 }
 
-void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
+void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 {
-    frame_mutex.lock();
-    if (av_frame) {
-        qCDebug(chiakiGui) << "Dropping rendering frame";
-        dropped_frames_current++;
-        av_frame_free(&av_frame);
-    }
-    av_frame = frame;
-    frame_mutex.unlock();
+    if (!frame.frame)
+        return;
 
+    frame.frame->opaque = this;
+
+    if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
+        pl_queue_reset(placebo_queue);
+        ts_start = 0;
+        queue_pts_origin = frame.pts;
+        playback_started = false;
+    }
+
+    struct pl_source_frame src_frame{
+        .pts = frame.pts - queue_pts_origin,
+        .duration = static_cast<float>(frame.duration),
+        // allow soft-disabling deinterlacing at the source frame level
+        .first_field = this->renderparams_opts->params.deinterlace_params
+            ? pl_field_from_avframe(frame.frame)
+                : PL_FIELD_NONE,
+        .frame_data = frame.frame,
+        .map = map_frame,
+        .unmap = unmap_frame,
+        .discard = discard_frame,
+    };
+    pl_queue_push(placebo_queue, &src_frame);
     dropped_frames_current += frames_lost;
 
     if (!has_video) {
@@ -318,8 +384,7 @@ void QmlMainWindow::presentFrame(AVFrame *frame, int32_t frames_lost)
             setCursor(Qt::BlankCursor);
         emit hasVideoChanged();
     }
-
-    update();
+    scheduleUpdate();
 }
 
 AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
@@ -489,6 +554,8 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         placebo_vulkan->gpu
     );
 
+    placebo_queue = pl_queue_create(placebo_vulkan->gpu);
+
     struct pl_vulkan_sem_params sem_params = {
         .type = VK_SEMAPHORE_TYPE_TIMELINE,
     };
@@ -519,6 +586,11 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         session = s;
         grab_input = 0;
+        update_timer->stop();
+        pl_queue_reset(placebo_queue);
+        queue_pts_origin = -1.0;
+        playback_started = false;
+        ts_start = 0;
         if (has_video) {
             has_video = false;
             setCursor(Qt::ArrowCursor);
@@ -661,8 +733,13 @@ void QmlMainWindow::scheduleUpdate()
 {
     Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
 
-    if (!update_timer->isActive())
-        update_timer->start(has_video ? 50 : 10);
+    if (!update_timer->isActive()) {
+        double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
+        if (refresh_rate <= 1.0)
+            refresh_rate = 60.0;
+        int interval_ms = has_video ? qMax(1, (int)(1000.0 / refresh_rate)) : 10;
+        update_timer->start(interval_ms);
+    }
 }
 
 void QmlMainWindow::updatePlacebo()
@@ -836,37 +913,64 @@ void QmlMainWindow::render()
     if (!placebo_swapchain)
         return;
 
-    AVFrame *frame = nullptr;
-    pl_tex *tex = &placebo_tex[0];
-
-    frame_mutex.lock();
-    if (av_frame || (!has_video && !keep_video)) {
-        pl_unmap_avframe(placebo_vulkan->gpu, &previous_frame);
-        if (av_frame && av_frame->decode_error_flags) {
-            std::swap(previous_frame, current_frame);
-            if (previous_frame.planes[0].texture == *tex)
-                tex = &placebo_tex[4];
-        }
-        pl_unmap_avframe(placebo_vulkan->gpu, &current_frame);
-        std::swap(frame, av_frame);
-    }
-    frame_mutex.unlock();
-
-    if (frame) {
-        struct pl_avframe_params avparams = {
-            .frame = frame,
-            .tex = tex,
-        };
-        if (!pl_map_avframe_ex(placebo_vulkan->gpu, &current_frame, &avparams))
-        {
-            qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
-            if(backend && backend->zeroCopy())
-            {
-                qCInfo(chiakiGui) << "Mapping frame failed, trying without zero copy!";
-                backend->disableZeroCopy();
+    const struct pl_render_params *render_params = &pl_render_default_params;
+    switch (video_preset) {
+    case VideoPreset::Fast:
+        render_params = &pl_render_fast_params;
+        break;
+    case VideoPreset::Default:
+        render_params = &pl_render_default_params;
+        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
+        if (render_params->deinterlace_params)
+            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+        break;
+    case VideoPreset::HighQuality:
+        render_params = &pl_render_high_quality_params;
+        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
+        if (render_params->deinterlace_params)
+            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+        break;
+    case VideoPreset::Custom:
+        if (renderparams_changed) {
+            renderparams_changed = false;
+            QMap<QString, QString> paramsData = settings->GetPlaceboValues();
+            QMapIterator<QString, QString> i(paramsData);
+            bool invalid_render_params = false;
+            pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
+            if (pl_render_default_params.deinterlace_params)
+                memcpy(&this->renderparams_opts->params.deinterlace_params, pl_render_default_params.deinterlace_params, sizeof(struct pl_deinterlace_params));
+            while (i.hasNext()) {
+                i.next();
+                if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
+                {
+                    invalid_render_params = true;
+                    qCCritical(chiakiGui) << "Failed to load custom render param: " << i.key() << " with value: " << i.value();
+                }
             }
+            if (invalid_render_params)
+                qCInfo(chiakiGui) << "Updated custom render parameters with one or more invalid parameters.";
+            else
+                qCInfo(chiakiGui) << "Updated custom render parameters successfully.";
         }
-        av_frame_free(&frame);
+        render_params = &(this->renderparams_opts->params);
+        break;
+    }
+
+    uint64_t ts_pre_update = chiaki_time_now_monotonic_us();
+    double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
+    if (refresh_rate <= 1.0)
+        refresh_rate = 60.0;
+    qparams.timeout = 0;
+    qparams.radius = pl_frame_mix_radius(render_params);
+    qparams.vsync_duration = 1.0 / refresh_rate;
+    qparams.pts = playback_started ? (double)(ts_pre_update - ts_start) / 1000000.0 : 0.0;
+    switch (pl_queue_update(placebo_queue, &frame_mix, &qparams)) {
+    case PL_QUEUE_ERR:
+        return;
+    case PL_QUEUE_EOF:
+    case PL_QUEUE_OK:
+    case PL_QUEUE_MORE:
+        break;
     }
 
     struct pl_swapchain_frame sw_frame = {};
@@ -885,7 +989,9 @@ void QmlMainWindow::render()
     int target_contrast = settings->GetDisplayTargetContrast() && session ? settings->GetDisplayTargetContrast(): 0;
     int target_prim = settings->GetDisplayTargetPrim() && session ? settings->GetDisplayTargetPrim(): 0;
     int target_trc = settings->GetDisplayTargetTrc() && session ? settings->GetDisplayTargetTrc(): 0;
-    struct pl_color_space hint = current_frame.color;
+    struct pl_color_space hint = frame_mix.num_frames
+        ? frame_mix.frames[frame_mix.num_frames - 1]->color
+        : pl_color_space{};
 
     if(target_trc)
         hint.transfer = static_cast<pl_color_transfer>(target_trc);
@@ -922,6 +1028,19 @@ void QmlMainWindow::render()
 
     struct pl_frame target_frame = {};
     pl_frame_from_swapchain(&target_frame, &sw_frame);
+    struct pl_overlay_part overlay_part = {
+        .src = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
+        .dst = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
+    };
+    struct pl_overlay overlay = {
+        .tex = quick_tex,
+        .repr = pl_color_repr_rgb,
+        .color = pl_color_space_srgb,
+        .parts = &overlay_part,
+        .num_parts = 1,
+    };
+    target_frame.overlays = &overlay;
+    target_frame.num_overlays = 1;
     if(target_prim)
     {
         target_frame.color.primaries = static_cast<pl_color_primaries>(target_prim);
@@ -964,57 +1083,8 @@ void QmlMainWindow::render()
     }
     endFrame();
 
-    struct pl_overlay_part overlay_part = {
-        .src = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
-        .dst = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
-    };
-    struct pl_overlay overlay = {
-        .tex = quick_tex,
-        .repr = pl_color_repr_rgb,
-        .color = pl_color_space_srgb,
-        .parts = &overlay_part,
-        .num_parts = 1,
-    };
-    target_frame.overlays = &overlay;
-    target_frame.num_overlays = 1;
-
-    const struct pl_render_params *render_params;
-    switch (video_preset) {
-    case VideoPreset::Fast:
-        render_params = &pl_render_fast_params;
-        break;
-    case VideoPreset::Default:
-        render_params = &pl_render_default_params;
-        break;
-    case VideoPreset::HighQuality:
-        render_params = &pl_render_high_quality_params;
-        break;
-    case VideoPreset::Custom:
-        if (renderparams_changed) {
-            renderparams_changed = false;
-            QMap<QString, QString> paramsData = settings->GetPlaceboValues();
-            QMapIterator<QString, QString> i(paramsData);
-            bool invalid_render_params = false;
-            while (i.hasNext()) {
-                i.next();
-                if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
-                {
-                    invalid_render_params = true;
-                    qCCritical(chiakiGui) << "Failed to load custom render param: " << i.key() << " with value: " << i.value();
-                }
-            }
-            if (invalid_render_params)
-                qCInfo(chiakiGui) << "Updated custom render parameters with one or more invalid parameters.";
-            else {
-                qCInfo(chiakiGui) << "Updated custom render parameters successfully.";
-            }
-        }
-        render_params = &(this->renderparams_opts->params);
-        break;
-    }
-
-    if (current_frame.num_planes) {
-        pl_rect2df crop = current_frame.crop;
+    if (frame_mix.num_frames) {
+        pl_rect2df crop = frame_mix.frames[0]->crop;
         switch (video_mode) {
         case VideoMode::Normal:
             pl_rect2df_aspect_copy(&target_frame.crop, &crop, 0.0);
@@ -1036,31 +1106,31 @@ void QmlMainWindow::render()
         }
     }
 
-    if (current_frame.num_planes && previous_frame.num_planes) {
-        const struct pl_frame *frames[] = { &previous_frame, &current_frame, };
-        const uint64_t sig = QDateTime::currentMSecsSinceEpoch();
-        const uint64_t signatures[] = { sig, sig + 1 };
-        const float timestamps[] = { -0.5, 0.5 };
-        struct pl_frame_mix frame_mix = {
-            .num_frames = 2,
-            .frames = frames,
-            .signatures = signatures,
-            .timestamps = timestamps,
-            .vsync_duration = 1.0,
-        };
-        struct pl_render_params params = *render_params;
-        params.frame_mixer = pl_find_filter_config("linear", PL_FILTER_FRAME_MIXING);
-        if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
-            qCWarning(chiakiGui) << "Failed to render Placebo frame!";
-    } else {
-        if (!pl_render_image(placebo_renderer, current_frame.num_planes ? &current_frame : nullptr, &target_frame, render_params))
-            qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+    struct pl_render_params params = *render_params;
+    // Disable background transparency by default if the swapchain does not
+    // appear to support alpha transaprency
+    if (sw_frame.color_repr.alpha == PL_ALPHA_NONE)
+        params.background_transparency = 0.0;
+    params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+    if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
+    {
+        qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+        return;
     }
 
     if (!pl_swapchain_submit_frame(placebo_swapchain))
         qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
 
     pl_swapchain_swap_buffers(placebo_swapchain);
+
+    if (!playback_started) {
+        pl_gpu_finish(placebo_vulkan->gpu);
+        ts_start = chiaki_time_now_monotonic_us();
+        playback_started = true;
+    }
+
+    if (isExposed())
+        QMetaObject::invokeMethod(this, std::bind(&QmlMainWindow::scheduleUpdate, this), Qt::QueuedConnection);
 }
 
 bool QmlMainWindow::handleShortcut(QKeyEvent *event)

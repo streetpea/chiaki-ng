@@ -156,7 +156,6 @@ send_packet:
 	}
 	av_packet_free(&packet);
 	chiaki_mutex_unlock(&decoder->mutex);
-
 	decoder->frame_available_cb(decoder, decoder->frame_available_cb_user);
 	return true;
 hell:
@@ -165,7 +164,7 @@ hell:
 	return false;
 }
 
-CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, int32_t *frames_lost)
+CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, int32_t *frames_lost)
 {
 	chiaki_mutex_lock(&decoder->mutex);
 	// always try to pull as much as possible and return only the very last frame
@@ -206,7 +205,47 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 	decoder->frames_lost = 0;
 	chiaki_mutex_unlock(&decoder->mutex);
 
-	return frame;
+	ChiakiFfmpegFrame frame_plus_stats = {};
+	frame_plus_stats.frame = frame;
+	if(frame)
+	{
+		chiaki_ffmpeg_frame_get_timing(
+			frame,
+			decoder->codec_context->pkt_timebase,
+			decoder->codec_context->time_base,
+			decoder->codec_context->framerate,
+			&frame_plus_stats.pts,
+			&frame_plus_stats.duration);
+	}
+
+	return frame_plus_stats;
+}
+
+CHIAKI_EXPORT void chiaki_ffmpeg_frame_get_timing(
+	AVFrame *frame,
+	AVRational pkt_timebase,
+	AVRational ctx_timebase,
+	AVRational framerate,
+	double *out_pts,
+	double *out_duration)
+{
+	AVRational time_base = pkt_timebase;
+	if(time_base.num <= 0 || time_base.den <= 0)
+		time_base = ctx_timebase;
+	if(time_base.num <= 0 || time_base.den <= 0)
+		time_base = (AVRational){1, 1000000};
+
+	int64_t pts = frame->best_effort_timestamp;
+	if(pts == AV_NOPTS_VALUE)
+		pts = frame->pts;
+	if(pts == AV_NOPTS_VALUE)
+		pts = 0;
+	*out_pts = av_q2d(time_base) * (double)pts;
+
+	double fps = (framerate.num > 0 && framerate.den > 0) ? av_q2d(framerate) : 60.0;
+	if(fps <= 0.0)
+		fps = 60.0;
+	*out_duration = 1.0 / fps;
 }
 
 CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFfmpegDecoder *decoder)
