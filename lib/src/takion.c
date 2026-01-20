@@ -915,6 +915,7 @@ static void takion_data_drop(uint64_t seq_num, void *elem_user, void *cb_user)
 static void *takion_thread_func(void *user)
 {
 	ChiakiTakion *takion = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_TAKION);
 
 	uint32_t seq_num_remote_initial;
 	if(takion_handshake(takion, &seq_num_remote_initial) != CHIAKI_ERR_SUCCESS)

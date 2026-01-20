@@ -231,6 +231,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(ChiakiTarget 
 static void *regist_thread_func(void *user)
 {
 	ChiakiRegist *regist = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_REGIST);
 
 	bool canceled = false;
 	bool success = false;

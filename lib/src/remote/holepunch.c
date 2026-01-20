@@ -1962,6 +1962,7 @@ static void random_uuidv4(char* out)
 */
 static void* websocket_thread_func(void *user) {
     Session* session = (Session*) user;
+    chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_HOLEPUNCH);
 
     char ws_url[128] = {0};
     snprintf(ws_url, sizeof(ws_url), "wss://%s/np/pushNotification", session->ws_fqdn);

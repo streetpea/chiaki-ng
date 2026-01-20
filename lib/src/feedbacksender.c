@@ -244,6 +244,7 @@ static bool state_cond_check(void *user)
 static void *feedback_sender_thread_func(void *user)
 {
 	ChiakiFeedbackSender *feedback_sender = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_FEEDBACK);
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&feedback_sender->state_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)

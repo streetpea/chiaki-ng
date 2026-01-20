@@ -256,6 +256,7 @@ static bool rudp_send_buffer_check_pred_no_packets(void *user)
 static void *rudp_send_buffer_thread_func(void *user)
 {
 	ChiakiRudpSendBuffer *send_buffer = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_RUDP_SEND);
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&send_buffer->mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
