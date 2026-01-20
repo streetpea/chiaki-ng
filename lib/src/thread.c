@@ -131,6 +131,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_set_name(ChiakiThread *thread, const
 	return CHIAKI_ERR_SUCCESS;
 }
 
+static ChiakiThreadAffinityFunc g_affinity_cb = NULL;
+static void *g_affinity_cb_user = NULL;
+
+CHIAKI_EXPORT void chiaki_thread_set_affinity(ChiakiThreadName name)
+{
+	if(g_affinity_cb)
+		g_affinity_cb(name, g_affinity_cb_user);
+}
+
+CHIAKI_EXPORT void chiaki_thread_set_affinity_cb(ChiakiThreadAffinityFunc func, void *user)
+{
+	g_affinity_cb = func;
+	g_affinity_cb_user = user;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex, bool rec)
 {
 #if _WIN32

@@ -206,6 +206,7 @@ static bool takion_send_buffer_check_pred_no_packets(void *user)
 static void *takion_send_buffer_thread_func(void *user)
 {
 	ChiakiTakionSendBuffer *send_buffer = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_TAKION_SEND);
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&send_buffer->mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
