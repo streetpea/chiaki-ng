@@ -14,7 +14,7 @@ jobs:
       triplet: x64-windows
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       dep_folder: deps
-      libplacebo_tag: 69653ceb2d029de937880662dcfa849eb85f0682
+      libplacebo_tag: 1dcaea8b601aa969ffd5bfa70088957ce3eaa273
 
     defaults:
       run:
