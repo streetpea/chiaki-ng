@@ -40,6 +40,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 
 	fun shutdown()
 	{
+		Log.i("StreamSession", "Shutting down session")
 		session?.stop()
 		session?.dispose()
 		session = null
@@ -49,13 +50,16 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 
 	fun pause()
 	{
+		Log.i("StreamSession", "Pausing session")
 		shutdown()
 	}
 
 	fun resume()
 	{
 		if(session != null)
+		{
 			return
+		}
 		try
 		{
 			val session = Session(connectInfo, logManager.createNewFile().file.absolutePath, logVerbose)
@@ -69,6 +73,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 		}
 		catch(e: CreateError)
 		{
+			Log.e("StreamSession", "Failed to create session: ${e.errorCode}", e)
 			_state.value = StreamStateCreateError(e)
 		}
 	}
@@ -77,19 +82,27 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 	{
 		when(event)
 		{
-			is ConnectedEvent -> _state.postValue(StreamStateConnected)
-			is QuitEvent -> _state.postValue(
-				StreamStateQuit(
-					event.reason,
-					event.reasonString
+			is ConnectedEvent -> {
+				_state.postValue(StreamStateConnected)
+			}
+			is QuitEvent -> {
+				_state.postValue(
+					StreamStateQuit(
+						event.reason,
+						event.reasonString
+					)
 				)
-			)
-			is LoginPinRequestEvent -> _state.postValue(
-				StreamStateLoginPinRequest(
-					event.pinIncorrect
+			}
+			is LoginPinRequestEvent -> {
+				_state.postValue(
+					StreamStateLoginPinRequest(
+						event.pinIncorrect
+					)
 				)
-			)
-			is RumbleEvent -> _rumbleState.postValue(event)
+			}
+			is RumbleEvent -> {
+				_rumbleState.postValue(event)
+			}
 		}
 	}
 

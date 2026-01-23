@@ -126,39 +126,60 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		if(event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP)
 			return false
 
-		when(event.keyCode)
+		// Create reverse mapping from keycode to button key
+		val keyCodeToButton = mapOf(
+			preferences.getButtonMapping("cross") to "cross",
+			preferences.getButtonMapping("moon") to "moon",
+			preferences.getButtonMapping("box") to "box",
+			preferences.getButtonMapping("pyramid") to "pyramid",
+			preferences.getButtonMapping("l1") to "l1",
+			preferences.getButtonMapping("r1") to "r1",
+			preferences.getButtonMapping("l2") to "l2",
+			preferences.getButtonMapping("r2") to "r2",
+			preferences.getButtonMapping("l3") to "l3",
+			preferences.getButtonMapping("r3") to "r3",
+			preferences.getButtonMapping("options") to "options",
+			preferences.getButtonMapping("share") to "share",
+			preferences.getButtonMapping("ps") to "ps",
+			preferences.getButtonMapping("touchpad") to "touchpad"
+		)
+
+		val buttonKey = keyCodeToButton[event.keyCode]
+
+		// Handle L2/R2 triggers (analog)
+		if (buttonKey == "l2")
 		{
-			KeyEvent.KEYCODE_BUTTON_L2 -> {
-				keyControllerState.l2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
-				return true
-			}
-			KeyEvent.KEYCODE_BUTTON_R2 -> {
-				keyControllerState.r2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
-				return true
-			}
+			keyControllerState.l2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
+			controllerStateUpdated()
+			return true
+		}
+		if (buttonKey == "r2")
+		{
+			keyControllerState.r2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
+			controllerStateUpdated()
+			return true
 		}
 
-		val buttonMask: UInt = when(event.keyCode)
+		// Map button key to controller state button mask
+		val buttonMask: UInt? = when(buttonKey)
 		{
-			// dpad handled by MotionEvents
-			//KeyEvent.KEYCODE_DPAD_LEFT -> ControllerState.BUTTON_DPAD_LEFT
-			//KeyEvent.KEYCODE_DPAD_RIGHT -> ControllerState.BUTTON_DPAD_RIGHT
-			//KeyEvent.KEYCODE_DPAD_UP -> ControllerState.BUTTON_DPAD_UP
-			//KeyEvent.KEYCODE_DPAD_DOWN -> ControllerState.BUTTON_DPAD_DOWN
-			KeyEvent.KEYCODE_BUTTON_A -> if(swapCrossMoon) ControllerState.BUTTON_MOON else ControllerState.BUTTON_CROSS
-			KeyEvent.KEYCODE_BUTTON_B -> if(swapCrossMoon) ControllerState.BUTTON_CROSS else ControllerState.BUTTON_MOON
-			KeyEvent.KEYCODE_BUTTON_X -> if(swapCrossMoon) ControllerState.BUTTON_PYRAMID else ControllerState.BUTTON_BOX
-			KeyEvent.KEYCODE_BUTTON_Y -> if(swapCrossMoon) ControllerState.BUTTON_BOX else ControllerState.BUTTON_PYRAMID
-			KeyEvent.KEYCODE_BUTTON_L1 -> ControllerState.BUTTON_L1
-			KeyEvent.KEYCODE_BUTTON_R1 -> ControllerState.BUTTON_R1
-			KeyEvent.KEYCODE_BUTTON_THUMBL -> ControllerState.BUTTON_L3
-			KeyEvent.KEYCODE_BUTTON_THUMBR -> ControllerState.BUTTON_R3
-			KeyEvent.KEYCODE_BUTTON_SELECT -> ControllerState.BUTTON_SHARE
-			KeyEvent.KEYCODE_BUTTON_START -> ControllerState.BUTTON_OPTIONS
-			KeyEvent.KEYCODE_BUTTON_C -> ControllerState.BUTTON_PS
-			KeyEvent.KEYCODE_BUTTON_MODE -> ControllerState.BUTTON_PS
-			else -> return false
+			"cross" -> if(swapCrossMoon) ControllerState.BUTTON_MOON else ControllerState.BUTTON_CROSS
+			"moon" -> if(swapCrossMoon) ControllerState.BUTTON_CROSS else ControllerState.BUTTON_MOON
+			"box" -> if(swapCrossMoon) ControllerState.BUTTON_PYRAMID else ControllerState.BUTTON_BOX
+			"pyramid" -> if(swapCrossMoon) ControllerState.BUTTON_BOX else ControllerState.BUTTON_PYRAMID
+			"l1" -> ControllerState.BUTTON_L1
+			"r1" -> ControllerState.BUTTON_R1
+			"l3" -> ControllerState.BUTTON_L3
+			"r3" -> ControllerState.BUTTON_R3
+			"options" -> ControllerState.BUTTON_OPTIONS
+			"share" -> ControllerState.BUTTON_SHARE
+			"ps" -> ControllerState.BUTTON_PS
+			"touchpad" -> ControllerState.BUTTON_TOUCHPAD
+			else -> null
 		}
+
+		if (buttonMask == null)
+			return false
 
 		keyControllerState.buttons = keyControllerState.buttons.run {
 			when(event.action)

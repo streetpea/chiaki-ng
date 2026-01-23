@@ -136,4 +136,46 @@ class Preferences(context: Context)
 		else
 			it.copy(bitrate = bitrate)
 	}
+
+	// Button Mapping
+	fun getButtonMapping(buttonKey: String): Int =
+		sharedPreferences.getInt("button_mapping_$buttonKey", getDefaultButtonMapping(buttonKey))
+
+	fun saveButtonMapping(buttonKey: String, keyCode: Int)
+	{
+		sharedPreferences.edit().putInt("button_mapping_$buttonKey", keyCode).apply()
+	}
+
+	fun clearButtonMapping(buttonKey: String)
+	{
+		saveButtonMapping(buttonKey, -1)
+	}
+
+	fun resetButtonMappingsToDefault()
+	{
+		val buttons = listOf("cross", "moon", "box", "pyramid", "l1", "r1", "l2", "r2", 
+			"l3", "r3", "options", "share", "ps", "touchpad")
+		buttons.forEach { buttonKey ->
+			saveButtonMapping(buttonKey, getDefaultButtonMapping(buttonKey))
+		}
+	}
+
+	private fun getDefaultButtonMapping(buttonKey: String): Int = when(buttonKey)
+	{
+		"cross" -> android.view.KeyEvent.KEYCODE_BUTTON_A
+		"moon" -> android.view.KeyEvent.KEYCODE_BUTTON_B
+		"box" -> android.view.KeyEvent.KEYCODE_BUTTON_X
+		"pyramid" -> android.view.KeyEvent.KEYCODE_BUTTON_Y
+		"l1" -> android.view.KeyEvent.KEYCODE_BUTTON_L1
+		"r1" -> android.view.KeyEvent.KEYCODE_BUTTON_R1
+		"l2" -> android.view.KeyEvent.KEYCODE_BUTTON_L2
+		"r2" -> android.view.KeyEvent.KEYCODE_BUTTON_R2
+		"l3" -> android.view.KeyEvent.KEYCODE_BUTTON_THUMBL
+		"r3" -> android.view.KeyEvent.KEYCODE_BUTTON_THUMBR
+		"options" -> android.view.KeyEvent.KEYCODE_BUTTON_START
+		"share" -> android.view.KeyEvent.KEYCODE_BUTTON_SELECT
+		"ps" -> android.view.KeyEvent.KEYCODE_BUTTON_MODE
+		"touchpad" -> android.view.KeyEvent.KEYCODE_BUTTON_C
+		else -> -1
+	}
 }

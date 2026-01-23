@@ -13,6 +13,13 @@
             app:fragment="com.metallic.chiaki.settings.SettingsRegisteredHostsFragment"
             app:icon="@drawable/ic_console_simple"/>
 
+        <Preference
+            app:key="controller_mapping"
+            app:title="@string/preferences_controller_mapping_title"
+            app:summary="@string/preferences_controller_mapping_summary"
+            app:fragment="com.metallic.chiaki.settings.SettingsControllerMappingFragment"
+            app:icon="@drawable/ic_gamepad" />
+
         <SwitchPreference
             app:key="@string/preferences_swap_cross_moon_key"
             app:title="@string/preferences_swap_cross_moon_title"
