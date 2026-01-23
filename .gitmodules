@@ -22,3 +22,9 @@
 [submodule "third-party/cpp-steam-tools"]
 	path = third-party/cpp-steam-tools
 	url = https://github.com/streetpea/cpp-steam-tools.git
+[submodule "third-party/json-c"]
+	path = third-party/json-c
+	url = https://github.com/json-c/json-c.git
+[submodule "third-party/miniupnpc"]
+	path = third-party/miniupnpc
+	url = https://github.com/miniupnp/miniupnp.git

@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
-apply plugin: 'kotlin-kapt'
+apply plugin: 'com.google.devtools.ksp'
 
 def rootCMakeLists = "../../CMakeLists.txt"
 def rootCMakeListsContent = file(rootCMakeLists).text
@@ -18,12 +18,13 @@ def chiakiVersion = "$chiakiVersionMajor.$chiakiVersionMinor.$chiakiVersionPatch
 println("Determined Chiaki Version: $chiakiVersion")
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.2"
+    compileSdk 34
+    buildToolsVersion "34.0.0"
+    namespace "com.metallic.chiaki"
     defaultConfig {
         applicationId "com.metallic.chiaki"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 34
         versionCode 11
         versionName chiakiVersion
         externalNativeBuild {
@@ -36,7 +37,11 @@ android {
                         "-DCHIAKI_ENABLE_FFMPEG_DECODER=OFF",
                         "-DCHIAKI_ENABLE_PI_DECODER=OFF",
                         "-DCHIAKI_LIB_ENABLE_OPUS=OFF",
-                        "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON"
+                        "-DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF",
+                        "-DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF",
+                        "-DCHIAKI_ENABLE_RUDP=OFF",
+                        "-DCHIAKI_LIB_ENABLE_MBEDTLS=ON",
+                        "-DCHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT=ON"
             }
         }
     }
@@ -44,15 +49,15 @@ android {
         viewBinding true
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     externalNativeBuild {
         cmake {
-            version "3.10.2+"
+            version "3.22.1+"
             path rootCMakeLists
         }
     }
@@ -88,7 +93,8 @@ android {
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
-        freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
+        freeCompilerArgs += "-opt-in=kotlin.ExperimentalUnsignedTypes"
+        jvmTarget = "17"
     }
 }
 
@@ -107,11 +113,11 @@ dependencies {
     implementation "io.reactivex.rxjava2:rxjava:2.2.20"
     implementation "io.reactivex.rxjava2:rxkotlin:2.4.0"
     implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
-    def room_version = "2.2.6"
+    def room_version = "2.5.2"
     implementation "androidx.room:room-runtime:$room_version"
-    kapt "androidx.room:room-compiler:$room_version"
+    ksp "androidx.room:room-compiler:$room_version"
     implementation "androidx.room:room-ktx:$room_version"
     implementation "androidx.room:room-rxjava2:$room_version"
     implementation "com.squareup.moshi:moshi:1.9.2"
-    kapt "com.squareup.moshi:moshi-kotlin-codegen:1.9.2"
+    ksp "com.squareup.moshi:moshi-kotlin-codegen:1.9.2"
 }

@@ -134,10 +134,20 @@ target_include_directories(chiaki-lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 find_package(Threads REQUIRED)
 target_link_libraries(chiaki-lib Threads::Threads)
 
+target_link_libraries(chiaki-lib CURL::libcurl)
+
+# json-c and miniupnpc are always needed since RUDP functions are called from session.c/ctrl.c
 if (CHIAKI_IS_SWITCH)
 	find_library(JSONC_LIB json-c ${PORTLIBS}/lib)
 	target_link_libraries(chiaki-lib ${JSONC_LIB})
-	target_include_directories(chiaki-lib PUBLIC "${PORTLIBS}/include/json-c")
+	target_include_directories(chiaki-lib PUBLIC "${PORTLIBS}/include")
+elseif(CHIAKI_ENABLE_ANDROID OR NOT CHIAKI_USE_SYSTEM_JSON_C)
+	# For Android, use the bundled json-c from third-party
+	target_link_libraries(chiaki-lib json-c)
+	# Point directly to json-c header directory
+	target_include_directories(chiaki-lib PRIVATE 
+		"${CMAKE_SOURCE_DIR}/third-party/json-c"
+		"${CMAKE_BINARY_DIR}/third-party/json-c")
 else()
 	find_package(PkgConfig REQUIRED)
 	pkg_search_module(json-c REQUIRED json-c IMPORTED_TARGET)
@@ -145,11 +155,20 @@ else()
 	target_link_libraries(chiaki-lib PkgConfig::json-c)
 endif()
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
-target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
-
-target_link_libraries(chiaki-lib CURL::libcurl)
+if (CHIAKI_IS_SWITCH)
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
+	target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
+elseif(CHIAKI_ENABLE_ANDROID OR NOT CHIAKI_USE_SYSTEM_MINIUPNPC)
+	# For Android, use the bundled miniupnpc from third-party
+	target_link_libraries(chiaki-lib libminiupnpc-static)
+	# Point directly to miniupnpc include directory
+	target_include_directories(chiaki-lib PRIVATE "${CMAKE_SOURCE_DIR}/third-party/miniupnpc/miniupnpc/include")
+else()
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(MINIUPNPC REQUIRED miniupnpc IMPORTED_TARGET)
+	target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
+endif()
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	if(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT)

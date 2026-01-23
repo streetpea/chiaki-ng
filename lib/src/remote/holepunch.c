@@ -50,12 +50,12 @@
 #endif
 
 #include <curl/curl.h>
-#include <json-c/json_object.h>
-#include <json-c/json_tokener.h>
-#include <json-c/json_pointer.h>
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnpcommands.h>
-#include <miniupnpc/upnperrors.h>
+#include <json_object.h>
+#include <json_tokener.h>
+#include <json_pointer.h>
+#include <miniupnpc.h>
+#include <upnpcommands.h>
+#include <upnperrors.h>
 
 #include <chiaki/remote/holepunch.h>
 #include <chiaki/stoppipe.h>
@@ -3266,8 +3266,11 @@ cleanup:
 static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_console_candidate, char *out, size_t out_len)
 {
     ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
+#if !defined(_WIN32) && !defined(__SWITCH__) && !defined(__ANDROID__)
     bool status = false;
+#endif
 #ifdef _WIN32
+    bool status = false;
     PIP_ADAPTER_INFO pAdapterInfo;
     PIP_ADAPTER_INFO pAdapter = NULL;
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
@@ -3345,6 +3348,40 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
         CHIAKI_LOGE(session->log, "Couldn't find a valid external address!");
         return CHIAKI_ERR_NETWORK;
     }
+
+#elif defined(__ANDROID__)
+    // Android API < 24 doesn't have getifaddrs, use gethostname fallback
+    char hostname[256];
+    struct hostent *host_entry;
+    struct in_addr **addr_list;
+    
+    if (gethostname(hostname, sizeof(hostname)) != 0)
+    {
+        CHIAKI_LOGE(session->log, "gethostname failed");
+        return CHIAKI_ERR_NETWORK;
+    }
+    
+    host_entry = gethostbyname(hostname);
+    if (host_entry == NULL)
+    {
+        CHIAKI_LOGE(session->log, "gethostbyname failed");
+        return CHIAKI_ERR_NETWORK;
+    }
+    
+    addr_list = (struct in_addr **)host_entry->h_addr_list;
+    if (addr_list[0] == NULL)
+    {
+        CHIAKI_LOGE(session->log, "No addresses found");
+        return CHIAKI_ERR_NETWORK;
+    }
+    
+    if (!inet_ntop(AF_INET, addr_list[0], local_console_candidate->addr, sizeof(local_console_candidate->addr)))
+    {
+        CHIAKI_LOGE(session->log, "inet_ntop failed");
+        return CHIAKI_ERR_NETWORK;
+    }
+    
+    return CHIAKI_ERR_SUCCESS;
 
 #else
     struct ifaddrs *local_addrs, *current_addr;
