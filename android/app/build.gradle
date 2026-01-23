@@ -77,16 +77,22 @@ android {
         properties.load(propertiesFile.newDataInputStream())
     }
 
-	if(properties.containsKey("chiakiKeystore")) {
-        println("Enabling Local Signing")
+    // Support environment variables for CI/CD (GitHub Actions)
+    def keystorePath = System.getenv("KEYSTORE_PATH") ?: properties.get("chiakiKeystore")
+    def keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: properties.get("chiakiKeystorePW")
+    def keyAlias = System.getenv("KEY_ALIAS") ?: properties.get("chiakiKeyAlias")
+    def keyPassword = System.getenv("KEY_PASSWORD") ?: properties.get("chiakiKeyPW")
+
+	if(keystorePath && keystorePassword && keyAlias && keyPassword) {
+        println("Enabling Signing (Local or CI)")
         buildTypes.release.signingConfig = signingConfigs.release
         buildTypes.debug.signingConfig = signingConfigs.release
-        signingConfigs.release.storeFile = file(properties.get("chiakiKeystore"))
-        signingConfigs.release.storePassword = properties.get("chiakiKeystorePW")
-        signingConfigs.release.keyAlias = properties.get("chiakiKeyAlias")
-        signingConfigs.release.keyPassword = properties.get("chiakiKeyPW")
+        signingConfigs.release.storeFile = file(keystorePath)
+        signingConfigs.release.storePassword = keystorePassword
+        signingConfigs.release.keyAlias = keyAlias
+        signingConfigs.release.keyPassword = keyPassword
     } else {
-        println("Signing not enabled")
+        println("Signing not enabled - no keystore configuration found")
     }
 }
 
