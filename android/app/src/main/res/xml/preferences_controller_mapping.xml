@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        app:title="@string/preferences_controller_mapping_category_face_buttons">
+        <Preference
+            app:key="button_mapping_cross"
+            app:title="@string/preferences_button_cross_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_moon"
+            app:title="@string/preferences_button_moon_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_box"
+            app:title="@string/preferences_button_box_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_pyramid"
+            app:title="@string/preferences_button_pyramid_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/preferences_controller_mapping_category_shoulder_buttons">
+        <Preference
+            app:key="button_mapping_l1"
+            app:title="@string/preferences_button_l1_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_r1"
+            app:title="@string/preferences_button_r1_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_l2"
+            app:title="@string/preferences_button_l2_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_r2"
+            app:title="@string/preferences_button_r2_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/preferences_controller_mapping_category_stick_buttons">
+        <Preference
+            app:key="button_mapping_l3"
+            app:title="@string/preferences_button_l3_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_r3"
+            app:title="@string/preferences_button_r3_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/preferences_controller_mapping_category_system_buttons">
+        <Preference
+            app:key="button_mapping_options"
+            app:title="@string/preferences_button_options_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_share"
+            app:title="@string/preferences_button_share_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_ps"
+            app:title="@string/preferences_button_ps_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+
+        <Preference
+            app:key="button_mapping_touchpad"
+            app:title="@string/preferences_button_touchpad_title"
+            app:icon="@drawable/ic_gamepad"
+            app:summary="@string/preferences_button_mapping_none" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/preferences_controller_mapping_category_actions">
+        <Preference
+            app:key="reset_mappings"
+            app:title="@string/preferences_reset_mappings_title"
+            app:summary="@string/preferences_reset_mappings_summary"
+            app:icon="@drawable/ic_import" />
+    </PreferenceCategory>
+</PreferenceScreen>

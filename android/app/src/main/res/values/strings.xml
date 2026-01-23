@@ -94,6 +94,40 @@
     <string name="preferences_motion_enabled_summary">Use device\'s motion sensors for controller motion</string>
     <string name="preferences_button_haptic_enabled_title">Touch Haptics</string>
     <string name="preferences_button_haptic_enabled_summary">Use phone vibration motor for short haptic feedback on button touches</string>
+    
+    <!-- Controller Mapping -->
+    <string name="preferences_controller_mapping_title">Controller Mapping</string>
+    <string name="preferences_controller_mapping_summary">Remap controller buttons for PS4/PS5 streaming</string>
+    <string name="preferences_controller_mapping_category_face_buttons">Face Buttons</string>
+    <string name="preferences_controller_mapping_category_shoulder_buttons">Shoulder Buttons</string>
+    <string name="preferences_controller_mapping_category_stick_buttons">Stick Buttons</string>
+    <string name="preferences_controller_mapping_category_system_buttons">System Buttons</string>
+    <string name="preferences_controller_mapping_category_actions">Actions</string>
+    <string name="preferences_button_cross_title">Cross (✕)</string>
+    <string name="preferences_button_moon_title">Circle (◯)</string>
+    <string name="preferences_button_box_title">Square (□)</string>
+    <string name="preferences_button_pyramid_title">Triangle (△)</string>
+    <string name="preferences_button_l1_title">L1</string>
+    <string name="preferences_button_r1_title">R1</string>
+    <string name="preferences_button_l2_title">L2</string>
+    <string name="preferences_button_r2_title">R2</string>
+    <string name="preferences_button_l3_title">L3</string>
+    <string name="preferences_button_r3_title">R3</string>
+    <string name="preferences_button_options_title">Options</string>
+    <string name="preferences_button_share_title">Share/Create</string>
+    <string name="preferences_button_ps_title">PS Button</string>
+    <string name="preferences_button_touchpad_title">Touchpad Click</string>
+    <string name="preferences_button_mapping_dialog_title">Map %s Button</string>
+    <string name="preferences_button_mapping_dialog_message">Press any button on your controller to map it</string>
+    <string name="preferences_button_mapping_none">Not mapped</string>
+    <string name="preferences_button_mapping_clear">Clear</string>
+    <string name="preferences_reset_mappings_title">Reset to Defaults</string>
+    <string name="preferences_reset_mappings_summary">Restore default controller button mappings</string>
+    <string name="preferences_reset_mappings_confirm_title">Reset Mappings?</string>
+    <string name="preferences_reset_mappings_confirm_message">This will restore all controller button mappings to their default values.</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_cancel">Cancel</string>
+    
     <string name="alert_message_delete_registered_host">Are you sure you want to delete the registered console %s with ID %s?</string>
     <string name="alert_message_delete_manual_host">Are you sure you want to delete the console entry for %s?</string>
     <string name="action_keep">Keep</string>
