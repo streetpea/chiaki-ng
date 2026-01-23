@@ -3,7 +3,6 @@
 package com.metallic.chiaki.common
 
 import androidx.room.*
-import androidx.room.ForeignKey.SET_NULL
 import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.Single
@@ -14,7 +13,7 @@ import io.reactivex.Single
 		entity = RegisteredHost::class,
 		parentColumns = ["id"],
 		childColumns = ["registered_host"],
-		onDelete = SET_NULL
+		onDelete = ForeignKey.SET_NULL
 	)
 ])
 data class ManualHost(
