@@ -45,7 +45,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 	private lateinit var viewModel: StreamViewModel
 	private lateinit var binding: ActivityStreamBinding
 
-	private val uiVisibilityHandler = Handler()
+	private val uiVisibilityHandler = Handler(Looper.getMainLooper())
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{

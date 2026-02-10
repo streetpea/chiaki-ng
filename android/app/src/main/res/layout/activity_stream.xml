@@ -59,7 +59,7 @@
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:text="On-Screen Controls"
+                android:text="@string/stream_on_screen_controls"
                 app:switchPadding="8dp"
                 android:layout_marginLeft="8dp"
                 android:textColor="@color/stream_text"/>
@@ -69,7 +69,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="200dp"
-                android:text="Touchpad only"
+                android:text="@string/stream_touchpad_only"
                 android:textColor="@color/stream_text"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
