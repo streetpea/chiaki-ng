@@ -33,8 +33,8 @@ endif()
 
 find_program(MAKE_EXE NAMES gmake make)
 ExternalProject_Add(OpenSSL-ExternalProject
-		URL https://www.openssl.org/source/openssl-1.1.1d.tar.gz
-		URL_HASH SHA256=1e3a91bc1f9dfce01af26026f856e064eab4c8ee0a8f457b5ae30b40b8b711f2
+		URL https://www.openssl.org/source/openssl-1.1.1w.tar.gz
+		URL_HASH SHA256=cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8
 		INSTALL_DIR "${OPENSSL_INSTALL_DIR}"
 		CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env ${OPENSSL_BUILD_ENV}
 			"<SOURCE_DIR>/Configure" "--prefix=<INSTALL_DIR>" no-shared ${OPENSSL_CONFIG_EXTRA_ARGS} "${OPENSSL_OS_COMPILER}"
@@ -48,5 +48,5 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")
 else()
 	link_directories("${OPENSSL_INSTALL_DIR}/lib")
 endif()
-target_link_libraries(OpenSSL_Crypto INTERFACE crypto)
+target_link_libraries(OpenSSL_Crypto INTERFACE crypto ssl)
 target_include_directories(OpenSSL_Crypto INTERFACE "${OPENSSL_INSTALL_DIR}/include")
