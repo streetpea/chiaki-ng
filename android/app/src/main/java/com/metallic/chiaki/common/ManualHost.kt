@@ -3,7 +3,7 @@
 package com.metallic.chiaki.common
 
 import androidx.room.*
-import androidx.room.ForeignKey.SET_NULL
+import androidx.room.ForeignKey.Companion.SET_NULL
 import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.Single

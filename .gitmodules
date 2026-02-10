@@ -10,9 +10,6 @@
 [submodule "third-party/gf-complete"]
 	path = third-party/gf-complete
 	url = https://git.sr.ht/~thestr4ng3r/gf-complete
-[submodule "android/app/src/main/cpp/oboe"]
-	path = android/app/src/main/cpp/oboe
-	url = https://github.com/google/oboe
 [submodule "switch/borealis"]
 	path = switch/borealis
 	url = https://git.sr.ht/~thestr4ng3r/borealis

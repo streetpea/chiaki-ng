@@ -21,5 +21,5 @@ find_library(ANDROID_LIB_MEDIANDK mediandk)
 find_library(ANDROID_LIB_ANDROID android)
 target_link_libraries(chiaki-jni "${ANDROID_LIB_LOG}" "${ANDROID_LIB_MEDIANDK}" "${ANDROID_LIB_ANDROID}")
 
-add_subdirectory(src/main/cpp/oboe)
-target_link_libraries(chiaki-jni oboe)
+find_package (oboe REQUIRED CONFIG)
+target_link_libraries(chiaki-jni oboe::oboe)

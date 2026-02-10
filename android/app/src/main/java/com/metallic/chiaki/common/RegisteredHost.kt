@@ -3,7 +3,7 @@
 package com.metallic.chiaki.common
 
 import androidx.room.*
-import androidx.room.ColumnInfo.BLOB
+import androidx.room.ColumnInfo.Companion.BLOB
 import com.metallic.chiaki.lib.RegistHost
 import com.metallic.chiaki.lib.Target
 import io.reactivex.Completable

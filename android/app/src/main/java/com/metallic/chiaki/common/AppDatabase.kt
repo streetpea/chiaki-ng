@@ -10,7 +10,8 @@ import com.metallic.chiaki.lib.Target
 
 @Database(
 	version = 2,
-	entities = [RegisteredHost::class, ManualHost::class])
+	entities = [RegisteredHost::class, ManualHost::class],
+	exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase: RoomDatabase()
 {
