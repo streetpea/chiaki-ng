@@ -13,6 +13,40 @@
 #include <switch.h>
 #endif
 
+#if defined(__ANDROID__)
+struct chiaki_timedjoin_ctx
+{
+	pthread_t target;
+	void *retval;
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+	bool done;
+	bool timed_out;
+};
+
+static void *chiaki_timedjoin_helper(void *arg)
+{
+	struct chiaki_timedjoin_ctx *ctx = (struct chiaki_timedjoin_ctx *)arg;
+	void *retval = NULL;
+	pthread_join(ctx->target, &retval);
+
+	pthread_mutex_lock(&ctx->mutex);
+	ctx->retval = retval;
+	ctx->done = true;
+	pthread_cond_signal(&ctx->cond);
+	bool timed_out = ctx->timed_out;
+	pthread_mutex_unlock(&ctx->mutex);
+
+	if(timed_out)
+	{
+		pthread_mutex_destroy(&ctx->mutex);
+		pthread_cond_destroy(&ctx->cond);
+		free(ctx);
+	}
+	return NULL;
+}
+#endif
+
 #if _WIN32
 static DWORD WINAPI win32_thread_func(LPVOID param)
 {
@@ -261,12 +295,56 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void
 	if(retval)
 		*retval = thread->ret;
 #elif defined(__ANDROID__)
-	// Android doesn't have pthread_clockjoin_np, pthread_timedjoin_np, or pthread_tryjoin_np
-	// For now, just do a regular blocking join and ignore the timeout
-	// This is not ideal but will allow the build to succeed
-	int r = pthread_join(thread->thread, retval);
-	if(r != 0)
+	// Android Bionic lacks pthread_clockjoin_np/pthread_timedjoin_np.
+	// Use a helper thread + condvar to implement timed join portably.
+	struct chiaki_timedjoin_ctx *ctx = calloc(1, sizeof(*ctx));
+	if(!ctx)
+		return CHIAKI_ERR_MEMORY;
+
+	ctx->target = thread->thread;
+	ctx->done = false;
+	ctx->timed_out = false;
+	pthread_mutex_init(&ctx->mutex, NULL);
+
+	pthread_condattr_t cattr;
+	pthread_condattr_init(&cattr);
+	pthread_condattr_setclock(&cattr, CLOCK_MONOTONIC);
+	pthread_cond_init(&ctx->cond, &cattr);
+	pthread_condattr_destroy(&cattr);
+
+	pthread_t helper;
+	if(pthread_create(&helper, NULL, chiaki_timedjoin_helper, ctx) != 0)
+	{
+		pthread_mutex_destroy(&ctx->mutex);
+		pthread_cond_destroy(&ctx->cond);
+		free(ctx);
 		return CHIAKI_ERR_THREAD;
+	}
+	pthread_detach(helper);
+
+	struct timespec timeout;
+	set_timeout(&timeout, timeout_ms);
+
+	pthread_mutex_lock(&ctx->mutex);
+	int r = 0;
+	while(!ctx->done && r != ETIMEDOUT)
+		r = pthread_cond_timedwait(&ctx->cond, &ctx->mutex, &timeout);
+
+	if(ctx->done)
+	{
+		if(retval)
+			*retval = ctx->retval;
+		pthread_mutex_unlock(&ctx->mutex);
+		pthread_mutex_destroy(&ctx->mutex);
+		pthread_cond_destroy(&ctx->cond);
+		free(ctx);
+	}
+	else
+	{
+		ctx->timed_out = true;
+		pthread_mutex_unlock(&ctx->mutex);
+		return CHIAKI_ERR_TIMEOUT;
+	}
 #else
 	struct timespec timeout;
 	set_timeout(&timeout, timeout_ms);
