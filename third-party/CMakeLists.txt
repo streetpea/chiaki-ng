@@ -60,9 +60,11 @@ if (NOT CHIAKI_IS_SWITCH)
 		##################
 		# libcurl (with experimental WebSocket support enabled)
 		##################
-		set(BUILD_EXE OFF)
+		set(BUILD_CURL_EXE OFF)
 		set(BUILD_SHARED_LIBS OFF)
 		set(BUILD_STATIC_LIBS ON)
+		set(BUILD_TESTING OFF)
+		set(BUILD_EXAMPLES OFF)
 		set(CURL_DISABLE_INSTALL ON)
 		set(HTTP_ONLY ON)
 		set(ENABLE_WEBSOCKETS ON)
