@@ -387,7 +387,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_gkcrypt_gmac(ChiakiGKCrypt *gkcrypt, uint64
 	}
 
 	// encrypt without additional data
-	if(mbedtls_gcm_starts(&actx, MBEDTLS_GCM_ENCRYPT, iv, CHIAKI_GKCRYPT_BLOCK_SIZE) != 0)
+	if(mbedtls_gcm_starts(&actx, MBEDTLS_GCM_ENCRYPT, iv, CHIAKI_GKCRYPT_BLOCK_SIZE, NULL, 0) != 0)
 	{
 		mbedtls_gcm_free(&actx);
 		return CHIAKI_ERR_UNKNOWN;

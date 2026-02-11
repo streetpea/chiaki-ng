@@ -125,7 +125,7 @@ if(WIN32)
 	target_link_libraries(chiaki-lib wsock32 ws2_32 bcrypt iphlpapi)
 endif()
 
-if(APPLE)
+if(APPLE AND NOT IOS AND NOT TVOS)
 	target_link_libraries(chiaki-lib "-framework CoreServices")
 endif()
 
