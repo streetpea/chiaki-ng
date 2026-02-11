@@ -50,3 +50,32 @@ else()
 endif()
 target_link_libraries(OpenSSL_Crypto INTERFACE crypto ssl)
 target_include_directories(OpenSSL_Crypto INTERFACE "${OPENSSL_INSTALL_DIR}/include")
+
+# Create standard OpenSSL::* IMPORTED INTERFACE targets for find_package(OpenSSL) consumers
+# (e.g. bundled curl). Using IMPORTED INTERFACE avoids file-existence checks that IMPORTED
+# STATIC would require, and IMPORTED targets are excluded from curl's export sets.
+file(MAKE_DIRECTORY "${OPENSSL_INSTALL_DIR}/include")
+
+if(NOT TARGET OpenSSL::Crypto)
+	add_library(OpenSSL::Crypto INTERFACE IMPORTED GLOBAL)
+	set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INSTALL_DIR}/include")
+	set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_LINK_DIRECTORIES "${OPENSSL_INSTALL_DIR}/lib")
+	set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_LINK_LIBRARIES crypto)
+	add_dependencies(OpenSSL::Crypto OpenSSL-ExternalProject)
+endif()
+
+if(NOT TARGET OpenSSL::SSL)
+	add_library(OpenSSL::SSL INTERFACE IMPORTED GLOBAL)
+	set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INSTALL_DIR}/include")
+	set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_LINK_DIRECTORIES "${OPENSSL_INSTALL_DIR}/lib")
+	set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_LINK_LIBRARIES "ssl;OpenSSL::Crypto")
+	add_dependencies(OpenSSL::SSL OpenSSL-ExternalProject)
+endif()
+
+# Mark OpenSSL as found so FindOpenSSL.cmake is a no-op
+set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
+set(OpenSSL_FOUND TRUE CACHE BOOL "" FORCE)
+set(OPENSSL_VERSION "1.1.1w" CACHE STRING "" FORCE)
+set(OPENSSL_INCLUDE_DIR "${OPENSSL_INSTALL_DIR}/include" CACHE PATH "" FORCE)
+set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a" CACHE FILEPATH "" FORCE)
+set(OPENSSL_SSL_LIBRARY "${OPENSSL_INSTALL_DIR}/lib/libssl.a" CACHE FILEPATH "" FORCE)

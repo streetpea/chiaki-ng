@@ -35,6 +35,8 @@ option(CHIAKI_ENABLE_STEAM_SHORTCUT "Add ability to create Steam shortcut" ON)
 tri_option(CHIAKI_USE_SYSTEM_JERASURE "Use system-provided jerasure instead of submodule" AUTO)
 tri_option(CHIAKI_USE_SYSTEM_NANOPB "Use system-provided nanopb instead of submodule" AUTO)
 tri_option(CHIAKI_USE_SYSTEM_CURL "Use system-provided curl instead of submodule. Has to be built with experimental WebSocket support!" OFF)
+option(CHIAKI_LIB_JSONC_EXTERNAL_PROJECT "Build json-c from source via FetchContent" OFF)
+option(CHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT "Build miniupnpc from source via FetchContent" OFF)
 
 set(CHIAKI_VERSION_MAJOR 1)
 set(CHIAKI_VERSION_MINOR 9)
@@ -121,13 +123,13 @@ if(CHIAKI_USE_SYSTEM_NANOPB)
 	endif()
 endif()
 
-add_subdirectory(third-party)
-
-add_definitions(-DCHIAKI_VERSION_MAJOR=${CHIAKI_VERSION_MAJOR} -DCHIAKI_VERSION_MINOR=${CHIAKI_VERSION_MINOR} -DCHIAKI_VERSION_PATCH=${CHIAKI_VERSION_PATCH} -DCHIAKI_VERSION=\"${CHIAKI_VERSION}\")
-
 if(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT)
 	include(OpenSSLExternalProject)
 endif()
+
+add_subdirectory(third-party)
+
+add_definitions(-DCHIAKI_VERSION_MAJOR=${CHIAKI_VERSION_MAJOR} -DCHIAKI_VERSION_MINOR=${CHIAKI_VERSION_MINOR} -DCHIAKI_VERSION_PATCH=${CHIAKI_VERSION_PATCH} -DCHIAKI_VERSION=\"${CHIAKI_VERSION}\")
 
 if(CHIAKI_LIB_ENABLE_MBEDTLS)
 	add_definitions(-DCHIAKI_LIB_ENABLE_MBEDTLS)
@@ -189,6 +191,14 @@ if(CHIAKI_ENABLE_PI_DECODER)
 	message(STATUS "Pi Decoder enabled")
 else()
 	message(STATUS "Pi Decoder disabled")
+endif()
+
+if(CHIAKI_LIB_JSONC_EXTERNAL_PROJECT)
+	include(JsoncExternalProject)
+endif()
+
+if(CHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT)
+	include(MiniupnpcExternalProject)
 endif()
 
 add_subdirectory(lib)

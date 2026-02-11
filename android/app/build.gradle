@@ -36,6 +36,8 @@ android {
                         "-DCHIAKI_ENABLE_PI_DECODER=OFF",
                         "-DCHIAKI_LIB_ENABLE_OPUS=OFF",
                         "-DCHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT=ON",
+                        "-DCHIAKI_LIB_JSONC_EXTERNAL_PROJECT=ON",
+                        "-DCHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT=ON",
                         "-DCHIAKI_ENABLE_STEAM_SHORTCUT=OFF",
                         "-DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF",
                         "-DANDROID_STL=c++_shared"
