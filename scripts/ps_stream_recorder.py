@@ -56,6 +56,87 @@ import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
+# Opus decoder wrapper (for decoding audio frames to PCM)
+# ---------------------------------------------------------------------------
+
+_opus_lib = None
+_opus_lib_searched = False
+
+
+def _load_opus_lib():
+    """Load libopus.so for Opus decoding."""
+    global _opus_lib, _opus_lib_searched
+    if _opus_lib_searched:
+        return _opus_lib
+    _opus_lib_searched = True
+    for name in ["libopus.so.0", "libopus.so", "opus"]:
+        try:
+            _opus_lib = ctypes.CDLL(name)
+            return _opus_lib
+        except OSError:
+            continue
+    found = ctypes.util.find_library("opus")
+    if found:
+        try:
+            _opus_lib = ctypes.CDLL(found)
+            return _opus_lib
+        except OSError:
+            pass
+    return None
+
+
+class OpusDecoder:
+    """Decode Opus packets to PCM int16 samples using libopus."""
+
+    def __init__(self, sample_rate=48000, channels=2):
+        self._lib = _load_opus_lib()
+        if not self._lib:
+            raise RuntimeError(
+                "libopus.so not found. Install it with: sudo dnf install opus"
+            )
+        self._lib.opus_decoder_create.restype = ctypes.c_void_p
+        self._lib.opus_decoder_create.argtypes = [
+            ctypes.c_int32, ctypes.c_int, ctypes.POINTER(ctypes.c_int)
+        ]
+        self._lib.opus_decode.restype = ctypes.c_int
+        self._lib.opus_decode.argtypes = [
+            ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int32,
+            ctypes.POINTER(ctypes.c_int16), ctypes.c_int, ctypes.c_int,
+        ]
+        self._lib.opus_decoder_destroy.restype = None
+        self._lib.opus_decoder_destroy.argtypes = [ctypes.c_void_p]
+
+        self._channels = channels
+        self._max_frame_size = 5760  # max Opus frame size at 48kHz
+        self._pcm_buf = (ctypes.c_int16 * (self._max_frame_size * channels))()
+
+        error = ctypes.c_int(0)
+        self._decoder = self._lib.opus_decoder_create(
+            ctypes.c_int32(sample_rate), ctypes.c_int(channels),
+            ctypes.byref(error),
+        )
+        if error.value != 0 or not self._decoder:
+            raise RuntimeError(f"opus_decoder_create failed (error {error.value})")
+
+    def decode(self, opus_data_ptr, opus_len):
+        """Decode an Opus packet. Returns PCM bytes (int16 LE) or None."""
+        samples = self._lib.opus_decode(
+            self._decoder, opus_data_ptr, ctypes.c_int32(opus_len),
+            self._pcm_buf, ctypes.c_int(self._max_frame_size), ctypes.c_int(0),
+        )
+        if samples <= 0:
+            return None
+        nbytes = samples * self._channels * 2
+        return ctypes.string_at(self._pcm_buf, nbytes)
+
+    def __del__(self):
+        if hasattr(self, '_decoder') and self._decoder and hasattr(self, '_lib') and self._lib:
+            try:
+                self._lib.opus_decoder_destroy(self._decoder)
+            except Exception:
+                pass
+
+# ---------------------------------------------------------------------------
 # Constants from chiaki-ng headers
 # ---------------------------------------------------------------------------
 
@@ -401,13 +482,16 @@ class StreamRecorder:
 
         self._lib = load_libchiaki(lib_path)
         self._stop_event = threading.Event()
-        self._video_pipe = None
-        self._audio_pipe = None
-        self._ffmpeg_proc = None
+        self._tmpdir = None
+        self._video_file = None
+        self._audio_file = None
         self._video_frames = 0
         self._audio_frames = 0
         self._start_time = None
         self._log_buf = None
+        self._audio_channels = 2
+        self._audio_rate = 48000
+        self._opus_decoder = None
 
         # Callback references (prevent GC)
         self._event_cb_ref = None
@@ -415,65 +499,75 @@ class StreamRecorder:
         self._audio_header_cb_ref = None
         self._audio_frame_cb_ref = None
 
-    def _setup_ffmpeg(self):
-        """Create named pipes and start FFmpeg for muxing."""
-        tmpdir = tempfile.mkdtemp(prefix="chiaki_rec_")
-        self._video_pipe = os.path.join(tmpdir, "video.pipe")
-        self._audio_pipe = os.path.join(tmpdir, "audio.pipe")
+    def _setup_recording(self):
+        """Create temp directory and files for raw stream data."""
+        self._tmpdir = tempfile.mkdtemp(prefix="chiaki_rec_")
+        codec_ext = "h264" if self.codec == CODEC_H264 else "h265"
+        self._video_file = os.path.join(self._tmpdir, f"video.{codec_ext}")
+        self._audio_file = os.path.join(self._tmpdir, "audio.pcm")
 
-        os.mkfifo(self._video_pipe)
-        os.mkfifo(self._audio_pipe)
-
+    def _mux_output(self):
+        """Mux raw video and decoded PCM audio into the final output file."""
         codec_name = "h264" if self.codec == CODEC_H264 else "hevc"
 
-        cmd = [
-            "ffmpeg", "-y",
-            # Video input (raw bitstream from pipe)
+        cmd = ["ffmpeg", "-y"]
+
+        # Video input
+        cmd.extend([
             "-f", codec_name,
             "-framerate", str(self.fps),
-            "-i", self._video_pipe,
-            # Audio input (Opus from pipe)
-            "-f", "opus",
-            "-i", self._audio_pipe,
-            # Output
-            "-c:v", "copy",  # no re-encoding for video
-            "-c:a", "aac",   # transcode Opus -> AAC for MP4 compat
-            "-b:a", "192k",
-            "-shortest",
-        ]
+            "-i", self._video_file,
+        ])
 
-        if self.duration:
-            cmd.extend(["-t", str(self.duration)])
+        # Audio input (decoded PCM, if available)
+        has_audio = (self._audio_file
+                     and os.path.exists(self._audio_file)
+                     and os.path.getsize(self._audio_file) > 0)
+        if has_audio:
+            cmd.extend([
+                "-f", "s16le",
+                "-ar", str(self._audio_rate),
+                "-ac", str(self._audio_channels),
+                "-i", self._audio_file,
+            ])
 
+        # Output options
+        cmd.extend(["-c:v", "copy"])
+        if has_audio:
+            cmd.extend(["-c:a", "aac", "-b:a", "192k", "-shortest"])
         cmd.append(self.output)
 
-        print(f"[+] Starting FFmpeg: {' '.join(cmd)}")
-        self._ffmpeg_proc = subprocess.Popen(
+        print(f"[+] Muxing with FFmpeg: {' '.join(cmd)}")
+        result = subprocess.run(
             cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE if not self.verbose else None,
-            stderr=subprocess.PIPE if not self.verbose else None,
+            stdout=None if self.verbose else subprocess.PIPE,
+            stderr=None if self.verbose else subprocess.PIPE,
         )
+        if result.returncode != 0:
+            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+            print(f"[!] FFmpeg muxing failed (exit {result.returncode})", file=sys.stderr)
+            if stderr:
+                # Show last few lines of stderr
+                for line in stderr.strip().splitlines()[-10:]:
+                    print(f"    {line}", file=sys.stderr)
+            raise RuntimeError("FFmpeg muxing failed")
 
-    def _cleanup_ffmpeg(self):
-        """Clean up FFmpeg process and named pipes."""
-        for pipe in [self._video_pipe, self._audio_pipe]:
-            if pipe and os.path.exists(pipe):
+    def _cleanup(self):
+        """Clean up temp files."""
+        if self._opus_decoder:
+            del self._opus_decoder
+            self._opus_decoder = None
+        for f in [self._video_file, self._audio_file]:
+            if f and os.path.exists(f):
                 try:
-                    os.unlink(pipe)
+                    os.unlink(f)
                 except OSError:
                     pass
-                try:
-                    os.rmdir(os.path.dirname(pipe))
-                except OSError:
-                    pass
-
-        if self._ffmpeg_proc and self._ffmpeg_proc.poll() is None:
-            self._ffmpeg_proc.terminate()
+        if self._tmpdir and os.path.exists(self._tmpdir):
             try:
-                self._ffmpeg_proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self._ffmpeg_proc.kill()
+                os.rmdir(self._tmpdir)
+            except OSError:
+                pass
 
     def _make_event_callback(self):
         """Create the C callback for session events."""
@@ -537,7 +631,7 @@ class StreamRecorder:
         return self._video_cb_ref
 
     def _make_audio_callbacks(self, audio_fd):
-        """Create the C callbacks for audio (Opus frames)."""
+        """Create the C callbacks for audio (Opus frames decoded to PCM)."""
         HEADER_CB_TYPE = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p)
         FRAME_CB_TYPE = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.c_void_p)
 
@@ -548,11 +642,25 @@ class StreamRecorder:
                 rate_bytes = ctypes.string_at(ctypes.c_void_p(header_ptr + 4), 4)
                 rate = struct.unpack("<I", rate_bytes)[0]
                 print(f"  [audio] Stream info: {channels}ch, {bits}bit, {rate}Hz")
+                self._audio_channels = channels if channels else 2
+                self._audio_rate = rate if rate else 48000
+                # Initialize Opus decoder now that we know the audio params
+                try:
+                    self._opus_decoder = OpusDecoder(
+                        sample_rate=self._audio_rate,
+                        channels=self._audio_channels,
+                    )
+                    print(f"  [audio] Opus decoder initialized ({self._audio_rate}Hz, {self._audio_channels}ch)")
+                except Exception as e:
+                    print(f"  [!] Opus decoder init failed: {e} (audio will be skipped)")
+                    self._opus_decoder = None
 
         def audio_frame_cb(buf, buf_size, user):
             try:
-                data = ctypes.string_at(buf, buf_size)
-                os.write(audio_fd, data)
+                if self._opus_decoder:
+                    pcm_data = self._opus_decoder.decode(buf, buf_size)
+                    if pcm_data:
+                        os.write(audio_fd, pcm_data)
                 self._audio_frames += 1
             except Exception as e:
                 print(f"[!] Audio callback error: {e}", file=sys.stderr)
@@ -576,43 +684,13 @@ class StreamRecorder:
             print(f"    Duration: {self.duration}s")
         print()
 
-        # Set up FFmpeg for muxing
-        self._setup_ffmpeg()
+        # Set up temp files for raw stream data
+        self._setup_recording()
 
         try:
-            # Open named pipes (will block until FFmpeg opens the other end)
-            # Run pipe opens in threads since they block
-            video_fd = None
-            audio_fd = None
-            pipe_error = [None]
-
-            def open_video():
-                nonlocal video_fd
-                try:
-                    video_fd = os.open(self._video_pipe, os.O_WRONLY)
-                except Exception as e:
-                    pipe_error[0] = e
-
-            def open_audio():
-                nonlocal audio_fd
-                try:
-                    audio_fd = os.open(self._audio_pipe, os.O_WRONLY)
-                except Exception as e:
-                    pipe_error[0] = e
-
-            vt = threading.Thread(target=open_video, daemon=True)
-            at = threading.Thread(target=open_audio, daemon=True)
-            vt.start()
-            at.start()
-
-            # Give FFmpeg time to open the read ends
-            vt.join(timeout=10)
-            at.join(timeout=10)
-
-            if pipe_error[0]:
-                raise pipe_error[0]
-            if video_fd is None or audio_fd is None:
-                raise RuntimeError("Failed to open pipes to FFmpeg")
+            # Open temp files for writing (no blocking, no deadlocks)
+            video_fd = os.open(self._video_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+            audio_fd = os.open(self._audio_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
 
             # --- Initialize chiaki session ---
             # Allocate a large buffer for the opaque ChiakiSession struct
@@ -725,7 +803,7 @@ class StreamRecorder:
             self._lib.chiaki_session_join(session_ptr)
             self._lib.chiaki_session_fini(session_ptr)
 
-            # Close pipes
+            # Close temp files
             try:
                 os.close(video_fd)
             except OSError:
@@ -735,22 +813,29 @@ class StreamRecorder:
             except OSError:
                 pass
 
-            # Wait for FFmpeg to finish
-            if self._ffmpeg_proc:
-                self._ffmpeg_proc.wait(timeout=30)
-
             elapsed = time.time() - (self._start_time or time.time())
             print(f"\n[+] Recording complete!")
             print(f"    Video frames: {self._video_frames}")
             print(f"    Audio frames: {self._audio_frames}")
             print(f"    Duration: {elapsed:.1f}s")
-            print(f"    Output: {self.output}")
+
+            # Mux raw streams into final output
+            video_size = os.path.getsize(self._video_file) if os.path.exists(self._video_file) else 0
+            audio_size = os.path.getsize(self._audio_file) if os.path.exists(self._audio_file) else 0
+            print(f"    Raw video: {video_size / 1024 / 1024:.1f} MB")
+            print(f"    Raw audio: {audio_size / 1024 / 1024:.1f} MB")
+
+            if video_size == 0:
+                print("[!] No video data recorded, skipping mux")
+            else:
+                self._mux_output()
+                print(f"    Output: {self.output}")
 
         except Exception as e:
             print(f"\n[!] Error: {e}", file=sys.stderr)
             raise
         finally:
-            self._cleanup_ffmpeg()
+            self._cleanup()
 
 
 # ---------------------------------------------------------------------------
