@@ -48,6 +48,7 @@ set(SOURCE_FILES
 		src/common.c
 		src/sock.c
 		src/session.c
+		src/session_setters.c
 		src/thread.c
 		src/base64.c
 		src/http.c

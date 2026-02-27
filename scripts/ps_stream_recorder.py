@@ -398,6 +398,21 @@ def load_libchiaki(lib_path=None):
         if err != ERR_SUCCESS:
             raise RuntimeError(f"chiaki_lib_init failed: {_lib.chiaki_error_string(err).decode()}")
 
+        # Verify session setter functions are exported (they were converted
+        # from static inline to CHIAKI_EXPORT; older builds won't have them)
+        required_symbols = [
+            "chiaki_session_set_event_cb",
+            "chiaki_session_set_video_sample_cb",
+            "chiaki_session_set_audio_sink",
+        ]
+        for sym in required_symbols:
+            if not hasattr(_lib, sym):
+                raise RuntimeError(
+                    f"libchiaki.so is missing '{sym}'. You need to rebuild chiaki-ng:\n"
+                    f"  cd chiaki-ng/build && cmake .. && make -j$(nproc)\n"
+                    f"  sudo make install"
+                )
+
         return _lib
 
 
@@ -448,7 +463,7 @@ class ChiakiConnectInfo(ctypes.Structure):
 
 
 # ---------------------------------------------------------------------------
-# Stream recording using FFmpeg pipe
+# Stream recording
 # ---------------------------------------------------------------------------
 
 class StreamRecorder:
@@ -456,8 +471,9 @@ class StreamRecorder:
     Records a PlayStation Remote Play stream by wrapping chiaki-ng's
     libchiaki through ctypes.
 
-    Video frames (H.264 / H.265 NAL units) and audio frames (Opus)
-    are piped to FFmpeg for muxing into a container file.
+    Video frames (H.264 / H.265 NAL units) are written to a temp file.
+    Audio frames (Opus) are decoded to PCM via libopus and written to
+    a temp file. After recording, FFmpeg muxes both into the output.
     """
 
     def __init__(self, host, regist_key, morning,

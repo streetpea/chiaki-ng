@@ -288,41 +288,23 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_reject(ChiakiSession *sess
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_keyboard_accept(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_go_home(ChiakiSession *session);
 
-static inline void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user)
-{
-	session->event_cb = cb;
-	session->event_cb_user = user;
-}
-
-static inline void chiaki_session_set_video_sample_cb(ChiakiSession *session, ChiakiVideoSampleCallback cb, void *user)
-{
-	session->video_sample_cb = cb;
-	session->video_sample_cb_user = user;
-}
+CHIAKI_EXPORT void chiaki_session_set_event_cb(ChiakiSession *session, ChiakiEventCallback cb, void *user);
+CHIAKI_EXPORT void chiaki_session_set_video_sample_cb(ChiakiSession *session, ChiakiVideoSampleCallback cb, void *user);
 
 /**
  * @param sink contents are copied
  */
-static inline void chiaki_session_set_audio_sink(ChiakiSession *session, ChiakiAudioSink *sink)
-{
-	session->audio_sink = *sink;
-}
+CHIAKI_EXPORT void chiaki_session_set_audio_sink(ChiakiSession *session, ChiakiAudioSink *sink);
 
 /**
  * @param sink contents are copied
  */
-static inline void chiaki_session_set_haptics_sink(ChiakiSession *session, ChiakiAudioSink *sink)
-{
-	session->haptics_sink = *sink;
-}
+CHIAKI_EXPORT void chiaki_session_set_haptics_sink(ChiakiSession *session, ChiakiAudioSink *sink);
 
 /**
  * @param sink contents are copied
  */
-static inline void chiaki_session_ctrl_set_display_sink(ChiakiSession *session, ChiakiCtrlDisplaySink *sink)
-{
-	session->display_sink = *sink;
-}
+CHIAKI_EXPORT void chiaki_session_ctrl_set_display_sink(ChiakiSession *session, ChiakiCtrlDisplaySink *sink);
 
 #ifdef __cplusplus
 }
