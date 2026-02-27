@@ -887,8 +887,8 @@ def register_console(host, psn_account_id_b64, pin, ps5=False, lib_path=None):
     struct.pack_into("<Q", regist_info_buf, offset, host_ptr)
     offset += 8
 
-    # broadcast (bool)
-    struct.pack_into("<B", regist_info_buf, offset, 1)  # broadcast = true
+    # broadcast (bool) - False for direct host IP, True only for broadcast addresses
+    struct.pack_into("<B", regist_info_buf, offset, 0)  # broadcast = false for direct host
     offset += 1
     offset += 7  # padding
 

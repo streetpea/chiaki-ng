@@ -549,21 +549,25 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 					goto connect_fail;
 				}
 				in_addr_t ip = ((struct sockaddr_in *)send_addr)->sin_addr.s_addr;
+				in_port_t port = ((struct sockaddr_in *)send_addr)->sin_port;
 				((struct sockaddr_in *)send_addr)->sin_addr.s_addr = htonl(INADDR_ANY);
 				((struct sockaddr_in *)send_addr)->sin_port = 0;
 				((struct sockaddr_in *)send_addr)->sin_family = AF_INET;
 				r = bind(sock, send_addr, *send_addr_len);
 				((struct sockaddr_in *)send_addr)->sin_addr.s_addr = ip;
+				((struct sockaddr_in *)send_addr)->sin_port = port;
 			}
 			else
 			{
 				struct in6_addr ip;
 				memcpy(&ip, &(((struct sockaddr_in6 *)send_addr)->sin6_addr), sizeof(struct in6_addr));
+				in_port_t port = ((struct sockaddr_in6 *)send_addr)->sin6_port;
 				((struct sockaddr_in6 *)send_addr)->sin6_addr = in6addr_any;
 				((struct sockaddr_in6 *)send_addr)->sin6_port = 0;
 				((struct sockaddr_in6 *)send_addr)->sin6_family = AF_INET6;
 				r = bind(sock, send_addr, *send_addr_len);
 				memcpy(&(((struct sockaddr_in6 *)send_addr)->sin6_addr), &ip, sizeof(struct in6_addr));
+				((struct sockaddr_in6 *)send_addr)->sin6_port = port;
 			}
 			if(r < 0)
 			{
