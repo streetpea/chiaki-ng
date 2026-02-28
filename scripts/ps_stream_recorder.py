@@ -453,7 +453,7 @@ class ChiakiConnectInfo(ctypes.Structure):
         ("_pad1", ctypes.c_uint8),                          # enum padding
         ("audio_video_disabled", ctypes.c_int),
         ("auto_regist", ctypes.c_bool),
-        ("_pad2", ctypes.c_uint8 * 7),                     # align to pointer
+        ("_pad2", ctypes.c_uint8 * 3),                     # align to pointer
         ("holepunch_session", ctypes.c_void_p),
         ("rudp_sock", ctypes.c_void_p),
         ("psn_account_id", ctypes.c_uint8 * PSN_ACCOUNT_ID_SIZE),
@@ -614,6 +614,23 @@ class StreamRecorder:
                 except Exception:
                     pass
                 print(f"[+] Session ended: {reason_str}")
+
+                # Give actionable advice for common quit reasons
+                # Quit reason values match ChiakiQuitReason enum
+                QUIT_SESSION_REQUEST_UNKNOWN = 2
+                QUIT_RP_IN_USE = 4
+                QUIT_RP_VERSION_MISMATCH = 6
+                if quit_reason == QUIT_SESSION_REQUEST_UNKNOWN:
+                    print("[!] Hint: The console rejected the session. Check that:")
+                    print("      1. Remote Play is enabled (Settings > System > Remote Play)")
+                    print("      2. Your regist_key is correct (re-register if needed)")
+                    print("      3. The console is awake and on the home screen")
+                    print("      4. No other Remote Play session is active")
+                elif quit_reason == QUIT_RP_IN_USE:
+                    print("[!] Hint: Another Remote Play session is already active")
+                elif quit_reason == QUIT_RP_VERSION_MISMATCH:
+                    print("[!] Hint: RP protocol version mismatch. Try rebuilding chiaki-ng")
+
                 self._stop_event.set()
 
         self._event_cb_ref = CALLBACK_TYPE(event_cb)
@@ -698,6 +715,21 @@ class StreamRecorder:
         print(f"    Output: {self.output}")
         if self.duration:
             print(f"    Duration: {self.duration}s")
+
+        # Show credential info to help diagnose auth failures
+        rk_hex = self.regist_key.hex() if self.regist_key else "(none)"
+        # Find effective length (up to first null, since C code does this)
+        rk_len = len(self.regist_key)
+        for i, b in enumerate(self.regist_key):
+            if b == 0:
+                rk_len = i
+                break
+        print(f"    Regist key: {rk_hex} (effective {rk_len} bytes)")
+        if self.psn_account_id and self.psn_account_id != bytes(PSN_ACCOUNT_ID_SIZE):
+            import base64
+            print(f"    PSN Account ID: {base64.b64encode(self.psn_account_id).decode()}")
+        else:
+            print(f"    PSN Account ID: (not set)")
         print()
 
         # Set up temp files for raw stream data
