@@ -514,47 +514,6 @@ jobs:
           if-no-files-found: error
           release-upload-url: ${{ needs.create-release.outputs.upload_url }}
 
-  build-switch_x64:
-    name: Build chiaki-ng switch_x64
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    needs: create-release
-    
-    steps:
-      - name: Setup Docker
-        run: |
-          sudo apt update
-          sudo apt-get -y install docker-ce-cli
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          path: 'chiaki-ng'
-
-      - name: 'Login to GitHub Container Registry'
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{github.actor}}
-          password: ${{secrets.GITHUB_TOKEN}}
-
-      - name: Run build script
-        working-directory: chiaki-ng
-        run: |
-          chmod +x scripts/switch/run-docker-build-chiaki.sh
-          scripts/switch/run-docker-build-chiaki.sh
-
-      - name: Upload chiaki-ng Artifact
-        uses: nanoufo/action-upload-artifacts-and-release-assets@v2
-        with:
-          path: |
-            chiaki-ng/build_switch/switch/chiaki-ng.nro
-          upload-release-files: true
-          if-no-files-found: error
-          release-upload-url: ${{ needs.create-release.outputs.upload_url }}
-
   build-flatpak_x64:
     name: Build chiaki-ng flatpak bundle x64
     runs-on: ubuntu-latest
