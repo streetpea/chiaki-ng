@@ -15,6 +15,10 @@
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QGuiApplication>
+#include <QOpenGLContext>
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLFramebufferObject>
+#include <QOffscreenSurface>
 #include <QVulkanInstance>
 #include <QQuickItem>
 #include <QQmlEngine>
@@ -104,6 +108,35 @@ static const char *render_params_path()
     return qPrintable(path);
 }
 
+static void clearQuickOpenGLTarget(QOpenGLFramebufferObject *fbo)
+{
+    if (!fbo)
+        return;
+
+    auto *ctx = QOpenGLContext::currentContext();
+    if (!ctx)
+        return;
+
+    QOpenGLExtraFunctions *gl = ctx->extraFunctions();
+    if (!gl)
+        return;
+
+    gl->glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(fbo->handle()));
+    gl->glViewport(0, 0, fbo->width(), fbo->height());
+    gl->glDisable(GL_SCISSOR_TEST);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+}
+
+pl_gpu QmlMainWindow::placeboGpu() const
+{
+    if (placebo_vulkan)
+        return placebo_vulkan->gpu;
+    if (placebo_opengl)
+        return placebo_opengl->gpu;
+    return nullptr;
+}
+
 class RenderControl : public QQuickRenderControl
 {
 public:
@@ -152,27 +185,47 @@ QmlMainWindow::~QmlMainWindow()
 {
     Q_ASSERT(!placebo_swapchain);
 
+    if (render_backend == RenderBackend::Vulkan)
+        av_buffer_unref(&vulkan_hw_dev_ctx);
+
+    const bool isOpenGlBackend = render_backend == RenderBackend::OpenGL;
+    const bool hasOpenGlContextCurrent = isOpenGlBackend && makeOpenGLContextCurrent();
+
+    if (isOpenGlBackend && quick_window)
+        quick_window->setRenderTarget(QQuickRenderTarget());
+
 #ifndef Q_OS_MACOS
-    QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
-    render_thread->quit();
-    render_thread->wait();
+    if (owns_render_thread) {
+        QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
+        render_thread->quit();
+        render_thread->wait();
+    } else {
+        quick_render->invalidate();
+    }
 #endif
+
+    if (pl_gpu gpu = placeboGpu()) {
+        pl_tex_destroy(gpu, &quick_tex);
+        for (auto &tex : placebo_tex)
+            pl_tex_destroy(gpu, &tex);
+        if (render_backend == RenderBackend::Vulkan)
+            pl_vulkan_sem_destroy(gpu, &quick_sem);
+    }
+
+    if (hasOpenGlContextCurrent)
+        delete quick_fbo;
+    quick_fbo = nullptr;
+
+    if (hasOpenGlContextCurrent)
+        doneOpenGLContextCurrent();
 
     delete quick_item;
     delete quick_window;
     // calls invalidate here if not already called
     delete quick_render;
-    delete render_thread->parent();
+    if (owns_render_thread)
+        delete render_thread->parent();
     delete qml_engine;
-    delete qt_vk_inst;
-
-    av_buffer_unref(&vulkan_hw_dev_ctx);
-
-    pl_tex_destroy(placebo_vulkan->gpu, &quick_tex);
-    pl_vulkan_sem_destroy(placebo_vulkan->gpu, &quick_sem);
-
-    for (auto tex : placebo_tex)
-        pl_tex_destroy(placebo_vulkan->gpu, &tex);
 
     FILE *file = fopen(qPrintable(shader_cache_path()), "wb");
     if (file) {
@@ -182,8 +235,15 @@ QmlMainWindow::~QmlMainWindow()
     pl_cache_destroy(&placebo_cache);
     pl_queue_destroy(&placebo_queue);
     pl_renderer_destroy(&placebo_renderer);
-    pl_vulkan_destroy(&placebo_vulkan);
-    pl_vk_inst_destroy(&placebo_vk_inst);
+    if (render_backend == RenderBackend::Vulkan) {
+        pl_vulkan_destroy(&placebo_vulkan);
+        pl_vk_inst_destroy(&placebo_vk_inst);
+    } else {
+        pl_opengl_destroy(&placebo_opengl);
+    }
+    delete qt_vk_inst;
+    delete qt_gl_offscreen_surface;
+    delete qt_gl_context;
     pl_options_free(&renderparams_opts);
     pl_log_destroy(&placebo_log);
 }
@@ -331,6 +391,12 @@ void QmlMainWindow::show()
         QMetaObject::invokeMethod(QGuiApplication::instance(), &QGuiApplication::quit, Qt::QueuedConnection);
         return;
     }
+    if (!pending_renderer_fallback_reason.isEmpty()) {
+        const QString reason = pending_renderer_fallback_reason;
+        pending_renderer_fallback_reason.clear();
+        QMetaObject::invokeMethod(quick_item, "showRendererFallbackDialog",
+                                  Q_ARG(QVariant, QVariant::fromValue(reason)));
+    }
     auto screen_size = QGuiApplication::primaryScreen()->availableSize();
     resize(screen_size);
 
@@ -389,6 +455,9 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
 AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
 {
+    if (render_backend != RenderBackend::Vulkan)
+        return nullptr;
+
     if (vulkan_hw_dev_ctx || vk_decode_queue_index < 0)
         return vulkan_hw_dev_ctx;
 
@@ -429,30 +498,117 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     return vulkan_hw_dev_ctx;
 }
 
+bool QmlMainWindow::makeOpenGLContextCurrent()
+{
+    if (!qt_gl_context)
+        return false;
+
+    QSurface *target_surface = nullptr;
+    if (handle())
+        target_surface = this;
+    else if (qt_gl_offscreen_surface)
+        target_surface = qt_gl_offscreen_surface;
+
+    if (!target_surface)
+        return false;
+
+    if (QThread::currentThread() == qt_gl_context->thread())
+        return qt_gl_context->makeCurrent(target_surface);
+
+    bool ok = false;
+    QObject *context_obj = qt_gl_context;
+    QMetaObject::invokeMethod(context_obj, [this, target_surface, &ok]() {
+        ok = qt_gl_context && qt_gl_context->makeCurrent(target_surface);
+    }, Qt::BlockingQueuedConnection);
+    return ok;
+}
+
+void QmlMainWindow::doneOpenGLContextCurrent()
+{
+    if (!qt_gl_context)
+        return;
+
+    if (QThread::currentThread() == qt_gl_context->thread()) {
+        qt_gl_context->doneCurrent();
+        return;
+    }
+
+    QObject *context_obj = qt_gl_context;
+    QMetaObject::invokeMethod(context_obj, [this]() {
+        if (qt_gl_context)
+            qt_gl_context->doneCurrent();
+    }, Qt::BlockingQueuedConnection);
+}
+
 void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 {
-    setSurfaceType(QWindow::VulkanSurface);
+    render_backend = settings->GetRenderBackend();
+    setSurfaceType(render_backend == RenderBackend::Vulkan ? QWindow::VulkanSurface : QWindow::OpenGLSurface);
 
-    const char *vk_exts[] = {
-        nullptr,
-        VK_KHR_SURFACE_EXTENSION_NAME,
+    auto initOpenGLBackend = [&]() -> bool {
+        qt_gl_context = new QOpenGLContext();
+        if (!qt_gl_context->create()) {
+            qCWarning(chiakiGui) << "Failed to create QOpenGLContext";
+            return false;
+        }
+
+        qt_gl_offscreen_surface = new QOffscreenSurface();
+        qt_gl_offscreen_surface->setFormat(qt_gl_context->format());
+        qt_gl_offscreen_surface->create();
+        if (!qt_gl_offscreen_surface->isValid()) {
+            qCWarning(chiakiGui) << "Failed to create OpenGL offscreen surface";
+            return false;
+        }
+
+        if (!this->handle())
+            this->create();
+
+        if (!makeOpenGLContextCurrent()) {
+            qCWarning(chiakiGui) << "Failed to make QOpenGLContext current";
+            return false;
+        }
+
+        struct pl_opengl_params gl_params = {
+            .get_proc_addr_ex = [](void *proc_ctx, const char *procname) -> pl_voidfunc_t {
+                auto ctx = static_cast<QOpenGLContext *>(proc_ctx);
+                return reinterpret_cast<pl_voidfunc_t>(ctx->getProcAddress(procname));
+            },
+            .proc_ctx = qt_gl_context,
+            .debug = false,
+            .allow_software = true,
+            .make_current = [](void *priv) -> bool {
+                auto q = static_cast<QmlMainWindow *>(priv);
+                return q->makeOpenGLContextCurrent();
+            },
+            .release_current = [](void *priv) {
+                auto q = static_cast<QmlMainWindow *>(priv);
+                q->doneOpenGLContextCurrent();
+            },
+            .priv = this,
+        };
+        placebo_opengl = pl_opengl_create(placebo_log, &gl_params);
+        if (!placebo_opengl) {
+            qCWarning(chiakiGui) << "Failed to create libplacebo OpenGL backend";
+            return false;
+        }
+        doneOpenGLContextCurrent();
+        return true;
     };
 
-#if defined(Q_OS_LINUX)
-    if (QGuiApplication::platformName().startsWith("wayland"))
-        vk_exts[0] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
-    else if (QGuiApplication::platformName().startsWith("xcb"))
-        vk_exts[0] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
-    else
-        Q_UNREACHABLE();
-#elif defined(Q_OS_MACOS)
-    vk_exts[0] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
-#elif defined(Q_OS_WIN32)
-    vk_exts[0] = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
-#endif
+    auto fallbackToOpenGL = [&](const QString &reason) {
+        qCWarning(chiakiGui) << "Vulkan renderer initialization failed, falling back to OpenGL:" << reason;
+        pending_renderer_fallback_reason = reason;
 
-    const char *opt_extensions[] = {
-        VK_EXT_HDR_METADATA_EXTENSION_NAME,
+        if (placebo_vulkan)
+            pl_vulkan_destroy(&placebo_vulkan);
+        if (placebo_vk_inst)
+            pl_vk_inst_destroy(&placebo_vk_inst);
+
+        render_backend = RenderBackend::OpenGL;
+        settings->SetRenderBackend(RenderBackend::OpenGL);
+        setSurfaceType(QWindow::OpenGLSurface);
+        if (!initOpenGLBackend())
+            qFatal("Failed initializing OpenGL backend");
     };
 
     struct pl_log_params log_params = {
@@ -461,88 +617,131 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     };
     placebo_log = pl_log_create(PL_API_VER, &log_params);
 
-    struct pl_vk_inst_params vk_inst_params = {
-        .extensions = vk_exts,
-        .num_extensions = 2,
-        .opt_extensions = opt_extensions,
-        .num_opt_extensions = 1,
-    };
-    placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
+    if (render_backend == RenderBackend::Vulkan) {
+        if (qEnvironmentVariableIsSet("CHIAKI_FORCE_VULKAN_FALLBACK")) {
+            fallbackToOpenGL(QStringLiteral("Forced Vulkan fallback for testing"));
+            goto renderer_backend_ready;
+        }
+
+        const char *vk_exts[] = {
+            nullptr,
+            VK_KHR_SURFACE_EXTENSION_NAME,
+        };
+
+#if defined(Q_OS_LINUX)
+        if (QGuiApplication::platformName().startsWith("wayland"))
+            vk_exts[0] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+        else if (QGuiApplication::platformName().startsWith("xcb"))
+            vk_exts[0] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+        else
+            Q_UNREACHABLE();
+#elif defined(Q_OS_MACOS)
+        vk_exts[0] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
+#elif defined(Q_OS_WIN)
+        vk_exts[0] = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+#endif
+
+        const char *opt_extensions[] = {
+            VK_EXT_HDR_METADATA_EXTENSION_NAME,
+        };
+
+        struct pl_vk_inst_params vk_inst_params = {
+            .extensions = vk_exts,
+            .num_extensions = 2,
+            .opt_extensions = opt_extensions,
+            .num_opt_extensions = 1,
+        };
+        placebo_vk_inst = pl_vk_inst_create(placebo_log, &vk_inst_params);
+        if (!placebo_vk_inst) {
+            fallbackToOpenGL(QStringLiteral("Failed to create Vulkan instance"));
+        } else {
 
 #define GET_PROC(name_) { \
     vk_funcs.name_ = reinterpret_cast<decltype(vk_funcs.name_)>( \
         placebo_vk_inst->get_proc_addr(placebo_vk_inst->instance, #name_)); \
     if (!vk_funcs.name_) { \
-        qCCritical(chiakiGui) << "Failed to resolve" << #name_; \
-        return; \
+        fallbackToOpenGL(QStringLiteral("Failed to resolve Vulkan symbol %1").arg(#name_)); \
+        goto vulkan_setup_done; \
     } }
-    GET_PROC(vkGetDeviceProcAddr)
+        GET_PROC(vkGetDeviceProcAddr)
 #if defined(Q_OS_LINUX)
-    if (QGuiApplication::platformName().startsWith("wayland"))
-        GET_PROC(vkCreateWaylandSurfaceKHR)
-    else if (QGuiApplication::platformName().startsWith("xcb"))
-        GET_PROC(vkCreateXcbSurfaceKHR)
+        if (QGuiApplication::platformName().startsWith("wayland"))
+            GET_PROC(vkCreateWaylandSurfaceKHR)
+        else if (QGuiApplication::platformName().startsWith("xcb"))
+            GET_PROC(vkCreateXcbSurfaceKHR)
 #elif defined(Q_OS_MACOS)
-    GET_PROC(vkCreateMetalSurfaceEXT)
-#elif defined(Q_OS_WIN32)
-    GET_PROC(vkCreateWin32SurfaceKHR)
+        GET_PROC(vkCreateMetalSurfaceEXT)
+#elif defined(Q_OS_WIN)
+        GET_PROC(vkCreateWin32SurfaceKHR)
 #endif
-    GET_PROC(vkDestroySurfaceKHR)
-    GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
-    GET_PROC(vkGetPhysicalDeviceProperties)
+        GET_PROC(vkDestroySurfaceKHR)
+        GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
+        GET_PROC(vkGetPhysicalDeviceProperties)
 #undef GET_PROC
 
-    const char *opt_dev_extensions[] = {
-        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
-        VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,
-        VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,
-        VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME,
-    };
+        const char *opt_dev_extensions[] = {
+            VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
+            VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,
+            VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,
+            VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME,
+        };
 
-    struct pl_vulkan_params vulkan_params = {
-        .instance = placebo_vk_inst->instance,
-        .get_proc_addr = placebo_vk_inst->get_proc_addr,
-        .allow_software = true,
-        PL_VULKAN_DEFAULTS
-        .extra_queues = VK_QUEUE_VIDEO_DECODE_BIT_KHR,
-        .opt_extensions = opt_dev_extensions,
-        .num_opt_extensions = 4,
-    };
-    placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
+        struct pl_vulkan_params vulkan_params = {
+            .instance = placebo_vk_inst->instance,
+            .get_proc_addr = placebo_vk_inst->get_proc_addr,
+            .allow_software = true,
+            PL_VULKAN_DEFAULTS
+            .extra_queues = VK_QUEUE_VIDEO_DECODE_BIT_KHR,
+            .opt_extensions = opt_dev_extensions,
+            .num_opt_extensions = 4,
+        };
+        placebo_vulkan = pl_vulkan_create(placebo_log, &vulkan_params);
+        if (!placebo_vulkan) {
+            fallbackToOpenGL(QStringLiteral("Failed to create Vulkan device"));
+        } else {
 
 #define GET_PROC(name_) { \
     vk_funcs.name_ = reinterpret_cast<decltype(vk_funcs.name_)>( \
         vk_funcs.vkGetDeviceProcAddr(placebo_vulkan->device, #name_)); \
     if (!vk_funcs.name_) { \
-        qCCritical(chiakiGui) << "Failed to resolve" << #name_; \
-        return; \
+        fallbackToOpenGL(QStringLiteral("Failed to resolve Vulkan symbol %1").arg(#name_)); \
+        goto vulkan_setup_done; \
     } }
-    GET_PROC(vkWaitSemaphores)
+        GET_PROC(vkWaitSemaphores)
 #undef GET_PROC
 
-    uint32_t queueFamilyCount = 0;
-    vk_funcs.vkGetPhysicalDeviceQueueFamilyProperties(placebo_vulkan->phys_device, &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
-    vk_funcs.vkGetPhysicalDeviceQueueFamilyProperties(placebo_vulkan->phys_device, &queueFamilyCount, queueFamilyProperties.data());
-    auto queue_it = std::find_if(queueFamilyProperties.begin(), queueFamilyProperties.end(), [](VkQueueFamilyProperties prop) {
-        return prop.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR;
-    });
-    if (queue_it != queueFamilyProperties.end())
-        vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
-    VkPhysicalDeviceProperties device_props;
-    vk_funcs.vkGetPhysicalDeviceProperties(placebo_vulkan->phys_device, &device_props);
-    if(device_props.vendorID == 0x1002)
-    {
-        amd_card = true;
-        qCInfo(chiakiGui) << "Using amd graphics card";
+        uint32_t queueFamilyCount = 0;
+        vk_funcs.vkGetPhysicalDeviceQueueFamilyProperties(placebo_vulkan->phys_device, &queueFamilyCount, nullptr);
+        std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+        vk_funcs.vkGetPhysicalDeviceQueueFamilyProperties(placebo_vulkan->phys_device, &queueFamilyCount, queueFamilyProperties.data());
+        auto queue_it = std::find_if(queueFamilyProperties.begin(), queueFamilyProperties.end(), [](VkQueueFamilyProperties prop) {
+            return prop.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR;
+        });
+        if (queue_it != queueFamilyProperties.end())
+            vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
+        VkPhysicalDeviceProperties device_props;
+        vk_funcs.vkGetPhysicalDeviceProperties(placebo_vulkan->phys_device, &device_props);
+        if(device_props.vendorID == 0x1002)
+        {
+            amd_card = true;
+            qCInfo(chiakiGui) << "Using amd graphics card";
+        }
+        }
+        }
+vulkan_setup_done:
+        ;
+    } else {
+        if (!initOpenGLBackend())
+            qFatal("Failed initializing OpenGL backend");
     }
 
+renderer_backend_ready:
     struct pl_cache_params cache_params = {
         .log = placebo_log,
         .max_total_size = 10 << 20, // 10 MB
     };
     placebo_cache = pl_cache_create(&cache_params);
-    pl_gpu_set_cache(placebo_vulkan->gpu, placebo_cache);
+    pl_gpu_set_cache(placeboGpu(), placebo_cache);
     FILE *file = fopen(qPrintable(shader_cache_path()), "rb");
     if (file) {
         pl_cache_load_file(placebo_cache, file);
@@ -551,28 +750,37 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 
     placebo_renderer = pl_renderer_create(
         placebo_log,
-        placebo_vulkan->gpu
+        placeboGpu()
     );
 
-    placebo_queue = pl_queue_create(placebo_vulkan->gpu);
+    placebo_queue = pl_queue_create(placeboGpu());
 
-    struct pl_vulkan_sem_params sem_params = {
-        .type = VK_SEMAPHORE_TYPE_TIMELINE,
-    };
-    quick_sem = pl_vulkan_sem_create(placebo_vulkan->gpu, &sem_params);
+    if (render_backend == RenderBackend::Vulkan) {
+        struct pl_vulkan_sem_params sem_params = {
+            .type = VK_SEMAPHORE_TYPE_TIMELINE,
+        };
+        quick_sem = pl_vulkan_sem_create(placebo_vulkan->gpu, &sem_params);
 
-    qt_vk_inst = new QVulkanInstance;
-    qt_vk_inst->setVkInstance(placebo_vk_inst->instance);
-    if (!qt_vk_inst->create())
-        qFatal("Failed to create QVulkanInstance");
+        qt_vk_inst = new QVulkanInstance;
+        qt_vk_inst->setVkInstance(placebo_vk_inst->instance);
+        if (!qt_vk_inst->create()) {
+            delete qt_vk_inst;
+            qt_vk_inst = nullptr;
+            fallbackToOpenGL(QStringLiteral("Failed to create QVulkanInstance"));
+        }
+    }
 
     quick_render = new RenderControl(this);
 
     QQuickWindow::setDefaultAlphaBuffer(true);
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+    QQuickWindow::setGraphicsApi(render_backend == RenderBackend::Vulkan ? QSGRendererInterface::Vulkan : QSGRendererInterface::OpenGL);
     quick_window = new QQuickWindow(quick_render);
-    quick_window->setVulkanInstance(qt_vk_inst);
-    quick_window->setGraphicsDevice(QQuickGraphicsDevice::fromDeviceObjects(placebo_vulkan->phys_device, placebo_vulkan->device, placebo_vulkan->queue_graphics.index));
+    if (render_backend == RenderBackend::Vulkan) {
+        quick_window->setVulkanInstance(qt_vk_inst);
+        quick_window->setGraphicsDevice(QQuickGraphicsDevice::fromDeviceObjects(placebo_vulkan->phys_device, placebo_vulkan->device, placebo_vulkan->queue_graphics.index));
+    } else {
+        quick_window->setGraphicsDevice(QQuickGraphicsDevice::fromOpenGLContext(qt_gl_context));
+    }
     quick_window->setColor(QColor(0, 0, 0, 0));
     connect(quick_window, &QQuickWindow::focusObjectChanged, this, &QmlMainWindow::focusObjectChanged);
 
@@ -586,6 +794,8 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         session = s;
         grab_input = 0;
+        if (session)
+            session->BlockInput(0);
         update_timer->stop();
         pl_queue_reset(placebo_queue);
         queue_pts_origin = -1.0;
@@ -617,12 +827,18 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
 
-    render_thread = new QThread;
-    render_thread->setObjectName("render");
-    render_thread->start();
+    if (render_backend == RenderBackend::OpenGL) {
+        render_thread = QGuiApplication::instance()->thread();
+        owns_render_thread = false;
+    } else {
+        render_thread = new QThread;
+        render_thread->setObjectName("render");
+        render_thread->start();
+        owns_render_thread = true;
 
-    quick_render->prepareThread(render_thread);
-    quick_render->moveToThread(render_thread);
+        quick_render->prepareThread(render_thread);
+        quick_render->moveToThread(render_thread);
+    }
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         quick_need_sync = true;
@@ -721,7 +937,10 @@ void QmlMainWindow::update()
     if (quick_need_sync) {
         quick_need_sync = false;
         quick_render->polishItems();
-        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
+        if (quick_render->thread() == QThread::currentThread())
+            sync();
+        else
+            QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
     }
 
     update_timer->stop();
@@ -754,6 +973,26 @@ void QmlMainWindow::createSwapchain()
     if (placebo_swapchain)
         return;
 
+    if (render_backend == RenderBackend::OpenGL) {
+        if (!makeOpenGLContextCurrent()) {
+            qCCritical(chiakiGui) << "Failed to make OpenGL context current";
+            return;
+        }
+        struct pl_opengl_swapchain_params sw_params = {
+            .swap_buffers = [](void *priv) {
+                auto q = static_cast<QmlMainWindow *>(priv);
+                if (q->qt_gl_context)
+                    q->qt_gl_context->swapBuffers(q);
+            },
+            .priv = this,
+        };
+        placebo_swapchain = pl_opengl_create_swapchain(placebo_opengl, &sw_params);
+        doneOpenGLContextCurrent();
+        if (!placebo_swapchain)
+            qCCritical(chiakiGui) << "Failed creating OpenGL swapchain";
+        return;
+    }
+
     VkResult err = VK_ERROR_UNKNOWN;
 #if defined(Q_OS_LINUX)
     if (QGuiApplication::platformName().startsWith("wayland")) {
@@ -776,7 +1015,7 @@ void QmlMainWindow::createSwapchain()
     surfaceInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     surfaceInfo.pLayer = static_cast<const CAMetalLayer*>(reinterpret_cast<void*(*)(id, SEL)>(objc_msgSend)(reinterpret_cast<id>(winId()), sel_registerName("layer")));
     err = vk_funcs.vkCreateMetalSurfaceEXT(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
-#elif defined(Q_OS_WIN32)
+#elif defined(Q_OS_WIN)
     VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
     surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceInfo.hinstance = GetModuleHandle(nullptr);
@@ -803,7 +1042,10 @@ void QmlMainWindow::destroySwapchain()
         return;
 
     pl_swapchain_destroy(&placebo_swapchain);
-    vk_funcs.vkDestroySurfaceKHR(placebo_vk_inst->instance, surface, nullptr);
+    if (render_backend == RenderBackend::Vulkan)
+        vk_funcs.vkDestroySurfaceKHR(placebo_vk_inst->instance, surface, nullptr);
+    delete quick_fbo;
+    quick_fbo = nullptr;
     swapchain_size = QSize();
 }
 
@@ -820,6 +1062,48 @@ void QmlMainWindow::resizeSwapchain()
 
     swapchain_size = window_size;
     pl_swapchain_resize(placebo_swapchain, &swapchain_size.rwidth(), &swapchain_size.rheight());
+
+    if (render_backend == RenderBackend::OpenGL) {
+        if (!makeOpenGLContextCurrent()) {
+            qCCritical(chiakiGui) << "Failed to make OpenGL context current";
+            return;
+        }
+
+        quick_window->setRenderTarget(QQuickRenderTarget());
+        delete quick_fbo;
+        quick_fbo = new QOpenGLFramebufferObject(swapchain_size, QOpenGLFramebufferObject::CombinedDepthStencil);
+        if (!quick_fbo || !quick_fbo->isValid()) {
+            qCCritical(chiakiGui) << "Failed to create Qt Quick OpenGL framebuffer object";
+            delete quick_fbo;
+            quick_fbo = nullptr;
+            doneOpenGLContextCurrent();
+            return;
+        }
+
+        if (quick_tex)
+            pl_tex_destroy(placeboGpu(), &quick_tex);
+        int quick_texture_internal_format = static_cast<int>(quick_fbo->format().internalTextureFormat());
+        if (!quick_texture_internal_format)
+            quick_texture_internal_format = 0x8058; // GL_RGBA8
+        struct pl_opengl_wrap_params wrap_params = {
+            .texture = quick_fbo->texture(),
+            .framebuffer = static_cast<unsigned int>(quick_fbo->handle()),
+            .width = swapchain_size.width(),
+            .height = swapchain_size.height(),
+            .target = 0x0DE1,
+            .iformat = quick_texture_internal_format,
+        };
+        quick_tex = pl_opengl_wrap(placeboGpu(), &wrap_params);
+        if (!quick_tex) {
+            qCCritical(chiakiGui) << "Failed to wrap Qt Quick OpenGL framebuffer texture";
+            doneOpenGLContextCurrent();
+            return;
+        }
+
+        quick_window->setRenderTarget(QQuickRenderTarget::fromOpenGLTexture(quick_fbo->texture(), quick_fbo->size()));
+        doneOpenGLContextCurrent();
+        return;
+    }
 
     struct pl_tex_params tex_params = {
         .w = swapchain_size.width(),
@@ -843,9 +1127,15 @@ void QmlMainWindow::updateSwapchain()
     quick_item->setSize(size());
     quick_window->resize(size());
 
-    QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::resizeSwapchain, this), Qt::BlockingQueuedConnection);
+    if (quick_render->thread() == QThread::currentThread())
+        resizeSwapchain();
+    else
+        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::resizeSwapchain, this), Qt::BlockingQueuedConnection);
     quick_render->polishItems();
-    QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
+    if (quick_render->thread() == QThread::currentThread())
+        sync();
+    else
+        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
     update();
 }
 
@@ -857,6 +1147,8 @@ void QmlMainWindow::sync()
         return;
 
     beginFrame();
+    if (!quick_frame)
+        return;
     quick_need_render = quick_render->sync();
 }
 
@@ -864,6 +1156,14 @@ void QmlMainWindow::beginFrame()
 {
     if (quick_frame)
         return;
+
+    if (render_backend == RenderBackend::OpenGL) {
+        if (!makeOpenGLContextCurrent())
+            return;
+        quick_frame = true;
+        quick_render->beginFrame();
+        return;
+    }
 
     struct pl_vulkan_hold_params hold_params = {
         .tex = quick_tex,
@@ -892,6 +1192,13 @@ void QmlMainWindow::endFrame()
 {
     if (!quick_frame)
         return;
+
+    if (render_backend == RenderBackend::OpenGL) {
+        quick_frame = false;
+        quick_render->endFrame();
+        doneOpenGLContextCurrent();
+        return;
+    }
 
     quick_frame = false;
     quick_render->endFrame();
@@ -973,6 +1280,16 @@ void QmlMainWindow::render()
         break;
     }
 
+    if (render_backend == RenderBackend::OpenGL && quick_need_render) {
+        quick_need_render = false;
+        beginFrame();
+        if (quick_frame) {
+            clearQuickOpenGLTarget(quick_fbo);
+            quick_render->render();
+        }
+        endFrame();
+    }
+
     struct pl_swapchain_frame sw_frame = {};
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
         qCWarning(chiakiGui) << "Failed to start Placebo frame!";
@@ -1032,9 +1349,15 @@ void QmlMainWindow::render()
         .src = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
         .dst = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
     };
+    if (render_backend == RenderBackend::OpenGL) {
+        overlay_part.src.y0 = static_cast<float>(swapchain_size.height());
+        overlay_part.src.y1 = 0.0f;
+    }
+    struct pl_color_repr overlay_repr = pl_color_repr_rgb;
+    overlay_repr.alpha = PL_ALPHA_PREMULTIPLIED;
     struct pl_overlay overlay = {
         .tex = quick_tex,
-        .repr = pl_color_repr_rgb,
+        .repr = overlay_repr,
         .color = pl_color_space_srgb,
         .parts = &overlay_part,
         .num_parts = 1,
@@ -1079,7 +1402,11 @@ void QmlMainWindow::render()
     if (quick_need_render) {
         quick_need_render = false;
         beginFrame();
-        quick_render->render();
+        if (quick_frame) {
+            if (render_backend == RenderBackend::OpenGL)
+                clearQuickOpenGLTarget(quick_fbo);
+            quick_render->render();
+        }
     }
     endFrame();
 
@@ -1124,7 +1451,7 @@ void QmlMainWindow::render()
     pl_swapchain_swap_buffers(placebo_swapchain);
 
     if (!playback_started) {
-        pl_gpu_finish(placebo_vulkan->gpu);
+        pl_gpu_flush(placeboGpu());
         ts_start = chiaki_time_now_monotonic_us();
         playback_started = true;
     }
@@ -1237,7 +1564,10 @@ bool QmlMainWindow::event(QEvent *event)
             event->ignore();
             return true;
         }
-        QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
+        if (quick_render->thread() == QThread::currentThread())
+            destroySwapchain();
+        else
+            QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
         break;
     default:
         break;
@@ -1250,7 +1580,10 @@ bool QmlMainWindow::event(QEvent *event)
         if (isExposed())
             updateSwapchain();
         else
-            QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
+            if (quick_render->thread() == QThread::currentThread())
+                destroySwapchain();
+            else
+                QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::destroySwapchain, this), Qt::BlockingQueuedConnection);
         break;
     case QEvent::Move:
         if(!session && isWindowAdjustable())

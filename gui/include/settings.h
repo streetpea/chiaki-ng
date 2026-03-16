@@ -66,6 +66,11 @@ enum class PlaceboPreset {
 	Custom
 };
 
+enum class RenderBackend {
+	Vulkan,
+	OpenGL
+};
+
 enum class WindowType {
 	SelectedResolution,
 	CustomResolution,
@@ -346,6 +351,9 @@ class Settings : public QObject
 
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
+
+		RenderBackend GetRenderBackend() const;
+		void SetRenderBackend(RenderBackend backend);
 
 		float GetZoomFactor() const;
 		void SetZoomFactor(float factor);

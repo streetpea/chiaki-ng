@@ -590,6 +590,28 @@ void Settings::SetPlaceboPreset(PlaceboPreset preset)
 	settings.setValue("settings/placebo_preset", placebo_preset_values[preset]);
 }
 
+static const QMap<RenderBackend, QString> render_backend_values = {
+	{ RenderBackend::Vulkan, "vulkan" },
+	{ RenderBackend::OpenGL, "opengl" },
+};
+
+static const RenderBackend render_backend_default = RenderBackend::Vulkan;
+
+RenderBackend Settings::GetRenderBackend() const
+{
+	auto v = settings.value("settings/render_backend", render_backend_values[render_backend_default]).toString();
+	return render_backend_values.key(v, render_backend_default);
+}
+
+void Settings::SetRenderBackend(RenderBackend backend)
+{
+	if (GetRenderBackend() == backend)
+		 return;
+
+	settings.setValue("settings/render_backend",
+			    render_backend_values.value(backend, render_backend_values[render_backend_default]));
+}
+
 float Settings::GetZoomFactor() const
 {
 	return settings.value("settings/zoom_factor", -1).toFloat();

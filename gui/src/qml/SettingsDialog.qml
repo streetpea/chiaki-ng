@@ -743,6 +743,28 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Renderer Backend:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Vulkan"), qsTr("OpenGL")]
+                        currentIndex: Chiaki.settings.rendererBackend
+                        onActivated: (index) => {
+                            if (index === Chiaki.settings.rendererBackend)
+                                return;
+                            Chiaki.settings.rendererBackend = index;
+                            Chiaki.settings.restartApplication();
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Vulkan)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Custom Renderer Settings")
                         visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
                     }
