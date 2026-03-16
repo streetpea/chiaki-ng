@@ -1757,6 +1757,10 @@ void QmlSettings::refreshAllKeys()
     emit psnRefreshTokenChanged();
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
+    emit mouseTouchEnabledChanged();
+    emit keyboardEnabledChanged();
+    emit dpadTouchEnabledChanged();
+    emit iDROnFECFailureEnabledChanged();
     emit dpadTouchIncrementChanged();
     emit dpadTouchShortcut1Changed();
     emit dpadTouchShortcut2Changed();
