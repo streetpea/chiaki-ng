@@ -9,6 +9,8 @@
 #include <QStandardPaths>
 #include <QFileDialog>
 #include <QApplication>
+#include <QCoreApplication>
+#include <QProcess>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -579,6 +581,36 @@ void QmlSettings::setVideoPreset(int preset)
 {
     settings->SetPlaceboPreset(static_cast<PlaceboPreset>(preset));
     emit videoPresetChanged();
+}
+
+int QmlSettings::rendererBackend() const
+{
+    return static_cast<int>(settings->GetRenderBackend());
+}
+
+void QmlSettings::setRendererBackend(int backend)
+{
+    if (backend < static_cast<int>(RenderBackend::Vulkan) ||
+        backend > static_cast<int>(RenderBackend::OpenGL)) {
+        qWarning() << "Ignoring invalid renderer backend value:" << backend;
+        return;
+    }
+
+    auto next_backend = static_cast<RenderBackend>(backend);
+    if (settings->GetRenderBackend() == next_backend)
+        return;
+
+    settings->SetRenderBackend(next_backend);
+    emit rendererBackendChanged();
+}
+
+void QmlSettings::restartApplication()
+{
+    const QString application = QCoreApplication::applicationFilePath();
+    const QStringList arguments = QCoreApplication::arguments().mid(1);
+    if (!QProcess::startDetached(application, arguments))
+        qWarning() << "Failed to relaunch application for renderer backend switch";
+    QCoreApplication::quit();
 }
 
 QString QmlSettings::autoConnectMac() const
@@ -1717,6 +1749,7 @@ void QmlSettings::refreshAllKeys()
     emit customResolutionHeightChanged();
     emit sZoomFactorChanged();
     emit videoPresetChanged();
+    emit rendererBackendChanged();
     emit autoConnectMacChanged();
     emit audioDevicesChanged();
     emit registeredHostsChanged();

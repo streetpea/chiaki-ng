@@ -11,6 +11,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/hwcontext_vulkan.h>
+#include <libplacebo/opengl.h>
 #include <libplacebo/options.h>
 #include <libplacebo/vulkan.h>
 #include <libplacebo/renderer.h>
@@ -35,6 +36,9 @@ Q_DECLARE_LOGGING_CATEGORY(chiakiGui);
 class Settings;
 class StreamSession;
 class QmlBackend;
+class QOffscreenSurface;
+class QOpenGLContext;
+class QOpenGLFramebufferObject;
 
 class QmlMainWindow : public QWindow
 {
@@ -120,7 +124,11 @@ signals:
     void directStreamChanged();
 
 private:
+    bool makeOpenGLContextCurrent();
+    void doneOpenGLContextCurrent();
+
     void init(Settings *settings, bool exit_app_on_stream_exit = false);
+    pl_gpu placeboGpu() const;
     void update();
     void scheduleUpdate();
     void createSwapchain();
@@ -149,6 +157,7 @@ private:
     bool amd_card = false;
     bool direct_stream = false;
     bool keep_video = false;
+    RenderBackend render_backend = RenderBackend::Vulkan;
     int grab_input = 0;
     int dropped_frames = 0;
     bool is_window_adjustable = false;
@@ -168,6 +177,7 @@ private:
     pl_log placebo_log = {};
     pl_vk_inst placebo_vk_inst = {};
     pl_vulkan placebo_vulkan = {};
+    pl_opengl placebo_opengl = {};
     pl_swapchain placebo_swapchain = {};
     pl_renderer placebo_renderer = {};
     pl_queue placebo_queue = {};
@@ -176,20 +186,25 @@ private:
     int vk_decode_queue_index = -1;
     QSize swapchain_size;
     QThread *render_thread = {};
+    bool owns_render_thread = false;
     std::atomic<bool> render_scheduled = {false};
 
     QVulkanInstance *qt_vk_inst = {};
+    QOpenGLContext *qt_gl_context = {};
+    QOffscreenSurface *qt_gl_offscreen_surface = {};
     QQmlEngine *qml_engine = {};
     QQuickWindow *quick_window = {};
     QQuickRenderControl *quick_render = {};
     QQuickItem *quick_item = {};
     pl_tex quick_tex = {};
+    QOpenGLFramebufferObject *quick_fbo = {};
     VkSemaphore quick_sem = VK_NULL_HANDLE;
     uint64_t quick_sem_value = 0;
     QTimer *update_timer = {};
     bool quick_frame = false;
     bool quick_need_sync = false;
     std::atomic<bool> quick_need_render = {false};
+    QString pending_renderer_fallback_reason;
     pl_options renderparams_opts = {};
     bool renderparams_changed = false;
 
@@ -200,7 +215,7 @@ private:
         PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR;
 #elif defined(Q_OS_MACOS)
         PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT;
-#elif defined(Q_OS_WIN32)
+#elif defined(Q_OS_WIN)
         PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
 #endif
         PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;

@@ -55,6 +55,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(uint customResolutionWidth READ customResolutionWidth WRITE setCustomResolutionWidth NOTIFY customResolutionWidthChanged)
     Q_PROPERTY(uint customResolutionHeight READ customResolutionHeight WRITE setCustomResolutionHeight NOTIFY customResolutionHeightChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
+    Q_PROPERTY(int rendererBackend READ rendererBackend WRITE setRendererBackend NOTIFY rendererBackendChanged)
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
@@ -294,6 +295,10 @@ public:
 
     int videoPreset() const;
     void setVideoPreset(int preset);
+
+    int rendererBackend() const;
+    void setRendererBackend(int backend);
+    Q_INVOKABLE void restartApplication();
 
     QString autoConnectMac() const;
     void setAutoConnectMac(const QString &mac);
@@ -620,6 +625,7 @@ signals:
     void customResolutionHeightChanged();
     void sZoomFactorChanged();
     void videoPresetChanged();
+    void rendererBackendChanged();
     void autoConnectMacChanged();
     void audioDevicesChanged();
     void registeredHostsChanged();

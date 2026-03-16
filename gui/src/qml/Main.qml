@@ -9,6 +9,7 @@ Item {
     id: root
     property list<Item> restoreFocusItems
     property bool initialAsk: false
+    readonly property bool useSeparateStreamSettingsWindows: Chiaki.settings.rendererBackend === 1 && Chiaki.session
     Material.theme: Material.Dark
     Material.accent: "#00a7ff"
 
@@ -44,36 +45,38 @@ Item {
     }
 
     function openDisplaySettings() {
-        if(displaySettingsLoader.item.status == Loader.ready)
+        const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
+        if(loader.status == Loader.Ready)
         {
             if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
                 closeDialog();
             displaySettingsRect.opacity = 0.8;
-            grabInput(displaySettingsLoader);
-            if (!displaySettingsLoader.item.restoreFocusItem) {
-                let item = displaySettingsLoader.item.mainItem.nextItemInFocusChain();
+            grabInput(loader);
+            if (!loader.item.restoreFocusItem) {
+                let item = loader.item.mainItem.nextItemInFocusChain();
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
             } else {
-                displaySettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-                displaySettingsLoader.item.restoreFocusItem = null;
+                loader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                loader.item.restoreFocusItem = null;
             }
         }
     }
     function openPlaceboSettings() {
-        if(placeboSettingsLoader.item.status == Loader.ready)
+        const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
+        if(loader.status == Loader.Ready)
         {
             if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
                 closeDialog();
             placeboSettingsRect.opacity = 0.8;
-            grabInput(placeboSettingsLoader);
-            if (!placeboSettingsLoader.item.restoreFocusItem) {
-                let item = placeboSettingsLoader.item.mainItem.nextItemInFocusChain();
+            grabInput(loader);
+            if (!loader.item.restoreFocusItem) {
+                let item = loader.item.mainItem.nextItemInFocusChain();
                 if (item)
                     item.forceActiveFocus(Qt.TabFocusReason);
             } else {
-                placeboSettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-                placeboSettingsLoader.item.restoreFocusItem = null;
+                loader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                loader.item.restoreFocusItem = null;
             }
         }
     }
@@ -81,18 +84,21 @@ Item {
     function closeDialog() {
        if(displaySettingsRect.opacity) {
         displaySettingsRect.opacity = 0.0;
-        displaySettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
+        loader.item.restoreFocusItem = Window.window.activeFocusItem;
         releaseInput();
        }
        else if(placeboSettingsRect.opacity) {
         placeboSettingsRect.opacity = 0.0;
-        placeboSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
+        loader.item.restoreFocusItem = Window.window.activeFocusItem;
         releaseInput();
        }
        else if(colorMappingSettingsRect.opacity) {
         releaseInput();
         colorMappingSettingsRect.opacity = 0.0;
-        colorMappingSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+        const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
+        loader.item.restoreFocusItem = Window.window.activeFocusItem;
         root.openPlaceboSettings();
        }
        else
@@ -102,17 +108,20 @@ Item {
     function showMainView() {
         if(displaySettingsRect.opacity) {
             displaySettingsRect.opacity = 0.0;
-            displaySettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
+            loader.item.restoreFocusItem = Window.window.activeFocusItem;
             releaseInput();
         }
         else if(placeboSettingsRect.opacity) {
             placeboSettingsRect.opacity = 0.0;
-            placeboSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
+            loader.item.restoreFocusItem = Window.window.activeFocusItem;
             releaseInput();
         }
         else if(colorMappingSettingsRect.opacity) {
             colorMappingSettingsRect.opacity = 0.0;
-            colorMappingSettingsLoader.item.restoreFocusItem = Window.window.activeFocusItem;
+            const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
+            loader.item.restoreFocusItem = Window.window.activeFocusItem;
             releaseInput();
         }
         if (stack.depth > 1)
@@ -140,6 +149,18 @@ Item {
         confirmDialog.rejectCallback = rejectCallback;
         confirmDialog.restoreFocusItem = Window.window.activeFocusItem;
         confirmDialog.open();
+    }
+
+    function showInfoDialog(title, text) {
+        infoDialog.title = title;
+        infoDialog.text = text;
+        infoDialog.restoreFocusItem = Window.window.activeFocusItem;
+        infoDialog.open();
+    }
+
+    function showRendererFallbackDialog(reason) {
+        showInfoDialog(qsTr("Renderer Fallback"),
+                       qsTr("Vulkan renderer initialization failed and chiaki-ng switched to OpenGL.\n\nReason: %1").arg(reason));
     }
 
     function showRemindDialog(title, text, remotePlay, callback) {
@@ -172,17 +193,18 @@ Item {
         if(placeboSettingsRect.opacity)
         {
             root.closeDialog();
-            if(colorMappingSettingsLoader.status == Loader.Ready)
+            const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
+            if(loader.status == Loader.Ready)
             {
-                grabInput(colorMappingSettingsLoader);
+                grabInput(loader);
                 colorMappingSettingsRect.opacity = 0.8;
-                if (!colorMappingSettingsLoader.item.restoreFocusItem) {
-                    let item = colorMappingSettingsLoader.item.mainItem.nextItemInFocusChain();
+                if (!loader.item.restoreFocusItem) {
+                    let item = loader.item.mainItem.nextItemInFocusChain();
                     if (item)
                         item.forceActiveFocus(Qt.TabFocusReason);
                 } else {
-                    colorMappingSettingsLoader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-                    colorMappingSettingsLoader.item.restoreFocusItem = null;
+                    loader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+                    loader.item.restoreFocusItem = null;
                 }
             }
         }
@@ -251,7 +273,7 @@ Item {
     Rectangle {
         id: placeboSettingsRect
         opacity: 0.0
-        visible: opacity
+        visible: opacity && !useSeparateStreamSettingsWindows
         height: 650
         width: 1200
         anchors.top: parent.top
@@ -270,7 +292,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         height: 500
         width: 1200
-        visible: opacity
+        visible: opacity && !useSeparateStreamSettingsWindows
         color: Material.background
         Loader {
             anchors.fill: parent
@@ -285,11 +307,101 @@ Item {
         opacity: 0.0
         height: 600
         width: 1200
-        visible: opacity
+        visible: opacity && !useSeparateStreamSettingsWindows
         color: Material.background
         Loader {
             anchors.fill: parent
             id: colorMappingSettingsLoader
+            sourceComponent: placeboColorMappingDialogComponent
+        }
+    }
+
+    Window {
+        id: separateDisplaySettingsWindow
+        visible: useSeparateStreamSettingsWindows && displaySettingsRect.opacity > 0.0
+        transientParent: Window.window
+        flags: Qt.Dialog | Qt.FramelessWindowHint
+        color: Material.background
+        modality: Qt.NonModal
+        x: Math.round(root.mapToGlobal(0, 0).x)
+        y: Math.round(root.mapToGlobal(0, 0).y)
+        width: Math.round(root.width)
+        height: separateDisplaySettingsLoader.item ? Math.min(Math.round(root.height), Math.round(separateDisplaySettingsLoader.item.gridHeight + 140)) : 500
+        onVisibleChanged: if (visible) requestActivate()
+
+        Shortcut {
+            sequence: "Ctrl+O"
+            onActivated: root.closeDialog()
+        }
+
+        Shortcut {
+            sequence: StandardKey.Cancel
+            onActivated: root.closeDialog()
+        }
+
+        Loader {
+            anchors.fill: parent
+            id: separateDisplaySettingsLoader
+            sourceComponent: displaySettingsDialogComponent
+        }
+    }
+
+    Window {
+        id: separatePlaceboSettingsWindow
+        visible: useSeparateStreamSettingsWindows && placeboSettingsRect.opacity > 0.0
+        transientParent: Window.window
+        flags: Qt.Dialog | Qt.FramelessWindowHint
+        color: Material.background
+        modality: Qt.NonModal
+        x: Math.round(root.mapToGlobal(0, 0).x)
+        y: Math.round(root.mapToGlobal(0, 0).y)
+        width: Math.round(root.width)
+        height: Math.min(Math.round(root.height), 650)
+        onVisibleChanged: if (visible) requestActivate()
+
+        Shortcut {
+            sequence: "Ctrl+O"
+            onActivated: root.closeDialog()
+        }
+
+        Shortcut {
+            sequence: StandardKey.Cancel
+            onActivated: root.closeDialog()
+        }
+
+        Loader {
+            anchors.fill: parent
+            id: separatePlaceboSettingsLoader
+            sourceComponent: placeboSettingsDialogComponent
+        }
+    }
+
+    Window {
+        id: separateColorMappingSettingsWindow
+        visible: useSeparateStreamSettingsWindows && colorMappingSettingsRect.opacity > 0.0
+        transientParent: Window.window
+        flags: Qt.Dialog | Qt.FramelessWindowHint
+        color: Material.background
+        modality: Qt.NonModal
+        x: Math.round(root.mapToGlobal(0, 0).x)
+        y: Math.round(root.mapToGlobal(0, 0).y)
+        width: Math.round(root.width)
+        height: Math.min(Math.round(root.height), 600)
+        onVisibleChanged: if (visible) requestActivate()
+
+        Shortcut {
+            sequence: "Ctrl+O"
+            onActivated: root.closeDialog()
+        }
+
+        Shortcut {
+            sequence: StandardKey.Cancel
+            onActivated: root.closeDialog()
+        }
+
+        Loader {
+            anchors.fill: parent
+            id: separateColorMappingSettingsLoader
             sourceComponent: placeboColorMappingDialogComponent
         }
     }
@@ -329,6 +441,63 @@ Item {
         Timer {
             id: errorHideTimer
             interval: 2000
+        }
+    }
+
+    Dialog {
+        id: infoDialog
+        property alias text: infoDialogLabel.text
+        property Item restoreFocusItem
+        parent: Overlay.overlay
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+        modal: true
+        Material.roundedScale: Material.MediumScale
+        onOpened: infoDialogLabel.forceActiveFocus(Qt.TabFocusReason)
+        onClosed: {
+            if (restoreFocusItem)
+                restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
+            infoDialogLabel.focus = false;
+        }
+
+        Component.onCompleted: {
+            header.horizontalAlignment = Text.AlignHCenter;
+            header.background = null;
+        }
+
+        ColumnLayout {
+            spacing: 20
+
+            Label {
+                id: infoDialogLabel
+                Keys.onEscapePressed: infoDialog.close()
+                Keys.onReturnPressed: infoDialog.close()
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignCenter
+
+                Button {
+                    text: qsTr("OK")
+                    Material.background: Material.accent
+                    flat: true
+                    leftPadding: 50
+                    onClicked: infoDialog.close()
+                    Material.roundedScale: Material.SmallScale
+
+                    Image {
+                        anchors {
+                            left: parent.left
+                            verticalCenter: parent.verticalCenter
+                            leftMargin: 12
+                        }
+                        width: 28
+                        height: 28
+                        sourceSize: Qt.size(width, height)
+                        source: root.controllerButton("cross")
+                    }
+                }
+            }
         }
     }
 
