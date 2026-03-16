@@ -19,6 +19,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
 #include <QOffscreenSurface>
+#include <QSurfaceFormat>
 #include <QVulkanInstance>
 #include <QQuickItem>
 #include <QQmlEngine>
@@ -546,12 +547,29 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
     setSurfaceType(render_backend == RenderBackend::Vulkan ? QWindow::VulkanSurface : QWindow::OpenGLSurface);
 
     auto initOpenGLBackend = [&]() -> bool {
+        QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+        format.setRenderableType(QSurfaceFormat::OpenGL);
+        format.setAlphaBufferSize(8);
+        format.setDepthBufferSize(24);
+        format.setStencilBufferSize(8);
+#if defined(Q_OS_MACOS)
+        // macOS only exposes modern OpenGL as a core profile.
+        if (format.majorVersion() < 4) {
+            format.setVersion(4, 1);
+            format.setProfile(QSurfaceFormat::CoreProfile);
+        }
+#endif
+
         qt_gl_context = new QOpenGLContext();
+        qt_gl_context->setFormat(format);
+        if (QOpenGLContext *share = QOpenGLContext::globalShareContext())
+            qt_gl_context->setShareContext(share);
         if (!qt_gl_context->create()) {
             qCWarning(chiakiGui) << "Failed to create QOpenGLContext";
             return false;
         }
 
+        setFormat(qt_gl_context->format());
         qt_gl_offscreen_surface = new QOffscreenSurface();
         qt_gl_offscreen_surface->setFormat(qt_gl_context->format());
         qt_gl_offscreen_surface->create();
