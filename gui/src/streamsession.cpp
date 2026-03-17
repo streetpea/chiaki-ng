@@ -12,6 +12,7 @@
 #include "../../lib/src/utils.h"
 
 #include <QKeyEvent>
+#include <QMutexLocker>
 #include <QtMath>
 
 #include <cstring>
@@ -558,6 +559,10 @@ StreamSession::~StreamSession()
 #if CHIAKI_GUI_ENABLE_SPEEX
 	if(speech_processing_enabled)
 	{
+		{
+			QMutexLocker locker(&echo_to_cancel_mutex);
+			echo_to_cancel.clear();
+		}
 		if(mic_resampler_buf)
 		{
 			free(mic_resampler_buf);
@@ -1246,9 +1251,15 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 			SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
 			cvt.len = mic_buf.size_bytes;
 			cvt.buf = mic_resampler_buf;
-			if(!echo_to_cancel.isEmpty())
+			QByteArray echo_data;
 			{
-				int16_t *echo = echo_to_cancel.dequeue();
+				QMutexLocker locker(&echo_to_cancel_mutex);
+				if(!echo_to_cancel.isEmpty())
+					echo_data = echo_to_cancel.dequeue();
+			}
+			if(!echo_data.isEmpty())
+			{
+				auto echo = reinterpret_cast<const int16_t *>(echo_data.constData());
 				speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
 				speex_preprocess_run(preprocess_state, echo_buf);
 				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)echo_buf, mic_buf.size_bytes);
@@ -1284,9 +1295,15 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 #if CHIAKI_GUI_ENABLE_SPEEX
 		if(speech_processing_enabled)
 		{
-			if(!echo_to_cancel.isEmpty())
+			QByteArray echo_data;
 			{
-				int16_t *echo = echo_to_cancel.dequeue();
+				QMutexLocker locker(&echo_to_cancel_mutex);
+				if(!echo_to_cancel.isEmpty())
+					echo_data = echo_to_cancel.dequeue();
+			}
+			if(!echo_data.isEmpty())
+			{
+				auto echo = reinterpret_cast<const int16_t *>(echo_data.constData());
 				speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
 				speex_preprocess_run(preprocess_state, echo_buf);
 				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)echo_buf, mic_buf.size_bytes);
@@ -1598,9 +1615,11 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample echo audio: %s", SDL_GetError());
 			return;
 		}
+		QByteArray echo_frame(reinterpret_cast<const char *>(echo_resampler_buf), cvt.len_cvt);
+		QMutexLocker locker(&echo_to_cancel_mutex);
 		if(echo_to_cancel.size() >= ECHO_QUEUE_MAX)
 			echo_to_cancel.dequeue();
-		echo_to_cancel.enqueue((int16_t *)echo_resampler_buf);
+		echo_to_cancel.enqueue(echo_frame);
 	}
 #endif
 	SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size);

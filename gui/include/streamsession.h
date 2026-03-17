@@ -35,6 +35,7 @@
 #include <QObject>
 #include <QImage>
 #include <QMouseEvent>
+#include <QMutex>
 #include <QTimer>
 #include <QQueue>
 #include <QElapsedTimer>
@@ -249,7 +250,8 @@ class StreamSession : public QObject
 		SpeexPreprocessState *preprocess_state;
 		bool speech_processing_enabled;
 		uint8_t *echo_resampler_buf, *mic_resampler_buf;
-		QQueue<int16_t *> echo_to_cancel;
+		QMutex echo_to_cancel_mutex;
+		QQueue<QByteArray> echo_to_cancel;
 #endif
 		SDL_AudioDeviceID haptics_output;
 		uint8_t *haptics_resampler_buf;
