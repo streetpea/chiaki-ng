@@ -1146,30 +1146,34 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 
 void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 {
+	auto clear_mic_buffers = [this]() {
+		if(mic_buf.buf)
+		{
+			free(mic_buf.buf);
+			mic_buf.buf = nullptr;
+		}
+#if CHIAKI_GUI_ENABLE_SPEEX
+		if(mic_resampler_buf)
+		{
+			free(mic_resampler_buf);
+			mic_resampler_buf = nullptr;
+		}
+		if(echo_resampler_buf)
+		{
+			free(echo_resampler_buf);
+			echo_resampler_buf = nullptr;
+		}
+		{
+			QMutexLocker locker(&echo_to_cancel_mutex);
+			echo_to_cancel.clear();
+		}
+#endif
+	};
+
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
 
-	if(mic_buf.buf)
-	{
-		free(mic_buf.buf);
-		mic_buf.buf = nullptr;
-	}
-#if CHIAKI_GUI_ENABLE_SPEEX
-	if(mic_resampler_buf)
-	{
-		free(mic_resampler_buf);
-		mic_resampler_buf = nullptr;
-	}
-	if(echo_resampler_buf)
-	{
-		free(echo_resampler_buf);
-		echo_resampler_buf = nullptr;
-	}
-	{
-		QMutexLocker locker(&echo_to_cancel_mutex);
-		echo_to_cancel.clear();
-	}
-#endif
+	clear_mic_buffers();
 
 	mic_buf.current_byte = 0;
 	int16_t mic_buf_size = channels * MICROPHONE_SAMPLES;
@@ -1190,6 +1194,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 		if(!mic_resampler_buf)
 		{
 			CHIAKI_LOGE(GetChiakiLog(), "Mic resampler buf could not be created, aborting mic startup");
+			clear_mic_buffers();
 			return;
 		}
 
@@ -1199,6 +1204,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 		if(!echo_resampler_buf)
 		{
 			CHIAKI_LOGE(GetChiakiLog(), "Echo resampler buf could not be created, aborting mic startup");
+			clear_mic_buffers();
 			return;
 		}
 	}
@@ -1221,12 +1227,16 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open Microphone '%s': %s", qPrintable(audio_in_device_name), SDL_GetError());
 		if(audio_in_device_name.isEmpty())
+		{
+			clear_mic_buffers();
 			return;
+		}
 		audio_in_device_name.clear();
 		audio_in = SDL_OpenAudioDevice(nullptr, true, &spec, &obtained, false);
 		if(!audio_in)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to open default Microphone: %s", SDL_GetError());
+			clear_mic_buffers();
 			return;
 		}
 	}
