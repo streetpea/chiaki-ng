@@ -46,6 +46,7 @@ static void chiaki_opus_decoder_header(ChiakiAudioHeader *header, void *user)
 	memcpy(&decoder->audio_header, header, sizeof(decoder->audio_header));
 
 	opus_decoder_destroy(decoder->opus_decoder);
+	decoder->opus_decoder = NULL;
 
 	int error;
 	decoder->opus_decoder = opus_decoder_create(header->rate, header->channels, &error);
@@ -67,6 +68,7 @@ static void chiaki_opus_decoder_header(ChiakiAudioHeader *header, void *user)
 	if(!decoder->pcm_buf)
 	{
 		free(pcm_buf_old);
+		decoder->pcm_buf = NULL;
 		CHIAKI_LOGE(decoder->log, "ChiakiOpusDecoder failed to alloc pcm buffer");
 		opus_decoder_destroy(decoder->opus_decoder);
 		decoder->opus_decoder = NULL;
