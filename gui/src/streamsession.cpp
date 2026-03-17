@@ -1261,7 +1261,8 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 {
 #if CHIAKI_GUI_ENABLE_SPEEX
-	int16_t echo_buf[mic_buf.size_bytes / sizeof(int16_t)];
+	QByteArray echo_buf_storage(mic_buf.size_bytes, 0);
+	auto echo_buf = reinterpret_cast<int16_t *>(echo_buf_storage.data());
 #endif
 	uint32_t mic_bytes_left = mic_buf.size_bytes - mic_buf.current_byte;
 	// Don't send mic data if muted
