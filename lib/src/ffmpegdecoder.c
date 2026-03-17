@@ -17,7 +17,7 @@ static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
-		ChiakiCodec codec, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
+		ChiakiCodec codec, unsigned int max_fps, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user)
 {
 	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
@@ -30,6 +30,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->hdr_enabled = codec == CHIAKI_CODEC_H265_HDR;
 	decoder->frames_lost = 0;
 	decoder->frame_recovered = false;
+	decoder->synthetic_packet_pts = 0;
+	decoder->synthetic_framerate = max_fps >= 60 ? (AVRational){60000, 1001} : (AVRational){30000, 1001};
+	decoder->synthetic_time_base = av_inv_q(decoder->synthetic_framerate);
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
 	decoder->hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -86,6 +89,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 		CHIAKI_LOGI(log, "Using hardware decoder \"%s\" with pix_fmt=%s", hw_decoder_name, av_get_pix_fmt_name(decoder->hw_pix_fmt));
 	}
 
+	decoder->codec_context->framerate = decoder->synthetic_framerate;
+	decoder->codec_context->pkt_timebase = decoder->synthetic_time_base;
+	decoder->codec_context->time_base = decoder->synthetic_time_base;
+
 	if(avcodec_open2(decoder->codec_context, decoder->av_codec, NULL) < 0)
 	{
 		CHIAKI_LOGE(log, "Failed to open codec context");
@@ -123,6 +130,13 @@ CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t bu
 	AVPacket *packet = av_packet_alloc();
 	packet->data = buf;
 	packet->size = buf_size;
+	packet->pts = decoder->synthetic_packet_pts;
+	packet->dts = decoder->synthetic_packet_pts;
+	packet->duration = 1;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59, 8, 100)
+	packet->time_base = decoder->synthetic_time_base;
+#endif
+	decoder->synthetic_packet_pts++;
 	int r;
 send_packet:
 	r = avcodec_send_packet(decoder->codec_context, packet);
@@ -235,9 +249,11 @@ CHIAKI_EXPORT void chiaki_ffmpeg_frame_get_timing(
 	if(time_base.num <= 0 || time_base.den <= 0)
 		time_base = (AVRational){1, 1000000};
 
-	int64_t pts = frame->best_effort_timestamp;
+	int64_t best_effort_pts = frame->best_effort_timestamp;
+	int64_t raw_pts = frame->pts;
+	int64_t pts = best_effort_pts;
 	if(pts == AV_NOPTS_VALUE)
-		pts = frame->pts;
+		pts = raw_pts;
 	if(pts == AV_NOPTS_VALUE)
 		pts = 0;
 	*out_pts = av_q2d(time_base) * (double)pts;
@@ -260,4 +276,3 @@ CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFf
 			: AV_PIX_FMT_YUV420P;
 	}
 }
-
