@@ -1260,6 +1260,17 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	if(audio_in_device_name.isEmpty())
 		audio_in_device_name = "Auto";
 
+	if(obtained.format != spec.format || obtained.channels != spec.channels || obtained.freq != spec.freq)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(),
+			"Microphone '%s' opened with unsupported format %u channels @ %u Hz (expected %u channels @ %u Hz, format %#x)",
+			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, spec.channels, spec.freq, spec.format);
+		SDL_CloseAudioDevice(audio_in);
+		audio_in = 0;
+		clear_mic_buffers();
+		return;
+	}
+
 	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone '%s' opened with %u channels @ %u Hz, buffer size %u",
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
 }
