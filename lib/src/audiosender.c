@@ -33,9 +33,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_init(ChiakiAudioSender *audio_
 
 CHIAKI_EXPORT void chiaki_audio_sender_fini(ChiakiAudioSender *audio_sender)
 {
-#ifdef CHIAKI_LIB_ENABLE_OPUS
-	opus_encoder_destroy(audio_sender->opus_decoder);
-#endif
     free(audio_sender->frame_buf);
     free(audio_sender->filled_packet_buf);
     if(audio_sender->framea)

@@ -25,9 +25,6 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *au
 
 CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receiver)
 {
-#ifdef CHIAKI_LIB_ENABLE_OPUS
-	opus_decoder_destroy(audio_receiver->opus_decoder);
-#endif
 	chiaki_mutex_fini(&audio_receiver->mutex);
 }
 
