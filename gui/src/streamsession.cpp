@@ -1188,7 +1188,12 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 #if CHIAKI_GUI_ENABLE_SPEEX
 	if(speech_processing_enabled)
 	{
-		SDL_BuildAudioCVT(&mic_speex_cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
+		if(SDL_BuildAudioCVT(&mic_speex_cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000) < 0)
+		{
+			CHIAKI_LOGE(GetChiakiLog(), "Failed to build mic audio converter: %s", SDL_GetError());
+			clear_mic_buffers();
+			return;
+		}
 		mic_speex_cvt.len = mic_buf.size_bytes;
 		mic_resampler_buf = (uint8_t*) calloc(mic_speex_cvt.len * mic_speex_cvt.len_mult, sizeof(uint8_t));
 		if(!mic_resampler_buf)
@@ -1198,7 +1203,12 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 			return;
 		}
 
-		SDL_BuildAudioCVT(&echo_speex_cvt, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
+		if(SDL_BuildAudioCVT(&echo_speex_cvt, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000) < 0)
+		{
+			CHIAKI_LOGE(GetChiakiLog(), "Failed to build echo audio converter: %s", SDL_GetError());
+			clear_mic_buffers();
+			return;
+		}
 		echo_speex_cvt.len = mic_speex_cvt.len * mic_speex_cvt.len_ratio;
 		echo_resampler_buf = (uint8_t*) calloc(echo_speex_cvt.len * echo_speex_cvt.len_mult, sizeof(uint8_t));
 		if(!echo_resampler_buf)
@@ -1390,7 +1400,11 @@ void StreamSession::InitHaptics()
 #endif
 
 	SDL_AudioCVT cvt;
-	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
+	if(SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000) < 0)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to build haptics audio converter: %s", SDL_GetError());
+		return;
+	}
 	cvt.len = 240;  // 10 16bit stereo samples
 	haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
 	if(!haptics_resampler_buf)
