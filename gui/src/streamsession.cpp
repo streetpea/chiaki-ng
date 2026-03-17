@@ -1798,9 +1798,18 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	if(ps5_rumble_intensity < 0)
 		return;
+	if(!haptics_resampler_buf)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Haptics output is active without a resampler buffer");
+		return;
+	}
 	SDL_AudioCVT cvt;
 	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
-	SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000);
+	if(SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000) < 0)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to build haptics playback converter: %s", SDL_GetError());
+		return;
+	}
 	cvt.len = buf_size * 2;
 	cvt.buf = haptics_resampler_buf;
 	// Remix to 4 channels
