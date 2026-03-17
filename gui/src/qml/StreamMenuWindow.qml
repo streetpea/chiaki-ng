@@ -255,6 +255,38 @@ Window {
                     Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQuality
                 }
                 KeyNavigation.left: defaultButton
+                KeyNavigation.right: highQualitySpatialButton
+                Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: streamMenuWindow.closeRequested()
+            }
+
+            ToolButton {
+                id: highQualitySpatialButton
+                text: qsTr("HQ + Spatial")
+                padding: 10
+                checkable: true
+                checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQualitySpatial
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQualitySpatial
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQualitySpatial
+                }
+                KeyNavigation.left: highQualityButton
+                KeyNavigation.right: highQualityAdvancedSpatialButton
+                Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: streamMenuWindow.closeRequested()
+            }
+
+            ToolButton {
+                id: highQualityAdvancedSpatialButton
+                text: qsTr("HQ + Adv Spatial")
+                padding: 10
+                checkable: true
+                checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial
+                }
+                KeyNavigation.left: highQualitySpatialButton
                 KeyNavigation.right: customButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: streamMenuWindow.closeRequested()
@@ -276,7 +308,7 @@ Window {
                     Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom
                     Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.Custom
                 }
-                KeyNavigation.left: highQualityButton
+                KeyNavigation.left: highQualityAdvancedSpatialButton
                 KeyNavigation.right: displaySettingsButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: streamMenuWindow.closeRequested()
@@ -289,7 +321,7 @@ Window {
                 checkable: false
                 icon.source: "qrc:/icons/settings-20px.svg"
                 onClicked: streamMenuWindow.displaySettingsRequested()
-                KeyNavigation.left: highQualityButton
+                KeyNavigation.left: customButton
                 KeyNavigation.right: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom ? placeboSettingsButton : displaySettingsButton
                 Keys.onReturnPressed: clicked()
                 Keys.onEscapePressed: streamMenuWindow.closeRequested()

@@ -552,6 +552,38 @@ Item {
                     Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQuality
                 }
                 KeyNavigation.left: defaultButton
+                KeyNavigation.right: highQualitySpatialButton
+                Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: menuController.close()
+            }
+
+            ToolButton {
+                id: highQualitySpatialButton
+                text: qsTr("HQ + Spatial")
+                padding: 10
+                checkable: true
+                checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQualitySpatial
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQualitySpatial
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQualitySpatial
+                }
+                KeyNavigation.left: highQualityButton
+                KeyNavigation.right: highQualityAdvancedSpatialButton
+                Keys.onReturnPressed: toggled()
+                Keys.onEscapePressed: menuController.close()
+            }
+
+            ToolButton {
+                id: highQualityAdvancedSpatialButton
+                text: qsTr("HQ + Adv Spatial")
+                padding: 10
+                checkable: true
+                checked: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial
+                onToggled: {
+                    Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial
+                    Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial
+                }
+                KeyNavigation.left: highQualitySpatialButton
                 KeyNavigation.right: customButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuController.close()
@@ -573,7 +605,7 @@ Item {
                     Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom
                     Chiaki.settings.videoPreset = ChiakiWindow.VideoPreset.Custom
                 }
-                KeyNavigation.left: highQualityButton
+                KeyNavigation.left: highQualityAdvancedSpatialButton
                 KeyNavigation.right: displaySettingsButton
                 Keys.onReturnPressed: toggled()
                 Keys.onEscapePressed: menuController.close()
@@ -586,7 +618,7 @@ Item {
                 checkable: false
                 icon.source: "qrc:/icons/settings-20px.svg";
                 onClicked: root.openDisplaySettings()
-                KeyNavigation.left: highQualityButton
+                KeyNavigation.left: customButton
                 KeyNavigation.right: {
                     if(Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom)
                         placeboSettingsButton;

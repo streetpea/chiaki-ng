@@ -15,6 +15,7 @@
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QGuiApplication>
+#include <QFile>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
@@ -107,6 +108,45 @@ static const char *render_params_path()
 {
     static QString path = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/Chiaki/pl_render_params.conf";
     return qPrintable(path);
+}
+
+static const struct pl_hook *load_mpv_hook(pl_gpu gpu, const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qCWarning(chiakiGui) << "Failed to open shader resource" << path;
+        return nullptr;
+    }
+
+    QByteArray shader = file.readAll();
+    const struct pl_hook *hook = pl_mpv_user_shader_parse(gpu, shader.constData(), static_cast<size_t>(shader.size()));
+    if (!hook)
+        qCWarning(chiakiGui) << "Failed to parse shader resource" << path;
+    return hook;
+}
+
+static bool uses_fsrcnnx(PlaceboUpscaler upscaler)
+{
+    return upscaler == PlaceboUpscaler::FSRCNNX8 || upscaler == PlaceboUpscaler::FSRCNNX16;
+}
+
+static bool uses_custom_upscale_hook(PlaceboUpscaler upscaler)
+{
+    return upscaler == PlaceboUpscaler::FSR || uses_fsrcnnx(upscaler);
+}
+
+static const struct pl_hook *selected_fsrcnnx_hook(PlaceboUpscaler upscaler,
+                                                   const struct pl_hook *hook8,
+                                                   const struct pl_hook *hook16)
+{
+    switch (upscaler) {
+    case PlaceboUpscaler::FSRCNNX8:
+        return hook8;
+    case PlaceboUpscaler::FSRCNNX16:
+        return hook16;
+    default:
+        return nullptr;
+    }
 }
 
 static void clearQuickOpenGLTarget(QOpenGLFramebufferObject *fbo)
@@ -246,6 +286,9 @@ QmlMainWindow::~QmlMainWindow()
     delete qt_gl_offscreen_surface;
     delete qt_gl_context;
     pl_options_free(&renderparams_opts);
+    pl_mpv_user_shader_destroy(&fsr_hook);
+    pl_mpv_user_shader_destroy(&fsrcnnx_hook_8);
+    pl_mpv_user_shader_destroy(&fsrcnnx_hook_16);
     pl_log_destroy(&placebo_log);
 }
 
@@ -887,6 +930,9 @@ renderer_backend_ready:
     this->renderparams_opts = pl_options_alloc(this->placebo_log);
     pl_options_reset(this->renderparams_opts, &pl_render_high_quality_params);
     this->renderparams_changed = true;
+    this->fsr_hook = load_mpv_hook(placeboGpu(), QStringLiteral(":/shaders/FSR.glsl"));
+    this->fsrcnnx_hook_8 = load_mpv_hook(placeboGpu(), QStringLiteral(":/shaders/FSRCNNX_x2_8-0-4-1.glsl"));
+    this->fsrcnnx_hook_16 = load_mpv_hook(placeboGpu(), QStringLiteral(":/shaders/FSRCNNX_x2_16-0-4-1.glsl"));
 
 
     switch (settings->GetPlaceboPreset()) {
@@ -895,6 +941,12 @@ renderer_backend_ready:
         break;
     case PlaceboPreset::Default:
         setVideoPreset(VideoPreset::Default);
+        break;
+    case PlaceboPreset::HighQualitySpatial:
+        setVideoPreset(VideoPreset::HighQualitySpatial);
+        break;
+    case PlaceboPreset::HighQualityAdvancedSpatial:
+        setVideoPreset(VideoPreset::HighQualityAdvancedSpatial);
         break;
     case PlaceboPreset::Custom:
         setVideoPreset(VideoPreset::Custom);
@@ -1239,6 +1291,7 @@ void QmlMainWindow::render()
         return;
 
     const struct pl_render_params *render_params = &pl_render_default_params;
+    const PlaceboUpscaler configured_upscaler = settings->GetPlaceboUpscaler();
     switch (video_preset) {
     case VideoPreset::Fast:
         render_params = &pl_render_fast_params;
@@ -1255,6 +1308,18 @@ void QmlMainWindow::render()
         if (render_params->deinterlace_params)
             memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
         break;
+    case VideoPreset::HighQualitySpatial:
+        render_params = &pl_render_high_quality_params;
+        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
+        if (render_params->deinterlace_params)
+            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+        break;
+    case VideoPreset::HighQualityAdvancedSpatial:
+        render_params = &pl_render_high_quality_params;
+        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
+        if (render_params->deinterlace_params)
+            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+        break;
     case VideoPreset::Custom:
         if (renderparams_changed) {
             renderparams_changed = false;
@@ -1266,6 +1331,10 @@ void QmlMainWindow::render()
                 memcpy(&this->renderparams_opts->params.deinterlace_params, pl_render_default_params.deinterlace_params, sizeof(struct pl_deinterlace_params));
             while (i.hasNext()) {
                 i.next();
+                if ((i.key() == QLatin1String("upscaler") || i.key() == QLatin1String("plane_upscaler"))
+                    && uses_custom_upscale_hook(configured_upscaler)) {
+                    continue;
+                }
                 if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
                 {
                     invalid_render_params = true;
@@ -1457,6 +1526,69 @@ void QmlMainWindow::render()
     if (sw_frame.color_repr.alpha == PL_ALPHA_NONE)
         params.background_transparency = 0.0;
     params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+
+    const struct pl_hook *fsrcnnx_hook = nullptr;
+    if (frame_mix.num_frames) {
+        const float src_width = fabsf(pl_rect_w(frame_mix.frames[0]->crop));
+        const float src_height = fabsf(pl_rect_h(frame_mix.frames[0]->crop));
+        const float dst_width = fabsf(pl_rect_w(target_frame.crop));
+        const float dst_height = fabsf(pl_rect_h(target_frame.crop));
+        if (src_width > 0.0f && src_height > 0.0f) {
+            const float upscale_factor = qMin(dst_width / src_width, dst_height / src_height);
+            if (video_preset == VideoPreset::Custom && configured_upscaler == PlaceboUpscaler::FSR) {
+                if (upscale_factor > 1.0f)
+                    fsrcnnx_hook = fsr_hook;
+            } else if (upscale_factor >= 1.3f) {
+                switch (video_preset) {
+                case VideoPreset::HighQualitySpatial:
+                    fsrcnnx_hook = fsrcnnx_hook_8;
+                    break;
+                case VideoPreset::HighQualityAdvancedSpatial:
+                    fsrcnnx_hook = fsrcnnx_hook_16;
+                    break;
+                case VideoPreset::Custom:
+                    if (configured_upscaler == PlaceboUpscaler::FSR && upscale_factor > 1.0f)
+                        fsrcnnx_hook = fsr_hook;
+                    else
+                        fsrcnnx_hook = selected_fsrcnnx_hook(configured_upscaler, fsrcnnx_hook_8, fsrcnnx_hook_16);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+    if (fsrcnnx_hook) {
+        const struct pl_hook *hooks[] = {fsrcnnx_hook};
+        params.hooks = hooks;
+        params.num_hooks = 1;
+        switch (video_preset) {
+        case VideoPreset::HighQualitySpatial:
+            qCDebug(chiakiGui) << "Activating spatial upscaler: FSRCNNX x2 8-0-4-1";
+            break;
+        case VideoPreset::HighQualityAdvancedSpatial:
+            qCDebug(chiakiGui) << "Activating spatial upscaler: FSRCNNX x2 16-0-4-1";
+            break;
+        case VideoPreset::Custom:
+            switch (configured_upscaler) {
+            case PlaceboUpscaler::FSR:
+                qCDebug(chiakiGui) << "Activating custom upscaler: FSR";
+                break;
+            case PlaceboUpscaler::FSRCNNX8:
+                qCDebug(chiakiGui) << "Activating custom upscaler: FSRCNNX x2 8-0-4-1";
+                break;
+            case PlaceboUpscaler::FSRCNNX16:
+                qCDebug(chiakiGui) << "Activating custom upscaler: FSRCNNX x2 16-0-4-1";
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
     if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
     {
         qCWarning(chiakiGui) << "Failed to render Placebo frame!";
