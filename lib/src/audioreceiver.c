@@ -33,7 +33,12 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	ChiakiAudioSinkHeader header_cb = NULL;
 	void *header_cb_user = NULL;
 
-	chiaki_mutex_lock(&audio_receiver->mutex);
+	ChiakiErrorCode err = chiaki_mutex_lock(&audio_receiver->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Failed to lock audio receiver mutex: %s", chiaki_error_string(err));
+		return;
+	}
 
 	CHIAKI_LOGI(audio_receiver->log, "Audio Header:");
 	CHIAKI_LOGI(audio_receiver->log, "  channels = %d", audio_header->channels);
@@ -45,7 +50,12 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	header_cb = audio_receiver->session->audio_sink.header_cb;
 	header_cb_user = audio_receiver->session->audio_sink.user;
 
-	chiaki_mutex_unlock(&audio_receiver->mutex);
+	err = chiaki_mutex_unlock(&audio_receiver->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Failed to unlock audio receiver mutex: %s", chiaki_error_string(err));
+		return;
+	}
 
 	if(header_cb)
 		header_cb(audio_header, header_cb_user);
@@ -117,7 +127,12 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 	ChiakiAudioSinkFrame frame_cb = NULL;
 	void *frame_cb_user = NULL;
 
-	chiaki_mutex_lock(&audio_receiver->mutex);
+	ChiakiErrorCode err = chiaki_mutex_lock(&audio_receiver->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Failed to lock audio receiver mutex: %s", chiaki_error_string(err));
+		return;
+	}
 
 	if(!chiaki_seq_num_16_gt(frame_index, audio_receiver->frame_index_prev))
 		goto beach;
@@ -135,7 +150,12 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 	}
 
 beach:
-	chiaki_mutex_unlock(&audio_receiver->mutex);
+	err = chiaki_mutex_unlock(&audio_receiver->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(audio_receiver->log, "Failed to unlock audio receiver mutex: %s", chiaki_error_string(err));
+		return;
+	}
 
 	if(frame_cb)
 		frame_cb(buf, buf_size, frame_cb_user);
