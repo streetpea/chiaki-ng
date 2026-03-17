@@ -1682,6 +1682,18 @@ void StreamSession::SetMicAuthorization(Authorization authorization)
 
 void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 {
+	if(buf_size == 0)
+	{
+		CHIAKI_LOGW(log.GetChiakiLog(), "Received empty haptics frame");
+		return;
+	}
+
+	if((buf_size % (2 * sizeof(int16_t))) != 0)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Haptics audio has invalid size: %zu", buf_size);
+		return;
+	}
+
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	if(sdeck && haptics_handheld > 0 && enable_steamdeck_haptics)
 	{
