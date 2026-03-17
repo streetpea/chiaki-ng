@@ -1638,6 +1638,13 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	// change samples to mono for processing with SPEEX
 	if(echo_resampler_buf && speech_processing_enabled && !muted)
 	{
+		if(buf.size() != (int)(mic_buf.size_bytes * 2))
+		{
+			CHIAKI_LOGW(log.GetChiakiLog(),
+				"Skipping echo reference frame with unexpected size %d, expected %u",
+				buf.size(), mic_buf.size_bytes * 2);
+			goto queue_audio;
+		}
 		SDL_AudioCVT cvt = echo_speex_cvt;
 		cvt.len = mic_buf.size_bytes * 2;
 		cvt.buf = echo_resampler_buf;
@@ -1654,6 +1661,7 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 		echo_to_cancel.enqueue(echo_frame);
 	}
 #endif
+queue_audio:
 	if(SDL_QueueAudio(audio_out, buf.constData(), (Uint32)buf.size()) < 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to queue audio frame: %s", SDL_GetError());
