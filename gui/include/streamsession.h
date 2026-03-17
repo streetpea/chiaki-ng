@@ -248,6 +248,8 @@ class StreamSession : public QObject
 		SpeexEchoState *echo_state;
 		SpeexPreprocessState *preprocess_state;
 		bool speech_processing_enabled;
+		SDL_AudioCVT mic_speex_cvt;
+		SDL_AudioCVT echo_speex_cvt;
 		uint8_t *echo_resampler_buf, *mic_resampler_buf;
 		QMutex echo_to_cancel_mutex;
 		QQueue<QByteArray> echo_to_cancel;

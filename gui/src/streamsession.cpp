@@ -181,8 +181,8 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	sdeck(nullptr),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
-	echo_resampler_buf(nullptr),
-	mic_resampler_buf(nullptr),
+		echo_resampler_buf(nullptr),
+		mic_resampler_buf(nullptr),
 #endif
 	haptics_resampler_buf(nullptr),
 	holepunch_session(nullptr),
@@ -1163,20 +1163,18 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 #if CHIAKI_GUI_ENABLE_SPEEX
 	if(speech_processing_enabled)
 	{
-		SDL_AudioCVT cvt;
-		SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
-		cvt.len = mic_buf.size_bytes;
-		mic_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
+		SDL_BuildAudioCVT(&mic_speex_cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
+		mic_speex_cvt.len = mic_buf.size_bytes;
+		mic_resampler_buf = (uint8_t*) calloc(mic_speex_cvt.len * mic_speex_cvt.len_mult, sizeof(uint8_t));
 		if(!mic_resampler_buf)
 		{
 			CHIAKI_LOGE(GetChiakiLog(), "Mic resampler buf could not be created, aborting mic startup");
 			return;
 		}
 
-		SDL_AudioCVT cvt2;
-		SDL_BuildAudioCVT(&cvt2, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
-		cvt2.len = cvt.len * cvt.len_ratio;
-		echo_resampler_buf = (uint8_t*) calloc(cvt2.len * cvt2.len_mult, sizeof(uint8_t));
+		SDL_BuildAudioCVT(&echo_speex_cvt, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
+		echo_speex_cvt.len = mic_speex_cvt.len * mic_speex_cvt.len_ratio;
+		echo_resampler_buf = (uint8_t*) calloc(echo_speex_cvt.len * echo_speex_cvt.len_mult, sizeof(uint8_t));
 		if(!echo_resampler_buf)
 		{
 			CHIAKI_LOGE(GetChiakiLog(), "Echo resampler buf could not be created, aborting mic startup");
@@ -1240,11 +1238,10 @@ void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 	{
 		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, micdata, mic_bytes_left);
 #if CHIAKI_GUI_ENABLE_SPEEX
-		SDL_AudioCVT cvt;
 		if(speech_processing_enabled)
 		{
+			SDL_AudioCVT cvt = mic_speex_cvt;
 			// change samples to stereo after processing with SPEEX
-			SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 1, 48000, AUDIO_S16SYS, 2, 48000);
 			cvt.len = mic_buf.size_bytes;
 			cvt.buf = mic_resampler_buf;
 			QByteArray echo_data;
@@ -1291,6 +1288,9 @@ void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 #if CHIAKI_GUI_ENABLE_SPEEX
 		if(speech_processing_enabled)
 		{
+			SDL_AudioCVT cvt = mic_speex_cvt;
+			cvt.len = mic_buf.size_bytes;
+			cvt.buf = mic_resampler_buf;
 			QByteArray echo_data;
 			{
 				QMutexLocker locker(&echo_to_cancel_mutex);
@@ -1596,8 +1596,7 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	// change samples to mono for processing with SPEEX
 	if(echo_resampler_buf && speech_processing_enabled && !muted)
 	{
-		SDL_AudioCVT cvt;
-		SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 2, 48000, AUDIO_S16SYS, 1, 48000);
+		SDL_AudioCVT cvt = echo_speex_cvt;
 		cvt.len = mic_buf.size_bytes * 2;
 		cvt.buf = echo_resampler_buf;
 		memcpy(echo_resampler_buf, buf, mic_buf.size_bytes * 2);
