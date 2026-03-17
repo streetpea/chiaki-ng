@@ -1613,7 +1613,11 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 		echo_to_cancel.enqueue(echo_frame);
 	}
 #endif
-	SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size);
+	if(SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size) < 0)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to queue audio frame: %s", SDL_GetError());
+		SDL_ClearQueuedAudio(audio_out);
+	}
 }
 
 #ifdef Q_OS_MACOS
