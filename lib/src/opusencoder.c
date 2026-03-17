@@ -53,6 +53,8 @@ CHIAKI_EXPORT void chiaki_opus_encoder_header(ChiakiAudioHeader *header, ChiakiO
 	if(error != OPUS_OK)
 	{
 		CHIAKI_LOGE(encoder->log, "ChiakiOpusEncoder failed to initialize opus encoder: %s", opus_strerror(error));
+		chiaki_audio_sender_free(encoder->audio_sender);
+		encoder->audio_sender = NULL;
 		encoder->opus_encoder = NULL;
 		return;
 	}
@@ -70,6 +72,8 @@ CHIAKI_EXPORT void chiaki_opus_encoder_header(ChiakiAudioHeader *header, ChiakiO
 		CHIAKI_LOGE(encoder->log, "ChiakiOpusEncoder failed to alloc opus buffer");
 		opus_encoder_destroy(encoder->opus_encoder);
 		encoder->opus_encoder = NULL;
+		chiaki_audio_sender_free(encoder->audio_sender);
+		encoder->audio_sender = NULL;
 		encoder->opus_frame_buf_size = 0;
 		return;
 	}
