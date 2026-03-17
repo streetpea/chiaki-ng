@@ -1562,7 +1562,11 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::KeyRelease:
         if (session && !grab_input) {
             QKeyEvent *e = static_cast<QKeyEvent*>(event);
-            if (e->timestamp()) // Don't send controller emulated key events
+            if (!e->spontaneous()) {
+                QGuiApplication::sendEvent(quick_window, event);
+                return true;
+            }
+            if (e->timestamp())
                 session->HandleKeyboardEvent(e);
             return true;
         }
