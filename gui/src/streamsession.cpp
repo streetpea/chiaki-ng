@@ -623,9 +623,14 @@ void StreamSession::ToggleMute()
 #else
 		InitMic(2, opus_encoder.audio_header.rate);
 #endif
-		chiaki_session_connect_microphone(&session);
-		mic_connected = true;
-	}
+			if(!audio_in)
+			{
+				CHIAKI_LOGE(GetChiakiLog(), "Microphone initialization failed, leaving microphone muted");
+				return;
+			}
+			chiaki_session_connect_microphone(&session);
+			mic_connected = true;
+		}
 	chiaki_session_toggle_microphone(&session, muted);
 	if (muted)
 		muted = false;
