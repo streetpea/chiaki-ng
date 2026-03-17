@@ -33,6 +33,9 @@ CHIAKI_EXPORT void chiaki_audio_receiver_fini(ChiakiAudioReceiver *audio_receive
 
 CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_receiver, ChiakiAudioHeader *audio_header)
 {
+	ChiakiAudioSinkHeader header_cb = NULL;
+	void *header_cb_user = NULL;
+
 	chiaki_mutex_lock(&audio_receiver->mutex);
 
 	CHIAKI_LOGI(audio_receiver->log, "Audio Header:");
@@ -42,10 +45,13 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	CHIAKI_LOGI(audio_receiver->log, "  frame size = %d", audio_header->frame_size);
 	CHIAKI_LOGI(audio_receiver->log, "  unknown = %d", audio_header->unknown);
 
-	if(audio_receiver->session->audio_sink.header_cb)
-		audio_receiver->session->audio_sink.header_cb(audio_header, audio_receiver->session->audio_sink.user);
+	header_cb = audio_receiver->session->audio_sink.header_cb;
+	header_cb_user = audio_receiver->session->audio_sink.user;
 
 	chiaki_mutex_unlock(&audio_receiver->mutex);
+
+	if(header_cb)
+		header_cb(audio_header, header_cb_user);
 }
 
 CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_receiver, ChiakiTakionAVPacket *packet)
@@ -111,17 +117,29 @@ CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_re
 
 static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, bool is_haptics, uint8_t *buf, size_t buf_size)
 {
+	ChiakiAudioSinkFrame frame_cb = NULL;
+	void *frame_cb_user = NULL;
+
 	chiaki_mutex_lock(&audio_receiver->mutex);
 
 	if(!chiaki_seq_num_16_gt(frame_index, audio_receiver->frame_index_prev))
 		goto beach;
 	audio_receiver->frame_index_prev = frame_index;
 
-	if(is_haptics && audio_receiver->session->haptics_sink.frame_cb)
-		audio_receiver->session->haptics_sink.frame_cb(buf, buf_size, audio_receiver->session->haptics_sink.user);
-	else if(!is_haptics && audio_receiver->session->audio_sink.frame_cb)
-		audio_receiver->session->audio_sink.frame_cb(buf, buf_size, audio_receiver->session->audio_sink.user);
+	if(is_haptics)
+	{
+		frame_cb = audio_receiver->session->haptics_sink.frame_cb;
+		frame_cb_user = audio_receiver->session->haptics_sink.user;
+	}
+	else
+	{
+		frame_cb = audio_receiver->session->audio_sink.frame_cb;
+		frame_cb_user = audio_receiver->session->audio_sink.user;
+	}
 
 beach:
 	chiaki_mutex_unlock(&audio_receiver->mutex);
+
+	if(frame_cb)
+		frame_cb(buf, buf_size, frame_cb_user);
 }
