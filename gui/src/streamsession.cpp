@@ -1144,10 +1144,26 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
 
-	mic_buf.buf = nullptr;
+	if(mic_buf.buf)
+	{
+		free(mic_buf.buf);
+		mic_buf.buf = nullptr;
+	}
 #if CHIAKI_GUI_ENABLE_SPEEX
-	mic_resampler_buf = nullptr;
-	echo_resampler_buf = nullptr;
+	if(mic_resampler_buf)
+	{
+		free(mic_resampler_buf);
+		mic_resampler_buf = nullptr;
+	}
+	if(echo_resampler_buf)
+	{
+		free(echo_resampler_buf);
+		echo_resampler_buf = nullptr;
+	}
+	{
+		QMutexLocker locker(&echo_to_cancel_mutex);
+		echo_to_cancel.clear();
+	}
 #endif
 
 	mic_buf.current_byte = 0;
