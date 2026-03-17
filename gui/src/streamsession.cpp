@@ -1598,9 +1598,7 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	if(!audio_out || !audio_volume)
 		return;
 
-	// 2 Channels per sample
-	int16_t buf[samples_count * 2];
-	SDL_memset(buf, 0, sizeof(buf));
+	QByteArray buf((int)(samples_count * audio_out_sample_size), 0);
 
 	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
 	// If the SDL queue runs away, drop the stale backlog and resume from the latest frame.
@@ -1610,9 +1608,9 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 		SDL_ClearQueuedAudio(audio_out);
 	}
 	if(audio_volume < SDL_MIX_MAXVOLUME)
-		SDL_MixAudioFormat((uint8_t *)buf, (uint8_t *)og_buf, AUDIO_S16SYS, sizeof(buf), audio_volume);
+		SDL_MixAudioFormat((uint8_t *)buf.data(), (uint8_t *)og_buf, AUDIO_S16SYS, buf.size(), audio_volume);
 	else
-		memcpy(buf, og_buf, sizeof(buf));
+		memcpy(buf.data(), og_buf, (size_t)buf.size());
 #if CHIAKI_GUI_ENABLE_SPEEX
 	// change samples to mono for processing with SPEEX
 	if(echo_resampler_buf && speech_processing_enabled && !muted)
@@ -1620,7 +1618,7 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 		SDL_AudioCVT cvt = echo_speex_cvt;
 		cvt.len = mic_buf.size_bytes * 2;
 		cvt.buf = echo_resampler_buf;
-		memcpy(echo_resampler_buf, buf, mic_buf.size_bytes * 2);
+		memcpy(echo_resampler_buf, buf.constData(), mic_buf.size_bytes * 2);
 		if(SDL_ConvertAudio(&cvt) != 0)
 		{
 			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample echo audio: %s", SDL_GetError());
@@ -1633,7 +1631,7 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 		echo_to_cancel.enqueue(echo_frame);
 	}
 #endif
-	if(SDL_QueueAudio(audio_out, buf, samples_count * audio_out_sample_size) < 0)
+	if(SDL_QueueAudio(audio_out, buf.constData(), (Uint32)buf.size()) < 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to queue audio frame: %s", SDL_GetError());
 		SDL_ClearQueuedAudio(audio_out);
