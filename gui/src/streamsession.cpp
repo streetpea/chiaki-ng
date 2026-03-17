@@ -2250,7 +2250,7 @@ class StreamSessionPrivate
 
 		static void InitMic(StreamSession *session, uint32_t channels, uint32_t rate)
 		{
-			QMetaObject::invokeMethod(session, "InitMic", Qt::ConnectionType::QueuedConnection, Q_ARG(unsigned int, channels), Q_ARG(unsigned int, rate));
+			QMetaObject::invokeMethod(session, "InitMic", Qt::ConnectionType::BlockingQueuedConnection, Q_ARG(unsigned int, channels), Q_ARG(unsigned int, rate));
 		}
 
 		static void PushAudioFrame(StreamSession *session, int16_t *buf, size_t samples_count)	{ session->PushAudioFrame(buf, samples_count); }
