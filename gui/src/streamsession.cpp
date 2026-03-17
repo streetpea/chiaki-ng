@@ -1285,6 +1285,50 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
 }
 
+#if CHIAKI_GUI_ENABLE_SPEEX
+bool StreamSession::ProcessMicFrame(int16_t *echo_buf)
+{
+	if(!speech_processing_enabled)
+	{
+		chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+		return true;
+	}
+
+	SDL_AudioCVT cvt = mic_speex_cvt;
+	cvt.len = mic_buf.size_bytes;
+	cvt.buf = mic_resampler_buf;
+
+	QByteArray echo_data;
+	{
+		QMutexLocker locker(&echo_to_cancel_mutex);
+		if(!echo_to_cancel.isEmpty())
+			echo_data = echo_to_cancel.dequeue();
+	}
+
+	if(!echo_data.isEmpty())
+	{
+		auto echo = reinterpret_cast<const int16_t *>(echo_data.constData());
+		speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
+		speex_preprocess_run(preprocess_state, echo_buf);
+		memcpy(mic_resampler_buf, echo_buf, mic_buf.size_bytes);
+	}
+	else
+	{
+		speex_preprocess_run(preprocess_state, mic_buf.buf);
+		memcpy(mic_resampler_buf, mic_buf.buf, mic_buf.size_bytes);
+	}
+
+	if(SDL_ConvertAudio(&cvt) != 0)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
+		return false;
+	}
+
+	chiaki_opus_encoder_frame(reinterpret_cast<int16_t *>(mic_resampler_buf), &opus_encoder);
+	return true;
+}
+#endif
+
 void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 {
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -1307,45 +1351,8 @@ void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 	{
 		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, micdata, mic_bytes_left);
 #if CHIAKI_GUI_ENABLE_SPEEX
-		if(speech_processing_enabled)
-		{
-			SDL_AudioCVT cvt = mic_speex_cvt;
-			// change samples to stereo after processing with SPEEX
-			cvt.len = mic_buf.size_bytes;
-			cvt.buf = mic_resampler_buf;
-			QByteArray echo_data;
-			{
-				QMutexLocker locker(&echo_to_cancel_mutex);
-				if(!echo_to_cancel.isEmpty())
-					echo_data = echo_to_cancel.dequeue();
-			}
-			if(!echo_data.isEmpty())
-			{
-				auto echo = reinterpret_cast<const int16_t *>(echo_data.constData());
-				speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
-				speex_preprocess_run(preprocess_state, echo_buf);
-				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)echo_buf, mic_buf.size_bytes);
-				if(SDL_ConvertAudio(&cvt) != 0)
-				{
-					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
-					return;
-				}
-				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
-			}
-			else
-			{
-				speex_preprocess_run(preprocess_state, (int16_t *)mic_buf.buf);
-				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
-				if(SDL_ConvertAudio(&cvt) != 0)
-				{
-					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
-					return;
-				}
-				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
-			}
-		}
-		else
-			chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+		if(!ProcessMicFrame(echo_buf))
+			return;
 #else
 	    chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
 #endif
@@ -1355,44 +1362,8 @@ void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 		{
 			memcpy((uint8_t *)mic_buf.buf, micdata + mic_bytes_left + i * mic_buf.size_bytes, mic_buf.size_bytes);
 #if CHIAKI_GUI_ENABLE_SPEEX
-		if(speech_processing_enabled)
-		{
-			SDL_AudioCVT cvt = mic_speex_cvt;
-			cvt.len = mic_buf.size_bytes;
-			cvt.buf = mic_resampler_buf;
-			QByteArray echo_data;
-			{
-				QMutexLocker locker(&echo_to_cancel_mutex);
-				if(!echo_to_cancel.isEmpty())
-					echo_data = echo_to_cancel.dequeue();
-			}
-			if(!echo_data.isEmpty())
-			{
-				auto echo = reinterpret_cast<const int16_t *>(echo_data.constData());
-				speex_echo_cancellation(echo_state, mic_buf.buf, echo, echo_buf);
-				speex_preprocess_run(preprocess_state, echo_buf);
-				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)echo_buf, mic_buf.size_bytes);
-				if(SDL_ConvertAudio(&cvt) != 0)
-				{
-					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
-					return;
-				}
-				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
-			}
-			else
-			{
-				speex_preprocess_run(preprocess_state, (int16_t *)mic_buf.buf);
-				memcpy((uint8_t *)mic_resampler_buf, (uint8_t *)mic_buf.buf, mic_buf.size_bytes);
-				if(SDL_ConvertAudio(&cvt) != 0)
-				{
-					CHIAKI_LOGE(log.GetChiakiLog(), "Failed to resample mic audio: %s", SDL_GetError());
-					return;
-				}
-				chiaki_opus_encoder_frame((int16_t *)mic_resampler_buf, &opus_encoder);
-			}
-		}
-		else
-			chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
+			if(!ProcessMicFrame(echo_buf))
+				return;
 #else
 	    chiaki_opus_encoder_frame(mic_buf.buf, &opus_encoder);
 #endif
@@ -1428,13 +1399,13 @@ void StreamSession::InitHaptics()
 #endif
 
 	SDL_AudioCVT cvt;
-	if(SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000) < 0)
+	if(SDL_BuildAudioCVT(&haptics_cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000) < 0)
 	{
 		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to build haptics audio converter: %s", SDL_GetError());
 		return;
 	}
-	cvt.len = 240;  // 10 16bit stereo samples
-	haptics_resampler_buf = (uint8_t*) calloc(cvt.len * cvt.len_mult, sizeof(uint8_t));
+	haptics_cvt.len = 240;  // 10 16bit stereo samples
+	haptics_resampler_buf = (uint8_t*) calloc(haptics_cvt.len * haptics_cvt.len_mult, sizeof(uint8_t));
 	if(!haptics_resampler_buf)
 		CHIAKI_LOGE(log.GetChiakiLog(),"Haptics resampler buf could not be allocated");
 }
@@ -1830,13 +1801,7 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		CHIAKI_LOGE(log.GetChiakiLog(), "Haptics output is active without a resampler buffer");
 		return;
 	}
-	SDL_AudioCVT cvt;
-	// Haptics samples are coming in at 3KHZ, but the DualSense expects 48KHZ
-	if(SDL_BuildAudioCVT(&cvt, AUDIO_S16SYS, 4, 3000, AUDIO_S16SYS, 4, 48000) < 0)
-	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to build haptics playback converter: %s", SDL_GetError());
-		return;
-	}
+	SDL_AudioCVT cvt = haptics_cvt;
 	cvt.len = buf_size * 2;
 	cvt.buf = haptics_resampler_buf;
 	// Remix to 4 channels

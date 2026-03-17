@@ -255,6 +255,7 @@ class StreamSession : public QObject
 		QQueue<QByteArray> echo_to_cancel;
 #endif
 		SDL_AudioDeviceID haptics_output;
+		SDL_AudioCVT haptics_cvt;
 		uint8_t *haptics_resampler_buf;
 		MicBuf mic_buf;
 		QMap<Qt::Key, int> key_map;
@@ -326,6 +327,9 @@ class StreamSession : public QObject
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
+#if CHIAKI_GUI_ENABLE_SPEEX
+		bool ProcessMicFrame(int16_t *echo_buf);
+#endif
 		void ReadMic(const uint8_t *micdata, size_t micdata_size);
 
 		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
