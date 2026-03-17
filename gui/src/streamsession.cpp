@@ -1194,8 +1194,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	spec.samples = audio_buffer_size / 4;
 	spec.callback = [](void *userdata, Uint8 *stream, int len) {
 		auto s = static_cast<StreamSession*>(userdata);
-		QByteArray data(reinterpret_cast<char*>(stream), len);
-		QMetaObject::invokeMethod(s, std::bind(&StreamSession::ReadMic, s, data));
+		s->ReadMic(stream, (size_t)len);
 	};
 	spec.userdata = this;
 
@@ -1222,7 +1221,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
 }
 
-void StreamSession::ReadMic(const QByteArray &micdata)
+void StreamSession::ReadMic(const uint8_t *micdata, size_t micdata_size)
 {
 #if CHIAKI_GUI_ENABLE_SPEEX
 	int16_t echo_buf[mic_buf.size_bytes / sizeof(int16_t)];
@@ -1231,18 +1230,17 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 	// Don't send mic data if muted
 	if(muted)
 		return;
-	qint64 bytes_read = micdata.size();
-	const char * micdataread = micdata.constData();
+	size_t bytes_read = micdata_size;
 	if(bytes_read == 0)
 		return;
 	if(bytes_read < mic_bytes_left)
 	{
-		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, (uint8_t *)micdataread, bytes_read);
+		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, micdata, bytes_read);
 		mic_buf.current_byte += bytes_read;
 	}
 	else
 	{
-		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, (uint8_t *)micdataread, mic_bytes_left);
+		memcpy((uint8_t *)mic_buf.buf + mic_buf.current_byte, micdata, mic_bytes_left);
 #if CHIAKI_GUI_ENABLE_SPEEX
 		SDL_AudioCVT cvt;
 		if(speech_processing_enabled)
@@ -1291,7 +1289,7 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 		uint32_t frames = bytes_read / mic_buf.size_bytes;
 		for (int i = 0; i < frames; i++)
 		{
-			memcpy((uint8_t *)mic_buf.buf, (uint8_t *)micdataread + mic_bytes_left + i * mic_buf.size_bytes, mic_buf.size_bytes);
+			memcpy((uint8_t *)mic_buf.buf, micdata + mic_bytes_left + i * mic_buf.size_bytes, mic_buf.size_bytes);
 #if CHIAKI_GUI_ENABLE_SPEEX
 		if(speech_processing_enabled)
 		{
@@ -1335,7 +1333,7 @@ void StreamSession::ReadMic(const QByteArray &micdata)
 		mic_buf.current_byte = bytes_read % mic_buf.size_bytes;
 		if(mic_buf.current_byte == 0)
 			return;
-		memcpy((uint8_t *)mic_buf.buf, (uint8_t *)micdataread + mic_bytes_left + frames * mic_buf.size_bytes, mic_buf.current_byte);
+		memcpy((uint8_t *)mic_buf.buf, micdata + mic_bytes_left + frames * mic_buf.size_bytes, mic_buf.current_byte);
 	}
 }
 void StreamSession::InitHaptics()
