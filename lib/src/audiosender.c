@@ -122,11 +122,22 @@ CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender
 
 static void chiaki_audio_sender_frame(ChiakiAudioSender *audio_sender, uint8_t *buf, size_t buf_size)
 {
-	chiaki_mutex_lock(&audio_sender->mutex);
-	chiaki_takion_send_mic_packet(audio_sender->takion, buf, buf_size, audio_sender->ps5);
-    if (audio_sender->frame_index == UINT16_MAX)
-        audio_sender->frame_index = 0;
-    else
-        audio_sender->frame_index++;
-    chiaki_mutex_unlock(&audio_sender->mutex);
+	ChiakiErrorCode err = chiaki_mutex_lock(&audio_sender->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(audio_sender->log, "Failed to lock audio sender mutex: %s", chiaki_error_string(err));
+		return;
+	}
+
+	err = chiaki_takion_send_mic_packet(audio_sender->takion, buf, buf_size, audio_sender->ps5);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(audio_sender->log, "Failed to send mic audio packet: %s", chiaki_error_string(err));
+
+	if(audio_sender->frame_index == UINT16_MAX)
+		audio_sender->frame_index = 0;
+	else
+		audio_sender->frame_index++;
+	err = chiaki_mutex_unlock(&audio_sender->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(audio_sender->log, "Failed to unlock audio sender mutex: %s", chiaki_error_string(err));
 }
