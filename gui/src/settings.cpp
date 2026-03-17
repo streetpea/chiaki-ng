@@ -574,6 +574,8 @@ static const QMap<PlaceboPreset, QString> placebo_preset_values = {
 	{ PlaceboPreset::Fast, "fast" },
 	{ PlaceboPreset::Default, "default" },
 	{ PlaceboPreset::HighQuality, "high_quality" },
+	{ PlaceboPreset::HighQualitySpatial, "high_quality_spatial" },
+	{ PlaceboPreset::HighQualityAdvancedSpatial, "high_quality_advanced_spatial" },
 	{ PlaceboPreset::Custom, "custom" }
 };
 
@@ -1073,6 +1075,9 @@ static const QMap<PlaceboUpscaler, QString> placebo_upscaler_values = {
 	{ PlaceboUpscaler::EwaLanczos, "ewa_lanczos" },
 	{ PlaceboUpscaler::EwaLanczosSharp, "ewa_lanczossharp" },
 	{ PlaceboUpscaler::EwaLanczos4Sharpest, "ewa_lanczos4sharpest" },
+	{ PlaceboUpscaler::FSR, "fsr" },
+	{ PlaceboUpscaler::FSRCNNX8, "fsrcnnx_x2_8_0_4_1" },
+	{ PlaceboUpscaler::FSRCNNX16, "fsrcnnx_x2_16_0_4_1" },
 };
 
 static const PlaceboUpscaler placebo_upscaler_default = PlaceboUpscaler::Lanczos;

@@ -63,6 +63,8 @@ enum class PlaceboPreset {
 	Fast,
 	Default,
 	HighQuality,
+	HighQualitySpatial,
+	HighQualityAdvancedSpatial,
 	Custom
 };
 
@@ -91,7 +93,10 @@ enum class PlaceboUpscaler {
 	Lanczos,
 	EwaLanczos,
 	EwaLanczosSharp,
-	EwaLanczos4Sharpest
+	EwaLanczos4Sharpest,
+	FSR,
+	FSRCNNX8,
+	FSRCNNX16
 };
 
 enum class PlaceboDownscaler {

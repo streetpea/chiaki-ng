@@ -15,6 +15,7 @@ extern "C" {
 #include <libplacebo/options.h>
 #include <libplacebo/vulkan.h>
 #include <libplacebo/renderer.h>
+#include <libplacebo/shaders/custom.h>
 #include <libplacebo/utils/frame_queue.h>
 #include <libplacebo/log.h>
 #include <libplacebo/cache.h>
@@ -63,6 +64,8 @@ public:
         Fast,
         Default,
         HighQuality,
+        HighQualitySpatial,
+        HighQualityAdvancedSpatial,
         Custom
     };
     Q_ENUM(VideoPreset);
@@ -207,6 +210,9 @@ private:
     QString pending_renderer_fallback_reason;
     pl_options renderparams_opts = {};
     bool renderparams_changed = false;
+    const struct pl_hook *fsr_hook = nullptr;
+    const struct pl_hook *fsrcnnx_hook_8 = nullptr;
+    const struct pl_hook *fsrcnnx_hook_16 = nullptr;
 
     struct {
         PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
