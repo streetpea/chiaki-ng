@@ -1133,8 +1133,6 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	if(audio_out_device_name.isEmpty())
 		audio_out_device_name = "Auto";
 
-	audio_out_drain_queue = false;
-
 	SDL_PauseAudioDevice(audio_out, 0);
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
@@ -1584,16 +1582,11 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	SDL_memset(buf, 0, sizeof(buf));
 
 	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
-	// Start draining queue when the latency gets too high
+	// If the SDL queue runs away, drop the stale backlog and resume from the latest frame.
 	if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
-		audio_out_drain_queue = true;
-
-	if(audio_out_drain_queue)
 	{
-		// Stop when the queue is smaller than configured buffer size
-		if(SDL_GetQueuedAudioSize(audio_out) >= audio_buffer_size)
-			return;
-		audio_out_drain_queue = false;
+		CHIAKI_LOGW(log.GetChiakiLog(), "Audio queue exceeded latency threshold, clearing queued audio");
+		SDL_ClearQueuedAudio(audio_out);
 	}
 	if(audio_volume < SDL_MIX_MAXVOLUME)
 		SDL_MixAudioFormat((uint8_t *)buf, (uint8_t *)og_buf, AUDIO_S16SYS, sizeof(buf), audio_volume);
