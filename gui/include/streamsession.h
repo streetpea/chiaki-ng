@@ -330,7 +330,7 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool ProcessMicFrame(int16_t *echo_buf);
 #endif
-		void ReadMic(const uint8_t *micdata, size_t micdata_size);
+		void ReadMic(const QByteArray &micdata);
 
 		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
 
