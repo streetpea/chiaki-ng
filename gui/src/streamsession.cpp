@@ -1141,6 +1141,16 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	if(audio_out_device_name.isEmpty())
 		audio_out_device_name = "Auto";
 
+	if(obtained.format != spec.format || obtained.channels != spec.channels || obtained.freq != spec.freq)
+	{
+		CHIAKI_LOGE(log.GetChiakiLog(),
+			"Audio output '%s' opened with unsupported format %u channels @ %u Hz (expected %u channels @ %u Hz, format %#x)",
+			qPrintable(audio_out_device_name), obtained.channels, obtained.freq, spec.channels, spec.freq, spec.format);
+		SDL_CloseAudioDevice(audio_out);
+		audio_out = 0;
+		return;
+	}
+
 	SDL_PauseAudioDevice(audio_out, 0);
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
