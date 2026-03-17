@@ -325,7 +325,7 @@ class StreamSession : public QObject
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
-		void ReadMic(const QByteArray &micdata);
+		void ReadMic(const uint8_t *micdata, size_t micdata_size);
 
 		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
 
