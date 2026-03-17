@@ -1111,7 +1111,10 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 	if(start_mic_unmuted)
 		ToggleMute();
 	if(audio_out)
+	{
 		SDL_CloseAudioDevice(audio_out);
+		audio_out = 0;
+	}
 
 	SDL_AudioSpec spec = {0};
 	spec.freq = rate;
@@ -1171,7 +1174,10 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	};
 
 	if(audio_in)
+	{
 		SDL_CloseAudioDevice(audio_in);
+		audio_in = 0;
+	}
 
 	clear_mic_buffers();
 
