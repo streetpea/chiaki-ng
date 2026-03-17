@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #include <libavcodec/avcodec.h>
+#include <libavutil/rational.h>
 
 typedef struct chiaki_ffmpeg_decoder_t ChiakiFfmpegDecoder;
 
@@ -39,10 +40,13 @@ struct chiaki_ffmpeg_decoder_t
 	int32_t frames_lost;
 	bool frame_recovered;
 	int32_t session_bitrate_kbps;
+	int64_t synthetic_packet_pts;
+	AVRational synthetic_time_base;
+	AVRational synthetic_framerate;
 };
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
-		ChiakiCodec codec, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
+		ChiakiCodec codec, unsigned int max_fps, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user);
 CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder);
 CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user);
