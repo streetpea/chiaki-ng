@@ -22,11 +22,21 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_init(ChiakiAudioSender *audio_
         return CHIAKI_ERR_MEMORY;
     audio_sender->filled_packet_buf = malloc(audio_sender->frame_buf_size + 20);
     if(!audio_sender->filled_packet_buf)
+    {
+        free(audio_sender->frame_buf);
+        audio_sender->frame_buf = NULL;
         return CHIAKI_ERR_MEMORY;
+    }
 
     ChiakiErrorCode err = chiaki_mutex_init(&audio_sender->mutex, false);
     if(err != CHIAKI_ERR_SUCCESS)
+    {
+        free(audio_sender->filled_packet_buf);
+        audio_sender->filled_packet_buf = NULL;
+        free(audio_sender->frame_buf);
+        audio_sender->frame_buf = NULL;
         return err;
+    }
 
     return CHIAKI_ERR_SUCCESS;
 }
