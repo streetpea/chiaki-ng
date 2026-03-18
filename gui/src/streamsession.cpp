@@ -480,10 +480,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 			emit AveragePacketLossChanged();
 		}
 	});
+
+	StartAudioOutDrainThread();
 }
 
 StreamSession::~StreamSession()
 {
+	StopAudioOutDrainThread();
 	if(audio_out)
 		SDL_CloseAudioDevice(audio_out);
 	{
@@ -492,7 +495,6 @@ StreamSession::~StreamSession()
 		audio_out_ring_read_pos = 0;
 		audio_out_ring_write_pos = 0;
 		audio_out_ring_fill = 0;
-		audio_out_draining = false;
 		audio_out_overflow_logged = false;
 	}
 	if(audio_in)
@@ -1116,6 +1118,7 @@ void StreamSession::SendFeedbackState()
 
 void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 {
+	StopAudioOutDrainThread();
 	allow_unmute = true;
 	if(start_mic_unmuted)
 		ToggleMute();
@@ -1130,7 +1133,6 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		audio_out_ring_read_pos = 0;
 		audio_out_ring_write_pos = 0;
 		audio_out_ring_fill = 0;
-		audio_out_draining = false;
 		audio_out_overflow_logged = false;
 	}
 
@@ -1170,11 +1172,11 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		audio_out_ring_read_pos = 0;
 		audio_out_ring_write_pos = 0;
 		audio_out_ring_fill = 0;
-		audio_out_draining = false;
 		audio_out_overflow_logged = false;
 	}
 
 	SDL_PauseAudioDevice(audio_out, 0);
+	StartAudioOutDrainThread();
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
 				qPrintable(audio_out_device_name), obtained.channels, obtained.freq, obtained.size);
@@ -1786,8 +1788,6 @@ queue_audio:
 
 void StreamSession::QueueAudioOutData(const QByteArray &audio_data)
 {
-	bool drain_now = false;
-
 	{
 		QMutexLocker locker(&audio_out_ring_mutex);
 		size_t capacity = (size_t)audio_out_ring_buf.size();
@@ -1822,16 +1822,13 @@ void StreamSession::QueueAudioOutData(const QByteArray &audio_data)
 			memcpy(audio_out_ring_buf.data(), data + first_copy, data_size - first_copy);
 		audio_out_ring_write_pos = (audio_out_ring_write_pos + data_size) % capacity;
 		audio_out_ring_fill += data_size;
-
-		if(!audio_out_draining)
-		{
-			audio_out_draining = true;
-			drain_now = true;
-		}
 	}
 
-	if(drain_now)
-		DrainAudioOutRingBuffer();
+	{
+		QMutexLocker lock(&audio_out_drain_mutex);
+		audio_out_drain_requested = true;
+	}
+	audio_out_drain_wait.wakeOne();
 }
 
 void StreamSession::DrainAudioOutRingBuffer()
@@ -1859,7 +1856,6 @@ void StreamSession::DrainAudioOutRingBuffer()
 			QMutexLocker locker(&audio_out_ring_mutex);
 			if(audio_out_ring_fill == 0)
 			{
-				audio_out_draining = false;
 				audio_out_overflow_logged = false;
 				return;
 			}
@@ -1879,10 +1875,83 @@ void StreamSession::DrainAudioOutRingBuffer()
 			break;
 		}
 	}
+}
 
-	QMutexLocker locker(&audio_out_ring_mutex);
-	audio_out_draining = false;
-	audio_out_overflow_logged = false;
+void StreamSession::StartAudioOutDrainThread()
+{
+	QMutexLocker lock(&audio_out_drain_mutex);
+	if(audio_out_drain_thread_running)
+		return;
+	audio_out_drain_thread_running = true;
+	audio_out_drain_requested = false;
+	audio_out_drain_thread = QThread::create([this]() { AudioOutDrainThreadMain(); });
+	audio_out_drain_thread->start();
+}
+
+void StreamSession::StopAudioOutDrainThread()
+{
+	QThread *thread = nullptr;
+	{
+		QMutexLocker lock(&audio_out_drain_mutex);
+		if(!audio_out_drain_thread_running)
+			return;
+		audio_out_drain_thread_running = false;
+		audio_out_drain_requested = true;
+		thread = audio_out_drain_thread;
+		audio_out_drain_thread = nullptr;
+	}
+	audio_out_drain_wait.wakeOne();
+	if(thread)
+	{
+		thread->wait();
+		delete thread;
+	}
+}
+
+void StreamSession::AudioOutDrainThreadMain()
+{
+	audio_out_drain_mutex.lock();
+	while(audio_out_drain_thread_running)
+	{
+		while(audio_out_drain_thread_running && !audio_out_drain_requested)
+			audio_out_drain_wait.wait(&audio_out_drain_mutex);
+		if(!audio_out_drain_thread_running)
+			break;
+
+		audio_out_drain_requested = false;
+		audio_out_drain_mutex.unlock();
+
+		while(true)
+		{
+			DrainAudioOutRingBuffer();
+
+			bool has_pending_audio = false;
+			{
+				QMutexLocker locker(&audio_out_ring_mutex);
+				has_pending_audio = audio_out && audio_out_ring_fill > 0;
+			}
+			if(!has_pending_audio)
+				break;
+
+			audio_out_drain_mutex.lock();
+			if(!audio_out_drain_thread_running)
+			{
+				audio_out_drain_mutex.unlock();
+				return;
+			}
+			audio_out_drain_wait.wait(&audio_out_drain_mutex, 4);
+			if(!audio_out_drain_thread_running)
+			{
+				audio_out_drain_mutex.unlock();
+				return;
+			}
+			audio_out_drain_requested = false;
+			audio_out_drain_mutex.unlock();
+		}
+
+		audio_out_drain_mutex.lock();
+	}
+	audio_out_drain_mutex.unlock();
 }
 
 #ifdef Q_OS_MACOS
