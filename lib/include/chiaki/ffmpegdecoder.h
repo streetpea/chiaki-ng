@@ -5,6 +5,8 @@
 #include <chiaki/log.h>
 #include <chiaki/thread.h>
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,6 +45,8 @@ struct chiaki_ffmpeg_decoder_t
 	int64_t synthetic_packet_pts;
 	AVRational synthetic_time_base;
 	AVRational synthetic_framerate;
+	double synthetic_frame_duration_us;
+	uint64_t synthetic_last_sample_time_us;
 };
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
