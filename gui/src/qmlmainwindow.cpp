@@ -1547,7 +1547,8 @@ void QmlMainWindow::render()
     // appear to support alpha transaprency
     if (sw_frame.color_repr.alpha == PL_ALPHA_NONE)
         params.background_transparency = 0.0;
-    params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+    if (!params.frame_mixer)
+        params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
 
     const struct pl_hook *fsrcnnx_hook = nullptr;
     if (frame_mix.num_frames) {
