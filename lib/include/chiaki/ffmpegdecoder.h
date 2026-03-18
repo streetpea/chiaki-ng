@@ -46,7 +46,9 @@ struct chiaki_ffmpeg_decoder_t
 	AVRational synthetic_time_base;
 	AVRational synthetic_framerate;
 	double synthetic_frame_duration_us;
+	double synthetic_candidate_duration_us;
 	uint64_t synthetic_last_sample_time_us;
+	uint8_t synthetic_candidate_count;
 };
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
