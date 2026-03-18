@@ -68,7 +68,6 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex,
     bool ok = pl_map_avframe_ex(gpu, out_frame, &av_params
     );
 
-    av_frame_free(&frame); // references are preserved by `out_frame`
     if (!ok) {
         fprintf(stderr, "Failed mapping AVFrame!\n");
         qCWarning(chiakiGui) << "Failed to map AVFrame to Placebo frame!";
@@ -79,6 +78,7 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex,
         }
         return false;
     }
+    av_frame_free(&frame); // references are preserved by `out_frame`
     return true;
 }
 
