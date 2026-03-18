@@ -802,7 +802,6 @@ Item {
         onCloseAnimationFinished: {
             if (Window.window)
                 Window.window.requestActivate();
-            view.releaseInput();
             menuController.closing = false;
         }
     }
