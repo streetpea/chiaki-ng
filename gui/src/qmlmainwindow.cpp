@@ -593,6 +593,10 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 {
     render_backend = settings->GetRenderBackend();
     setSurfaceType(render_backend == RenderBackend::Vulkan ? QWindow::VulkanSurface : QWindow::OpenGLSurface);
+    qparams = {};
+    qparams.drift_compensation = 1e-3;
+    qparams.interpolation_threshold = 0.01;
+    qparams.timeout = 0;
 
     auto initOpenGLBackend = [&]() -> bool {
         QSurfaceFormat format = QSurfaceFormat::defaultFormat();

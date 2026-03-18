@@ -150,11 +150,7 @@ private:
     QObject *focusObject() const override;
 
     bool has_video = false;
-    struct pl_queue_params qparams{
-    .drift_compensation = 1e-3,
-    .interpolation_threshold = 0.01,
-    .timeout = 0,
-    };
+    struct pl_queue_params qparams;
     struct pl_frame_mix frame_mix;
     uint64_t ts_start = 0;
     double queue_pts_origin = -1.0;
