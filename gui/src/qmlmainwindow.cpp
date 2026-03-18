@@ -668,7 +668,6 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
             pl_vk_inst_destroy(&placebo_vk_inst);
 
         render_backend = RenderBackend::OpenGL;
-        settings->SetRenderBackend(RenderBackend::OpenGL);
         setSurfaceType(QWindow::OpenGLSurface);
         if (!initOpenGLBackend())
             qFatal("Failed initializing OpenGL backend");
