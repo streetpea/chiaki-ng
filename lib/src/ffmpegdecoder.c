@@ -158,6 +158,8 @@ CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t bu
 	int64_t synthetic_duration_pts = (int64_t)(decoder->synthetic_frame_duration_us + 0.5);
 	if(synthetic_duration_pts < 1)
 		synthetic_duration_pts = 1;
+	if(frames_lost > 0)
+		decoder->synthetic_packet_pts += synthetic_duration_pts * (int64_t)frames_lost;
 
 	AVPacket *packet = av_packet_alloc();
 	packet->data = buf;
