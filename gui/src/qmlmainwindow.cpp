@@ -1124,8 +1124,19 @@ void QmlMainWindow::destroySwapchain()
     pl_swapchain_destroy(&placebo_swapchain);
     if (render_backend == RenderBackend::Vulkan)
         vk_funcs.vkDestroySurfaceKHR(placebo_vk_inst->instance, surface, nullptr);
-    delete quick_fbo;
-    quick_fbo = nullptr;
+    if (render_backend == RenderBackend::OpenGL && quick_fbo) {
+        if (!makeOpenGLContextCurrent()) {
+            qCWarning(chiakiGui) << "Failed to make OpenGL context current while destroying swapchain";
+            swapchain_size = QSize();
+            return;
+        }
+        delete quick_fbo;
+        quick_fbo = nullptr;
+        doneOpenGLContextCurrent();
+    } else {
+        delete quick_fbo;
+        quick_fbo = nullptr;
+    }
     swapchain_size = QSize();
 }
 

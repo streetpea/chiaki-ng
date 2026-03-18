@@ -52,6 +52,7 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(float ZoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY zoomFactorChanged)
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(bool directStream READ directStream NOTIFY directStreamChanged)
+    Q_PROPERTY(int runtimeRendererBackend READ runtimeRendererBackend CONSTANT)
 
 public:
     enum class VideoMode {
@@ -82,6 +83,7 @@ public:
     void increaseDroppedFrames();
 
     bool directStream() const;
+    int runtimeRendererBackend() const { return static_cast<int>(render_backend); }
 
     bool keepVideo() const;
     void setKeepVideo(bool keep);

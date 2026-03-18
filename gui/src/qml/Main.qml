@@ -9,7 +9,7 @@ Item {
     id: root
     property list<Item> restoreFocusItems
     property bool initialAsk: false
-    readonly property bool useSeparateStreamSettingsWindows: Chiaki.settings.rendererBackend === 1 && Chiaki.session
+    readonly property bool useSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
     Material.theme: Material.Dark
     Material.accent: "#00a7ff"
 
