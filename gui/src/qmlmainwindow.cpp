@@ -78,7 +78,6 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex,
         }
         return false;
     }
-    av_frame_free(&frame); // references are preserved by `out_frame`
     return true;
 }
 
@@ -86,6 +85,8 @@ static void unmap_frame(pl_gpu gpu, struct pl_frame *frame,
                         const struct pl_source_frame *src)
 {
     pl_unmap_avframe(gpu, frame);
+    AVFrame *av_frame = reinterpret_cast<AVFrame *>(src->frame_data);
+    av_frame_free(&av_frame);
 }
 
 static void discard_frame(const struct pl_source_frame *src)

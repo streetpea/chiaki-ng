@@ -1,6 +1,5 @@
 
 #include <chiaki/ffmpegdecoder.h>
-
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
 
@@ -31,9 +30,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->frames_lost = 0;
 	decoder->frame_recovered = false;
 	decoder->synthetic_packet_pts = 0;
-	decoder->synthetic_framerate = max_fps >= 120 ? (AVRational){120, 1}
-		: max_fps >= 60 ? (AVRational){60, 1}
-		: (AVRational){30, 1};
+	decoder->synthetic_framerate = (AVRational){max_fps > 0 ? (int)max_fps : 60, 1};
 	decoder->synthetic_time_base = av_inv_q(decoder->synthetic_framerate);
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
@@ -259,6 +256,12 @@ CHIAKI_EXPORT void chiaki_ffmpeg_frame_get_timing(
 	if(pts == AV_NOPTS_VALUE)
 		pts = 0;
 	*out_pts = av_q2d(time_base) * (double)pts;
+
+	if(frame->duration > 0)
+	{
+		*out_duration = av_q2d(time_base) * (double)frame->duration;
+		return;
+	}
 
 	double fps = (framerate.num > 0 && framerate.den > 0) ? av_q2d(framerate) : 60.0;
 	if(fps <= 0.0)
