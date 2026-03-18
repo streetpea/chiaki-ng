@@ -38,9 +38,6 @@ Window {
             focusTimer.restart();
     }
 
-    Keys.onMenuPressed: closeRequested()
-    Keys.onEscapePressed: closeRequested()
-
     Shortcut {
         sequence: StandardKey.Cancel
         onActivated: streamMenuWindow.closeRequested()
@@ -77,6 +74,9 @@ Window {
 
     FocusScope {
         anchors.fill: parent
+        focus: true
+        Keys.onMenuPressed: streamMenuWindow.closeRequested()
+        Keys.onEscapePressed: streamMenuWindow.closeRequested()
 
         Rectangle {
             anchors.fill: parent
