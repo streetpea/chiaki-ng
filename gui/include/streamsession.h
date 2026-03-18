@@ -246,8 +246,7 @@ class StreamSession : public QObject
 		size_t audio_out_ring_read_pos = 0;
 		size_t audio_out_ring_write_pos = 0;
 		size_t audio_out_ring_fill = 0;
-		bool audio_out_drain_queued = false;
-		bool audio_out_drain_waiting = false;
+		bool audio_out_draining = false;
 		bool audio_out_overflow_logged = false;
 		size_t haptics_buffer_size;
 		unsigned int audio_buffer_size;
