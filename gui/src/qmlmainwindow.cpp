@@ -796,6 +796,16 @@ vulkan_setup_done:
             qFatal("Failed initializing OpenGL backend");
     }
 
+    if (render_backend == RenderBackend::Vulkan) {
+        qt_vk_inst = new QVulkanInstance;
+        qt_vk_inst->setVkInstance(placebo_vk_inst->instance);
+        if (!qt_vk_inst->create()) {
+            delete qt_vk_inst;
+            qt_vk_inst = nullptr;
+            fallbackToOpenGL(QStringLiteral("Failed to create QVulkanInstance"));
+        }
+    }
+
 renderer_backend_ready:
     struct pl_cache_params cache_params = {
         .log = placebo_log,
@@ -821,14 +831,6 @@ renderer_backend_ready:
             .type = VK_SEMAPHORE_TYPE_TIMELINE,
         };
         quick_sem = pl_vulkan_sem_create(placebo_vulkan->gpu, &sem_params);
-
-        qt_vk_inst = new QVulkanInstance;
-        qt_vk_inst->setVkInstance(placebo_vk_inst->instance);
-        if (!qt_vk_inst->create()) {
-            delete qt_vk_inst;
-            qt_vk_inst = nullptr;
-            fallbackToOpenGL(QStringLiteral("Failed to create QVulkanInstance"));
-        }
     }
 
     quick_render = new RenderControl(this);
@@ -914,7 +916,14 @@ renderer_backend_ready:
     update_timer->setSingleShot(true);
     connect(update_timer, &QTimer::timeout, this, &QmlMainWindow::update);
 
-    QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::initialize);
+    if (render_backend == RenderBackend::OpenGL) {
+        if (!makeOpenGLContextCurrent())
+            qFatal("Failed to make QOpenGLContext current for render control initialization");
+        quick_render->initialize();
+        doneOpenGLContextCurrent();
+    } else {
+        QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::initialize);
+    }
 
     QTimer *dropped_frames_timer = new QTimer(this);
     dropped_frames_timer->setInterval(1000);
