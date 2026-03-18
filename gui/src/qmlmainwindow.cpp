@@ -330,7 +330,7 @@ int QmlMainWindow::droppedFrames() const
 
 void QmlMainWindow::increaseDroppedFrames()
 {
-    dropped_frames++;
+    dropped_frames_current++;
 }
 
 bool QmlMainWindow::keepVideo() const

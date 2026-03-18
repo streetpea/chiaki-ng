@@ -609,7 +609,10 @@ void QmlSettings::restartApplication()
     const QString application = QCoreApplication::applicationFilePath();
     const QStringList arguments = QCoreApplication::arguments().mid(1);
     if (!QProcess::startDetached(application, arguments))
+    {
         qWarning() << "Failed to relaunch application for renderer backend switch";
+        return;
+    }
     QCoreApplication::quit();
 }
 
