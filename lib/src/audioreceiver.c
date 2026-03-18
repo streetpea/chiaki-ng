@@ -72,15 +72,15 @@ CHIAKI_EXPORT void chiaki_audio_receiver_stream_info(ChiakiAudioReceiver *audio_
 	audio_receiver->frame_index_startup = true;
 	chiaki_audio_receiver_clear_jitter_buffer(audio_receiver);
 
+	if(header_cb)
+		header_cb(audio_header, header_cb_user);
+
 	err = chiaki_mutex_unlock(&audio_receiver->mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(audio_receiver->log, "Failed to unlock audio receiver mutex: %s", chiaki_error_string(err));
 		return;
 	}
-
-	if(header_cb)
-		header_cb(audio_header, header_cb_user);
 }
 
 CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_receiver, ChiakiTakionAVPacket *packet)
