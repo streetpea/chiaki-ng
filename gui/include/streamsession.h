@@ -241,6 +241,13 @@ class StreamSession : public QObject
 		SDL_AudioDeviceID audio_out;
 		SDL_AudioDeviceID audio_in;
 		size_t audio_out_sample_size;
+		QMutex audio_out_ring_mutex;
+		QByteArray audio_out_ring_buf;
+		size_t audio_out_ring_read_pos = 0;
+		size_t audio_out_ring_write_pos = 0;
+		size_t audio_out_ring_fill = 0;
+		bool audio_out_drain_queued = false;
+		bool audio_out_overflow_logged = false;
 		size_t haptics_buffer_size;
 		unsigned int audio_buffer_size;
 		ChiakiHolepunchSession holepunch_session;
@@ -258,9 +265,18 @@ class StreamSession : public QObject
 		SDL_AudioCVT haptics_cvt;
 		uint8_t *haptics_resampler_buf;
 		MicBuf mic_buf;
+		QMutex mic_ring_mutex;
+		QByteArray mic_ring_buf;
+		size_t mic_ring_read_pos = 0;
+		size_t mic_ring_write_pos = 0;
+		size_t mic_ring_fill = 0;
+		bool mic_ring_drain_queued = false;
+		bool mic_ring_overflow_logged = false;
 		QMap<Qt::Key, int> key_map;
 		QElapsedTimer connect_timer;
 
+		void QueueAudioOutData(const QByteArray &audio_data);
+		void DrainAudioOutRingBuffer();
 		void PushAudioFrame(int16_t *buf, size_t samples_count);
 		void PushHapticsFrame(uint8_t *buf, size_t buf_size);
 		void CantDisplayMessage(bool cant_display);
@@ -330,6 +346,8 @@ class StreamSession : public QObject
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool ProcessMicFrame(int16_t *echo_buf);
 #endif
+		void QueueMicData(const uint8_t *micdata, size_t micdata_size);
+		void DrainMicRingBuffer();
 		void ReadMic(const QByteArray &micdata);
 
 		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
