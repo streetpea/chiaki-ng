@@ -486,6 +486,15 @@ StreamSession::~StreamSession()
 {
 	if(audio_out)
 		SDL_CloseAudioDevice(audio_out);
+	{
+		QMutexLocker locker(&audio_out_ring_mutex);
+		audio_out_ring_buf.clear();
+		audio_out_ring_read_pos = 0;
+		audio_out_ring_write_pos = 0;
+		audio_out_ring_fill = 0;
+		audio_out_drain_queued = false;
+		audio_out_overflow_logged = false;
+	}
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
 	if(session_started)
@@ -1115,6 +1124,15 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		SDL_CloseAudioDevice(audio_out);
 		audio_out = 0;
 	}
+	{
+		QMutexLocker locker(&audio_out_ring_mutex);
+		audio_out_ring_buf.clear();
+		audio_out_ring_read_pos = 0;
+		audio_out_ring_write_pos = 0;
+		audio_out_ring_fill = 0;
+		audio_out_drain_queued = false;
+		audio_out_overflow_logged = false;
+	}
 
 	SDL_AudioSpec spec = {0};
 	spec.freq = rate;
@@ -1146,6 +1164,16 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 			"Audio output '%s' opened with converted format %#x, %u channels @ %u Hz (requested %#x, %u channels @ %u Hz)",
 			qPrintable(audio_out_device_name), obtained.format, obtained.channels, obtained.freq, spec.format, spec.channels, spec.freq);
 
+	{
+		QMutexLocker locker(&audio_out_ring_mutex);
+		audio_out_ring_buf.resize((int)(audio_buffer_size * 8));
+		audio_out_ring_read_pos = 0;
+		audio_out_ring_write_pos = 0;
+		audio_out_ring_fill = 0;
+		audio_out_drain_queued = false;
+		audio_out_overflow_logged = false;
+	}
+
 	SDL_PauseAudioDevice(audio_out, 0);
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Audio Device '%s' opened with %u channels @ %d Hz, buffer size %u",
@@ -1159,6 +1187,15 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 		{
 			free(mic_buf.buf);
 			mic_buf.buf = nullptr;
+		}
+		{
+			QMutexLocker locker(&mic_ring_mutex);
+			mic_ring_buf.clear();
+			mic_ring_read_pos = 0;
+			mic_ring_write_pos = 0;
+			mic_ring_fill = 0;
+			mic_ring_drain_queued = false;
+			mic_ring_overflow_logged = false;
 		}
 #if CHIAKI_GUI_ENABLE_SPEEX
 		if(mic_resampler_buf)
@@ -1194,6 +1231,15 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	{
 		CHIAKI_LOGE(GetChiakiLog(), "Could not allocate memory for mic buf, aborting mic startup");
 		return;
+	}
+	{
+		QMutexLocker locker(&mic_ring_mutex);
+		mic_ring_buf.resize((int)(mic_buf.size_bytes * 8));
+		mic_ring_read_pos = 0;
+		mic_ring_write_pos = 0;
+		mic_ring_fill = 0;
+		mic_ring_drain_queued = false;
+		mic_ring_overflow_logged = false;
 	}
 
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -1238,10 +1284,7 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 	spec.samples = audio_buffer_size / 4;
 	spec.callback = [](void *userdata, Uint8 *stream, int len) {
 		auto s = static_cast<StreamSession*>(userdata);
-		QByteArray micdata(reinterpret_cast<const char *>(stream), len);
-		QMetaObject::invokeMethod(s, [s, micdata = std::move(micdata)]() {
-			s->ReadMic(micdata);
-		});
+		s->QueueMicData(stream, (size_t)len);
 	};
 	spec.userdata = this;
 
@@ -1275,6 +1318,83 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 
 	CHIAKI_LOGI(log.GetChiakiLog(), "Microphone '%s' opened with %u channels @ %u Hz, buffer size %u",
 			qPrintable(audio_in_device_name), obtained.channels, obtained.freq, obtained.size);
+}
+
+void StreamSession::QueueMicData(const uint8_t *micdata, size_t micdata_size)
+{
+	bool schedule_drain = false;
+
+	{
+		QMutexLocker locker(&mic_ring_mutex);
+		size_t capacity = (size_t)mic_ring_buf.size();
+		if(capacity == 0 || micdata_size == 0)
+			return;
+
+		if(micdata_size >= capacity)
+		{
+			micdata += micdata_size - capacity;
+			micdata_size = capacity;
+			mic_ring_read_pos = 0;
+			mic_ring_write_pos = 0;
+			mic_ring_fill = 0;
+		}
+		else if(micdata_size > capacity - mic_ring_fill)
+		{
+			size_t bytes_to_drop = micdata_size - (capacity - mic_ring_fill);
+			mic_ring_read_pos = (mic_ring_read_pos + bytes_to_drop) % capacity;
+			mic_ring_fill -= bytes_to_drop;
+			if(!mic_ring_overflow_logged)
+			{
+				CHIAKI_LOGW(log.GetChiakiLog(), "Mic ring buffer overflow, dropping stale captured audio");
+				mic_ring_overflow_logged = true;
+			}
+		}
+
+		size_t first_copy = qMin(micdata_size, capacity - mic_ring_write_pos);
+		memcpy(mic_ring_buf.data() + mic_ring_write_pos, micdata, first_copy);
+		if(micdata_size > first_copy)
+			memcpy(mic_ring_buf.data(), micdata + first_copy, micdata_size - first_copy);
+		mic_ring_write_pos = (mic_ring_write_pos + micdata_size) % capacity;
+		mic_ring_fill += micdata_size;
+
+		if(!mic_ring_drain_queued)
+		{
+			mic_ring_drain_queued = true;
+			schedule_drain = true;
+		}
+	}
+
+	if(schedule_drain)
+	{
+		QMetaObject::invokeMethod(this, [this]() {
+			DrainMicRingBuffer();
+		});
+	}
+}
+
+void StreamSession::DrainMicRingBuffer()
+{
+	while(true)
+	{
+		QByteArray micdata;
+		{
+			QMutexLocker locker(&mic_ring_mutex);
+			if(mic_ring_fill == 0)
+			{
+				mic_ring_drain_queued = false;
+				mic_ring_overflow_logged = false;
+				return;
+			}
+
+			size_t capacity = (size_t)mic_ring_buf.size();
+			size_t chunk_size = qMin(mic_ring_fill, capacity - mic_ring_read_pos);
+			micdata = QByteArray(mic_ring_buf.constData() + mic_ring_read_pos, (int)chunk_size);
+			mic_ring_read_pos = (mic_ring_read_pos + chunk_size) % capacity;
+			mic_ring_fill -= chunk_size;
+		}
+
+		ReadMic(micdata);
+	}
 }
 
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -1656,10 +1776,113 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	}
 #endif
 queue_audio:
-	if(SDL_QueueAudio(audio_out, buf.constData(), (Uint32)buf.size()) < 0)
+	QueueAudioOutData(buf);
+}
+
+void StreamSession::QueueAudioOutData(const QByteArray &audio_data)
+{
+	bool schedule_drain = false;
+
 	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Failed to queue audio frame: %s", SDL_GetError());
-		SDL_ClearQueuedAudio(audio_out);
+		QMutexLocker locker(&audio_out_ring_mutex);
+		size_t capacity = (size_t)audio_out_ring_buf.size();
+		size_t data_size = (size_t)audio_data.size();
+		if(capacity == 0 || data_size == 0)
+			return;
+
+		const char *data = audio_data.constData();
+		if(data_size >= capacity)
+		{
+			data += data_size - capacity;
+			data_size = capacity;
+			audio_out_ring_read_pos = 0;
+			audio_out_ring_write_pos = 0;
+			audio_out_ring_fill = 0;
+		}
+		else if(data_size > capacity - audio_out_ring_fill)
+		{
+			size_t bytes_to_drop = data_size - (capacity - audio_out_ring_fill);
+			audio_out_ring_read_pos = (audio_out_ring_read_pos + bytes_to_drop) % capacity;
+			audio_out_ring_fill -= bytes_to_drop;
+			if(!audio_out_overflow_logged)
+			{
+				CHIAKI_LOGW(log.GetChiakiLog(), "Audio output ring overflow, dropping stale queued audio");
+				audio_out_overflow_logged = true;
+			}
+		}
+
+		size_t first_copy = qMin(data_size, capacity - audio_out_ring_write_pos);
+		memcpy(audio_out_ring_buf.data() + audio_out_ring_write_pos, data, first_copy);
+		if(data_size > first_copy)
+			memcpy(audio_out_ring_buf.data(), data + first_copy, data_size - first_copy);
+		audio_out_ring_write_pos = (audio_out_ring_write_pos + data_size) % capacity;
+		audio_out_ring_fill += data_size;
+
+		if(!audio_out_drain_queued)
+		{
+			audio_out_drain_queued = true;
+			schedule_drain = true;
+		}
+	}
+
+	if(schedule_drain)
+	{
+		QMetaObject::invokeMethod(this, [this]() {
+			DrainAudioOutRingBuffer();
+		});
+	}
+}
+
+void StreamSession::DrainAudioOutRingBuffer()
+{
+	const size_t target_queue_size = audio_buffer_size * 2;
+
+	while(audio_out)
+	{
+		if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
+		{
+			CHIAKI_LOGW(log.GetChiakiLog(), "Audio queue exceeded latency threshold, clearing queued audio");
+			SDL_ClearQueuedAudio(audio_out);
+		}
+
+		if(SDL_GetQueuedAudioSize(audio_out) >= target_queue_size)
+			break;
+
+		QByteArray audio_chunk;
+		{
+			QMutexLocker locker(&audio_out_ring_mutex);
+			if(audio_out_ring_fill == 0)
+			{
+				audio_out_drain_queued = false;
+				audio_out_overflow_logged = false;
+				return;
+			}
+
+			size_t capacity = (size_t)audio_out_ring_buf.size();
+			size_t remaining_target = target_queue_size - SDL_GetQueuedAudioSize(audio_out);
+			size_t chunk_size = qMin(audio_out_ring_fill, qMin(remaining_target, capacity - audio_out_ring_read_pos));
+			audio_chunk = QByteArray(audio_out_ring_buf.constData() + audio_out_ring_read_pos, (int)chunk_size);
+			audio_out_ring_read_pos = (audio_out_ring_read_pos + chunk_size) % capacity;
+			audio_out_ring_fill -= chunk_size;
+		}
+
+		if(SDL_QueueAudio(audio_out, audio_chunk.constData(), (Uint32)audio_chunk.size()) < 0)
+		{
+			CHIAKI_LOGE(log.GetChiakiLog(), "Failed to queue audio frame: %s", SDL_GetError());
+			SDL_ClearQueuedAudio(audio_out);
+			break;
+		}
+	}
+
+	QMutexLocker locker(&audio_out_ring_mutex);
+	audio_out_drain_queued = false;
+	audio_out_overflow_logged = false;
+	if(audio_out_ring_fill > 0)
+	{
+		audio_out_drain_queued = true;
+		QMetaObject::invokeMethod(this, [this]() {
+			DrainAudioOutRingBuffer();
+		});
 	}
 }
 
