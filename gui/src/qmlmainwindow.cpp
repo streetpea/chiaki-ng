@@ -1158,13 +1158,16 @@ void QmlMainWindow::resizeSwapchain()
 
     if (!placebo_swapchain)
         createSwapchain();
-
-    const QSize window_size(width() * devicePixelRatio(), height() * devicePixelRatio());
-    if (window_size == swapchain_size)
+    if (!placebo_swapchain)
         return;
 
-    swapchain_size = window_size;
-    pl_swapchain_resize(placebo_swapchain, &swapchain_size.rwidth(), &swapchain_size.rheight());
+    const QSize window_size(width() * devicePixelRatio(), height() * devicePixelRatio());
+    const bool swapchain_ready = quick_tex && (render_backend != RenderBackend::OpenGL || quick_fbo);
+    if (window_size == swapchain_size && swapchain_ready)
+        return;
+
+    QSize new_swapchain_size = window_size;
+    pl_swapchain_resize(placebo_swapchain, &new_swapchain_size.rwidth(), &new_swapchain_size.rheight());
 
     if (render_backend == RenderBackend::OpenGL) {
         if (!makeOpenGLContextCurrent()) {
@@ -1172,54 +1175,62 @@ void QmlMainWindow::resizeSwapchain()
             return;
         }
 
-        quick_window->setRenderTarget(QQuickRenderTarget());
-        delete quick_fbo;
-        quick_fbo = new QOpenGLFramebufferObject(swapchain_size, QOpenGLFramebufferObject::CombinedDepthStencil);
-        if (!quick_fbo || !quick_fbo->isValid()) {
+        QOpenGLFramebufferObject *new_quick_fbo =
+            new QOpenGLFramebufferObject(new_swapchain_size, QOpenGLFramebufferObject::CombinedDepthStencil);
+        if (!new_quick_fbo || !new_quick_fbo->isValid()) {
             qCCritical(chiakiGui) << "Failed to create Qt Quick OpenGL framebuffer object";
-            delete quick_fbo;
-            quick_fbo = nullptr;
+            delete new_quick_fbo;
             doneOpenGLContextCurrent();
             return;
         }
 
-        if (quick_tex)
-            pl_tex_destroy(placeboGpu(), &quick_tex);
-        int quick_texture_internal_format = static_cast<int>(quick_fbo->format().internalTextureFormat());
+        int quick_texture_internal_format = static_cast<int>(new_quick_fbo->format().internalTextureFormat());
         if (!quick_texture_internal_format)
             quick_texture_internal_format = 0x8058; // GL_RGBA8
         struct pl_opengl_wrap_params wrap_params = {
-            .texture = quick_fbo->texture(),
-            .framebuffer = static_cast<unsigned int>(quick_fbo->handle()),
-            .width = swapchain_size.width(),
-            .height = swapchain_size.height(),
+            .texture = new_quick_fbo->texture(),
+            .framebuffer = static_cast<unsigned int>(new_quick_fbo->handle()),
+            .width = new_swapchain_size.width(),
+            .height = new_swapchain_size.height(),
             .target = 0x0DE1,
             .iformat = quick_texture_internal_format,
         };
-        quick_tex = pl_opengl_wrap(placeboGpu(), &wrap_params);
-        if (!quick_tex) {
+        pl_tex new_quick_tex = pl_opengl_wrap(placeboGpu(), &wrap_params);
+        if (!new_quick_tex) {
             qCCritical(chiakiGui) << "Failed to wrap Qt Quick OpenGL framebuffer texture";
+            delete new_quick_fbo;
             doneOpenGLContextCurrent();
             return;
         }
 
+        quick_window->setRenderTarget(QQuickRenderTarget());
+        if (quick_tex)
+            pl_tex_destroy(placeboGpu(), &quick_tex);
+        delete quick_fbo;
+        quick_fbo = new_quick_fbo;
+        quick_tex = new_quick_tex;
+        swapchain_size = new_swapchain_size;
         quick_window->setRenderTarget(QQuickRenderTarget::fromOpenGLTexture(quick_fbo->texture(), quick_fbo->size()));
         doneOpenGLContextCurrent();
         return;
     }
 
     struct pl_tex_params tex_params = {
-        .w = swapchain_size.width(),
-        .h = swapchain_size.height(),
+        .w = new_swapchain_size.width(),
+        .h = new_swapchain_size.height(),
         .format = pl_find_fmt(placebo_vulkan->gpu, PL_FMT_UNORM, 4, 8, 8, PL_FMT_CAP_RENDERABLE),
         .sampleable = true,
         .renderable = true,
     };
     if (!pl_tex_recreate(placebo_vulkan->gpu, &quick_tex, &tex_params))
+    {
         qCCritical(chiakiGui) << "Failed to create placebo texture";
+        return;
+    }
 
     VkFormat vk_format;
     VkImage vk_image = pl_vulkan_unwrap(placebo_vulkan->gpu, quick_tex, &vk_format, nullptr);
+    swapchain_size = new_swapchain_size;
     quick_window->setRenderTarget(QQuickRenderTarget::fromVulkanImage(vk_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vk_format, swapchain_size));
 }
 
