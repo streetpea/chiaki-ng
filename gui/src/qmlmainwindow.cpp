@@ -1395,12 +1395,16 @@ void QmlMainWindow::render()
         break;
     }
 
+    struct pl_render_params params = *render_params;
+    if (!params.frame_mixer)
+        params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+
     uint64_t ts_pre_update = chiaki_time_now_monotonic_us();
     double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
     if (refresh_rate <= 1.0)
         refresh_rate = 60.0;
     qparams.timeout = 0;
-    qparams.radius = pl_frame_mix_radius(render_params);
+    qparams.radius = pl_frame_mix_radius(&params);
     qparams.vsync_duration = 1.0 / refresh_rate;
     qparams.pts = playback_started ? (double)(ts_pre_update - ts_start) / 1000000.0 : 0.0;
     switch (pl_queue_update(placebo_queue, &frame_mix, &qparams)) {
@@ -1567,13 +1571,10 @@ void QmlMainWindow::render()
         }
     }
 
-    struct pl_render_params params = *render_params;
     // Disable background transparency by default if the swapchain does not
     // appear to support alpha transaprency
     if (sw_frame.color_repr.alpha == PL_ALPHA_NONE)
         params.background_transparency = 0.0;
-    if (!params.frame_mixer)
-        params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
 
     const struct pl_hook *fsrcnnx_hook = nullptr;
     if (frame_mix.num_frames) {

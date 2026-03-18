@@ -1,5 +1,6 @@
 
 #include <chiaki/ffmpegdecoder.h>
+#include <chiaki/time.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
 
@@ -13,6 +14,14 @@ static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 		default:
 			return AV_CODEC_ID_H264;
 	}
+}
+
+static double chiaki_ffmpeg_decoder_default_frame_duration_us(unsigned int max_fps)
+{
+	double fps = max_fps > 0 ? (double)max_fps : 60.0;
+	if(fps <= 0.0)
+		fps = 60.0;
+	return 1000000.0 / fps;
 }
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
@@ -31,7 +40,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->frame_recovered = false;
 	decoder->synthetic_packet_pts = 0;
 	decoder->synthetic_framerate = (AVRational){max_fps > 0 ? (int)max_fps : 60, 1};
-	decoder->synthetic_time_base = av_inv_q(decoder->synthetic_framerate);
+	decoder->synthetic_time_base = (AVRational){1, 1000000};
+	decoder->synthetic_frame_duration_us = chiaki_ffmpeg_decoder_default_frame_duration_us(max_fps);
+	decoder->synthetic_last_sample_time_us = 0;
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
 	decoder->hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -126,16 +137,38 @@ CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t bu
 	chiaki_mutex_lock(&decoder->mutex);
 	decoder->frames_lost += frames_lost;
 	decoder->frame_recovered = frame_recovered;
+	uint64_t now_us = chiaki_time_now_monotonic_us();
+	if(decoder->synthetic_last_sample_time_us)
+	{
+		double observed_duration_us = (double)(now_us - decoder->synthetic_last_sample_time_us);
+		int64_t delivered_frames = (int64_t)frames_lost + 1;
+		if(delivered_frames > 1)
+			observed_duration_us /= (double)delivered_frames;
+		double min_duration_us = 1000000.0 / 240.0;
+		double max_duration_us = 1000000.0 / 15.0;
+		if(observed_duration_us < min_duration_us)
+			observed_duration_us = min_duration_us;
+		else if(observed_duration_us > max_duration_us)
+			observed_duration_us = max_duration_us;
+		decoder->synthetic_frame_duration_us =
+			(decoder->synthetic_frame_duration_us * 7.0 + observed_duration_us) / 8.0;
+	}
+	decoder->synthetic_last_sample_time_us = now_us;
+
+	int64_t synthetic_duration_pts = (int64_t)(decoder->synthetic_frame_duration_us + 0.5);
+	if(synthetic_duration_pts < 1)
+		synthetic_duration_pts = 1;
+
 	AVPacket *packet = av_packet_alloc();
 	packet->data = buf;
 	packet->size = buf_size;
 	packet->pts = decoder->synthetic_packet_pts;
 	packet->dts = decoder->synthetic_packet_pts;
-	packet->duration = 1;
+	packet->duration = synthetic_duration_pts;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59, 8, 100)
 	packet->time_base = decoder->synthetic_time_base;
 #endif
-	decoder->synthetic_packet_pts++;
+	decoder->synthetic_packet_pts += synthetic_duration_pts;
 	int r;
 send_packet:
 	r = avcodec_send_packet(decoder->codec_context, packet);
@@ -180,6 +213,7 @@ hell:
 CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, int32_t *frames_lost)
 {
 	chiaki_mutex_lock(&decoder->mutex);
+	double synthetic_duration = decoder->synthetic_frame_duration_us / 1000000.0;
 	// always try to pull as much as possible and return only the very last frame
 	AVFrame *frame_last = NULL;
 	AVFrame *frame = NULL;
@@ -229,6 +263,8 @@ CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDec
 			decoder->codec_context->framerate,
 			&frame_plus_stats.pts,
 			&frame_plus_stats.duration);
+		if(frame->duration <= 0)
+			frame_plus_stats.duration = synthetic_duration;
 	}
 
 	return frame_plus_stats;
