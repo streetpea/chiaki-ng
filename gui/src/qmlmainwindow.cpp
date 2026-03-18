@@ -1350,25 +1350,25 @@ void QmlMainWindow::render()
         render_params = &pl_render_default_params;
         pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
-            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+            this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::HighQuality:
         render_params = &pl_render_high_quality_params;
         pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
-            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+            this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::HighQualitySpatial:
         render_params = &pl_render_high_quality_params;
         pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
-            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+            this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::HighQualityAdvancedSpatial:
         render_params = &pl_render_high_quality_params;
         pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
-            memcpy(&this->renderparams_opts->params.deinterlace_params, render_params->deinterlace_params, sizeof(struct pl_deinterlace_params));
+            this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::Custom:
         if (renderparams_changed) {
@@ -1378,7 +1378,7 @@ void QmlMainWindow::render()
             bool invalid_render_params = false;
             pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
             if (pl_render_default_params.deinterlace_params)
-                memcpy(&this->renderparams_opts->params.deinterlace_params, pl_render_default_params.deinterlace_params, sizeof(struct pl_deinterlace_params));
+                this->renderparams_opts->params.deinterlace_params = pl_render_default_params.deinterlace_params;
             while (i.hasNext()) {
                 i.next();
                 if ((i.key() == QLatin1String("upscaler") || i.key() == QLatin1String("plane_upscaler"))
