@@ -1314,6 +1314,7 @@ void QmlMainWindow::render()
 {
     Q_ASSERT(QThread::currentThread() == render_thread);
 
+    bool schedule_next_update = false;
     auto finalize_render = [this]() {
         bool pending = false;
         {
@@ -1407,7 +1408,8 @@ void QmlMainWindow::render()
     qparams.radius = pl_frame_mix_radius(&params);
     qparams.vsync_duration = 1.0 / refresh_rate;
     qparams.pts = playback_started ? (double)(ts_pre_update - ts_start) / 1000000.0 : 0.0;
-    switch (pl_queue_update(placebo_queue, &frame_mix, &qparams)) {
+    enum pl_queue_status queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
+    switch (queue_status) {
     case PL_QUEUE_ERR:
         finalize_render();
         return;
@@ -1656,7 +1658,14 @@ void QmlMainWindow::render()
         playback_started = true;
     }
 
+    schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
+
     finalize_render();
+    if (schedule_next_update) {
+        QMetaObject::invokeMethod(this, [this]() {
+            scheduleUpdate();
+        }, Qt::QueuedConnection);
+    }
 
 }
 
