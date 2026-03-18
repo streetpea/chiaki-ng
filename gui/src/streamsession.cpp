@@ -1874,12 +1874,19 @@ void StreamSession::DrainAudioOutRingBuffer()
 		}
 	}
 
-	QMutexLocker locker(&audio_out_ring_mutex);
-	audio_out_drain_queued = false;
-	audio_out_overflow_logged = false;
-	if(audio_out_ring_fill > 0)
+	bool schedule_drain = false;
 	{
-		audio_out_drain_queued = true;
+		QMutexLocker locker(&audio_out_ring_mutex);
+		audio_out_drain_queued = false;
+		audio_out_overflow_logged = false;
+		if(audio_out_ring_fill > 0)
+		{
+			audio_out_drain_queued = true;
+			schedule_drain = true;
+		}
+	}
+	if(schedule_drain)
+	{
 		QMetaObject::invokeMethod(this, [this]() {
 			DrainAudioOutRingBuffer();
 		});
