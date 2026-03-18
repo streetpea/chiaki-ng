@@ -1579,9 +1579,9 @@ void QmlMainWindow::render()
             }
         }
     }
+    const struct pl_hook *active_hooks[] = {fsrcnnx_hook};
     if (fsrcnnx_hook) {
-        const struct pl_hook *hooks[] = {fsrcnnx_hook};
-        params.hooks = hooks;
+        params.hooks = active_hooks;
         params.num_hooks = 1;
         switch (video_preset) {
         case VideoPreset::HighQualitySpatial:
