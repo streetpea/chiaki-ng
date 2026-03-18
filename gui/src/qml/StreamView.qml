@@ -78,8 +78,10 @@ Item {
             if (open)
                 close();
             else {
-                if (useSeparateMenuWindow)
+                if (useSeparateMenuWindow) {
                     view.updateSeparateMenuGeometry();
+                    view.grabInput(null);
+                }
                 open = true;
             }
         }
