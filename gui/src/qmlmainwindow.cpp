@@ -330,7 +330,7 @@ int QmlMainWindow::droppedFrames() const
 
 void QmlMainWindow::increaseDroppedFrames()
 {
-    dropped_frames_current++;
+    dropped_frames_current.fetchAndAddRelaxed(1);
 }
 
 bool QmlMainWindow::keepVideo() const
@@ -486,7 +486,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         .discard = discard_frame,
     };
     pl_queue_push(placebo_queue, &src_frame);
-    dropped_frames_current += frames_lost;
+    dropped_frames_current.fetchAndAddRelaxed(frames_lost);
 
     if (!has_video) {
         has_video = true;
@@ -548,7 +548,9 @@ bool QmlMainWindow::makeOpenGLContextCurrent()
         return false;
 
     QSurface *target_surface = nullptr;
-    if (handle())
+    if (qt_gl_offscreen_surface && !isExposed())
+        target_surface = qt_gl_offscreen_surface;
+    else if (handle())
         target_surface = this;
     else if (qt_gl_offscreen_surface)
         target_surface = qt_gl_offscreen_surface;
@@ -929,11 +931,11 @@ renderer_backend_ready:
     dropped_frames_timer->setInterval(1000);
     dropped_frames_timer->start();
     connect(dropped_frames_timer, &QTimer::timeout, this, [this]() {
-        if (dropped_frames != dropped_frames_current) {
-            dropped_frames = dropped_frames_current;
+        int dropped_frames_next = dropped_frames_current.fetchAndStoreRelaxed(0);
+        if (dropped_frames != dropped_frames_next) {
+            dropped_frames = dropped_frames_next;
             emit droppedFramesChanged();
         }
-        dropped_frames_current = 0;
     });
 
     this->renderparams_opts = pl_options_alloc(this->placebo_log);
@@ -1615,8 +1617,6 @@ void QmlMainWindow::render()
         playback_started = true;
     }
 
-    if (isExposed())
-        QMetaObject::invokeMethod(this, std::bind(&QmlMainWindow::scheduleUpdate, this), Qt::QueuedConnection);
 }
 
 bool QmlMainWindow::handleShortcut(QKeyEvent *event)

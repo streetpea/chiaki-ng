@@ -31,7 +31,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->frames_lost = 0;
 	decoder->frame_recovered = false;
 	decoder->synthetic_packet_pts = 0;
-	decoder->synthetic_framerate = max_fps >= 60 ? (AVRational){60000, 1001} : (AVRational){30000, 1001};
+	decoder->synthetic_framerate = max_fps >= 120 ? (AVRational){120000, 1001}
+		: max_fps >= 60 ? (AVRational){60000, 1001}
+		: (AVRational){30000, 1001};
 	decoder->synthetic_time_base = av_inv_q(decoder->synthetic_framerate);
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;

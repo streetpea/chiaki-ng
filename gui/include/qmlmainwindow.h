@@ -4,6 +4,7 @@
 #include "settings.h"
 
 #include <QMutex>
+#include <QAtomicInteger>
 #include <QWindow>
 #include <QQuickWindow>
 #include <QLoggingCategory>
@@ -165,7 +166,7 @@ private:
     int dropped_frames = 0;
     bool is_window_adjustable = false;
     bool is_stream_window_adjustable = false;
-    int dropped_frames_current = 0;
+    QAtomicInteger<int> dropped_frames_current = 0;
     bool going_full = false;
     VideoMode video_mode = VideoMode::Normal;
     float zoom_factor = 0;
