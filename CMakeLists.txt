@@ -85,7 +85,7 @@ endif()
 
 if(CHIAKI_ENABLE_GUI)
 	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(LIBPLACEBO REQUIRED libplacebo IMPORTED_TARGET)
+	pkg_check_modules(LIBPLACEBO REQUIRED libplacebo>=7.349.0 IMPORTED_TARGET)
 endif()
 
 if(CHIAKI_USE_SYSTEM_CURL)

@@ -677,6 +677,39 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     session_info = connect_info;
     QStringList availableDecoders = settings_qml->availableDecoders();
     bool use_opengl_renderer = window && window->runtimeRendererBackend() == static_cast<int>(RenderBackend::OpenGL);
+    auto fallbackVulkanDecoderForOpenGL = [&]() {
+        if (!use_opengl_renderer || session_info.hw_decoder != "vulkan")
+            return;
+
+        bool fallbackApplied = false;
+#if defined(Q_OS_LINUX)
+        if (availableDecoders.contains("vaapi"))
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to vaapi";
+            session_info.hw_decoder = "vaapi";
+            fallbackApplied = true;
+        }
+#elif defined(Q_OS_WIN)
+        if (availableDecoders.contains("d3d11va"))
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to d3d11va";
+            session_info.hw_decoder = "d3d11va";
+            fallbackApplied = true;
+        }
+#elif defined(Q_OS_MACOS)
+        if (availableDecoders.contains("videotoolbox"))
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to videotoolbox";
+            session_info.hw_decoder = "videotoolbox";
+            fallbackApplied = true;
+        }
+#endif
+        if (!fallbackApplied)
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to software decoder";
+            session_info.hw_decoder.clear();
+        }
+    };
     if(session_info.hw_decoder == "auto")
     {
         session_info.hw_decoder = QString();
@@ -710,37 +743,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
 #endif
     }
-    if (use_opengl_renderer && session_info.hw_decoder == "vulkan")
-    {
-        bool fallbackApplied = false;
-#if defined(Q_OS_LINUX)
-        if (availableDecoders.contains("vaapi"))
-        {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to vaapi";
-            session_info.hw_decoder = "vaapi";
-            fallbackApplied = true;
-        }
-#elif defined(Q_OS_WIN)
-        if (availableDecoders.contains("d3d11va"))
-        {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to d3d11va";
-            session_info.hw_decoder = "d3d11va";
-            fallbackApplied = true;
-        }
-#elif defined(Q_OS_MACOS)
-        if (availableDecoders.contains("videotoolbox"))
-        {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to videotoolbox";
-            session_info.hw_decoder = "videotoolbox";
-            fallbackApplied = true;
-        }
-#endif
-        if (!fallbackApplied)
-        {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to software decoder";
-            session_info.hw_decoder.clear();
-        }
-    }
+    fallbackVulkanDecoderForOpenGL();
     if (session_info.hw_decoder == "vulkan") {
 #if defined(Q_OS_LINUX)
         if(qEnvironmentVariableIsSet("APPIMAGE") && (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos")))
