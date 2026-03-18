@@ -193,7 +193,9 @@ private:
     QSize swapchain_size;
     QThread *render_thread = {};
     bool owns_render_thread = false;
-    std::atomic<bool> render_scheduled = {false};
+    QMutex render_schedule_mutex;
+    bool render_scheduled = false;
+    bool render_pending = false;
 
     QVulkanInstance *qt_vk_inst = {};
     QOpenGLContext *qt_gl_context = {};
@@ -209,7 +211,7 @@ private:
     QTimer *update_timer = {};
     bool quick_frame = false;
     bool quick_need_sync = false;
-    std::atomic<bool> quick_need_render = {false};
+    QAtomicInteger<int> quick_need_render = 0;
     QString pending_renderer_fallback_reason;
     pl_options renderparams_opts = {};
     bool renderparams_changed = false;
