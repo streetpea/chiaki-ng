@@ -9,7 +9,8 @@ Item {
     id: root
     property list<Item> restoreFocusItems
     property bool initialAsk: false
-    readonly property bool useSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
+    readonly property bool preferSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
+    property bool useSeparateStreamSettingsWindows: false
     Material.theme: Material.Dark
     Material.accent: "#00a7ff"
 
@@ -45,6 +46,7 @@ Item {
     }
 
     function openDisplaySettings() {
+        useSeparateStreamSettingsWindows = preferSeparateStreamSettingsWindows;
         const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
         if(loader.status == Loader.Ready)
         {
@@ -63,6 +65,8 @@ Item {
         }
     }
     function openPlaceboSettings() {
+        if (!displaySettingsRect.opacity && !placeboSettingsRect.opacity && !colorMappingSettingsRect.opacity)
+            useSeparateStreamSettingsWindows = preferSeparateStreamSettingsWindows;
         const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
         if(loader.status == Loader.Ready)
         {
@@ -87,12 +91,14 @@ Item {
         const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
         loader.item.restoreFocusItem = Window.window.activeFocusItem;
         releaseInput();
+        useSeparateStreamSettingsWindows = false;
        }
        else if(placeboSettingsRect.opacity) {
         placeboSettingsRect.opacity = 0.0;
         const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
         loader.item.restoreFocusItem = Window.window.activeFocusItem;
         releaseInput();
+        useSeparateStreamSettingsWindows = false;
        }
        else if(colorMappingSettingsRect.opacity) {
         releaseInput();
@@ -111,18 +117,21 @@ Item {
             const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
             loader.item.restoreFocusItem = Window.window.activeFocusItem;
             releaseInput();
+            useSeparateStreamSettingsWindows = false;
         }
         else if(placeboSettingsRect.opacity) {
             placeboSettingsRect.opacity = 0.0;
             const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
             loader.item.restoreFocusItem = Window.window.activeFocusItem;
             releaseInput();
+            useSeparateStreamSettingsWindows = false;
         }
         else if(colorMappingSettingsRect.opacity) {
             colorMappingSettingsRect.opacity = 0.0;
             const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
             loader.item.restoreFocusItem = Window.window.activeFocusItem;
             releaseInput();
+            useSeparateStreamSettingsWindows = false;
         }
         if (stack.depth > 1)
             stack.pop(stack.get(0));
@@ -193,6 +202,7 @@ Item {
         if(placeboSettingsRect.opacity)
         {
             root.closeDialog();
+            useSeparateStreamSettingsWindows = preferSeparateStreamSettingsWindows;
             const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
             if(loader.status == Loader.Ready)
             {
