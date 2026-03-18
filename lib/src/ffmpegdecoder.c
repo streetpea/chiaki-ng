@@ -252,6 +252,9 @@ CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDec
 		frame->decode_error_flags |= 1;
 	}
 	decoder->frames_lost = 0;
+	AVRational pkt_timebase = decoder->codec_context->pkt_timebase;
+	AVRational ctx_timebase = decoder->codec_context->time_base;
+	AVRational framerate = decoder->codec_context->framerate;
 	chiaki_mutex_unlock(&decoder->mutex);
 
 	ChiakiFfmpegFrame frame_plus_stats = {};
@@ -260,9 +263,9 @@ CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDec
 	{
 		chiaki_ffmpeg_frame_get_timing(
 			frame,
-			decoder->codec_context->pkt_timebase,
-			decoder->codec_context->time_base,
-			decoder->codec_context->framerate,
+			pkt_timebase,
+			ctx_timebase,
+			framerate,
 			&frame_plus_stats.pts,
 			&frame_plus_stats.duration);
 		if(frame->duration <= 0)
