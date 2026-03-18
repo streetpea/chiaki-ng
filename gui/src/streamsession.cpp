@@ -493,6 +493,7 @@ StreamSession::~StreamSession()
 		audio_out_ring_write_pos = 0;
 		audio_out_ring_fill = 0;
 		audio_out_drain_queued = false;
+		audio_out_drain_waiting = false;
 		audio_out_overflow_logged = false;
 	}
 	if(audio_in)
@@ -1131,6 +1132,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		audio_out_ring_write_pos = 0;
 		audio_out_ring_fill = 0;
 		audio_out_drain_queued = false;
+		audio_out_drain_waiting = false;
 		audio_out_overflow_logged = false;
 	}
 
@@ -1171,6 +1173,7 @@ void StreamSession::InitAudio(unsigned int channels, unsigned int rate)
 		audio_out_ring_write_pos = 0;
 		audio_out_ring_fill = 0;
 		audio_out_drain_queued = false;
+		audio_out_drain_waiting = false;
 		audio_out_overflow_logged = false;
 	}
 
@@ -1743,6 +1746,11 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	{
 		CHIAKI_LOGW(log.GetChiakiLog(), "Audio queue exceeded latency threshold, clearing queued audio");
 		SDL_ClearQueuedAudio(audio_out);
+		QMutexLocker locker(&audio_out_ring_mutex);
+		audio_out_ring_read_pos = 0;
+		audio_out_ring_write_pos = 0;
+		audio_out_ring_fill = 0;
+		audio_out_overflow_logged = false;
 	}
 	if(audio_volume < SDL_MIX_MAXVOLUME)
 		SDL_MixAudioFormat((uint8_t *)buf.data(), (uint8_t *)og_buf, AUDIO_S16SYS, buf.size(), audio_volume);
@@ -1836,6 +1844,7 @@ void StreamSession::QueueAudioOutData(const QByteArray &audio_data)
 void StreamSession::DrainAudioOutRingBuffer()
 {
 	const size_t target_queue_size = audio_buffer_size * 2;
+	bool wait_for_device_drain = false;
 
 	while(audio_out)
 	{
@@ -1843,10 +1852,18 @@ void StreamSession::DrainAudioOutRingBuffer()
 		{
 			CHIAKI_LOGW(log.GetChiakiLog(), "Audio queue exceeded latency threshold, clearing queued audio");
 			SDL_ClearQueuedAudio(audio_out);
+			QMutexLocker locker(&audio_out_ring_mutex);
+			audio_out_ring_read_pos = 0;
+			audio_out_ring_write_pos = 0;
+			audio_out_ring_fill = 0;
+			audio_out_overflow_logged = false;
 		}
 
 		if(SDL_GetQueuedAudioSize(audio_out) >= target_queue_size)
+		{
+			wait_for_device_drain = true;
 			break;
+		}
 
 		QByteArray audio_chunk;
 		{
@@ -1878,18 +1895,45 @@ void StreamSession::DrainAudioOutRingBuffer()
 	{
 		QMutexLocker locker(&audio_out_ring_mutex);
 		audio_out_drain_queued = false;
-		audio_out_overflow_logged = false;
-		if(audio_out_ring_fill > 0)
+		if(wait_for_device_drain)
 		{
-			audio_out_drain_queued = true;
-			schedule_drain = true;
+			if(audio_out_ring_fill > 0 && !audio_out_drain_waiting)
+			{
+				audio_out_drain_waiting = true;
+				schedule_drain = true;
+			}
+		}
+		else
+		{
+			audio_out_overflow_logged = false;
+			if(audio_out_ring_fill > 0)
+			{
+				audio_out_drain_queued = true;
+				schedule_drain = true;
+			}
 		}
 	}
 	if(schedule_drain)
 	{
-		QMetaObject::invokeMethod(this, [this]() {
-			DrainAudioOutRingBuffer();
-		});
+		if(wait_for_device_drain)
+		{
+			QTimer::singleShot(4, this, [this]() {
+				{
+					QMutexLocker locker(&audio_out_ring_mutex);
+					audio_out_drain_waiting = false;
+					if(audio_out_drain_queued)
+						return;
+					audio_out_drain_queued = true;
+				}
+				DrainAudioOutRingBuffer();
+			});
+		}
+		else
+		{
+			QMetaObject::invokeMethod(this, [this]() {
+				DrainAudioOutRingBuffer();
+			});
+		}
 	}
 }
 
