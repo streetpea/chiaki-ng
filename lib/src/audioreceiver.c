@@ -215,11 +215,26 @@ static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, Chi
 				audio_receiver->frame_index_prev = audio_receiver->next_frame_index;
 				audio_receiver->next_frame_index++;
 			}
-			else if(audio_receiver->jitter_buffer_count >= CHIAKI_AUDIO_JITTER_PREFILL)
+			else if(audio_receiver->jitter_buffer_count > 0)
 			{
+				int oldest = chiaki_audio_receiver_find_oldest_audio_slot(audio_receiver);
 				int newest = chiaki_audio_receiver_find_newest_audio_slot(audio_receiver);
-				ChiakiSeqNum16 required_lookahead = audio_receiver->next_frame_index + CHIAKI_AUDIO_JITTER_PREFILL;
-				if(newest >= 0 && chiaki_seq_num_16_gt(audio_receiver->jitter_buffer[newest].frame_index, required_lookahead - 1))
+				bool newer_audio_buffered = oldest >= 0
+					&& chiaki_seq_num_16_gt(audio_receiver->jitter_buffer[oldest].frame_index, audio_receiver->next_frame_index);
+				bool can_conceal_loss = false;
+				if(newer_audio_buffered && newest >= 0)
+				{
+					if(audio_receiver->jitter_buffer_count >= CHIAKI_AUDIO_JITTER_PREFILL)
+					{
+						ChiakiSeqNum16 required_lookahead = audio_receiver->next_frame_index + CHIAKI_AUDIO_JITTER_PREFILL;
+						can_conceal_loss = chiaki_seq_num_16_gt(audio_receiver->jitter_buffer[newest].frame_index, required_lookahead - 1);
+					}
+					else
+					{
+						can_conceal_loss = true;
+					}
+				}
+				if(can_conceal_loss)
 				{
 					frame_cb = audio_receiver->session->audio_sink.frame_cb;
 					frame_cb_user = audio_receiver->session->audio_sink.user;
