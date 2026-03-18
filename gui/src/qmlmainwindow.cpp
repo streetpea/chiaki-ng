@@ -1376,6 +1376,7 @@ void QmlMainWindow::render()
             QMap<QString, QString> paramsData = settings->GetPlaceboValues();
             QMapIterator<QString, QString> i(paramsData);
             bool invalid_render_params = false;
+            this->renderparams_opts->params = pl_render_default_params;
             pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
             if (pl_render_default_params.deinterlace_params)
                 this->renderparams_opts->params.deinterlace_params = pl_render_default_params.deinterlace_params;

@@ -3,6 +3,7 @@
 #include <chiaki/time.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
+#include <math.h>
 
 static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 {
@@ -42,7 +43,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->synthetic_framerate = (AVRational){max_fps > 0 ? (int)max_fps : 60, 1};
 	decoder->synthetic_time_base = (AVRational){1, 1000000};
 	decoder->synthetic_frame_duration_us = chiaki_ffmpeg_decoder_default_frame_duration_us(max_fps);
+	decoder->synthetic_candidate_duration_us = decoder->synthetic_frame_duration_us;
 	decoder->synthetic_last_sample_time_us = 0;
+	decoder->synthetic_candidate_count = 0;
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
 	decoder->hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -137,23 +140,46 @@ CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t bu
 	chiaki_mutex_lock(&decoder->mutex);
 	decoder->frames_lost += frames_lost;
 	decoder->frame_recovered = frame_recovered;
-	uint64_t now_us = chiaki_time_now_monotonic_us();
 	if(decoder->synthetic_last_sample_time_us)
 	{
-		double observed_duration_us = (double)(now_us - decoder->synthetic_last_sample_time_us);
+		double observed_duration_us = (double)(chiaki_time_now_monotonic_us() - decoder->synthetic_last_sample_time_us);
 		int64_t delivered_frames = (int64_t)frames_lost + 1;
+		double default_duration_us = chiaki_ffmpeg_decoder_default_frame_duration_us((unsigned int)decoder->synthetic_framerate.num);
 		if(delivered_frames > 1)
 			observed_duration_us /= (double)delivered_frames;
-		double min_duration_us = 1000000.0 / 240.0;
-		double max_duration_us = 1000000.0 / 15.0;
-		if(observed_duration_us < min_duration_us)
-			observed_duration_us = min_duration_us;
-		else if(observed_duration_us > max_duration_us)
-			observed_duration_us = max_duration_us;
-		decoder->synthetic_frame_duration_us =
-			(decoder->synthetic_frame_duration_us * 7.0 + observed_duration_us) / 8.0;
+		if(observed_duration_us < default_duration_us)
+			observed_duration_us = default_duration_us;
+		else if(observed_duration_us > 1000000.0 / 15.0)
+			observed_duration_us = 1000000.0 / 15.0;
+
+		double candidate_diff = decoder->synthetic_candidate_duration_us > 0.0
+			? fabs(observed_duration_us - decoder->synthetic_candidate_duration_us) / decoder->synthetic_candidate_duration_us
+			: 1.0;
+		double current_diff = decoder->synthetic_frame_duration_us > 0.0
+			? fabs(observed_duration_us - decoder->synthetic_frame_duration_us) / decoder->synthetic_frame_duration_us
+			: 1.0;
+		if(current_diff >= 0.20)
+		{
+			if(candidate_diff <= 0.10)
+				decoder->synthetic_candidate_count++;
+			else
+			{
+				decoder->synthetic_candidate_duration_us = observed_duration_us;
+				decoder->synthetic_candidate_count = 1;
+			}
+			if(decoder->synthetic_candidate_count >= 3)
+			{
+				decoder->synthetic_frame_duration_us = decoder->synthetic_candidate_duration_us;
+				decoder->synthetic_candidate_count = 0;
+			}
+		}
+		else
+		{
+			decoder->synthetic_candidate_duration_us = decoder->synthetic_frame_duration_us;
+			decoder->synthetic_candidate_count = 0;
+		}
 	}
-	decoder->synthetic_last_sample_time_us = now_us;
+	decoder->synthetic_last_sample_time_us = chiaki_time_now_monotonic_us();
 
 	int64_t synthetic_duration_pts = (int64_t)(decoder->synthetic_frame_duration_us + 0.5);
 	if(synthetic_duration_pts < 1)
