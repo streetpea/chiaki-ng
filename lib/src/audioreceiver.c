@@ -140,96 +140,114 @@ CHIAKI_EXPORT void chiaki_audio_receiver_av_packet(ChiakiAudioReceiver *audio_re
 
 static void chiaki_audio_receiver_frame(ChiakiAudioReceiver *audio_receiver, ChiakiSeqNum16 frame_index, bool is_haptics, uint8_t *buf, size_t buf_size)
 {
-	ChiakiAudioSinkFrame frame_cb = NULL;
-	void *frame_cb_user = NULL;
-	uint8_t *deliver_buf = NULL;
-	size_t deliver_buf_size = 0;
-	bool deliver_owned_buf = false;
-
-	ChiakiErrorCode err = chiaki_mutex_lock(&audio_receiver->mutex);
-	if(err != CHIAKI_ERR_SUCCESS)
+	while(true)
 	{
-		CHIAKI_LOGE(audio_receiver->log, "Failed to lock audio receiver mutex: %s", chiaki_error_string(err));
-		return;
-	}
+		ChiakiAudioSinkFrame frame_cb = NULL;
+		void *frame_cb_user = NULL;
+		uint8_t *deliver_buf = NULL;
+		size_t deliver_buf_size = 0;
+		bool deliver_owned_buf = false;
 
-	if(is_haptics)
-	{
-		if(chiaki_seq_num_16_gt(frame_index, audio_receiver->frame_index_prev))
+		ChiakiErrorCode err = chiaki_mutex_lock(&audio_receiver->mutex);
+		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			audio_receiver->frame_index_prev = frame_index;
-			frame_cb = audio_receiver->session->haptics_sink.frame_cb;
-			frame_cb_user = audio_receiver->session->haptics_sink.user;
-			deliver_buf = buf;
-			deliver_buf_size = buf_size;
+			CHIAKI_LOGE(audio_receiver->log, "Failed to lock audio receiver mutex: %s", chiaki_error_string(err));
+			return;
 		}
-		goto beach;
-	}
 
-	if(audio_receiver->next_frame_index_valid && chiaki_seq_num_16_lt(frame_index, audio_receiver->next_frame_index))
-		goto beach;
-
-	if(!chiaki_audio_receiver_store_audio_frame_locked(audio_receiver, frame_index, buf, buf_size))
-		goto beach;
-
-	if(!audio_receiver->playback_started && audio_receiver->jitter_buffer_count >= CHIAKI_AUDIO_JITTER_PREFILL)
-	{
-		int oldest = chiaki_audio_receiver_find_oldest_audio_slot(audio_receiver);
-		if(oldest >= 0)
+		if(is_haptics)
 		{
-			audio_receiver->next_frame_index = audio_receiver->jitter_buffer[oldest].frame_index;
-			audio_receiver->next_frame_index_valid = true;
-			audio_receiver->playback_started = true;
+			if(chiaki_seq_num_16_gt(frame_index, audio_receiver->frame_index_prev))
+			{
+				audio_receiver->frame_index_prev = frame_index;
+				frame_cb = audio_receiver->session->haptics_sink.frame_cb;
+				frame_cb_user = audio_receiver->session->haptics_sink.user;
+				deliver_buf = buf;
+				deliver_buf_size = buf_size;
+			}
+			err = chiaki_mutex_unlock(&audio_receiver->mutex);
+			if(err != CHIAKI_ERR_SUCCESS)
+			{
+				CHIAKI_LOGE(audio_receiver->log, "Failed to unlock audio receiver mutex: %s", chiaki_error_string(err));
+				return;
+			}
+			if(frame_cb)
+				frame_cb(deliver_buf, deliver_buf_size, frame_cb_user);
+			return;
 		}
-	}
 
-	if(audio_receiver->playback_started && audio_receiver->next_frame_index_valid)
-	{
-		int slot = chiaki_audio_receiver_find_audio_slot(audio_receiver, audio_receiver->next_frame_index);
-		if(slot >= 0)
+		if(buf)
 		{
-			frame_cb = audio_receiver->session->audio_sink.frame_cb;
-			frame_cb_user = audio_receiver->session->audio_sink.user;
-			deliver_buf = audio_receiver->jitter_buffer[slot].buf;
-			deliver_buf_size = audio_receiver->jitter_buffer[slot].buf_size;
-			deliver_owned_buf = true;
-			audio_receiver->jitter_buffer[slot].buf = NULL;
-			audio_receiver->jitter_buffer[slot].buf_size = 0;
-			audio_receiver->jitter_buffer[slot].occupied = false;
-			audio_receiver->jitter_buffer_count--;
-			audio_receiver->frame_index_prev = audio_receiver->next_frame_index;
-			audio_receiver->next_frame_index++;
+			if(audio_receiver->next_frame_index_valid && chiaki_seq_num_16_lt(frame_index, audio_receiver->next_frame_index))
+				goto unlock_and_exit;
+
+			if(!chiaki_audio_receiver_store_audio_frame_locked(audio_receiver, frame_index, buf, buf_size))
+				goto unlock_and_exit;
+			buf = NULL;
+			buf_size = 0;
 		}
-		else if(audio_receiver->jitter_buffer_count >= CHIAKI_AUDIO_JITTER_PREFILL)
+
+		if(!audio_receiver->playback_started && audio_receiver->jitter_buffer_count >= CHIAKI_AUDIO_JITTER_PREFILL)
 		{
-			int newest = chiaki_audio_receiver_find_newest_audio_slot(audio_receiver);
-			ChiakiSeqNum16 required_lookahead = audio_receiver->next_frame_index + CHIAKI_AUDIO_JITTER_PREFILL;
-			if(newest >= 0 && chiaki_seq_num_16_gt(audio_receiver->jitter_buffer[newest].frame_index, required_lookahead - 1))
+			int oldest = chiaki_audio_receiver_find_oldest_audio_slot(audio_receiver);
+			if(oldest >= 0)
+			{
+				audio_receiver->next_frame_index = audio_receiver->jitter_buffer[oldest].frame_index;
+				audio_receiver->next_frame_index_valid = true;
+				audio_receiver->playback_started = true;
+			}
+		}
+
+		if(audio_receiver->playback_started && audio_receiver->next_frame_index_valid)
+		{
+			int slot = chiaki_audio_receiver_find_audio_slot(audio_receiver, audio_receiver->next_frame_index);
+			if(slot >= 0)
 			{
 				frame_cb = audio_receiver->session->audio_sink.frame_cb;
 				frame_cb_user = audio_receiver->session->audio_sink.user;
-				deliver_buf = NULL;
-				deliver_buf_size = 0;
+				deliver_buf = audio_receiver->jitter_buffer[slot].buf;
+				deliver_buf_size = audio_receiver->jitter_buffer[slot].buf_size;
+				deliver_owned_buf = true;
+				audio_receiver->jitter_buffer[slot].buf = NULL;
+				audio_receiver->jitter_buffer[slot].buf_size = 0;
+				audio_receiver->jitter_buffer[slot].occupied = false;
+				audio_receiver->jitter_buffer_count--;
 				audio_receiver->frame_index_prev = audio_receiver->next_frame_index;
 				audio_receiver->next_frame_index++;
 			}
+			else if(audio_receiver->jitter_buffer_count >= CHIAKI_AUDIO_JITTER_PREFILL)
+			{
+				int newest = chiaki_audio_receiver_find_newest_audio_slot(audio_receiver);
+				ChiakiSeqNum16 required_lookahead = audio_receiver->next_frame_index + CHIAKI_AUDIO_JITTER_PREFILL;
+				if(newest >= 0 && chiaki_seq_num_16_gt(audio_receiver->jitter_buffer[newest].frame_index, required_lookahead - 1))
+				{
+					frame_cb = audio_receiver->session->audio_sink.frame_cb;
+					frame_cb_user = audio_receiver->session->audio_sink.user;
+					deliver_buf = NULL;
+					deliver_buf_size = 0;
+					audio_receiver->frame_index_prev = audio_receiver->next_frame_index;
+					audio_receiver->next_frame_index++;
+				}
+			}
 		}
-	}
 
-beach:
-	err = chiaki_mutex_unlock(&audio_receiver->mutex);
-	if(err != CHIAKI_ERR_SUCCESS)
-	{
-		CHIAKI_LOGE(audio_receiver->log, "Failed to unlock audio receiver mutex: %s", chiaki_error_string(err));
+unlock_and_exit:
+		err = chiaki_mutex_unlock(&audio_receiver->mutex);
+		if(err != CHIAKI_ERR_SUCCESS)
+		{
+			CHIAKI_LOGE(audio_receiver->log, "Failed to unlock audio receiver mutex: %s", chiaki_error_string(err));
+			if(deliver_owned_buf)
+				free(deliver_buf);
+			return;
+		}
+
+		if(!frame_cb)
+			return;
+
+		frame_cb(deliver_buf, deliver_buf_size, frame_cb_user);
 		if(deliver_owned_buf)
 			free(deliver_buf);
-		return;
 	}
-
-	if(frame_cb)
-		frame_cb(deliver_buf, deliver_buf_size, frame_cb_user);
-	if(deliver_owned_buf)
-		free(deliver_buf);
 }
 
 static void chiaki_audio_receiver_clear_jitter_buffer(ChiakiAudioReceiver *audio_receiver)
