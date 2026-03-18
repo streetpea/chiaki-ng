@@ -76,6 +76,7 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex,
             qCInfo(chiakiGui) << "Mapping frame failed, trying without zero copy!";
             q->getBackend()->disableZeroCopy();
         }
+        av_frame_free(&frame);
         return false;
     }
     return true;
