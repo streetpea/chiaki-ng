@@ -912,7 +912,7 @@ renderer_backend_ready:
         scheduleUpdate();
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
-        quick_need_render = true;
+        quick_need_render.storeRelaxed(1);
         scheduleUpdate();
     });
 
@@ -1014,8 +1014,14 @@ void QmlMainWindow::update()
 {
     Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
 
-    if (render_scheduled)
-        return;
+    {
+        QMutexLocker locker(&render_schedule_mutex);
+        if (render_scheduled) {
+            render_pending = true;
+            return;
+        }
+        render_scheduled = true;
+    }
 
     if (quick_need_sync) {
         quick_need_sync = false;
@@ -1027,7 +1033,6 @@ void QmlMainWindow::update()
     }
 
     update_timer->stop();
-    render_scheduled = true;
     QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::render, this));
 }
 
@@ -1243,7 +1248,7 @@ void QmlMainWindow::sync()
     beginFrame();
     if (!quick_frame)
         return;
-    quick_need_render = quick_render->sync();
+    quick_need_render.storeRelaxed(quick_render->sync() ? 1 : 0);
 }
 
 void QmlMainWindow::beginFrame()
@@ -1309,10 +1314,26 @@ void QmlMainWindow::render()
 {
     Q_ASSERT(QThread::currentThread() == render_thread);
 
-    render_scheduled = false;
+    auto finalize_render = [this]() {
+        bool pending = false;
+        {
+            QMutexLocker locker(&render_schedule_mutex);
+            render_scheduled = false;
+            pending = render_pending;
+            render_pending = false;
+        }
+        if (pending) {
+            QMetaObject::invokeMethod(this, [this]() {
+                update();
+            }, Qt::QueuedConnection);
+        }
+    };
 
     if (!placebo_swapchain)
+    {
+        finalize_render();
         return;
+    }
 
     const struct pl_render_params *render_params = &pl_render_default_params;
     const PlaceboUpscaler configured_upscaler = settings->GetPlaceboUpscaler();
@@ -1384,6 +1405,7 @@ void QmlMainWindow::render()
     qparams.pts = playback_started ? (double)(ts_pre_update - ts_start) / 1000000.0 : 0.0;
     switch (pl_queue_update(placebo_queue, &frame_mix, &qparams)) {
     case PL_QUEUE_ERR:
+        finalize_render();
         return;
     case PL_QUEUE_EOF:
     case PL_QUEUE_OK:
@@ -1391,8 +1413,8 @@ void QmlMainWindow::render()
         break;
     }
 
-    if (render_backend == RenderBackend::OpenGL && quick_need_render) {
-        quick_need_render = false;
+    if (render_backend == RenderBackend::OpenGL && quick_need_render.loadRelaxed()) {
+        quick_need_render.storeRelaxed(0);
         beginFrame();
         if (quick_frame) {
             clearQuickOpenGLTarget(quick_fbo);
@@ -1404,6 +1426,7 @@ void QmlMainWindow::render()
     struct pl_swapchain_frame sw_frame = {};
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
         qCWarning(chiakiGui) << "Failed to start Placebo frame!";
+        finalize_render();
         return;
     }
 
@@ -1510,8 +1533,8 @@ void QmlMainWindow::render()
                 break;
         }
     }
-    if (quick_need_render) {
-        quick_need_render = false;
+    if (quick_need_render.loadRelaxed()) {
+        quick_need_render.storeRelaxed(0);
         beginFrame();
         if (quick_frame) {
             if (render_backend == RenderBackend::OpenGL)
@@ -1617,6 +1640,7 @@ void QmlMainWindow::render()
     if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
     {
         qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+        finalize_render();
         return;
     }
 
@@ -1630,6 +1654,8 @@ void QmlMainWindow::render()
         ts_start = chiaki_time_now_monotonic_us();
         playback_started = true;
     }
+
+    finalize_render();
 
 }
 
