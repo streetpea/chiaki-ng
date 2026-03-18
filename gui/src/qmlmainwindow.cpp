@@ -96,7 +96,7 @@ static void discard_frame(const struct pl_source_frame *src)
     QmlMainWindow *q = reinterpret_cast<QmlMainWindow *>(frame->opaque);
     q->increaseDroppedFrames();
     av_frame_free(&frame);
-    qCInfo(chiakiGui) << "Dropped frame with PTS" << src->pts;
+    qCDebug(chiakiGui) << "Dropped frame with PTS" << src->pts;
 }
 
 static QString shader_cache_path()
