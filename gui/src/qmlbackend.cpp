@@ -676,7 +676,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     session_info = connect_info;
     QStringList availableDecoders = settings_qml->availableDecoders();
-    bool use_opengl_renderer = settings_qml->rendererBackend() == static_cast<int>(RenderBackend::OpenGL);
+    bool use_opengl_renderer = window && window->runtimeRendererBackend() == static_cast<int>(RenderBackend::OpenGL);
     if(session_info.hw_decoder == "auto")
     {
         session_info.hw_decoder = QString();

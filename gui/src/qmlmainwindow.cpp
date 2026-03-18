@@ -461,6 +461,8 @@ void QmlMainWindow::show()
 
 void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 {
+    dropped_frames_current.fetchAndAddRelaxed(frames_lost);
+
     if (!frame.frame)
         return;
 
@@ -486,7 +488,6 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         .discard = discard_frame,
     };
     pl_queue_push(placebo_queue, &src_frame);
-    dropped_frames_current.fetchAndAddRelaxed(frames_lost);
 
     if (!has_video) {
         has_video = true;
