@@ -805,12 +805,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             AVFrame *sw_frame = av_frame_alloc();
             if (av_hwframe_transfer_data(sw_frame, frame.frame, 0) < 0) {
                 qCWarning(chiakiGui) << "Failed to transfer frame from hardware";
-                av_frame_unref(frame.frame);
+                av_frame_free(&frame.frame);
                 av_frame_free(&sw_frame);
                 return;
             }
             av_frame_copy_props(sw_frame, frame.frame);
-            av_frame_unref(frame.frame);
+            av_frame_free(&frame.frame);
             frame.frame = sw_frame;
         }
         QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
