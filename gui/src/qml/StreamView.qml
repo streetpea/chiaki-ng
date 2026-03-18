@@ -14,7 +14,7 @@ Item {
     property bool sessionError: false
     property bool sessionLoading: true
     property list<Item> restoreFocusItems
-    readonly property bool useSeparateMenuWindow: Chiaki.settings.rendererBackend === 1
+    readonly property bool useSeparateMenuWindow: Chiaki.window.runtimeRendererBackend === 1
     readonly property int streamMenuHeight: 200
     property int separateMenuX: 0
     property int separateMenuY: 0
