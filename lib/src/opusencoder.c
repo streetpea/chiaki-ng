@@ -94,7 +94,7 @@ CHIAKI_EXPORT void chiaki_opus_encoder_frame(int16_t *pcm_buf, ChiakiOpusEncoder
 		CHIAKI_LOGE(encoder->log, "Encoding audio frame with opus failed: %s", opus_strerror(r));
 	else if((size_t)r != encoder->opus_frame_buf_size)
 	{
-		CHIAKI_LOGE(encoder->log,
+		CHIAKI_LOGV(encoder->log,
 			"Encoded audio frame with unexpected size %d, expected %zu; dropping packet as protocol violation",
 			r, encoder->opus_frame_buf_size);
 	}
