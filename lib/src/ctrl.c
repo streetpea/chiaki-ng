@@ -307,6 +307,7 @@ static void ctrl_failed(ChiakiCtrl *ctrl, ChiakiQuitReason reason)
 static void *ctrl_thread_func(void *user)
 {
 	ChiakiCtrl *ctrl = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_CTRL);
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->notif_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);

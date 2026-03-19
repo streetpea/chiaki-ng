@@ -425,6 +425,7 @@ static bool session_check_state_pred_regist(void *user)
 static void *session_thread_func(void *arg)
 {
 	ChiakiSession *session = (ChiakiSession *)arg;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_SESSION);
 
 	chiaki_mutex_lock(&session->state_mutex);
 

@@ -501,6 +501,7 @@ static ChiakiErrorCode gkcrypt_generate_next_chunk(ChiakiGKCrypt *gkcrypt)
 static void *gkcrypt_thread_func(void *user)
 {
 	ChiakiGKCrypt *gkcrypt = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_GKCRYPT);
 	CHIAKI_LOGV(gkcrypt->log, "GKCrypt %d thread starting", (int)gkcrypt->index);
 
 	ChiakiErrorCode err = chiaki_mutex_lock(&gkcrypt->key_buf_mutex);
