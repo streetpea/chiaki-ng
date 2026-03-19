@@ -392,7 +392,7 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
 static ChiakiErrorCode get_stun_servers(Session *session);
 // static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
-static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
+static ChiakiErrorCode decode_customdata1(ChiakiLog *log, const char *customdata1, uint8_t *out, size_t out_len);
 static ChiakiErrorCode check_candidates(
     Session *session, Candidate *local_candidates, Candidate *candidates_received, size_t num_candidates, chiaki_socket_t *out,
     Candidate *out_candidate);
@@ -1099,7 +1099,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
                 err = CHIAKI_ERR_UNKNOWN;
                 break;
             }
-            err = decode_customdata1(custom_data1, session->custom_data1, sizeof(session->custom_data1));
+            err = decode_customdata1(session->log, custom_data1, session->custom_data1, sizeof(session->custom_data1));
             if (err != CHIAKI_ERR_SUCCESS)
             {
                 CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Failed to decode \"customData1\": '%s' with error %s", custom_data1, chiaki_error_string(err));
@@ -4436,22 +4436,35 @@ static void log_session_state(Session *session)
  * Decode the customdata1 for use
  *
  * @param[in] customdata1 A char pointer to the customdata1 that arrived via the websocket
+ * @param[in] log Pointer to a ChiakiLog used for reporting unexpected lengths
  * @param[out] out The decoded customdata1 for use in the remote registration
- * @param[out] out_len The length of the decoded customdata1
-*/
+ * @param[in] out_len The length of the decoded customdata1
+ */
 
-static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len)
+#define CUSTOMDATA1_EXTRA_BYTES_MAX 4
+
+static ChiakiErrorCode decode_customdata1(ChiakiLog *log, const char *customdata1, uint8_t *out, size_t out_len)
 {
     uint8_t customdata1_round1[24];
-    size_t decoded_len = sizeof(customdata1_round1);
-    ChiakiErrorCode err = chiaki_base64_decode(customdata1, strlen(customdata1), customdata1_round1, &decoded_len);
+    uint8_t customdata1_round2[24];
+    size_t round1_len = sizeof(customdata1_round1);
+    size_t round2_len = sizeof(customdata1_round2);
+    ChiakiErrorCode err = chiaki_base64_decode(customdata1, strlen(customdata1), customdata1_round1, &round1_len);
     if (err != CHIAKI_ERR_SUCCESS)
         return err;
-    err = chiaki_base64_decode((const char*)customdata1_round1, decoded_len, out, &decoded_len);
+    err = chiaki_base64_decode((const char*)customdata1_round1, round1_len, customdata1_round2, &round2_len);
     if (err != CHIAKI_ERR_SUCCESS)
         return err;
-    if (decoded_len != out_len)
+    if (round2_len < out_len)
         return CHIAKI_ERR_UNKNOWN;
+    if (round2_len > out_len + CUSTOMDATA1_EXTRA_BYTES_MAX)
+    {
+        CHIAKI_LOGD(log, "decode_customdata1: customData1 decoded to %zu bytes (max %zu)", round2_len, out_len + CUSTOMDATA1_EXTRA_BYTES_MAX);
+        return CHIAKI_ERR_UNKNOWN;
+    }
+    if (round2_len > out_len)
+        CHIAKI_LOGI(log, "decode_customdata1: customData1 contains %zu extra byte(s); ignoring extras", round2_len - out_len);
+    memcpy(out, customdata1_round2, out_len);
     return CHIAKI_ERR_SUCCESS;
 }
 
