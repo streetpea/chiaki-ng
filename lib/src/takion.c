@@ -1072,9 +1072,9 @@ static ChiakiErrorCode takion_handle_packet_mac(ChiakiTakion *takion, uint8_t ba
 	{
 		CHIAKI_LOGE(takion->log, "Takion packet MAC mismatch for packet type %#x with key_pos %#llx", base_type, key_pos);
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_ERROR, buf, buf_size);
-		CHIAKI_LOGD(takion->log, "GMAC:");
+		CHIAKI_LOGV(takion->log, "GMAC:");
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, mac, sizeof(mac));
-		CHIAKI_LOGD(takion->log, "GMAC expected:");
+		CHIAKI_LOGV(takion->log, "GMAC expected:");
 		chiaki_log_hexdump(takion->log, CHIAKI_LOG_DEBUG, mac_expected, sizeof(mac_expected));
 		return CHIAKI_ERR_INVALID_MAC;
 	}

@@ -486,6 +486,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 StreamSession::~StreamSession()
 {
+	mic_active.storeRelaxed(false);
 	StopAudioOutDrainThread();
 	if(audio_out)
 		SDL_CloseAudioDevice(audio_out);
@@ -602,6 +603,7 @@ void StreamSession::Start()
 
 void StreamSession::Stop()
 {
+	mic_active.storeRelaxed(false);
 	chiaki_session_stop(&session);
 }
 
@@ -1325,6 +1327,8 @@ void StreamSession::InitMic(unsigned int channels, unsigned int rate)
 void StreamSession::QueueMicData(const uint8_t *micdata, size_t micdata_size)
 {
 	bool schedule_drain = false;
+	if(!mic_active.loadRelaxed())
+		return;
 
 	{
 		QMutexLocker locker(&mic_ring_mutex);
@@ -1395,6 +1399,18 @@ void StreamSession::DrainMicRingBuffer()
 			mic_ring_fill -= chunk_size;
 		}
 
+		if(!mic_active.loadRelaxed())
+		{
+			QMutexLocker locker(&mic_ring_mutex);
+			mic_ring_drain_queued = false;
+			mic_ring_buf.clear();
+			mic_ring_read_pos = 0;
+			mic_ring_write_pos = 0;
+			mic_ring_fill = 0;
+			mic_ring_overflow_logged = false;
+			return;
+		}
+
 		ReadMic(micdata);
 	}
 }
@@ -1445,6 +1461,8 @@ bool StreamSession::ProcessMicFrame(int16_t *echo_buf)
 
 void StreamSession::ReadMic(const QByteArray &micdata)
 {
+	if(!mic_active.loadRelaxed())
+		return;
 #if CHIAKI_GUI_ENABLE_SPEEX
 	QByteArray echo_buf_storage(mic_buf.size_bytes, 0);
 	auto echo_buf = reinterpret_cast<int16_t *>(echo_buf_storage.data());

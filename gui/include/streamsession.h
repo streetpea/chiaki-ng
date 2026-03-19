@@ -41,6 +41,7 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QWaitCondition>
+#include <QAtomicInteger>
 #if CHIAKI_GUI_ENABLE_SPEEX
 #include <QQueue>
 #include <speex/speex_echo.h>
@@ -278,6 +279,7 @@ class StreamSession : public QObject
 		size_t mic_ring_fill = 0;
 		bool mic_ring_drain_queued = false;
 		bool mic_ring_overflow_logged = false;
+		QAtomicInteger<bool> mic_active = true;
 		QMap<Qt::Key, int> key_map;
 		QElapsedTimer connect_timer;
 

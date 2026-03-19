@@ -4460,7 +4460,7 @@ static ChiakiErrorCode decode_customdata1(ChiakiLog *log, const char *customdata
         return CHIAKI_ERR_UNKNOWN;
     if (round2_len > out_len + CUSTOMDATA1_EXTRA_BYTES_MAX)
     {
-        CHIAKI_LOGD(log, "decode_customdata1: customData1 decoded to %zu bytes (max %zu)", round2_len, out_len + CUSTOMDATA1_EXTRA_BYTES_MAX);
+        CHIAKI_LOGV(log, "decode_customdata1: customData1 decoded to %zu bytes (max %zu)", round2_len, out_len + CUSTOMDATA1_EXTRA_BYTES_MAX);
         return CHIAKI_ERR_UNKNOWN;
     }
     if (round2_len > out_len)
