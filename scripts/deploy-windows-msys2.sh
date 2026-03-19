@@ -20,6 +20,14 @@ export PATH="${tool_dir}:${msys_prefix}/share/qt6/bin:${PATH}"
 export QT_PLUGIN_PATH="${msys_prefix}/share/qt6/plugins"
 export QML2_IMPORT_PATH="${msys_prefix}/share/qt6/qml"
 
+ldd_timeout="${LDD_TIMEOUT:-10}"
+ldd_timeout_cmd=()
+if command -v timeout >/dev/null; then
+    ldd_timeout_cmd=(timeout --kill-after=5s "${ldd_timeout}s")
+else
+    echo "warning: timeout(1) not found, ldd might hang" >&2
+fi
+
 declare -A queued_paths=()
 declare -A scanned_paths=()
 
@@ -29,7 +37,23 @@ queued_paths["$queue"]=1
 extract_dependencies() {
     local binary="$1"
 
-    ldd "$binary" | awk '
+    local ldd_output
+    local ldd_status=0
+    if [[ ${#ldd_timeout_cmd[@]} -gt 0 ]]; then
+        set +e
+        ldd_output="$("${ldd_timeout_cmd[@]}" ldd "$binary" 2>&1)"
+        ldd_status=$?
+        set -e
+        if [[ $ldd_status -eq 124 ]]; then
+            echo "ldd timed out for $binary" >&2
+        elif [[ $ldd_status -ne 0 ]]; then
+            echo "ldd exited with status $ldd_status for $binary" >&2
+        fi
+    else
+        ldd_output="$(ldd "$binary" 2>&1)" || true
+    fi
+
+    printf '%s\n' "$ldd_output" | awk '
         /=>/ && $(NF-1) != "not" { print $(NF-1) }
         /^\// { print $1 }
     ' | grep -iv "system32" || true
