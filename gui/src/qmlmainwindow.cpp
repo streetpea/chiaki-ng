@@ -641,7 +641,9 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         struct pl_opengl_params gl_params = {
             .get_proc_addr_ex = [](void *proc_ctx, const char *procname) -> pl_voidfunc_t {
                 auto ctx = static_cast<QOpenGLContext *>(proc_ctx);
-                return reinterpret_cast<pl_voidfunc_t>(ctx->getProcAddress(procname));
+                // Use volatile to prevent compiler optimizations from caching the address on macOS.
+                volatile pl_voidfunc_t addr = reinterpret_cast<pl_voidfunc_t>(ctx->getProcAddress(procname));
+                return addr;
             },
             .proc_ctx = qt_gl_context,
             .debug = false,

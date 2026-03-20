@@ -597,12 +597,27 @@ static const QMap<RenderBackend, QString> render_backend_values = {
 	{ RenderBackend::OpenGL, "opengl" },
 };
 
+#if defined(Q_OS_MACOS)
+// Default to OpenGL on macOS due to Qt 6.10 bug with MoltenVK
+static const RenderBackend render_backend_default = RenderBackend::OpenGL;
+#else
 static const RenderBackend render_backend_default = RenderBackend::Vulkan;
+#endif
 
 RenderBackend Settings::GetRenderBackend() const
 {
 	auto v = settings.value("settings/render_backend", render_backend_values[render_backend_default]).toString();
-	return render_backend_values.key(v, render_backend_default);
+	auto backend = render_backend_values.key(v, render_backend_default);
+
+#if defined(Q_OS_MACOS)
+	// Force OpenGL on macOS because the Qt 6.10 MoltenVK backend crashes when it creates a QContainerLayer.
+	if (backend == RenderBackend::Vulkan) {
+		qWarning() << "Forcing OpenGL backend on macOS (Vulkan unavailable because of Qt 6.10 MoltenVK bug)";
+		return RenderBackend::OpenGL;
+	}
+#endif
+
+	return backend;
 }
 
 void Settings::SetRenderBackend(RenderBackend backend)
