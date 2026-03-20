@@ -16,9 +16,14 @@ Item {
     property list<Item> restoreFocusItems
     readonly property bool useSeparateMenuWindow: Chiaki.window.runtimeRendererBackend === 1
     readonly property int streamMenuHeight: 200
+    readonly property bool streamStatsVisible: Chiaki.settings.showStreamStats && !(menuController.open || menuController.closing) && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
     property int separateMenuX: 0
     property int separateMenuY: 0
     property int separateMenuWidth: 0
+    property int separateStatsX: 0
+    property int separateStatsY: 0
+    property int separateStatsWidth: 0
+    property int separateStatsHeight: 0
     property int separateDialogX: 0
     property int separateDialogY: 0
 
@@ -37,12 +42,18 @@ Item {
     }
 
     function updateSeparateMenuGeometry() {
-        if (!useSeparateMenuWindow || !Window.window)
+        if (!Window.window)
             return;
         const topLeft = view.mapToGlobal(0, 0);
-        separateMenuX = Math.round(topLeft.x);
-        separateMenuY = Math.round(topLeft.y + view.height - streamMenuHeight);
-        separateMenuWidth = Math.round(view.width);
+        if (useSeparateMenuWindow) {
+            separateMenuX = Math.round(topLeft.x);
+            separateMenuY = Math.round(topLeft.y + view.height - streamMenuHeight);
+            separateMenuWidth = Math.round(view.width);
+            separateStatsX = Math.round(topLeft.x);
+            separateStatsY = Math.round(topLeft.y);
+            separateStatsWidth = Math.round(view.width);
+            separateStatsHeight = Math.round(view.height);
+        }
     }
 
     function updateSeparateDialogGeometry(width, height) {
@@ -256,54 +267,77 @@ Item {
         }
     }
 
-    Item {
-        id: streamStats
-        anchors.fill: parent
-        visible: Chiaki.settings.showStreamStats && !(menuController.open || menuController.closing) && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
-        Label {
-            anchors {
-                right: statsConsoleNameLabel.right
-                bottom: statsConsoleNameLabel.top
-                bottomMargin: 5
-                rightMargin: 5
-
-            }
-            text: "Mbps"
-            font.pixelSize: 18
-            visible: Chiaki.session
-
+    Component {
+        id: streamStatsContent
+        Item {
+            id: streamStatsContentRoot
+            anchors.fill: parent
             Label {
                 anchors {
-                    right: parent.left
-                    baseline: parent.baseline
+                    right: statsConsoleNameLabel.right
+                    bottom: statsConsoleNameLabel.top
+                    bottomMargin: 5
                     rightMargin: 5
-                }
-                text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
-                color: Material.accent
-                font.bold: true
-                font.pixelSize: 28
-            }
-        }
 
-        Label {
-            id: statsConsoleNameLabel
-            anchors {
-                right: parent.right
-                bottom: parent.bottom
-                bottomMargin: 30
+                }
+                text: "Mbps"
+                font.pixelSize: 18
+                visible: Chiaki.session
+
+                Label {
+                    anchors {
+                        right: parent.left
+                        baseline: parent.baseline
+                        rightMargin: 5
+                    }
+                    text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
+                    color: Material.accent
+                    font.bold: true
+                    font.pixelSize: 28
+                }
             }
-            ColumnLayout {
+
+            Label {
+                id: statsConsoleNameLabel
                 anchors {
                     right: parent.right
-                    top: parent.top
                     bottom: parent.bottom
-                    rightMargin: 5
+                    bottomMargin: 30
                 }
-                RowLayout {
-                    Layout.alignment: Qt.AlignRight
+                ColumnLayout {
+                    anchors {
+                        right: parent.right
+                        top: parent.top
+                        bottom: parent.bottom
+                        rightMargin: 5
+                    }
+                    RowLayout {
+                        Layout.alignment: Qt.AlignRight
+                        Label {
+                            id: statsPacketLossLabel
+                            text: qsTr("packet loss")
+                            font.pixelSize: 15
+                            opacity: parent.visible
+                            visible: opacity
+
+                            Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                            Label {
+                                anchors {
+                                    right: parent.left
+                                    baseline: parent.baseline
+                                    rightMargin: 5
+                                }
+                                text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
+                                font.bold: true
+                                color: "#ef9a9a" // Material.Red
+                                font.pixelSize: 18
+                            }
+                        }
+                    }
+
                     Label {
-                        id: statsPacketLossLabel
-                        text: qsTr("packet loss")
+                        text: qsTr("dropped frames")
                         font.pixelSize: 15
                         opacity: parent.visible
                         visible: opacity
@@ -311,41 +345,49 @@ Item {
                         Behavior on opacity { NumberAnimation { duration: 250 } }
 
                         Label {
+                            id: statsDroppedFramesLabel
                             anchors {
                                 right: parent.left
                                 baseline: parent.baseline
                                 rightMargin: 5
                             }
-                            text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
-                            font.bold: true
+                            text: visible ? Chiaki.window.droppedFrames : ""
                             color: "#ef9a9a" // Material.Red
+                            font.bold: true
                             font.pixelSize: 18
                         }
                     }
                 }
-
-                Label {
-                    text: qsTr("dropped frames")
-                    font.pixelSize: 15
-                    opacity: parent.visible
-                    visible: opacity
-
-                    Behavior on opacity { NumberAnimation { duration: 250 } }
-
-                    Label {
-                        id: statsDroppedFramesLabel
-                        anchors {
-                            right: parent.left
-                            baseline: parent.baseline
-                            rightMargin: 5
-                        }
-                        text: visible ? Chiaki.window.droppedFrames : ""
-                        color: "#ef9a9a" // Material.Red
-                        font.bold: true
-                        font.pixelSize: 18
-                    }
-                }
             }
+        }
+    }
+
+    Item {
+        id: streamStatsInline
+        anchors.fill: parent
+        visible: streamStatsVisible && !useSeparateMenuWindow
+        Loader {
+            anchors.fill: parent
+            sourceComponent: streamStatsContent
+            active: streamStatsInline.visible
+        }
+    }
+
+    Window {
+        id: streamStatsWindow
+        flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowTransparentForInput
+        color: "transparent"
+        modality: Qt.NonModal
+        transientParent: Window.window
+        visible: streamStatsVisible && useSeparateMenuWindow
+        x: separateStatsX
+        y: separateStatsY
+        width: separateStatsWidth
+        height: separateStatsHeight
+        Loader {
+            anchors.fill: parent
+            sourceComponent: streamStatsContent
+            active: streamStatsWindow.visible
         }
     }
 
