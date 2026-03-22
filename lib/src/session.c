@@ -823,7 +823,13 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 
 			ChiakiErrorCode err = chiaki_socket_set_nonblock(session_sock, true);
 			if(err != CHIAKI_ERR_SUCCESS)
+			{
 				CHIAKI_LOGE(session->log, "Failed to set session socket to non-blocking: %s", chiaki_error_string(err));
+				CHIAKI_SOCKET_CLOSE(session_sock);
+				session_sock = CHIAKI_INVALID_SOCKET;
+				free(sa);
+				continue;
+			}
 
 			chiaki_mutex_unlock(&session->state_mutex);
 			err = chiaki_stop_pipe_connect(&session->stop_pipe, session_sock, sa, ai->ai_addrlen, 5000);
@@ -944,17 +950,25 @@ static ChiakiErrorCode session_thread_request_session(ChiakiSession *session, Ch
 	chiaki_log_hexdump(session->log, CHIAKI_LOG_VERBOSE, (uint8_t *)send_buf, request_len);
 	if(!session->rudp)
 	{
-		int sent = send(session_sock, send_buf, (size_t)request_len, 0);
-		if(sent < 0)
+		chiaki_mutex_unlock(&session->state_mutex);
+		err = chiaki_send_fully(&session->stop_pipe, session_sock, (const uint8_t *)send_buf, (size_t)request_len, SESSION_EXPECT_TIMEOUT_MS);
+		ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->state_mutex);
+		assert(mutex_err == CHIAKI_ERR_SUCCESS);
+		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(session->log, "Failed to send session request");
+			if(err == CHIAKI_ERR_CANCELED)
+				CHIAKI_LOGI(session->log, "Session stopped while sending session request");
+			else
+				CHIAKI_LOGE(session->log, "Failed to send session request");
 			if(!CHIAKI_SOCKET_IS_INVALID(session_sock))
 			{
 				CHIAKI_SOCKET_CLOSE(session_sock);
 				session_sock = CHIAKI_INVALID_SOCKET;
 			}
-			session->quit_reason = CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
-			return CHIAKI_ERR_NETWORK;
+			session->quit_reason = err == CHIAKI_ERR_CANCELED
+				? CHIAKI_QUIT_REASON_STOPPED
+				: CHIAKI_QUIT_REASON_SESSION_REQUEST_UNKNOWN;
+			return err;
 		}
 	}
 	char buf[512];

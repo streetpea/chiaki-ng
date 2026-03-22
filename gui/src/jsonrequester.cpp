@@ -1,6 +1,11 @@
 #include "jsonrequester.h"
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QTimer>
+
+namespace {
+constexpr int kRequestTimeoutMs = 10000;
+}
 
 JsonRequester::JsonRequester(QObject* parent) : QObject(parent), networkManager(new QNetworkAccessManager(this)) {
     connect(networkManager, &QNetworkAccessManager::finished, this, &JsonRequester::onRequestFinished);
@@ -40,6 +45,16 @@ void JsonRequester::makeRequest(bool post, const QString& url, const QString& au
         reply = networkManager->get(request);
     }
 
+    QTimer* timeoutTimer = new QTimer(reply);
+    timeoutTimer->setSingleShot(true);
+    connect(timeoutTimer, &QTimer::timeout, reply, [reply]() {
+        if (!reply->isFinished()) {
+            reply->setProperty("timed_out", true);
+            reply->abort();
+        }
+    });
+    timeoutTimer->start(kRequestTimeoutMs);
+
     currentReplies.insert(reply, url);
 }
 
@@ -53,7 +68,9 @@ void JsonRequester::onRequestFinished(QNetworkReply* reply) {
 
         emit requestFinished(url, jsonDocument);
     } else {
-        emit requestError(url, reply->errorString(), reply->error());
+        const bool timedOut = reply->property("timed_out").toBool();
+        const QString errorString = timedOut ? QStringLiteral("Request timed out") : reply->errorString();
+        emit requestError(url, errorString, reply->error());
     }
 
     reply->deleteLater();

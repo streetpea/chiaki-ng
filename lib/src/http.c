@@ -6,6 +6,7 @@
 #include <string.h>
 #include <chiaki/remote/rudp.h>
 #include <chiaki/log.h>
+#include <chiaki/time.h>
 
 #if _WIN32
 #include <winsock2.h>
@@ -137,13 +138,22 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 	int nl_state = 0;
 	static const int transitions_r[] = { 1, 1, 3, 1 };
 	static const int transitions_n[] = { 0, 2, 0, 4 };
+	uint64_t deadline_ms = timeout_ms == UINT64_MAX ? UINT64_MAX : chiaki_time_now_monotonic_ms() + timeout_ms;
 
 	*received_size = 0;
 	while(true)
 	{
 		if(stop_pipe)
 		{
-			ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, sock, false, timeout_ms);
+			uint64_t wait_timeout_ms = UINT64_MAX;
+			if(deadline_ms != UINT64_MAX)
+			{
+				uint64_t now_ms = chiaki_time_now_monotonic_ms();
+				if(now_ms >= deadline_ms)
+					return CHIAKI_ERR_TIMEOUT;
+				wait_timeout_ms = deadline_ms - now_ms;
+			}
+			ChiakiErrorCode err = chiaki_stop_pipe_select_single(stop_pipe, sock, false, wait_timeout_ms);
 			if(err != CHIAKI_ERR_SUCCESS)
 				return err;
 		}
@@ -157,6 +167,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_recv_http_header(int sock, char *buf, size_
 #else
 		} while(received < 0 && errno == EINTR);
 #endif
+		if(received < 0)
+		{
+#ifdef _WIN32
+			int err = WSAGetLastError();
+			if(err == WSAEWOULDBLOCK)
+				continue;
+#else
+			if(errno == EAGAIN || errno == EWOULDBLOCK)
+				continue;
+#endif
+		}
 		if(received <= 0)
 			return received == 0 ? CHIAKI_ERR_DISCONNECTED : CHIAKI_ERR_NETWORK;
 
