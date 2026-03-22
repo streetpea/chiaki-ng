@@ -8,6 +8,7 @@
 #include <QString>
 #include <QDir>
 #include <QMutex>
+#include <QAtomicInteger>
 
 class QFile;
 class StreamSession;
@@ -21,6 +22,7 @@ class SessionLog
 		ChiakiLog log;
 		QFile *file;
 		QMutex file_mutex;
+		QAtomicInteger<bool> shutdown;
 
 		void Log(ChiakiLogLevel level, const char *msg);
 
@@ -29,6 +31,7 @@ class SessionLog
 		~SessionLog();
 
 		ChiakiLog *GetChiakiLog()	{ return &log; }
+		void PrepareShutdown();
 };
 
 QString GetLogBaseDir();

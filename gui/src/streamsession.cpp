@@ -500,6 +500,11 @@ StreamSession::~StreamSession()
 	}
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
+
+	// Prepare log for shutdown BEFORE joining session threads
+	// This prevents crashes from log callbacks during shutdown
+	log.PrepareShutdown();
+
 	if(session_started)
 		chiaki_session_join(&session);
 	chiaki_session_fini(&session);
