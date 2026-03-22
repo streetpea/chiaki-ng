@@ -38,6 +38,7 @@ typedef struct chiaki_ctrl_t
 	uint8_t *login_pin;
 	size_t login_pin_size;
 	ChiakiCtrlMessageQueue *msg_queue;
+	ChiakiStopPipe stop_pipe;
 	ChiakiStopPipe notif_pipe;
 	ChiakiMutex notif_mutex;
 

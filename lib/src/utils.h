@@ -5,6 +5,8 @@
 
 #include <chiaki/sock.h>
 #include <chiaki/log.h>
+#include <chiaki/stoppipe.h>
+#include <chiaki/time.h>
 #ifdef _WIN32
 #include <ws2tcpip.h>
 #else
@@ -21,6 +23,7 @@
 #endif
 
 #include <stdint.h>
+#include <limits.h>
 
 static inline ChiakiErrorCode set_port(struct sockaddr *sa, uint16_t port)
 {
@@ -91,6 +94,69 @@ static inline int sendto_broadcast(ChiakiLog *log, chiaki_socket_t s, const void
 	}
 #endif
 	return sendto(s, (CHIAKI_SOCKET_BUF_TYPE) msg, len, flags, to, tolen);
+}
+
+static inline ChiakiErrorCode chiaki_send_fully(ChiakiStopPipe *stop_pipe, chiaki_socket_t sock, const uint8_t *buf, size_t buf_size, uint64_t timeout_ms)
+{
+	size_t sent_total = 0;
+	uint64_t deadline_ms = timeout_ms == UINT64_MAX ? UINT64_MAX : chiaki_time_now_monotonic_ms() + timeout_ms;
+	while(sent_total < buf_size)
+	{
+		size_t remaining = buf_size - sent_total;
+		int chunk_size = remaining > (size_t)INT_MAX ? INT_MAX : (int)remaining;
+		int sent = send(sock, (CHIAKI_SOCKET_BUF_TYPE)(buf + sent_total), chunk_size, 0);
+		if(sent > 0)
+		{
+			sent_total += (size_t)sent;
+			continue;
+		}
+		if(sent == 0)
+			return CHIAKI_ERR_NETWORK;
+#ifdef _WIN32
+		int err = WSAGetLastError();
+		if(err == WSAEINTR)
+			continue;
+		if(err == WSAEWOULDBLOCK)
+		{
+			if(!stop_pipe)
+				return CHIAKI_ERR_NETWORK;
+			uint64_t wait_timeout_ms = UINT64_MAX;
+			if(deadline_ms != UINT64_MAX)
+			{
+				uint64_t now_ms = chiaki_time_now_monotonic_ms();
+				if(now_ms >= deadline_ms)
+					return CHIAKI_ERR_TIMEOUT;
+				wait_timeout_ms = deadline_ms - now_ms;
+			}
+			ChiakiErrorCode wait_err = chiaki_stop_pipe_select_single(stop_pipe, sock, true, wait_timeout_ms);
+			if(wait_err != CHIAKI_ERR_SUCCESS)
+				return wait_err;
+			continue;
+		}
+#else
+		if(errno == EINTR)
+			continue;
+		if(errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			if(!stop_pipe)
+				return CHIAKI_ERR_NETWORK;
+			uint64_t wait_timeout_ms = UINT64_MAX;
+			if(deadline_ms != UINT64_MAX)
+			{
+				uint64_t now_ms = chiaki_time_now_monotonic_ms();
+				if(now_ms >= deadline_ms)
+					return CHIAKI_ERR_TIMEOUT;
+				wait_timeout_ms = deadline_ms - now_ms;
+			}
+			ChiakiErrorCode wait_err = chiaki_stop_pipe_select_single(stop_pipe, sock, true, wait_timeout_ms);
+			if(wait_err != CHIAKI_ERR_SUCCESS)
+				return wait_err;
+			continue;
+		}
+#endif
+		return CHIAKI_ERR_NETWORK;
+	}
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static inline void xor_bytes(uint8_t *dst, uint8_t *src, size_t sz)

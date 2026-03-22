@@ -6,6 +6,8 @@
 #include <chiaki/http.h>
 #include <chiaki/time.h>
 
+#include "utils.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -145,13 +147,19 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *
 	ctrl->keyboard_text_counter = 0;
 	ctrl->sock = CHIAKI_INVALID_SOCKET;
 
-	err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
+	err = chiaki_stop_pipe_init(&ctrl->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
 		goto error_mutex;
+
+	err = chiaki_stop_pipe_init(&ctrl->notif_pipe);
+	if(err != CHIAKI_ERR_SUCCESS)
+		goto error_stop_pipe;
 
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	return err;
 
+error_stop_pipe:
+	chiaki_stop_pipe_fini(&ctrl->stop_pipe);
 error_mutex:
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 	chiaki_mutex_fini(&ctrl->notif_mutex);
@@ -173,6 +181,7 @@ CHIAKI_EXPORT void chiaki_ctrl_stop(ChiakiCtrl *ctrl)
 	ChiakiErrorCode err = chiaki_mutex_lock(&ctrl->notif_mutex);
 	assert(err == CHIAKI_ERR_SUCCESS);
 	ctrl->should_stop = true;
+	chiaki_stop_pipe_stop(&ctrl->stop_pipe);
 	chiaki_stop_pipe_stop(&ctrl->notif_pipe);
 	chiaki_mutex_unlock(&ctrl->notif_mutex);
 }
@@ -184,6 +193,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_join(ChiakiCtrl *ctrl)
 
 CHIAKI_EXPORT void chiaki_ctrl_fini(ChiakiCtrl *ctrl)
 {
+	chiaki_stop_pipe_fini(&ctrl->stop_pipe);
 	chiaki_stop_pipe_fini(&ctrl->notif_pipe);
 	chiaki_mutex_fini(&ctrl->notif_mutex);
 	free(ctrl->login_pin);
@@ -355,34 +365,45 @@ static void *ctrl_thread_func(void *user)
 			break;
 		}
 
-		chiaki_mutex_unlock(&ctrl->notif_mutex);
-		if(ctrl->session->rudp)
-			err = chiaki_rudp_stop_pipe_select_single(ctrl->session->rudp, &ctrl->notif_pipe, UINT64_MAX);
+		if(ctrl->should_stop || ctrl->msg_queue || ctrl->login_pin_entered)
+		{
+			err = CHIAKI_ERR_CANCELED;
+		}
 		else
-			err = chiaki_stop_pipe_select_single(&ctrl->notif_pipe, ctrl->sock, false, UINT64_MAX);
-		chiaki_mutex_lock(&ctrl->notif_mutex);
+		{
+			chiaki_stop_pipe_reset(&ctrl->notif_pipe);
+			chiaki_mutex_unlock(&ctrl->notif_mutex);
+			if(ctrl->session->rudp)
+				err = chiaki_rudp_stop_pipe_select_single(ctrl->session->rudp, &ctrl->notif_pipe, UINT64_MAX);
+			else
+				err = chiaki_stop_pipe_select_single(&ctrl->notif_pipe, ctrl->sock, false, UINT64_MAX);
+			chiaki_mutex_lock(&ctrl->notif_mutex);
+		}
 
-		bool msg_queue_updated = false;
 		if(err == CHIAKI_ERR_CANCELED)
 		{
 			while(ctrl->msg_queue)
 			{
-				ctrl_message_send(ctrl, ctrl->msg_queue->type, ctrl->msg_queue->payload, ctrl->msg_queue->payload_size);
-				ChiakiCtrlMessageQueue *next = ctrl->msg_queue->next;
-				ctrl_message_queue_free(ctrl->msg_queue);
-				ctrl->msg_queue = next;
-				msg_queue_updated = true;
+				ChiakiCtrlMessageQueue *msg = ctrl->msg_queue;
+				ctrl->msg_queue = msg->next;
+				chiaki_mutex_unlock(&ctrl->notif_mutex);
+				ctrl_message_send(ctrl, msg->type, msg->payload, msg->payload_size);
+				ctrl_message_queue_free(msg);
+				chiaki_mutex_lock(&ctrl->notif_mutex);
 			}
 
 			if(ctrl->login_pin_entered)
 			{
 				CHIAKI_LOGI(ctrl->session->log, "Ctrl received entered Login PIN, sending to console");
-				ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_LOGIN_PIN_REP, ctrl->login_pin, ctrl->login_pin_size);
+				uint8_t *login_pin = ctrl->login_pin;
+				size_t login_pin_size = ctrl->login_pin_size;
 				ctrl->login_pin_entered = false;
-				free(ctrl->login_pin);
 				ctrl->login_pin = NULL;
 				ctrl->login_pin_size = 0;
-				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
+				chiaki_mutex_unlock(&ctrl->notif_mutex);
+				ctrl_message_send(ctrl, CTRL_MESSAGE_TYPE_LOGIN_PIN_REP, login_pin, login_pin_size);
+				free(login_pin);
+				chiaki_mutex_lock(&ctrl->notif_mutex);
 				continue;
 			}
 
@@ -391,9 +412,6 @@ static void *ctrl_thread_func(void *user)
 				CHIAKI_LOGI(ctrl->session->log, "Ctrl requested to stop");
 				break;
 			}
-
-			if(msg_queue_updated)
-				chiaki_stop_pipe_reset(&ctrl->notif_pipe);
 
 			continue;
 		}
@@ -570,6 +588,7 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 		memcpy(buf, header, 8);
 		if(enc)
 			memcpy(buf + 8, enc, payload_size);
+		free(enc);
 		ChiakiErrorCode err;
 		err = chiaki_rudp_send_ctrl_message(ctrl->session->rudp, buf, buf_size);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -580,21 +599,22 @@ static ChiakiErrorCode ctrl_message_send(ChiakiCtrl *ctrl, uint16_t type, const 
 	}
 	else
 	{
-		int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)header, sizeof(header), 0);
-		if(sent < 0)
+			ChiakiErrorCode err = chiaki_send_fully(&ctrl->stop_pipe, ctrl->sock, header, sizeof(header), CTRL_EXPECT_TIMEOUT);
+		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Header");
-			return CHIAKI_ERR_NETWORK;
+			free(enc);
+			return err;
 		}
 
 		if(enc)
 		{
-			sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)enc, payload_size, 0);
+				err = chiaki_send_fully(&ctrl->stop_pipe, ctrl->sock, enc, payload_size, CTRL_EXPECT_TIMEOUT);
 			free(enc);
-			if(sent < 0)
+			if(err != CHIAKI_ERR_SUCCESS)
 			{
 				CHIAKI_LOGE(ctrl->session->log, "Failed to send Ctrl Message Payload");
-				return CHIAKI_ERR_NETWORK;
+				return err;
 			}
 		}
 	}
@@ -1108,10 +1128,16 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 
 		err = chiaki_socket_set_nonblock(sock, true);
 		if(err != CHIAKI_ERR_SUCCESS)
+		{
 			CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
+			free(sa);
+			CHIAKI_SOCKET_CLOSE(sock);
+			ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+			return err;
+		}
 
 		chiaki_mutex_unlock(&ctrl->notif_mutex);
-		err = chiaki_stop_pipe_connect(&ctrl->notif_pipe, sock, sa, addr->ai_addrlen, 5000);
+		err = chiaki_stop_pipe_connect(&ctrl->stop_pipe, sock, sa, addr->ai_addrlen, 5000);
 		chiaki_mutex_lock(&ctrl->notif_mutex);
 		free(sa);
 		if(err != CHIAKI_ERR_SUCCESS)
@@ -1282,7 +1308,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	if(session->rudp)
 		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
 	else
-		err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->notif_pipe, CTRL_EXPECT_TIMEOUT);
+		err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->stop_pipe, CTRL_EXPECT_TIMEOUT);
 	if (err == CHIAKI_ERR_TIMEOUT)
 	{
 		CHIAKI_LOGI(session->log, "Initial ctrl startup request timed out, resending ...");
@@ -1297,7 +1323,7 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 				CHIAKI_LOGE(session->log, "Failed to send ctrl request");
 				goto error;
 			}
-			err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->notif_pipe, CTRL_EXPECT_TIMEOUT);
+			err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->stop_pipe, CTRL_EXPECT_TIMEOUT);
 		}
 	}
 	if(err != CHIAKI_ERR_SUCCESS)
