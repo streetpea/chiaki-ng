@@ -10,12 +10,13 @@
 #include <QFile>
 #include <QPair>
 #include <QVector>
+#include <QThread>
 
 
 static void LogCb(ChiakiLogLevel level, const char *msg, void *user);
 
 SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QString &filename)
-	: session(session)
+	: session(session), shutdown(false)
 {
 	chiaki_log_init(&log, level_mask, LogCb, this);
 
@@ -44,14 +45,40 @@ SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QStrin
 
 SessionLog::~SessionLog()
 {
-	delete file;
+	PrepareShutdown();
+}
+
+void SessionLog::PrepareShutdown()
+{
+	// Signal that we're shutting down - no more logging allowed
+	shutdown.storeRelaxed(true);
+
+	// Wait a moment for any in-flight log calls to complete
+	QThread::msleep(10);
+
+	// Now safe to clean up
+	QMutexLocker lock(&file_mutex);
+	if(file)
+	{
+		file->flush();
+		delete file;
+		file = nullptr;
+	}
 }
 
 void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 {
+	// Check if we're shutting down - if so, skip file logging
+	if(shutdown.loadRelaxed())
+	{
+		chiaki_log_cb_print(level, msg, nullptr);
+		return;
+	}
+
 	chiaki_log_cb_print(level, msg, nullptr);
 
-	if(file)
+	QMutexLocker lock(&file_mutex);
+	if(file && !shutdown.loadRelaxed())
 	{
 		static const QString date_format = "yyyy-MM-dd HH:mm:ss:zzzzzz";
 		QString str = QString("[%1] [%2] %3\n").arg(
@@ -59,7 +86,6 @@ void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 				QString(chiaki_log_level_char(level)),
 				msg);
 
-		QMutexLocker lock(&file_mutex);
 		file->write(str.toLocal8Bit());
 		file->flush();
 	}

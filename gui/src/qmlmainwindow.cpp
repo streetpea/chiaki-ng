@@ -232,12 +232,21 @@ QmlMainWindow::~QmlMainWindow()
         av_buffer_unref(&vulkan_hw_dev_ctx);
 
     const bool isOpenGlBackend = render_backend == RenderBackend::OpenGL;
-    const bool hasOpenGlContextCurrent = isOpenGlBackend && makeOpenGLContextCurrent();
+    bool hasOpenGlContextCurrent = isOpenGlBackend && makeOpenGLContextCurrent();
 
     if (isOpenGlBackend && quick_window)
         quick_window->setRenderTarget(QQuickRenderTarget());
 
 #ifndef Q_OS_MACOS
+    if (owns_render_thread) {
+        QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
+        render_thread->quit();
+        render_thread->wait();
+    } else {
+        quick_render->invalidate();
+    }
+#else
+    // On macOS, we still need to invalidate to prevent leaks
     if (owns_render_thread) {
         QMetaObject::invokeMethod(quick_render, &QQuickRenderControl::invalidate);
         render_thread->quit();
@@ -255,8 +264,16 @@ QmlMainWindow::~QmlMainWindow()
             pl_vulkan_sem_destroy(gpu, &quick_sem);
     }
 
-    if (hasOpenGlContextCurrent)
+    // Only destroy the FBO while its OpenGL context is current.
+    if (hasOpenGlContextCurrent) {
         delete quick_fbo;
+    } else if (quick_fbo) {
+        // Try one more time to make context current for proper cleanup
+        if (isOpenGlBackend && makeOpenGLContextCurrent()) {
+            delete quick_fbo;
+            hasOpenGlContextCurrent = true;
+        }
+    }
     quick_fbo = nullptr;
 
     if (hasOpenGlContextCurrent)
