@@ -835,7 +835,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
-    connect(session, &StreamSession::FfmpegFrameAvailable, frame_thread->parent(), [this]() {
+    connect(session, &StreamSession::FfmpegFrameAvailable, frame_thread->parent(), [this, use_opengl_renderer]() {
         ChiakiFfmpegDecoder *decoder = session->GetFfmpegDecoder();
         if (!decoder) {
             qCCritical(chiakiGui) << "Session has no FFmpeg decoder";
@@ -848,10 +848,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         QSet<int> zero_copy_formats = {
             AV_PIX_FMT_VULKAN,
-#ifdef Q_OS_LINUX
-            AV_PIX_FMT_VAAPI,
-#endif
         };
+#ifdef Q_OS_LINUX
+        if (!use_opengl_renderer)
+            zero_copy_formats.insert(AV_PIX_FMT_VAAPI);
+#endif
         if (frame.frame->hw_frames_ctx) {
             qCDebug(chiakiGui) << "Received hardware frame format"
                                << av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame.frame->format))
