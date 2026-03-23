@@ -11,6 +11,7 @@ import "controls" as C
 Item {
     id: view
 
+    readonly property var hostWindow: view.Window.window
     property bool sessionError: false
     property bool sessionLoading: true
     property list<Item> restoreFocusItems
@@ -29,7 +30,7 @@ Item {
 
     function grabInput(item) {
         Chiaki.window.grabInput();
-        restoreFocusItems.push(Window.window.activeFocusItem);
+        restoreFocusItems.push(hostWindow ? hostWindow.activeFocusItem : null);
         if (item)
             item.forceActiveFocus(Qt.TabFocusReason);
     }
@@ -42,7 +43,7 @@ Item {
     }
 
     function updateSeparateMenuGeometry() {
-        if (!Window.window)
+        if (!hostWindow)
             return;
         const topLeft = view.mapToGlobal(0, 0);
         if (useSeparateMenuWindow) {
@@ -57,10 +58,10 @@ Item {
     }
 
     function updateSeparateDialogGeometry(width, height) {
-        if (!useSeparateMenuWindow || !Window.window)
+        if (!useSeparateMenuWindow || !hostWindow)
             return;
-        separateDialogX = Math.round(Window.window.x + (Window.window.width - width) / 2);
-        separateDialogY = Math.round(Window.window.y + (Window.window.height - height) / 2);
+        separateDialogX = Math.round(hostWindow.x + (hostWindow.width - width) / 2);
+        separateDialogY = Math.round(hostWindow.y + (hostWindow.height - height) / 2);
     }
 
     StackView.onActivating: Chiaki.window.keepVideo = true
@@ -72,7 +73,7 @@ Item {
     onUseSeparateMenuWindowChanged: updateSeparateMenuGeometry()
 
     Connections {
-        target: Window.window
+        target: view.hostWindow
         function onXChanged() { view.updateSeparateMenuGeometry() }
         function onYChanged() { view.updateSeparateMenuGeometry() }
         function onWidthChanged() { view.updateSeparateMenuGeometry() }
@@ -378,7 +379,7 @@ Item {
         flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowTransparentForInput
         color: "transparent"
         modality: Qt.NonModal
-        transientParent: Window.window
+        transientParent: view.hostWindow
         visible: streamStatsVisible && useSeparateMenuWindow
         x: separateStatsX
         y: separateStatsY
@@ -824,7 +825,7 @@ Item {
 
     StreamMenuWindow {
         id: separateMenuWindow
-        transientParent: Window.window
+        transientParent: view.hostWindow
         x: separateMenuX
         y: menuController.open ? separateMenuY : separateMenuY + streamMenuHeight
         width: separateMenuWidth > 0 ? separateMenuWidth : view.width
@@ -842,8 +843,8 @@ Item {
         }
         onMainViewRequested: root.showMainView()
         onCloseAnimationFinished: {
-            if (Window.window)
-                Window.window.requestActivate();
+            if (view.hostWindow)
+                view.hostWindow.requestActivate();
             menuController.closing = false;
         }
     }
@@ -933,7 +934,7 @@ Item {
         visible: false
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: "transparent"
-        transientParent: Window.window
+        transientParent: view.hostWindow
         modality: Qt.ApplicationModal
         x: separateDialogX
         y: separateDialogY
@@ -1061,7 +1062,7 @@ Item {
         visible: false
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: "transparent"
-        transientParent: Window.window
+        transientParent: view.hostWindow
         modality: Qt.ApplicationModal
         x: separateDialogX
         y: separateDialogY
