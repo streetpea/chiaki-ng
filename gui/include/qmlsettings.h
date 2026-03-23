@@ -51,6 +51,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
+    Q_PROPERTY(bool useZeroCopy READ useZeroCopy WRITE setUseZeroCopy NOTIFY useZeroCopyChanged)
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(uint customResolutionWidth READ customResolutionWidth WRITE setCustomResolutionWidth NOTIFY customResolutionWidthChanged)
     Q_PROPERTY(uint customResolutionHeight READ customResolutionHeight WRITE setCustomResolutionHeight NOTIFY customResolutionHeightChanged)
@@ -277,6 +278,8 @@ public:
 
     QString decoder() const;
     void setDecoder(const QString &decoder);
+    bool useZeroCopy() const;
+    void setUseZeroCopy(bool enabled);
 
     int windowType() const;
     void setWindowType(int type);
@@ -620,6 +623,7 @@ signals:
     void audioInDeviceChanged();
     void wifiDroppedNotifChanged();
     void decoderChanged();
+    void useZeroCopyChanged();
     void windowTypeChanged();
     void customResolutionWidthChanged();
     void customResolutionHeightChanged();

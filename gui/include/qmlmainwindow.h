@@ -95,6 +95,7 @@ public:
     void setZoomFactor(float factor);
 
     bool amdCard() const;
+    bool nvidiaCard() const;
     bool wasMaximized() const { return was_maximized; };
     bool isWindowAdjustable() const { return is_window_adjustable; }
     void setWindowAdjustable(bool adjustable) { is_window_adjustable = adjustable; }
@@ -157,6 +158,7 @@ private:
     bool playback_started = false;
     bool was_maximized = false;
     bool amd_card = false;
+    bool nvidia_card = false;
     bool direct_stream = false;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;

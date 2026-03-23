@@ -344,6 +344,8 @@ class Settings : public QObject
 
 		QString GetHardwareDecoder() const;
 		void SetHardwareDecoder(const QString &hw_decoder);
+		bool GetUseZeroCopy() const { return settings.value("settings/use_zero_copy", true).toBool(); }
+		void SetUseZeroCopy(bool enabled) { settings.setValue("settings/use_zero_copy", enabled); }
 
 		WindowType GetWindowType() const;
 		void SetWindowType(WindowType type);
