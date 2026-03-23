@@ -34,6 +34,10 @@
   ```
  - Attached releases (installer and portable)
 
+## Switch:
+
+Please see akira releases here: https://github.com/xlanor/akira/releases
+
 ## Additional Notes
 Note: Pipewire required for appimage. For Linux, pipewire is required for DualSense haptics.
 For flatpak, you can run with `--env=SDL_AUDIODRIVER=pulse` to use pulse instead of pipewire if you really want that (doing this means DualSense haptics won't work)

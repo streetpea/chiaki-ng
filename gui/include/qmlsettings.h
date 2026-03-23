@@ -51,10 +51,12 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString audioInDevice READ audioInDevice WRITE setAudioInDevice NOTIFY audioInDeviceChanged)
     Q_PROPERTY(QString audioOutDevice READ audioOutDevice WRITE setAudioOutDevice NOTIFY audioOutDeviceChanged)
     Q_PROPERTY(QString decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
+    Q_PROPERTY(bool useZeroCopy READ useZeroCopy WRITE setUseZeroCopy NOTIFY useZeroCopyChanged)
     Q_PROPERTY(int windowType READ windowType WRITE setWindowType NOTIFY windowTypeChanged)
     Q_PROPERTY(uint customResolutionWidth READ customResolutionWidth WRITE setCustomResolutionWidth NOTIFY customResolutionWidthChanged)
     Q_PROPERTY(uint customResolutionHeight READ customResolutionHeight WRITE setCustomResolutionHeight NOTIFY customResolutionHeightChanged)
     Q_PROPERTY(int videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
+    Q_PROPERTY(int rendererBackend READ rendererBackend WRITE setRendererBackend NOTIFY rendererBackendChanged)
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(int packetLossMax READ packetLossMax WRITE setPacketLossMax NOTIFY packetLossMaxChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
@@ -75,6 +77,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(bool mouseTouchEnabled READ mouseTouchEnabled WRITE setMouseTouchEnabled NOTIFY mouseTouchEnabledChanged)
     Q_PROPERTY(bool keyboardEnabled READ keyboardEnabled WRITE setKeyboardEnabled NOTIFY keyboardEnabledChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
+    Q_PROPERTY(bool iDROnFECFailureEnabled READ iDROnFECFailureEnabled WRITE setIDROnFECFailureEnabled NOTIFY iDROnFECFailureEnabledChanged)
     Q_PROPERTY(uint16_t dpadTouchIncrement READ dpadTouchIncrement WRITE setDpadTouchIncrement NOTIFY dpadTouchIncrementChanged)
     Q_PROPERTY(uint dpadTouchShortcut1 READ dpadTouchShortcut1 WRITE setDpadTouchShortcut1 NOTIFY dpadTouchShortcut1Changed)
     Q_PROPERTY(uint dpadTouchShortcut2 READ dpadTouchShortcut2 WRITE setDpadTouchShortcut2 NOTIFY dpadTouchShortcut2Changed)
@@ -204,6 +207,9 @@ public:
     bool buttonsByPosition() const;
     void setButtonsByPosition(bool buttonsByPosition);
 
+    bool iDROnFECFailureEnabled() const;
+    void setIDROnFECFailureEnabled(bool enabled);
+
     bool allowJoystickBackgroundEvents() const;
     void setAllowJoystickBackgroundEvents(bool allowJoystickBackgroundEvents);
 
@@ -272,6 +278,8 @@ public:
 
     QString decoder() const;
     void setDecoder(const QString &decoder);
+    bool useZeroCopy() const;
+    void setUseZeroCopy(bool enabled);
 
     int windowType() const;
     void setWindowType(int type);
@@ -290,6 +298,10 @@ public:
 
     int videoPreset() const;
     void setVideoPreset(int preset);
+
+    int rendererBackend() const;
+    void setRendererBackend(int backend);
+    Q_INVOKABLE void restartApplication();
 
     QString autoConnectMac() const;
     void setAutoConnectMac(const QString &mac);
@@ -611,11 +623,13 @@ signals:
     void audioInDeviceChanged();
     void wifiDroppedNotifChanged();
     void decoderChanged();
+    void useZeroCopyChanged();
     void windowTypeChanged();
     void customResolutionWidthChanged();
     void customResolutionHeightChanged();
     void sZoomFactorChanged();
     void videoPresetChanged();
+    void rendererBackendChanged();
     void autoConnectMacChanged();
     void audioDevicesChanged();
     void registeredHostsChanged();
@@ -638,6 +652,7 @@ signals:
     void streamMenuShortcut4Changed();
     void controllerMappingChanged();
     void packetLossMaxChanged();
+    void iDROnFECFailureEnabledChanged();
     void currentProfileChanged();
     void profilesChanged();
     void placeboUpscalerChanged();

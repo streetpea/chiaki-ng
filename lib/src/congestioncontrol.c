@@ -7,6 +7,7 @@
 static void *congestion_control_thread_func(void *user)
 {
 	ChiakiCongestionControl *control = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_CONGESTION);
 
 	ChiakiErrorCode err = chiaki_bool_pred_cond_lock(&control->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)

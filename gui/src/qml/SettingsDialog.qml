@@ -593,16 +593,40 @@ DialogView {
                         text: qsTr("Hardware Decoder:")
                     }
 
-                    C.ComboBox {
+                    RowLayout {
                         Layout.preferredWidth: 400
-                        model: Chiaki.settings.availableDecoders
-                        currentIndex: Math.max(0, model.indexOf(Chiaki.settings.decoder))
-                        onActivated: (index) => Chiaki.settings.decoder = index ? model[index] : ""
+                        spacing: 12
+
+                        C.ComboBox {
+                            id: hwDecoderCombo
+                            Layout.preferredWidth: 220
+                            model: Chiaki.settings.availableDecoders
+                            currentIndex: Math.max(0, model.indexOf(Chiaki.settings.decoder))
+                            KeyNavigation.priority: KeyNavigation.BeforeItem
+                            KeyNavigation.up: hwDecoderCombo
+                            KeyNavigation.right: zeroCopyCheck
+                            KeyNavigation.down: windowTypeCombo
+                            onActivated: (index) => Chiaki.settings.decoder = index ? model[index] : ""
+                        }
+
+                        Label {
+                            text: qsTr("Zero-Copy")
+                        }
+
+                        C.CheckBox {
+                            id: zeroCopyCheck
+                            KeyNavigation.priority: KeyNavigation.BeforeItem
+                            KeyNavigation.up: zeroCopyCheck
+                            KeyNavigation.left: hwDecoderCombo
+                            KeyNavigation.down: windowTypeCombo
+                            checked: Chiaki.settings.useZeroCopy
+                            onToggled: Chiaki.settings.useZeroCopy = checked
+                        }
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto)")
+                        text: qsTr("(Auto / On)")
                     }
 
                     Label {
@@ -611,6 +635,7 @@ DialogView {
                     }
 
                     C.ComboBox {
+                        id: windowTypeCombo
                         Layout.preferredWidth: 400
                         popup.width: 500
                         model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Adjust Resolution Manually"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
@@ -722,8 +747,8 @@ DialogView {
                     }
 
                     C.ComboBox {
-                        Layout.preferredWidth: 400
-                        model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality"), qsTr("Custom")]
+                        Layout.preferredWidth: 520
+                        model: [qsTr("Fast"), qsTr("Default"), qsTr("High Quality"), qsTr("High Quality + Spatial Upscaling"), qsTr("High Quality + Advanced Spatial Upscaling"), qsTr("Custom")]
                         currentIndex: Chiaki.settings.videoPreset
                         onActivated: (index) => {
                             Chiaki.settings.videoPreset = index;
@@ -731,7 +756,9 @@ DialogView {
                             case 0: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Fast; break;
                             case 1: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Default; break;
                             case 2: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQuality; break;
-                            case 3: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom; break;
+                            case 3: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQualitySpatial; break;
+                            case 4: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.HighQualityAdvancedSpatial; break;
+                            case 5: Chiaki.window.videoPreset = ChiakiWindow.VideoPreset.Custom; break;
                             }
                         }
                     }
@@ -739,6 +766,28 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(High Quality)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Renderer Backend:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Vulkan"), qsTr("OpenGL")]
+                        currentIndex: Chiaki.settings.rendererBackend
+                        onActivated: (index) => {
+                            if (index === Chiaki.settings.rendererBackend)
+                                return;
+                            Chiaki.settings.rendererBackend = index;
+                            Chiaki.settings.restartApplication();
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Vulkan)")
                     }
 
                     Label {
@@ -1548,8 +1597,25 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
+                            text: qsTr("Request IDR Frame on FEC Failure")
+                        }
+
+                        C.CheckBox {
+                            lastInFocusChain: true
+                            checked: Chiaki.settings.iDROnFECFailureEnabled
+                            onToggled: Chiaki.settings.iDROnFECFailureEnabled = !Chiaki.settings.iDROnFECFailureEnabled
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Checked)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
                             text: qsTr("Show Stream Stats During Gameplay")
                         }
+
                         C.CheckBox {
                             lastInFocusChain: true
                             checked: Chiaki.settings.showStreamStats

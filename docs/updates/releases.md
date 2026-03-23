@@ -75,6 +75,14 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 ## Releases (Newest First)
 
+### 1.9.9
+
+- Add wake and sleep functionality to Windows and MacOS
+- Allow using custom path for Steam when creating Steam shortcut
+- Allow vulkan with amd for HDR on Windows
+- Allow disabling keyboard and mouse touch
+- Fix psn token generation in Windows build
+
 ### 1.9.8
 
 (Windows Only) Bug Fix

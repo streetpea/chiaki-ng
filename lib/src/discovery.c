@@ -325,6 +325,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_thread_stop(ChiakiDiscoveryThread
 static void *discovery_thread_func(void *user)
 {
 	ChiakiDiscoveryThread *thread = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_DISCOVERY);
 	ChiakiDiscovery *discovery = thread->discovery;
 
 	while(1)
@@ -378,6 +379,7 @@ static void *discovery_thread_func(void *user)
 static void *discovery_thread_func_oneshot(void *user)
 {
 	ChiakiDiscoveryThread *thread = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_DISCOVERY);
 	ChiakiDiscovery *discovery = thread->discovery;
 
 	while(1)

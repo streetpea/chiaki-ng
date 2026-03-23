@@ -91,7 +91,7 @@
 1. Install the necessary [flatpak runtime](https://docs.flatpak.org/en/latest/basic-concepts.html#runtimes){target="_blank" rel="noopener"}, associated [sdk](https://docs.flatpak.org/en/latest/building-introduction.html#software-development-kits-sdks){target="_blank" rel="noopener"}, and base app.
 
     ```bash
-    flatpak install -y flathub org.kde.Platform//6.8 flathub org.kde.Sdk//6.8
+    flatpak install -y flathub org.kde.Platform//6.9 flathub org.kde.Sdk//6.9
     ```
 
 2. Create a directory for your build files and switch into it

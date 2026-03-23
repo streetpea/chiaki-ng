@@ -15,8 +15,8 @@ jobs:
       vcpkg_baseline: 42bb0d9e8d4cf33485afb9ee2229150f79f61a1f
       VCPKG_INSTALLED_DIR: ./vcpkg_installed/
       dep_folder: deps
-      libplacebo_tag: v7.349.0
-      QT_VERSION: "6.8.*"
+      libplacebo_tag: v7.360.1
+      QT_VERSION: "6.9.*"
 
     defaults:
       run:
@@ -182,7 +182,7 @@ jobs:
           windeployqt.exe --no-translations --qmldir=gui\src\qml --release chiaki-ng-Win\chiaki.exe
 
       - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
           path: "scripts/chiaki-ng.iss"
           options: /O+

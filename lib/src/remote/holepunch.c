@@ -392,7 +392,7 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
 static ChiakiErrorCode get_stun_servers(Session *session);
 // static bool get_mac_addr(ChiakiLog *log, uint8_t *mac_addr);
 static void log_session_state(Session *session);
-static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len);
+static ChiakiErrorCode decode_customdata1(ChiakiLog *log, const char *customdata1, uint8_t *out, size_t out_len);
 static ChiakiErrorCode check_candidates(
     Session *session, Candidate *local_candidates, Candidate *candidates_received, size_t num_candidates, chiaki_socket_t *out,
     Candidate *out_candidate);
@@ -1099,7 +1099,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_start(
                 err = CHIAKI_ERR_UNKNOWN;
                 break;
             }
-            err = decode_customdata1(custom_data1, session->custom_data1, sizeof(session->custom_data1));
+            err = decode_customdata1(session->log, custom_data1, session->custom_data1, sizeof(session->custom_data1));
             if (err != CHIAKI_ERR_SUCCESS)
             {
                 CHIAKI_LOGE(session->log, "chiaki_holepunch_session_start: Failed to decode \"customData1\": '%s' with error %s", custom_data1, chiaki_error_string(err));
@@ -1962,6 +1962,7 @@ static void random_uuidv4(char* out)
 */
 static void* websocket_thread_func(void *user) {
     Session* session = (Session*) user;
+    chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_HOLEPUNCH);
 
     char ws_url[128] = {0};
     snprintf(ws_url, sizeof(ws_url), "wss://%s/np/pushNotification", session->ws_fqdn);
@@ -2059,10 +2060,15 @@ static void* websocket_thread_func(void *user) {
     size_t rlen;
     size_t wlen;
     bool expecting_pong = false;
-    chiaki_mutex_lock(&session->stop_mutex);
-    while (!session->ws_thread_should_stop)
+    while (true)
     {
+        chiaki_mutex_lock(&session->stop_mutex);
+        bool should_stop = session->ws_thread_should_stop;
         chiaki_mutex_unlock(&session->stop_mutex);
+
+        if (should_stop)
+            break;
+
         now = chiaki_time_now_monotonic_us();
 
         if (expecting_pong && now - last_ping_sent > 5LL * SECOND_US)
@@ -2201,11 +2207,9 @@ static void* websocket_thread_func(void *user) {
                 goto cleanup_json;
             }
         }
-        chiaki_mutex_lock(&session->stop_mutex);
     }
 
 cleanup_json:
-    chiaki_mutex_unlock(&session->stop_mutex);
     json_tokener_free(tok);
     free(buf);
 cleanup:
@@ -2324,6 +2328,8 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
     }
 
     uint16_t local_port = ntohs(client_addr.sin_port);
+#ifndef __SWITCH__
+    // Switch doesn't support IPv6 - skip IPv6 socket creation
     session->ipv6_sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
     {
@@ -2363,6 +2369,7 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
         err = CHIAKI_ERR_UNKNOWN;
         goto cleanup_socket;
     }
+#endif // __SWITCH__
 
     size_t our_offer_msg_req_id = session->local_req_id;
     session->local_req_id++;
@@ -3619,11 +3626,6 @@ static ChiakiErrorCode check_candidates(
     memcpy(candidates, candidates_received, num_candidates * sizeof(Candidate));
     int responses_received[num_candidates + EXTRA_CANDIDATE_ADDRESSES];
     fd_set fds;
-    FD_ZERO(&fds);
-    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
-        FD_SET(session->ipv4_sock, &fds);
-    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
-        FD_SET(session->ipv6_sock, &fds);
     bool failed = true;
     char service_remote[6];
     struct addrinfo hints;
@@ -3788,35 +3790,51 @@ static ChiakiErrorCode check_candidates(
     // Wait for responses
     uint8_t response_buf[88];
 
-    chiaki_socket_t maxfd = -1;
-    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
-        maxfd = session->ipv4_sock;
-    if(session->ipv6_sock > maxfd)
-        maxfd = session->ipv6_sock;
-    if(session->stun_random_allocation)
-    {
-        for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
-        {
-            if(socks[i] > maxfd)
-                maxfd = socks[i];
-            FD_SET(socks[i], &fds);
-        }
-    }
-    maxfd = maxfd + 1;
-
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
-
     chiaki_socket_t selected_sock = CHIAKI_INVALID_SOCKET;
     Candidate *selected_candidate = NULL;
     bool received_response = false;
     bool responded = false;
     bool connecting = false;
     int retry_counter = 0;
+    chiaki_socket_t maxfd = -1;
+    struct timeval tv;
 
     while (!selected_candidate)
     {
+        // Reset fd_set before each select() call 
+        FD_ZERO(&fds);
+        maxfd = -1;
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
+        {
+            FD_SET(session->ipv4_sock, &fds);
+            maxfd = session->ipv4_sock;
+        }
+        if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
+        {
+            FD_SET(session->ipv6_sock, &fds);
+            if(session->ipv6_sock > maxfd)
+                maxfd = session->ipv6_sock;
+        }
+        if(session->stun_random_allocation)
+        {
+            for(int i=0; i<RANDOM_ALLOCATION_SOCKS_NUMBER; i++)
+            {
+                if(socks[i] > maxfd)
+                    maxfd = socks[i];
+                FD_SET(socks[i], &fds);
+            }
+        }
+        maxfd = maxfd + 1;
+        if(connecting)
+        {
+            tv.tv_sec = SELECT_CANDIDATE_CONNECTION_SEC;
+            tv.tv_usec = 0;
+        }
+        else
+        {
+            tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
+            tv.tv_sec = 0;
+        }
         int ret = select(maxfd, &fds, NULL, NULL, &tv);
 #ifdef _WIN32
 	    if (ret < 0 && WSAGetLastError() != WSAEINTR)
@@ -3834,13 +3852,6 @@ static ChiakiErrorCode check_candidates(
                 if(retry_counter < SELECT_CANDIDATE_TRIES && !received_response)
                 {
                     retry_counter++;
-                    tv.tv_sec = 0;
-                    tv.tv_usec = SELECT_CANDIDATE_TIMEOUT_SEC * SECOND_US;
-                    FD_ZERO(&fds);
-                    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
-                        FD_SET(session->ipv4_sock, &fds);
-                    if(!CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
-                        FD_SET(session->ipv6_sock, &fds);
                     Candidate *candidate = NULL;
                     chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
                     CHIAKI_LOGI(session->log, "check_candidates: Resending requests to all candidates TRY %d... waiting for 1st response", retry_counter);
@@ -3863,22 +3874,12 @@ static ChiakiErrorCode check_candidates(
                             CHIAKI_LOGE(session->log, "check_candidates: Sending request failed for %s:%d with error: " CHIAKI_SOCKET_ERROR_FMT, candidate->addr, candidate->port, CHIAKI_SOCKET_ERROR_VALUE);
                             continue;
                         }
-                        if(session->stun_random_allocation && (candidate->type == CANDIDATE_TYPE_STATIC || candidate->type == CANDIDATE_TYPE_STUN))
-                        {
-                            for(int j=0; j<RANDOM_ALLOCATION_SOCKS_NUMBER; j++)
-                            {
-                                if(!CHIAKI_SOCKET_IS_INVALID(socks[j]))
-                                    FD_SET(socks[j], &fds);
-                            }
-                        }
                     }
                     continue;                    
                 }
                 else if(received_response && !connecting)
                 {
                     connecting = true;
-                    tv.tv_sec = SELECT_CANDIDATE_CONNECTION_SEC;
-                    tv.tv_usec = 0;
                     continue;
                 }
                 // No responsive candidate within timeout, terminate with error
@@ -4436,22 +4437,35 @@ static void log_session_state(Session *session)
  * Decode the customdata1 for use
  *
  * @param[in] customdata1 A char pointer to the customdata1 that arrived via the websocket
+ * @param[in] log Pointer to a ChiakiLog used for reporting unexpected lengths
  * @param[out] out The decoded customdata1 for use in the remote registration
- * @param[out] out_len The length of the decoded customdata1
-*/
+ * @param[in] out_len The length of the decoded customdata1
+ */
 
-static ChiakiErrorCode decode_customdata1(const char *customdata1, uint8_t *out, size_t out_len)
+#define CUSTOMDATA1_EXTRA_BYTES_MAX 4
+
+static ChiakiErrorCode decode_customdata1(ChiakiLog *log, const char *customdata1, uint8_t *out, size_t out_len)
 {
     uint8_t customdata1_round1[24];
-    size_t decoded_len = sizeof(customdata1_round1);
-    ChiakiErrorCode err = chiaki_base64_decode(customdata1, strlen(customdata1), customdata1_round1, &decoded_len);
+    uint8_t customdata1_round2[24];
+    size_t round1_len = sizeof(customdata1_round1);
+    size_t round2_len = sizeof(customdata1_round2);
+    ChiakiErrorCode err = chiaki_base64_decode(customdata1, strlen(customdata1), customdata1_round1, &round1_len);
     if (err != CHIAKI_ERR_SUCCESS)
         return err;
-    err = chiaki_base64_decode((const char*)customdata1_round1, decoded_len, out, &decoded_len);
+    err = chiaki_base64_decode((const char*)customdata1_round1, round1_len, customdata1_round2, &round2_len);
     if (err != CHIAKI_ERR_SUCCESS)
         return err;
-    if (decoded_len != out_len)
+    if (round2_len < out_len)
         return CHIAKI_ERR_UNKNOWN;
+    if (round2_len > out_len + CUSTOMDATA1_EXTRA_BYTES_MAX)
+    {
+        CHIAKI_LOGV(log, "decode_customdata1: customData1 decoded to %zu bytes (max %zu)", round2_len, out_len + CUSTOMDATA1_EXTRA_BYTES_MAX);
+        return CHIAKI_ERR_UNKNOWN;
+    }
+    if (round2_len > out_len)
+        CHIAKI_LOGI(log, "decode_customdata1: customData1 contains %zu extra byte(s); ignoring extras", round2_len - out_len);
+    memcpy(out, customdata1_round2, out_len);
     return CHIAKI_ERR_SUCCESS;
 }
 
@@ -4758,9 +4772,11 @@ static ChiakiErrorCode wait_for_session_message_ack(
             CHIAKI_LOGE(session->log, "wait_for_session_message_ack: Got ACK for unexpected request ID %d", msg->req_id);
             session_message_free(msg);
             msg = NULL;
+            chiaki_mutex_unlock(&session->stop_mutex);
             continue;
         }
         finished = true;
+        chiaki_mutex_unlock(&session->stop_mutex);
         chiaki_mutex_lock(&session->notif_mutex);
         session_message_free(msg);
         chiaki_mutex_unlock(&session->notif_mutex);

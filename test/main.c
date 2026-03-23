@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <munit.h>
+#include <chiaki/config.h>
 
 extern MunitTest tests_seq_num[];
 extern MunitTest tests_key_state[];
@@ -12,6 +13,9 @@ extern MunitTest tests_takion[];
 extern MunitTest tests_fec[];
 extern MunitTest tests_regist[];
 extern MunitTest tests_bitstream[];
+#if CHIAKI_LIB_ENABLE_FFMPEG_DECODER
+extern MunitTest tests_ffmpegdecoder[];
+#endif
 
 static MunitSuite suites[] = {
 	{
@@ -84,6 +88,15 @@ static MunitSuite suites[] = {
 		1,
 		MUNIT_SUITE_OPTION_NONE
 	},
+#if CHIAKI_LIB_ENABLE_FFMPEG_DECODER
+	{
+		"/ffmpegdecoder",
+		tests_ffmpegdecoder,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+#endif
 	{ NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
 };
 

@@ -46,6 +46,7 @@ static void chiaki_opus_decoder_header(ChiakiAudioHeader *header, void *user)
 	memcpy(&decoder->audio_header, header, sizeof(decoder->audio_header));
 
 	opus_decoder_destroy(decoder->opus_decoder);
+	decoder->opus_decoder = NULL;
 
 	int error;
 	decoder->opus_decoder = opus_decoder_create(header->rate, header->channels, &error);
@@ -67,6 +68,7 @@ static void chiaki_opus_decoder_header(ChiakiAudioHeader *header, void *user)
 	if(!decoder->pcm_buf)
 	{
 		free(pcm_buf_old);
+		decoder->pcm_buf = NULL;
 		CHIAKI_LOGE(decoder->log, "ChiakiOpusDecoder failed to alloc pcm buffer");
 		opus_decoder_destroy(decoder->opus_decoder);
 		decoder->opus_decoder = NULL;
@@ -89,7 +91,8 @@ static void chiaki_opus_decoder_frame(uint8_t *buf, size_t buf_size, void *user)
 		return;
 	}
 
-	int r = opus_decode(decoder->opus_decoder, buf, (opus_int32)buf_size, decoder->pcm_buf, decoder->audio_header.frame_size, 0);
+	const unsigned char *opus_buf = buf_size ? buf : NULL;
+	int r = opus_decode(decoder->opus_decoder, opus_buf, (opus_int32)buf_size, decoder->pcm_buf, decoder->audio_header.frame_size, 0);
 	if(r < 1)
 		CHIAKI_LOGE(decoder->log, "Decoding audio frame with opus failed: %s", opus_strerror(r));
 	else if(decoder->frame_cb)

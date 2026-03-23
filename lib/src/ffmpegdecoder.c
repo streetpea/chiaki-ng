@@ -1,8 +1,9 @@
 
 #include <chiaki/ffmpegdecoder.h>
-
+#include <chiaki/time.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
+#include <math.h>
 
 static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 {
@@ -16,8 +17,16 @@ static enum AVCodecID chiaki_codec_av_codec_id(ChiakiCodec codec)
 	}
 }
 
+static double chiaki_ffmpeg_decoder_default_frame_duration_us(unsigned int max_fps)
+{
+	double fps = max_fps > 0 ? (double)max_fps : 60.0;
+	if(fps <= 0.0)
+		fps = 60.0;
+	return 1000000.0 / fps;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *decoder, ChiakiLog *log,
-		ChiakiCodec codec, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
+		ChiakiCodec codec, unsigned int max_fps, const char *hw_decoder_name, AVBufferRef *hw_device_ctx,
 		ChiakiFfmpegFrameAvailable frame_available_cb, void *frame_available_cb_user)
 {
 	ChiakiErrorCode err = chiaki_mutex_init(&decoder->mutex, false);
@@ -30,6 +39,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 	decoder->hdr_enabled = codec == CHIAKI_CODEC_H265_HDR;
 	decoder->frames_lost = 0;
 	decoder->frame_recovered = false;
+	decoder->synthetic_packet_pts = 0;
+	decoder->synthetic_framerate = (AVRational){max_fps > 0 ? (int)max_fps : 60, 1};
+	decoder->synthetic_time_base = (AVRational){1, 1000000};
+	decoder->synthetic_frame_duration_us = chiaki_ffmpeg_decoder_default_frame_duration_us(max_fps);
+	decoder->synthetic_candidate_duration_us = decoder->synthetic_frame_duration_us;
+	decoder->synthetic_last_sample_time_us = 0;
+	decoder->synthetic_candidate_count = 0;
 
 	decoder->hw_device_ctx = hw_device_ctx ? av_buffer_ref(hw_device_ctx) : NULL;
 	decoder->hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -86,6 +102,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ffmpeg_decoder_init(ChiakiFfmpegDecoder *de
 		CHIAKI_LOGI(log, "Using hardware decoder \"%s\" with pix_fmt=%s", hw_decoder_name, av_get_pix_fmt_name(decoder->hw_pix_fmt));
 	}
 
+	decoder->codec_context->framerate = decoder->synthetic_framerate;
+	decoder->codec_context->pkt_timebase = decoder->synthetic_time_base;
+	decoder->codec_context->time_base = decoder->synthetic_time_base;
+
 	if(avcodec_open2(decoder->codec_context, decoder->av_codec, NULL) < 0)
 	{
 		CHIAKI_LOGE(log, "Failed to open codec context");
@@ -120,9 +140,63 @@ CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t bu
 	chiaki_mutex_lock(&decoder->mutex);
 	decoder->frames_lost += frames_lost;
 	decoder->frame_recovered = frame_recovered;
+	if(decoder->synthetic_last_sample_time_us)
+	{
+		double observed_duration_us = (double)(chiaki_time_now_monotonic_us() - decoder->synthetic_last_sample_time_us);
+		int64_t delivered_frames = (int64_t)frames_lost + 1;
+		double default_duration_us = chiaki_ffmpeg_decoder_default_frame_duration_us((unsigned int)decoder->synthetic_framerate.num);
+		if(delivered_frames > 1)
+			observed_duration_us /= (double)delivered_frames;
+		if(observed_duration_us < default_duration_us)
+			observed_duration_us = default_duration_us;
+		else if(observed_duration_us > 1000000.0 / 15.0)
+			observed_duration_us = 1000000.0 / 15.0;
+
+		double candidate_diff = decoder->synthetic_candidate_duration_us > 0.0
+			? fabs(observed_duration_us - decoder->synthetic_candidate_duration_us) / decoder->synthetic_candidate_duration_us
+			: 1.0;
+		double current_diff = decoder->synthetic_frame_duration_us > 0.0
+			? fabs(observed_duration_us - decoder->synthetic_frame_duration_us) / decoder->synthetic_frame_duration_us
+			: 1.0;
+		if(current_diff >= 0.20)
+		{
+			if(candidate_diff <= 0.10)
+				decoder->synthetic_candidate_count++;
+			else
+			{
+				decoder->synthetic_candidate_duration_us = observed_duration_us;
+				decoder->synthetic_candidate_count = 1;
+			}
+			if(decoder->synthetic_candidate_count >= 3)
+			{
+				decoder->synthetic_frame_duration_us = decoder->synthetic_candidate_duration_us;
+				decoder->synthetic_candidate_count = 0;
+			}
+		}
+		else
+		{
+			decoder->synthetic_candidate_duration_us = decoder->synthetic_frame_duration_us;
+			decoder->synthetic_candidate_count = 0;
+		}
+	}
+	decoder->synthetic_last_sample_time_us = chiaki_time_now_monotonic_us();
+
+	int64_t synthetic_duration_pts = (int64_t)(decoder->synthetic_frame_duration_us + 0.5);
+	if(synthetic_duration_pts < 1)
+		synthetic_duration_pts = 1;
+	if(frames_lost > 0)
+		decoder->synthetic_packet_pts += synthetic_duration_pts * (int64_t)frames_lost;
+
 	AVPacket *packet = av_packet_alloc();
 	packet->data = buf;
 	packet->size = buf_size;
+	packet->pts = decoder->synthetic_packet_pts;
+	packet->dts = decoder->synthetic_packet_pts;
+	packet->duration = synthetic_duration_pts;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59, 8, 100)
+	packet->time_base = decoder->synthetic_time_base;
+#endif
+	decoder->synthetic_packet_pts += synthetic_duration_pts;
 	int r;
 send_packet:
 	r = avcodec_send_packet(decoder->codec_context, packet);
@@ -156,7 +230,6 @@ send_packet:
 	}
 	av_packet_free(&packet);
 	chiaki_mutex_unlock(&decoder->mutex);
-
 	decoder->frame_available_cb(decoder, decoder->frame_available_cb_user);
 	return true;
 hell:
@@ -165,9 +238,10 @@ hell:
 	return false;
 }
 
-CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, int32_t *frames_lost)
+CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *decoder, int32_t *frames_lost)
 {
 	chiaki_mutex_lock(&decoder->mutex);
+	double synthetic_duration = decoder->synthetic_frame_duration_us / 1000000.0;
 	// always try to pull as much as possible and return only the very last frame
 	AVFrame *frame_last = NULL;
 	AVFrame *frame = NULL;
@@ -204,9 +278,62 @@ CHIAKI_EXPORT AVFrame *chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDecoder *dec
 		frame->decode_error_flags |= 1;
 	}
 	decoder->frames_lost = 0;
+	AVRational pkt_timebase = decoder->codec_context->pkt_timebase;
+	AVRational ctx_timebase = decoder->codec_context->time_base;
+	AVRational framerate = decoder->codec_context->framerate;
 	chiaki_mutex_unlock(&decoder->mutex);
 
-	return frame;
+	ChiakiFfmpegFrame frame_plus_stats = {};
+	frame_plus_stats.frame = frame;
+	if(frame)
+	{
+		chiaki_ffmpeg_frame_get_timing(
+			frame,
+			pkt_timebase,
+			ctx_timebase,
+			framerate,
+			&frame_plus_stats.pts,
+			&frame_plus_stats.duration);
+		if(frame->duration <= 0)
+			frame_plus_stats.duration = synthetic_duration;
+	}
+
+	return frame_plus_stats;
+}
+
+CHIAKI_EXPORT void chiaki_ffmpeg_frame_get_timing(
+	AVFrame *frame,
+	AVRational pkt_timebase,
+	AVRational ctx_timebase,
+	AVRational framerate,
+	double *out_pts,
+	double *out_duration)
+{
+	AVRational time_base = pkt_timebase;
+	if(time_base.num <= 0 || time_base.den <= 0)
+		time_base = ctx_timebase;
+	if(time_base.num <= 0 || time_base.den <= 0)
+		time_base = (AVRational){1, 1000000};
+
+	int64_t best_effort_pts = frame->best_effort_timestamp;
+	int64_t raw_pts = frame->pts;
+	int64_t pts = best_effort_pts;
+	if(pts == AV_NOPTS_VALUE)
+		pts = raw_pts;
+	if(pts == AV_NOPTS_VALUE)
+		pts = 0;
+	*out_pts = av_q2d(time_base) * (double)pts;
+
+	if(frame->duration > 0)
+	{
+		*out_duration = av_q2d(time_base) * (double)frame->duration;
+		return;
+	}
+
+	double fps = (framerate.num > 0 && framerate.den > 0) ? av_q2d(framerate) : 60.0;
+	if(fps <= 0.0)
+		fps = 60.0;
+	*out_duration = 1.0 / fps;
 }
 
 CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFfmpegDecoder *decoder)
@@ -221,4 +348,3 @@ CHIAKI_EXPORT enum AVPixelFormat chiaki_ffmpeg_decoder_get_pixel_format(ChiakiFf
 			: AV_PIX_FMT_YUV420P;
 	}
 }
-

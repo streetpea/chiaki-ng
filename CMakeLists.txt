@@ -38,7 +38,7 @@ tri_option(CHIAKI_USE_SYSTEM_CURL "Use system-provided curl instead of submodule
 
 set(CHIAKI_VERSION_MAJOR 1)
 set(CHIAKI_VERSION_MINOR 9)
-set(CHIAKI_VERSION_PATCH 8)
+set(CHIAKI_VERSION_PATCH 9)
 set(CHIAKI_VERSION ${CHIAKI_VERSION_MAJOR}.${CHIAKI_VERSION_MINOR}.${CHIAKI_VERSION_PATCH})
 
 set(CPACK_PACKAGE_NAME "chiaki-ng")
@@ -83,7 +83,7 @@ endif()
 
 if(CHIAKI_ENABLE_GUI)
 	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(LIBPLACEBO REQUIRED libplacebo IMPORTED_TARGET)
+	pkg_check_modules(LIBPLACEBO REQUIRED libplacebo>=7.349.0 IMPORTED_TARGET)
 endif()
 
 if(CHIAKI_USE_SYSTEM_CURL)

@@ -33,8 +33,18 @@ typedef struct chiaki_audio_receiver_t
 	ChiakiLog *log;
 	ChiakiMutex mutex;
 	ChiakiSeqNum16 frame_index_prev;
+	ChiakiSeqNum16 next_frame_index;
+	bool next_frame_index_valid;
+	bool playback_started;
 	bool frame_index_startup; // whether frame_index_prev has definitely not wrapped yet
 	ChiakiPacketStats *packet_stats;
+	struct {
+		bool occupied;
+		ChiakiSeqNum16 frame_index;
+		uint8_t *buf;
+		size_t buf_size;
+	} jitter_buffer[8];
+	size_t jitter_buffer_count;
 } ChiakiAudioReceiver;
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_receiver_init(ChiakiAudioReceiver *audio_receiver, struct chiaki_session_t *session, ChiakiPacketStats *packet_stats);

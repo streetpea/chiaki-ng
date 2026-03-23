@@ -9,10 +9,51 @@
 #include <QStandardPaths>
 #include <QFileDialog>
 #include <QApplication>
+#include <QCoreApplication>
+#include <QProcess>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavutil/hwcontext.h>
 #include <SDL.h>
+}
+
+static bool codecSupportsHwDevice(enum AVCodecID codec_id, AVHWDeviceType type)
+{
+    const AVCodec *codec = avcodec_find_decoder(codec_id);
+    if (!codec)
+        return false;
+
+    for (int i = 0;; i++) {
+        const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
+        if (!config)
+            return false;
+        if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) && config->device_type == type)
+            return true;
+    }
+}
+
+static bool hwDecoderRuntimeAvailable(const QString &name)
+{
+    const QByteArray name_utf8 = name.toUtf8();
+    const AVHWDeviceType type = av_hwdevice_find_type_by_name(name_utf8.constData());
+    if (type == AV_HWDEVICE_TYPE_NONE)
+        return false;
+
+    // CUDA can be compiled into FFmpeg even when the runtime driver/device is unusable,
+    // or the h264/hevc decoders were built without a CUDA hwconfig.
+    if (type == AV_HWDEVICE_TYPE_CUDA) {
+        AVBufferRef *hw_device_ctx = nullptr;
+        const int err = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
+        if (hw_device_ctx)
+            av_buffer_unref(&hw_device_ctx);
+        if (err < 0)
+            return false;
+        return codecSupportsHwDevice(AV_CODEC_ID_H264, type)
+            && codecSupportsHwDevice(AV_CODEC_ID_HEVC, type);
+    }
+
+    return true;
 }
 
 QmlSettings::QmlSettings(Settings *settings, QObject *parent)
@@ -190,6 +231,17 @@ void QmlSettings::setRumbleHapticsIntensity(int intensity)
 {
     settings->SetRumbleHapticsIntensity(static_cast<RumbleHapticsIntensity>(intensity));
     emit rumbleHapticsIntensityChanged();
+}
+
+bool QmlSettings::iDROnFECFailureEnabled() const
+{
+    return settings->GetIDROnFECFailureEnabled();
+}
+
+void QmlSettings::setIDROnFECFailureEnabled(bool enabled)
+{
+    settings->SetIDROnFECFailureEnabled(enabled);
+    emit iDROnFECFailureEnabledChanged();
 }
 
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -503,6 +555,17 @@ void QmlSettings::setDecoder(const QString &decoder)
     emit decoderChanged();
 }
 
+bool QmlSettings::useZeroCopy() const
+{
+    return settings->GetUseZeroCopy();
+}
+
+void QmlSettings::setUseZeroCopy(bool enabled)
+{
+    settings->SetUseZeroCopy(enabled);
+    emit useZeroCopyChanged();
+}
+
 int QmlSettings::windowType() const
 {
     return static_cast<int>(settings->GetWindowType());
@@ -568,6 +631,39 @@ void QmlSettings::setVideoPreset(int preset)
 {
     settings->SetPlaceboPreset(static_cast<PlaceboPreset>(preset));
     emit videoPresetChanged();
+}
+
+int QmlSettings::rendererBackend() const
+{
+    return static_cast<int>(settings->GetRenderBackend());
+}
+
+void QmlSettings::setRendererBackend(int backend)
+{
+    if (backend < static_cast<int>(RenderBackend::Vulkan) ||
+        backend > static_cast<int>(RenderBackend::OpenGL)) {
+        qWarning() << "Ignoring invalid renderer backend value:" << backend;
+        return;
+    }
+
+    auto next_backend = static_cast<RenderBackend>(backend);
+    if (settings->GetRenderBackend() == next_backend)
+        return;
+
+    settings->SetRenderBackend(next_backend);
+    emit rendererBackendChanged();
+}
+
+void QmlSettings::restartApplication()
+{
+    const QString application = QCoreApplication::applicationFilePath();
+    const QStringList arguments = QCoreApplication::arguments().mid(1);
+    if (!QProcess::startDetached(application, arguments))
+    {
+        qWarning() << "Failed to relaunch application for renderer backend switch";
+        return;
+    }
+    QCoreApplication::quit();
 }
 
 QString QmlSettings::autoConnectMac() const
@@ -1465,10 +1561,12 @@ QStringList QmlSettings::availableDecoders() const
         "vulkan",
 #if defined(Q_OS_LINUX)
         "vaapi",
+        "cuda",
 #elif defined(Q_OS_MACOS)
         "videotoolbox",
 #elif defined(Q_OS_WIN)
         "d3d11va",
+        "cuda",
 #endif
     };
     QStringList out = {"none"};
@@ -1478,7 +1576,7 @@ QStringList QmlSettings::availableDecoders() const
         if (hw_dev == AV_HWDEVICE_TYPE_NONE)
             break;
         const QString name = QString::fromUtf8(av_hwdevice_get_type_name(hw_dev));
-        if (allowed.contains(name))
+        if (allowed.contains(name) && hwDecoderRuntimeAvailable(name))
             out.append(name);
     }
     out.append("auto");
@@ -1706,6 +1804,7 @@ void QmlSettings::refreshAllKeys()
     emit customResolutionHeightChanged();
     emit sZoomFactorChanged();
     emit videoPresetChanged();
+    emit rendererBackendChanged();
     emit autoConnectMacChanged();
     emit audioDevicesChanged();
     emit registeredHostsChanged();
@@ -1713,6 +1812,10 @@ void QmlSettings::refreshAllKeys()
     emit psnRefreshTokenChanged();
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
+    emit mouseTouchEnabledChanged();
+    emit keyboardEnabledChanged();
+    emit dpadTouchEnabledChanged();
+    emit iDROnFECFailureEnabledChanged();
     emit dpadTouchIncrementChanged();
     emit dpadTouchShortcut1Changed();
     emit dpadTouchShortcut2Changed();

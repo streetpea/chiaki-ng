@@ -8,6 +8,9 @@
 #include "thread.h"
 #include "common.h"
 
+#define CHIAKI_FEEDBACK_HISTORY_PACKET_BUF_SIZE 0x300
+#define CHIAKI_FEEDBACK_HISTORY_PACKET_QUEUE_SIZE 0x40
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,11 +25,17 @@ typedef struct chiaki_feedback_sender_t
 
 	ChiakiSeqNum16 history_seq_num;
 	ChiakiFeedbackHistoryBuffer history_buf;
+	uint8_t history_packets[CHIAKI_FEEDBACK_HISTORY_PACKET_QUEUE_SIZE][CHIAKI_FEEDBACK_HISTORY_PACKET_BUF_SIZE];
+	size_t history_packet_sizes[CHIAKI_FEEDBACK_HISTORY_PACKET_QUEUE_SIZE];
+	size_t history_packet_begin;
+	size_t history_packet_len;
 
 	bool should_stop;
 	ChiakiControllerState controller_state_prev;
+	ChiakiControllerState controller_state_history_prev;
 	ChiakiControllerState controller_state;
 	bool controller_state_changed;
+	bool history_dirty;
 	ChiakiMutex state_mutex;
 	ChiakiCond state_cond;
 } ChiakiFeedbackSender;

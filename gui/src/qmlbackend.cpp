@@ -31,6 +31,10 @@
 #include <QDesktopServices>
 #include <QtConcurrent>
 
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
+
 #define PSN_DEVICES_TRIES 2
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
@@ -675,15 +679,78 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
 
     session_info = connect_info;
+    disable_zero_copy = !settings->GetUseZeroCopy();
     QStringList availableDecoders = settings_qml->availableDecoders();
+    if (!session_info.hw_decoder.isEmpty()
+        && session_info.hw_decoder != "auto"
+        && session_info.hw_decoder != "none"
+        && !availableDecoders.contains(session_info.hw_decoder)) {
+        qCInfo(chiakiGui) << "Configured hw decoder" << session_info.hw_decoder
+                          << "is not currently available, falling back to auto";
+        session_info.hw_decoder = "auto";
+    }
+    bool use_opengl_renderer = window && window->runtimeRendererBackend() == static_cast<int>(RenderBackend::OpenGL);
+    bool prefer_cuda = window && window->nvidiaCard() && availableDecoders.contains("cuda");
+    auto fallbackVulkanDecoderForOpenGL = [&]() {
+        if (!use_opengl_renderer || session_info.hw_decoder != "vulkan")
+            return;
+
+        bool fallbackApplied = false;
+#if defined(Q_OS_LINUX)
+        if (prefer_cuda)
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to cuda";
+            session_info.hw_decoder = "cuda";
+            fallbackApplied = true;
+        }
+        else
+        if (availableDecoders.contains("vaapi"))
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to vaapi";
+            session_info.hw_decoder = "vaapi";
+            fallbackApplied = true;
+        }
+#elif defined(Q_OS_WIN)
+        if (prefer_cuda)
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to cuda";
+            session_info.hw_decoder = "cuda";
+            fallbackApplied = true;
+        }
+        else
+        if (availableDecoders.contains("d3d11va"))
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to d3d11va";
+            session_info.hw_decoder = "d3d11va";
+            fallbackApplied = true;
+        }
+#elif defined(Q_OS_MACOS)
+        if (availableDecoders.contains("videotoolbox"))
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to videotoolbox";
+            session_info.hw_decoder = "videotoolbox";
+            fallbackApplied = true;
+        }
+#endif
+        if (!fallbackApplied)
+        {
+            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to software decoder";
+            session_info.hw_decoder.clear();
+        }
+    };
     if(session_info.hw_decoder == "auto")
     {
         session_info.hw_decoder = QString();
 #if defined(Q_OS_LINUX)
-        if(availableDecoders.contains("vulkan"))
+        if(!use_opengl_renderer && availableDecoders.contains("vulkan"))
         {
             qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
             session_info.hw_decoder = "vulkan";
+        }
+        else if(prefer_cuda)
+        {
+            qCInfo(chiakiGui) << "Auto hw decoder selecting cuda";
+            session_info.hw_decoder = "cuda";
         }
         else if(availableDecoders.contains("vaapi"))
         {
@@ -691,10 +758,15 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             session_info.hw_decoder = "vaapi";
         }
 #elif defined(Q_OS_WIN)
-        if(availableDecoders.contains("vulkan"))
+        if(!use_opengl_renderer && availableDecoders.contains("vulkan"))
         {
             qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
             session_info.hw_decoder = "vulkan";
+        }
+        else if(prefer_cuda)
+        {
+            qCInfo(chiakiGui) << "Auto hw decoder selecting cuda";
+            session_info.hw_decoder = "cuda";
         }
         else if(availableDecoders.contains("d3d11va"))
         {
@@ -709,13 +781,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
 #endif
     }
-#if defined(Q_OS_WIN)
-    if(session_info.hw_decoder == "vulkan" && session_info.video_profile.codec == CHIAKI_CODEC_H265_HDR && window->amdCard())
-    {
-        qCInfo(chiakiGui) << "Using amd card with vulkan hw decoding and hdr not supported on Windows, falling back to d3d11va...";
-        session_info.hw_decoder = "d3d11va";
-    }
-#endif
+    fallbackVulkanDecoderForOpenGL();
     if (session_info.hw_decoder == "vulkan") {
 #if defined(Q_OS_LINUX)
         if(qEnvironmentVariableIsSet("APPIMAGE") && (qEnvironmentVariableIsSet("SteamDeck") || qEnvironmentVariable("DESKTOP_SESSION").contains("steamos")))
@@ -732,13 +798,23 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
                 session_info.hw_decoder.clear();
                 qCInfo(chiakiGui) << "vulkan video decoding not supported by your gpu driver, retrying other hw video decoders";
 #if defined(Q_OS_LINUX)
-                if(availableDecoders.contains("vaapi"))
+                if(prefer_cuda)
+                {
+                    qCInfo(chiakiGui) << "Falling back to cuda";
+                    session_info.hw_decoder = "cuda";
+                }
+                else if(availableDecoders.contains("vaapi"))
                 {
                     qCInfo(chiakiGui) << "Falling back to vaapi";
                     session_info.hw_decoder = "vaapi";
                 }
 #elif defined(Q_OS_WIN)
-                if(availableDecoders.contains("d3d11va"))
+                if(prefer_cuda)
+                {
+                    qCInfo(chiakiGui) << "Falling back to cuda";
+                    session_info.hw_decoder = "cuda";
+                }
+                else if(availableDecoders.contains("d3d11va"))
                 {
                     qCInfo(chiakiGui) << "Falling back to d3d11va";
                     session_info.hw_decoder = "d3d11va";
@@ -766,27 +842,33 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             return;
         }
         int32_t frames_lost;
-        AVFrame *frame = chiaki_ffmpeg_decoder_pull_frame(decoder, &frames_lost);
-        if (!frame)
+        ChiakiFfmpegFrame frame = chiaki_ffmpeg_decoder_pull_frame(decoder, &frames_lost);
+        if (!frame.frame)
             return;
 
-        static const QSet<int> zero_copy_formats = {
+        QSet<int> zero_copy_formats = {
             AV_PIX_FMT_VULKAN,
 #ifdef Q_OS_LINUX
             AV_PIX_FMT_VAAPI,
 #endif
         };
-        if (frame->hw_frames_ctx && (!zero_copy_formats.contains(frame->format) || disable_zero_copy)) {
+        if (frame.frame->hw_frames_ctx) {
+            qCDebug(chiakiGui) << "Received hardware frame format"
+                               << av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame.frame->format))
+                               << "disable_zero_copy=" << disable_zero_copy
+                               << "zero_copy_supported=" << zero_copy_formats.contains(frame.frame->format);
+        }
+        if (frame.frame->hw_frames_ctx && (!zero_copy_formats.contains(frame.frame->format) || disable_zero_copy)) {
             AVFrame *sw_frame = av_frame_alloc();
-            if (av_hwframe_transfer_data(sw_frame, frame, 0) < 0) {
+            if (av_hwframe_transfer_data(sw_frame, frame.frame, 0) < 0) {
                 qCWarning(chiakiGui) << "Failed to transfer frame from hardware";
-                av_frame_unref(frame);
+                av_frame_free(&frame.frame);
                 av_frame_free(&sw_frame);
                 return;
             }
-            av_frame_copy_props(sw_frame, frame);
-            av_frame_unref(frame);
-            frame = sw_frame;
+            av_frame_copy_props(sw_frame, frame.frame);
+            av_frame_free(&frame.frame);
+            frame.frame = sw_frame;
         }
         QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
     });
@@ -2130,31 +2212,17 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 QString QmlBackend::openPsnLink()
 {
     QUrl url = psnLoginUrl();
-    if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
-    {
-        qCWarning(chiakiGui) << "Launched browser.";
-        return QString();
-    }
-    else
-    {
-        qCWarning(chiakiGui) << "Could not launch browser.";
-        return QString(url.toEncoded());
-    }
+    QDesktopServices::openUrl(url);
+    url = psnLoginUrl();
+    return QString(url.toEncoded());
 }
 
 QString QmlBackend::openPlaceboOptionsLink()
 {
     QUrl url = QUrl("https://libplacebo.org/options/");
-    if(QDesktopServices::openUrl(url) && (qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope"))
-    {
-        qCWarning(chiakiGui) << "Launched browser.";
-        return QString();
-    }
-    else
-    {
-        qCWarning(chiakiGui) << "Could not launch browser.";
-        return QString(url.toEncoded());
-    }
+    QDesktopServices::openUrl(url);
+    url = psnLoginUrl();
+    return QString(url.toEncoded());
 }
 
 bool QmlBackend::checkPsnRedirectURL(const QUrl &url) const

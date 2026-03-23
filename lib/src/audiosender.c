@@ -22,20 +22,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_audio_sender_init(ChiakiAudioSender *audio_
         return CHIAKI_ERR_MEMORY;
     audio_sender->filled_packet_buf = malloc(audio_sender->frame_buf_size + 20);
     if(!audio_sender->filled_packet_buf)
+    {
+        free(audio_sender->frame_buf);
+        audio_sender->frame_buf = NULL;
         return CHIAKI_ERR_MEMORY;
+    }
 
     ChiakiErrorCode err = chiaki_mutex_init(&audio_sender->mutex, false);
     if(err != CHIAKI_ERR_SUCCESS)
+    {
+        free(audio_sender->filled_packet_buf);
+        audio_sender->filled_packet_buf = NULL;
+        free(audio_sender->frame_buf);
+        audio_sender->frame_buf = NULL;
         return err;
+    }
 
     return CHIAKI_ERR_SUCCESS;
 }
 
 CHIAKI_EXPORT void chiaki_audio_sender_fini(ChiakiAudioSender *audio_sender)
 {
-#ifdef CHIAKI_LIB_ENABLE_OPUS
-	opus_encoder_destroy(audio_sender->opus_decoder);
-#endif
     free(audio_sender->frame_buf);
     free(audio_sender->filled_packet_buf);
     if(audio_sender->framea)
@@ -115,11 +122,22 @@ CHIAKI_EXPORT void chiaki_audio_sender_opus_data(ChiakiAudioSender *audio_sender
 
 static void chiaki_audio_sender_frame(ChiakiAudioSender *audio_sender, uint8_t *buf, size_t buf_size)
 {
-	chiaki_mutex_lock(&audio_sender->mutex);
-	chiaki_takion_send_mic_packet(audio_sender->takion, buf, buf_size, audio_sender->ps5);
-    if (audio_sender->frame_index == UINT16_MAX)
-        audio_sender->frame_index = 0;
-    else
-        audio_sender->frame_index++;
-    chiaki_mutex_unlock(&audio_sender->mutex);
+	ChiakiErrorCode err = chiaki_mutex_lock(&audio_sender->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(audio_sender->log, "Failed to lock audio sender mutex: %s", chiaki_error_string(err));
+		return;
+	}
+
+	err = chiaki_takion_send_mic_packet(audio_sender->takion, buf, buf_size, audio_sender->ps5);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(audio_sender->log, "Failed to send mic audio packet: %s", chiaki_error_string(err));
+
+	if(audio_sender->frame_index == UINT16_MAX)
+		audio_sender->frame_index = 0;
+	else
+		audio_sender->frame_index++;
+	err = chiaki_mutex_unlock(&audio_sender->mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+		CHIAKI_LOGE(audio_sender->log, "Failed to unlock audio sender mutex: %s", chiaki_error_string(err));
 }

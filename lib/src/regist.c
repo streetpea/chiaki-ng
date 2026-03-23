@@ -32,7 +32,7 @@ typedef uint32_t in_addr_t;
 static void *regist_thread_func(void *user);
 static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *recv_addr, socklen_t *recv_addr_size);
 static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *send_addr, socklen_t *send_addr_len);
-static chiaki_socket_t regist_request_connect(ChiakiRegist *regist, const struct sockaddr *addr, size_t addr_len);
+static ChiakiErrorCode regist_request_connect(ChiakiRegist *regist, const struct sockaddr *addr, size_t addr_len, chiaki_socket_t *sock_out);
 static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegisteredHost *host, chiaki_socket_t sock, ChiakiRPCrypt *rpcrypt, uint16_t remote_counter, char *send_buf, size_t send_buf_size);
 static ChiakiErrorCode regist_parse_response_payload(ChiakiRegist *regist, ChiakiRegisteredHost *host, char *buf, size_t buf_size);
 
@@ -231,6 +231,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_regist_request_payload_format(ChiakiTarget 
 static void *regist_thread_func(void *user)
 {
 	ChiakiRegist *regist = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_REGIST);
 
 	bool canceled = false;
 	bool success = false;
@@ -336,24 +337,35 @@ static void *regist_thread_func(void *user)
 			goto fail_addrinfos;
 		}
 
-		sock = regist_request_connect(regist, (struct sockaddr *)&recv_addr, recv_addr_size);
-		if(CHIAKI_SOCKET_IS_INVALID(sock))
+		err = regist_request_connect(regist, (struct sockaddr *)&recv_addr, recv_addr_size, &sock);
+		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for request");
+			if(err == CHIAKI_ERR_CANCELED)
+				canceled = true;
+			else
+				CHIAKI_LOGE(regist->log, "Regist eventually failed to connect for request");
 			goto fail_addrinfos;
 		}
 		CHIAKI_LOGI(regist->log, "Regist connected to %s, sending request", regist->info.host);
 	}
 	if(!psn)
 	{
-		int s = send(sock, (CHIAKI_SOCKET_BUF_TYPE)request_header, request_header_size, 0);
-		if(s < 0)
+		ChiakiErrorCode send_err = chiaki_send_fully(&regist->stop_pipe, sock, (const uint8_t *)request_header, request_header_size, REGIST_REPONSE_TIMEOUT_MS);
+		if(send_err != CHIAKI_ERR_SUCCESS)
 		{
+			if(send_err == CHIAKI_ERR_CANCELED)
+			{
+				canceled = true;
+				CHIAKI_LOGI(regist->log, "Regist canceled while sending request header");
+			}
+			else
+			{
 #ifdef _WIN32
-			CHIAKI_LOGE(regist->log, "Regist failed to send request header: %u", WSAGetLastError());
+				CHIAKI_LOGE(regist->log, "Regist failed to send request header: %u", WSAGetLastError());
 #else
-			CHIAKI_LOGE(regist->log, "Regist failed to send request header: %s", strerror(errno));
+				CHIAKI_LOGE(regist->log, "Regist failed to send request header: %s", strerror(errno));
 #endif
+			}
 			goto fail_socket;
 		}
 	}
@@ -368,14 +380,22 @@ static void *regist_thread_func(void *user)
 	}
 	else
 	{
-		int s = send(sock, (CHIAKI_SOCKET_BUF_TYPE)payload, payload_size, 0);
-		if(s < 0)
+		ChiakiErrorCode send_err = chiaki_send_fully(&regist->stop_pipe, sock, payload, payload_size, REGIST_REPONSE_TIMEOUT_MS);
+		if(send_err != CHIAKI_ERR_SUCCESS)
 		{
+			if(send_err == CHIAKI_ERR_CANCELED)
+			{
+				canceled = true;
+				CHIAKI_LOGI(regist->log, "Regist canceled while sending payload");
+			}
+			else
+			{
 #ifdef _WIN32
-			CHIAKI_LOGE(regist->log, "Regist failed to send payload: %u", WSAGetLastError());
+				CHIAKI_LOGE(regist->log, "Regist failed to send payload: %u", WSAGetLastError());
 #else
-			CHIAKI_LOGE(regist->log, "Regist failed to send payload: %s", strerror(errno));
-		#endif
+				CHIAKI_LOGE(regist->log, "Regist failed to send payload: %s", strerror(errno));
+#endif
+			}
 			goto fail_socket;
 		}
 		CHIAKI_LOGI(regist->log, "Regist waiting for response");
@@ -607,31 +627,47 @@ connect_fail:
 	return sock;
 }
 
-static chiaki_socket_t regist_request_connect(ChiakiRegist *regist, const struct sockaddr *addr, size_t addr_len)
+static ChiakiErrorCode regist_request_connect(ChiakiRegist *regist, const struct sockaddr *addr, size_t addr_len, chiaki_socket_t *sock_out)
 {
-	chiaki_socket_t sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	chiaki_socket_t sock = socket(addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
 	if(CHIAKI_SOCKET_IS_INVALID(sock))
 	{
-		return CHIAKI_INVALID_SOCKET;
+		return CHIAKI_ERR_NETWORK;
 	}
 
-	int r = connect(sock, addr, addr_len);
-	if(r < 0)
+	ChiakiErrorCode err = chiaki_socket_set_nonblock(sock, true);
+	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		int errsv = errno;
+		CHIAKI_LOGE(regist->log, "Regist failed to set request socket non-blocking: %s", chiaki_error_string(err));
+		CHIAKI_SOCKET_CLOSE(sock);
+		return err;
+	}
+
+	err = chiaki_stop_pipe_connect(&regist->stop_pipe, sock, (struct sockaddr *)addr, addr_len, REGIST_REPONSE_TIMEOUT_MS);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		if(err == CHIAKI_ERR_CANCELED)
+		{
+			CHIAKI_LOGI(regist->log, "Regist canceled while connecting request socket");
+		}
+		else
+		{
 #ifdef _WIN32
-		CHIAKI_LOGE(regist->log, "Regist connect failed: %u", WSAGetLastError());
+			CHIAKI_LOGE(regist->log, "Regist connect failed: %u", WSAGetLastError());
 #else
-		CHIAKI_LOGE(regist->log, "Regist connect failed: %s", strerror(errsv));
+			CHIAKI_LOGE(regist->log, "Regist connect failed: %s", chiaki_error_string(err));
 #endif
+		}
 		if(!CHIAKI_SOCKET_IS_INVALID(sock))
 		{
 			CHIAKI_SOCKET_CLOSE(sock);
 			sock = CHIAKI_INVALID_SOCKET;
 		}
+		return err;
 	}
 
-	return sock;
+	*sock_out = sock;
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegisteredHost *host, chiaki_socket_t sock, ChiakiRPCrypt *rpcrypt, uint16_t remote_counter, char *send_buf, size_t send_buf_size)
@@ -727,9 +763,16 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 	}
 	else
 	{
+		uint64_t deadline_ms = chiaki_time_now_monotonic_ms() + REGIST_REPONSE_TIMEOUT_MS;
 		while(buf_filled_size < content_size + header_size)
 		{
-			err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, false, REGIST_REPONSE_TIMEOUT_MS);
+			uint64_t now_ms = chiaki_time_now_monotonic_ms();
+			if(now_ms >= deadline_ms)
+			{
+				CHIAKI_LOGE(regist->log, "Regist timed out receiving response content");
+				return CHIAKI_ERR_TIMEOUT;
+			}
+			err = chiaki_stop_pipe_select_single(&regist->stop_pipe, sock, false, deadline_ms - now_ms);
 			if(err != CHIAKI_ERR_SUCCESS)
 			{
 				if(err == CHIAKI_ERR_TIMEOUT)
@@ -738,6 +781,17 @@ static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegister
 			}
 
 			CHIAKI_SSIZET_TYPE received = recv(sock,  (CHIAKI_SOCKET_BUF_TYPE)buf + buf_filled_size, (content_size + header_size) - buf_filled_size, 0);
+			if(received < 0)
+			{
+#ifdef _WIN32
+				int recv_err = WSAGetLastError();
+				if(recv_err == WSAEWOULDBLOCK)
+					continue;
+#else
+				if(errno == EAGAIN || errno == EWOULDBLOCK)
+					continue;
+#endif
+			}
 			if(received <= 0)
 			{
 				CHIAKI_LOGE(regist->log, "Regist failed to receive response content");

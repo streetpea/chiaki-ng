@@ -39,6 +39,8 @@ DialogView {
         Chiaki.settings.remotePlayAsk = true;
         nativeTokenForm.visible = true;
         nativeTokenForm.forceActiveFocus(Qt.TabFocusReason);
+        if(Qt.platform.os == "linux" || Qt.platform.os == "osx")
+            extBrowserButton.clicked();
     }
     function close() {
         if(webView.web)

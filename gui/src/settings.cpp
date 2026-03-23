@@ -574,6 +574,8 @@ static const QMap<PlaceboPreset, QString> placebo_preset_values = {
 	{ PlaceboPreset::Fast, "fast" },
 	{ PlaceboPreset::Default, "default" },
 	{ PlaceboPreset::HighQuality, "high_quality" },
+	{ PlaceboPreset::HighQualitySpatial, "high_quality_spatial" },
+	{ PlaceboPreset::HighQualityAdvancedSpatial, "high_quality_advanced_spatial" },
 	{ PlaceboPreset::Custom, "custom" }
 };
 
@@ -588,6 +590,43 @@ PlaceboPreset Settings::GetPlaceboPreset() const
 void Settings::SetPlaceboPreset(PlaceboPreset preset)
 {
 	settings.setValue("settings/placebo_preset", placebo_preset_values[preset]);
+}
+
+static const QMap<RenderBackend, QString> render_backend_values = {
+	{ RenderBackend::Vulkan, "vulkan" },
+	{ RenderBackend::OpenGL, "opengl" },
+};
+
+#if defined(Q_OS_MACOS)
+// Default to OpenGL on macOS due to Qt 6.10 bug with MoltenVK
+static const RenderBackend render_backend_default = RenderBackend::OpenGL;
+#else
+static const RenderBackend render_backend_default = RenderBackend::Vulkan;
+#endif
+
+RenderBackend Settings::GetRenderBackend() const
+{
+	auto v = settings.value("settings/render_backend", render_backend_values[render_backend_default]).toString();
+	auto backend = render_backend_values.key(v, render_backend_default);
+
+#if defined(Q_OS_MACOS)
+	// Force OpenGL on macOS because the Qt 6.10 MoltenVK backend crashes when it creates a QContainerLayer.
+	if (backend == RenderBackend::Vulkan) {
+		qWarning() << "Forcing OpenGL backend on macOS (Vulkan unavailable because of Qt 6.10 MoltenVK bug)";
+		return RenderBackend::OpenGL;
+	}
+#endif
+
+	return backend;
+}
+
+void Settings::SetRenderBackend(RenderBackend backend)
+{
+	if (GetRenderBackend() == backend)
+		 return;
+
+	settings.setValue("settings/render_backend",
+			    render_backend_values.value(backend, render_backend_values[render_backend_default]));
 }
 
 float Settings::GetZoomFactor() const
@@ -1051,6 +1090,9 @@ static const QMap<PlaceboUpscaler, QString> placebo_upscaler_values = {
 	{ PlaceboUpscaler::EwaLanczos, "ewa_lanczos" },
 	{ PlaceboUpscaler::EwaLanczosSharp, "ewa_lanczossharp" },
 	{ PlaceboUpscaler::EwaLanczos4Sharpest, "ewa_lanczos4sharpest" },
+	{ PlaceboUpscaler::FSR, "fsr" },
+	{ PlaceboUpscaler::FSRCNNX8, "fsrcnnx_x2_8_0_4_1" },
+	{ PlaceboUpscaler::FSRCNNX16, "fsrcnnx_x2_16_0_4_1" },
 };
 
 static const PlaceboUpscaler placebo_upscaler_default = PlaceboUpscaler::Lanczos;

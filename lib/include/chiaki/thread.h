@@ -20,6 +20,23 @@ extern "C" {
 
 typedef void *(*ChiakiThreadFunc)(void *);
 
+typedef enum {
+	CHIAKI_THREAD_NAME_CTRL,
+	CHIAKI_THREAD_NAME_CONGESTION,
+	CHIAKI_THREAD_NAME_DISCOVERY,
+	CHIAKI_THREAD_NAME_DISCOVERY_SVC,
+	CHIAKI_THREAD_NAME_TAKION,
+	CHIAKI_THREAD_NAME_TAKION_SEND,
+	CHIAKI_THREAD_NAME_RUDP_SEND,
+	CHIAKI_THREAD_NAME_HOLEPUNCH,
+	CHIAKI_THREAD_NAME_FEEDBACK,
+	CHIAKI_THREAD_NAME_SESSION,
+	CHIAKI_THREAD_NAME_REGIST,
+	CHIAKI_THREAD_NAME_GKCRYPT
+} ChiakiThreadName;
+
+typedef void (*ChiakiThreadAffinityFunc)(ChiakiThreadName name, void *user);
+
 typedef struct chiaki_thread_t
 {
 #ifdef _WIN32
@@ -36,6 +53,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiT
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **retval);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void **retval, uint64_t timeout_ms);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_set_name(ChiakiThread *thread, const char *name);
+CHIAKI_EXPORT void chiaki_thread_set_affinity(ChiakiThreadName name);
+CHIAKI_EXPORT void chiaki_thread_set_affinity_cb(ChiakiThreadAffinityFunc func, void *user);
 
 
 typedef struct chiaki_mutex_t

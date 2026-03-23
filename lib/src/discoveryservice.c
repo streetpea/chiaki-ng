@@ -134,6 +134,7 @@ CHIAKI_EXPORT void chiaki_discovery_service_fini(ChiakiDiscoveryService *service
 static void *discovery_service_thread_func(void *user)
 {
 	ChiakiDiscoveryService *service = user;
+	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_DISCOVERY_SVC);
 
 	ChiakiErrorCode err = chiaki_bool_pred_cond_lock(&service->stop_cond);
 	if(err != CHIAKI_ERR_SUCCESS)

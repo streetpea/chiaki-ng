@@ -937,7 +937,7 @@ static void stream_connection_takion_data_expect_streaminfo(ChiakiStreamConnecti
 		return;
 	}
 
-	CHIAKI_LOGD(stream_connection->log, "StreamConnection received audio header:");
+	CHIAKI_LOGI(stream_connection->log, "StreamConnection received audio header:");
 	chiaki_log_hexdump(stream_connection->log, CHIAKI_LOG_DEBUG, audio_header, audio_header_buf.size);
 
 	if(audio_header_buf.size != CHIAKI_AUDIO_HEADER_SIZE)
@@ -1277,6 +1277,25 @@ CHIAKI_EXPORT ChiakiErrorCode stream_connection_send_corrupt_frame(ChiakiStreamC
 		return CHIAKI_ERR_UNKNOWN;
 	}
 
-	CHIAKI_LOGD(stream_connection->log, "StreamConnection reporting corrupt frame(s) from %u to %u", (unsigned int)start, (unsigned int)end);
+	CHIAKI_LOGW(stream_connection->log, "StreamConnection reporting corrupt frame(s) from %u to %u", (unsigned int)start, (unsigned int)end);
+	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 2, buf, stream.bytes_written, NULL);
+}
+
+CHIAKI_EXPORT ChiakiErrorCode stream_connection_send_idr_request(ChiakiStreamConnection *stream_connection)
+{
+	tkproto_TakionMessage msg = { 0 };
+	msg.type = tkproto_TakionMessage_PayloadType_IDRREQUEST;
+
+	uint8_t buf[0x10];
+
+	pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+	bool pbr = pb_encode(&stream, tkproto_TakionMessage_fields, &msg);
+	if(!pbr)
+	{
+		CHIAKI_LOGE(stream_connection->log, "StreamConnection IDR request protobuf encoding failed");
+		return CHIAKI_ERR_UNKNOWN;
+	}
+
+	CHIAKI_LOGI(stream_connection->log, "StreamConnection requesting IDR frame");
 	return chiaki_takion_send_message_data(&stream_connection->takion, 1, 2, buf, stream.bytes_written, NULL);
 }

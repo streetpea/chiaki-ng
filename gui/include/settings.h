@@ -63,7 +63,14 @@ enum class PlaceboPreset {
 	Fast,
 	Default,
 	HighQuality,
+	HighQualitySpatial,
+	HighQualityAdvancedSpatial,
 	Custom
+};
+
+enum class RenderBackend {
+	Vulkan,
+	OpenGL
 };
 
 enum class WindowType {
@@ -86,7 +93,10 @@ enum class PlaceboUpscaler {
 	Lanczos,
 	EwaLanczos,
 	EwaLanczosSharp,
-	EwaLanczos4Sharpest
+	EwaLanczos4Sharpest,
+	FSR,
+	FSRCNNX8,
+	FSRCNNX16
 };
 
 enum class PlaceboDownscaler {
@@ -274,6 +284,9 @@ class Settings : public QObject
 		bool GetFullscreenDoubleClickEnabled() const	   { return settings.value("settings/fullscreen_doubleclick", false).toBool(); }
 		void SetFullscreenDoubleClickEnabled(bool enabled) { settings.setValue("settings/fullscreen_doubleclick", enabled); }
 
+		bool GetIDROnFECFailureEnabled() const	   { return settings.value("settings/idr_on_fec_failure", true).toBool(); }
+		void SetIDROnFECFailureEnabled(bool enabled) { settings.setValue("settings/idr_on_fec_failure", enabled); }
+
 		float GetHapticOverride() const 			{ return settings.value("settings/haptic_override", 1.0).toFloat(); }
 		void SetHapticOverride(float override)	{ settings.setValue("settings/haptic_override", override); }
 
@@ -331,6 +344,8 @@ class Settings : public QObject
 
 		QString GetHardwareDecoder() const;
 		void SetHardwareDecoder(const QString &hw_decoder);
+		bool GetUseZeroCopy() const { return settings.value("settings/use_zero_copy", true).toBool(); }
+		void SetUseZeroCopy(bool enabled) { settings.setValue("settings/use_zero_copy", enabled); }
 
 		WindowType GetWindowType() const;
 		void SetWindowType(WindowType type);
@@ -343,6 +358,9 @@ class Settings : public QObject
 
 		PlaceboPreset GetPlaceboPreset() const;
 		void SetPlaceboPreset(PlaceboPreset preset);
+
+		RenderBackend GetRenderBackend() const;
+		void SetRenderBackend(RenderBackend backend);
 
 		float GetZoomFactor() const;
 		void SetZoomFactor(float factor);
