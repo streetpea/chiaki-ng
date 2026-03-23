@@ -56,7 +56,56 @@ modules:
         url: https://github.com/haasn/libplacebo
         tag: v7.360.1
 
-  - name: ffmpeg
+  - name: nv-codec-headers
+    only-arches:
+      - x86_64
+    buildsystem: simple
+    build-commands:
+      - make PREFIX=/app install
+    sources:
+      - type: git
+        url: https://github.com/FFmpeg/nv-codec-headers.git
+        tag: n13.0.19.0
+
+  - name: ffmpeg-x86_64
+    only-arches:
+      - x86_64
+    cleanup:
+      - /share/ffmpeg/examples
+    config-opts:
+      - --enable-shared
+      - --disable-static
+      - --enable-gnutls
+      - --disable-doc
+      - --disable-programs
+      - --disable-encoders
+      - --disable-muxers
+      - --enable-encoder=png
+      - --enable-libdrm
+      - --enable-vulkan
+      - --enable-decoder=h264
+      - --enable-decoder=hevc
+      - --enable-decoder=h264_cuvid
+      - --enable-decoder=hevc_cuvid
+      - --enable-hwaccel=h264_vaapi
+      - --enable-hwaccel=hevc_vaapi
+      - --enable-hwaccel=h264_vulkan
+      - --enable-hwaccel=hevc_vulkan
+      - --enable-hwaccel=h264_nvdec
+      - --enable-hwaccel=hevc_nvdec
+      - --enable-cuvid
+      - --enable-nvdec
+      - --enable-ffnvcodec
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
+        sha256: 40973d44970dbc83ef302b0609f2e74982be2d85916dd2ee7472d30678a7abe6
+      - type: patch
+        path: 0001-vulkan-ignore-frames-without-hw-context.patch
+
+  - name: ffmpeg-aarch64
+    only-arches:
+      - aarch64
     cleanup:
       - /share/ffmpeg/examples
     config-opts:

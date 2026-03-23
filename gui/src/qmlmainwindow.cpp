@@ -34,6 +34,29 @@
 
 Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
 
+static void detectOpenGLGpuVendor(QmlMainWindow *window)
+{
+    auto *ctx = QOpenGLContext::currentContext();
+    if (!ctx)
+        return;
+
+    const GLubyte *vendor_raw = ctx->extraFunctions()->glGetString(GL_VENDOR);
+    if (!vendor_raw)
+        return;
+
+    QByteArray vendor = QByteArray(reinterpret_cast<const char *>(vendor_raw)).toLower();
+    if (vendor.contains("amd") || vendor.contains("ati"))
+    {
+        window->setProperty("_chiaki_detected_amd", true);
+        qCInfo(chiakiGui) << "Using amd graphics card";
+    }
+    else if (vendor.contains("nvidia"))
+    {
+        window->setProperty("_chiaki_detected_nvidia", true);
+        qCInfo(chiakiGui) << "Using nvidia graphics card";
+    }
+}
+
 static void placebo_log_cb(void *user, pl_log_level level, const char *msg)
 {
     ChiakiLogLevel chiaki_level;
@@ -655,6 +678,10 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
             return false;
         }
 
+        detectOpenGLGpuVendor(this);
+        amd_card = property("_chiaki_detected_amd").toBool();
+        nvidia_card = property("_chiaki_detected_nvidia").toBool();
+
         struct pl_opengl_params gl_params = {
             .get_proc_addr_ex = [](void *proc_ctx, const char *procname) -> pl_voidfunc_t {
                 auto ctx = static_cast<QOpenGLContext *>(proc_ctx);
@@ -813,6 +840,11 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         {
             amd_card = true;
             qCInfo(chiakiGui) << "Using amd graphics card";
+        }
+        else if(device_props.vendorID == 0x10de)
+        {
+            nvidia_card = true;
+            qCInfo(chiakiGui) << "Using nvidia graphics card";
         }
         }
         }
@@ -1751,6 +1783,11 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
 bool QmlMainWindow::amdCard() const
 {
     return amd_card;
+}
+
+bool QmlMainWindow::nvidiaCard() const
+{
+    return nvidia_card;
 }
 
 bool QmlMainWindow::event(QEvent *event)

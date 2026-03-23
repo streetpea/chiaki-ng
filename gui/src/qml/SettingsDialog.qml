@@ -593,16 +593,40 @@ DialogView {
                         text: qsTr("Hardware Decoder:")
                     }
 
-                    C.ComboBox {
+                    RowLayout {
                         Layout.preferredWidth: 400
-                        model: Chiaki.settings.availableDecoders
-                        currentIndex: Math.max(0, model.indexOf(Chiaki.settings.decoder))
-                        onActivated: (index) => Chiaki.settings.decoder = index ? model[index] : ""
+                        spacing: 12
+
+                        C.ComboBox {
+                            id: hwDecoderCombo
+                            Layout.preferredWidth: 220
+                            model: Chiaki.settings.availableDecoders
+                            currentIndex: Math.max(0, model.indexOf(Chiaki.settings.decoder))
+                            KeyNavigation.priority: KeyNavigation.BeforeItem
+                            KeyNavigation.up: hwDecoderCombo
+                            KeyNavigation.right: zeroCopyCheck
+                            KeyNavigation.down: windowTypeCombo
+                            onActivated: (index) => Chiaki.settings.decoder = index ? model[index] : ""
+                        }
+
+                        Label {
+                            text: qsTr("Zero-Copy")
+                        }
+
+                        C.CheckBox {
+                            id: zeroCopyCheck
+                            KeyNavigation.priority: KeyNavigation.BeforeItem
+                            KeyNavigation.up: zeroCopyCheck
+                            KeyNavigation.left: hwDecoderCombo
+                            KeyNavigation.down: windowTypeCombo
+                            checked: Chiaki.settings.useZeroCopy
+                            onToggled: Chiaki.settings.useZeroCopy = checked
+                        }
                     }
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto)")
+                        text: qsTr("(Auto / On)")
                     }
 
                     Label {
@@ -611,6 +635,7 @@ DialogView {
                     }
 
                     C.ComboBox {
+                        id: windowTypeCombo
                         Layout.preferredWidth: 400
                         popup.width: 500
                         model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Adjust Resolution Manually"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
