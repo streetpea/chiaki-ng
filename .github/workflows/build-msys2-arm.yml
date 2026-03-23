@@ -77,6 +77,11 @@ jobs:
           cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/include/." /clangarm64/include
           cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/lib/." /clangarm64/lib
 
+      - name: Build sdl2-compat
+        run: |
+          INSTALL_PREFIX=/clangarm64 scripts/build-sdl2-compat.sh .
+          cp /clangarm64/lib/pkgconfig/sdl2-compat.pc /clangarm64/lib/pkgconfig/sdl2.pc
+
       - name: Configure chiaki-ng
         run: |
           cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
