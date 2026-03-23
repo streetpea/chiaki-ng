@@ -53,7 +53,6 @@ jobs:
             qt6-base:p
             qt6-declarative:p
             qt6-svg:p
-            SDL2:p
             shaderc:p
             speexdsp:p
             spirv-cross:p
@@ -76,6 +75,11 @@ jobs:
           cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/bin/." /mingw64/bin
           cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/include/." /mingw64/include
           cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/lib/." /mingw64/lib
+
+      - name: Build sdl2-compat
+        run: |
+          INSTALL_PREFIX=/mingw64 scripts/build-sdl2-compat.sh .
+          cp /mingw64/lib/pkgconfig/sdl2-compat.pc /mingw64/lib/pkgconfig/sdl2.pc
 
       - name: Configure chiaki-ng
         run: |

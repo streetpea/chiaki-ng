@@ -47,6 +47,8 @@ jobs:
     permissions:
       contents: write
     needs: create-release
+    env:
+      sdl2_compat_tag: 2.32.64
     defaults:
       run:
         shell: msys2 {0}
@@ -116,6 +118,11 @@ jobs:
           cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/bin/." /mingw64/bin
           cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/include/." /mingw64/include
           cp -a "ffmpeg-n7.1-latest-win64-gpl-shared-7.1/lib/." /mingw64/lib
+
+      - name: Build sdl2-compat
+        run: |
+          INSTALL_PREFIX=/mingw64 scripts/build-sdl2-compat.sh .
+          cp /mingw64/lib/pkgconfig/sdl2-compat.pc /mingw64/lib/pkgconfig/sdl2.pc
 
       - name: Configure chiaki-ng
         run: |
@@ -240,6 +247,11 @@ jobs:
           cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/include/." /clangarm64/include
           cp -a "ffmpeg-n7.1-latest-winarm64-gpl-shared-7.1/lib/." /clangarm64/lib
 
+      - name: Build sdl2-compat
+        run: |
+          INSTALL_PREFIX=/clangarm64 scripts/build-sdl2-compat.sh .
+          cp /clangarm64/lib/pkgconfig/sdl2-compat.pc /clangarm64/lib/pkgconfig/sdl2.pc
+
       - name: Configure chiaki-ng
         run: |
           cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
@@ -305,7 +317,12 @@ jobs:
         run: |
           brew update
           brew uninstall pkgconfig || true
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc
+
+      - name: Install sdl2-compat
+        run: |
+          sudo INSTALL_PREFIX=/usr/local scripts/build-sdl2-compat.sh
+          sudo cp /usr/local/lib/pkgconfig/sdl2-compat.pc /usr/local/lib/pkgconfig/sdl2.pc
 
       - name: Configure chiaki-ng
         run: |
@@ -326,6 +343,16 @@ jobs:
           cp MoltenVK/MoltenVK/dylib/macOS/* chiaki-ng.app/Contents/Resources/vulkan/icd.d
           $(brew --prefix)/opt/qt@6/bin/macdeployqt chiaki-ng.app -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
+          cp /usr/local/lib/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL3.dylib
+          cp /usr/local/lib/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib
+          install_name_tool -id @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL3.dylib
+          install_name_tool -id @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib
+          install_name_tool -change /usr/local/lib/libSDL3.dylib @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib || true
+          install_name_tool -change @rpath/libSDL3.dylib @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib || true
+          install_name_tool -change /opt/homebrew/lib/libSDL3.dylib @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib || true
+          install_name_tool -change /usr/local/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/chiaki || true
+          install_name_tool -change @rpath/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/chiaki || true
+          install_name_tool -change /opt/homebrew/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/chiaki || true
           ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
@@ -359,7 +386,12 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm sdl2 protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
+          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
+
+      - name: Install sdl2-compat
+        run: |
+          sudo INSTALL_PREFIX=/usr/local scripts/build-sdl2-compat.sh
+          sudo cp /usr/local/lib/pkgconfig/sdl2-compat.pc /usr/local/lib/pkgconfig/sdl2.pc
 
       - name: Configure chiaki-ng
         run: |
@@ -382,6 +414,16 @@ jobs:
           then
             ln -s ../../../../../../../Frameworks chiaki-ng.app/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents
           fi
+          cp /usr/local/lib/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL3.dylib
+          cp /usr/local/lib/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib
+          install_name_tool -id @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL3.dylib
+          install_name_tool -id @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib
+          install_name_tool -change /usr/local/lib/libSDL3.dylib @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib || true
+          install_name_tool -change @rpath/libSDL3.dylib @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib || true
+          install_name_tool -change /opt/homebrew/lib/libSDL3.dylib @executable_path/libSDL3.dylib chiaki-ng.app/Contents/MacOS/libSDL2-2.0.0.dylib || true
+          install_name_tool -change /usr/local/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/chiaki || true
+          install_name_tool -change @rpath/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/chiaki || true
+          install_name_tool -change /opt/homebrew/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2-2.0.0.dylib chiaki-ng.app/Contents/MacOS/chiaki || true
           ln -s libvulkan.1.dylib chiaki-ng.app/Contents/Frameworks/vulkan
           codesign --force --entitlements gui/entitlements.xml --deep --sign - chiaki-ng.app
           hdiutil create -srcfolder chiaki-ng.app chiaki-ng.dmg
