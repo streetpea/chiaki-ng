@@ -95,7 +95,6 @@ jobs:
             qt6-base:p
             qt6-declarative:p
             qt6-svg:p
-            SDL2:p
             shaderc:p
             speexdsp:p
             spirv-cross:p
@@ -223,7 +222,6 @@ jobs:
             qt6-base:p
             qt6-declarative:p
             qt6-svg:p
-            SDL2:p
             shaderc:p
             speexdsp:p
             spirv-cross:p
