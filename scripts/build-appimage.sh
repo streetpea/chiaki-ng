@@ -47,6 +47,28 @@ ninja -C build_appimage
 build_appimage/test/chiaki-unit
 
 DESTDIR="${appdir}" ninja -C build_appimage install
+
+# linuxdeploy does not reliably pick up libSDL3 when it is only required through
+# the packaged sdl2-compat shim. Stage both SDL runtimes explicitly so the
+# resulting AppImage can load the controller backend without host SDL3.
+mkdir -p "${appdir}/usr/lib"
+shopt -s nullglob
+SDL_LIB_DIRS=(
+    "$(pwd)"/appimage/SDL3-*/build
+    "$(pwd)"/appimage/sdl2-compat-*/build
+)
+shopt -u nullglob
+if [ "${#SDL_LIB_DIRS[@]}" -eq 0 ]; then
+    echo "Failed to locate SDL build directories for AppImage staging" >&2
+    exit 1
+fi
+while IFS= read -r -d '' sdl_lib; do
+    cp -a "${sdl_lib}" "${appdir}/usr/lib/"
+done < <(find "${SDL_LIB_DIRS[@]}" \
+    -type f,l \
+    \( -name 'libSDL2*.so*' -o -name 'libSDL3*.so*' \) \
+    -print0 2>/dev/null)
+
 cd appimage
 
 export ARCH="$(uname -m)"
