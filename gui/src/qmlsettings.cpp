@@ -222,6 +222,17 @@ void QmlSettings::setLogVerbose(bool verbose)
     emit logVerboseChanged();
 }
 
+bool QmlSettings::logSanitize() const
+{
+    return settings->GetLogSanitize();
+}
+
+void QmlSettings::setLogSanitize(bool enabled)
+{
+    settings->SetLogSanitize(enabled);
+    emit logSanitizeChanged();
+}
+
 int QmlSettings::rumbleHapticsIntensity() const
 {
     return static_cast<int>(settings->GetRumbleHapticsIntensity());
@@ -1762,6 +1773,7 @@ void QmlSettings::refreshAllKeys()
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
+    emit logSanitizeChanged();
     emit hapticOverrideChanged();
     emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();

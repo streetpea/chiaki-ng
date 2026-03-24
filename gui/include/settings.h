@@ -247,6 +247,8 @@ class Settings : public QObject
 
 		bool GetLogVerbose() const 				{ return settings.value("settings/log_verbose", false).toBool(); }
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
+		bool GetLogSanitize() const            { return settings.value("settings/log_sanitize", true).toBool(); }
+		void SetLogSanitize(bool enabled)      { settings.setValue("settings/log_sanitize", enabled); }
 		uint32_t GetLogLevelMask();
 
 		bool GetHideCursor() const				{ return settings.value("settings/hide_cursor", true).toBool(); }
