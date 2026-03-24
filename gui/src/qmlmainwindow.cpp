@@ -155,20 +155,39 @@ static bool uses_fsrcnnx(PlaceboUpscaler upscaler)
     return upscaler == PlaceboUpscaler::FSRCNNX8 || upscaler == PlaceboUpscaler::FSRCNNX16;
 }
 
+static constexpr float spatial_upscale_threshold = 1.2f;
+
 static bool uses_custom_upscale_hook(PlaceboUpscaler upscaler)
 {
     return upscaler == PlaceboUpscaler::FSR || uses_fsrcnnx(upscaler);
 }
 
-static const struct pl_hook *selected_fsrcnnx_hook(PlaceboUpscaler upscaler,
-                                                   const struct pl_hook *hook8,
-                                                   const struct pl_hook *hook16)
+static const struct pl_hook *select_spatial_hook(QmlMainWindow::VideoPreset preset,
+                                                 PlaceboUpscaler upscaler,
+                                                 float upscale_factor,
+                                                 const struct pl_hook *fsr_hook,
+                                                 const struct pl_hook *hook8,
+                                                 const struct pl_hook *hook16)
 {
-    switch (upscaler) {
-    case PlaceboUpscaler::FSRCNNX8:
-        return hook8;
-    case PlaceboUpscaler::FSRCNNX16:
-        return hook16;
+    if (upscale_factor <= 1.0f)
+        return nullptr;
+
+    switch (preset) {
+    case QmlMainWindow::VideoPreset::HighQualitySpatial:
+        return upscale_factor >= spatial_upscale_threshold ? hook8 : fsr_hook;
+    case QmlMainWindow::VideoPreset::HighQualityAdvancedSpatial:
+        return upscale_factor >= spatial_upscale_threshold ? hook16 : fsr_hook;
+    case QmlMainWindow::VideoPreset::Custom:
+        switch (upscaler) {
+        case PlaceboUpscaler::FSR:
+            return fsr_hook;
+        case PlaceboUpscaler::FSRCNNX8:
+            return upscale_factor >= spatial_upscale_threshold ? hook8 : fsr_hook;
+        case PlaceboUpscaler::FSRCNNX16:
+            return upscale_factor >= spatial_upscale_threshold ? hook16 : fsr_hook;
+        default:
+            return nullptr;
+        }
     default:
         return nullptr;
     }
@@ -1665,27 +1684,8 @@ void QmlMainWindow::render()
         const float dst_height = fabsf(pl_rect_h(target_frame.crop));
         if (src_width > 0.0f && src_height > 0.0f) {
             const float upscale_factor = qMin(dst_width / src_width, dst_height / src_height);
-            if (video_preset == VideoPreset::Custom && configured_upscaler == PlaceboUpscaler::FSR) {
-                if (upscale_factor > 1.0f)
-                    fsrcnnx_hook = fsr_hook;
-            } else if (upscale_factor >= 1.3f) {
-                switch (video_preset) {
-                case VideoPreset::HighQualitySpatial:
-                    fsrcnnx_hook = fsrcnnx_hook_8;
-                    break;
-                case VideoPreset::HighQualityAdvancedSpatial:
-                    fsrcnnx_hook = fsrcnnx_hook_16;
-                    break;
-                case VideoPreset::Custom:
-                    if (configured_upscaler == PlaceboUpscaler::FSR && upscale_factor > 1.0f)
-                        fsrcnnx_hook = fsr_hook;
-                    else
-                        fsrcnnx_hook = selected_fsrcnnx_hook(configured_upscaler, fsrcnnx_hook_8, fsrcnnx_hook_16);
-                    break;
-                default:
-                    break;
-                }
-            }
+            fsrcnnx_hook = select_spatial_hook(video_preset, configured_upscaler, upscale_factor,
+                                               fsr_hook, fsrcnnx_hook_8, fsrcnnx_hook_16);
         }
     }
     const struct pl_hook *active_hooks[] = {fsrcnnx_hook};
@@ -1694,24 +1694,31 @@ void QmlMainWindow::render()
         params.num_hooks = 1;
         switch (video_preset) {
         case VideoPreset::HighQualitySpatial:
-            qCDebug(chiakiGui) << "Activating spatial upscaler: FSRCNNX x2 8-0-4-1";
+            if (fsrcnnx_hook == fsr_hook)
+                qCDebug(chiakiGui) << "Activating spatial upscaler: FSR (small upscale fallback)";
+            else
+                qCDebug(chiakiGui) << "Activating spatial upscaler: FSRCNNX x2 8-0-4-1";
             break;
         case VideoPreset::HighQualityAdvancedSpatial:
-            qCDebug(chiakiGui) << "Activating spatial upscaler: FSRCNNX x2 16-0-4-1";
+            if (fsrcnnx_hook == fsr_hook)
+                qCDebug(chiakiGui) << "Activating spatial upscaler: FSR (small upscale fallback)";
+            else
+                qCDebug(chiakiGui) << "Activating spatial upscaler: FSRCNNX x2 16-0-4-1";
             break;
         case VideoPreset::Custom:
-            switch (configured_upscaler) {
-            case PlaceboUpscaler::FSR:
+            if (fsrcnnx_hook == fsr_hook) {
                 qCDebug(chiakiGui) << "Activating custom upscaler: FSR";
-                break;
-            case PlaceboUpscaler::FSRCNNX8:
+            } else {
+                switch (configured_upscaler) {
+                case PlaceboUpscaler::FSRCNNX8:
                 qCDebug(chiakiGui) << "Activating custom upscaler: FSRCNNX x2 8-0-4-1";
                 break;
-            case PlaceboUpscaler::FSRCNNX16:
+                case PlaceboUpscaler::FSRCNNX16:
                 qCDebug(chiakiGui) << "Activating custom upscaler: FSRCNNX x2 16-0-4-1";
                 break;
-            default:
-                break;
+                default:
+                    break;
+                }
             }
             break;
         default:
