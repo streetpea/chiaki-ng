@@ -531,6 +531,18 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     };
     pl_queue_push(placebo_queue, &src_frame);
 
+    // Anchor the playback clock when the first video frame is queued, not when
+    // the first render completes. Otherwise any startup delay in the render
+    // path becomes a permanent video offset for that session.
+    if (!playback_started) {
+        uint64_t now_us = chiaki_time_now_monotonic_us();
+        uint64_t frame_pts_us = src_frame.pts > 0.0
+            ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
+            : 0;
+        ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
+        playback_started = true;
+    }
+
     if (!has_video) {
         has_video = true;
         if (!grab_input && settings->GetHideCursor())
@@ -1718,12 +1730,6 @@ void QmlMainWindow::render()
         qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
 
     pl_swapchain_swap_buffers(placebo_swapchain);
-
-    if (!playback_started) {
-        pl_gpu_flush(placeboGpu());
-        ts_start = chiaki_time_now_monotonic_us();
-        playback_started = true;
-    }
 
     schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
 
