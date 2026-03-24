@@ -6,16 +6,16 @@
 	url = https://github.com/nanopb/nanopb.git
 [submodule "third-party/jerasure"]
 	path = third-party/jerasure
-	url = https://git.sr.ht/~thestr4ng3r/jerasure
+	url = https://github.com/streetpea/jerasure.git
 [submodule "third-party/gf-complete"]
 	path = third-party/gf-complete
-	url = https://git.sr.ht/~thestr4ng3r/gf-complete
+	url = https://github.com/streetpea/gf-complete.git
 [submodule "android/app/src/main/cpp/oboe"]
 	path = android/app/src/main/cpp/oboe
 	url = https://github.com/google/oboe
 [submodule "switch/borealis"]
 	path = switch/borealis
-	url = https://git.sr.ht/~thestr4ng3r/borealis
+	url = https://github.com/streetpea/borealis.git
 [submodule "third-party/curl"]
 	path = third-party/curl
 	url = https://github.com/curl/curl
