@@ -90,6 +90,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	audio_out_device = settings->GetAudioOutDevice();
 	audio_in_device = settings->GetAudioInDevice();
 	log_level_mask = settings->GetLogLevelMask();
+	log_sanitize = settings->GetLogSanitize();
 	audio_volume = settings->GetAudioVolume();
 	log_file = CreateLogFilename();
 	// local connection
@@ -165,7 +166,7 @@ static void FfmpegFrameCb(ChiakiFfmpegDecoder *decoder, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
-	log(this, connect_info.log_level_mask, connect_info.log_file),
+	log(this, connect_info.log_level_mask, connect_info.log_file, connect_info.log_sanitize),
 	ffmpeg_decoder(nullptr),
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	pi_decoder(nullptr),

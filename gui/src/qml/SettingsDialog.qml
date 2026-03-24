@@ -2639,6 +2639,12 @@ DialogView {
                     }
 
                     C.CheckBox {
+                        text: qsTr("Sanitize Logs (checked)")
+                        checked: Chiaki.settings.logSanitize
+                        onToggled: Chiaki.settings.logSanitize = checked
+                    }
+
+                    C.CheckBox {
                         text: qsTr("Verbose Logging (unchecked)")
                         checked: Chiaki.settings.logVerbose
                         lastInFocusChain: true

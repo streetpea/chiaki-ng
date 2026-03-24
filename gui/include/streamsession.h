@@ -75,6 +75,7 @@ struct StreamSessionConnectInfo
 	QString audio_out_device;
 	QString audio_in_device;
 	uint32_t log_level_mask;
+	bool log_sanitize = true;
 	QString log_file;
 	ChiakiTarget target;
 	QString host;

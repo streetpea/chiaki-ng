@@ -12,11 +12,11 @@
 #include <QVector>
 #include <QThread>
 
-
 static void LogCb(ChiakiLogLevel level, const char *msg, void *user);
+static QString SanitizeLogMessage(const QString &msg);
 
-SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QString &filename)
-	: session(session), shutdown(false)
+SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QString &filename, bool sanitize)
+	: session(session), shutdown(false), sanitize(sanitize)
 {
 	chiaki_log_init(&log, level_mask, LogCb, this);
 
@@ -68,14 +68,18 @@ void SessionLog::PrepareShutdown()
 
 void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 {
+	QString sanitized_msg = sanitize ? SanitizeLogMessage(QString::fromUtf8(msg)) : QString::fromUtf8(msg);
+	QByteArray sanitized_utf8 = sanitized_msg.toUtf8();
+	const char *output_msg = sanitized_utf8.constData();
+
 	// Check if we're shutting down - if so, skip file logging
 	if(shutdown.loadRelaxed())
 	{
-		chiaki_log_cb_print(level, msg, nullptr);
+		chiaki_log_cb_print(level, output_msg, nullptr);
 		return;
 	}
 
-	chiaki_log_cb_print(level, msg, nullptr);
+	chiaki_log_cb_print(level, output_msg, nullptr);
 
 	QMutexLocker lock(&file_mutex);
 	if(file && !shutdown.loadRelaxed())
@@ -84,7 +88,7 @@ void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 		QString str = QString("[%1] [%2] %3\n").arg(
 				QDateTime::currentDateTime().toString(date_format),
 				QString(chiaki_log_level_char(level)),
-				msg);
+				sanitized_msg);
 
 		file->write(str.toLocal8Bit());
 		file->flush();
@@ -101,6 +105,44 @@ static void LogCb(ChiakiLogLevel level, const char *msg, void *user)
 {
 	auto log = reinterpret_cast<SessionLog *>(user);
 	SessionLogPrivate::Log(log, level, msg);
+}
+
+static QString SanitizeLogMessage(const QString &msg)
+{
+	QString sanitized = msg;
+
+	static const QRegularExpression ipv4_re(
+		R"(\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b)");
+	static const QRegularExpression ipv6_re(
+		R"((?<![0-9A-Za-z])\[?(?:(?:[0-9A-Fa-f]{1,4}:){3,7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{0,4}:){0,7}::(?:[0-9A-Fa-f]{0,4}:){0,7}[0-9A-Fa-f]{0,4})\]?(?![0-9A-Za-z]))");
+	static const QRegularExpression labeled_secret_re(
+		R"((((?:console|host|server|session|account|psn|public|remote)\s+(?:id|ip|address)|duid)\s*:\s*)([^\s,;]+))",
+		QRegularExpression::CaseInsensitiveOption);
+	static const QRegularExpression session_id_token_re(
+		R"((session\s+id\s+)([A-Za-z0-9+/=_-]{8,}))",
+		QRegularExpression::CaseInsensitiveOption);
+	static const QRegularExpression uuid_re(
+		R"(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b)");
+	static const QRegularExpression long_hex_re(
+		R"(\b[a-fA-F0-9]{16,}\b)");
+
+	sanitized.replace(ipv4_re, QStringLiteral("<redacted-ipv4>"));
+	sanitized.replace(ipv6_re, QStringLiteral("<redacted-ipv6>"));
+	sanitized.replace(labeled_secret_re, QStringLiteral("\\1<redacted>"));
+
+	sanitized.replace(QRegularExpression(R"((account(?:_id)?\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption),
+	                  QStringLiteral("\\1<redacted>"));
+	sanitized.replace(QRegularExpression(R"((duid\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption),
+	                  QStringLiteral("\\1<redacted>"));
+	sanitized.replace(QRegularExpression(R"((session\s+id\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption),
+	                  QStringLiteral("\\1<redacted>"));
+	sanitized.replace(session_id_token_re, QStringLiteral("\\1<redacted>"));
+	sanitized.replace(uuid_re, QStringLiteral("<redacted-uuid>"));
+
+	// Catch unlabeled long hex identifiers, which commonly occur in console IDs and device UIDs.
+	sanitized.replace(long_hex_re, QStringLiteral("<redacted-hex>"));
+
+	return sanitized;
 }
 
 #define KEEP_LOG_FILES_COUNT 5
