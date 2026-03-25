@@ -150,6 +150,17 @@ CHIAKI_EXPORT uint16_t chiaki_get_ps_ctrl_port(ChiakiHolepunchSession session);
 CHIAKI_EXPORT chiaki_socket_t *chiaki_get_holepunch_sock(ChiakiHolepunchSession session, ChiakiHolepunchPortType type);
 
 /**
+ * Get the STUN port allocation results that were computed while creating the hole punch session.
+ *
+ * @param[in] session Handle to the holepunching session
+ * @param[out] allocation_increment Optional pointer to receive the allocation increment that was detected
+ * @param[out] random_allocation Optional pointer to receive whether allocations appeared random
+ * @return true if the session handle was valid and values were written, false otherwise
+ */
+CHIAKI_EXPORT bool chiaki_holepunch_session_get_stun_allocation(
+    ChiakiHolepunchSession session, int32_t *allocation_increment, bool *random_allocation);
+
+/**
  * Generate a unique device identifier for the client.
  *
  * @param[out] out Buffer to write the identifier to, must be at least `CHIAKI_DUID_STR_SIZE` bytes

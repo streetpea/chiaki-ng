@@ -60,8 +60,6 @@ int main(int argc, char **argv)
     // List available devices
     ChiakiHolepunchDeviceInfo *device_info_ps5;
     size_t num_devices_ps5;
-    ChiakiHolepunchDeviceInfo *device_info_ps4;
-    size_t num_devices_ps4;
 
     ChiakiErrorCode err = chiaki_holepunch_list_devices(oauth_token, CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &log);
     if (err != CHIAKI_ERR_SUCCESS)
@@ -69,13 +67,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "!! Failed to get PS5 devices\n");
         return 1;
     }
-    err = chiaki_holepunch_list_devices(oauth_token, CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4, &device_info_ps4, &num_devices_ps4, &log);
-    if (err != CHIAKI_ERR_SUCCESS)
-    {
-        fprintf(stderr, "!! Failed to get PS4 devices\n");
-        return 1;
-    }
-    printf(">> Found %ld devices\n", num_devices_ps5 + num_devices_ps4);
+    printf(">> Found %ld devices\n", num_devices_ps5);
     for (size_t i = 0; i < num_devices_ps5; i++)
     {
         ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
@@ -86,17 +78,6 @@ int main(int argc, char **argv)
             dev.type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? "PS5" : "PS4",
             dev.device_name, duid_str, dev.remoteplay_enabled ? "true" : "false");
     }
-    for (size_t i = 0; i < num_devices_ps4; i++)
-    {
-        ChiakiHolepunchDeviceInfo dev = device_info_ps4[i];
-        char duid_str[sizeof(dev.device_uid) * 2 + 1];
-        format_hex(duid_str, sizeof(duid_str), dev.device_uid, sizeof(dev.device_uid));
-        printf(
-            "%s %s (%s) rp_enabled=%s\n",
-            dev.type == CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5 ? "PS5" : "PS4",
-            dev.device_name, duid_str, dev.remoteplay_enabled ? "true" : "false");
-    }
-
     // Pick device
     uint8_t device_uid[32];
     ChiakiHolepunchConsoleType console_type;
@@ -105,12 +86,6 @@ int main(int argc, char **argv)
         memcpy(device_uid, device_info_ps5[0].device_uid, sizeof(device_uid));
         console_type = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5;
         printf(">> Using PS5 device %s for session\n", device_info_ps5[0].device_name);
-    }
-    else if (num_devices_ps4 > 0)
-    {
-        memcpy(device_uid, device_info_ps4[0].device_uid, sizeof(device_uid));
-        console_type = CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS4;
-        printf(">> Using PS4 device %s for session\n", device_info_ps5[0].device_name);
     }
     else
     {
@@ -158,27 +133,29 @@ int main(int argc, char **argv)
         return -1;
     }
     printf(">> Punched hole for control connection!\n");
-	err = holepunch_session_create_offer(session);
-	if (err != CHIAKI_ERR_SUCCESS)
-	{
-		fprintf(stderr, "!! Failed to create offer msg for ctrl connection");
-		return err;
-	}
-    printf(">> Created offer msg for ctrl connection\n");
-    err = chiaki_holepunch_session_punch_hole(session, CHIAKI_HOLEPUNCH_PORT_TYPE_DATA);
-    if (err != CHIAKI_ERR_SUCCESS)
     {
-        fprintf(stderr, "!! Failed to punch hole for data connection.\n");
-        chiaki_holepunch_session_fini(session);
-        return -1;
+        int32_t allocation_increment = -1;
+        bool random_allocation = false;
+        if (!chiaki_holepunch_session_get_stun_allocation(session, &allocation_increment, &random_allocation))
+        {
+            fprintf(stderr, "!! Unable to query STUN allocation data\n");
+            chiaki_holepunch_session_fini(session);
+            return -1;
+        }
+        printf("STUN port allocation: increment=%d random_allocation=%s\n",
+               allocation_increment, random_allocation ? "true" : "false");
+        if (allocation_increment < 0)
+        {
+            fprintf(stderr, "!! STUN port allocation test did not succeed.\n");
+            chiaki_holepunch_session_fini(session);
+            return -1;
+        }
     }
-    printf(">> Punched hole for data connection!\n");
 
     printf(">> Successfully punched holes for all neccessary connections!\n");
 
 cleanup:
     chiaki_holepunch_free_device_list(&device_info_ps5);
-    chiaki_holepunch_free_device_list(&device_info_ps4);
     chiaki_holepunch_session_fini(session);
 
     return 0;

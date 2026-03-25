@@ -687,6 +687,20 @@ CHIAKI_EXPORT chiaki_socket_t *chiaki_get_holepunch_sock(ChiakiHolepunchSession 
 
 }
 
+CHIAKI_EXPORT bool chiaki_holepunch_session_get_stun_allocation(
+    ChiakiHolepunchSession session, int32_t *allocation_increment, bool *random_allocation)
+{
+    if (!session)
+        return false;
+
+    if (allocation_increment)
+        *allocation_increment = session->stun_allocation_increment;
+    if (random_allocation)
+        *random_allocation = session->stun_random_allocation;
+
+    return true;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_generate_client_device_uid(
     char *out, size_t *out_size)
 {

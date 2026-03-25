@@ -476,7 +476,7 @@ static bool stun_get_external_address_from_server(ChiakiLog *log, StunServer *se
     else
     {
         hints.ai_family = AF_INET6;
-        hints.ai_flags = AI_NUMERICHOST;
+        hints.ai_flags = AI_ADDRCONFIG;
     }
     char server_service[6];
     sprintf(server_service, "%d", server->port);
