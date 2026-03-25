@@ -854,12 +854,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (!use_opengl_renderer)
             zero_copy_formats.insert(AV_PIX_FMT_VAAPI);
 #endif
-        if (frame.frame->hw_frames_ctx) {
-            qCDebug(chiakiGui) << "Received hardware frame format"
-                               << av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame.frame->format))
-                               << "disable_zero_copy=" << disable_zero_copy
-                               << "zero_copy_supported=" << zero_copy_formats.contains(frame.frame->format);
-        }
         if (frame.frame->hw_frames_ctx && (!zero_copy_formats.contains(frame.frame->format) || disable_zero_copy)) {
             AVFrame *sw_frame = av_frame_alloc();
             if (av_hwframe_transfer_data(sw_frame, frame.frame, 0) < 0) {

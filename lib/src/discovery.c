@@ -246,8 +246,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 	if((size_t)len >= sizeof(buf))
 		return CHIAKI_ERR_BUF_TOO_SMALL;
 
-	CHIAKI_LOGV(discovery->log, "Discovery sending:");
-	chiaki_log_hexdump(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, (size_t)len + 1);
+	// CHIAKI_LOGV(discovery->log, "Discovery sending:");
+	// chiaki_log_hexdump(discovery->log, CHIAKI_LOG_VERBOSE, (const uint8_t *)buf, (size_t)len + 1);
 	int rc = sendto_broadcast(discovery->log, discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
 	if(rc < 0 && addr->sa_family == AF_INET)
 	{
