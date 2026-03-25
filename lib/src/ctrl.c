@@ -278,9 +278,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_keyboard_set_text(ChiakiCtrl *ctrl, co
 	memcpy(payload + sizeof(CtrlKeyboardTextRequestMessage), text, length);
 
 	CtrlKeyboardTextRequestMessage *msg = (CtrlKeyboardTextRequestMessage *)payload;
-	msg->counter = ntohl(++ctrl->keyboard_text_counter);
-	msg->text_length1 = ntohl(length);
-	msg->text_length2 = ntohl(length);
+	msg->counter = htonl(++ctrl->keyboard_text_counter);
+	msg->text_length1 = htonl(length);
+	msg->text_length2 = htonl(length);
 
 	ChiakiErrorCode err;
 	err = chiaki_ctrl_send_message(ctrl, CTRL_MESSAGE_TYPE_KEYBOARD_TEXT_CHANGE_REQ, payload, payload_size);
