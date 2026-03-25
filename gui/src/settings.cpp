@@ -660,8 +660,8 @@ static const QMap<WindowType, QString> window_type_values = {
 
 WindowType Settings::GetWindowType() const
 {
-	auto v = settings.value("settings/window_type", window_type_values[WindowType::SelectedResolution]).toString();
-	return window_type_values.key(v, WindowType::SelectedResolution);
+	auto v = settings.value("settings/window_type", window_type_values[WindowType::Fullscreen]).toString();
+	return window_type_values.key(v, WindowType::Fullscreen);
 }
 
 void Settings::SetWindowType(WindowType type)
