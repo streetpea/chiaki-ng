@@ -5,7 +5,7 @@ set -xe
 cd $(dirname "${BASH_SOURCE[0]}")/..
 cd "./$1"
 ROOT="`pwd`"
-MSYSTEM_LOWER="${MSYSTEM,,}"
+MSYSTEM_LOWER="$(printf '%s' "${MSYSTEM:-}" | tr '[:upper:]' '[:lower:]')"
 
 SDL_VER=3.4.0
 SDL_COMPAT_VER=2.32.64
