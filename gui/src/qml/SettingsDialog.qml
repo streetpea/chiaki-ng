@@ -764,7 +764,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Stream Resolution)")
+                        text: qsTr("(Fullscreen)")
                     }
 
                     Label {
