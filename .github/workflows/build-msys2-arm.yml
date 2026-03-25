@@ -58,7 +58,8 @@ jobs:
             spirv-cross:p
             vulkan:p
             vulkan-headers:p
-            
+            compiler-rt:p
+           
       - name: Install python protobuf and zip
         run: |
           pip install protobuf

@@ -5,6 +5,7 @@ set -xe
 cd $(dirname "${BASH_SOURCE[0]}")/..
 cd "./$1"
 ROOT="`pwd`"
+MSYSTEM_LOWER="${MSYSTEM,,}"
 
 SDL_VER=3.4.0
 SDL_COMPAT_VER=2.32.64
@@ -19,11 +20,32 @@ fi
 
 cd "$DIR" || exit 1
 INSTALL_PREFIX="${INSTALL_PREFIX:=/usr}"
+WINDOWS_ARM_CMAKE_ARGS=()
+WINDOWS_ARM_SHARED_LINKER_FLAGS=()
+if [[ "$MSYSTEM_LOWER" == "clangarm64" ]]; then
+    WINDOWS_ARM_CMAKE_ARGS=(
+        -DCMAKE_C_COMPILER=clang
+        -DCMAKE_SYSTEM_NAME=Windows
+        -DCMAKE_SYSTEM_PROCESSOR=ARM64
+    )
+    CLANG_RT_BUILTINS_DIR=""
+    if command -v clang >/dev/null 2>&1; then
+        CLANG_RT_BUILTINS_LIB=$(clang --print-file-name=libclang_rt.builtins-aarch64.a)
+        if [[ -n "$CLANG_RT_BUILTINS_LIB" && -f "$CLANG_RT_BUILTINS_LIB" ]]; then
+            CLANG_RT_BUILTINS_DIR=$(dirname "$CLANG_RT_BUILTINS_LIB")
+        fi
+    fi
+    WINDOWS_ARM_SHARED_LINKER_FLAGS=(
+        -DCMAKE_SHARED_LINKER_FLAGS="-L${CLANG_RT_BUILTINS_DIR:-/clangarm64/lib} -lclang_rt.builtins-aarch64"
+    )
+fi
 cmake \
     -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
-	-DSDL_TESTS=OFF \
-	-DSDL_EXAMPLES=OFF
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    -DSDL_TESTS=OFF \
+    -DSDL_EXAMPLES=OFF \
+    "${WINDOWS_ARM_CMAKE_ARGS[@]}" \
+    "${WINDOWS_ARM_SHARED_LINKER_FLAGS[@]}"
 
 cmake --build build --config RelWithDebInfo --clean-first
 cmake --install build --prefix "$INSTALL_PREFIX"
@@ -39,11 +61,32 @@ fi
 
 cd "$DIR2" || exit 1
 INSTALL_PREFIX="${INSTALL_PREFIX:=/usr}"
+WINDOWS_ARM_CMAKE_ARGS=()
+WINDOWS_ARM_SHARED_LINKER_FLAGS=()
+if [[ "$MSYSTEM_LOWER" == "clangarm64" ]]; then
+    WINDOWS_ARM_CMAKE_ARGS=(
+        -DCMAKE_C_COMPILER=clang
+        -DCMAKE_SYSTEM_NAME=Windows
+        -DCMAKE_SYSTEM_PROCESSOR=ARM64
+    )
+    CLANG_RT_BUILTINS_DIR=""
+    if command -v clang >/dev/null 2>&1; then
+        CLANG_RT_BUILTINS_LIB=$(clang --print-file-name=libclang_rt.builtins-aarch64.a)
+        if [[ -n "$CLANG_RT_BUILTINS_LIB" && -f "$CLANG_RT_BUILTINS_LIB" ]]; then
+            CLANG_RT_BUILTINS_DIR=$(dirname "$CLANG_RT_BUILTINS_LIB")
+        fi
+    fi
+    WINDOWS_ARM_SHARED_LINKER_FLAGS=(
+        -DCMAKE_SHARED_LINKER_FLAGS="-L${CLANG_RT_BUILTINS_DIR:-/clangarm64/lib} -lclang_rt.builtins-aarch64"
+    )
+fi
 cmake \
     -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
-	-DCMAKE_PREFIX_PATH="$INSTALL_PREFIX" \
-	-DSDL2COMPAT_TESTS=OFF \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    -DCMAKE_PREFIX_PATH="$INSTALL_PREFIX" \
+    -DSDL2COMPAT_TESTS=OFF \
+    "${WINDOWS_ARM_CMAKE_ARGS[@]}" \
+    "${WINDOWS_ARM_SHARED_LINKER_FLAGS[@]}"
 
 cmake --build build --config RelWithDebInfo --clean-first
 cmake --install build --prefix "$INSTALL_PREFIX"
