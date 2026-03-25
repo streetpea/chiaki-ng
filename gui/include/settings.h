@@ -249,7 +249,7 @@ class Settings : public QObject
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		bool GetLogSanitize() const            { return settings.value("settings/log_sanitize", true).toBool(); }
 		void SetLogSanitize(bool enabled)      { settings.setValue("settings/log_sanitize", enabled); }
-		bool GetVSyncEnabled() const           { return settings.value("settings/vsync", true).toBool(); }
+		bool GetVSyncEnabled() const           { return settings.value("settings/vsync", false).toBool(); }
 		void SetVSyncEnabled(bool enabled)     { settings.setValue("settings/vsync", enabled); }
 		uint32_t GetLogLevelMask();
 
