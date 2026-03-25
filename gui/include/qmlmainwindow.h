@@ -115,6 +115,7 @@ public:
     Q_INVOKABLE void releaseInput();
 
     void updatePlacebo();
+    void updateVSync();
     void show();
     void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost);
 
@@ -194,6 +195,9 @@ private:
     QMutex render_schedule_mutex;
     bool render_scheduled = false;
     bool render_pending = false;
+    QAtomicInteger<int> swapchain_recreate_pending = 0;
+    QAtomicInteger<int> renderer_cache_flush_pending = 0;
+    bool present_vsync_enabled = true;
 
     QVulkanInstance *qt_vk_inst = {};
     QOpenGLContext *qt_gl_context = {};

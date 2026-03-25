@@ -233,6 +233,17 @@ void QmlSettings::setLogSanitize(bool enabled)
     emit logSanitizeChanged();
 }
 
+bool QmlSettings::vSyncEnabled() const
+{
+    return settings->GetVSyncEnabled();
+}
+
+void QmlSettings::setVSyncEnabled(bool enabled)
+{
+    settings->SetVSyncEnabled(enabled);
+    emit vSyncEnabledChanged();
+}
+
 int QmlSettings::rumbleHapticsIntensity() const
 {
     return static_cast<int>(settings->GetRumbleHapticsIntensity());
@@ -1774,6 +1785,7 @@ void QmlSettings::refreshAllKeys()
     emit suspendActionChanged();
     emit logVerboseChanged();
     emit logSanitizeChanged();
+    emit vSyncEnabledChanged();
     emit hapticOverrideChanged();
     emit rumbleHapticsIntensityChanged();
     emit buttonsByPositionChanged();

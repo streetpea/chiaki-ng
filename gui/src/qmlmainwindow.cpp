@@ -531,6 +531,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
     if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
         pl_queue_reset(placebo_queue);
+        renderer_cache_flush_pending.storeRelaxed(1);
         ts_start = 0;
         queue_pts_origin = frame.pts;
         playback_started = false;
@@ -675,6 +676,8 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         format.setAlphaBufferSize(8);
         format.setDepthBufferSize(24);
         format.setStencilBufferSize(8);
+        format.setSwapInterval(settings->GetVSyncEnabled() ? 1 : 0);
+        present_vsync_enabled = settings->GetVSyncEnabled();
 #if defined(Q_OS_MACOS)
         // macOS only exposes modern OpenGL as a core profile.
         if (format.majorVersion() < 4) {
@@ -951,6 +954,7 @@ renderer_backend_ready:
             session->BlockInput(0);
         update_timer->stop();
         pl_queue_reset(placebo_queue);
+        renderer_cache_flush_pending.storeRelaxed(1);
         queue_pts_origin = -1.0;
         playback_started = false;
         ts_start = 0;
@@ -1140,6 +1144,14 @@ void QmlMainWindow::updatePlacebo()
     renderparams_changed = true;
 }
 
+void QmlMainWindow::updateVSync()
+{
+    if (render_backend != RenderBackend::Vulkan)
+        return;
+    swapchain_recreate_pending.storeRelaxed(1);
+    scheduleUpdate();
+}
+
 void QmlMainWindow::createSwapchain()
 {
     Q_ASSERT(QThread::currentThread() == render_thread);
@@ -1202,10 +1214,18 @@ void QmlMainWindow::createSwapchain()
 
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
-        .present_mode = VK_PRESENT_MODE_FIFO_KHR,
+        .present_mode = settings->GetVSyncEnabled() ? VK_PRESENT_MODE_FIFO_KHR
+                                                    : VK_PRESENT_MODE_IMMEDIATE_KHR,
         .swapchain_depth = 1,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
+    present_vsync_enabled = swapchain_params.present_mode == VK_PRESENT_MODE_FIFO_KHR;
+    if (!placebo_swapchain && !settings->GetVSyncEnabled()) {
+        qCWarning(chiakiGui) << "Immediate present mode unsupported, falling back to FIFO VSync";
+        swapchain_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
+        placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
+        present_vsync_enabled = true;
+    }
 }
 
 void QmlMainWindow::destroySwapchain()
@@ -1427,11 +1447,20 @@ void QmlMainWindow::render()
         }
     };
 
+    if (swapchain_recreate_pending.fetchAndStoreRelaxed(0)) {
+        destroySwapchain();
+        createSwapchain();
+        resizeSwapchain();
+    }
+
     if (!placebo_swapchain)
     {
         finalize_render();
         return;
     }
+
+    if (renderer_cache_flush_pending.fetchAndStoreRelaxed(0) && placebo_renderer)
+        pl_renderer_flush_cache(placebo_renderer);
 
     const struct pl_render_params *render_params = &pl_render_default_params;
     const PlaceboUpscaler configured_upscaler = settings->GetPlaceboUpscaler();
@@ -1502,10 +1531,13 @@ void QmlMainWindow::render()
     double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
     if (refresh_rate <= 1.0)
         refresh_rate = 60.0;
+    const double vsync_duration = present_vsync_enabled ? 1.0 / refresh_rate : 0.0;
     qparams.timeout = 0;
     qparams.radius = pl_frame_mix_radius(&params);
-    qparams.vsync_duration = 1.0 / refresh_rate;
-    qparams.pts = playback_started ? (double)(ts_pre_update - ts_start) / 1000000.0 : 0.0;
+    qparams.vsync_duration = vsync_duration;
+    qparams.pts = playback_started
+        ? (double)(ts_pre_update - ts_start) / 1000000.0 + vsync_duration
+        : 0.0;
     enum pl_queue_status queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
     switch (queue_status) {
     case PL_QUEUE_ERR:
@@ -1544,9 +1576,15 @@ void QmlMainWindow::render()
     int target_contrast = settings->GetDisplayTargetContrast() && session ? settings->GetDisplayTargetContrast(): 0;
     int target_prim = settings->GetDisplayTargetPrim() && session ? settings->GetDisplayTargetPrim(): 0;
     int target_trc = settings->GetDisplayTargetTrc() && session ? settings->GetDisplayTargetTrc(): 0;
-    struct pl_color_space hint = frame_mix.num_frames
-        ? frame_mix.frames[frame_mix.num_frames - 1]->color
-        : pl_color_space{};
+    const struct pl_frame *hint_frame = nullptr;
+    for (int i = 0; i < frame_mix.num_frames; i++) {
+        if (frame_mix.timestamps[i] > 0.0f)
+            break;
+        hint_frame = frame_mix.frames[i];
+    }
+    if (!hint_frame && frame_mix.num_frames)
+        hint_frame = frame_mix.frames[0];
+    struct pl_color_space hint = hint_frame ? hint_frame->color : pl_color_space{};
 
     if(target_trc)
         hint.transfer = static_cast<pl_color_transfer>(target_trc);
