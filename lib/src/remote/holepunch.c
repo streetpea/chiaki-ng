@@ -4640,24 +4640,38 @@ cleanup:
 static ChiakiErrorCode clear_notification(
     Session *session, Notification *notification)
 {
-    bool found = false;
     NotificationQueue *nq = session->ws_notification_queue;
     chiaki_mutex_lock(&session->notif_mutex);
-    while (nq->rear != NULL)
+    Notification *prev = NULL;
+    Notification *curr = nq->front;
+    while (curr != NULL && curr != notification)
     {
-        if(nq->front == notification)
-        {
-            found = true;
-            dequeueNq(nq);
-            break;
-        }
-        dequeueNq(nq);
+        prev = curr;
+        curr = curr->next;
     }
-    chiaki_mutex_unlock(&session->notif_mutex);
-    if (found)
-        return CHIAKI_ERR_SUCCESS;
-    else
+
+    if (curr == NULL)
+    {
+        chiaki_mutex_unlock(&session->notif_mutex);
         return CHIAKI_ERR_UNKNOWN;
+    }
+
+    if (prev)
+        prev->next = curr->next;
+    else
+        nq->front = curr->next;
+
+    if (curr == nq->rear)
+        nq->rear = prev;
+
+    json_object_put(curr->json);
+    curr->json = NULL;
+    free(curr->json_buf);
+    curr->json_buf = NULL;
+    free(curr);
+
+    chiaki_mutex_unlock(&session->notif_mutex);
+    return CHIAKI_ERR_SUCCESS;
 }
 
 /**
