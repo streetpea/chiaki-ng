@@ -2159,7 +2159,7 @@ DialogView {
                         }
 
                         CheckBox {
-                            text: qsTr("Enable Keyboard mapping")
+                            text: qsTr("Keyboard as controller")
                             checked: {
                                 Chiaki.settings.keyboardEnabled
                             }
