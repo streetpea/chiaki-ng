@@ -56,7 +56,7 @@ extract_dependencies() {
     printf '%s\n' "$ldd_output" | awk '
         /=>/ && $(NF-1) != "not" { print $(NF-1) }
         /^\// { print $1 }
-    ' | grep -iv "system32" || true
+    ' | grep -iv "system32" | grep -iv "windows" || true
 }
 
 enqueue_dependency() {
@@ -92,3 +92,11 @@ while [[ ${#queue[@]} -gt 0 ]]; do
 done
 
 windeployqt6.exe --no-translations --qmldir="$qml_dir" "$output_dir/$(basename "$exe_path")"
+
+# Remove system-provided DLLs that Windows already supplies and
+# should not be bundled with the MSYS2 build (e.g. D3D compiler). Use
+# case-insensitive globbing to catch variants like `D3Dcompiler_47`.
+(
+    shopt -s nocaseglob
+    rm -f "$output_dir"/d3dcompiler*.dll
+)
