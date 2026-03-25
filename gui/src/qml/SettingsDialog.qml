@@ -862,6 +862,25 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Vertical Sync:")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.vSyncEnabled
+                        onToggled: {
+                            Chiaki.settings.vSyncEnabled = checked
+                            if (Chiaki.window.runtimeRendererBackend === 1)
+                                Chiaki.settings.restartApplication()
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Render Preset:")
                     }
 
