@@ -477,6 +477,16 @@ void QmlBackend::checkNickname(QString nickname)
 void QmlBackend::setConnectState(PsnConnectState connect_state)
 {
     psn_connect_state = connect_state;
+    if(connect_state == PsnConnectState::ConnectFailed)
+    {
+        if(!this->settings->GetGeometry().isEmpty())
+        {
+            window->setGeometry(this->settings->GetGeometry());
+            window->normalTime();
+        }
+        else
+            window->showMaximized();
+    }
     emit connectStateChanged();
 }
 
@@ -922,23 +932,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             setDiscoveryEnabled(false);
     });
 
-    if (window->windowState() != Qt::WindowFullScreen)
-    {
-        if(settings->GetWindowType() == WindowType::CustomResolution)
-        {
-            window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
-            window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
-        }
-        else if(settings->GetWindowType() == WindowType::AdjustableResolution)
-        {
-            window->normalTime();
-            if(!settings->GetStreamGeometry().isEmpty())
-                window->setGeometry(settings->GetStreamGeometry());
-        }
-        else
-            window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
-    }
-
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
     chiaki_log_mutex.unlock();
@@ -979,6 +972,22 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         else
             setConnectState(PsnConnectState::InitiatingConnection);
         emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
+    }
+    if (window->windowState() != Qt::WindowFullScreen)
+    {
+        if(settings->GetWindowType() == WindowType::CustomResolution)
+        {
+            window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
+            window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
+        }
+        else if(settings->GetWindowType() == WindowType::AdjustableResolution)
+        {
+            window->normalTime();
+            if(!settings->GetStreamGeometry().isEmpty())
+                window->setGeometry(settings->GetStreamGeometry());
+        }
+        else
+            window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
     }
 }
 
