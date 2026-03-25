@@ -193,6 +193,7 @@ private:
     QThread *render_thread = {};
     bool owns_render_thread = false;
     QMutex render_schedule_mutex;
+    QMutex placebo_state_mutex;
     bool render_scheduled = false;
     bool render_pending = false;
     QAtomicInteger<int> swapchain_recreate_pending = 0;

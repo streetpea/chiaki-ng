@@ -529,19 +529,24 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
     frame.frame->opaque = this;
 
-    if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
-        pl_queue_reset(placebo_queue);
-        renderer_cache_flush_pending.storeRelaxed(1);
-        ts_start = 0;
-        queue_pts_origin = frame.pts;
-        playback_started = false;
+    bool deinterlace_enabled = false;
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
+            pl_queue_reset(placebo_queue);
+            renderer_cache_flush_pending.storeRelaxed(1);
+            ts_start = 0;
+            queue_pts_origin = frame.pts;
+            playback_started = false;
+        }
+        deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
     }
 
     struct pl_source_frame src_frame{
         .pts = frame.pts - queue_pts_origin,
         .duration = static_cast<float>(frame.duration),
         // allow soft-disabling deinterlacing at the source frame level
-        .first_field = this->renderparams_opts->params.deinterlace_params
+        .first_field = deinterlace_enabled
             ? pl_field_from_avframe(frame.frame)
                 : PL_FIELD_NONE,
         .frame_data = frame.frame,
@@ -549,7 +554,10 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         .unmap = unmap_frame,
         .discard = discard_frame,
     };
-    pl_queue_push(placebo_queue, &src_frame);
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        pl_queue_push(placebo_queue, &src_frame);
+    }
 
     // Anchor the playback clock when the first video frame is queued, not when
     // the first render completes. Otherwise any startup delay in the render
@@ -953,7 +961,10 @@ renderer_backend_ready:
         if (session)
             session->BlockInput(0);
         update_timer->stop();
-        pl_queue_reset(placebo_queue);
+        {
+            QMutexLocker locker(&placebo_state_mutex);
+            pl_queue_reset(placebo_queue);
+        }
         renderer_cache_flush_pending.storeRelaxed(1);
         queue_pts_origin = -1.0;
         playback_started = false;
@@ -1225,6 +1236,10 @@ void QmlMainWindow::createSwapchain()
         swapchain_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
         placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
         present_vsync_enabled = true;
+    }
+    if (!placebo_swapchain) {
+        vk_funcs.vkDestroySurfaceKHR(placebo_vk_inst->instance, surface, nullptr);
+        surface = VK_NULL_HANDLE;
     }
 }
 
@@ -1498,20 +1513,23 @@ void QmlMainWindow::render()
             QMap<QString, QString> paramsData = settings->GetPlaceboValues();
             QMapIterator<QString, QString> i(paramsData);
             bool invalid_render_params = false;
-            this->renderparams_opts->params = pl_render_default_params;
-            pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
-            if (pl_render_default_params.deinterlace_params)
-                this->renderparams_opts->params.deinterlace_params = pl_render_default_params.deinterlace_params;
-            while (i.hasNext()) {
-                i.next();
-                if ((i.key() == QLatin1String("upscaler") || i.key() == QLatin1String("plane_upscaler"))
-                    && uses_custom_upscale_hook(configured_upscaler)) {
-                    continue;
-                }
-                if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
-                {
-                    invalid_render_params = true;
-                    qCCritical(chiakiGui) << "Failed to load custom render param: " << i.key() << " with value: " << i.value();
+            {
+                QMutexLocker locker(&placebo_state_mutex);
+                this->renderparams_opts->params = pl_render_default_params;
+                pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
+                if (pl_render_default_params.deinterlace_params)
+                    this->renderparams_opts->params.deinterlace_params = pl_render_default_params.deinterlace_params;
+                while (i.hasNext()) {
+                    i.next();
+                    if ((i.key() == QLatin1String("upscaler") || i.key() == QLatin1String("plane_upscaler"))
+                        && uses_custom_upscale_hook(configured_upscaler)) {
+                        continue;
+                    }
+                    if(!pl_options_set_str(this->renderparams_opts, i.key().toUtf8().constData(), i.value().toUtf8().constData()))
+                    {
+                        invalid_render_params = true;
+                        qCCritical(chiakiGui) << "Failed to load custom render param: " << i.key() << " with value: " << i.value();
+                    }
                 }
             }
             if (invalid_render_params)
@@ -1538,7 +1556,11 @@ void QmlMainWindow::render()
     qparams.pts = playback_started
         ? (double)(ts_pre_update - ts_start) / 1000000.0 + vsync_duration
         : 0.0;
-    enum pl_queue_status queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
+    enum pl_queue_status queue_status;
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
+    }
     switch (queue_status) {
     case PL_QUEUE_ERR:
         finalize_render();
