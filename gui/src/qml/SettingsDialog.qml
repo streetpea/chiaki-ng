@@ -20,6 +20,101 @@ DialogView {
     title: qsTr("Settings")
     header: qsTr("* Defaults in () to right of value or marked with (Default)")
     buttonVisible: false
+    function flickContainsItem(flick, item) {
+        let current = item;
+        while (current) {
+            if (current === flick || current === flick.contentItem)
+                return true;
+            current = current.parent;
+        }
+        return false;
+    }
+    function flickVisibilityTarget(flick, item) {
+        let current = item;
+        while (current && current !== flick && current !== flick.contentItem) {
+            if (current.parent === flick.contentItem)
+                return current;
+            if (current.parent && current.parent.parent === flick.contentItem)
+                return current;
+            current = current.parent;
+        }
+        return item;
+    }
+    function ensureItemVisibleInFlick(flick, item) {
+        if (!flick || !item || !flickContainsItem(flick, item))
+            return;
+        const target = flickVisibilityTarget(flick, item);
+        const top = target.mapToItem(flick.contentItem, 0, 0).y;
+        const bottom = top + target.height;
+        if (top < flick.contentY)
+            flick.contentY = top;
+        else if (bottom > flick.contentY + flick.height)
+            flick.contentY = bottom - flick.height;
+    }
+    function itemIsInsideNestedScrollable(flick, item) {
+        let current = item ? item.parent : null;
+        while (current && current !== flick && current !== flick.contentItem) {
+            if (current.contentY !== undefined && current.contentHeight !== undefined && current !== flick)
+                return true;
+            current = current.parent;
+        }
+        return false;
+    }
+    function nestedScrollableTarget(flick, item) {
+        let current = item;
+        while (current && current !== flick && current !== flick.contentItem) {
+            if (current.contentY !== undefined && current.contentHeight !== undefined && current !== flick)
+                return current;
+            current = current.parent;
+        }
+        return item;
+    }
+    function ensureActiveFocusVisible() {
+        const flick = activeSettingsFlick();
+        const window = dialog.Window.window;
+        if (!flick || !window || !window.activeFocusItem)
+            return;
+        const target = itemIsInsideNestedScrollable(flick, window.activeFocusItem)
+            ? nestedScrollableTarget(flick, window.activeFocusItem)
+            : window.activeFocusItem;
+        ensureItemVisibleInFlick(flick, target);
+    }
+    function scrollFlickKeepingItemVisible(flick, item, delta) {
+        if (!flick || !item)
+            return;
+        const maxContentY = Math.max(0, flick.contentHeight - flick.height);
+        if (maxContentY <= 0)
+            return;
+        flick.contentY = Math.max(0, Math.min(maxContentY, flick.contentY + delta));
+    }
+    function focusCurrentTabFirstItem() {
+        let item = null;
+        switch (bar.currentIndex) {
+        case 0: item = disconnectAction; break;
+        case 1: item = hwDecoderCombo; break;
+        case 2: item = consoleSelection; break;
+        case 3: item = audioOutDevice; break;
+        case 4: item = registerNewButton; break;
+        case 5: item = resetAllKeys; break;
+        case 6: item = controllerMappingChange; break;
+        case 7: item = profile; break;
+        }
+        if (item)
+            item.forceActiveFocus(Qt.TabFocusReason);
+    }
+    function activeSettingsFlick() {
+        switch (bar.currentIndex) {
+        case 0: return generalFlick;
+        case 1: return videoFlick;
+        case 2: return streamFlick;
+        case 3: return audiowifiFlick;
+        case 4: return consolesFlick;
+        case 5: return keysFlick;
+        case 6: return controllersFlick;
+        case 7: return configFlick;
+        default: return null;
+        }
+    }
     Keys.onPressed: (event) => {
         if (event.modifiers)
             return;
@@ -33,35 +128,23 @@ DialogView {
             event.accepted = true;
             break;
         case Qt.Key_Up:
-            if(bar.currentIndex == 3)
-            {
-                if(audiowifiScrollbar.position > 0.001)
-                    audiowifiFlick.flick(0, 500);
-            }
-            else if (bar.currentIndex == 6)
-            {
-                if(controllersScrollbar.position > 0.001)
-                    controllersFlick.flick(0, 500);
-            }
-            else
+        {
+            const flick = activeSettingsFlick();
+            if (!flick || flick.contentHeight <= flick.height || flick.contentY <= 0.001)
                 return;
+            flick.flick(0, 500);
             event.accepted = true;
             break;
+        }
         case Qt.Key_Down:
-            if(bar.currentIndex == 3)
-            {
-                if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
-                    audiowifiFlick.flick(0, -500);
-            }
-            else if(bar.currentIndex == 6)
-            {
-                if(controllersScrollbar.position < 1.0 - controllersScrollbar.size - 0.001)
-                    controllersFlick.flick(0, -500);
-            }
-            else
+        {
+            const flick = activeSettingsFlick();
+            if (!flick || flick.contentHeight <= flick.height || flick.contentY >= flick.contentHeight - flick.height - 0.001)
                 return;
+            flick.flick(0, -500);
             event.accepted = true;
             break;
+        }
         }
     }
 
@@ -300,29 +383,48 @@ DialogView {
                 bottom: parent.bottom
             }
             currentIndex: bar.currentIndex
-            onCurrentIndexChanged: nextItemInFocusChain().forceActiveFocus(Qt.TabFocusReason)
+            onCurrentIndexChanged: {
+                dialog.focusCurrentTabFirstItem()
+                Qt.callLater(dialog.ensureActiveFocusVisible)
+            }
 
             Item {
                 // General
-                ColumnLayout {
+                Flickable {
+                    id: generalFlick
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
+                        fill: parent
                         topMargin: 20
+                        bottomMargin: 20
                     }
-                    spacing: 10
-                    GridLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        columns: 3
-                        rowSpacing: 5
-                        columnSpacing: 20
-
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("Action On Disconnect:")
+                    clip: true
+                    contentWidth: Math.max(width, generalLayout.width)
+                    contentHeight: generalLayout.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: generalFlick.contentHeight > generalFlick.height
+                    }
+                    ColumnLayout {
+                        id: generalLayout
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
                         }
+                        spacing: 10
+                        GridLayout {
+                            Layout.alignment: Qt.AlignHCenter
+                            columns: 3
+                            rowSpacing: 5
+                            columnSpacing: 20
+
+                            Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("Action On Disconnect:")
+                            }
 
                         C.ComboBox {
+                            id: disconnectAction
                             Layout.preferredWidth: 400
                             firstInFocusChain: true
                             model: [qsTr("Do Nothing"), qsTr("Enter Sleep Mode"), qsTr("Ask")]
@@ -449,6 +551,7 @@ DialogView {
                             text: qsTr("Streamer Mode (Hides Info)")
                         }
                         C.CheckBox {
+                            id: streamerMode
                             checked: Chiaki.settings.streamerMode
                             onToggled: Chiaki.settings.streamerMode = !Chiaki.settings.streamerMode
                         }
@@ -467,7 +570,7 @@ DialogView {
                             checked: Chiaki.settings.streamMenuEnabled
                             onToggled: Chiaki.settings.streamMenuEnabled = !Chiaki.settings.streamMenuEnabled
                             KeyNavigation.priority: KeyNavigation.BeforeItem
-                            KeyNavigation.up: openButton
+                            KeyNavigation.up: streamerMode
                             KeyNavigation.left: streamMenu
                             KeyNavigation.right: streamMenu
                             KeyNavigation.down: {
@@ -478,19 +581,19 @@ DialogView {
                             }
                         }
 
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("(Checked)")
+                            Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("(Checked)")
+                            }
                         }
-                    }
-                    RowLayout {
-                        spacing: 10
-                        visible: Chiaki.settings.streamMenuEnabled
-                        Layout.alignment: Qt.AlignHCenter
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("Stream Menu Combo:")
-                        }
+                        RowLayout {
+                            spacing: 10
+                            visible: Chiaki.settings.streamMenuEnabled
+                            Layout.alignment: Qt.AlignHCenter
+                            Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("Stream Menu Combo:")
+                            }
 
                         C.ComboBox {
                             id: streamMenuShortcut1
@@ -568,9 +671,10 @@ DialogView {
                             KeyNavigation.right: streamMenuShortcut4
                         }
 
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("(L1+R1+L3+R3)")
+                            Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("(L1+R1+L3+R3)")
+                            }
                         }
                     }
                 }
@@ -578,20 +682,35 @@ DialogView {
 
             Item {
                 // Video
-                GridLayout {
+                Flickable {
+                    id: videoFlick
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
+                        fill: parent
                         topMargin: 20
+                        bottomMargin: 20
                     }
-                    columns: 3
-                    rowSpacing: 10
-                    columnSpacing: 20
+                    clip: true
+                    contentWidth: Math.max(width, videoGrid.width)
+                    contentHeight: videoGrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: videoFlick.contentHeight > videoFlick.height
+                    }
+                    GridLayout {
+                        id: videoGrid
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                        columns: 3
+                        rowSpacing: 10
+                        columnSpacing: 20
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Hardware Decoder:")
-                    }
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Hardware Decoder:")
+                        }
 
                     RowLayout {
                         Layout.preferredWidth: 400
@@ -819,26 +938,42 @@ DialogView {
                         lastInFocusChain: true
                     }
 
-                    Label {}
+                        Label {}
+                    }
                 }
             }
 
             Item {
                 // Stream
-                GridLayout {
+                Flickable {
+                    id: streamFlick
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
+                        fill: parent
                         topMargin: 20
+                        bottomMargin: 20
                     }
-                    columns: 3
-                    rowSpacing: 10
-                    columnSpacing: 20
+                    clip: true
+                    contentWidth: Math.max(width, streamGrid.width)
+                    contentHeight: streamGrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: streamFlick.contentHeight > streamFlick.height
+                    }
+                    GridLayout {
+                        id: streamGrid
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                        columns: 3
+                        rowSpacing: 10
+                        columnSpacing: 20
 
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Settings for:")
-                    }
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Settings for:")
+                        }
 
 
                     C.ComboBox {
@@ -1235,28 +1370,29 @@ DialogView {
                         }
                     }
 
-                    C.ComboBox {
-                        id: codecRemotePS5
-                        Layout.preferredWidth: 400
-                        model: [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
-                        currentIndex: Chiaki.settings.codecRemotePS5
-                        onActivated: (index) => Chiaki.settings.codecRemotePS5 = index
-                        visible: selectedConsole == SettingsDialog.Console.PS5
-                        lastInFocusChain: true
-                        Keys.onReturnPressed: {
-                            if (popup.visible) {
-                                activated(highlightedIndex);
-                                popup.close();
-                            } else
-                                popup.open();
-                        }
-                        KeyNavigation.up: bitrateRemotePS5
-                        KeyNavigation.left: codecLocalPS5
-                        KeyNavigation.priority: {
-                            if(!popup.visible)
-                                KeyNavigation.BeforeItem
-                            else
-                                KeyNavigation.AfterItem
+                        C.ComboBox {
+                            id: codecRemotePS5
+                            Layout.preferredWidth: 400
+                            model: [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
+                            currentIndex: Chiaki.settings.codecRemotePS5
+                            onActivated: (index) => Chiaki.settings.codecRemotePS5 = index
+                            visible: selectedConsole == SettingsDialog.Console.PS5
+                            lastInFocusChain: true
+                            Keys.onReturnPressed: {
+                                if (popup.visible) {
+                                    activated(highlightedIndex);
+                                    popup.close();
+                                } else
+                                    popup.open();
+                            }
+                            KeyNavigation.up: bitrateRemotePS5
+                            KeyNavigation.left: codecLocalPS5
+                            KeyNavigation.priority: {
+                                if(!popup.visible)
+                                    KeyNavigation.BeforeItem
+                                else
+                                    KeyNavigation.AfterItem
+                            }
                         }
                     }
                 }
@@ -1266,22 +1402,19 @@ DialogView {
                 // Audio and Wifi
                 Flickable {
                     id: audiowifiFlick
-                    implicitWidth: parent.width ? parent.width: 0
-                    implicitHeight: parent.height ? parent.height: 0
                     anchors {
                         fill: parent
                         topMargin: 20
                         bottomMargin: 20
-                        leftMargin: parent.width ? (parent.width / 2 - audiowifigrid.width / 2) : 0
                     }
                     clip: true
-                    contentWidth: audiowifigrid.width
+                    contentWidth: Math.max(width, audiowifigrid.width)
                     contentHeight: audiowifigrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
                     ScrollBar.vertical: ScrollBar {
                         id: audiowifiScrollbar
                         policy: ScrollBar.AlwaysOn
-                        visible: audiowifiFlick.contentHeight > audiowifiFlick.implicitHeight - audiowifiFlick.anchors.topMargin - audiowifiFlick.anchors.bottomMargin
+                        visible: audiowifiFlick.contentHeight > audiowifiFlick.height
                     }
                     GridLayout {
                         id: audiowifigrid
@@ -1300,6 +1433,7 @@ DialogView {
                         }
 
                         C.ComboBox {
+                            id: audioOutDevice
                             Layout.preferredWidth: 400
                             popup.x: (width - popup.width) / 2
                             popup.width: 700
@@ -1308,26 +1442,8 @@ DialogView {
                             model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
                             currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioOutDevice))
                             onActivated: (index) => Chiaki.settings.audioOutDevice = index ? model[index] : ""
-                            Keys.onPressed: (event) => {
-                                if (event.modifiers)
-                                    return;
-                                switch (event.key) {
-                                    case Qt.Key_Up:
-                                        if(bar.currentIndex != 3)
-                                            return;
-                                        if(audiowifiScrollbar.position > 0.001)
-                                            audiowifiFlick.flick(0, 500);
-                                        event.accepted = true;
-                                        break;
-                                    case Qt.Key_Down:
-                                        if(bar.currentIndex != 3)
-                                            return;
-                                        if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
-                                            audiowifiFlick.flick(0, -500);
-                                        event.accepted = true;
-                                        break;
-                                }
-                            }
+                            KeyNavigation.down: audioInDevice
+                            KeyNavigation.priority: popup.visible ? KeyNavigation.AfterItem : KeyNavigation.BeforeItem
                         }
 
                         Label {
@@ -1341,6 +1457,7 @@ DialogView {
                         }
 
                         C.ComboBox {
+                            id: audioInDevice
                             Layout.preferredWidth: 400
                             popup.x: (width - popup.width) / 2
                             popup.width: 700
@@ -1348,26 +1465,9 @@ DialogView {
                             model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
                             currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
                             onActivated: (index) => Chiaki.settings.audioInDevice = index ? model[index] : ""
-                            Keys.onPressed: (event) => {
-                                if (event.modifiers)
-                                    return;
-                                switch (event.key) {
-                                    case Qt.Key_Up:
-                                        if(bar.currentIndex != 3)
-                                            return;
-                                        if(audiowifiScrollbar.position > 0.001)
-                                            audiowifiFlick.flick(0, 500);
-                                        event.accepted = true;
-                                        break;
-                                    case Qt.Key_Down:
-                                        if(bar.currentIndex != 3)
-                                            return;
-                                        if(audiowifiScrollbar.position < 1.0 - audiowifiScrollbar.size - 0.001)
-                                            audiowifiFlick.flick(0, -500);
-                                        event.accepted = true;
-                                        break;
-                                }
-                            }
+                            KeyNavigation.up: audioOutDevice
+                            KeyNavigation.down: audioBufferSizeSlider
+                            KeyNavigation.priority: popup.visible ? KeyNavigation.AfterItem : KeyNavigation.BeforeItem
                         }
 
                         Label {
@@ -1381,13 +1481,14 @@ DialogView {
                         }
 
                         C.Slider {
+                            id: audioBufferSizeSlider
                             Layout.preferredWidth: 250
                             from: 1
                             to: 10
                             stepSize: 1
                             value: Chiaki.settings.audioBufferSize / 1920 ? (Chiaki.settings.audioBufferSize / 1920) : 5
                             onMoved: Chiaki.settings.audioBufferSize = value * 1920;
-                            sendOutput: true
+                            KeyNavigation.up: audioInDevice
 
                             Label {
                                 anchors {
@@ -1418,7 +1519,6 @@ DialogView {
                             stepSize: 1
                             value: Chiaki.settings.audioVolume
                             onMoved: Chiaki.settings.audioVolume = value
-                            sendOutput: true
 
                             Label {
                                 anchors {
@@ -1443,7 +1543,6 @@ DialogView {
                         }
 
                         C.CheckBox {
-                            sendOutput: true
                             checked: Chiaki.settings.startMicUnmuted
                             onToggled: Chiaki.settings.startMicUnmuted = checked
                         }
@@ -1460,7 +1559,6 @@ DialogView {
                         }
 
                         C.CheckBox {
-                            sendOutput: true
                             text: qsTr("Noise suppression + echo cancellation")
                             checked: Chiaki.settings.speechProcessing
                             onToggled: Chiaki.settings.speechProcessing = !Chiaki.settings.speechProcessing
@@ -1484,7 +1582,6 @@ DialogView {
                             from: 0
                             to: 60
                             stepSize: 1
-                            sendOutput: true
                             visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                             value: Chiaki.settings.noiseSuppressLevel
                             onMoved: Chiaki.settings.noiseSuppressLevel = value
@@ -1516,7 +1613,6 @@ DialogView {
                             from: 0
                             to: 60
                             stepSize: 1
-                            sendOutput: true
                             value: Chiaki.settings.echoSuppressLevel
                             visible: if (typeof Chiaki.settings.speechProcessing !== "undefined") {Chiaki.settings.speechProcessing} else {false}
                             onMoved: Chiaki.settings.echoSuppressLevel = value
@@ -1547,7 +1643,6 @@ DialogView {
                             from: 0
                             to: 100
                             stepSize: 1
-                            sendOutput: true
                             value: Chiaki.settings.wifiDroppedNotif
                             onMoved: Chiaki.settings.wifiDroppedNotif = value
 
@@ -1576,7 +1671,6 @@ DialogView {
                             from: 0
                             to: 100
                             stepSize: 1
-                            sendOutput: true
                             value: Chiaki.settings.packetLossMax
                             onMoved: Chiaki.settings.packetLossMax = value
 
@@ -1601,7 +1695,6 @@ DialogView {
                         }
 
                         C.CheckBox {
-                            lastInFocusChain: true
                             checked: Chiaki.settings.iDROnFECFailureEnabled
                             onToggled: Chiaki.settings.iDROnFECFailureEnabled = !Chiaki.settings.iDROnFECFailureEnabled
                         }
@@ -1631,130 +1724,414 @@ DialogView {
             }
 
             Item {
-            // Consoles
-                C.Button {
-                    id: registerNewButton
+                // Consoles
+                Flickable {
+                    id: consolesFlick
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 30
-                    }
-                    topPadding: 26
-                    leftPadding: 30
-                    rightPadding: 30
-                    bottomPadding: 26
-                    firstInFocusChain: true
-                    text: qsTr("Register New")
-                    onClicked: root.showRegistDialog("255.255.255.255", true)
-                    Material.roundedScale: Material.SmallScale
-                }
-
-                Label {
-                    id: consolesLabel
-                    anchors {
-                        top: registerNewButton.bottom
-                        horizontalCenter: registerNewButton.horizontalCenter
-                        topMargin: 10
-                    }
-                    text: qsTr("Registered Consoles")
-                    font.bold: true
-                }
-
-                ListView {
-                    id: consolesView
-                    height: 170
-                    onCountChanged: {
-                        consolesView.contentHeight = consolesView.count * 80 + consolesView.anchors.topMargin;
-                    }
-                    keyNavigationEnabled: false
-                    anchors {
-                        top: consolesLabel.bottom
-                        horizontalCenter: consolesLabel.horizontalCenter
-                        topMargin: 10
-                    }
-                    width: 700
-                    ScrollBar.vertical: ScrollBar {
-                        id: consolesScrollbar
-                        policy: ScrollBar.AlwaysOn
-                        visible: consolesView.contentHeight > consolesView.height
+                        fill: parent
+                        topMargin: 20
+                        bottomMargin: 20
                     }
                     clip: true
-                    model: Chiaki.settings.registeredHosts
-                    delegate: ItemDelegate {
-                        text: "%1 (%2, %3)".arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.ps5 ? "PS5" : "PS4").arg(modelData.name)
-                        height: 80
-                        width: parent ? parent.width : 0
-                        leftPadding: autoConnectButton.width + 40
+                    contentWidth: Math.max(width, consolesLayout.width)
+                    contentHeight: consolesLayout.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: consolesFlick.contentHeight > consolesFlick.height
+                    }
+                    ColumnLayout {
+                        id: consolesLayout
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                        spacing: 10
 
-                        CheckBox {
-                            property bool firstInFocusChain: false
-                            property bool lastInFocusChain: false
-                            property bool lastDownInFocusChain: index > consolesView.count + hiddenConsolesView.count - 2
+                        C.Button {
+                            id: registerNewButton
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: 10
+                            topPadding: 26
+                            leftPadding: 30
+                            rightPadding: 30
+                            bottomPadding: 26
+                            firstInFocusChain: true
+                            text: qsTr("Register New")
+                            onClicked: root.showRegistDialog("255.255.255.255", true)
+                            Material.roundedScale: Material.SmallScale
+                        }
 
-                            id: autoConnectButton
-                            anchors {
-                                left: parent.left
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 20
+                        Label {
+                            id: consolesLabel
+                            Layout.alignment: Qt.AlignHCenter
+                            text: qsTr("Registered Consoles")
+                            font.bold: true
+                        }
+
+                        ListView {
+                            id: consolesView
+                            Layout.alignment: Qt.AlignHCenter
+                            height: 170
+                            onCountChanged: {
+                                consolesView.contentHeight = consolesView.count * 80 + consolesView.anchors.topMargin;
                             }
-                            text: qsTr("Auto-Connect")
-                            checked: Chiaki.settings.autoConnectMac == modelData.mac
-                            onToggled: Chiaki.settings.autoConnectMac = checked ? modelData.mac : "";
+                            keyNavigationEnabled: false
+                            width: 700
+                            ScrollBar.vertical: ScrollBar {
+                                id: consolesScrollbar
+                                policy: ScrollBar.AlwaysOn
+                                visible: consolesView.contentHeight > consolesView.height
+                            }
+                            clip: true
+                            model: Chiaki.settings.registeredHosts
+                            delegate: ItemDelegate {
+                                text: "%1 (%2, %3)".arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.ps5 ? "PS5" : "PS4").arg(modelData.name)
+                                height: 80
+                                width: parent ? parent.width : 0
+                                leftPadding: autoConnectButton.width + 40
 
+                                CheckBox {
+                                    property bool firstInFocusChain: false
+                                    property bool lastInFocusChain: false
+                                    property bool lastDownInFocusChain: index > consolesView.count + hiddenConsolesView.count - 2
+
+                                    id: autoConnectButton
+                                    anchors {
+                                        left: parent.left
+                                        verticalCenter: parent.verticalCenter
+                                        leftMargin: 20
+                                    }
+                                    text: qsTr("Auto-Connect")
+                                    checked: Chiaki.settings.autoConnectMac == modelData.mac
+                                    onToggled: Chiaki.settings.autoConnectMac = checked ? modelData.mac : "";
+
+                                    Keys.onPressed: (event) => {
+                                        switch (event.key) {
+                                        case Qt.Key_Right:
+                                            if (!lastInFocusChain) {
+                                                let item = nextItemInFocusChain();
+                                                if (item)
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Up:
+                                            if (!firstInFocusChain) {
+                                                let item = nextItemInFocusChain(false);
+                                                if (item) {
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                    dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                }
+                                                let count = index > 0 ? 2: 0;
+                                                for(var i = 0; i < count; i++)
+                                                {
+                                                    let item2 = item.nextItemInFocusChain(false);
+                                                    if (item)
+                                                    {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                        item = item2;
+                                                    }
+                                                }
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Down:
+                                            if (!lastDownInFocusChain) {
+                                                let item = nextItemInFocusChain();
+                                                if (item) {
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                    dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                }
+                                                let count = 2;
+                                                for(var i = 0; i < count; i++)
+                                                {
+                                                    let item2 = item.nextItemInFocusChain();
+                                                    if (item)
+                                                    {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                        item = item2;
+                                                    }
+                                                }
+                                                event.accepted = true;
+                                            }
+                                            break;
+                                        case Qt.Key_Return:
+                                            if (visualFocus) {
+                                                toggle();
+                                                toggled();
+                                            }
+                                            event.accepted = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                Button {
+                                    property bool firstInFocusChain: false
+                                    property bool lastInFocusChain: index > consolesView.count + hiddenConsolesView.count - 2
+                                    Material.background: visualFocus ? Material.accent : undefined
+
+                                    Component.onDestruction: {
+                                        if (visualFocus) {
+                                            let item = nextItemInFocusChain();
+                                            if (item)
+                                                item.forceActiveFocus(Qt.TabFocusReason);
+                                        }
+                                    }
+                                    Keys.onPressed: (event) => {
+                                        switch (event.key) {
+                                            case Qt.Key_Left:
+                                                if (!firstInFocusChain) {
+                                                    let item = nextItemInFocusChain(false);
+                                                    if (item)
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Up:
+                                                if (!firstInFocusChain)
+                                                {
+                                                    let item = nextItemInFocusChain(false);
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                    }
+                                                    let count = 2;
+                                                    for(var i = 0; i < count; i++)
+                                                    {
+                                                        let item2 = item.nextItemInFocusChain(false);
+                                                        if (item)
+                                                        {
+                                                            item.forceActiveFocus(Qt.TabFocusReason);
+                                                            dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                            item = item2;
+                                                        }
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Down:
+                                                if (!lastInFocusChain) {
+                                                    let item = nextItemInFocusChain();
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                    }
+                                                    let count = index < consolesView.count - 1 ? 2: 0;
+                                                    for(var i = 0; i < count; i++)
+                                                    {
+                                                        let item2 = item.nextItemInFocusChain();
+                                                        if (item)
+                                                        {
+                                                            item.forceActiveFocus(Qt.TabFocusReason);
+                                                            dialog.ensureItemVisibleInFlick(consolesView, item);
+                                                            item = item2;
+                                                        }
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Return:
+                                                if (visualFocus) {
+                                                    clicked();
+                                                }
+                                                event.accepted = true;
+                                                break;
+                                        }
+                                    }
+                                    anchors {
+                                        right: parent.right
+                                        verticalCenter: parent.verticalCenter
+                                        rightMargin: 20
+                                    }
+                                    text: qsTr("Delete")
+                                    onClicked: root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.settings.deleteRegisteredHost(index));
+                                    Material.roundedScale: Material.SmallScale
+                                    Material.accent: Material.Red
+                                }
+                            }
+                        }
+
+                        Label {
+                            id: hiddenConsolesLabel
+                            Layout.alignment: Qt.AlignHCenter
+                            text: qsTr("Hidden Consoles")
+                            font.bold: true
+                        }
+                        ListView {
+                            id: hiddenConsolesView
+                            Layout.alignment: Qt.AlignHCenter
+                            keyNavigationEnabled: false
+                            height: 170
+                            onCountChanged: {
+                                hiddenConsolesView.contentHeight = hiddenConsolesView.count * 80 + hiddenConsolesView.anchors.topMargin;
+                            }
+                            clip: true
+                            width: 500
+                            ScrollBar.vertical: ScrollBar {
+                                id: hiddenConsolesScrollbar
+                                policy: ScrollBar.AlwaysOn
+                                visible: hiddenConsolesView.contentHeight > hiddenConsolesView.height
+                            }
+                            model: Chiaki.hiddenHosts
+                            delegate: ItemDelegate {
+                                text: "%1 (%2)".arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.name)
+                                height: 80
+                                width: parent ? parent.width : 0
+
+                                Button {
+                                    property bool firstInFocusChain: false
+                                    property bool lastInFocusChain: index > hiddenConsolesView.count - 2
+                                    Material.background: visualFocus ? Material.accent : undefined
+
+                                    Component.onDestruction: {
+                                        if (visualFocus) {
+                                            let item = nextItemInFocusChain();
+                                            if (item)
+                                                item.forceActiveFocus(Qt.TabFocusReason);
+                                        }
+                                    }
+                                    Keys.onPressed: (event) => {
+                                        switch (event.key) {
+                                            case Qt.Key_Up:
+                                                if (!firstInFocusChain)
+                                                {
+                                                    let item = nextItemInFocusChain(false);
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        dialog.ensureItemVisibleInFlick(hiddenConsolesView, item);
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Down:
+                                                if (!lastInFocusChain) {
+                                                    let item = nextItemInFocusChain();
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        dialog.ensureItemVisibleInFlick(hiddenConsolesView, item);
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Return:
+                                                if (visualFocus) {
+                                                    clicked();
+                                                }
+                                                event.accepted = true;
+                                                break;
+                                        }
+                                    }
+                                    anchors {
+                                        right: parent.right
+                                        verticalCenter: parent.verticalCenter
+                                        rightMargin: 20
+                                    }
+                                    text: qsTr("Unhide")
+                                    onClicked: root.showConfirmDialog(qsTr("Unhide Console"), qsTr("Are you sure you want to unhide this console?"), () => Chiaki.unhideHost(modelData.mac));
+                                    Material.roundedScale: Material.SmallScale
+                                    Material.accent: Material.Red
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Item {
+                // Keys
+                id: controllerMapping
+                Flickable {
+                    id: keysFlick
+                    anchors {
+                        fill: parent
+                        topMargin: 20
+                        bottomMargin: 20
+                    }
+                    clip: true
+                    contentWidth: Math.max(width, keysGrid.width)
+                    contentHeight: keysGrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    function ensureItemVisible(item) {
+                        if (!item)
+                            return;
+                        const top = item.mapToItem(keysGrid, 0, 0).y;
+                        const bottom = top + item.height;
+                        if (top < contentY)
+                            contentY = top;
+                        else if (bottom > contentY + height)
+                            contentY = bottom - height;
+                    }
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: keysFlick.contentHeight > keysFlick.height
+                    }
+                    GridLayout {
+                        id: keysGrid
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                        columns: 3
+                        rowSpacing: 3
+                        columnSpacing: 10
+
+                        Button {
+                            id: resetAllKeys
+                            text: "Reset All Keys"
+                            Layout.alignment: Qt.AlignRight
+                            property bool firstInFocusChain: true
+                            property bool lastInFocusChain: false
+                            onClicked: Chiaki.settings.clearKeyMapping()
+                            Material.roundedScale: Material.SmallScale
+                            Material.background: visualFocus ? Material.accent : undefined
+                            onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+
+                            Component.onDestruction: {
+                                if (visualFocus) {
+                                    let item = nextItemInFocusChain();
+                                    if (item)
+                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                }
+                            }
                             Keys.onPressed: (event) => {
                                 switch (event.key) {
-                                case Qt.Key_Right:
+                                case Qt.Key_Down:
                                     if (!lastInFocusChain) {
                                         let item = nextItemInFocusChain();
-                                        if (item)
+                                        if (item) {
                                             item.forceActiveFocus(Qt.TabFocusReason);
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Up:
-                                    if (!firstInFocusChain) {
-                                        let item = nextItemInFocusChain(false);
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                        if(consolesScrollbar.position > 0.001)
-                                            consolesView.flick(0, 500);
-                                        let count = index > 0 ? 2: 0;
-                                        for(var i = 0; i < count; i++)
+                                            keysFlick.ensureItemVisible(item);
+                                        }
+                                        for(var i = 0; i < 3; i++)
                                         {
-                                            let item2 = item.nextItemInFocusChain(false);
+                                            let item2 = item.nextItemInFocusChain();
                                             if (item)
                                             {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
+                                                keysFlick.ensureItemVisible(item);
                                                 item = item2;
                                             }
                                         }
                                         event.accepted = true;
                                     }
                                     break;
-                                case Qt.Key_Down:
-                                    if (!lastDownInFocusChain) {
+                                case Qt.Key_Right:
+                                    if (!lastInFocusChain) {
                                         let item = nextItemInFocusChain();
-                                        if (item)
+                                        if (item) {
                                             item.forceActiveFocus(Qt.TabFocusReason);
-                                        if(consolesScrollbar.position < 1.0 - consolesScrollbar.size - 0.001)
-                                            consolesView.flick(0, -500);
-                                        let count = 2;
-                                        for(var i = 0; i < count; i++)
-                                        {
-                                            let item2 = item.nextItemInFocusChain();
-                                            if (item)
-                                            {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                item = item2;
-                                            }
+                                            keysFlick.ensureItemVisible(item);
                                         }
                                         event.accepted = true;
                                     }
                                     break;
                                 case Qt.Key_Return:
                                     if (visualFocus) {
-                                        toggle();
-                                        toggled();
+                                        clicked();
                                     }
                                     event.accepted = true;
                                     break;
@@ -1762,10 +2139,18 @@ DialogView {
                             }
                         }
 
-                        Button {
+                        CheckBox {
+                            text: qsTr("Enable Keyboard mapping")
+                            checked: {
+                                Chiaki.settings.keyboardEnabled
+                            }
+                            onToggled: Chiaki.settings.keyboardEnabled = checked
+                            Layout.alignment: Qt.AlignRight
                             property bool firstInFocusChain: false
-                            property bool lastInFocusChain: index > consolesView.count + hiddenConsolesView.count - 2
+                            property bool lastInFocusChain: false
+                            Material.roundedScale: Material.SmallScale
                             Material.background: visualFocus ? Material.accent : undefined
+                            onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
 
                             Component.onDestruction: {
                                 if (visualFocus) {
@@ -1779,112 +2164,65 @@ DialogView {
                                     case Qt.Key_Left:
                                         if (!firstInFocusChain) {
                                             let item = nextItemInFocusChain(false);
-                                            if (item)
+                                            if (item) {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
+                                                keysFlick.ensureItemVisible(item);
+                                            }
                                             event.accepted = true;
                                         }
                                         break;
-                                    case Qt.Key_Up:
-                                        if (!firstInFocusChain)
-                                        {
-                                            let item = nextItemInFocusChain(false);
-                                            if (item)
+                                    case Qt.Key_Right:
+                                        if  (!lastInFocusChain) {
+                                            let item = nextItemInFocusChain();
+                                            if (item) {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
-                                            let count = 2;
-                                            for(var i = 0; i < count; i++)
-                                            {
-                                                let item2 = item.nextItemInFocusChain(false);
-                                                if (item)
-                                                {
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                    item = item2;
-                                                }
+                                                keysFlick.ensureItemVisible(item);
                                             }
-                                            if(consolesScrollbar.position > 0.001)
-                                                consolesView.flick(0, 500);
                                             event.accepted = true;
                                         }
                                         break;
                                     case Qt.Key_Down:
                                         if (!lastInFocusChain) {
                                             let item = nextItemInFocusChain();
-                                            if (item)
+                                            if (item) {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
-                                            let count = index < consolesView.count - 1 ? 2: 0;
-                                            for(var i = 0; i < count; i++)
+                                                keysFlick.ensureItemVisible(item);
+                                            }
+                                            for(var i = 0; i < 3; i++)
                                             {
                                                 let item2 = item.nextItemInFocusChain();
                                                 if (item)
                                                 {
                                                     item.forceActiveFocus(Qt.TabFocusReason);
+                                                    keysFlick.ensureItemVisible(item);
                                                     item = item2;
                                                 }
                                             }
-                                            if(consolesScrollbar.position < 1.0 - consolesScrollbar.size - 0.001)
-                                                consolesView.flick(0, -500);
                                             event.accepted = true;
                                         }
                                         break;
                                     case Qt.Key_Return:
                                         if (visualFocus) {
-                                            clicked();
+                                            toggle();
+                                            toggled();
                                         }
                                         event.accepted = true;
                                         break;
                                 }
                             }
-                            anchors {
-                                right: parent.right
-                                verticalCenter: parent.verticalCenter
-                                rightMargin: 20
-                            }
-                            text: qsTr("Delete")
-                            onClicked: root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => Chiaki.settings.deleteRegisteredHost(index));
-                            Material.roundedScale: Material.SmallScale
-                            Material.accent: Material.Red
                         }
-                    }
-                }
-
-                Label {
-                    id: hiddenConsolesLabel
-                    anchors {
-                        top: consolesView.bottom
-                        horizontalCenter: consolesView.horizontalCenter
-                        topMargin: 10
-                    }
-                    text: qsTr("Hidden Consoles")
-                    font.bold: true
-                }
-                ListView {
-                    id: hiddenConsolesView
-                    keyNavigationEnabled: false
-                    height: 170
-                    onCountChanged: {
-                        hiddenConsolesView.contentHeight = hiddenConsolesView.count * 80 + hiddenConsolesView.anchors.topMargin;
-                    }
-                    anchors {
-                        top: hiddenConsolesLabel.bottom
-                        horizontalCenter: hiddenConsolesLabel.horizontalCenter
-                        topMargin: 10
-                    }
-                    clip: true
-                    width: 500
-                    ScrollBar.vertical: ScrollBar {
-                        id: hiddenConsolesScrollbar
-                        policy: ScrollBar.AlwaysOn
-                        visible: hiddenConsolesView.contentHeight > hiddenConsolesView.height
-                    }
-                    model: Chiaki.hiddenHosts
-                    delegate: ItemDelegate {
-                        text: "%1 (%2)".arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.name)
-                        height: 80
-                        width: parent ? parent.width : 0
-
-                        Button {
+                        CheckBox {
+                            text: qsTr("Enable Mouse Touchpad")
+                            checked: {
+                                Chiaki.settings.mouseTouchEnabled
+                            }
+                            onToggled: Chiaki.settings.mouseTouchEnabled = checked
+                            Layout.alignment: Qt.AlignRight
                             property bool firstInFocusChain: false
-                            property bool lastInFocusChain: index > hiddenConsolesView.count - 2
+                            property bool lastInFocusChain: false
+                            Material.roundedScale: Material.SmallScale
                             Material.background: visualFocus ? Material.accent : undefined
+                            onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
 
                             Component.onDestruction: {
                                 if (visualFocus) {
@@ -1895,328 +2233,151 @@ DialogView {
                             }
                             Keys.onPressed: (event) => {
                                 switch (event.key) {
-                                    case Qt.Key_Up:
-                                        if (!firstInFocusChain)
-                                        {
+                                    case Qt.Key_Left:
+                                        if (!firstInFocusChain) {
                                             let item = nextItemInFocusChain(false);
-                                            if (item)
+                                            if (item) {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
-                                            if(hiddenConsolesScrollbar.position > 0.001)
-                                                hiddenConsolesView.flick(0, 500);
+                                                keysFlick.ensureItemVisible(item);
+                                            }
                                             event.accepted = true;
                                         }
                                         break;
                                     case Qt.Key_Down:
                                         if (!lastInFocusChain) {
                                             let item = nextItemInFocusChain();
-                                            if (item)
+                                            if (item) {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
-                                            if(hiddenConsolesScrollbar.position < 1.0 - hiddenConsolesScrollbar.size - 0.001)
-                                                hiddenConsolesView.flick(0, -500);
+                                                keysFlick.ensureItemVisible(item);
+                                            }
+                                            for(var i = 0; i < 3; i++)
+                                            {
+                                                let item2 = item.nextItemInFocusChain();
+                                                if (item)
+                                                {
+                                                    item.forceActiveFocus(Qt.TabFocusReason);
+                                                    keysFlick.ensureItemVisible(item);
+                                                    item = item2;
+                                                }
+                                            }
                                             event.accepted = true;
                                         }
                                         break;
                                     case Qt.Key_Return:
                                         if (visualFocus) {
-                                            clicked();
+                                            toggle();
+                                            toggled();
                                         }
                                         event.accepted = true;
                                         break;
                                 }
                             }
-                            anchors {
-                                right: parent.right
-                                verticalCenter: parent.verticalCenter
-                                rightMargin: 20
-                            }
-                            text: qsTr("Unhide")
-                            onClicked: root.showConfirmDialog(qsTr("Unhide Console"), qsTr("Are you sure you want to unhide this console?"), () => Chiaki.unhideHost(modelData.mac));
-                            Material.roundedScale: Material.SmallScale
-                            Material.accent: Material.Red
                         }
-                    }
-                }
-            }
+                        Repeater {
+                            id: chiakiKeys
+                            model: Chiaki.settings.controllerMapping
 
-            Item {
-                // Keys
-                id: controllerMapping
-                GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
-                    columns: 3
-                    rowSpacing: 3
-                    columnSpacing: 10
+                            RowLayout {
+                                spacing: 20
 
-                    Button {
-                        text: "Reset All Keys"
-                        Layout.alignment: Qt.AlignRight
-                        property bool firstInFocusChain: true
-                        property bool lastInFocusChain: false
-                        onClicked: Chiaki.settings.clearKeyMapping()
-                        Material.roundedScale: Material.SmallScale
-                        Material.background: visualFocus ? Material.accent : undefined
-
-                        Component.onDestruction: {
-                            if (visualFocus) {
-                                let item = nextItemInFocusChain();
-                                if (item)
-                                    item.forceActiveFocus(Qt.TabFocusReason);
-                            }
-                        }
-                        Keys.onPressed: (event) => {
-                            switch (event.key) {
-                            case Qt.Key_Down:
-                                if (!lastInFocusChain) {
-                                    let item = nextItemInFocusChain();
-                                    if (item)
-                                        item.forceActiveFocus(Qt.TabFocusReason);
-                                    for(var i = 0; i < 3; i++)
-                                    {
-                                        let item2 = item.nextItemInFocusChain();
-                                        if (item)
-                                        {
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                            item = item2;
-                                        }
-                                    }
-                                    event.accepted = true;
+                                Label {
+                                    Layout.preferredWidth: 200
+                                    horizontalAlignment: Text.AlignRight
+                                    text: modelData.buttonName
                                 }
-                                break;
-                            case Qt.Key_Right:
-                                if (!lastInFocusChain) {
-                                    let item = nextItemInFocusChain();
-                                    if (item)
-                                        item.forceActiveFocus(Qt.TabFocusReason);
-                                    event.accepted = true;
-                                }
-                                break;
-                            case Qt.Key_Return:
-                                if (visualFocus) {
-                                    clicked();
-                                }
-                                event.accepted = true;
-                                break;
-                            }
-                        }
-                    }
 
-                    CheckBox {
-                        text: qsTr("Enable Keyboard mapping")
-                        checked: {
-                            Chiaki.settings.keyboardEnabled
-                        }
-                        onToggled: Chiaki.settings.keyboardEnabled = checked
-                        Layout.alignment: Qt.AlignRight
-                        property bool firstInFocusChain: false
-                        property bool lastInFocusChain: false
-                        Material.roundedScale: Material.SmallScale
-                        Material.background: visualFocus ? Material.accent : undefined
-
-                        Component.onDestruction: {
-                            if (visualFocus) {
-                                let item = nextItemInFocusChain();
-                                if (item)
-                                    item.forceActiveFocus(Qt.TabFocusReason);
-                            }
-                        }
-                        Keys.onPressed: (event) => {
-                            switch (event.key) {
-                                case Qt.Key_Left:
-                                    if (!firstInFocusChain) {
-                                        let item = nextItemInFocusChain(false);
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Right:
-                                    if  (!lastInFocusChain) {
-                                        let item = nextItemInFocusChain();
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Down:
-                                    if (!lastInFocusChain) {
-                                        let item = nextItemInFocusChain();
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                        for(var i = 0; i < 3; i++)
-                                        {
-                                            let item2 = item.nextItemInFocusChain();
+                                Button {
+                                    property bool firstInFocusChain: false
+                                    property bool lastInFocusChain: index == (chiakiKeys.count - 1)
+                                    Layout.preferredWidth: 170
+                                    Layout.preferredHeight: 52
+                                    text: modelData.keyName
+                                    Material.roundedScale: Material.SmallScale
+                                    Material.background: visualFocus ? Material.accent : undefined
+                                    onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+                                    Component.onDestruction: {
+                                        if (visualFocus) {
+                                            let item = nextItemInFocusChain();
                                             if (item)
-                                            {
                                                 item.forceActiveFocus(Qt.TabFocusReason);
-                                                item = item2;
-                                            }
                                         }
-                                        event.accepted = true;
                                     }
-                                    break;
-                                case Qt.Key_Return:
-                                    if (visualFocus) {
-                                        toggle();
-                                        toggled();
+                                    onClicked: {
+                                        keyDialog.show({
+                                            value: modelData.buttonValue,
+                                            mappingIndex: index,
+                                            callback: (name) => text = name,
+                                        });
                                     }
-                                    event.accepted = true;
-                                    break;
-                            }
-                        }
-                    }
-                    CheckBox {
-                        text: qsTr("Enable Mouse Touchpad")
-                        checked: {
-                            Chiaki.settings.mouseTouchEnabled
-                        }
-                        onToggled: Chiaki.settings.mouseTouchEnabled = checked
-                        Layout.alignment: Qt.AlignRight
-                        property bool firstInFocusChain: false
-                        property bool lastInFocusChain: false
-                        Material.roundedScale: Material.SmallScale
-                        Material.background: visualFocus ? Material.accent : undefined
-
-                        Component.onDestruction: {
-                            if (visualFocus) {
-                                let item = nextItemInFocusChain();
-                                if (item)
-                                    item.forceActiveFocus(Qt.TabFocusReason);
-                            }
-                        }
-                        Keys.onPressed: (event) => {
-                            switch (event.key) {
-                                case Qt.Key_Left:
-                                    if (!firstInFocusChain) {
-                                        let item = nextItemInFocusChain(false);
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Down:
-                                    if (!lastInFocusChain) {
-                                        let item = nextItemInFocusChain();
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                        for(var i = 0; i < 3; i++)
-                                        {
-                                            let item2 = item.nextItemInFocusChain();
-                                            if (item)
-                                            {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                item = item2;
-                                            }
+                                    Keys.onPressed: (event) => {
+                                        switch (event.key) {
+                                            case Qt.Key_Left:
+                                                if (!firstInFocusChain && ((index % 3) != 0)) {
+                                                    let item = nextItemInFocusChain(false);
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        keysFlick.ensureItemVisible(item);
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Right:
+                                                if  (!lastInFocusChain && (index % 3) != 2) {
+                                                    let item = nextItemInFocusChain();
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        keysFlick.ensureItemVisible(item);
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Up:
+                                                if (!firstInFocusChain)
+                                                {
+                                                    let item = nextItemInFocusChain(false);
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        keysFlick.ensureItemVisible(item);
+                                                    }
+                                                    for(var i = 0; i < 3; i++)
+                                                    {
+                                                        let item2 = item.nextItemInFocusChain(false);
+                                                        if (item)
+                                                        {
+                                                            item.forceActiveFocus(Qt.TabFocusReason);
+                                                            keysFlick.ensureItemVisible(item);
+                                                            item = item2;
+                                                        }
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Down:
+                                                if (!lastInFocusChain && index < (chiakiKeys.count - 3)) {
+                                                    let item = nextItemInFocusChain();
+                                                    if (item) {
+                                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                                        keysFlick.ensureItemVisible(item);
+                                                    }
+                                                    for(var i = 0; i < 3; i++)
+                                                    {
+                                                        let item2 = item.nextItemInFocusChain();
+                                                        if (item)
+                                                        {
+                                                            item.forceActiveFocus(Qt.TabFocusReason);
+                                                            keysFlick.ensureItemVisible(item);
+                                                            item = item2;
+                                                        }
+                                                    }
+                                                    event.accepted = true;
+                                                }
+                                                break;
+                                            case Qt.Key_Return:
+                                                if (visualFocus) {
+                                                    clicked();
+                                                }
+                                                break;
                                         }
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Return:
-                                    if (visualFocus) {
-                                        toggle();
-                                        toggled();
-                                    }
-                                    event.accepted = true;
-                                    break;
-                            }
-                        }
-                    }
-                    Repeater {
-                        id: chiakiKeys
-                        model: Chiaki.settings.controllerMapping
-
-                        RowLayout {
-                            spacing: 20
-
-                            Label {
-                                Layout.preferredWidth: 200
-                                horizontalAlignment: Text.AlignRight
-                                text: modelData.buttonName
-                            }
-
-                            Button {
-                                property bool firstInFocusChain: false
-                                property bool lastInFocusChain: index == (chiakiKeys.count - 1)
-                                Layout.preferredWidth: 170
-                                Layout.preferredHeight: 52
-                                text: modelData.keyName
-                                Material.roundedScale: Material.SmallScale
-                                Material.background: visualFocus ? Material.accent : undefined
-                                Component.onDestruction: {
-                                    if (visualFocus) {
-                                        let item = nextItemInFocusChain();
-                                        if (item)
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                    }
-                                }
-                                onClicked: {
-                                    keyDialog.show({
-                                        value: modelData.buttonValue,
-                                        mappingIndex: index,
-                                        callback: (name) => text = name,
-                                    });
-                                }
-                                Keys.onPressed: (event) => {
-                                    switch (event.key) {
-                                        case Qt.Key_Left:
-                                            if (!firstInFocusChain && ((index % 3) != 0)) {
-                                                let item = nextItemInFocusChain(false);
-                                                if (item)
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                event.accepted = true;
-                                            }
-                                            break;
-                                        case Qt.Key_Right:
-                                            if  (!lastInFocusChain && (index % 3) != 2) {
-                                                let item = nextItemInFocusChain();
-                                                if (item)
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                event.accepted = true;
-                                            }
-                                            break;
-                                        case Qt.Key_Up:
-                                            if (!firstInFocusChain)
-                                            {
-                                                let item = nextItemInFocusChain(false);
-                                                if (item)
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                for(var i = 0; i < 3; i++)
-                                                {
-                                                    let item2 = item.nextItemInFocusChain(false);
-                                                    if (item)
-                                                    {
-                                                        item.forceActiveFocus(Qt.TabFocusReason);
-                                                        item = item2;
-                                                    }
-                                                }
-                                                event.accepted = true;
-                                            }
-                                            break;
-                                        case Qt.Key_Down:
-                                            if (!lastInFocusChain && index < (chiakiKeys.count - 3)) {
-                                                let item = nextItemInFocusChain();
-                                                if (item)
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                for(var i = 0; i < 3; i++)
-                                                {
-                                                    let item2 = item.nextItemInFocusChain();
-                                                    if (item)
-                                                    {
-                                                        item.forceActiveFocus(Qt.TabFocusReason);
-                                                        item = item2;
-                                                    }
-                                                }
-                                                event.accepted = true;
-                                            }
-                                            break;
-                                        case Qt.Key_Return:
-                                            if (visualFocus) {
-                                                clicked();
-                                            }
-                                            break;
                                     }
                                 }
                             }
@@ -2229,22 +2390,19 @@ DialogView {
                 // Controllers
                 Flickable {
                     id: controllersFlick
-                    implicitWidth: parent.width ? parent.width: 0
-                    implicitHeight: parent.height ? parent.height: 0
                     anchors {
                         fill: parent
                         topMargin: 20
                         bottomMargin: 20
-                        leftMargin: parent.width ? (parent.width / 2 - controllersLayout.width / 2) : 0
                     }
                     clip: true
-                    contentWidth: controllersLayout.width
+                    contentWidth: Math.max(width, controllersLayout.width)
                     contentHeight: controllersLayout.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
                     ScrollBar.vertical: ScrollBar {
                         id: controllersScrollbar
                         policy: ScrollBar.AlwaysOn
-                        visible: controllersFlick.contentHeight > controllersFlick.implicitHeight - controllersFlick.anchors.topMargin - controllersFlick.anchors.bottomMargin
+                        visible: controllersFlick.contentHeight > controllersFlick.height
                     }
                     ColumnLayout {
                         id: controllersLayout
@@ -2254,7 +2412,6 @@ DialogView {
                         }
                         spacing: 10
                         C.Button {
-                            sendOutput: true
                             Layout.alignment: Qt.AlignHCenter
                             id: controllerMappingChange
                             firstInFocusChain: true
@@ -2264,7 +2421,6 @@ DialogView {
                             });
                         }
                         C.Button {
-                            sendOutput: true
                             Layout.alignment: Qt.AlignHCenter
                             id: controllerMappingReset
                             text: "Reset Controller Mapping"
@@ -2282,7 +2438,6 @@ DialogView {
                             }
                             C.CheckBox {
                                 id: backgroundController
-                                sendOutput: true
                                 text: qsTr("Process controller input when application is in background")
                                 checked: {
                                     Chiaki.settings.allowJoystickBackgroundEvents
@@ -2303,7 +2458,6 @@ DialogView {
                                 text: qsTr("Dpad Touchpad Emulation")
                             }
                             C.CheckBox {
-                                sendOutput: true
                                 id: dpadTouch
                                 checked: Chiaki.settings.dpadTouchEnabled
                                 onToggled: Chiaki.settings.dpadTouchEnabled = !Chiaki.settings.dpadTouchEnabled
@@ -2336,7 +2490,6 @@ DialogView {
                             }
 
                             C.Slider {
-                                sendOutput: true
                                 id: touchIncrement
                                 Layout.preferredWidth: 250
                                 from: 1
@@ -2469,7 +2622,6 @@ DialogView {
 
                             C.CheckBox {
                                 id: posButtons
-                                sendOutput: true
                                 text: qsTr("Use buttons by position instead of by label")
                                 checked: Chiaki.settings.buttonsByPosition
                                 onToggled: Chiaki.settings.buttonsByPosition = checked
@@ -2520,7 +2672,6 @@ DialogView {
                             }
 
                             C.Slider {
-                                sendOutput: true
                                 id: hapticOverride
                                 Layout.preferredWidth: 250
                                 from: 0
@@ -2556,34 +2707,50 @@ DialogView {
 
             Item {
                 // Config (PSN Remote Connection Setup and Import/Export)
-                GridLayout {
+                Flickable {
+                    id: configFlick
                     anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 50
+                        fill: parent
+                        topMargin: 20
+                        bottomMargin: 20
                     }
-                    columns: 1
-                    rowSpacing: 20
-                    columnSpacing: 10
-
-                    Label {
-                        text: {
-                            if(Chiaki.settings.currentProfile)
-                                qsTr("Current Profile: ") + Chiaki.settings.currentProfile
-                            else
-                                qsTr("Current Profile: default")
+                    clip: true
+                    contentWidth: Math.max(width, configGrid.width)
+                    contentHeight: configGrid.y + configGrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: configFlick.contentHeight > configFlick.height
+                    }
+                    GridLayout {
+                        id: configGrid
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                            topMargin: 30
                         }
-                    }
+                        columns: 1
+                        rowSpacing: 20
+                        columnSpacing: 10
 
-                    C.Button {
-                        id: profile
-                        firstInFocusChain: true
-                        text: qsTr("Manage Profiles")
-                        onClicked: {
-                            root.showProfileDialog()
+                        Label {
+                            text: {
+                                if(Chiaki.settings.currentProfile)
+                                    qsTr("Current Profile: ") + Chiaki.settings.currentProfile
+                                else
+                                    qsTr("Current Profile: default")
+                            }
                         }
-                        Material.roundedScale: Material.SmallScale
-                    }
+
+                        C.Button {
+                            id: profile
+                            firstInFocusChain: true
+                            text: qsTr("Manage Profiles")
+                            onClicked: {
+                                root.showProfileDialog()
+                            }
+                            Material.roundedScale: Material.SmallScale
+                        }
 
                     C.Button {
                         id: openPsnLogin
@@ -2644,13 +2811,21 @@ DialogView {
                         onToggled: Chiaki.settings.logSanitize = checked
                     }
 
-                    C.CheckBox {
-                        text: qsTr("Verbose Logging (unchecked)")
-                        checked: Chiaki.settings.logVerbose
-                        lastInFocusChain: true
-                        onToggled: Chiaki.settings.logVerbose = checked
+                        C.CheckBox {
+                            text: qsTr("Verbose Logging (unchecked)")
+                            checked: Chiaki.settings.logVerbose
+                            lastInFocusChain: true
+                            onToggled: Chiaki.settings.logVerbose = checked
+                        }
                     }
                 }
+            }
+        }
+
+        Connections {
+            target: dialog.Window.window
+            function onActiveFocusItemChanged() {
+                dialog.ensureActiveFocusVisible()
             }
         }
 
