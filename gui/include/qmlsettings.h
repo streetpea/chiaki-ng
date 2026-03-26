@@ -62,6 +62,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(float sZoomFactor READ sZoomFactor WRITE setSZoomFactor NOTIFY sZoomFactorChanged)
     Q_PROPERTY(int packetLossReportedMax READ packetLossReportedMax WRITE setPacketLossReportedMax NOTIFY packetLossReportedMaxChanged)
     Q_PROPERTY(int packetLossThrottleThreshold READ packetLossThrottleThreshold WRITE setPacketLossThrottleThreshold NOTIFY packetLossThrottleThresholdChanged)
+    Q_PROPERTY(int queueDepthLimit READ queueDepthLimit WRITE setQueueDepthLimit NOTIFY queueDepthLimitChanged)
     Q_PROPERTY(bool throttleVideoOnLoss READ throttleVideoOnLoss WRITE setThrottleVideoOnLoss NOTIFY throttleVideoOnLossChanged)
     Q_PROPERTY(QString autoConnectMac READ autoConnectMac WRITE setAutoConnectMac NOTIFY autoConnectMacChanged)
     Q_PROPERTY(bool allowJoystickBackgroundEvents READ allowJoystickBackgroundEvents WRITE setAllowJoystickBackgroundEvents NOTIFY allowJoystickBackgroundEventsChanged)
@@ -305,6 +306,8 @@ public:
     void setPacketLossReportedMax(int packet_loss_reported_max);
     int packetLossThrottleThreshold() const;
     void setPacketLossThrottleThreshold(int packet_loss_throttle_threshold);
+    int queueDepthLimit() const;
+    void setQueueDepthLimit(int queue_depth_limit);
     bool throttleVideoOnLoss() const;
     void setThrottleVideoOnLoss(bool enabled);
 
@@ -667,6 +670,7 @@ signals:
     void controllerMappingChanged();
     void packetLossReportedMaxChanged();
     void packetLossThrottleThresholdChanged();
+    void queueDepthLimitChanged();
     void throttleVideoOnLossChanged();
     void iDROnFECFailureEnabledChanged();
     void currentProfileChanged();

@@ -908,6 +908,37 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Placebo Queue Depth Limit")
+                        visible: Chiaki.settings.throttleVideoOnLoss
+                    }
+
+                    C.Slider {
+                        Layout.preferredWidth: 360
+                        from: 1
+                        to: 5
+                        stepSize: 1
+                        value: Chiaki.settings.queueDepthLimit
+                        onMoved: Chiaki.settings.queueDepthLimit = value
+                        visible: Chiaki.settings.throttleVideoOnLoss
+
+                        Label {
+                            anchors {
+                                left: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: 10
+                            }
+                            text: qsTr("%1 frames").arg(parent.value)
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(3)")
+                        visible: Chiaki.settings.throttleVideoOnLoss
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Renderer Backend:")
                     }
 
@@ -1710,7 +1741,7 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Throttle video when packet loss is high")
+                            text: qsTr("Throttle Video When Packet Loss Is High")
                         }
 
                         C.CheckBox {

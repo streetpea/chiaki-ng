@@ -373,6 +373,8 @@ class Settings : public QObject
 		void SetPacketLossReportedMax(float reported_max);
 		float GetPacketLossThrottleThreshold() const;
 		void SetPacketLossThrottleThreshold(float throttle_threshold);
+		int GetQueueDepthLimit() const;
+		void SetQueueDepthLimit(int limit);
 		bool GetThrottleVideoOnLoss() const;
 		void SetThrottleVideoOnLoss(bool enabled);
 

@@ -652,8 +652,20 @@ int QmlSettings::packetLossThrottleThreshold() const
 void QmlSettings::setPacketLossThrottleThreshold(int packet_loss_throttle_threshold)
 {
     float packet_loss = static_cast<float>(packet_loss_throttle_threshold) / 100.0f;
+    packet_loss = qBound(0.02f, packet_loss, 0.25f);
     settings->SetPacketLossThrottleThreshold(packet_loss);
     emit packetLossThrottleThresholdChanged();
+}
+
+int QmlSettings::queueDepthLimit() const
+{
+    return settings->GetQueueDepthLimit();
+}
+
+void QmlSettings::setQueueDepthLimit(int queue_depth_limit)
+{
+    settings->SetQueueDepthLimit(queue_depth_limit);
+    emit queueDepthLimitChanged();
 }
 
 bool QmlSettings::throttleVideoOnLoss() const
@@ -1876,6 +1888,7 @@ void QmlSettings::refreshAllKeys()
     emit controllerMappingChanged();
     emit packetLossReportedMaxChanged();
     emit packetLossThrottleThresholdChanged();
+    emit queueDepthLimitChanged();
     emit throttleVideoOnLossChanged();
     emit currentProfileChanged();
     emit profilesChanged();
