@@ -639,14 +639,42 @@ void Settings::SetZoomFactor(float factor)
 	settings.setValue("settings/zoom_factor", QString("%1").arg(factor, 0, 'f', 2));
 }
 
-float Settings::GetPacketLossMax() const
+float Settings::GetPacketLossReportedMax() const
 {
-	return settings.value("settings/packet_loss_max", 0.05).toFloat();
+	if (settings.contains("settings/packet_loss_reported_max"))
+		return settings.value("settings/packet_loss_reported_max").toFloat();
+	if (settings.contains("settings/packet_loss_max"))
+		return settings.value("settings/packet_loss_max").toFloat();
+	return 0.03f;
 }
 
-void Settings::SetPacketLossMax(float packet_loss_max)
+void Settings::SetPacketLossReportedMax(float reported_max)
 {
-	settings.setValue("settings/packet_loss_max", QString("%1").arg(packet_loss_max, 0, 'f', 2));
+	settings.setValue("settings/packet_loss_reported_max", QString("%1").arg(reported_max, 0, 'f', 2));
+}
+
+float Settings::GetPacketLossThrottleThreshold() const
+{
+	if (settings.contains("settings/packet_loss_throttle_threshold"))
+		return settings.value("settings/packet_loss_throttle_threshold").toFloat();
+	if (settings.contains("settings/packet_loss_throttle_min"))
+		return settings.value("settings/packet_loss_throttle_min").toFloat();
+	return 0.05f;
+}
+
+void Settings::SetPacketLossThrottleThreshold(float throttle_threshold)
+{
+	settings.setValue("settings/packet_loss_throttle_threshold", QString("%1").arg(throttle_threshold, 0, 'f', 2));
+}
+
+bool Settings::GetThrottleVideoOnLoss() const
+{
+	return settings.value("settings/throttle_video_on_loss", true).toBool();
+}
+
+void Settings::SetThrottleVideoOnLoss(bool enabled)
+{
+	settings.setValue("settings/throttle_video_on_loss", enabled);
 }
 
 static const QMap<WindowType, QString> window_type_values = {

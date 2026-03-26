@@ -369,8 +369,12 @@ class Settings : public QObject
 		float GetZoomFactor() const;
 		void SetZoomFactor(float factor);
 
-		float GetPacketLossMax() const;
-		void SetPacketLossMax(float factor);
+		float GetPacketLossReportedMax() const;
+		void SetPacketLossReportedMax(float reported_max);
+		float GetPacketLossThrottleThreshold() const;
+		void SetPacketLossThrottleThreshold(float throttle_threshold);
+		bool GetThrottleVideoOnLoss() const;
+		void SetThrottleVideoOnLoss(bool enabled);
 
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);

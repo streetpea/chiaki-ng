@@ -114,6 +114,10 @@ public:
     Q_INVOKABLE void grabInput();
     Q_INVOKABLE void releaseInput();
 
+public slots:
+    void resetPlaceboQueue();
+    void schedulePlaceboReset();
+
     void updatePlacebo();
     void updateVSync();
     void show();
@@ -198,6 +202,9 @@ private:
     bool render_pending = false;
     QAtomicInteger<int> swapchain_recreate_pending = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
+    QAtomicInteger<int> placebo_reset_pending = 0;
+    QAtomicInteger<int> render_active = 0;
+    QAtomicInteger<int> throttle_queue_push_counter = 0;
     bool present_vsync_enabled = true;
 
     QVulkanInstance *qt_vk_inst = {};

@@ -632,16 +632,39 @@ void QmlSettings::setSZoomFactor(float factor)
     emit sZoomFactorChanged();
 }
 
-int QmlSettings::packetLossMax() const
+int QmlSettings::packetLossReportedMax() const
 {
-    return (settings->GetPacketLossMax() * 100);
+    return static_cast<int>(settings->GetPacketLossReportedMax() * 100);
 }
 
-void QmlSettings::setPacketLossMax(int packet_loss_max)
+void QmlSettings::setPacketLossReportedMax(int packet_loss_reported_max)
 {
-    float packet_loss = (float)packet_loss_max / (float)100;
-    settings->SetPacketLossMax(packet_loss);
-    emit packetLossMaxChanged();
+    float packet_loss = static_cast<float>(packet_loss_reported_max) / 100.0f;
+    settings->SetPacketLossReportedMax(packet_loss);
+    emit packetLossReportedMaxChanged();
+}
+
+int QmlSettings::packetLossThrottleThreshold() const
+{
+    return static_cast<int>(settings->GetPacketLossThrottleThreshold() * 100);
+}
+
+void QmlSettings::setPacketLossThrottleThreshold(int packet_loss_throttle_threshold)
+{
+    float packet_loss = static_cast<float>(packet_loss_throttle_threshold) / 100.0f;
+    settings->SetPacketLossThrottleThreshold(packet_loss);
+    emit packetLossThrottleThresholdChanged();
+}
+
+bool QmlSettings::throttleVideoOnLoss() const
+{
+    return settings->GetThrottleVideoOnLoss();
+}
+
+void QmlSettings::setThrottleVideoOnLoss(bool enabled)
+{
+    settings->SetThrottleVideoOnLoss(enabled);
+    emit throttleVideoOnLossChanged();
 }
 
 int QmlSettings::videoPreset() const
@@ -1851,7 +1874,9 @@ void QmlSettings::refreshAllKeys()
     emit streamMenuShortcut3Changed();
     emit streamMenuShortcut4Changed();
     emit controllerMappingChanged();
-    emit packetLossMaxChanged();
+    emit packetLossReportedMaxChanged();
+    emit packetLossThrottleThresholdChanged();
+    emit throttleVideoOnLossChanged();
     emit currentProfileChanged();
     emit profilesChanged();
     refreshAllPlaceboKeys();
