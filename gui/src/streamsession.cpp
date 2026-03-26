@@ -14,6 +14,9 @@
 #include <QKeyEvent>
 #include <QMutexLocker>
 #include <QtMath>
+#include <atomic>
+
+#include <algorithm>
 
 #include <cstring>
 
@@ -80,7 +83,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		bool auto_regist,
 		bool fullscreen, 
 		bool zoom, 
-		bool stretch)
+		bool stretch,
+		bool throttle_video_on_loss)
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
@@ -109,6 +113,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->fullscreen = fullscreen;
 	this->zoom = zoom;
 	this->stretch = stretch;
+	this->throttle_video_on_loss = throttle_video_on_loss;
 	const bool keyboard_controller_enabled_setting = settings->GetKeyboardEnabled();
 	this->keyboard_controller_enabled = keyboard_controller_enabled_setting;
 	this->mouse_touch_enabled = settings->GetMouseTouchEnabled();
@@ -118,7 +123,8 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->rumble_haptics_intensity = settings->GetRumbleHapticsIntensity();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
-	this->packet_loss_max = settings->GetPacketLossMax();
+	this->packet_loss_max = settings->GetPacketLossReportedMax();
+	this->packet_loss_throttle_threshold = settings->GetPacketLossThrottleThreshold();
 	this->audio_video_disabled = settings->GetAudioVideoDisabled();
 	this->haptic_override = settings->GetHapticOverride();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -208,6 +214,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	input_block = 0;
 	player_index = 0;
 	memset(led_color, 0, sizeof(led_color));
+	packet_loss_max = connect_info.packet_loss_max;
+	packet_loss_throttle_threshold = connect_info.packet_loss_throttle_threshold;
+	throttle_video_on_loss = connect_info.throttle_video_on_loss;
 	ChiakiErrorCode err;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
@@ -465,7 +474,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		ConnectRumbleHaptics();
 	}
 	UpdateGamepads();
-
 	QTimer *packet_loss_timer = new QTimer(this);
 	packet_loss_timer->setInterval(200);
 	packet_loss_timer->start();
@@ -480,6 +488,29 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		{
 			average_packet_loss = packet_loss;
 			emit AveragePacketLossChanged();
+		}
+		if(!throttle_video_on_loss)
+		{
+			if(skip_video_due_to_network.loadAcquire() != 0)
+			{
+				skip_video_due_to_network.storeRelease(0);
+				CHIAKI_LOGI(log.GetChiakiLog(), "Packet loss throttling disabled, resuming video");
+			}
+			return;
+		}
+		const double drop_threshold = qMin(qMax(this->packet_loss_throttle_threshold * 1.5, 0.02), 0.25);
+		bool new_skip = packet_loss > drop_threshold;
+		bool old_skip = skip_video_due_to_network.loadAcquire() != 0;
+		if(new_skip != old_skip)
+		{
+			if(new_skip)
+				reset_placebo_after_throttle.storeRelease(1);
+			skip_video_due_to_network.storeRelease(new_skip ? 1 : 0);
+			if(new_skip)
+				CHIAKI_LOGW(log.GetChiakiLog(), "High packet loss %.3f > %.3f, throttling video", packet_loss, drop_threshold);
+			else
+				CHIAKI_LOGI(log.GetChiakiLog(), "Packet loss %.3f <= %.3f, resuming video", packet_loss, drop_threshold);
+			emit VideoThrottleChanged(new_skip);
 		}
 	});
 

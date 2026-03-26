@@ -520,12 +520,34 @@ void QmlMainWindow::show()
     }
 }
 
+namespace {
+constexpr int kThrottledQueuePushInterval = 3;
+}
+
 void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 {
     dropped_frames_current.fetchAndAddRelaxed(frames_lost);
 
     if (!frame.frame)
         return;
+
+    const bool throttled = session && session->ShouldSkipVideoFrame();
+    bool should_push_frame = true;
+    if (throttled)
+    {
+        const int count = throttle_queue_push_counter.fetchAndAddRelaxed(1);
+        should_push_frame = (count % kThrottledQueuePushInterval) == 0;
+    }
+    else
+    {
+        throttle_queue_push_counter.storeRelaxed(0);
+    }
+
+    if (!should_push_frame)
+    {
+        av_frame_free(&frame.frame);
+        return;
+    }
 
     frame.frame->opaque = this;
 
@@ -559,9 +581,6 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         pl_queue_push(placebo_queue, &src_frame);
     }
 
-    // Anchor the playback clock when the first video frame is queued, not when
-    // the first render completes. Otherwise any startup delay in the render
-    // path becomes a permanent video offset for that session.
     if (!playback_started) {
         uint64_t now_us = chiaki_time_now_monotonic_us();
         uint64_t frame_pts_us = src_frame.pts > 0.0
@@ -577,6 +596,23 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             setCursor(Qt::BlankCursor);
         emit hasVideoChanged();
     }
+    scheduleUpdate();
+}
+
+void QmlMainWindow::resetPlaceboQueue()
+{
+    QMutexLocker locker(&placebo_state_mutex);
+    pl_queue_reset(placebo_queue);
+    renderer_cache_flush_pending.storeRelaxed(1);
+    queue_pts_origin = -1.0;
+    playback_started = false;
+    ts_start = 0;
+    throttle_queue_push_counter.storeRelaxed(0);
+}
+
+void QmlMainWindow::schedulePlaceboReset()
+{
+    placebo_reset_pending.storeRelease(1);
     scheduleUpdate();
 }
 
@@ -1446,6 +1482,12 @@ void QmlMainWindow::render()
 {
     Q_ASSERT(QThread::currentThread() == render_thread);
 
+    struct RenderActiveGuard {
+        QAtomicInteger<int> &flag;
+        RenderActiveGuard(QAtomicInteger<int> &flag) : flag(flag) { flag.storeRelease(1); }
+        ~RenderActiveGuard() { flag.storeRelease(0); }
+    } render_guard(render_active);
+
     bool schedule_next_update = false;
     auto finalize_render = [this]() {
         bool pending = false;
@@ -1461,12 +1503,14 @@ void QmlMainWindow::render()
             }, Qt::QueuedConnection);
         }
     };
-
     if (swapchain_recreate_pending.fetchAndStoreRelaxed(0)) {
         destroySwapchain();
         createSwapchain();
         resizeSwapchain();
     }
+
+    if (placebo_reset_pending.fetchAndStoreRelaxed(0) != 0)
+        resetPlaceboQueue();
 
     if (!placebo_swapchain)
     {

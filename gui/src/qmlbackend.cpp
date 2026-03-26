@@ -23,6 +23,7 @@
 #include <QWebEngineCookieStore>
 #endif
 #include <QUrlQuery>
+#include <QMetaObject>
 #include <QtGlobal>
 #include <QGuiApplication>
 #include <QPixmap>
@@ -33,6 +34,7 @@
 
 extern "C" {
 #include <libavutil/pixdesc.h>
+#include <libavutil/pixfmt.h>
 }
 
 #define PSN_DEVICES_TRIES 2
@@ -857,6 +859,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (!frame.frame)
             return;
 
+        if (!frame.frame->data[0] || frame.frame->format == AV_PIX_FMT_NONE)
+        {
+            av_frame_free(&frame.frame);
+            return;
+        }
+
         QSet<int> zero_copy_formats = {
             AV_PIX_FMT_VULKAN,
         };
@@ -930,6 +938,13 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     connect(session, &StreamSession::ConnectedChanged, this, [this]() {
         if (session->IsConnected())
             setDiscoveryEnabled(false);
+    });
+    StreamSession *session_ptr = session;
+    QmlMainWindow *window_ptr = window;
+    connect(session_ptr, &StreamSession::VideoThrottleChanged, this, [window_ptr, session_ptr](bool throttled) {
+        if (!throttled && session_ptr->ConsumePlaceboResetSignal() && window_ptr) {
+            QMetaObject::invokeMethod(window_ptr, "schedulePlaceboReset", Qt::QueuedConnection);
+        }
     });
 
     chiaki_log_mutex.lock();
@@ -1176,7 +1191,8 @@ void QmlBackend::autoRegister()
             true,
             false,
             false,
-            false);
+            false,
+            settings->GetThrottleVideoOnLoss());
 
     QString expiry_s = settings->GetPsnAuthTokenExpiry();
     QString refresh = settings->GetPsnRefreshToken();
@@ -1331,7 +1347,8 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 false,
                 fullscreen,
                 zoom,
-                stretch);
+                stretch,
+                settings->GetThrottleVideoOnLoss());
         createSession(info);
     }
     else
@@ -1348,7 +1365,8 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 false,
                 fullscreen,
                 zoom,
-                stretch);
+                stretch,
+                settings->GetThrottleVideoOnLoss());
 
         QString expiry_s = settings->GetPsnAuthTokenExpiry();
         QString refresh = settings->GetPsnRefreshToken();

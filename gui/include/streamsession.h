@@ -83,8 +83,10 @@ struct StreamSessionConnectInfo
 	QByteArray regist_key;
 	QByteArray morning;
 	QString initial_login_pin;
-	ChiakiConnectVideoProfile video_profile;
-	double packet_loss_max;
+		ChiakiConnectVideoProfile video_profile;
+		double packet_loss_max;
+		double packet_loss_throttle_threshold;
+	bool throttle_video_on_loss = true;
 	unsigned int audio_buffer_size;
 	int audio_volume;
 	bool fullscreen;
@@ -100,7 +102,7 @@ struct StreamSessionConnectInfo
 	RumbleHapticsIntensity rumble_haptics_intensity;
 	bool buttons_by_pos;
 	bool enable_idr_on_fec_failure;
-	bool start_mic_unmuted;
+		bool start_mic_unmuted;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 	bool vertical_sdeck;
 	bool enable_steamdeck_haptics;
@@ -132,7 +134,8 @@ struct StreamSessionConnectInfo
 			bool auto_regist,
 			bool fullscreen,
 			bool zoom,
-			bool stretch);
+			bool stretch,
+			bool throttle_video_on_loss = true);
 };
 
 struct MicBuf
@@ -171,7 +174,12 @@ class StreamSession : public QObject
 		int audio_volume;
 		double measured_bitrate = 0;
 		double average_packet_loss = 0;
+		double packet_loss_max = 0;
+		double packet_loss_throttle_threshold = 0;
 		QList<double> packet_loss_history;
+		QAtomicInteger<int> skip_video_due_to_network{0};
+		bool throttle_video_on_loss = true;
+		QAtomicInteger<int> reset_placebo_after_throttle{0};
 		bool cant_display = false;
 		int haptics_handheld;
 		float rumble_multiplier;
@@ -336,6 +344,8 @@ class StreamSession : public QObject
 		bool GetConnected() { return connected; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
 		double GetAveragePacketLoss()	{ return average_packet_loss; }
+		bool ShouldSkipVideoFrame() const { return skip_video_due_to_network.loadAcquire() != 0; }
+		bool ConsumePlaceboResetSignal() { return reset_placebo_after_throttle.fetchAndStoreRelaxed(0) != 0; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		void SetAudioVolume(int volume) { audio_volume = volume; }
@@ -381,6 +391,7 @@ class StreamSession : public QObject
 		void AveragePacketLossChanged();
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);
+		void VideoThrottleChanged(bool throttled);
 
 	private slots:
 		void UpdateGamepads();

@@ -1690,8 +1690,8 @@ DialogView {
                             from: 0
                             to: 100
                             stepSize: 1
-                            value: Chiaki.settings.packetLossMax
-                            onMoved: Chiaki.settings.packetLossMax = value
+                            value: Chiaki.settings.packetLossReportedMax
+                            onMoved: Chiaki.settings.packetLossReportedMax = value
 
                             Label {
                                 anchors {
@@ -1706,6 +1706,52 @@ DialogView {
                         Label {
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("(5%)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Throttle video when packet loss is high")
+                        }
+
+                        C.CheckBox {
+                            checked: Chiaki.settings.throttleVideoOnLoss
+                            onToggled: Chiaki.settings.throttleVideoOnLoss = checked
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Checked)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Packet Loss Throttle Threshold:")
+                            visible: Chiaki.settings.throttleVideoOnLoss
+                        }
+
+                        C.Slider {
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            value: Chiaki.settings.packetLossThrottleThreshold
+                            onMoved: Chiaki.settings.packetLossThrottleThreshold = value
+                            visible: Chiaki.settings.throttleVideoOnLoss
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: qsTr("%1% packet loss").arg(parent.value)
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(3%)")
+                            visible: Chiaki.settings.throttleVideoOnLoss
                         }
 
                         Label {
