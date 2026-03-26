@@ -331,6 +331,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session)
 	return chiaki_thread_join(&session->session_thread, NULL);
 }
 
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_request_idr(ChiakiSession *session)
+{
+	return stream_connection_send_idr_request(&session->stream_connection);
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state)
 {
 	ChiakiErrorCode err = chiaki_mutex_lock(&session->stream_connection.feedback_sender_mutex);

@@ -133,6 +133,23 @@ CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder)
 	chiaki_mutex_fini(&decoder->mutex);
 }
 
+CHIAKI_EXPORT void chiaki_ffmpeg_decoder_flush(ChiakiFfmpegDecoder *decoder)
+{
+	if(!decoder)
+		return;
+
+	chiaki_mutex_lock(&decoder->mutex);
+	if(decoder->codec_context)
+		avcodec_flush_buffers(decoder->codec_context);
+	decoder->frames_lost = 0;
+	decoder->frame_recovered = false;
+	decoder->synthetic_candidate_duration_us = 0.0;
+	decoder->synthetic_candidate_count = 0;
+	decoder->synthetic_last_sample_time_us = 0;
+	decoder->synthetic_packet_pts = 0;
+	chiaki_mutex_unlock(&decoder->mutex);
+}
+
 CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)
 {
 	ChiakiFfmpegDecoder *decoder = user;

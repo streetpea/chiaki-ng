@@ -147,6 +147,12 @@ typedef struct chiaki_trigger_effects_event_t
 	uint8_t right[10];
 } ChiakiTriggerEffectsEvent;
 
+typedef struct chiaki_video_fec_failure_event_t
+{
+	int32_t frame_index;
+	bool idr_request_sent;
+} ChiakiVideoFecFailureEvent;
+
 typedef enum {
 	CHIAKI_EVENT_CONNECTED,
 	CHIAKI_EVENT_LOGIN_PIN_REQUEST,
@@ -164,6 +170,7 @@ typedef enum {
 	CHIAKI_EVENT_PLAYER_INDEX,
 	CHIAKI_EVENT_HAPTIC_INTENSITY,
 	CHIAKI_EVENT_TRIGGER_INTENSITY,
+	CHIAKI_EVENT_VIDEO_FEC_FAILURE,
 } ChiakiEventType;
 
 typedef struct chiaki_event_t
@@ -188,6 +195,7 @@ typedef struct chiaki_event_t
 		} data_holepunch;
 		ChiakiDualSenseEffectIntensity intensity;
 		char server_nickname[0x20];
+		ChiakiVideoFecFailureEvent video_fec_failure;
 	};
 } ChiakiEvent;
 
@@ -277,6 +285,10 @@ CHIAKI_EXPORT void chiaki_session_fini(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_start(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_stop(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session);
+
+CHIAKI_EXPORT void chiaki_session_send_event(ChiakiSession *session, ChiakiEvent *event);
+
+CHIAKI_EXPORT ChiakiErrorCode chiaki_session_request_idr(ChiakiSession *session);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_login_pin(ChiakiSession *session, const uint8_t *pin, size_t pin_size);
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_stream_connection_switch_received(ChiakiSession *session);

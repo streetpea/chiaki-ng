@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <chiaki/videoreceiver.h>
-#include <chiaki/session.h>
+#include "../include/chiaki/session.h"
 
 #include <string.h>
 
@@ -51,6 +51,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 	video_receiver->frames_lost = 0;
 	memset(video_receiver->reference_frames, -1, sizeof(video_receiver->reference_frames));
 	chiaki_bitstream_init(&video_receiver->bitstream, video_receiver->log, video_receiver->session->connect_info.video_profile.codec);
+	chiaki_mutex_init(&video_receiver->waiting_for_idr_mutex, false);
 	video_receiver->waiting_for_idr = false;
 }
 
@@ -58,7 +59,24 @@ CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receive
 {
 	for(size_t i=0; i<video_receiver->profiles_count; i++)
 		free(video_receiver->profiles[i].header);
+	chiaki_mutex_fini(&video_receiver->waiting_for_idr_mutex);
 	chiaki_frame_processor_fini(&video_receiver->frame_processor);
+}
+
+CHIAKI_EXPORT void chiaki_video_receiver_set_waiting_for_idr(ChiakiVideoReceiver *video_receiver, bool waiting_for_idr)
+{
+	chiaki_mutex_lock(&video_receiver->waiting_for_idr_mutex);
+	video_receiver->waiting_for_idr = waiting_for_idr;
+	chiaki_mutex_unlock(&video_receiver->waiting_for_idr_mutex);
+}
+
+CHIAKI_EXPORT bool chiaki_video_receiver_get_waiting_for_idr(ChiakiVideoReceiver *video_receiver)
+{
+	bool waiting_for_idr;
+	chiaki_mutex_lock(&video_receiver->waiting_for_idr_mutex);
+	waiting_for_idr = video_receiver->waiting_for_idr;
+	chiaki_mutex_unlock(&video_receiver->waiting_for_idr_mutex);
+	return waiting_for_idr;
 }
 
 CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_receiver, ChiakiVideoProfile *profiles, size_t profiles_count)
@@ -173,13 +191,26 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
 			if(video_receiver->session->connect_info.enable_idr_on_fec_failure)
 			{
-				stream_connection_send_idr_request(&video_receiver->session->stream_connection);
-				video_receiver->waiting_for_idr = true;
-				CHIAKI_LOGI(video_receiver->log, "FEC failed, waiting for IDR frame");
+				ChiakiErrorCode err = stream_connection_send_idr_request(&video_receiver->session->stream_connection);
+				bool idr_request_sent = err == CHIAKI_ERR_SUCCESS;
+				if(err == CHIAKI_ERR_SUCCESS)
+				{
+					chiaki_video_receiver_set_waiting_for_idr(video_receiver, true);
+					CHIAKI_LOGI(video_receiver->log, "FEC failed, waiting for IDR frame");
+				}
+				else
+				{
+					CHIAKI_LOGW(video_receiver->log, "FEC failed and IDR request could not be sent: %s", chiaki_error_string(err));
+				}
+				ChiakiEvent event = { 0 };
+				event.type = CHIAKI_EVENT_VIDEO_FEC_FAILURE;
+				event.video_fec_failure.frame_index = video_receiver->frame_index_cur;
+				event.video_fec_failure.idr_request_sent = idr_request_sent;
+				chiaki_session_send_event(video_receiver->session, &event);
 			}
-			video_receiver->frames_lost += video_receiver->frame_index_cur - next_frame_expected + 1;
-			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
-		}
+		video_receiver->frames_lost += video_receiver->frame_index_cur - next_frame_expected + 1;
+		video_receiver->frame_index_prev = video_receiver->frame_index_cur;
+	}
 		CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
 		return CHIAKI_ERR_UNKNOWN;
 	}
@@ -190,11 +221,11 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 	ChiakiBitstreamSlice slice;
 	if(chiaki_bitstream_slice(&video_receiver->bitstream, frame, frame_size, &slice))
 	{
-		if(video_receiver->waiting_for_idr)
+		if(chiaki_video_receiver_get_waiting_for_idr(video_receiver))
 		{
 			if(slice.slice_type == CHIAKI_BITSTREAM_SLICE_I)
 			{
-				video_receiver->waiting_for_idr = false;
+				chiaki_video_receiver_set_waiting_for_idr(video_receiver, false);
 				CHIAKI_LOGI(video_receiver->log, "Received IDR frame, resuming decode");
 			}
 			else
