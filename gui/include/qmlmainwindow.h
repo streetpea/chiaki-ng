@@ -151,6 +151,8 @@ private:
     void beginFrame();
     void endFrame();
     void render();
+    void applyPendingFrame();
+    void storePendingFrame(ChiakiFfmpegFrame &frame);
     bool handleShortcut(QKeyEvent *event);
     bool event(QEvent *event) override;
     QObject *focusObject() const override;
@@ -200,6 +202,10 @@ private:
     QMutex placebo_state_mutex;
     bool render_scheduled = false;
     bool render_pending = false;
+    QMutex pending_frame_mutex;
+    AVFrame *pending_frame = nullptr;
+    double pending_pts = 0.0;
+    float pending_duration = 0.0f;
     QAtomicInteger<int> swapchain_recreate_pending = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;

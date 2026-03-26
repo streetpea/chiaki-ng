@@ -645,7 +645,7 @@ float Settings::GetPacketLossReportedMax() const
 		return settings.value("settings/packet_loss_reported_max").toFloat();
 	if (settings.contains("settings/packet_loss_max"))
 		return settings.value("settings/packet_loss_max").toFloat();
-	return 0.03f;
+	return 0.05f;
 }
 
 void Settings::SetPacketLossReportedMax(float reported_max)
@@ -665,6 +665,18 @@ float Settings::GetPacketLossThrottleThreshold() const
 void Settings::SetPacketLossThrottleThreshold(float throttle_threshold)
 {
 	settings.setValue("settings/packet_loss_throttle_threshold", QString("%1").arg(throttle_threshold, 0, 'f', 2));
+}
+
+int Settings::GetQueueDepthLimit() const
+{
+	if (settings.contains("settings/queue_depth_limit"))
+		return settings.value("settings/queue_depth_limit").toInt();
+	return 3;
+}
+
+void Settings::SetQueueDepthLimit(int limit)
+{
+	settings.setValue("settings/queue_depth_limit", limit);
 }
 
 bool Settings::GetThrottleVideoOnLoss() const

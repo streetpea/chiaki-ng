@@ -306,6 +306,12 @@ QmlMainWindow::~QmlMainWindow()
             pl_vulkan_sem_destroy(gpu, &quick_sem);
     }
 
+    {
+        QMutexLocker locker(&pending_frame_mutex);
+        if (pending_frame)
+            av_frame_free(&pending_frame);
+    }
+
     // Only destroy the FBO while its OpenGL context is current.
     if (hasOpenGlContextCurrent) {
         delete quick_fbo;
@@ -521,7 +527,9 @@ void QmlMainWindow::show()
 }
 
 namespace {
-constexpr int kThrottledQueuePushInterval = 3;
+constexpr int kThrottledQueuePushWindow = 3;
+constexpr int kThrottledQueuePushAllowed = 2;
+constexpr int kDefaultQueueDepthLimit = 3;
 }
 
 void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
@@ -532,21 +540,18 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         return;
 
     const bool throttled = session && session->ShouldSkipVideoFrame();
-    bool should_push_frame = true;
     if (throttled)
     {
         const int count = throttle_queue_push_counter.fetchAndAddRelaxed(1);
-        should_push_frame = (count % kThrottledQueuePushInterval) == 0;
+        if ((count % kThrottledQueuePushWindow) >= kThrottledQueuePushAllowed)
+        {
+            av_frame_free(&frame.frame);
+            return;
+        }
     }
     else
     {
         throttle_queue_push_counter.storeRelaxed(0);
-    }
-
-    if (!should_push_frame)
-    {
-        av_frame_free(&frame.frame);
-        return;
     }
 
     frame.frame->opaque = this;
@@ -576,9 +581,27 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         .unmap = unmap_frame,
         .discard = discard_frame,
     };
+    const int limit = settings ? settings->GetQueueDepthLimit() : kDefaultQueueDepthLimit;
+    const int depth_limit = qMax(limit, 1);
+    bool queued = false;
+    bool depth_exceeded = false;
     {
         QMutexLocker locker(&placebo_state_mutex);
-        pl_queue_push(placebo_queue, &src_frame);
+        const int depth = pl_queue_num_frames(placebo_queue);
+        depth_exceeded = depth >= depth_limit;
+        if (!depth_exceeded)
+        {
+            pl_queue_push(placebo_queue, &src_frame);
+            queued = true;
+        }
+    }
+    if (!queued)
+    {
+        storePendingFrame(frame);
+        av_frame_free(&frame.frame);
+        if (depth_exceeded && placebo_reset_pending.loadAcquire() == 0)
+            schedulePlaceboReset();
+        return;
     }
 
     if (!playback_started) {
@@ -608,11 +631,90 @@ void QmlMainWindow::resetPlaceboQueue()
     playback_started = false;
     ts_start = 0;
     throttle_queue_push_counter.storeRelaxed(0);
+    locker.unlock();
+    applyPendingFrame();
 }
 
 void QmlMainWindow::schedulePlaceboReset()
 {
     placebo_reset_pending.storeRelease(1);
+    QMetaObject::invokeMethod(this, [this]() { scheduleUpdate(); }, Qt::QueuedConnection);
+}
+
+void QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame)
+{
+    AVFrame *clone = av_frame_clone(frame.frame);
+    if (!clone)
+        return;
+    QMutexLocker locker(&pending_frame_mutex);
+    if (pending_frame)
+        av_frame_free(&pending_frame);
+    pending_frame = clone;
+    pending_pts = frame.pts;
+    pending_duration = frame.duration;
+}
+
+void QmlMainWindow::applyPendingFrame()
+{
+    AVFrame *frame = nullptr;
+    double pts = 0.0;
+    float duration = 0.0f;
+    {
+        QMutexLocker locker(&pending_frame_mutex);
+        if (!pending_frame)
+            return;
+        frame = pending_frame;
+        pts = pending_pts;
+        duration = pending_duration;
+        pending_frame = nullptr;
+    }
+
+    if (!frame)
+        return;
+
+    frame->opaque = this;
+
+    bool deinterlace_enabled = false;
+    struct pl_source_frame src_frame;
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        if (queue_pts_origin < 0.0 || pts + 1e-6 < queue_pts_origin) {
+            pl_queue_reset(placebo_queue);
+            renderer_cache_flush_pending.storeRelaxed(1);
+            ts_start = 0;
+            queue_pts_origin = pts;
+            playback_started = false;
+        }
+        deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
+        src_frame = {
+            .pts = pts - queue_pts_origin,
+            .duration = static_cast<float>(duration),
+            .first_field = deinterlace_enabled
+                ? pl_field_from_avframe(frame)
+                : PL_FIELD_NONE,
+            .frame_data = frame,
+            .map = map_frame,
+            .unmap = unmap_frame,
+            .discard = discard_frame,
+        };
+        pl_queue_push(placebo_queue, &src_frame);
+    }
+
+    if (!playback_started) {
+        uint64_t now_us = chiaki_time_now_monotonic_us();
+        uint64_t frame_pts_us = src_frame.pts > 0.0
+            ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
+            : 0;
+        ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
+        playback_started = true;
+    }
+
+    if (!has_video) {
+        has_video = true;
+        if (!grab_input && settings->GetHideCursor())
+            setCursor(Qt::BlankCursor);
+        emit hasVideoChanged();
+    }
     scheduleUpdate();
 }
 
@@ -1175,7 +1277,10 @@ void QmlMainWindow::update()
 
 void QmlMainWindow::scheduleUpdate()
 {
-    Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
+    if (QThread::currentThread() != QGuiApplication::instance()->thread()) {
+        QMetaObject::invokeMethod(this, &QmlMainWindow::scheduleUpdate, Qt::QueuedConnection);
+        return;
+    }
 
     if (!update_timer->isActive()) {
         double refresh_rate = screen() ? screen()->refreshRate() : 60.0;

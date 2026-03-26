@@ -859,7 +859,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (!frame.frame)
             return;
 
-        if (!frame.frame->data[0] || frame.frame->format == AV_PIX_FMT_NONE)
+        if (frame.frame->format == AV_PIX_FMT_NONE)
         {
             av_frame_free(&frame.frame);
             return;
@@ -880,10 +880,23 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
                 av_frame_free(&sw_frame);
                 return;
             }
+            if(!sw_frame->data[0])
+            {
+                av_frame_free(&frame.frame);
+                av_frame_free(&sw_frame);
+                return;
+            }
+
             av_frame_copy_props(sw_frame, frame.frame);
             av_frame_free(&frame.frame);
             frame.frame = sw_frame;
         }
+        else if(!frame.frame->data[0])
+        {
+            av_frame_free(&frame.frame);
+            return;
+        }
+
         QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
     });
 
