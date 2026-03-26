@@ -9,6 +9,7 @@
 #include "takion.h"
 #include "frameprocessor.h"
 #include "bitstream.h"
+#include "thread.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,6 +34,7 @@ typedef struct chiaki_video_receiver_t
 	int32_t frames_lost;
 	int32_t reference_frames[16];
 	ChiakiBitstream bitstream;
+	ChiakiMutex waiting_for_idr_mutex;
 	bool waiting_for_idr;
 } ChiakiVideoReceiver;
 
@@ -49,6 +51,8 @@ CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receive
 CHIAKI_EXPORT void chiaki_video_receiver_stream_info(ChiakiVideoReceiver *video_receiver, ChiakiVideoProfile *profiles, size_t profiles_count);
 
 CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_receiver, ChiakiTakionAVPacket *packet);
+CHIAKI_EXPORT void chiaki_video_receiver_set_waiting_for_idr(ChiakiVideoReceiver *video_receiver, bool waiting_for_idr);
+CHIAKI_EXPORT bool chiaki_video_receiver_get_waiting_for_idr(ChiakiVideoReceiver *video_receiver);
 
 static inline ChiakiVideoReceiver *chiaki_video_receiver_new(struct chiaki_session_t *session, ChiakiPacketStats *packet_stats)
 {

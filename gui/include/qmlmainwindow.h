@@ -8,6 +8,7 @@
 #include <QWindow>
 #include <QQuickWindow>
 #include <QLoggingCategory>
+#include <atomic>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -53,6 +54,8 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
     Q_PROPERTY(bool directStream READ directStream NOTIFY directStreamChanged)
     Q_PROPERTY(int runtimeRendererBackend READ runtimeRendererBackend CONSTANT)
+    Q_PROPERTY(double queueDepthAverage READ queueDepthAverage NOTIFY queueDepthAverageChanged)
+    Q_PROPERTY(double pendingFrameAge READ pendingFrameAge NOTIFY pendingFrameAgeChanged)
 
 public:
     enum class VideoMode {
@@ -94,6 +97,9 @@ public:
     float zoomFactor() const;
     void setZoomFactor(float factor);
 
+    double queueDepthAverage() const;
+    double pendingFrameAge() const;
+
     bool amdCard() const;
     bool nvidiaCard() const;
     bool wasMaximized() const { return was_maximized; };
@@ -102,6 +108,7 @@ public:
 
     void fullscreenTime();
     void normalTime();
+    void setDecoderFlushGeneration(quint64 generation) { decoder_flush_generation.storeRelaxed(generation); }
 
     bool isStreamWindowAdjustable() { return is_stream_window_adjustable; }
     void setStreamWindowAdjustable(bool adjustable) { is_stream_window_adjustable = adjustable; }
@@ -121,7 +128,7 @@ public slots:
     void updatePlacebo();
     void updateVSync();
     void show();
-    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost);
+    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, quint64 decoder_generation);
 
     AVBufferRef *vulkanHwDeviceCtx();
 
@@ -134,6 +141,8 @@ signals:
     void videoPresetChanged();
     void menuRequested();
     void directStreamChanged();
+    void queueDepthAverageChanged();
+    void pendingFrameAgeChanged();
 
 private:
     bool makeOpenGLContextCurrent();
@@ -153,10 +162,23 @@ private:
     void render();
     void applyPendingFrame();
     void storePendingFrame(ChiakiFfmpegFrame &frame);
+    void refreshPendingFrameAge();
     bool handleShortcut(QKeyEvent *event);
     bool event(QEvent *event) override;
     QObject *focusObject() const override;
-
+    void updateQueueDepthAverage(int depth);
+    void updatePendingFrameAge(double age);
+    void snapshotLastFrame(AVFrame *frame, double pts, float duration);
+    void clearSnapshotFrame();
+    void clearFallbackFrame();
+    void invalidateHeldFrame();
+    bool ensureHeldFrameTarget(const struct pl_frame &target_frame);
+    bool updateHeldFrame(const struct pl_frame_mix &frame_mix,
+                         const struct pl_render_params &params,
+                         const struct pl_frame &target_frame);
+    bool renderHeldFrame(const struct pl_frame &target_frame,
+                         const struct pl_render_params &params);
+    bool enqueueKeptFrame(double queue_pts_origin_hint, bool deinterlace_enabled, double &used_origin);
     bool has_video = false;
     struct pl_queue_params qparams;
     struct pl_frame_mix frame_mix;
@@ -183,6 +205,10 @@ private:
     QmlBackend *backend = {};
     StreamSession *session = {};
     AVBufferRef *vulkan_hw_dev_ctx = nullptr;
+    double queue_depth_average = 0.0;
+    double pending_frame_age = 0.0;
+    uint64_t last_placebo_reset_ts = 0;
+    mutable QMutex pending_frame_age_mutex;
 
     pl_cache placebo_cache = {};
     pl_log placebo_log = {};
@@ -193,6 +219,10 @@ private:
     pl_renderer placebo_renderer = {};
     pl_queue placebo_queue = {};
     std::array<pl_tex, 8> placebo_tex{};
+    pl_tex held_frame_tex = {};
+    struct pl_frame held_frame = {};
+    pl_rect2df held_frame_crop = {};
+    bool held_frame_crop_valid = false;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     int vk_decode_queue_index = -1;
     QSize swapchain_size;
@@ -206,11 +236,28 @@ private:
     AVFrame *pending_frame = nullptr;
     double pending_pts = 0.0;
     float pending_duration = 0.0f;
+    double pending_frame_queue_origin = 0.0;
+    std::atomic<uint64_t> snapshot_generation{0};
+    std::atomic<uint64_t> pending_reset_snapshot_generation{0};
+    std::atomic<uint64_t> last_reset_snapshot_generation{0};
+    QAtomicInteger<int> stream_session_active = 0;
+    QAtomicInteger<int> snapshot_replay_allowed = 0;
+    QAtomicInteger<int> held_frame_clear_pending = 0;
+    QMutex kept_frame_mutex;
+    AVFrame *kept_frame = nullptr;
+    double kept_frame_pts = 0.0;
+    float kept_frame_duration = 0.0f;
+    AVFrame *fallback_frame = nullptr;
+    double fallback_frame_pts = 0.0;
+    float fallback_frame_duration = 0.0f;
+    bool fallback_frame_valid = false;
+    bool held_frame_valid = false;
     QAtomicInteger<int> swapchain_recreate_pending = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
     QAtomicInteger<int> render_active = 0;
     QAtomicInteger<int> throttle_queue_push_counter = 0;
+    QAtomicInteger<quint64> decoder_flush_generation = 0;
     bool present_vsync_enabled = true;
 
     QVulkanInstance *qt_vk_inst = {};

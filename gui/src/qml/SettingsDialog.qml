@@ -1762,8 +1762,8 @@ DialogView {
 
                         C.Slider {
                             Layout.preferredWidth: 250
-                            from: 0
-                            to: 100
+                            from: 2
+                            to: 25
                             stepSize: 1
                             value: Chiaki.settings.packetLossThrottleThreshold
                             onMoved: Chiaki.settings.packetLossThrottleThreshold = value
@@ -1781,7 +1781,7 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("(3%)")
+                            text: qsTr("(5%)")
                             visible: Chiaki.settings.throttleVideoOnLoss
                         }
 

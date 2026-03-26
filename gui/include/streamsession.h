@@ -178,6 +178,7 @@ class StreamSession : public QObject
 		double packet_loss_throttle_threshold = 0;
 		QList<double> packet_loss_history;
 		QAtomicInteger<int> skip_video_due_to_network{0};
+		QAtomicInteger<quint64> decoder_flush_generation{0};
 		bool throttle_video_on_loss = true;
 		QAtomicInteger<int> reset_placebo_after_throttle{0};
 		bool cant_display = false;
@@ -337,6 +338,7 @@ class StreamSession : public QObject
 		void Start();
 		void Stop();
 		void GoToBed();
+		Q_INVOKABLE bool ResetDecoderAndRequestIDR();
 		void ToggleMute();
 		void SetLoginPIN(const QString &pin);
 		void GoHome();
@@ -344,6 +346,7 @@ class StreamSession : public QObject
 		bool GetConnected() { return connected; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
 		double GetAveragePacketLoss()	{ return average_packet_loss; }
+		quint64 DecoderFlushGeneration() const { return decoder_flush_generation.loadRelaxed(); }
 		bool ShouldSkipVideoFrame() const { return skip_video_due_to_network.loadAcquire() != 0; }
 		bool ConsumePlaceboResetSignal() { return reset_placebo_after_throttle.fetchAndStoreRelaxed(0) != 0; }
 		bool GetMuted()	{ return muted; }
@@ -392,6 +395,8 @@ class StreamSession : public QObject
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);
 		void VideoThrottleChanged(bool throttled);
+		void FecFailure();
+		void DecoderFlushRequested();
 
 	private slots:
 		void UpdateGamepads();

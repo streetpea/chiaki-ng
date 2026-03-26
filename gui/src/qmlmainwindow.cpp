@@ -10,6 +10,14 @@
 #define PL_LIBAV_IMPLEMENTATION 0
 #include <libplacebo/utils/libav.h>
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavutil/frame.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/pixdesc.h>
+#include <libavutil/pixfmt.h>
+}
+
 #include <QDebug>
 #include <QThread>
 #include <QShortcut>
@@ -28,6 +36,10 @@
 #include <QQuickRenderTarget>
 #include <QQuickRenderControl>
 #include <QQuickGraphicsDevice>
+#include <QTimer>
+#include <QtGlobal>
+#include <cstring>
+#include <utility>
 #if defined(Q_OS_MACOS)
 #include <objc/message.h>
 #endif
@@ -102,6 +114,12 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex,
         av_frame_free(&frame);
         return false;
     }
+    if (out_frame->num_planes <= 0) {
+        qCWarning(chiakiGui) << "Mapped frame contains no planes, dropping";
+        pl_unmap_avframe(gpu, out_frame);
+        av_frame_free(&frame);
+        return false;
+    }
     return true;
 }
 
@@ -120,6 +138,74 @@ static void discard_frame(const struct pl_source_frame *src)
     q->increaseDroppedFrames();
     av_frame_free(&frame);
     qCDebug(chiakiGui) << "Dropped frame with PTS" << src->pts;
+}
+
+static void discard_snapshot_frame(const struct pl_source_frame *src)
+{
+    AVFrame *frame = reinterpret_cast<AVFrame *>(src->frame_data);
+    av_frame_free(&frame);
+}
+
+static AVFrame *clone_frame_for_replay(const AVFrame *frame)
+{
+    if (!frame)
+        return nullptr;
+
+    return av_frame_clone(frame);
+}
+
+static AVFrame *make_fallback_snapshot_frame(const AVFrame *frame)
+{
+    if (!frame)
+        return nullptr;
+
+    if (!frame->hw_frames_ctx)
+        return av_frame_clone(frame);
+
+    if (frame->format == AV_PIX_FMT_VULKAN)
+        return av_frame_clone(frame);
+
+    AVFrame *copy = av_frame_alloc();
+    if (!copy)
+        return nullptr;
+
+    if (av_hwframe_transfer_data(copy, frame, 0) < 0) {
+        av_frame_free(&copy);
+        return av_frame_clone(frame);
+    }
+
+    int sw_format = copy->format;
+    int sw_width = copy->width;
+    int sw_height = copy->height;
+    AVRational sw_sar = copy->sample_aspect_ratio;
+    AVColorSpace sw_colorspace = copy->colorspace;
+    AVColorRange sw_color_range = copy->color_range;
+    AVColorPrimaries sw_color_primaries = copy->color_primaries;
+    AVColorTransferCharacteristic sw_color_trc = copy->color_trc;
+    av_frame_copy_props(copy, frame);
+    copy->format = sw_format >= 0 ? sw_format : frame->format;
+    copy->width = sw_width;
+    copy->height = sw_height;
+    copy->sample_aspect_ratio = sw_sar;
+    copy->colorspace = sw_colorspace;
+    copy->color_range = sw_color_range;
+    copy->color_primaries = sw_color_primaries;
+    copy->color_trc = sw_color_trc;
+    if (copy->hw_frames_ctx) {
+        av_buffer_unref(&copy->hw_frames_ctx);
+        copy->hw_frames_ctx = nullptr;
+    }
+    return copy;
+}
+
+static pl_rect2df full_frame_crop(const QSize &size)
+{
+    return pl_rect2df{
+        0.0f,
+        0.0f,
+        static_cast<float>(size.width()),
+        static_cast<float>(size.height()),
+    };
 }
 
 static QString shader_cache_path()
@@ -300,6 +386,7 @@ QmlMainWindow::~QmlMainWindow()
 
     if (pl_gpu gpu = placeboGpu()) {
         pl_tex_destroy(gpu, &quick_tex);
+        pl_tex_destroy(gpu, &held_frame_tex);
         for (auto &tex : placebo_tex)
             pl_tex_destroy(gpu, &tex);
         if (render_backend == RenderBackend::Vulkan)
@@ -311,6 +398,8 @@ QmlMainWindow::~QmlMainWindow()
         if (pending_frame)
             av_frame_free(&pending_frame);
     }
+    clearSnapshotFrame();
+    clearFallbackFrame();
 
     // Only destroy the FBO while its OpenGL context is current.
     if (hasOpenGlContextCurrent) {
@@ -529,15 +618,20 @@ void QmlMainWindow::show()
 namespace {
 constexpr int kThrottledQueuePushWindow = 3;
 constexpr int kThrottledQueuePushAllowed = 2;
-constexpr int kDefaultQueueDepthLimit = 3;
+constexpr int kDefaultQueueDepthLimit = 2;
 }
 
-void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
+void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, quint64 decoder_generation)
 {
     dropped_frames_current.fetchAndAddRelaxed(frames_lost);
 
     if (!frame.frame)
         return;
+
+    if (decoder_generation != decoder_flush_generation.loadRelaxed()) {
+        av_frame_free(&frame.frame);
+        return;
+    }
 
     const bool throttled = session && session->ShouldSkipVideoFrame();
     if (throttled)
@@ -589,6 +683,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         QMutexLocker locker(&placebo_state_mutex);
         const int depth = pl_queue_num_frames(placebo_queue);
         depth_exceeded = depth >= depth_limit;
+        updateQueueDepthAverage(depth);
         if (!depth_exceeded)
         {
             pl_queue_push(placebo_queue, &src_frame);
@@ -597,12 +692,24 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     }
     if (!queued)
     {
+        snapshotLastFrame(frame.frame, frame.pts, frame.duration);
         storePendingFrame(frame);
         av_frame_free(&frame.frame);
-        if (depth_exceeded && placebo_reset_pending.loadAcquire() == 0)
-            schedulePlaceboReset();
+        if (depth_exceeded) {
+            const uint64_t generation = snapshot_generation.load(std::memory_order_relaxed);
+            if (generation && generation != last_reset_snapshot_generation.load(std::memory_order_relaxed)) {
+                uint64_t pending = pending_reset_snapshot_generation.load(std::memory_order_relaxed);
+                if (generation != pending)
+                    pending_reset_snapshot_generation.store(generation, std::memory_order_relaxed);
+            }
+            if (placebo_reset_pending.loadAcquire() == 0)
+                schedulePlaceboReset();
+        }
         return;
     }
+
+    snapshot_replay_allowed.storeRelaxed(0);
+    snapshotLastFrame(frame.frame, frame.pts, frame.duration);
 
     if (!playback_started) {
         uint64_t now_us = chiaki_time_now_monotonic_us();
@@ -624,6 +731,18 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
 void QmlMainWindow::resetPlaceboQueue()
 {
+    uint64_t now_ms = chiaki_time_now_monotonic_ms();
+    if (last_placebo_reset_ts && now_ms - last_placebo_reset_ts < 100)
+    {
+        const int wait_ms = static_cast<int>(qMax<uint64_t>(100 - (now_ms - last_placebo_reset_ts), 1));
+        placebo_reset_pending.storeRelease(0);
+        QTimer::singleShot(wait_ms, this, [this]() {
+            schedulePlaceboReset();
+        });
+        return;
+    }
+    last_placebo_reset_ts = now_ms;
+
     QMutexLocker locker(&placebo_state_mutex);
     pl_queue_reset(placebo_queue);
     renderer_cache_flush_pending.storeRelaxed(1);
@@ -632,6 +751,9 @@ void QmlMainWindow::resetPlaceboQueue()
     ts_start = 0;
     throttle_queue_push_counter.storeRelaxed(0);
     locker.unlock();
+    const uint64_t generation = pending_reset_snapshot_generation.load(std::memory_order_relaxed);
+    last_reset_snapshot_generation.store(generation, std::memory_order_relaxed);
+    snapshot_replay_allowed.storeRelaxed(held_frame_valid ? 0 : 1);
     applyPendingFrame();
 }
 
@@ -641,17 +763,342 @@ void QmlMainWindow::schedulePlaceboReset()
     QMetaObject::invokeMethod(this, [this]() { scheduleUpdate(); }, Qt::QueuedConnection);
 }
 
+double QmlMainWindow::queueDepthAverage() const
+{
+    return queue_depth_average;
+}
+
+double QmlMainWindow::pendingFrameAge() const
+{
+    QMutexLocker locker(&pending_frame_age_mutex);
+    return pending_frame_age;
+}
+
+void QmlMainWindow::updateQueueDepthAverage(int depth)
+{
+    const double alpha = 0.15;
+    double next = queue_depth_average * (1.0 - alpha) + static_cast<double>(depth) * alpha;
+    queue_depth_average = next;
+    emit queueDepthAverageChanged();
+}
+
+void QmlMainWindow::updatePendingFrameAge(double age)
+{
+    double clamped = qMax(age, 0.0);
+    {
+        QMutexLocker locker(&pending_frame_age_mutex);
+        pending_frame_age = clamped;
+    }
+    emit pendingFrameAgeChanged();
+}
+
 void QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame)
 {
     AVFrame *clone = av_frame_clone(frame.frame);
     if (!clone)
         return;
-    QMutexLocker locker(&pending_frame_mutex);
-    if (pending_frame)
-        av_frame_free(&pending_frame);
-    pending_frame = clone;
-    pending_pts = frame.pts;
-    pending_duration = frame.duration;
+    {
+        QMutexLocker locker(&pending_frame_mutex);
+        if (pending_frame)
+            av_frame_free(&pending_frame);
+        pending_frame = clone;
+        pending_pts = frame.pts;
+        pending_duration = frame.duration;
+
+        double queue_origin = 0.0;
+        {
+            QMutexLocker state_locker(&placebo_state_mutex);
+            queue_origin = queue_pts_origin;
+        }
+        pending_frame_queue_origin = queue_origin;
+    }
+
+    refreshPendingFrameAge();
+}
+
+void QmlMainWindow::refreshPendingFrameAge()
+{
+    double pts = 0.0;
+    double queue_origin = 0.0;
+    {
+        QMutexLocker locker(&pending_frame_mutex);
+        if (!pending_frame) {
+            updatePendingFrameAge(0.0);
+            return;
+        }
+        pts = pending_pts;
+        queue_origin = pending_frame_queue_origin;
+    }
+
+    uint64_t ts_start_local = 0;
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        ts_start_local = ts_start;
+    }
+
+    double age = 0.0;
+    if (ts_start_local) {
+        const uint64_t now_us = chiaki_time_now_monotonic_us();
+        double pts_rel = pts - queue_origin;
+        if (pts_rel < 0.0)
+            pts_rel = 0.0;
+        const uint64_t pts_us = pts_rel > 0.0 ? static_cast<uint64_t>(pts_rel * 1000000.0) : 0;
+        const uint64_t frame_mono_us = ts_start_local + pts_us;
+        if (now_us > frame_mono_us)
+            age = static_cast<double>(now_us - frame_mono_us) / 1000000.0;
+    }
+
+    updatePendingFrameAge(age);
+}
+
+void QmlMainWindow::snapshotLastFrame(AVFrame *frame, double pts, float duration)
+{
+    // qCInfo(chiakiGui) << "snapshotLastFrame invoked pts=" << pts << " duration=" << duration;
+    bool stored = false;
+    const char *reason = "unknown";
+    auto log_result = [&]() {
+        // qCInfo(chiakiGui) << "snapshotLastFrame result stored=" << stored << " reason=" << reason;
+    };
+
+    if (!frame) {
+        reason = "null frame";
+        log_result();
+        return;
+    }
+    const bool is_hw = frame->hw_frames_ctx != nullptr;
+    if (!is_hw && !frame->data[0]) {
+        reason = "missing data";
+        log_result();
+        return;
+    }
+    if (!is_hw && av_pix_fmt_count_planes(static_cast<AVPixelFormat>(frame->format)) <= 0) {
+        reason = "no planes";
+        log_result();
+        return;
+    }
+
+    clearSnapshotFrame();
+    AVFrame *clone = nullptr;
+    clone = av_frame_clone(frame);
+    if (!clone) {
+        reason = "clone failure";
+        log_result();
+        return;
+    }
+
+    clone->format = frame->format;
+    clone->width = frame->width;
+    clone->height = frame->height;
+    clone->sample_aspect_ratio = frame->sample_aspect_ratio;
+    clone->colorspace = frame->colorspace;
+    clone->color_range = frame->color_range;
+    clone->color_primaries = frame->color_primaries;
+    clone->color_trc = frame->color_trc;
+    av_frame_copy_props(clone, frame);
+    if (!is_hw && clone->hw_frames_ctx) {
+        av_buffer_unref(&clone->hw_frames_ctx);
+        clone->hw_frames_ctx = nullptr;
+    }
+    clone->opaque = this;
+    {
+        QMutexLocker locker(&kept_frame_mutex);
+        if (kept_frame)
+            av_frame_free(&kept_frame);
+        kept_frame = clone;
+        kept_frame_pts = pts;
+        kept_frame_duration = duration;
+        stored = true;
+        reason = "stored";
+
+        AVFrame *fallback_clone = make_fallback_snapshot_frame(frame);
+        if (fallback_clone) {
+            if (fallback_frame)
+                av_frame_free(&fallback_frame);
+            fallback_frame = fallback_clone;
+            fallback_frame_pts = pts;
+            fallback_frame_duration = duration;
+            fallback_frame_valid = true;
+        } else {
+            if (fallback_frame)
+                av_frame_free(&fallback_frame);
+            fallback_frame = nullptr;
+            fallback_frame_valid = false;
+            qCWarning(chiakiGui) << "snapshotLastFrame: failed to clone fallback frame";
+        }
+    }
+    snapshot_generation.fetch_add(1, std::memory_order_relaxed);
+    // qCInfo(chiakiGui) << "snapshotLastFrame: stored kept_frame pts=" << pts << " duration=" << duration;
+    log_result();
+}
+
+void QmlMainWindow::clearSnapshotFrame()
+{
+    {
+        QMutexLocker locker(&kept_frame_mutex);
+        if (kept_frame)
+            av_frame_free(&kept_frame);
+        kept_frame = nullptr;
+    }
+}
+
+void QmlMainWindow::clearFallbackFrame()
+{
+    QMutexLocker locker(&kept_frame_mutex);
+    if (fallback_frame)
+        av_frame_free(&fallback_frame);
+    fallback_frame = nullptr;
+    fallback_frame_valid = false;
+}
+
+bool QmlMainWindow::enqueueKeptFrame(double queue_pts_origin_hint, bool deinterlace_enabled, double &used_origin)
+{
+    AVFrame *clone = nullptr;
+    double pts = 0.0;
+    float duration = 0.0f;
+    {
+        QMutexLocker locker(&kept_frame_mutex);
+        AVFrame *source = fallback_frame_valid ? fallback_frame : kept_frame;
+        if (!source)
+            return false;
+        if (source->hw_frames_ctx && render_backend == RenderBackend::Vulkan)
+            return false;
+        clone = clone_frame_for_replay(source);
+        if (!clone)
+            return false;
+        pts = fallback_frame_valid ? fallback_frame_pts : kept_frame_pts;
+        duration = fallback_frame_valid ? fallback_frame_duration : kept_frame_duration;
+    }
+
+    clone->opaque = this;
+    double origin = queue_pts_origin_hint;
+    if (origin < 0.0)
+        origin = pts;
+    used_origin = origin;
+
+    struct pl_source_frame snapshot_src = {};
+    snapshot_src.pts = pts - origin;
+    snapshot_src.duration = static_cast<float>(duration);
+    snapshot_src.first_field = deinterlace_enabled
+        ? pl_field_from_avframe(clone)
+        : PL_FIELD_NONE;
+    snapshot_src.frame_data = clone;
+    snapshot_src.map = map_frame;
+    snapshot_src.unmap = unmap_frame;
+    snapshot_src.discard = discard_snapshot_frame;
+
+    pl_queue_push(placebo_queue, &snapshot_src);
+    return true;
+}
+
+void QmlMainWindow::invalidateHeldFrame()
+{
+    held_frame = {};
+    held_frame_valid = false;
+    held_frame_crop_valid = false;
+}
+
+bool QmlMainWindow::ensureHeldFrameTarget(const struct pl_frame &target_frame)
+{
+    pl_gpu gpu = placeboGpu();
+    if (!gpu || swapchain_size.isEmpty())
+        return false;
+
+    pl_fmt format = nullptr;
+    const struct pl_fmt_t *target_fmt = nullptr;
+    if (target_frame.num_planes && target_frame.planes[0].texture) {
+        const pl_tex_t *target_tex = reinterpret_cast<const pl_tex_t *>(target_frame.planes[0].texture);
+        if (target_tex)
+            target_fmt = target_tex->params.format;
+    }
+    const enum pl_fmt_caps desired_caps = static_cast<pl_fmt_caps>(PL_FMT_CAP_SAMPLEABLE | PL_FMT_CAP_RENDERABLE);
+    if (target_fmt && (target_fmt->caps & desired_caps) == desired_caps)
+        format = target_fmt;
+
+    if (!format) {
+        const enum pl_fmt_type desired_type = target_fmt ? target_fmt->type : PL_FMT_UNORM;
+        const int desired_components = target_fmt ? qMax(1, target_fmt->num_components) : 4;
+        const int desired_depth = target_fmt && target_fmt->component_depth[0] > 0
+            ? target_fmt->component_depth[0]
+            : 8;
+        format = pl_find_fmt(gpu, desired_type, desired_components, desired_depth, desired_depth, desired_caps);
+    }
+    if (!format) {
+        qCWarning(chiakiGui) << "Failed to find a held-frame texture format";
+        return false;
+    }
+
+    struct pl_tex_params tex_params = {
+        .w = swapchain_size.width(),
+        .h = swapchain_size.height(),
+        .format = format,
+        .sampleable = true,
+        .renderable = true,
+        .blit_src = true,
+        .blit_dst = true,
+    };
+    if (!pl_tex_recreate(gpu, &held_frame_tex, &tex_params)) {
+        qCWarning(chiakiGui) << "Failed to create held-frame texture";
+        return false;
+    }
+
+    held_frame = {};
+    held_frame.num_planes = 1;
+    held_frame.planes[0].texture = held_frame_tex;
+    held_frame.planes[0].components = 4;
+    held_frame.planes[0].component_mapping[0] = 0;
+    held_frame.planes[0].component_mapping[1] = 1;
+    held_frame.planes[0].component_mapping[2] = 2;
+    held_frame.planes[0].component_mapping[3] = 3;
+    held_frame.repr = target_frame.repr;
+    held_frame.color = target_frame.color;
+    held_frame.crop = full_frame_crop(swapchain_size);
+    return true;
+}
+
+bool QmlMainWindow::updateHeldFrame(const struct pl_frame_mix &frame_mix,
+                                    const struct pl_render_params &params,
+                                    const struct pl_frame &target_frame)
+{
+    if (!frame_mix.num_frames || !ensureHeldFrameTarget(target_frame))
+        return false;
+
+    for (int i = 0; i < frame_mix.num_frames; ++i) {
+        const struct pl_frame *mix_frame = frame_mix.frames[i];
+        if (!mix_frame || mix_frame->num_planes <= 0)
+            return false;
+    }
+
+    struct pl_frame held_target = held_frame;
+    held_target.repr = target_frame.repr;
+    held_target.color = target_frame.color;
+    held_target.crop = target_frame.crop;
+    held_target.overlays = nullptr;
+    held_target.num_overlays = 0;
+
+    const float clear_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    pl_frame_clear_rgba(placeboGpu(), &held_target, clear_color);
+
+    if (!pl_render_image_mix(placebo_renderer, &frame_mix, &held_target, &params))
+        return false;
+
+    held_frame.repr = held_target.repr;
+    held_frame.color = held_target.color;
+    held_frame.crop = held_target.crop;
+    held_frame_valid = true;
+    return true;
+}
+
+bool QmlMainWindow::renderHeldFrame(const struct pl_frame &target_frame,
+                                    const struct pl_render_params &params)
+{
+    if (!held_frame_valid || !held_frame_tex)
+        return false;
+
+    struct pl_render_params held_params = params;
+    held_params.frame_mixer = nullptr;
+    held_params.hooks = nullptr;
+    held_params.num_hooks = 0;
+    return pl_render_image(placebo_renderer, &held_frame, &target_frame, &held_params);
 }
 
 void QmlMainWindow::applyPendingFrame()
@@ -662,12 +1109,18 @@ void QmlMainWindow::applyPendingFrame()
     {
         QMutexLocker locker(&pending_frame_mutex);
         if (!pending_frame)
+        {
+            updatePendingFrameAge(0.0);
             return;
+        }
         frame = pending_frame;
         pts = pending_pts;
         duration = pending_duration;
         pending_frame = nullptr;
+        pending_frame_queue_origin = 0.0;
     }
+
+    updatePendingFrameAge(0.0);
 
     if (!frame)
         return;
@@ -700,6 +1153,7 @@ void QmlMainWindow::applyPendingFrame()
         pl_queue_push(placebo_queue, &src_frame);
     }
 
+    snapshot_replay_allowed.storeRelaxed(0);
     if (!playback_started) {
         uint64_t now_us = chiaki_time_now_monotonic_us();
         uint64_t frame_pts_us = src_frame.pts > 0.0
@@ -1095,6 +1549,7 @@ renderer_backend_ready:
     backend = new QmlBackend(settings, this);
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         session = s;
+        stream_session_active.storeRelease(s ? 1 : 0);
         grab_input = 0;
         if (session)
             session->BlockInput(0);
@@ -1103,6 +1558,14 @@ renderer_backend_ready:
             QMutexLocker locker(&placebo_state_mutex);
             pl_queue_reset(placebo_queue);
         }
+        clearSnapshotFrame();
+        clearFallbackFrame();
+        snapshot_generation.store(0, std::memory_order_relaxed);
+        pending_reset_snapshot_generation.store(0, std::memory_order_relaxed);
+        last_reset_snapshot_generation.store(0, std::memory_order_relaxed);
+        snapshot_replay_allowed.storeRelaxed(0);
+        decoder_flush_generation.storeRelaxed(0);
+        held_frame_clear_pending.storeRelaxed(1);
         renderer_cache_flush_pending.storeRelaxed(1);
         queue_pts_origin = -1.0;
         playback_started = false;
@@ -1407,6 +1870,7 @@ void QmlMainWindow::destroySwapchain()
         delete quick_fbo;
         quick_fbo = nullptr;
     }
+    invalidateHeldFrame();
     swapchain_size = QSize();
 }
 
@@ -1424,6 +1888,7 @@ void QmlMainWindow::resizeSwapchain()
     if (window_size == swapchain_size && swapchain_ready)
         return;
 
+    invalidateHeldFrame();
     QSize new_swapchain_size = window_size;
     pl_swapchain_resize(placebo_swapchain, &new_swapchain_size.rwidth(), &new_swapchain_size.rheight());
 
@@ -1626,6 +2091,9 @@ void QmlMainWindow::render()
     if (renderer_cache_flush_pending.fetchAndStoreRelaxed(0) && placebo_renderer)
         pl_renderer_flush_cache(placebo_renderer);
 
+    if (held_frame_clear_pending.fetchAndStoreRelaxed(0))
+        invalidateHeldFrame();
+
     const struct pl_render_params *render_params = &pl_render_default_params;
     const PlaceboUpscaler configured_upscaler = settings->GetPlaceboUpscaler();
     switch (video_preset) {
@@ -1694,6 +2162,13 @@ void QmlMainWindow::render()
     if (!params.frame_mixer)
         params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
 
+    const bool has_settings = settings != nullptr;
+    const bool apply_display_target = has_settings && stream_session_active.loadAcquire() != 0;
+    const int target_trc = apply_display_target ? settings->GetDisplayTargetTrc() : 0;
+    const int target_prim = apply_display_target ? settings->GetDisplayTargetPrim() : 0;
+    const int target_peak = apply_display_target ? settings->GetDisplayTargetPeak() : 0;
+    const int target_contrast = apply_display_target ? settings->GetDisplayTargetContrast() : 0;
+
     uint64_t ts_pre_update = chiaki_time_now_monotonic_us();
     double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
     if (refresh_rate <= 1.0)
@@ -1709,7 +2184,18 @@ void QmlMainWindow::render()
     {
         QMutexLocker locker(&placebo_state_mutex);
         queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
+        if (frame_mix.num_frames == 0 && !held_frame_valid && snapshot_replay_allowed.loadRelaxed()) {
+            double used_origin = -1.0;
+            if (enqueueKeptFrame(queue_pts_origin, this->renderparams_opts->params.deinterlace_params, used_origin)) {
+                queue_pts_origin = used_origin;
+                playback_started = true;
+                ts_start = chiaki_time_now_monotonic_us();
+                queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
+            }
+            snapshot_replay_allowed.storeRelaxed(0);
+        }
     }
+    refreshPendingFrameAge();
     switch (queue_status) {
     case PL_QUEUE_ERR:
         finalize_render();
@@ -1736,17 +2222,13 @@ void QmlMainWindow::render()
         finalize_render();
         return;
     }
+    auto close_started_frame = [this](bool present) {
+        if (!pl_swapchain_submit_frame(placebo_swapchain))
+            qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
+        else if (present)
+            pl_swapchain_swap_buffers(placebo_swapchain);
+    };
 
-    struct pl_color_space target_csp = sw_frame.color_space;
-    if(!pl_color_transfer_is_hdr(target_csp.transfer))
-    {
-        target_csp.hdr.max_luma = 0;
-        target_csp.hdr.min_luma = 0;
-    }
-    float target_peak = settings->GetDisplayTargetPeak() && session ? settings->GetDisplayTargetPeak() : 0;
-    int target_contrast = settings->GetDisplayTargetContrast() && session ? settings->GetDisplayTargetContrast(): 0;
-    int target_prim = settings->GetDisplayTargetPrim() && session ? settings->GetDisplayTargetPrim(): 0;
-    int target_trc = settings->GetDisplayTargetTrc() && session ? settings->GetDisplayTargetTrc(): 0;
     const struct pl_frame *hint_frame = nullptr;
     for (int i = 0; i < frame_mix.num_frames; i++) {
         if (frame_mix.timestamps[i] > 0.0f)
@@ -1756,6 +2238,11 @@ void QmlMainWindow::render()
     if (!hint_frame && frame_mix.num_frames)
         hint_frame = frame_mix.frames[0];
     struct pl_color_space hint = hint_frame ? hint_frame->color : pl_color_space{};
+    struct pl_color_space target_csp = sw_frame.color_space;
+    if (target_csp.hdr.max_luma <= 0.0f) {
+        target_csp.hdr.max_luma = 0.0f;
+        target_csp.hdr.min_luma = 0.0f;
+    }
 
     if(target_trc)
         hint.transfer = static_cast<pl_color_transfer>(target_trc);
@@ -1792,6 +2279,12 @@ void QmlMainWindow::render()
 
     struct pl_frame target_frame = {};
     pl_frame_from_swapchain(&target_frame, &sw_frame);
+    if (target_frame.num_planes <= 0) {
+        qCWarning(chiakiGui) << "Swapchain frame contains no planes, skipping render";
+        close_started_frame(false);
+        finalize_render();
+        return;
+    }
     struct pl_overlay_part overlay_part = {
         .src = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
         .dst = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
@@ -1857,8 +2350,32 @@ void QmlMainWindow::render()
     }
     endFrame();
 
-    if (frame_mix.num_frames) {
-        pl_rect2df crop = frame_mix.frames[0]->crop;
+    if (frame_mix.num_frames == 0) {
+        if (held_frame_crop_valid)
+            target_frame.crop = held_frame_crop;
+        const bool rendered = has_video && held_frame_valid
+            ? renderHeldFrame(target_frame, params)
+            : pl_render_image(placebo_renderer, nullptr, &target_frame, &params);
+        if (!rendered) {
+            qCWarning(chiakiGui) << "Failed to render held/overlay-only frame";
+            close_started_frame(false);
+            finalize_render();
+            return;
+        }
+
+        close_started_frame(true);
+        schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
+        finalize_render();
+        if (schedule_next_update) {
+            QMetaObject::invokeMethod(this, [this]() {
+                scheduleUpdate();
+            }, Qt::QueuedConnection);
+        }
+        return;
+    }
+
+    if (hint_frame) {
+        pl_rect2df crop = hint_frame->crop;
         switch (video_mode) {
         case VideoMode::Normal:
             pl_rect2df_aspect_copy(&target_frame.crop, &crop, 0.0);
@@ -1879,6 +2396,10 @@ void QmlMainWindow::render()
             break;
         }
     }
+    if (frame_mix.num_frames > 0) {
+        held_frame_crop = target_frame.crop;
+        held_frame_crop_valid = true;
+    }
 
     // Disable background transparency by default if the swapchain does not
     // appear to support alpha transaprency
@@ -1886,9 +2407,9 @@ void QmlMainWindow::render()
         params.background_transparency = 0.0;
 
     const struct pl_hook *fsrcnnx_hook = nullptr;
-    if (frame_mix.num_frames) {
-        const float src_width = fabsf(pl_rect_w(frame_mix.frames[0]->crop));
-        const float src_height = fabsf(pl_rect_h(frame_mix.frames[0]->crop));
+    if (hint_frame) {
+        const float src_width = fabsf(pl_rect_w(hint_frame->crop));
+        const float src_height = fabsf(pl_rect_h(hint_frame->crop));
         const float dst_width = fabsf(pl_rect_w(target_frame.crop));
         const float dst_height = fabsf(pl_rect_h(target_frame.crop));
         if (src_width > 0.0f && src_height > 0.0f) {
@@ -1935,17 +2456,30 @@ void QmlMainWindow::render()
         }
     }
 
+    for (int i = 0; i < frame_mix.num_frames; i++) {
+        const struct pl_frame *mix_frame = frame_mix.frames[i];
+        if (!mix_frame || mix_frame->num_planes <= 0) {
+            qCWarning(chiakiGui) << "Frame mix contains an invalid frame, skipping render";
+            if (placebo_reset_pending.loadAcquire() == 0)
+                schedulePlaceboReset();
+            close_started_frame(false);
+            finalize_render();
+            return;
+        }
+    }
+
     if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
     {
         qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+        close_started_frame(false);
         finalize_render();
         return;
     }
 
-    if (!pl_swapchain_submit_frame(placebo_swapchain))
-        qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
+    if (!updateHeldFrame(frame_mix, params, target_frame))
+        qCWarning(chiakiGui) << "Failed to update held renderer frame";
 
-    pl_swapchain_swap_buffers(placebo_swapchain);
+    close_started_frame(true);
 
     schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
 

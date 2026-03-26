@@ -302,8 +302,8 @@ Item {
                 id: statsConsoleNameLabel
                 anchors {
                     right: parent.right
-                    bottom: parent.bottom
-                    bottomMargin: 30
+                    verticalCenter: parent.verticalCenter
+                    rightMargin: 5
                 }
                 ColumnLayout {
                     anchors {
@@ -332,6 +332,54 @@ Item {
                                 text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
                                 font.bold: true
                                 color: "#ef9a9a" // Material.Red
+                                font.pixelSize: 18
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignRight
+                        Label {
+                            text: qsTr("queue depth avg")
+                            font.pixelSize: 15
+                            opacity: parent.visible
+                            visible: opacity
+ 
+                            Behavior on opacity { NumberAnimation { duration: 250 } }
+ 
+                            Label {
+                                anchors {
+                                    right: parent.left
+                                    baseline: parent.baseline
+                                    rightMargin: 5
+                                }
+                                text: visible ? Chiaki.window.queueDepthAverage.toFixed(1) : ""
+                                font.bold: true
+                                color: "#90caf9"
+                                font.pixelSize: 18
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignRight
+                        Label {
+                            text: qsTr("pending frame age")
+                            font.pixelSize: 15
+                            opacity: parent.visible
+                            visible: opacity
+ 
+                            Behavior on opacity { NumberAnimation { duration: 250 } }
+ 
+                            Label {
+                                anchors {
+                                    right: parent.left
+                                    baseline: parent.baseline
+                                    rightMargin: 5
+                                }
+                                text: visible ? qsTr("%1 ms").arg((Chiaki.window.pendingFrameAge * 1000.0).toFixed(0)) : ""
+                                font.bold: true
+                                color: "#90caf9"
                                 font.pixelSize: 18
                             }
                         }

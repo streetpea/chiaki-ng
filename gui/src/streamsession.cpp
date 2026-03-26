@@ -503,8 +503,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		bool old_skip = skip_video_due_to_network.loadAcquire() != 0;
 		if(new_skip != old_skip)
 		{
-			if(new_skip)
-				reset_placebo_after_throttle.storeRelease(1);
+			reset_placebo_after_throttle.storeRelease(1);
 			skip_video_due_to_network.storeRelease(new_skip ? 1 : 0);
 			if(new_skip)
 				CHIAKI_LOGW(log.GetChiakiLog(), "High packet loss %.3f > %.3f, throttling video", packet_loss, drop_threshold);
@@ -634,9 +633,9 @@ void StreamSession::Start()
 	ChiakiErrorCode err = chiaki_session_start(&session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		session_started = true;
 		throw ChiakiException("Chiaki Session Start failed");
 	}
+	session_started = true;
 }
 
 void StreamSession::Stop()
@@ -2287,6 +2286,24 @@ void StreamSession::Event(ChiakiEvent *event)
 			});
 			break;
 		}
+		case CHIAKI_EVENT_VIDEO_FEC_FAILURE: {
+			if(event->video_fec_failure.idr_request_sent)
+			{
+				CHIAKI_LOGW(log.GetChiakiLog(), "Video FEC failure, flushing decoder and waiting for requested IDR");
+				decoder_flush_generation.fetchAndAddRelaxed(1);
+				if(ffmpeg_decoder) {
+					chiaki_ffmpeg_decoder_flush(ffmpeg_decoder);
+				}
+				emit DecoderFlushRequested();
+			}
+			else
+			{
+				CHIAKI_LOGW(log.GetChiakiLog(), "Video FEC failure, retrying IDR request after send failure");
+				ResetDecoderAndRequestIDR();
+			}
+			emit FecFailure();
+			break;
+		}
 		case CHIAKI_EVENT_MOTION_RESET: {
 			QMetaObject::invokeMethod(this, [this]() {
 				for(auto controller : controllers)
@@ -2625,6 +2642,24 @@ void StreamSession::TriggerFfmpegFrameAvailable()
 		measured_bitrate = session.stream_connection.measured_bitrate;
 		emit MeasuredBitrateChanged();
 	}
+}
+
+bool StreamSession::ResetDecoderAndRequestIDR()
+{
+	ChiakiErrorCode err = chiaki_session_request_idr(&session);
+	if(err == CHIAKI_ERR_SUCCESS)
+	{
+		if(session.stream_connection.video_receiver)
+			chiaki_video_receiver_set_waiting_for_idr(session.stream_connection.video_receiver, true);
+		decoder_flush_generation.fetchAndAddRelaxed(1);
+		if(ffmpeg_decoder) {
+			chiaki_ffmpeg_decoder_flush(ffmpeg_decoder);
+		}
+		emit DecoderFlushRequested();
+		return true;
+	}
+	CHIAKI_LOGW(log.GetChiakiLog(), "StreamSession failed to request IDR frame: %s", chiaki_error_string(err));
+	return false;
 }
 
 class StreamSessionPrivate

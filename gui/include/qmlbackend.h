@@ -172,6 +172,7 @@ public:
 
     bool zeroCopy()        { return !disable_zero_copy; };
     void disableZeroCopy() { disable_zero_copy = true; };
+    void enableZeroCopy()  { disable_zero_copy = false; };
 
     Q_INVOKABLE void deleteHost(int index);
     Q_INVOKABLE void wakeUpHost(int index, QString nickname = QString());

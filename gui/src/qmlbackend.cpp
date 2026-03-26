@@ -33,8 +33,19 @@
 #include <QtConcurrent>
 
 extern "C" {
+#include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/pixfmt.h>
+}
+
+static inline bool frame_has_planes(const AVFrame *frame)
+{
+    if (!frame)
+        return false;
+    if (frame->hw_frames_ctx)
+        return true; // zero copy frames still map via hw context
+    const int planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(frame->format));
+    return frame->data[0] && planes > 0;
 }
 
 #define PSN_DEVICES_TRIES 2
@@ -854,10 +865,17 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             qCCritical(chiakiGui) << "Session has no FFmpeg decoder";
             return;
         }
+        const quint64 decoder_generation_before = session->DecoderFlushGeneration();
         int32_t frames_lost;
         ChiakiFfmpegFrame frame = chiaki_ffmpeg_decoder_pull_frame(decoder, &frames_lost);
         if (!frame.frame)
             return;
+        const quint64 decoder_generation_after = session->DecoderFlushGeneration();
+        if (decoder_generation_after != decoder_generation_before) {
+            av_frame_free(&frame.frame);
+            return;
+        }
+        const quint64 decoder_generation = decoder_generation_before;
 
         if (frame.frame->format == AV_PIX_FMT_NONE)
         {
@@ -880,7 +898,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
                 av_frame_free(&sw_frame);
                 return;
             }
-            if(!sw_frame->data[0])
+            if(!frame_has_planes(sw_frame))
             {
                 av_frame_free(&frame.frame);
                 av_frame_free(&sw_frame);
@@ -891,13 +909,13 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             av_frame_free(&frame.frame);
             frame.frame = sw_frame;
         }
-        else if(!frame.frame->data[0])
+        else if(!frame_has_planes(frame.frame))
         {
             av_frame_free(&frame.frame);
             return;
         }
 
-        QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
+        QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost, decoder_generation));
     });
 
     connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {
@@ -954,8 +972,17 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     });
     StreamSession *session_ptr = session;
     QmlMainWindow *window_ptr = window;
+    window_ptr->setDecoderFlushGeneration(session_ptr->DecoderFlushGeneration());
     connect(session_ptr, &StreamSession::VideoThrottleChanged, this, [window_ptr, session_ptr](bool throttled) {
         if (!throttled && session_ptr->ConsumePlaceboResetSignal() && window_ptr) {
+            if (!session_ptr->ResetDecoderAndRequestIDR()) {
+                QMetaObject::invokeMethod(window_ptr, "schedulePlaceboReset", Qt::QueuedConnection);
+            }
+        }
+    });
+    connect(session_ptr, &StreamSession::DecoderFlushRequested, this, [window_ptr, session_ptr]() {
+        if (window_ptr) {
+            window_ptr->setDecoderFlushGeneration(session_ptr->DecoderFlushGeneration());
             QMetaObject::invokeMethod(window_ptr, "schedulePlaceboReset", Qt::QueuedConnection);
         }
     });
