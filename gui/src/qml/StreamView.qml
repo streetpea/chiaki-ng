@@ -307,8 +307,9 @@ Item {
                 id: statsConsoleNameLabel
                 anchors {
                     right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    rightMargin: 5
+                    top: parent.top
+                    bottom: parent.bottom
+                    bottomMargin: 30
                 }
                 ColumnLayout {
                     anchors {
