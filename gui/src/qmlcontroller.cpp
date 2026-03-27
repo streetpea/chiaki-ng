@@ -2,6 +2,7 @@
 
 #include <QTimer>
 #include <QKeyEvent>
+#include <QDateTime>
 #include <QStyleHints>
 #include <QGuiApplication>
 
@@ -113,6 +114,20 @@ QString QmlController::GetVIDPID() const
 
 void QmlController::sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
+    // SDL2-compat/SDL3 on macOS can expose a single physical controller as
+    // two devices, creating two QmlController instances that both fire for
+    // the same button press.  Use a static guard to deduplicate.
+    static Qt::Key lastKey = Qt::Key_unknown;
+    static qint64 lastTime = 0;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (key == lastKey && (now - lastTime) < 50) {
+        lastKey = key;
+        lastTime = now;
+        return;
+    }
+    lastKey = key;
+    lastTime = now;
+
     QKeyEvent press(QEvent::KeyPress, key, modifiers);
     QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
     QGuiApplication::sendEvent(target, &press);
