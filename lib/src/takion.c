@@ -43,6 +43,7 @@
 #define TAKION_INBOUND_STREAMS 0x64
 
 #define TAKION_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
+#define TAKION_AV_REORDER_QUEUE_SIZE_EXP 3 // => 8 entries
 #define TAKION_SEND_BUFFER_SIZE 16
 
 #define TAKION_POSTPONE_PACKETS_SIZE 32
@@ -157,6 +158,14 @@ typedef struct
 	size_t payload_size;
 	uint16_t channel;
 } TakionDataPacketEntry;
+
+typedef struct
+{
+	uint8_t base_type;
+	uint8_t *buf;
+	size_t buf_size;
+	ChiakiTakionAVPacket packet;
+} TakionAVPacketEntry;
 
 typedef struct chiaki_takion_postponed_packet_t
 {
@@ -915,10 +924,42 @@ static void takion_data_drop(uint64_t seq_num, void *elem_user, void *cb_user)
 	free(entry);
 }
 
+static void takion_av_drop(uint64_t seq_num, void *elem_user, void *cb_user)
+{
+	ChiakiTakion *takion = cb_user;
+	CHIAKI_LOGW(takion->log, "Takion dropping AV packet with index %#llx", (unsigned long long)seq_num);
+	TakionAVPacketEntry *entry = elem_user;
+	free(entry->buf);
+	free(entry);
+}
+
+static void takion_flush_av_queue(ChiakiTakion *takion)
+{
+	while(true)
+	{
+		uint64_t seq_num;
+		TakionAVPacketEntry *entry;
+		bool pulled = chiaki_reorder_queue_pull(&takion->av_queue, &seq_num, (void **)&entry);
+		if(!pulled)
+			break;
+		if(takion->cb)
+		{
+			ChiakiTakionEvent event = { 0 };
+			event.type = CHIAKI_TAKION_EVENT_TYPE_AV;
+			event.av = &entry->packet;
+			takion->cb(&event, takion->cb_user);
+		}
+		free(entry->buf);
+		free(entry);
+	}
+}
+
 static void *takion_thread_func(void *user)
 {
 	ChiakiTakion *takion = user;
 	chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_TAKION);
+
+	takion->av_queue_initialized = false;
 
 	uint32_t seq_num_remote_initial;
 	if(takion_handshake(takion, &seq_num_remote_initial) != CHIAKI_ERR_SUCCESS)
@@ -1004,6 +1045,12 @@ static void *takion_thread_func(void *user)
 	}
 
 	chiaki_takion_send_buffer_fini(&takion->send_buffer);
+
+	if(takion->av_queue_initialized)
+	{
+		chiaki_reorder_queue_fini(&takion->av_queue);
+		takion->av_queue_initialized = false;
+	}
 
 error_reoder_queue:
 	chiaki_reorder_queue_fini(&takion->data_queue);
@@ -1134,10 +1181,8 @@ static void takion_handle_packet(ChiakiTakion *takion, uint8_t *buf, size_t buf_
 			if(takion->enable_crypt && !takion->gkcrypt_remote)
 				takion_postpone_packet(takion, buf, buf_size);
 			else
-			{
 				takion_handle_packet_av(takion, base_type, buf, buf_size);
-				free(buf);
-			}
+				// buf ownership transferred to av_queue entry, freed by flush or drop_cb
 			break;
 		default:
 			CHIAKI_LOGW(takion->log, "Takion packet with unknown type %#x received", base_type);
@@ -1469,28 +1514,62 @@ static ChiakiErrorCode takion_recv_message_cookie_ack(ChiakiTakion *takion)
 static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uint8_t *buf, size_t buf_size)
 {
 	// HHIxIIx
+	// buf ownership is taken by this function (freed on error or transferred to queue entry).
 
 	assert(base_type == TAKION_PACKET_TYPE_VIDEO || base_type == TAKION_PACKET_TYPE_AUDIO);
 	if((takion->disable_audio_video & CHIAKI_VIDEO_DISABLED) && (base_type == TAKION_PACKET_TYPE_VIDEO))
+	{
+		free(buf);
 		return;
+	}
 	ChiakiTakionAVPacket packet;
 	ChiakiErrorCode err = takion->av_packet_parse(&packet, &takion->key_state, buf, buf_size);
 	if((takion->disable_audio_video & CHIAKI_AUDIO_DISABLED) && (base_type == TAKION_PACKET_TYPE_AUDIO) && !packet.is_haptics)
+	{
+		free(buf);
 		return;
+	}
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_BUF_TOO_SMALL)
 			CHIAKI_LOGE(takion->log, "Takion received AV packet that was too small");
+		free(buf);
 		return;
 	}
 
-	if(takion->cb)
+	if(!takion->av_queue_initialized)
 	{
-		ChiakiTakionEvent event = { 0 };
-		event.type = CHIAKI_TAKION_EVENT_TYPE_AV;
-		event.av = &packet;
-		takion->cb(&event, takion->cb_user);
+		if(chiaki_reorder_queue_init_16(&takion->av_queue, TAKION_AV_REORDER_QUEUE_SIZE_EXP, packet.packet_index) != CHIAKI_ERR_SUCCESS)
+		{
+			// Fallback: dispatch immediately without reordering
+			if(takion->cb)
+			{
+				ChiakiTakionEvent event = { 0 };
+				event.type = CHIAKI_TAKION_EVENT_TYPE_AV;
+				event.av = &packet;
+				takion->cb(&event, takion->cb_user);
+			}
+			free(buf);
+			return;
+		}
+		chiaki_reorder_queue_set_drop_strategy(&takion->av_queue, CHIAKI_REORDER_QUEUE_DROP_STRATEGY_BEGIN);
+		chiaki_reorder_queue_set_drop_cb(&takion->av_queue, takion_av_drop, takion);
+		takion->av_queue_initialized = true;
 	}
+
+	TakionAVPacketEntry *entry = malloc(sizeof(TakionAVPacketEntry));
+	if(!entry)
+	{
+		free(buf);
+		return;
+	}
+	entry->base_type = base_type;
+	entry->buf = buf;
+	entry->buf_size = buf_size;
+	entry->packet = packet;
+
+	chiaki_reorder_queue_push(&takion->av_queue, packet.packet_index, entry);
+	takion_flush_av_queue(takion);
 }
 
 static ChiakiErrorCode av_packet_parse(bool v12, ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)

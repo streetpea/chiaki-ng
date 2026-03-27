@@ -490,6 +490,15 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 			average_packet_loss = packet_loss;
 			emit AveragePacketLossChanged();
 		}
+		if(session.stream_connection.video_receiver)
+		{
+			int32_t current_frames_lost = session.stream_connection.video_receiver->frames_lost;
+			if(current_frames_lost != frames_lost)
+			{
+				frames_lost = current_frames_lost;
+				emit FramesLostChanged();
+			}
+		}
 	});
 
 	StartAudioOutDrainThread();

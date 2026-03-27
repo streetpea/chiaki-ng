@@ -411,6 +411,27 @@ Item {
                             font.pixelSize: 18
                         }
                     }
+
+                    Label {
+                        text: qsTr("lost frames")
+                        font.pixelSize: 15
+                        opacity: parent.visible
+                        visible: opacity
+
+                        Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                        Label {
+                            anchors {
+                                right: parent.left
+                                baseline: parent.baseline
+                                rightMargin: 5
+                            }
+                            text: visible ? Chiaki.session?.framesLost ?? 0 : ""
+                            color: "#ef9a9a" // Material.Red
+                            font.bold: true
+                            font.pixelSize: 18
+                        }
+                    }
                 }
             }
         }
