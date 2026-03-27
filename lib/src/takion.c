@@ -1585,10 +1585,13 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		}
 		else if(now - takion->av_queue_head_wait_start_us > TAKION_AV_REORDER_TIMEOUT_US)
 		{
-			// Skip the missing head packet and flush whatever is available
+			// Skip the missing head packet and flush whatever is available.
+			// Must decrement count alongside begin to keep the span invariant intact.
 			CHIAKI_LOGD(takion->log, "Takion AV reorder timeout: skipping missing packet %llu",
 				(unsigned long long)takion->av_queue.begin);
 			takion->av_queue.begin = takion->av_queue.seq_num_add(takion->av_queue.begin, 1);
+			if(takion->av_queue.count > 0)
+				takion->av_queue.count--;
 			takion->av_queue_head_wait_start_us = 0;
 			takion_flush_av_queue(takion);
 		}
