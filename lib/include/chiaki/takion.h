@@ -153,9 +153,12 @@ typedef struct chiaki_takion_t
 	ChiakiGKCrypt *gkcrypt_remote; // if NULL (default), remote gmacs are IGNORED (!) and everything is expected to be unencrypted
 
 	ChiakiReorderQueue data_queue;
-	ChiakiReorderQueue av_queue;
-	bool av_queue_initialized;
-	int64_t av_queue_head_wait_start_us;
+	ChiakiReorderQueue video_queue;
+	bool video_queue_initialized;
+	int64_t video_queue_head_wait_start_us;
+	ChiakiReorderQueue audio_queue;
+	bool audio_queue_initialized;
+	int64_t audio_queue_head_wait_start_us;
 	ChiakiTakionSendBuffer send_buffer;
 
 	ChiakiTakionCallback cb;
