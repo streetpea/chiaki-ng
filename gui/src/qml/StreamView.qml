@@ -280,11 +280,10 @@ Item {
             anchors.fill: parent
             Label {
                 anchors {
-                    right: statsConsoleNameLabel.right
-                    bottom: statsConsoleNameLabel.top
-                    bottomMargin: 5
+                    top: parent.top
+                    right: parent.right
+                    topMargin: 5
                     rightMargin: 5
-
                 }
                 text: "Mbps"
                 font.pixelSize: 18

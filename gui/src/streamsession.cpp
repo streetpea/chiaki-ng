@@ -492,10 +492,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		}
 		if(session.stream_connection.video_receiver)
 		{
-			int32_t current_frames_lost = session.stream_connection.video_receiver->frames_lost;
-			if(current_frames_lost != frames_lost)
+			int32_t delta = session.stream_connection.video_receiver->frames_lost;
+			if(delta > 0)
 			{
-				frames_lost = current_frames_lost;
+				frames_lost += delta;
 				emit FramesLostChanged();
 			}
 		}
