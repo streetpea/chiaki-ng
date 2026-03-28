@@ -198,6 +198,45 @@ static AVFrame *make_fallback_snapshot_frame(const AVFrame *frame)
     return copy;
 }
 
+static bool held_frame_is_compatible(const struct pl_frame &held_frame,
+                                     const struct pl_frame &target_frame)
+{
+    if (target_frame.overlays || target_frame.num_overlays != 0)
+        return false;
+    if (!pl_color_repr_equal(&held_frame.repr, &target_frame.repr))
+        return false;
+    if (!pl_color_space_equal(&held_frame.color, &target_frame.color))
+        return false;
+    return true;
+}
+
+static bool blit_held_frame(pl_gpu gpu, const struct pl_frame &held_frame,
+                            const struct pl_frame &target_frame)
+{
+    if (!held_frame_is_compatible(held_frame, target_frame))
+        return false;
+
+    if (!gpu || held_frame.num_planes != 1 || target_frame.num_planes != 1)
+        return false;
+
+    pl_tex src = reinterpret_cast<pl_tex>(held_frame.planes[0].texture);
+    pl_tex dst = reinterpret_cast<pl_tex>(target_frame.planes[0].texture);
+    if (!src || !dst || !src->params.blit_src || !dst->params.blit_dst)
+        return false;
+
+    if (src->params.w != dst->params.w || src->params.h != dst->params.h)
+        return false;
+
+    struct pl_tex_blit_params params = {};
+    params.src = src;
+    params.dst = dst;
+    params.src_rc = pl_rect3d{0, 0, 0, src->params.w, src->params.h, 1};
+    params.dst_rc = pl_rect3d{0, 0, 0, dst->params.w, dst->params.h, 1};
+    params.sample_mode = PL_TEX_SAMPLE_NEAREST;
+    pl_tex_blit(gpu, &params);
+    return true;
+}
+
 static pl_rect2df full_frame_crop(const QSize &size)
 {
     return pl_rect2df{
@@ -1059,14 +1098,8 @@ bool QmlMainWindow::updateHeldFrame(const struct pl_frame_mix &frame_mix,
                                     const struct pl_render_params &params,
                                     const struct pl_frame &target_frame)
 {
-    if (!frame_mix.num_frames || !ensureHeldFrameTarget(target_frame))
+    if (!frame_mix.num_frames || !held_frame_tex)
         return false;
-
-    for (int i = 0; i < frame_mix.num_frames; ++i) {
-        const struct pl_frame *mix_frame = frame_mix.frames[i];
-        if (!mix_frame || mix_frame->num_planes <= 0)
-            return false;
-    }
 
     struct pl_frame held_target = held_frame;
     held_target.repr = target_frame.repr;
@@ -1093,6 +1126,9 @@ bool QmlMainWindow::renderHeldFrame(const struct pl_frame &target_frame,
 {
     if (!held_frame_valid || !held_frame_tex)
         return false;
+
+    if (blit_held_frame(placeboGpu(), held_frame, target_frame))
+        return true;
 
     struct pl_render_params held_params = params;
     held_params.frame_mixer = nullptr;
@@ -2468,18 +2504,45 @@ void QmlMainWindow::render()
         }
     }
 
-    if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
-    {
-        qCWarning(chiakiGui) << "Failed to render Placebo frame!";
-        close_started_frame(false);
-        finalize_render();
-        return;
+    bool can_render_to_held = ensureHeldFrameTarget(target_frame);
+    if (can_render_to_held) {
+        for (int i = 0; i < frame_mix.num_frames; ++i) {
+            const struct pl_frame *mix_frame = frame_mix.frames[i];
+            if (!mix_frame || mix_frame->num_planes <= 0) {
+                can_render_to_held = false;
+                break;
+            }
+        }
     }
 
-    if (!updateHeldFrame(frame_mix, params, target_frame))
-        qCWarning(chiakiGui) << "Failed to update held renderer frame";
-
-    close_started_frame(true);
+    bool rendered = false;
+    if (can_render_to_held) {
+        if (!updateHeldFrame(frame_mix, params, target_frame)) {
+            qCWarning(chiakiGui) << "Failed to update held renderer frame";
+            invalidateHeldFrame();
+        } else {
+            rendered = renderHeldFrame(target_frame, params);
+            if (!rendered)
+                qCWarning(chiakiGui) << "Failed to render held frame to swapchain";
+        }
+        if (rendered) {
+            close_started_frame(true);
+        } else {
+            qCWarning(chiakiGui) << "Held-frame render failed; dropping this surface update";
+            close_started_frame(false);
+            finalize_render();
+            return;
+        }
+    } else {
+        if (!pl_render_image_mix(placebo_renderer, &frame_mix, &target_frame, &params))
+        {
+            qCWarning(chiakiGui) << "Failed to render Placebo frame!";
+            close_started_frame(false);
+            finalize_render();
+            return;
+        }
+        close_started_frame(true);
+    }
 
     schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
 
