@@ -127,6 +127,8 @@ static void ctrl_message_received_keyboard_open(ChiakiCtrl *ctrl, uint8_t *paylo
 static void ctrl_message_received_keyboard_close(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_keyboard_text_change(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
 static void ctrl_message_received_switch_to_stream_connection(ChiakiCtrl *ctrl, uint8_t *payload, size_t payload_size);
+static ChiakiErrorCode ctrl_connect_tcp(ChiakiCtrl *ctrl);
+static void ctrl_disconnect_tcp(ChiakiCtrl *ctrl);
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_ctrl_init(ChiakiCtrl *ctrl, ChiakiSession *session)
 {
@@ -312,6 +314,94 @@ static void ctrl_failed(ChiakiCtrl *ctrl, ChiakiQuitReason reason)
 	ctrl->session->ctrl_failed = true;
 	chiaki_mutex_unlock(&ctrl->session->state_mutex);
 	chiaki_cond_signal(&ctrl->session->state_cond);
+}
+
+static void ctrl_disconnect_tcp(ChiakiCtrl *ctrl)
+{
+	if(!CHIAKI_SOCKET_IS_INVALID(ctrl->sock))
+	{
+		CHIAKI_SOCKET_CLOSE(ctrl->sock);
+		ctrl->sock = CHIAKI_INVALID_SOCKET;
+	}
+}
+
+static ChiakiErrorCode ctrl_connect_tcp(ChiakiCtrl *ctrl)
+{
+	ChiakiSession *session = ctrl->session;
+	struct addrinfo *addr = session->connect_info.host_addrinfo_selected;
+	struct sockaddr *sa = malloc(addr->ai_addrlen);
+	if(!sa)
+	{
+		CHIAKI_LOGE(session->log, "Ctrl failed to alloc sockaddr");
+		return CHIAKI_ERR_MEMORY;
+	}
+	memcpy(sa, addr->ai_addr, addr->ai_addrlen);
+
+	if(sa->sa_family == AF_INET)
+		((struct sockaddr_in *)sa)->sin_port = htons(SESSION_CTRL_PORT);
+	else if(sa->sa_family == AF_INET6)
+		((struct sockaddr_in6 *)sa)->sin6_port = htons(SESSION_CTRL_PORT);
+	else
+	{
+		free(sa);
+		CHIAKI_LOGE(session->log, "Ctrl got invalid sockaddr");
+		return CHIAKI_ERR_INVALID_DATA;
+	}
+
+	chiaki_socket_t sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	if(CHIAKI_SOCKET_IS_INVALID(sock))
+	{
+		free(sa);
+		CHIAKI_LOGE(session->log, "Session ctrl socket creation failed.");
+		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		return CHIAKI_ERR_NETWORK;
+	}
+
+	ChiakiErrorCode err = chiaki_socket_set_nonblock(sock, true);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
+		free(sa);
+		CHIAKI_SOCKET_CLOSE(sock);
+		ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
+		return err;
+	}
+
+	chiaki_mutex_unlock(&ctrl->notif_mutex);
+	err = chiaki_stop_pipe_connect(&ctrl->stop_pipe, sock, sa, addr->ai_addrlen, 5000);
+	chiaki_mutex_lock(&ctrl->notif_mutex);
+	free(sa);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		if(err == CHIAKI_ERR_CANCELED)
+		{
+			if(ctrl->should_stop)
+				CHIAKI_LOGI(session->log, "Ctrl requested to stop while connecting");
+			else
+				CHIAKI_LOGE(session->log, "Ctrl notif pipe signaled without should_stop during connect");
+			if(!CHIAKI_SOCKET_IS_INVALID(sock))
+			{
+				CHIAKI_SOCKET_CLOSE(sock);
+				sock = CHIAKI_INVALID_SOCKET;
+			}
+		}
+		else
+		{
+			CHIAKI_LOGE(session->log, "Ctrl connect failed: %s", chiaki_error_string(err));
+			ChiakiQuitReason quit_reason = err == CHIAKI_ERR_CONNECTION_REFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
+			ctrl_failed(ctrl, quit_reason);
+			if(!CHIAKI_SOCKET_IS_INVALID(sock))
+			{
+				CHIAKI_SOCKET_CLOSE(sock);
+				sock = CHIAKI_INVALID_SOCKET;
+			}
+		}
+		return err;
+	}
+
+	CHIAKI_LOGI(session->log, "Ctrl connected to %s:%d", session->connect_info.hostname, SESSION_CTRL_PORT);
+	ctrl->sock = sock;
+	return CHIAKI_ERR_SUCCESS;
 }
 
 static void *ctrl_thread_func(void *user)
@@ -1097,74 +1187,9 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 	}
 	else
 	{
-		struct addrinfo *addr = session->connect_info.host_addrinfo_selected;
-		struct sockaddr *sa = malloc(addr->ai_addrlen);
-		if(!sa)
-		{
-			CHIAKI_LOGE(session->log, "Ctrl failed to alloc sockaddr");
-			return CHIAKI_ERR_MEMORY;
-		}
-		memcpy(sa, addr->ai_addr, addr->ai_addrlen);
-
-		if(sa->sa_family == AF_INET)
-			((struct sockaddr_in *)sa)->sin_port = htons(SESSION_CTRL_PORT);
-		else if(sa->sa_family == AF_INET6)
-			((struct sockaddr_in6 *)sa)->sin6_port = htons(SESSION_CTRL_PORT);
-		else
-		{
-			free(sa);
-			CHIAKI_LOGE(session->log, "Ctrl got invalid sockaddr");
-			return CHIAKI_ERR_INVALID_DATA;
-		}
-
-		chiaki_socket_t sock = socket(sa->sa_family, SOCK_STREAM, IPPROTO_TCP);
-		if(CHIAKI_SOCKET_IS_INVALID(sock))
-		{
-			free(sa);
-			CHIAKI_LOGE(session->log, "Session ctrl socket creation failed.");
-			ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
-			return CHIAKI_ERR_NETWORK;
-		}
-
-		err = chiaki_socket_set_nonblock(sock, true);
+		err = ctrl_connect_tcp(ctrl);
 		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			CHIAKI_LOGE(session->log, "Failed to set ctrl socket to non-blocking: %s", chiaki_error_string(err));
-			free(sa);
-			CHIAKI_SOCKET_CLOSE(sock);
-			ctrl_failed(ctrl, CHIAKI_QUIT_REASON_CTRL_UNKNOWN);
-			return err;
-		}
-
-		chiaki_mutex_unlock(&ctrl->notif_mutex);
-		err = chiaki_stop_pipe_connect(&ctrl->stop_pipe, sock, sa, addr->ai_addrlen, 5000);
-		chiaki_mutex_lock(&ctrl->notif_mutex);
-		free(sa);
-		if(err != CHIAKI_ERR_SUCCESS)
-		{
-			if(err == CHIAKI_ERR_CANCELED)
-			{
-				if(ctrl->should_stop)
-					CHIAKI_LOGI(session->log, "Ctrl requested to stop while connecting");
-				else
-					CHIAKI_LOGE(session->log, "Ctrl notif pipe signaled without should_stop during connect");
-				if(!CHIAKI_SOCKET_IS_INVALID(sock))
-				{
-					CHIAKI_SOCKET_CLOSE(sock);
-					sock = CHIAKI_INVALID_SOCKET;
-				}
-			}
-			else
-			{
-				CHIAKI_LOGE(session->log, "Ctrl connect failed: %s", chiaki_error_string(err));
-				ChiakiQuitReason quit_reason = err == CHIAKI_ERR_CONNECTION_REFUSED ? CHIAKI_QUIT_REASON_CTRL_CONNECTION_REFUSED : CHIAKI_QUIT_REASON_CTRL_UNKNOWN;
-				ctrl_failed(ctrl, quit_reason);
-			}
 			goto error;
-		}
-
-		CHIAKI_LOGI(session->log, "Ctrl connected to %s:%d", session->connect_info.hostname, SESSION_CTRL_PORT);
-		ctrl->sock = sock;
 	}
 
 	uint8_t auth_enc[CHIAKI_RPCRYPT_KEY_SIZE];
@@ -1293,28 +1318,18 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 		if(chiaki_target_is_ps5(session->target))
 			ctrl->crypt_counter_local++;
 	}
-	else
-	{
-		int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)send_buf, (size_t)request_len, 0);
-		if(sent < 0)
-		{
-			CHIAKI_LOGE(session->log, "Failed to send ctrl request");
-			goto error;
-		}
-	}
+
+	bool ctrl_request_retry = false;
 	char buf[512];
 	size_t header_size;
 	size_t received_size;
-	if(session->rudp)
-		err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
-	else
-		err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->stop_pipe, CTRL_EXPECT_TIMEOUT);
-	if (err == CHIAKI_ERR_TIMEOUT)
+
+	while(true)
 	{
-		CHIAKI_LOGI(session->log, "Initial ctrl startup request timed out, resending ...");
-		memset(buf, 0, sizeof(buf));
 		if(session->rudp)
+		{
 			err = chiaki_send_recv_http_header_psn(session->rudp, session->log, &remote_counter, send_buf, request_len, buf, sizeof(buf), &header_size, &received_size);
+		}
 		else
 		{
 			int sent = send(ctrl->sock, (CHIAKI_SOCKET_BUF_TYPE)send_buf, (size_t)request_len, 0);
@@ -1323,9 +1338,28 @@ static ChiakiErrorCode ctrl_connect(ChiakiCtrl *ctrl)
 				CHIAKI_LOGE(session->log, "Failed to send ctrl request");
 				goto error;
 			}
+
 			err = chiaki_recv_http_header(ctrl->sock, buf, sizeof(buf), &header_size, &received_size, &ctrl->stop_pipe, CTRL_EXPECT_TIMEOUT);
 		}
+
+		if(err == CHIAKI_ERR_TIMEOUT && !ctrl_request_retry)
+		{
+			CHIAKI_LOGI(session->log, "Initial ctrl startup request timed out, resending ...");
+			memset(buf, 0, sizeof(buf));
+			ctrl_request_retry = true;
+			if(!session->rudp)
+			{
+				ctrl_disconnect_tcp(ctrl);
+				err = ctrl_connect_tcp(ctrl);
+				if(err != CHIAKI_ERR_SUCCESS)
+					goto error;
+			}
+			continue;
+		}
+
+		break;
 	}
+
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err != CHIAKI_ERR_CANCELED)
