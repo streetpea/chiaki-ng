@@ -15,7 +15,10 @@
 #include <assert.h>
 
 #ifdef __APPLE__
+#include <TargetConditionals.h>
+#if TARGET_OS_OSX
 #include <CoreServices/CoreServices.h>
+#endif
 #endif
 
 #ifdef _WIN32
@@ -253,7 +256,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 			goto error_sock;
 		}
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && TARGET_OS_OSX
 		SInt32 majorVersion;
 		Gestalt(gestaltSystemVersionMajor, &majorVersion);
 		if(majorVersion < 11)
@@ -342,7 +345,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		}
 		if(info->ip_dontfrag)
 		{
-#if defined(__APPLE__)
+#if defined(__APPLE__) && TARGET_OS_OSX
 			SInt32 majorVersion;
 			Gestalt(gestaltSystemVersionMajor, &majorVersion);
 			if(majorVersion < 11)
