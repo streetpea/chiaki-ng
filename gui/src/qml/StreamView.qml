@@ -86,7 +86,12 @@ Item {
         property bool closing: false
         property bool open: false
 
+        property real lastToggleTime: 0
         function toggle() {
+            var now = Date.now();
+            if (now - lastToggleTime < 200)
+                return;
+            lastToggleTime = now;
             if (open)
                 close();
             else {

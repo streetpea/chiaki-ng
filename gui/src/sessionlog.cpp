@@ -107,40 +107,81 @@ static void LogCb(ChiakiLogLevel level, const char *msg, void *user)
 	SessionLogPrivate::Log(log, level, msg);
 }
 
+// Heap-allocated regexes that intentionally outlive static destruction,
+// preventing use-after-free when background threads (e.g. takion) log
+// while the process is shutting down.
+static const QRegularExpression &sanitize_ipv4_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"(\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b)");
+	return *re;
+}
+static const QRegularExpression &sanitize_ipv6_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"((?<![0-9A-Za-z])\[?(?:(?:[0-9A-Fa-f]{1,4}:){3,7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{0,4}:){0,7}::(?:[0-9A-Fa-f]{0,4}:){0,7}[0-9A-Fa-f]{0,4})\]?(?![0-9A-Za-z]))");
+	return *re;
+}
+static const QRegularExpression &sanitize_labeled_secret_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"((((?:console|host|server|session|account|psn|public|remote)\s+(?:id|ip|address)|duid)\s*:\s*)([^\s,;]+))",
+		QRegularExpression::CaseInsensitiveOption);
+	return *re;
+}
+static const QRegularExpression &sanitize_session_id_token_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"((session\s+id\s+)([A-Za-z0-9+/=_-]{8,}))",
+		QRegularExpression::CaseInsensitiveOption);
+	return *re;
+}
+static const QRegularExpression &sanitize_uuid_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b)");
+	return *re;
+}
+static const QRegularExpression &sanitize_long_hex_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"(\b[a-fA-F0-9]{16,}\b)");
+	return *re;
+}
+static const QRegularExpression &sanitize_account_id_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"((account(?:_id)?\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption);
+	return *re;
+}
+static const QRegularExpression &sanitize_duid_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"((duid\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption);
+	return *re;
+}
+static const QRegularExpression &sanitize_session_id_eq_re()
+{
+	static const auto *re = new QRegularExpression(
+		R"((session\s+id\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption);
+	return *re;
+}
+
 static QString SanitizeLogMessage(const QString &msg)
 {
 	QString sanitized = msg;
 
-	static const QRegularExpression ipv4_re(
-		R"(\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b)");
-	static const QRegularExpression ipv6_re(
-		R"((?<![0-9A-Za-z])\[?(?:(?:[0-9A-Fa-f]{1,4}:){3,7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{0,4}:){0,7}::(?:[0-9A-Fa-f]{0,4}:){0,7}[0-9A-Fa-f]{0,4})\]?(?![0-9A-Za-z]))");
-	static const QRegularExpression labeled_secret_re(
-		R"((((?:console|host|server|session|account|psn|public|remote)\s+(?:id|ip|address)|duid)\s*:\s*)([^\s,;]+))",
-		QRegularExpression::CaseInsensitiveOption);
-	static const QRegularExpression session_id_token_re(
-		R"((session\s+id\s+)([A-Za-z0-9+/=_-]{8,}))",
-		QRegularExpression::CaseInsensitiveOption);
-	static const QRegularExpression uuid_re(
-		R"(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\b)");
-	static const QRegularExpression long_hex_re(
-		R"(\b[a-fA-F0-9]{16,}\b)");
-
-	sanitized.replace(ipv4_re, QStringLiteral("<redacted-ipv4>"));
-	sanitized.replace(ipv6_re, QStringLiteral("<redacted-ipv6>"));
-	sanitized.replace(labeled_secret_re, QStringLiteral("\\1<redacted>"));
-
-	sanitized.replace(QRegularExpression(R"((account(?:_id)?\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption),
-	                  QStringLiteral("\\1<redacted>"));
-	sanitized.replace(QRegularExpression(R"((duid\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption),
-	                  QStringLiteral("\\1<redacted>"));
-	sanitized.replace(QRegularExpression(R"((session\s+id\s*=\s*)([^\s,;]+))", QRegularExpression::CaseInsensitiveOption),
-	                  QStringLiteral("\\1<redacted>"));
-	sanitized.replace(session_id_token_re, QStringLiteral("\\1<redacted>"));
-	sanitized.replace(uuid_re, QStringLiteral("<redacted-uuid>"));
+	sanitized.replace(sanitize_ipv4_re(), QStringLiteral("<redacted-ipv4>"));
+	sanitized.replace(sanitize_ipv6_re(), QStringLiteral("<redacted-ipv6>"));
+	sanitized.replace(sanitize_labeled_secret_re(), QStringLiteral("\\1<redacted>"));
+	sanitized.replace(sanitize_account_id_re(), QStringLiteral("\\1<redacted>"));
+	sanitized.replace(sanitize_duid_re(), QStringLiteral("\\1<redacted>"));
+	sanitized.replace(sanitize_session_id_eq_re(), QStringLiteral("\\1<redacted>"));
+	sanitized.replace(sanitize_session_id_token_re(), QStringLiteral("\\1<redacted>"));
+	sanitized.replace(sanitize_uuid_re(), QStringLiteral("<redacted-uuid>"));
 
 	// Catch unlabeled long hex identifiers, which commonly occur in console IDs and device UIDs.
-	sanitized.replace(long_hex_re, QStringLiteral("<redacted-hex>"));
+	sanitized.replace(sanitize_long_hex_re(), QStringLiteral("<redacted-hex>"));
 
 	return sanitized;
 }
