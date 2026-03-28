@@ -329,7 +329,7 @@ Item {
     Window {
         id: separateDisplaySettingsWindow
         visible: useSeparateStreamSettingsWindows && displaySettingsRect.opacity > 0.0
-        transientParent: Window.window
+        transientParent: Chiaki.window
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: Material.background
         modality: Qt.NonModal
@@ -359,7 +359,7 @@ Item {
     Window {
         id: separatePlaceboSettingsWindow
         visible: useSeparateStreamSettingsWindows && placeboSettingsRect.opacity > 0.0
-        transientParent: Window.window
+        transientParent: Chiaki.window
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: Material.background
         modality: Qt.NonModal
@@ -389,7 +389,7 @@ Item {
     Window {
         id: separateColorMappingSettingsWindow
         visible: useSeparateStreamSettingsWindows && colorMappingSettingsRect.opacity > 0.0
-        transientParent: Window.window
+        transientParent: Chiaki.window
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: Material.background
         modality: Qt.NonModal
