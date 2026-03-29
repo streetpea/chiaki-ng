@@ -655,36 +655,24 @@ void QmlMainWindow::show()
 }
 
 namespace {
-constexpr int kThrottledQueuePushWindow = 3;
-constexpr int kThrottledQueuePushAllowed = 2;
 constexpr int kDefaultQueueDepthLimit = 2;
 }
 
-void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, quint64 decoder_generation)
+void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 {
     dropped_frames_current.fetchAndAddRelaxed(frames_lost);
 
     if (!frame.frame)
         return;
 
-    if (decoder_generation != decoder_flush_generation.loadRelaxed()) {
+    if (frame.recovered)
+    {
+        snapshotLastFrame(frame.frame, frame.pts, frame.duration);
+        storePendingFrame(frame);
         av_frame_free(&frame.frame);
+        if (placebo_reset_pending.loadAcquire() == 0)
+            schedulePlaceboReset();
         return;
-    }
-
-    const bool throttled = session && session->ShouldSkipVideoFrame();
-    if (throttled)
-    {
-        const int count = throttle_queue_push_counter.fetchAndAddRelaxed(1);
-        if ((count % kThrottledQueuePushWindow) >= kThrottledQueuePushAllowed)
-        {
-            av_frame_free(&frame.frame);
-            return;
-        }
-    }
-    else
-    {
-        throttle_queue_push_counter.storeRelaxed(0);
     }
 
     frame.frame->opaque = this;
@@ -715,7 +703,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, q
         .discard = discard_frame,
     };
     const int limit = settings ? settings->GetQueueDepthLimit() : kDefaultQueueDepthLimit;
-    const int depth_limit = qMax(limit, 1);
+    const int depth_limit = qMax(limit, 2);
     bool queued = false;
     bool depth_exceeded = false;
     {
@@ -734,16 +722,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, q
         snapshotLastFrame(frame.frame, frame.pts, frame.duration);
         storePendingFrame(frame);
         av_frame_free(&frame.frame);
-        if (depth_exceeded) {
-            const uint64_t generation = snapshot_generation.load(std::memory_order_relaxed);
-            if (generation && generation != last_reset_snapshot_generation.load(std::memory_order_relaxed)) {
-                uint64_t pending = pending_reset_snapshot_generation.load(std::memory_order_relaxed);
-                if (generation != pending)
-                    pending_reset_snapshot_generation.store(generation, std::memory_order_relaxed);
-            }
-            if (placebo_reset_pending.loadAcquire() == 0)
-                schedulePlaceboReset();
-        }
+        scheduleUpdate();
         return;
     }
 
@@ -788,7 +767,6 @@ void QmlMainWindow::resetPlaceboQueue()
     queue_pts_origin = -1.0;
     playback_started = false;
     ts_start = 0;
-    throttle_queue_push_counter.storeRelaxed(0);
     locker.unlock();
     const uint64_t generation = pending_reset_snapshot_generation.load(std::memory_order_relaxed);
     last_reset_snapshot_generation.store(generation, std::memory_order_relaxed);
@@ -1190,13 +1168,18 @@ void QmlMainWindow::applyPendingFrame()
     }
 
     snapshot_replay_allowed.storeRelaxed(0);
+    uint64_t now_us = chiaki_time_now_monotonic_us();
+    uint64_t frame_pts_us = src_frame.pts > 0.0
+        ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
+        : 0;
     if (!playback_started) {
-        uint64_t now_us = chiaki_time_now_monotonic_us();
-        uint64_t frame_pts_us = src_frame.pts > 0.0
-            ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
-            : 0;
         ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
         playback_started = true;
+    } else if (ts_start) {
+        const double current_pts = static_cast<double>(now_us - ts_start) / 1000000.0;
+        const double catch_up_threshold = qMax(static_cast<double>(duration) * 2.0, 0.05);
+        if (src_frame.pts > current_pts + catch_up_threshold)
+            ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
     }
 
     if (!has_video) {
@@ -1206,6 +1189,32 @@ void QmlMainWindow::applyPendingFrame()
         emit hasVideoChanged();
     }
     scheduleUpdate();
+}
+
+bool QmlMainWindow::applyPendingFrameIfQueueHasCapacity()
+{
+    bool has_pending = hasPendingFrame();
+    if (!has_pending)
+        return false;
+
+    const int limit = settings ? settings->GetQueueDepthLimit() : kDefaultQueueDepthLimit;
+    const int depth_limit = qMax(limit, 2);
+    bool has_capacity = false;
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        has_capacity = pl_queue_num_frames(placebo_queue) < depth_limit;
+    }
+    if (has_capacity) {
+        applyPendingFrame();
+        return true;
+    }
+    return false;
+}
+
+bool QmlMainWindow::hasPendingFrame()
+{
+    QMutexLocker locker(&pending_frame_mutex);
+    return pending_frame != nullptr;
 }
 
 AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
@@ -1600,7 +1609,6 @@ renderer_backend_ready:
         pending_reset_snapshot_generation.store(0, std::memory_order_relaxed);
         last_reset_snapshot_generation.store(0, std::memory_order_relaxed);
         snapshot_replay_allowed.storeRelaxed(0);
-        decoder_flush_generation.storeRelaxed(0);
         held_frame_clear_pending.storeRelaxed(1);
         renderer_cache_flush_pending.storeRelaxed(1);
         queue_pts_origin = -1.0;
@@ -2231,7 +2239,6 @@ void QmlMainWindow::render()
             snapshot_replay_allowed.storeRelaxed(0);
         }
     }
-    refreshPendingFrameAge();
     switch (queue_status) {
     case PL_QUEUE_ERR:
         finalize_render();
@@ -2241,6 +2248,22 @@ void QmlMainWindow::render()
     case PL_QUEUE_MORE:
         break;
     }
+    if (applyPendingFrameIfQueueHasCapacity()) {
+        {
+            QMutexLocker locker(&placebo_state_mutex);
+            queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
+        }
+        switch (queue_status) {
+        case PL_QUEUE_ERR:
+            finalize_render();
+            return;
+        case PL_QUEUE_EOF:
+        case PL_QUEUE_OK:
+        case PL_QUEUE_MORE:
+            break;
+        }
+    }
+    refreshPendingFrameAge();
 
     if (render_backend == RenderBackend::OpenGL && quick_need_render.loadRelaxed()) {
         quick_need_render.storeRelaxed(0);
@@ -2400,7 +2423,7 @@ void QmlMainWindow::render()
         }
 
         close_started_frame(true);
-        schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
+        schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF) || hasPendingFrame();
         finalize_render();
         if (schedule_next_update) {
             QMetaObject::invokeMethod(this, [this]() {
@@ -2544,7 +2567,7 @@ void QmlMainWindow::render()
         close_started_frame(true);
     }
 
-    schedule_next_update = has_video && queue_status != PL_QUEUE_EOF;
+    schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF) || hasPendingFrame();
 
     finalize_render();
     if (schedule_next_update) {

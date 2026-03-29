@@ -655,20 +655,6 @@ void Settings::SetPacketLossReportedMax(float reported_max)
 	settings.setValue("settings/packet_loss_reported_max", QString("%1").arg(reported_max, 0, 'f', 2));
 }
 
-float Settings::GetPacketLossThrottleThreshold() const
-{
-	if (settings.contains("settings/packet_loss_throttle_threshold"))
-		return settings.value("settings/packet_loss_throttle_threshold").toFloat();
-	if (settings.contains("settings/packet_loss_throttle_min"))
-		return settings.value("settings/packet_loss_throttle_min").toFloat();
-	return 0.05f;
-}
-
-void Settings::SetPacketLossThrottleThreshold(float throttle_threshold)
-{
-	settings.setValue("settings/packet_loss_throttle_threshold", QString("%1").arg(throttle_threshold, 0, 'f', 2));
-}
-
 int Settings::GetQueueDepthLimit() const
 {
 	if (settings.contains("settings/queue_depth_limit"))
@@ -679,16 +665,6 @@ int Settings::GetQueueDepthLimit() const
 void Settings::SetQueueDepthLimit(int limit)
 {
 	settings.setValue("settings/queue_depth_limit", limit);
-}
-
-bool Settings::GetThrottleVideoOnLoss() const
-{
-	return settings.value("settings/throttle_video_on_loss", true).toBool();
-}
-
-void Settings::SetThrottleVideoOnLoss(bool enabled)
-{
-	settings.setValue("settings/throttle_video_on_loss", enabled);
 }
 
 static const QMap<WindowType, QString> window_type_values = {

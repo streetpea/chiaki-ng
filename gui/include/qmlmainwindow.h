@@ -108,7 +108,6 @@ public:
 
     void fullscreenTime();
     void normalTime();
-    void setDecoderFlushGeneration(quint64 generation) { decoder_flush_generation.storeRelaxed(generation); }
 
     bool isStreamWindowAdjustable() { return is_stream_window_adjustable; }
     void setStreamWindowAdjustable(bool adjustable) { is_stream_window_adjustable = adjustable; }
@@ -128,7 +127,7 @@ public slots:
     void updatePlacebo();
     void updateVSync();
     void show();
-    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, quint64 decoder_generation);
+    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost);
 
     AVBufferRef *vulkanHwDeviceCtx();
 
@@ -161,6 +160,8 @@ private:
     void endFrame();
     void render();
     void applyPendingFrame();
+    bool applyPendingFrameIfQueueHasCapacity();
+    bool hasPendingFrame();
     void storePendingFrame(ChiakiFfmpegFrame &frame);
     void refreshPendingFrameAge();
     bool handleShortcut(QKeyEvent *event);
@@ -256,8 +257,6 @@ private:
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
     QAtomicInteger<int> render_active = 0;
-    QAtomicInteger<int> throttle_queue_push_counter = 0;
-    QAtomicInteger<quint64> decoder_flush_generation = 0;
     bool present_vsync_enabled = true;
 
     QVulkanInstance *qt_vk_inst = {};

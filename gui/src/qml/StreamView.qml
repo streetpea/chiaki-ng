@@ -296,7 +296,7 @@ Item {
                         baseline: parent.baseline
                         rightMargin: 5
                     }
-                    text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
+                    text: visible && Chiaki.session ? Chiaki.session.measuredBitrate.toFixed(1) : ""
                     color: Material.accent
                     font.bold: true
                     font.pixelSize: 28
@@ -764,7 +764,7 @@ Item {
                         baseline: parent.baseline
                         rightMargin: 5
                     }
-                    text: visible ? Chiaki.session.measuredBitrate.toFixed(1) : ""
+                        text: visible && Chiaki.session ? Chiaki.session.measuredBitrate.toFixed(1) : ""
                     color: Material.accent
                     font.bold: true
                     font.pixelSize: 28
