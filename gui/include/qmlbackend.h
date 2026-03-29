@@ -12,6 +12,7 @@
 #include <QUrl>
 #include <QFutureWatcher>
 #include <QFuture>
+#include <QAtomicInteger>
 #ifdef CHIAKI_HAVE_WEBENGINE
 #include <QQuickWebEngineProfile>
 #include <QWebEngineUrlRequestInterceptor>
@@ -302,6 +303,7 @@ private:
     QFutureWatcher<void> psn_hosts_watcher;
     QFuture<void> psn_hosts_future;
     bool disable_zero_copy = false;
+    QAtomicInteger<int> pending_recovered_frame = 0;
     Controller *controller_mapping_controller = {};
     QMap<QString, QStringList> controller_guids_to_update = {};
     int controller_mapping_id = -1;

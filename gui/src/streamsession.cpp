@@ -83,8 +83,7 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 		bool auto_regist,
 		bool fullscreen, 
 		bool zoom, 
-		bool stretch,
-		bool throttle_video_on_loss)
+		bool stretch)
 	: settings(settings)
 {
 	key_map = settings->GetControllerMappingForDecoding();
@@ -113,7 +112,6 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->fullscreen = fullscreen;
 	this->zoom = zoom;
 	this->stretch = stretch;
-	this->throttle_video_on_loss = throttle_video_on_loss;
 	const bool keyboard_controller_enabled_setting = settings->GetKeyboardEnabled();
 	this->keyboard_controller_enabled = keyboard_controller_enabled_setting;
 	this->mouse_touch_enabled = settings->GetMouseTouchEnabled();
@@ -127,7 +125,6 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->port_guess_count = settings->GetPortGuessCount();
 	this->port_guess_socket_count = settings->GetPortGuessSocketCount();
 	this->packet_loss_max = settings->GetPacketLossReportedMax();
-	this->packet_loss_throttle_threshold = settings->GetPacketLossThrottleThreshold();
 	this->audio_video_disabled = settings->GetAudioVideoDisabled();
 	this->haptic_override = settings->GetHapticOverride();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
@@ -221,8 +218,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	player_index = 0;
 	memset(led_color, 0, sizeof(led_color));
 	packet_loss_max = connect_info.packet_loss_max;
-	packet_loss_throttle_threshold = connect_info.packet_loss_throttle_threshold;
-	throttle_video_on_loss = connect_info.throttle_video_on_loss;
 	ChiakiErrorCode err;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)
@@ -494,28 +489,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		{
 			average_packet_loss = packet_loss;
 			emit AveragePacketLossChanged();
-		}
-		if(!throttle_video_on_loss)
-		{
-			if(skip_video_due_to_network.loadAcquire() != 0)
-			{
-				skip_video_due_to_network.storeRelease(0);
-				CHIAKI_LOGI(log.GetChiakiLog(), "Packet loss throttling disabled, resuming video");
-			}
-			return;
-		}
-		const double drop_threshold = qMin(qMax(this->packet_loss_throttle_threshold * 1.5, 0.02), 0.25);
-		bool new_skip = packet_loss > drop_threshold;
-		bool old_skip = skip_video_due_to_network.loadAcquire() != 0;
-		if(new_skip != old_skip)
-		{
-			reset_placebo_after_throttle.storeRelease(1);
-			skip_video_due_to_network.storeRelease(new_skip ? 1 : 0);
-			if(new_skip)
-				CHIAKI_LOGW(log.GetChiakiLog(), "High packet loss %.3f > %.3f, throttling video", packet_loss, drop_threshold);
-			else
-				CHIAKI_LOGI(log.GetChiakiLog(), "Packet loss %.3f <= %.3f, resuming video", packet_loss, drop_threshold);
-			emit VideoThrottleChanged(new_skip);
 		}
 	});
 
@@ -2295,12 +2268,7 @@ void StreamSession::Event(ChiakiEvent *event)
 		case CHIAKI_EVENT_VIDEO_FEC_FAILURE: {
 			if(event->video_fec_failure.idr_request_sent)
 			{
-				CHIAKI_LOGW(log.GetChiakiLog(), "Video FEC failure, flushing decoder and waiting for requested IDR");
-				decoder_flush_generation.fetchAndAddRelaxed(1);
-				if(ffmpeg_decoder) {
-					chiaki_ffmpeg_decoder_flush(ffmpeg_decoder);
-				}
-				emit DecoderFlushRequested();
+				CHIAKI_LOGW(log.GetChiakiLog(), "Video FEC failure, waiting for requested IDR");
 			}
 			else
 			{
@@ -2666,11 +2634,6 @@ bool StreamSession::ResetDecoderAndRequestIDR()
 	{
 		if(session.stream_connection.video_receiver)
 			chiaki_video_receiver_set_waiting_for_idr(session.stream_connection.video_receiver, true);
-		decoder_flush_generation.fetchAndAddRelaxed(1);
-		if(ffmpeg_decoder) {
-			chiaki_ffmpeg_decoder_flush(ffmpeg_decoder);
-		}
-		emit DecoderFlushRequested();
 		return true;
 	}
 	CHIAKI_LOGW(log.GetChiakiLog(), "StreamSession failed to request IDR frame: %s", chiaki_error_string(err));

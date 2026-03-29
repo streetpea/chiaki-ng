@@ -692,6 +692,8 @@ void QmlBackend::psnSessionStart()
 
 void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 {
+    pending_recovered_frame.storeRelaxed(0);
+
     if (autoConnect()) {
         auto_connect_mac = {};
         emit autoConnectChanged();
@@ -865,17 +867,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             qCCritical(chiakiGui) << "Session has no FFmpeg decoder";
             return;
         }
-        const quint64 decoder_generation_before = session->DecoderFlushGeneration();
         int32_t frames_lost;
         ChiakiFfmpegFrame frame = chiaki_ffmpeg_decoder_pull_frame(decoder, &frames_lost);
         if (!frame.frame)
             return;
-        const quint64 decoder_generation_after = session->DecoderFlushGeneration();
-        if (decoder_generation_after != decoder_generation_before) {
-            av_frame_free(&frame.frame);
-            return;
-        }
-        const quint64 decoder_generation = decoder_generation_before;
+        if (frame.recovered)
+            pending_recovered_frame.storeRelaxed(1);
 
         if (frame.frame->format == AV_PIX_FMT_NONE)
         {
@@ -915,7 +912,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             return;
         }
 
-        QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost, decoder_generation));
+        if (pending_recovered_frame.fetchAndStoreRelaxed(0) != 0) {
+            frame.recovered = true;
+        }
+
+        QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
     });
 
     connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {
@@ -929,6 +930,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         chiaki_log_mutex.lock();
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
+        pending_recovered_frame.storeRelaxed(0);
 
         session->deleteLater();
         session = nullptr;
@@ -970,23 +972,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (session->IsConnected())
             setDiscoveryEnabled(false);
     });
-    StreamSession *session_ptr = session;
     QmlMainWindow *window_ptr = window;
-    window_ptr->setDecoderFlushGeneration(session_ptr->DecoderFlushGeneration());
-    connect(session_ptr, &StreamSession::VideoThrottleChanged, this, [window_ptr, session_ptr](bool throttled) {
-        if (!throttled && session_ptr->ConsumePlaceboResetSignal() && window_ptr) {
-            if (!session_ptr->ResetDecoderAndRequestIDR()) {
-                QMetaObject::invokeMethod(window_ptr, "schedulePlaceboReset", Qt::QueuedConnection);
-            }
-        }
-    });
-    connect(session_ptr, &StreamSession::DecoderFlushRequested, this, [window_ptr, session_ptr]() {
-        if (window_ptr) {
-            window_ptr->setDecoderFlushGeneration(session_ptr->DecoderFlushGeneration());
-            QMetaObject::invokeMethod(window_ptr, "schedulePlaceboReset", Qt::QueuedConnection);
-        }
-    });
-
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
     chiaki_log_mutex.unlock();
@@ -1231,8 +1217,7 @@ void QmlBackend::autoRegister()
             true,
             false,
             false,
-            false,
-            settings->GetThrottleVideoOnLoss());
+            false);
 
     QString expiry_s = settings->GetPsnAuthTokenExpiry();
     QString refresh = settings->GetPsnRefreshToken();
@@ -1387,8 +1372,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 false,
                 fullscreen,
                 zoom,
-                stretch,
-                settings->GetThrottleVideoOnLoss());
+                stretch);
         createSession(info);
     }
     else
@@ -1405,8 +1389,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 false,
                 fullscreen,
                 zoom,
-                stretch,
-                settings->GetThrottleVideoOnLoss());
+                stretch);
 
         QString expiry_s = settings->GetPsnAuthTokenExpiry();
         QString refresh = settings->GetPsnRefreshToken();

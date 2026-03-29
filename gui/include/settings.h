@@ -249,7 +249,7 @@ class Settings : public QObject
 		void SetLogVerbose(bool enabled)		{ settings.setValue("settings/log_verbose", enabled); }
 		bool GetLogSanitize() const            { return settings.value("settings/log_sanitize", true).toBool(); }
 		void SetLogSanitize(bool enabled)      { settings.setValue("settings/log_sanitize", enabled); }
-		bool GetVSyncEnabled() const           { return settings.value("settings/vsync", false).toBool(); }
+		bool GetVSyncEnabled() const           { return settings.value("settings/vsync", true).toBool(); }
 		void SetVSyncEnabled(bool enabled)     { settings.setValue("settings/vsync", enabled); }
 		uint32_t GetLogLevelMask();
 
@@ -371,12 +371,8 @@ class Settings : public QObject
 
 		float GetPacketLossReportedMax() const;
 		void SetPacketLossReportedMax(float reported_max);
-		float GetPacketLossThrottleThreshold() const;
-		void SetPacketLossThrottleThreshold(float throttle_threshold);
 		int GetQueueDepthLimit() const;
 		void SetQueueDepthLimit(int limit);
-		bool GetThrottleVideoOnLoss() const;
-		void SetThrottleVideoOnLoss(bool enabled);
 
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);

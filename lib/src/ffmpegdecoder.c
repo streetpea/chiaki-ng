@@ -133,23 +133,6 @@ CHIAKI_EXPORT void chiaki_ffmpeg_decoder_fini(ChiakiFfmpegDecoder *decoder)
 	chiaki_mutex_fini(&decoder->mutex);
 }
 
-CHIAKI_EXPORT void chiaki_ffmpeg_decoder_flush(ChiakiFfmpegDecoder *decoder)
-{
-	if(!decoder)
-		return;
-
-	chiaki_mutex_lock(&decoder->mutex);
-	if(decoder->codec_context)
-		avcodec_flush_buffers(decoder->codec_context);
-	decoder->frames_lost = 0;
-	decoder->frame_recovered = false;
-	decoder->synthetic_candidate_duration_us = 0.0;
-	decoder->synthetic_candidate_count = 0;
-	decoder->synthetic_last_sample_time_us = 0;
-	decoder->synthetic_packet_pts = 0;
-	chiaki_mutex_unlock(&decoder->mutex);
-}
-
 CHIAKI_EXPORT bool chiaki_ffmpeg_decoder_video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)
 {
 	ChiakiFfmpegDecoder *decoder = user;
@@ -289,8 +272,10 @@ CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDec
 		}
 	}
 	*frames_lost = decoder->frames_lost;
+	bool recovered = false;
 	if(frame && decoder->frame_recovered)
 	{
+		recovered = true;
 		decoder->frame_recovered = false;
 		frame->decode_error_flags |= 1;
 	}
@@ -302,6 +287,7 @@ CHIAKI_EXPORT ChiakiFfmpegFrame chiaki_ffmpeg_decoder_pull_frame(ChiakiFfmpegDec
 
 	ChiakiFfmpegFrame frame_plus_stats = {};
 	frame_plus_stats.frame = frame;
+	frame_plus_stats.recovered = recovered;
 	if(frame)
 	{
 		chiaki_ffmpeg_frame_get_timing(
