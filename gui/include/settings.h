@@ -406,6 +406,13 @@ class Settings : public QObject
 		uint GetWifiDroppedNotif() const;
 		void SetWifiDroppedNotif(uint percent);
 
+		bool GetPortGuessingEnabled() const;
+		void SetPortGuessingEnabled(bool enabled);
+		int GetPortGuessCount() const;
+		void SetPortGuessCount(int count);
+		int GetPortGuessSocketCount() const;
+		void SetPortGuessSocketCount(int count);
+
 		QString GetPsnAuthToken() const;
 		void SetPsnAuthToken(QString auth_token);
 

@@ -123,6 +123,9 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	this->rumble_haptics_intensity = settings->GetRumbleHapticsIntensity();
 	this->buttons_by_pos = settings->GetButtonsByPosition();
 	this->start_mic_unmuted = settings->GetStartMicUnmuted();
+	this->port_guessing_enabled = settings->GetPortGuessingEnabled();
+	this->port_guess_count = settings->GetPortGuessCount();
+	this->port_guess_socket_count = settings->GetPortGuessSocketCount();
 	this->packet_loss_max = settings->GetPacketLossReportedMax();
 	this->packet_loss_throttle_threshold = settings->GetPacketLossThrottleThreshold();
 	this->audio_video_disabled = settings->GetAudioVideoDisabled();
@@ -173,7 +176,7 @@ static void FfmpegFrameCb(ChiakiFfmpegDecoder *decoder, void *user);
 
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
-	log(this, connect_info.log_level_mask, connect_info.log_file, connect_info.log_sanitize),
+		log(this, connect_info.log_level_mask, connect_info.log_file, connect_info.log_sanitize),
 	ffmpeg_decoder(nullptr),
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	pi_decoder(nullptr),
@@ -204,6 +207,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	connected = false;
 	muted = true;
 	mic_connected = false;
+	port_guessing_enabled = connect_info.port_guessing_enabled;
+	port_guess_count = connect_info.port_guess_count;
+	port_guess_socket_count = connect_info.port_guess_socket_count;
 #ifdef Q_OS_MACOS
 	mic_authorization = false;
 #endif
@@ -2571,6 +2577,15 @@ ChiakiErrorCode StreamSession::InitiatePsnConnection(QString psn_token)
 		CHIAKI_LOGE(log, "!! Failed to initialize session");
 		return CHIAKI_ERR_MEMORY;
 	}
+	chiaki_holepunch_session_force_port_guessing(
+			holepunch_session,
+			port_guessing_enabled);
+	chiaki_holepunch_session_set_port_guessing_ports(
+				holepunch_session,
+				port_guess_count);
+	chiaki_holepunch_session_set_port_guessing_socks(
+			holepunch_session,
+			port_guess_socket_count);
 	return CHIAKI_ERR_SUCCESS;
 }
 

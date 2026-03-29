@@ -19,7 +19,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent || true
 
       - name: Install sdl2-compat
         run: |
@@ -85,7 +85,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
 
       - name: Install sdl2-compat
         run: |

@@ -35,6 +35,7 @@ RUN sudo apt-get -y install \
     libxkbcommon-dev \
     libasound2-dev  \
     libminiupnpc-dev \
+    libevent-dev \
     libjson-c-dev \
     libxcursor-dev
 

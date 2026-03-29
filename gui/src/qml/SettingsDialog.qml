@@ -97,7 +97,8 @@ DialogView {
         case 4: item = registerNewButton; break;
         case 5: item = resetAllKeys; break;
         case 6: item = controllerMappingChange; break;
-        case 7: item = profile; break;
+        case 7: item = firstRemoteFocusableItem(); break;
+        case 8: item = profile; break;
         }
         if (item)
             item.forceActiveFocus(Qt.TabFocusReason);
@@ -111,9 +112,24 @@ DialogView {
         case 4: return consolesFlick;
         case 5: return keysFlick;
         case 6: return controllersFlick;
-        case 7: return configFlick;
+        case 7: return remoteFlick;
+        case 8: return configFlick;
         default: return null;
         }
+    }
+
+    function firstRemoteFocusableItem() {
+        if (openPsnLogin.visible)
+            return openPsnLogin;
+        if (resetPsnTokens.visible)
+            return resetPsnTokens;
+        if (holePunchGuessingCheckbox.visible)
+            return holePunchGuessingCheckbox;
+        if (portGuessCountSlider.visible)
+            return portGuessCountSlider;
+        if (portGuessSocketSlider.visible)
+            return portGuessSocketSlider;
+        return remoteFlick;
     }
     Keys.onPressed: (event) => {
         if (event.modifiers)
@@ -357,12 +373,12 @@ DialogView {
             }
 
             TabButton {
-                text: qsTr("Config")
-                id: config
+                text: qsTr("Remote")
+                id: remote
                 focusPolicy: Qt.NoFocus
                 Image {
                     anchors {
-                        right: config.left
+                        right: remote.left
                         verticalCenter: parent.verticalCenter
                         rightMargin: -15
                     }
@@ -371,6 +387,36 @@ DialogView {
                     sourceSize: Qt.size(width, height)
                     source: "qrc:/icons/r1.svg"
                     visible: bar.currentIndex == 6
+                }
+                Image {
+                    anchors {
+                        left: remote.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/l1.svg"
+                    visible: bar.currentIndex == 8
+                }
+            }
+
+            TabButton {
+                text: qsTr("Config")
+                id: config
+                focusPolicy: Qt.NoFocus
+                Image {
+                    anchors {
+                        left: config.left
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: -15
+                    }
+                    width: 28
+                    height: 28
+                    sourceSize: Qt.size(width, height)
+                    source: "qrc:/icons/r1.svg"
+                    visible: bar.currentIndex == 7
                 }
             }
         }
@@ -1844,6 +1890,14 @@ DialogView {
                         }
                         spacing: 10
 
+                        Label {
+                            text: ""
+                        }
+
+                        Label {
+                            text: ""
+                        }
+
                         C.Button {
                             id: registerNewButton
                             Layout.alignment: Qt.AlignHCenter
@@ -2802,7 +2856,152 @@ DialogView {
             }
 
             Item {
-                // Config (PSN Remote Connection Setup and Import/Export)
+                // Remote (PSN and Hole Punching)
+                Flickable {
+                    id: remoteFlick
+                    anchors {
+                        fill: parent
+                        topMargin: 20
+                        bottomMargin: 20
+                    }
+                    clip: true
+                    contentWidth: Math.max(width, remoteGrid.width)
+                    contentHeight: remoteGrid.y + remoteGrid.height
+                    flickableDirection: Flickable.AutoFlickIfNeeded
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                        visible: remoteFlick.contentHeight > remoteFlick.height
+                    }
+                    GridLayout {
+                        id: remoteGrid
+                        anchors {
+                            top: parent.top
+                            horizontalCenter: parent.horizontalCenter
+                            topMargin: 30
+                        }
+                        columns: 3
+                        rowSpacing: 20
+                        columnSpacing: 10
+
+                        C.Button {
+                            id: openPsnLogin
+                            firstInFocusChain: visible
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.columnSpan: 3
+
+                            text: qsTr("Login to PSN")
+                            onClicked: {
+                                root.showPSNTokenDialog(false)
+                            }
+                            Material.roundedScale: Material.SmallScale
+                            visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
+                        }
+
+                        C.Button {
+                            id: resetPsnTokens
+                            topPadding: 26
+                            leftPadding: 30
+                            rightPadding: 30
+                            bottomPadding: 26
+                            text: qsTr("Clear PSN Token")
+                            firstInFocusChain: !openPsnLogin.visible
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.columnSpan: 3
+                            onClicked: {
+                                Chiaki.settings.psnRefreshToken = ""
+                                Chiaki.settings.psnAuthToken = ""
+                                Chiaki.settings.psnAuthTokenExpiry = ""
+                                Chiaki.settings.psnAccountId = ""
+                                openPsnLogin.forceActiveFocus(Qt.TabFocusReason);
+                            }
+                            Material.roundedScale: Material.SmallScale
+                            visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId
+                        }
+
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Hole Punching Port Guessing:")
+                        }
+
+                        C.CheckBox {
+                            id: holePunchGuessingCheckbox
+                            text: qsTr("Force STUN port guessing")
+                            checked: Chiaki.settings.portGuessingEnabled
+                            onToggled: Chiaki.settings.portGuessingEnabled = checked
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(Enabled)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Port Guess Count:")
+                        }
+
+                        C.Slider {
+                            id: portGuessCountSlider
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 75
+                            stepSize: 1
+                            value: Chiaki.settings.portGuessCount
+                            onMoved: Chiaki.settings.portGuessCount = value
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: parent.value + qsTr(" guesses")
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            Layout.leftMargin: 100
+                            text: qsTr("(75)")
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("Port Guess Socket Count:")
+                        }
+
+                        C.Slider {
+                            id: portGuessSocketSlider
+                            Layout.preferredWidth: 250
+                            from: 0
+                            to: 500
+                            stepSize: 1
+                            value: Chiaki.settings.portGuessSocketCount
+                            onMoved: Chiaki.settings.portGuessSocketCount = value
+                            lastInFocusChain: true
+
+                            Label {
+                                anchors {
+                                    left: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 10
+                                }
+                                text: parent.value + qsTr(" sockets")
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignRight
+                            text: qsTr("(250)")
+                            Layout.leftMargin: 100
+                        }
+                    }
+                }
+            }
+
+            Item {
+                // Config (Options such as Import/Export and Logging)
                 Flickable {
                     id: configFlick
                     anchors {
@@ -2847,34 +3046,6 @@ DialogView {
                             }
                             Material.roundedScale: Material.SmallScale
                         }
-
-                    C.Button {
-                        id: openPsnLogin
-                        text: qsTr("Login to PSN")
-                        onClicked: {
-                            root.showPSNTokenDialog(false)
-                        }
-                        Material.roundedScale: Material.SmallScale
-                        visible: !Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId
-                    }
-
-                    C.Button {
-                        id: resetPsnTokens
-                        topPadding: 26
-                        leftPadding: 30
-                        rightPadding: 30
-                        bottomPadding: 26
-                        text: qsTr("Clear PSN Token")
-                        onClicked: {
-                            Chiaki.settings.psnRefreshToken = ""
-                            Chiaki.settings.psnAuthToken = ""
-                            Chiaki.settings.psnAuthTokenExpiry = ""
-                            Chiaki.settings.psnAccountId = ""
-                            openPsnLogin.forceActiveFocus(Qt.TabFocusReason);
-                        }
-                        Material.roundedScale: Material.SmallScale
-                        visible: Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId
-                    }
 
                     C.Button {
                         id: exportButton
