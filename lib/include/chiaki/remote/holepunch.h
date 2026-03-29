@@ -194,6 +194,41 @@ CHIAKI_EXPORT ChiakiHolepunchSession chiaki_holepunch_session_init(
     const char* psn_oauth2_token, ChiakiLog *log);
 
 /**
+ * This forces port guessing to be used when port increment is 0. The session will advertise sequential port guesses as STUN
+ * candidates and open multiple sockets to maximize the chance of port overlap
+ * with the console's connection attempts. Useful for port-rewriting NATs
+ * (e.g. mobile hotspots) where the single-socket approach fails.
+ *
+ * @param[in] session Handle to the holepunching session
+ * @param[in] enabled Whether to enable port guessing
+ */
+CHIAKI_EXPORT void chiaki_holepunch_session_force_port_guessing(
+    ChiakiHolepunchSession session, bool enabled);
+
+    /**
+ *
+ * Sets the number of ports to use for port guessing NAT traversal.
+ *
+ * @param[in] session Handle to the holepunching session
+ * @param[in] count Number of port guesses to advertise (0 to keep default of 75)
+ */
+CHIAKI_EXPORT void chiaki_holepunch_session_set_port_guessing_ports(
+    ChiakiHolepunchSession session, int count);
+
+/**
+ * Set the number of sockets to open for port guessing NAT traversal.
+ *
+ * When using port guessing, this controls how many local UDP sockets
+ * are opened to increase the chance of a NAT-assigned port matching one
+ * of the advertised guesses. Default is 250.
+ *
+ * @param[in] session Handle to the holepunching session
+ * @param[in] count Number of sockets to open (0 to keep default of 250)
+ */
+CHIAKI_EXPORT void chiaki_holepunch_session_set_port_guessing_socks(
+    ChiakiHolepunchSession session, int count);
+
+/**
  * Create a remote play session on the PSN server.
  *
  * This function must be called after `chiaki_holepunch_session_init`.

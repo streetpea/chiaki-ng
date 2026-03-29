@@ -76,6 +76,7 @@ jobs:
             fftw:p
             hidapi:p
             json-c:p
+            libevent:p
             lcms2:p
             libdovi:p
             meson:p
@@ -204,6 +205,7 @@ jobs:
             fftw:p
             hidapi:p
             json-c:p
+            libevent:p
             lcms2:p
             libdovi:p
             meson:p
@@ -316,7 +318,7 @@ jobs:
         run: |
           brew update
           brew uninstall pkgconfig || true
-          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc
+          brew install qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
 
       - name: Install sdl2-compat
         run: |
@@ -385,7 +387,7 @@ jobs:
       - name: Install brew dependencies
         run: |
           brew update
-          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc || true
+          brew install --force qt@6 ffmpeg pkgconfig opus openssl cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent || true
 
       - name: Install sdl2-compat
         run: |
