@@ -75,6 +75,9 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString currentProfile READ currentProfile WRITE setCurrentProfile NOTIFY currentProfileChanged)
     Q_PROPERTY(QVariantList controllerMapping READ controllerMapping NOTIFY controllerMappingChanged)
     Q_PROPERTY(uint wifiDroppedNotif READ wifiDroppedNotif WRITE setWifiDroppedNotif NOTIFY wifiDroppedNotifChanged)
+    Q_PROPERTY(bool portGuessingEnabled READ portGuessingEnabled WRITE setPortGuessingEnabled NOTIFY portGuessingEnabledChanged)
+    Q_PROPERTY(int portGuessCount READ portGuessCount WRITE setPortGuessCount NOTIFY portGuessCountChanged)
+    Q_PROPERTY(int portGuessSocketCount READ portGuessSocketCount WRITE setPortGuessSocketCount NOTIFY portGuessSocketCountChanged)
     Q_PROPERTY(QString psnRefreshToken READ psnRefreshToken WRITE setPsnRefreshToken NOTIFY psnRefreshTokenChanged)
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
@@ -323,6 +326,12 @@ public:
 
     uint wifiDroppedNotif() const;
     void setWifiDroppedNotif(uint percent);
+    bool portGuessingEnabled() const;
+    void setPortGuessingEnabled(bool enabled);
+    int portGuessCount() const;
+    void setPortGuessCount(int count);
+    int portGuessSocketCount() const;
+    void setPortGuessSocketCount(int count);
 
     int placeboUpscaler() const;
     void setPlaceboUpscaler(int upscaler);
@@ -639,6 +648,9 @@ signals:
     void audioOutDeviceChanged();
     void audioInDeviceChanged();
     void wifiDroppedNotifChanged();
+    void portGuessingEnabledChanged();
+    void portGuessCountChanged();
+    void portGuessSocketCountChanged();
     void decoderChanged();
     void useZeroCopyChanged();
     void windowTypeChanged();

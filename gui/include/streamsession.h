@@ -65,61 +65,64 @@ typedef struct haptic_packet_t
 } haptic_packet_t;
 #endif
 
-struct StreamSessionConnectInfo
-{
-	Settings *settings;
-	QMap<Qt::Key, int> key_map;
-	Decoder decoder;
-	QString hw_decoder;
-	AVBufferRef *hw_device_ctx;
-	QString audio_out_device;
-	QString audio_in_device;
-	uint32_t log_level_mask;
-	bool log_sanitize = true;
-	QString log_file;
-	ChiakiTarget target;
-	QString host;
-	QString nickname;
-	QByteArray regist_key;
-	QByteArray morning;
-	QString initial_login_pin;
+	struct StreamSessionConnectInfo
+	{
+		Settings *settings;
+		QMap<Qt::Key, int> key_map;
+		Decoder decoder;
+		QString hw_decoder;
+		AVBufferRef *hw_device_ctx;
+		QString audio_out_device;
+		QString audio_in_device;
+		uint32_t log_level_mask;
+		bool log_sanitize = true;
+		QString log_file;
+		ChiakiTarget target;
+		QString host;
+		QString nickname;
+		QByteArray regist_key;
+		QByteArray morning;
+		QString initial_login_pin;
 		ChiakiConnectVideoProfile video_profile;
 		double packet_loss_max;
 		double packet_loss_throttle_threshold;
-	bool throttle_video_on_loss = true;
-	unsigned int audio_buffer_size;
-	int audio_volume;
-	bool fullscreen;
-	bool zoom;
-	bool stretch;
-	bool enable_keyboard;
-	bool keyboard_controller_enabled;
-	bool mouse_touch_enabled;
-	bool enable_dualsense;
-	bool auto_regist;
-	float haptic_override;
-	ChiakiDisableAudioVideo audio_video_disabled;
-	RumbleHapticsIntensity rumble_haptics_intensity;
-	bool buttons_by_pos;
-	bool enable_idr_on_fec_failure;
+		bool throttle_video_on_loss = true;
+		unsigned int audio_buffer_size;
+		int audio_volume;
+		bool fullscreen;
+		bool zoom;
+		bool stretch;
+		bool enable_keyboard;
+		bool keyboard_controller_enabled;
+		bool mouse_touch_enabled;
+		bool enable_dualsense;
+		bool auto_regist;
+		float haptic_override;
+		ChiakiDisableAudioVideo audio_video_disabled;
+		RumbleHapticsIntensity rumble_haptics_intensity;
+		bool buttons_by_pos;
+		bool enable_idr_on_fec_failure;
 		bool start_mic_unmuted;
+		bool port_guessing_enabled;
+		int port_guess_count;
+		int port_guess_socket_count;
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	bool vertical_sdeck;
-	bool enable_steamdeck_haptics;
-# endif
-#if CHIAKI_GUI_ENABLE_SPEEX
-	bool speech_processing_enabled;
-	int32_t noise_suppress_level;
-	int32_t echo_suppress_level;
+		bool vertical_sdeck;
+		bool enable_steamdeck_haptics;
 #endif
-	QString duid;
-	QString psn_token;
-	QString psn_account_id;
-	uint16_t dpad_touch_increment;
-	uint dpad_touch_shortcut1;
-	uint dpad_touch_shortcut2;
-	uint dpad_touch_shortcut3;
-	uint dpad_touch_shortcut4;
+#if CHIAKI_GUI_ENABLE_SPEEX
+		bool speech_processing_enabled;
+		int32_t noise_suppress_level;
+		int32_t echo_suppress_level;
+#endif
+		QString duid;
+		QString psn_token;
+		QString psn_account_id;
+		uint16_t dpad_touch_increment;
+		uint dpad_touch_shortcut1;
+		uint dpad_touch_shortcut2;
+		uint dpad_touch_shortcut3;
+		uint dpad_touch_shortcut4;
 
 	StreamSessionConnectInfo() {}
 	StreamSessionConnectInfo(
@@ -165,6 +168,9 @@ class StreamSession : public QObject
 		bool connected;
 		bool muted;
 		bool mic_connected;
+		bool port_guessing_enabled;
+		int port_guess_count;
+		int port_guess_socket_count;
 #ifdef Q_OS_MACOS
 		bool mic_authorization;
 #endif

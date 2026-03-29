@@ -745,6 +745,39 @@ void QmlSettings::setWifiDroppedNotif(const uint percent)
     emit wifiDroppedNotifChanged();
 }
 
+bool QmlSettings::portGuessingEnabled() const
+{
+    return settings->GetPortGuessingEnabled();
+}
+
+void QmlSettings::setPortGuessingEnabled(bool enabled)
+{
+    settings->SetPortGuessingEnabled(enabled);
+    emit portGuessingEnabledChanged();
+}
+
+int QmlSettings::portGuessCount() const
+{
+    return settings->GetPortGuessCount();
+}
+
+void QmlSettings::setPortGuessCount(int count)
+{
+    settings->SetPortGuessCount(count);
+    emit portGuessCountChanged();
+}
+
+int QmlSettings::portGuessSocketCount() const
+{
+    return settings->GetPortGuessSocketCount();
+}
+
+void QmlSettings::setPortGuessSocketCount(int count)
+{
+    settings->SetPortGuessSocketCount(count);
+    emit portGuessSocketCountChanged();
+}
+
 QString QmlSettings::psnAuthToken() const
 {
     return settings->GetPsnAuthToken();
@@ -1857,6 +1890,9 @@ void QmlSettings::refreshAllKeys()
     emit audioOutDeviceChanged();
     emit audioInDeviceChanged();
     emit wifiDroppedNotifChanged();
+    emit portGuessingEnabledChanged();
+    emit portGuessCountChanged();
+    emit portGuessSocketCountChanged();
     emit decoderChanged();
     emit windowTypeChanged();
     emit customResolutionWidthChanged();

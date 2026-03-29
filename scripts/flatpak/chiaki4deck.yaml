@@ -71,6 +71,16 @@ modules:
         url: https://github.com/haasn/libplacebo
         tag: v7.360.1
 
+  - name: libevent
+    buildsystem: meson
+    config-opts:
+      - -Dexamples=false
+      - -Dtests=false
+    sources:
+      - type: git
+        url: https://github.com/libevent/libevent
+        tag: release-2.2.9-stable
+
   - name: nv-codec-headers
     only-arches:
       - x86_64

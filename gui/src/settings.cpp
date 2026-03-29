@@ -11,6 +11,8 @@
 #include <chiaki/config.h>
 
 #define SETTINGS_VERSION 2
+static const int PORT_GUESS_COUNT_DEFAULT = 75;
+static const int PORT_GUESS_SOCKS_DEFAULT = 250;
 
 static void MigrateSettingsTo2(QSettings *settings)
 {
@@ -799,6 +801,40 @@ unsigned int Settings::GetWifiDroppedNotif() const
 void Settings::SetWifiDroppedNotif(unsigned int percent)
 {
 	settings.setValue("settings/wifi_dropped_notif_percent", percent);
+}
+
+bool Settings::GetPortGuessingEnabled() const
+{
+	return settings.value("settings/port_guessing_enabled", true).toBool();
+}
+
+void Settings::SetPortGuessingEnabled(bool enabled)
+{
+	settings.setValue("settings/port_guessing_enabled", enabled);
+}
+
+int Settings::GetPortGuessCount() const
+{
+	return settings.value("settings/port_guessing_count", PORT_GUESS_COUNT_DEFAULT).toInt();
+}
+
+void Settings::SetPortGuessCount(int count)
+{
+	if(count < 0)
+		count = 0;
+	settings.setValue("settings/port_guessing_count", count);
+}
+
+int Settings::GetPortGuessSocketCount() const
+{
+	return settings.value("settings/port_guessing_socket_count", PORT_GUESS_SOCKS_DEFAULT).toInt();
+}
+
+void Settings::SetPortGuessSocketCount(int count)
+{
+	if(count < 0)
+		count = 0;
+	settings.setValue("settings/port_guessing_socket_count", count);
 }
 
 #if CHIAKI_GUI_ENABLE_SPEEX
