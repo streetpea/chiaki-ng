@@ -48,6 +48,23 @@ static inline bool frame_has_planes(const AVFrame *frame)
     return frame->data[0] && planes > 0;
 }
 
+static bool frame_can_use_direct_render(const AVFrame *frame, bool use_opengl_renderer)
+{
+    if (!frame || !frame->hw_frames_ctx)
+        return true;
+
+    switch (frame->format) {
+    case AV_PIX_FMT_VULKAN:
+        return true;
+#ifdef Q_OS_LINUX
+    case AV_PIX_FMT_VAAPI:
+        return !use_opengl_renderer;
+#endif
+    default:
+        return false;
+    }
+}
+
 #define PSN_DEVICES_TRIES 2
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
@@ -253,6 +270,60 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
     refreshPsnToken();
+}
+
+bool QmlBackend::prepareFrameForPresentation(ChiakiFfmpegFrame &frame, bool use_opengl_renderer)
+{
+    if (!frame.frame)
+        return false;
+
+    if (frame.frame->format == AV_PIX_FMT_NONE)
+        return false;
+
+    if (!frame.frame->hw_frames_ctx)
+        return frame_has_planes(frame.frame);
+
+    const bool direct_render = !disable_zero_copy && frame_can_use_direct_render(frame.frame, use_opengl_renderer);
+    if (direct_render)
+        return frame_has_planes(frame.frame);
+
+    const int format = frame.frame->format;
+    {
+        QMutexLocker locker(&hw_transfer_state_mutex);
+        if (!logged_hw_transfer_formats.contains(format)) {
+            logged_hw_transfer_formats.insert(format);
+            const char *format_name = av_get_pix_fmt_name(static_cast<AVPixelFormat>(format));
+            qCInfo(chiakiGui) << "Transferring hardware-decoded frames to software for presentation:"
+                              << (format_name ? format_name : "unknown");
+        }
+    }
+
+    AVFrame *sw_frame = av_frame_alloc();
+    if (!sw_frame)
+        return false;
+
+    if (av_hwframe_transfer_data(sw_frame, frame.frame, 0) < 0) {
+        bool should_log_failure = false;
+        {
+            QMutexLocker locker(&hw_transfer_state_mutex);
+            if (!logged_hw_transfer_failures.contains(format)) {
+                logged_hw_transfer_failures.insert(format);
+                should_log_failure = true;
+            }
+        }
+        if (should_log_failure) {
+            const char *format_name = av_get_pix_fmt_name(static_cast<AVPixelFormat>(format));
+            qCWarning(chiakiGui) << "Failed to transfer hardware frame for presentation:"
+                                 << (format_name ? format_name : "unknown");
+        }
+        av_frame_free(&sw_frame);
+        return false;
+    }
+
+    av_frame_copy_props(sw_frame, frame.frame);
+    av_frame_free(&frame.frame);
+    frame.frame = sw_frame;
+    return frame_has_planes(frame.frame);
 }
 
 QmlBackend::~QmlBackend()
@@ -706,6 +777,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     session_info = connect_info;
     disable_zero_copy = !settings->GetUseZeroCopy();
+    {
+        QMutexLocker locker(&hw_transfer_state_mutex);
+        logged_hw_transfer_formats.clear();
+        logged_hw_transfer_failures.clear();
+    }
     QStringList availableDecoders = settings_qml->availableDecoders();
     if (!session_info.hw_decoder.isEmpty()
         && session_info.hw_decoder != "auto"
@@ -874,39 +950,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (frame.recovered)
             pending_recovered_frame.storeRelaxed(1);
 
-        if (frame.frame->format == AV_PIX_FMT_NONE)
-        {
-            av_frame_free(&frame.frame);
-            return;
-        }
-
-        QSet<int> zero_copy_formats = {
-            AV_PIX_FMT_VULKAN,
-        };
-#ifdef Q_OS_LINUX
-        if (!use_opengl_renderer)
-            zero_copy_formats.insert(AV_PIX_FMT_VAAPI);
-#endif
-        if (frame.frame->hw_frames_ctx && (!zero_copy_formats.contains(frame.frame->format) || disable_zero_copy)) {
-            AVFrame *sw_frame = av_frame_alloc();
-            if (av_hwframe_transfer_data(sw_frame, frame.frame, 0) < 0) {
-                qCWarning(chiakiGui) << "Failed to transfer frame from hardware";
-                av_frame_free(&frame.frame);
-                av_frame_free(&sw_frame);
-                return;
-            }
-            if(!frame_has_planes(sw_frame))
-            {
-                av_frame_free(&frame.frame);
-                av_frame_free(&sw_frame);
-                return;
-            }
-
-            av_frame_copy_props(sw_frame, frame.frame);
-            av_frame_free(&frame.frame);
-            frame.frame = sw_frame;
-        }
-        else if(!frame_has_planes(frame.frame))
+        if (!prepareFrameForPresentation(frame, use_opengl_renderer))
         {
             av_frame_free(&frame.frame);
             return;
@@ -931,6 +975,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
         pending_recovered_frame.storeRelaxed(0);
+        {
+            QMutexLocker locker(&hw_transfer_state_mutex);
+            logged_hw_transfer_formats.clear();
+            logged_hw_transfer_failures.clear();
+        }
 
         session->deleteLater();
         session = nullptr;
