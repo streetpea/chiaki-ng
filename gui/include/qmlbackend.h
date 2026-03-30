@@ -7,8 +7,10 @@
 #include "qmlsettings.h"
 
 #include <QObject>
+#include <QMutex>
 #include <QThread>
 #include <QJSValue>
+#include <QSet>
 #include <QUrl>
 #include <QFutureWatcher>
 #include <QFuture>
@@ -168,6 +170,7 @@ public:
     void setIsAppActive();
 
     void profileChanged();
+    bool prepareFrameForPresentation(ChiakiFfmpegFrame &frame, bool use_opengl_renderer);
 
     void goToSleep();
 
@@ -303,6 +306,9 @@ private:
     QFutureWatcher<void> psn_hosts_watcher;
     QFuture<void> psn_hosts_future;
     bool disable_zero_copy = false;
+    QMutex hw_transfer_state_mutex;
+    QSet<int> logged_hw_transfer_formats;
+    QSet<int> logged_hw_transfer_failures;
     QAtomicInteger<int> pending_recovered_frame = 0;
     Controller *controller_mapping_controller = {};
     QMap<QString, QStringList> controller_guids_to_update = {};
