@@ -18,9 +18,11 @@ fi
 
 cd "$DIR" || exit 1
 
+INSTALL_PREFIX="${INSTALL_PREFIX:=/usr}"
+
 mkdir -p build && cd build || exit 1
 cmake \
-	-DCMAKE_INSTALL_PREFIX="/usr" \
+	-DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
 	-DSDL_ATOMIC=ON \
 	-DSDL_AUDIO=ON \
 	-DSDL_CPUINFO=ON \
