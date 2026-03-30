@@ -619,8 +619,18 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             snapshotPendingFrame();
         if (frame.frame)
             av_frame_free(&frame.frame);
-        if (placebo_reset_pending.loadAcquire() == 0)
-            schedulePlaceboReset();
+        bool need_reset = false;
+        {
+            QMutexLocker locker(&placebo_state_mutex);
+            need_reset = queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin;
+        }
+        if (need_reset && placebo_reset_pending.loadAcquire() == 0) {
+            qCInfo(chiakiGui)
+                << "Queue reset requested for recovered frame"
+                << "frame_pts=" << frame.pts
+                << "preserve_timeline=true";
+            queuePlaceboReset(true);
+        }
         return;
     }
 
@@ -630,6 +640,10 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     {
         QMutexLocker locker(&placebo_state_mutex);
         if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
+            qCInfo(chiakiGui)
+                << "Queue reset in presentFrame due to pts rollback"
+                << "frame_pts=" << frame.pts
+                << "queue_pts_origin=" << queue_pts_origin;
             pl_queue_reset(placebo_queue);
             renderer_cache_flush_pending.storeRelaxed(1);
             ts_start = 0;
@@ -698,23 +712,39 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 void QmlMainWindow::resetPlaceboQueue()
 {
     uint64_t now_ms = chiaki_time_now_monotonic_ms();
+    const bool preserve_timeline = placebo_reset_preserve_timeline.loadAcquire() != 0;
     if (last_placebo_reset_ts && now_ms - last_placebo_reset_ts < 100)
     {
         const int wait_ms = static_cast<int>(qMax<uint64_t>(100 - (now_ms - last_placebo_reset_ts), 1));
+        qCInfo(chiakiGui)
+            << "Queue reset throttled"
+            << "wait_ms=" << wait_ms
+            << "preserve_timeline=" << preserve_timeline;
         placebo_reset_pending.storeRelease(0);
-        QTimer::singleShot(wait_ms, this, [this]() {
-            schedulePlaceboReset();
+        QTimer::singleShot(wait_ms, this, [this, preserve_timeline]() {
+            queuePlaceboReset(preserve_timeline);
         });
         return;
     }
     last_placebo_reset_ts = now_ms;
+    placebo_reset_preserve_timeline.storeRelease(0);
 
     QMutexLocker locker(&placebo_state_mutex);
+    qCInfo(chiakiGui)
+        << "Queue reset executing"
+        << "preserve_timeline=" << preserve_timeline
+        << "queue_pts_origin=" << queue_pts_origin
+        << "playback_started=" << playback_started;
     pl_queue_reset(placebo_queue);
     renderer_cache_flush_pending.storeRelaxed(1);
-    queue_pts_origin = -1.0;
-    playback_started = false;
-    ts_start = 0;
+    const bool keep_timeline = preserve_timeline && queue_pts_origin >= 0.0 && playback_started;
+    preserve_playback_timeline = keep_timeline;
+    if (!keep_timeline) {
+        queue_pts_origin = -1.0;
+        playback_started = false;
+        ts_start = 0;
+        preserve_playback_timeline = false;
+    }
     locker.unlock();
     const quint64 generation = pending_reset_snapshot_generation.loadRelaxed();
     last_reset_snapshot_generation.storeRelaxed(generation);
@@ -723,6 +753,15 @@ void QmlMainWindow::resetPlaceboQueue()
 
 void QmlMainWindow::schedulePlaceboReset()
 {
+    queuePlaceboReset(false);
+}
+
+void QmlMainWindow::queuePlaceboReset(bool preserve_timeline)
+{
+    qCInfo(chiakiGui)
+        << "Queue reset scheduled"
+        << "preserve_timeline=" << preserve_timeline;
+    placebo_reset_preserve_timeline.storeRelease(preserve_timeline ? 1 : 0);
     placebo_reset_pending.storeRelease(1);
     QMetaObject::invokeMethod(this, [this]() { scheduleUpdate(); }, Qt::QueuedConnection);
 }
@@ -1012,12 +1051,29 @@ void QmlMainWindow::applyPendingFrame()
     struct pl_source_frame src_frame;
     {
         QMutexLocker locker(&placebo_state_mutex);
+        const bool preserve_timeline = preserve_playback_timeline;
+        preserve_playback_timeline = false;
         if (queue_pts_origin < 0.0 || pts + 1e-6 < queue_pts_origin) {
+            qCInfo(chiakiGui)
+                << "Queue reset in applyPendingFrame due to pts rollback"
+                << "frame_pts=" << pts
+                << "queue_pts_origin=" << queue_pts_origin
+                << "preserve_timeline=" << preserve_timeline;
             pl_queue_reset(placebo_queue);
             renderer_cache_flush_pending.storeRelaxed(1);
-            ts_start = 0;
+            const double old_origin = queue_pts_origin;
             queue_pts_origin = pts;
-            playback_started = false;
+            if (preserve_timeline && old_origin >= 0.0 && playback_started) {
+                const double delta_pts = queue_pts_origin - old_origin;
+                const int64_t delta_us = static_cast<int64_t>(delta_pts * 1000000.0);
+                int64_t ts_start_signed = static_cast<int64_t>(ts_start) + delta_us;
+                if (ts_start_signed < 0)
+                    ts_start_signed = 0;
+                ts_start = static_cast<uint64_t>(ts_start_signed);
+            } else {
+                ts_start = 0;
+                playback_started = false;
+            }
         }
         deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
         src_frame = {

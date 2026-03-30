@@ -122,6 +122,7 @@ public:
 public slots:
     void resetPlaceboQueue();
     void schedulePlaceboReset();
+    void queuePlaceboReset(bool preserve_timeline);
 
     void updatePlacebo();
     void updateVSync();
@@ -179,6 +180,7 @@ private:
     uint64_t ts_start = 0;
     double queue_pts_origin = -1.0;
     bool playback_started = false;
+    bool preserve_playback_timeline = false;
     bool was_maximized = false;
     bool amd_card = false;
     bool nvidia_card = false;
@@ -240,6 +242,7 @@ private:
     QAtomicInteger<int> swapchain_recreate_pending = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
+    QAtomicInteger<int> placebo_reset_preserve_timeline = 0;
     QAtomicInteger<int> render_active = 0;
     bool present_vsync_enabled = true;
 
