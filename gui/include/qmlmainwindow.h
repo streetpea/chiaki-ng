@@ -272,7 +272,7 @@ private:
     uint64_t quick_sem_value = 0;
     QTimer *update_timer = {};
     bool quick_frame = false;
-    bool quick_need_sync = false;
+    QAtomicInteger<int> quick_need_sync = 0;
     QAtomicInteger<int> quick_need_render = 0;
     QString pending_renderer_fallback_reason;
     pl_options renderparams_opts = {};

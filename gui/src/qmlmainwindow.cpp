@@ -1654,7 +1654,7 @@ renderer_backend_ready:
     }
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
-        quick_need_sync = true;
+        quick_need_sync.storeRelaxed(1);
         scheduleUpdate();
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
@@ -1769,8 +1769,7 @@ void QmlMainWindow::update()
         render_scheduled = true;
     }
 
-    if (quick_need_sync) {
-        quick_need_sync = false;
+    if (quick_need_sync.fetchAndStoreRelaxed(0) != 0) {
         quick_render->polishItems();
         if (quick_render->thread() == QThread::currentThread())
             sync();
@@ -2423,7 +2422,11 @@ void QmlMainWindow::render()
         }
 
         close_started_frame(true);
-        schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF) || hasPendingFrame();
+        schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF)
+            || hasPendingFrame()
+            || quick_need_sync.loadRelaxed() != 0
+            || quick_need_render.loadRelaxed() != 0
+            || placebo_reset_pending.loadAcquire() != 0;
         finalize_render();
         if (schedule_next_update) {
             QMetaObject::invokeMethod(this, [this]() {
@@ -2567,7 +2570,11 @@ void QmlMainWindow::render()
         close_started_frame(true);
     }
 
-    schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF) || hasPendingFrame();
+    schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF)
+        || hasPendingFrame()
+        || quick_need_sync.loadRelaxed() != 0
+        || quick_need_render.loadRelaxed() != 0
+        || placebo_reset_pending.loadAcquire() != 0;
 
     finalize_render();
     if (schedule_next_update) {
