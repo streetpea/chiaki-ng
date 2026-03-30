@@ -5,6 +5,9 @@
 #define SDL_MAIN_HANDLED
 #endif
 #endif
+#ifdef main
+#undef main
+#endif
 
 // ugly workaround because Windows does weird things and ENOTIME
 int real_main(int argc, char *argv[]);
