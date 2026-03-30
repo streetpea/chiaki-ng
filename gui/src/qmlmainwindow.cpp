@@ -667,6 +667,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
     if (frame.recovered)
     {
+        recovery_hold_pending.storeRelease(1);
         snapshotLastFrame(frame.frame, frame.pts, frame.duration);
         storePendingFrame(frame);
         av_frame_free(&frame.frame);
@@ -2458,6 +2459,33 @@ void QmlMainWindow::render()
             break;
         }
     }
+    const bool hold_recovered_frame = recovery_hold_pending.fetchAndStoreRelaxed(0) != 0;
+    if (hold_recovered_frame && held_frame_valid) {
+        if (held_frame_crop_valid)
+            target_frame.crop = held_frame_crop;
+        if (!renderHeldFrame(target_frame, params)) {
+            qCWarning(chiakiGui) << "Failed to render held frame during recovery handoff";
+            close_started_frame(false);
+            finalize_render();
+            return;
+        }
+        close_started_frame(true);
+        // Force one follow-up render so the recovered frame already in frame_mix
+        // gets presented even if the queue has reached EOF/pause state.
+        schedule_next_update = true
+            || hasPendingFrame()
+            || quick_need_sync.loadRelaxed() != 0
+            || quick_need_render.loadRelaxed() != 0
+            || placebo_reset_pending.loadAcquire() != 0;
+        finalize_render();
+        if (schedule_next_update) {
+            QMetaObject::invokeMethod(this, [this]() {
+                scheduleUpdate();
+            }, Qt::QueuedConnection);
+        }
+        return;
+    }
+
     if (frame_mix.num_frames > 0) {
         held_frame_crop = target_frame.crop;
         held_frame_crop_valid = true;
