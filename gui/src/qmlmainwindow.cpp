@@ -622,7 +622,12 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         bool need_reset = false;
         {
             QMutexLocker locker(&placebo_state_mutex);
-            need_reset = queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin;
+            double current_pts = queue_pts_origin;
+            if (queue_pts_origin >= 0.0 && playback_started && ts_start) {
+                const uint64_t now_us = chiaki_time_now_monotonic_us();
+                current_pts += static_cast<double>(now_us - ts_start) / 1000000.0;
+            }
+            need_reset = queue_pts_origin < 0.0 || frame.pts + 1e-6 < current_pts;
         }
         if (need_reset && placebo_reset_pending.loadAcquire() == 0) {
             qCInfo(chiakiGui)
@@ -713,7 +718,7 @@ void QmlMainWindow::resetPlaceboQueue()
 {
     uint64_t now_ms = chiaki_time_now_monotonic_ms();
     const bool preserve_timeline = placebo_reset_preserve_timeline.loadAcquire() != 0;
-    if (last_placebo_reset_ts && now_ms - last_placebo_reset_ts < 100)
+    if (!preserve_timeline && last_placebo_reset_ts && now_ms - last_placebo_reset_ts < 100)
     {
         const int wait_ms = static_cast<int>(qMax<uint64_t>(100 - (now_ms - last_placebo_reset_ts), 1));
         qCInfo(chiakiGui)
@@ -761,7 +766,11 @@ void QmlMainWindow::queuePlaceboReset(bool preserve_timeline)
     qCInfo(chiakiGui)
         << "Queue reset scheduled"
         << "preserve_timeline=" << preserve_timeline;
-    placebo_reset_preserve_timeline.storeRelease(preserve_timeline ? 1 : 0);
+    if (preserve_timeline) {
+        placebo_reset_preserve_timeline.storeRelease(1);
+    } else if (placebo_reset_preserve_timeline.loadRelaxed() == 0) {
+        placebo_reset_preserve_timeline.storeRelease(0);
+    }
     placebo_reset_pending.storeRelease(1);
     QMetaObject::invokeMethod(this, [this]() { scheduleUpdate(); }, Qt::QueuedConnection);
 }
