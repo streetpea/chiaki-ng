@@ -20,9 +20,8 @@ cd "$DIR" || exit 1
 
 INSTALL_PREFIX="${INSTALL_PREFIX:=/usr}"
 
-mkdir -p build && cd build || exit 1
 cmake \
-	-DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+	-G "Ninja" -B build -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
 	-DSDL_ATOMIC=ON \
 	-DSDL_AUDIO=ON \
 	-DSDL_CPUINFO=ON \
@@ -47,9 +46,8 @@ cmake \
 	-DSDL_SNDIO=OFF \
 	-DSDL_ARTS=OFF \
 	-DSDL_PULSEAUDIO=OFF \
-	-DSDL_PIPEWIRE=ON \
-	..
+	-DSDL_PIPEWIRE=ON
 # SDL_THREADS is not needed, but it doesn't compile without
 
-make -j4
-make install
+cmake --build build --config RelWithDebInfo --clean-first
+cmake --install build --prefix "$INSTALL_PREFIX"

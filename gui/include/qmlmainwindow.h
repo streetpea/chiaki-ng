@@ -256,6 +256,7 @@ private:
     QAtomicInteger<int> swapchain_recreate_pending = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
+    QAtomicInteger<int> recovery_hold_pending = 0;
     QAtomicInteger<int> render_active = 0;
     bool present_vsync_enabled = true;
 
