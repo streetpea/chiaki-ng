@@ -1,4 +1,11 @@
 
+// Use the native entry point instead of SDL's WinMain wrapper.
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+#ifndef SDL_MAIN_HANDLED
+#define SDL_MAIN_HANDLED
+#endif
+#endif
+
 // ugly workaround because Windows does weird things and ENOTIME
 int real_main(int argc, char *argv[]);
 int main(int argc, char *argv[]) { return real_main(argc, argv); }
