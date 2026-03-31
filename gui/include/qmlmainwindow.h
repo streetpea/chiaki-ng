@@ -243,6 +243,7 @@ private:
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
     QAtomicInteger<int> placebo_reset_preserve_timeline = 0;
+    QAtomicInteger<quint64> placebo_reset_throttle_generation = 0;
     QAtomicInteger<int> render_active = 0;
     bool present_vsync_enabled = true;
 

@@ -721,17 +721,21 @@ void QmlMainWindow::resetPlaceboQueue()
     if (!preserve_timeline && last_placebo_reset_ts && now_ms - last_placebo_reset_ts < 100)
     {
         const int wait_ms = static_cast<int>(qMax<uint64_t>(100 - (now_ms - last_placebo_reset_ts), 1));
+        const quint64 generation = placebo_reset_throttle_generation.fetchAndAddRelaxed(1) + 1;
         qCInfo(chiakiGui)
             << "Queue reset throttled"
             << "wait_ms=" << wait_ms
             << "preserve_timeline=" << preserve_timeline;
         placebo_reset_pending.storeRelease(0);
-        QTimer::singleShot(wait_ms, this, [this, preserve_timeline]() {
+        QTimer::singleShot(wait_ms, this, [this, generation, preserve_timeline]() {
+            if (placebo_reset_throttle_generation.loadAcquire() != generation)
+                return;
             queuePlaceboReset(preserve_timeline);
         });
         return;
     }
     last_placebo_reset_ts = now_ms;
+    placebo_reset_throttle_generation.fetchAndAddRelaxed(1);
     placebo_reset_preserve_timeline.storeRelease(0);
 
     QMutexLocker locker(&placebo_state_mutex);
