@@ -659,7 +659,7 @@ int Settings::GetQueueDepthLimit() const
 {
 	if (settings.contains("settings/queue_depth_limit"))
 		return settings.value("settings/queue_depth_limit").toInt();
-	return 2;
+	return 3;
 }
 
 void Settings::SetQueueDepthLimit(int limit)

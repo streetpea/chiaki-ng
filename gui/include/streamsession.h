@@ -337,7 +337,7 @@ class StreamSession : public QObject
 		void Start();
 		void Stop();
 		void GoToBed();
-		Q_INVOKABLE bool ResetDecoderAndRequestIDR();
+	Q_INVOKABLE bool RequestIDR();
 		void ToggleMute();
 		void SetLoginPIN(const QString &pin);
 		void GoHome();

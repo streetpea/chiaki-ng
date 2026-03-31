@@ -602,7 +602,7 @@ void QmlMainWindow::show()
 }
 
 namespace {
-constexpr int kDefaultQueueDepthLimit = 2;
+constexpr int kDefaultQueueDepthLimit = 3;
 constexpr int kAdaptiveQueueDepthBoost = 1;
 }
 

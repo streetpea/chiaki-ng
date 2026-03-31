@@ -2273,7 +2273,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			else
 			{
 				CHIAKI_LOGW(log.GetChiakiLog(), "Video FEC failure, retrying IDR request after send failure");
-				ResetDecoderAndRequestIDR();
+				RequestIDR();
 			}
 			emit FecFailure();
 			break;
@@ -2627,7 +2627,7 @@ void StreamSession::TriggerFfmpegFrameAvailable()
 	}
 }
 
-bool StreamSession::ResetDecoderAndRequestIDR()
+bool StreamSession::RequestIDR()
 {
 	ChiakiErrorCode err = chiaki_session_request_idr(&session);
 	if(err == CHIAKI_ERR_SUCCESS)
