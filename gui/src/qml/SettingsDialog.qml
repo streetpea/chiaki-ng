@@ -3176,7 +3176,7 @@ DialogView {
             closePolicy: Popup.CloseOnPressOutside
             onOpened: {
                 controllerLabel.forceActiveFocus(Qt.TabFocusReason);
-                Chiaki.creatingControllerMapping(true);
+                Chiaki.beginControllerMapping(resetMapping);
             }
             onClosed: {
                 if(resetFocus)

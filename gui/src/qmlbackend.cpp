@@ -1893,6 +1893,12 @@ void QmlBackend::creatingControllerMapping(bool creating_controller_mapping)
     ControllerManager::GetInstance()->creatingControllerMapping(creating_controller_mapping);
 }
 
+void QmlBackend::beginControllerMapping(bool reset_mapping)
+{
+    controller_mapping_reset_requested = reset_mapping;
+    creatingControllerMapping(true);
+}
+
 void QmlBackend::controllerMappingChangeButton(QString button)
 {
     if(!controller_mapping_in_progress || !controller_mapping_controller)
@@ -1969,7 +1975,7 @@ void QmlBackend::controllerMappingUpdate(Controller *controller)
     if(controller_mapping_in_progress)
         return;
     controller_mapping_controller = controller;
-    if(controller->IsSteamVirtual())
+    if(controller->IsSteamVirtual() && !controller_mapping_reset_requested)
     {
         controllerMappingQuit();
         emit controllerMappingSteamControllerSelected();
@@ -2076,6 +2082,7 @@ void QmlBackend::controllerMappingQuit()
         controller_mapping_controller->IsUpdatingMappingButton(false);
     else
         creatingControllerMapping(false);
+    controller_mapping_reset_requested = false;
     setEnableAnalogStickMapping(false);
     controller_mapping_controller = nullptr;
     setControllerMappingDefaultMapping(false);
