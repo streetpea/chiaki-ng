@@ -647,7 +647,7 @@ float Settings::GetPacketLossReportedMax() const
 		return settings.value("settings/packet_loss_reported_max").toFloat();
 	if (settings.contains("settings/packet_loss_max"))
 		return settings.value("settings/packet_loss_max").toFloat();
-	return 1.0f;
+	return 0.05f;
 }
 
 void Settings::SetPacketLossReportedMax(float reported_max)

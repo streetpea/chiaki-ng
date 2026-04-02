@@ -281,9 +281,8 @@ Item {
             ColumnLayout {
                 anchors {
                     right: parent.right
-                    bottom: parent.bottom
+                    verticalCenter: parent.verticalCenter
                     rightMargin: 5
-                    bottomMargin: 30
                 }
 
                 Label {
@@ -354,7 +353,7 @@ Item {
                     id: statsPacketLossLabel
                     text: qsTr("packet loss")
                     font.pixelSize: 15
-                    opacity: parent.visible ? 1 : 0
+                    opacity: Chiaki.session ? 1 : 0
                     visible: opacity > 0
 
                     Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -365,7 +364,7 @@ Item {
                             baseline: parent.baseline
                             rightMargin: 5
                         }
-                        text: parent.visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
+                        text: parent.visible ? "%1<font size=\"1\">%</font>".arg((((Chiaki.session && isFinite(Chiaki.session.averagePacketLoss)) ? Chiaki.session.averagePacketLoss : 0) * 100).toFixed(1)) : ""
                         font.bold: true
                         color: "#ef9a9a"
                         font.pixelSize: 18
@@ -376,7 +375,7 @@ Item {
                     Layout.alignment: Qt.AlignRight
                     text: qsTr("dropped frames")
                     font.pixelSize: 15
-                    opacity: parent.visible ? 1 : 0
+                    opacity: Chiaki.session ? 1 : 0
                     visible: opacity > 0
 
                     Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -399,7 +398,7 @@ Item {
                     Layout.alignment: Qt.AlignRight
                     text: qsTr("lost frames")
                     font.pixelSize: 15
-                    opacity: parent.visible ? 1 : 0
+                    opacity: Chiaki.session ? 1 : 0
                     visible: opacity > 0
 
                     Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -410,7 +409,7 @@ Item {
                             baseline: parent.baseline
                             rightMargin: 5
                         }
-                        text: parent.visible ? Chiaki.session?.framesLost ?? 0 : ""
+                        text: parent.visible ? ((Chiaki.session && isFinite(Chiaki.session.framesLost)) ? Chiaki.session.framesLost : 0) : ""
                         color: "#ef9a9a"
                         font.bold: true
                         font.pixelSize: 18
@@ -779,8 +778,8 @@ Item {
                 id: consoleNameLabel
                 anchors {
                     right: parent.right
-                    bottom: parent.bottom
-                    margins: 30
+                    verticalCenter: parent.verticalCenter
+                    rightMargin: 30
                 }
                 text: {
                     if (!Chiaki.session)
@@ -794,13 +793,13 @@ Item {
                     anchors {
                         right: parent.right
                         top: parent.bottom
-                        topMargin: 5
+                        topMargin: 12
                     }
 
                     Label {
                         text: qsTr("packet loss")
                         font.pixelSize: 15
-                        opacity: parent.visible && Chiaki.session?.averagePacketLoss ? 1.0 : 0.0
+                        opacity: parent.visible && Chiaki.session ? 1.0 : 0.0
                         visible: opacity
 
                         Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -811,7 +810,7 @@ Item {
                                 baseline: parent.baseline
                                 rightMargin: 5
                             }
-                            text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
+                            text: visible ? "%1<font size=\"1\">%</font>".arg((((Chiaki.session && isFinite(Chiaki.session.averagePacketLoss)) ? Chiaki.session.averagePacketLoss : 0) * 100).toFixed(1)) : ""
                             color: "#ef9a9a" // Material.Red
                             font.bold: true
                             font.pixelSize: 18

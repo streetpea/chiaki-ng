@@ -179,6 +179,7 @@ class StreamSession : public QObject
 		double measured_bitrate = 0;
 		double average_packet_loss = 0;
 		int32_t frames_lost = 0;
+		int32_t pending_frames_lost = 0;
 		double packet_loss_max = 0;
 		QList<double> packet_loss_history;
 		QAtomicInteger<quint64> decoder_flush_generation{0};

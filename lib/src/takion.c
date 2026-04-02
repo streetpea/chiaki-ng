@@ -43,8 +43,7 @@
 #define TAKION_INBOUND_STREAMS 0x64
 
 #define TAKION_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
-#define TAKION_AV_VIDEO_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
-#define TAKION_AV_AUDIO_REORDER_QUEUE_SIZE_EXP 3 // => 8 entries
+#define TAKION_AV_VIDEO_REORDER_QUEUE_SIZE_EXP 6 // => 64 entries
 #define TAKION_AV_REORDER_TIMEOUT_US 16000 // ~1 frame at 60fps
 #define TAKION_SEND_BUFFER_SIZE 16
 
@@ -940,7 +939,8 @@ static void takion_av_drop(uint64_t seq_num, void *elem_user, void *cb_user)
  * If the head packet is missing, wait up to TAKION_AV_REORDER_TIMEOUT_US before
  * skipping it, then retry. This handles WiFi jitter without stalling on lost packets.
  */
-static void takion_av_queue_flush_with_timeout(ChiakiTakion *takion, ChiakiReorderQueue *queue, int64_t *head_wait_start_us)
+static void takion_av_queue_flush_with_timeout(ChiakiTakion *takion, ChiakiReorderQueue *queue,
+		int64_t *head_wait_start_us, uint64_t *head_wait_seq_num)
 {
 	int64_t now = chiaki_time_now_monotonic_us();
 	bool made_progress = true;
@@ -971,25 +971,91 @@ static void takion_av_queue_flush_with_timeout(ChiakiTakion *takion, ChiakiReord
 		if(chiaki_reorder_queue_count(queue) == 0)
 			break;
 
+		if(*head_wait_start_us != 0 && queue->begin != *head_wait_seq_num)
+		{
+			if(queue->seq_num_gt(queue->begin, *head_wait_seq_num))
+			{
+				// The missing head advanced within the same loss burst. Keep the
+				// original timeout budget but track the new missing sequence.
+				*head_wait_seq_num = queue->begin;
+			}
+			else
+			{
+				// A genuinely new gap appeared; start a fresh timeout window.
+				*head_wait_start_us = now;
+				*head_wait_seq_num = queue->begin;
+				break;
+			}
+		}
+
 		// Head slot is missing (packet lost or not yet arrived)
 		if(*head_wait_start_us == 0)
 		{
 			*head_wait_start_us = now;
+			*head_wait_seq_num = queue->begin;
 			break;
 		}
 
 		if(now - *head_wait_start_us <= TAKION_AV_REORDER_TIMEOUT_US)
 			break;
 
-		// Timeout exceeded: skip the missing head and try again
-		CHIAKI_LOGD(takion->log, "Takion AV reorder timeout: skipping missing packet %llu",
-			(unsigned long long)queue->begin);
-		queue->begin = queue->seq_num_add(queue->begin, 1);
-		if(queue->count > 0)
-			queue->count--;
+		// Timeout exceeded: skip directly to the first buffered packet so startup
+		// and burst reordering only pay a single timeout.
+		uint64_t skipped = 0;
+		while(skipped < queue->count)
+		{
+			uint64_t seq_num_peek;
+			void *entry_user;
+			if(chiaki_reorder_queue_peek(queue, skipped, &seq_num_peek, &entry_user))
+				break;
+			skipped++;
+		}
+		if(skipped >= queue->count)
+			break;
+
+		CHIAKI_LOGD(takion->log, "Takion AV reorder timeout: skipping %llu missing packet(s) before %#llx",
+			(unsigned long long)skipped,
+			(unsigned long long)queue->seq_num_add(queue->begin, skipped));
+		queue->begin = queue->seq_num_add(queue->begin, skipped);
+		queue->count -= skipped;
 		*head_wait_start_us = 0;
 		made_progress = true;
 	}
+}
+
+static void takion_av_queues_flush_with_timeout(ChiakiTakion *takion)
+{
+	if(takion->video_queue_initialized)
+	{
+		takion_av_queue_flush_with_timeout(takion, &takion->video_queue,
+			&takion->video_queue_head_wait_start_us, &takion->video_queue_head_wait_seq_num);
+	}
+}
+
+static uint64_t takion_av_queues_next_timeout_ms(ChiakiTakion *takion)
+{
+	int64_t now = chiaki_time_now_monotonic_us();
+	uint64_t timeout_ms = UINT64_MAX;
+	int64_t *head_waits[] = {
+		&takion->video_queue_head_wait_start_us,
+	};
+
+	for(size_t i=0; i<sizeof(head_waits) / sizeof(head_waits[0]); i++)
+	{
+		int64_t head_wait_start_us = *head_waits[i];
+		if(head_wait_start_us == 0)
+			continue;
+
+		int64_t remaining_us = TAKION_AV_REORDER_TIMEOUT_US - (now - head_wait_start_us);
+		if(remaining_us <= 0)
+			return 0;
+
+		uint64_t candidate_timeout_ms = (uint64_t)((remaining_us + 999) / 1000);
+		if(candidate_timeout_ms < timeout_ms)
+			timeout_ms = candidate_timeout_ms;
+	}
+
+	return timeout_ms;
 }
 
 static void *takion_thread_func(void *user)
@@ -999,8 +1065,7 @@ static void *takion_thread_func(void *user)
 
 	takion->video_queue_initialized = false;
 	takion->video_queue_head_wait_start_us = 0;
-	takion->audio_queue_initialized = false;
-	takion->audio_queue_head_wait_start_us = 0;
+	takion->video_queue_head_wait_seq_num = 0;
 
 	uint32_t seq_num_remote_initial;
 	if(takion_handshake(takion, &seq_num_remote_initial) != CHIAKI_ERR_SUCCESS)
@@ -1070,10 +1135,22 @@ static void *takion_thread_func(void *user)
 		uint8_t *buf = malloc(received_size); // TODO: no malloc?
 		if(!buf)
 			break;
-		ChiakiErrorCode err = takion_recv(takion, buf, &received_size, UINT64_MAX);
+		uint64_t recv_timeout_ms = takion_av_queues_next_timeout_ms(takion);
+		if(recv_timeout_ms == 0)
+		{
+			free(buf);
+			takion_av_queues_flush_with_timeout(takion);
+			continue;
+		}
+		ChiakiErrorCode err = takion_recv(takion, buf, &received_size, recv_timeout_ms);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			free(buf);
+			if(err == CHIAKI_ERR_TIMEOUT)
+			{
+				takion_av_queues_flush_with_timeout(takion);
+				continue;
+			}
 			break;
 		}
 		uint8_t *resized_buf = realloc(buf, received_size);
@@ -1091,11 +1168,6 @@ static void *takion_thread_func(void *user)
 	{
 		chiaki_reorder_queue_fini(&takion->video_queue);
 		takion->video_queue_initialized = false;
-	}
-	if(takion->audio_queue_initialized)
-	{
-		chiaki_reorder_queue_fini(&takion->audio_queue);
-		takion->audio_queue_initialized = false;
 	}
 
 error_reoder_queue:
@@ -1568,11 +1640,6 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	}
 	ChiakiTakionAVPacket packet;
 	ChiakiErrorCode err = takion->av_packet_parse(&packet, &takion->key_state, buf, buf_size);
-	if((takion->disable_audio_video & CHIAKI_AUDIO_DISABLED) && (base_type == TAKION_PACKET_TYPE_AUDIO) && !packet.is_haptics)
-	{
-		free(buf);
-		return;
-	}
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		if(err == CHIAKI_ERR_BUF_TOO_SMALL)
@@ -1580,18 +1647,37 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		free(buf);
 		return;
 	}
+	if((takion->disable_audio_video & CHIAKI_AUDIO_DISABLED) && (base_type == TAKION_PACKET_TYPE_AUDIO) && !packet.is_haptics)
+	{
+		free(buf);
+		return;
+	}
 
-	// Route to the per-stream queue: audio and video have independent packet_index sequences
-	// and must not share a queue.
 	bool is_video = (base_type == TAKION_PACKET_TYPE_VIDEO);
-	ChiakiReorderQueue *queue = is_video ? &takion->video_queue : &takion->audio_queue;
-	bool *initialized = is_video ? &takion->video_queue_initialized : &takion->audio_queue_initialized;
-	int64_t *head_wait = is_video ? &takion->video_queue_head_wait_start_us : &takion->audio_queue_head_wait_start_us;
-	size_t size_exp = is_video ? TAKION_AV_VIDEO_REORDER_QUEUE_SIZE_EXP : TAKION_AV_AUDIO_REORDER_QUEUE_SIZE_EXP;
+	if(!is_video)
+	{
+		if(takion->cb)
+		{
+			ChiakiTakionEvent event = { 0 };
+			event.type = CHIAKI_TAKION_EVENT_TYPE_AV;
+			event.av = &packet;
+			takion->cb(&event, takion->cb_user);
+		}
+		free(buf);
+		return;
+	}
+	ChiakiReorderQueue *queue = &takion->video_queue;
+	bool *initialized = &takion->video_queue_initialized;
+	int64_t *head_wait = &takion->video_queue_head_wait_start_us;
+	uint64_t *head_wait_seq_num = &takion->video_queue_head_wait_seq_num;
+	size_t size_exp = TAKION_AV_VIDEO_REORDER_QUEUE_SIZE_EXP;
 
 	if(!*initialized)
 	{
-		if(chiaki_reorder_queue_init_16(queue, size_exp, packet.packet_index) != CHIAKI_ERR_SUCCESS)
+		ChiakiSeqNum16 queue_begin = packet.packet_index;
+		if(packet.unit_index > 0)
+			queue_begin = (ChiakiSeqNum16)(packet.packet_index - packet.unit_index);
+		if(chiaki_reorder_queue_init_16(queue, size_exp, queue_begin) != CHIAKI_ERR_SUCCESS)
 		{
 			// Fallback: dispatch immediately without reordering
 			if(takion->cb)
@@ -1608,6 +1694,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		chiaki_reorder_queue_set_drop_cb(queue, takion_av_drop, takion);
 		*initialized = true;
 		*head_wait = 0;
+		*head_wait_seq_num = queue_begin;
 	}
 
 	TakionAVPacketEntry *entry = malloc(sizeof(TakionAVPacketEntry));
@@ -1622,7 +1709,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 	entry->packet = packet;
 
 	chiaki_reorder_queue_push(queue, packet.packet_index, entry);
-	takion_av_queue_flush_with_timeout(takion, queue, head_wait);
+	takion_av_queue_flush_with_timeout(takion, queue, head_wait, head_wait_seq_num);
 }
 
 static ChiakiErrorCode av_packet_parse(bool v12, ChiakiTakionAVPacket *packet, ChiakiKeyState *key_state, uint8_t *buf, size_t buf_size)

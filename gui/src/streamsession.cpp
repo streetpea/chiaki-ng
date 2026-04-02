@@ -492,12 +492,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		}
 		if(session.stream_connection.video_receiver)
 		{
-			int32_t delta = session.stream_connection.video_receiver->frames_lost;
-			if(delta > 0)
+			int32_t total = chiaki_video_receiver_get_frames_lost_total(session.stream_connection.video_receiver);
+			if(total > pending_frames_lost)
 			{
-				frames_lost += delta;
+				frames_lost += total - pending_frames_lost;
 				emit FramesLostChanged();
 			}
+			pending_frames_lost = total;
 		}
 	});
 
