@@ -203,16 +203,25 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
 			if(video_receiver->session->connect_info.enable_idr_on_fec_failure)
 			{
-				ChiakiErrorCode err = stream_connection_send_idr_request(&video_receiver->session->stream_connection);
-				bool idr_request_sent = err == CHIAKI_ERR_SUCCESS;
-				if(err == CHIAKI_ERR_SUCCESS)
+				bool waiting_for_idr = chiaki_video_receiver_get_waiting_for_idr(video_receiver);
+				bool idr_request_sent = waiting_for_idr;
+				if(!waiting_for_idr)
 				{
-					chiaki_video_receiver_set_waiting_for_idr(video_receiver, true);
-					CHIAKI_LOGI(video_receiver->log, "FEC failed, waiting for IDR frame");
+					ChiakiErrorCode err = stream_connection_send_idr_request(&video_receiver->session->stream_connection);
+					idr_request_sent = err == CHIAKI_ERR_SUCCESS;
+					if(err == CHIAKI_ERR_SUCCESS)
+					{
+						chiaki_video_receiver_set_waiting_for_idr(video_receiver, true);
+						CHIAKI_LOGI(video_receiver->log, "FEC failed, waiting for IDR frame");
+					}
+					else
+					{
+						CHIAKI_LOGW(video_receiver->log, "FEC failed and IDR request could not be sent: %s", chiaki_error_string(err));
+					}
 				}
 				else
 				{
-					CHIAKI_LOGW(video_receiver->log, "FEC failed and IDR request could not be sent: %s", chiaki_error_string(err));
+					CHIAKI_LOGW(video_receiver->log, "Video FEC failure, already waiting for requested IDR");
 				}
 				ChiakiEvent event = { 0 };
 				event.type = CHIAKI_EVENT_VIDEO_FEC_FAILURE;
