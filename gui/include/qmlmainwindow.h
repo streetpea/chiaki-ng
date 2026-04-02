@@ -204,6 +204,7 @@ private:
     double queue_depth_average = 0.0;
     double pending_frame_age = 0.0;
     uint64_t last_placebo_reset_ts = 0;
+    uint64_t pending_frame_stored_us = 0;
     mutable QMutex pending_frame_age_mutex;
 
     pl_cache placebo_cache = {};

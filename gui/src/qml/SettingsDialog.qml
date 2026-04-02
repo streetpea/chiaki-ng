@@ -977,7 +977,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(3)")
+                        text: qsTr("(2)")
                     }
 
                     Label {

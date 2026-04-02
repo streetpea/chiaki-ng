@@ -383,6 +383,7 @@ QmlMainWindow::~QmlMainWindow()
         QMutexLocker locker(&pending_frame_mutex);
         if (pending_frame)
             av_frame_free(&pending_frame);
+        pending_frame_stored_us = 0;
         pending_frame_present.storeRelease(0);
     }
     clearSnapshotFrame();
@@ -602,7 +603,7 @@ void QmlMainWindow::show()
 }
 
 namespace {
-constexpr int kDefaultQueueDepthLimit = 3;
+constexpr int kDefaultQueueDepthLimit = 2;
 constexpr int kAdaptiveQueueDepthBoost = 1;
 }
 
@@ -844,6 +845,7 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
         pending_pts = frame.pts;
         pending_duration = frame.duration;
         pending_frame_queue_origin = queue_origin;
+        pending_frame_stored_us = chiaki_time_now_monotonic_us();
         pending_frame_present.storeRelease(1);
     }
 
@@ -874,34 +876,21 @@ void QmlMainWindow::snapshotPendingFrame()
 
 void QmlMainWindow::refreshPendingFrameAge()
 {
-    double pts = 0.0;
-    double queue_origin = 0.0;
+    uint64_t stored_us = 0;
     {
         QMutexLocker locker(&pending_frame_mutex);
         if (!pending_frame) {
             updatePendingFrameAge(0.0);
             return;
         }
-        pts = pending_pts;
-        queue_origin = pending_frame_queue_origin;
-    }
-
-    uint64_t ts_start_local = 0;
-    {
-        QMutexLocker locker(&placebo_state_mutex);
-        ts_start_local = ts_start;
+        stored_us = pending_frame_stored_us;
     }
 
     double age = 0.0;
-    if (ts_start_local) {
+    if (stored_us) {
         const uint64_t now_us = chiaki_time_now_monotonic_us();
-        double pts_rel = pts - queue_origin;
-        if (pts_rel < 0.0)
-            pts_rel = 0.0;
-        const uint64_t pts_us = pts_rel > 0.0 ? static_cast<uint64_t>(pts_rel * 1000000.0) : 0;
-        const uint64_t frame_mono_us = ts_start_local + pts_us;
-        if (now_us > frame_mono_us)
-            age = static_cast<double>(now_us - frame_mono_us) / 1000000.0;
+        if (now_us > stored_us)
+            age = static_cast<double>(now_us - stored_us) / 1000000.0;
     }
 
     updatePendingFrameAge(age);
@@ -1049,6 +1038,7 @@ void QmlMainWindow::applyPendingFrame()
         pts = pending_pts;
         duration = pending_duration;
         pending_frame = nullptr;
+        pending_frame_stored_us = 0;
         pending_frame_queue_origin = 0.0;
         pending_frame_present.storeRelease(0);
     }
