@@ -781,7 +781,7 @@ void Settings::SetWifiDroppedNotif(unsigned int percent)
 
 bool Settings::GetPortGuessingEnabled() const
 {
-	return settings.value("settings/port_guessing_enabled", true).toBool();
+	return settings.value("settings/port_guessing_enabled", false).toBool();
 }
 
 void Settings::SetPortGuessingEnabled(bool enabled)
