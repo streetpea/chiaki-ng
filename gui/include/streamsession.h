@@ -156,6 +156,7 @@ class StreamSession : public QObject
 	Q_PROPERTY(double averagePacketLoss READ GetAveragePacketLoss NOTIFY AveragePacketLossChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
 	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
+	Q_PROPERTY(int framesLost READ GetFramesLost NOTIFY FramesLostChanged)
 
 	private:
 		SessionLog log;
@@ -177,6 +178,8 @@ class StreamSession : public QObject
 		int audio_volume;
 		double measured_bitrate = 0;
 		double average_packet_loss = 0;
+		int32_t frames_lost = 0;
+		int32_t pending_frames_lost = 0;
 		double packet_loss_max = 0;
 		QList<double> packet_loss_history;
 		QAtomicInteger<quint64> decoder_flush_generation{0};
@@ -346,6 +349,7 @@ class StreamSession : public QObject
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
 		double GetAveragePacketLoss()	{ return average_packet_loss; }
 		quint64 DecoderFlushGeneration() const { return decoder_flush_generation.loadRelaxed(); }
+		int GetFramesLost()		{ return frames_lost; }
 		bool GetMuted()	{ return muted; }
 		void SetMuted(bool enable)	{ if (enable != muted) ToggleMute(); }
 		void SetAudioVolume(int volume) { audio_volume = volume; }
@@ -389,6 +393,7 @@ class StreamSession : public QObject
 		void ConnectedChanged();
 		void MeasuredBitrateChanged();
 		void AveragePacketLossChanged();
+		void FramesLostChanged();
 		void MutedChanged();
 		void CantDisplayChanged(bool cant_display);
 		void FecFailure();

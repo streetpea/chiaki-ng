@@ -27,7 +27,8 @@ static void *congestion_control_thread_func(void *user)
 		control->packet_loss = total > 0 ? (double)lost / total : 0;
 		if(control->packet_loss > control->packet_loss_max)
 		{
-			CHIAKI_LOGW(control->takion->log, "Increasing received packets to reduce hit on stream quality");
+			CHIAKI_LOGD(control->takion->log, "Clamping reported packet loss: measured=%.1f%% reported_max=%.1f%%",
+				control->packet_loss * 100.0, control->packet_loss_max * 100.0);
 			lost = total * control->packet_loss_max;
 			received = total - lost;
 		}

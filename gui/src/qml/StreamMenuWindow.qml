@@ -368,8 +368,8 @@ Window {
             id: consoleNameLabel
             anchors {
                 right: parent.right
-                bottom: parent.bottom
-                margins: 30
+                verticalCenter: parent.verticalCenter
+                rightMargin: 30
             }
             text: {
                 if (!Chiaki.session)
@@ -383,13 +383,13 @@ Window {
                 anchors {
                     right: parent.right
                     top: parent.bottom
-                    topMargin: 5
+                    topMargin: 12
                 }
 
                 Label {
                     text: qsTr("packet loss")
                     font.pixelSize: 15
-                    opacity: parent.visible && Chiaki.session?.averagePacketLoss ? 1.0 : 0.0
+                    opacity: parent.visible && Chiaki.session ? 1.0 : 0.0
                     visible: opacity
 
                     Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -400,7 +400,7 @@ Window {
                             baseline: parent.baseline
                             rightMargin: 5
                         }
-                        text: visible ? "%1<font size=\"1\">%</font>".arg((Chiaki.session?.averagePacketLoss * 100).toFixed(1)) : ""
+                        text: visible ? "%1<font size=\"1\">%</font>".arg((((Chiaki.session && isFinite(Chiaki.session.averagePacketLoss)) ? Chiaki.session.averagePacketLoss : 0) * 100).toFixed(1)) : ""
                         color: "#ef9a9a"
                         font.bold: true
                         font.pixelSize: 18

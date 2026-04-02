@@ -79,7 +79,19 @@ CHIAKI_EXPORT void chiaki_reorder_queue_push(ChiakiReorderQueue *queue, uint64_t
 		goto drop_it;
 
 	// => ge(seq_num, queue->end) == 1
-	assert(ge(seq_num, end));
+	if(!ge(seq_num, end))
+	{
+		// Sequence comparisons are undefined at half the serial-number space.
+		// If the queue is empty and callers opted into dropping from the begin,
+		// rebase to the new packet; otherwise drop it rather than aborting.
+		if(queue->count == 0 && queue->drop_strategy == CHIAKI_REORDER_QUEUE_DROP_STRATEGY_BEGIN)
+		{
+			queue->begin = seq_num;
+			end = seq_num;
+		}
+		else
+			goto drop_it;
+	}
 
 	uint64_t free_elems = QUEUE_SIZE - queue->count;
 	uint64_t total_end = add(end, free_elems);

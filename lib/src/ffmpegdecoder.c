@@ -204,7 +204,7 @@ send_packet:
 	{
 		if(r == AVERROR(EAGAIN))
 		{
-			CHIAKI_LOGE(decoder->log, "AVCodec internal buffer is full removing frames before pushing");
+			CHIAKI_LOGW(decoder->log, "AVCodec internal buffer is full, dropping a decoded frame to push new packet");
 			AVFrame *frame = av_frame_alloc();
 			if(!frame)
 			{
@@ -215,9 +215,10 @@ send_packet:
 			av_frame_free(&frame);
 			if(r != 0)
 			{
-				CHIAKI_LOGE(decoder->log, "Failed to pull frame");
+				CHIAKI_LOGE(decoder->log, "Failed to pull frame from full codec buffer");
 				goto hell;
 			}
+			decoder->frames_lost++;
 			goto send_packet;
 		}
 		else

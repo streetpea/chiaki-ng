@@ -490,6 +490,16 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 			average_packet_loss = packet_loss;
 			emit AveragePacketLossChanged();
 		}
+		if(session.stream_connection.video_receiver)
+		{
+			int32_t total = chiaki_video_receiver_get_frames_lost_total(session.stream_connection.video_receiver);
+			if(total > pending_frames_lost)
+			{
+				frames_lost += total - pending_frames_lost;
+				emit FramesLostChanged();
+			}
+			pending_frames_lost = total;
+		}
 	});
 
 	StartAudioOutDrainThread();
