@@ -292,54 +292,6 @@ Item {
                     font.pixelSize: 18
                     visible: Chiaki.session ? true : false
 
-                    RowLayout {
-                        Layout.alignment: Qt.AlignRight
-                        Label {
-                            text: qsTr("queue depth avg")
-                            font.pixelSize: 15
-                            opacity: parent.visible
-                            visible: opacity
- 
-                            Behavior on opacity { NumberAnimation { duration: 250 } }
- 
-                            Label {
-                                anchors {
-                                    right: parent.left
-                                    baseline: parent.baseline
-                                    rightMargin: 5
-                                }
-                                text: visible ? Chiaki.window.queueDepthAverage.toFixed(1) : ""
-                                font.bold: true
-                                color: "#90caf9"
-                                font.pixelSize: 18
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.alignment: Qt.AlignRight
-                        Label {
-                            text: qsTr("pending frame age")
-                            font.pixelSize: 15
-                            opacity: parent.visible
-                            visible: opacity
- 
-                            Behavior on opacity { NumberAnimation { duration: 250 } }
- 
-                            Label {
-                                anchors {
-                                    right: parent.left
-                                    baseline: parent.baseline
-                                    rightMargin: 5
-                                }
-                                text: visible ? qsTr("%1 ms").arg((Chiaki.window.pendingFrameAge * 1000.0).toFixed(0)) : ""
-                                font.bold: true
-                                color: "#90caf9"
-                                font.pixelSize: 18
-                            }
-                        }
-                    }
-
                     Label {
                         anchors {
                             right: parent.left
@@ -350,6 +302,50 @@ Item {
                         color: Material.accent
                         font.bold: true
                         font.pixelSize: 28
+                    }
+                }
+
+                Label {
+                    Layout.alignment: Qt.AlignRight
+                    text: qsTr("queue depth avg")
+                    font.pixelSize: 15
+                    opacity: Chiaki.session ? 1 : 0
+                    visible: opacity > 0
+
+                    Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                    Label {
+                        anchors {
+                            right: parent.left
+                            baseline: parent.baseline
+                            rightMargin: 5
+                        }
+                        text: parent.visible ? Chiaki.window.queueDepthAverage.toFixed(1) : ""
+                        font.bold: true
+                        color: "#90caf9"
+                        font.pixelSize: 18
+                    }
+                }
+
+                Label {
+                    Layout.alignment: Qt.AlignRight
+                    text: qsTr("pending frame age")
+                    font.pixelSize: 15
+                    opacity: Chiaki.session ? 1 : 0
+                    visible: opacity > 0
+
+                    Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                    Label {
+                        anchors {
+                            right: parent.left
+                            baseline: parent.baseline
+                            rightMargin: 5
+                        }
+                        text: parent.visible ? qsTr("%1 ms").arg((Chiaki.window.pendingFrameAge * 1000.0).toFixed(0)) : ""
+                        font.bold: true
+                        color: "#90caf9"
+                        font.pixelSize: 18
                     }
                 }
 
