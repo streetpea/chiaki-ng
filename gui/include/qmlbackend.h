@@ -198,6 +198,7 @@ public:
     Q_INVOKABLE void initPsnAuth(const QUrl &url, const QJSValue &callback);
     Q_INVOKABLE void psnCancel(bool stop_thread);
     Q_INVOKABLE void refreshPsnToken();
+    Q_INVOKABLE void beginControllerMapping(bool reset_mapping);
     Q_INVOKABLE void creatingControllerMapping(bool creating_controller_mapping);
     Q_INVOKABLE void updateButton(int chiaki_button, QString physical_button, int new_index);
     Q_INVOKABLE void controllerMappingSelectButton();
@@ -320,6 +321,7 @@ private:
     QMap<QString, QStringList> controller_mapping_applied_controller_mappings = {};
     QMap<QString, QString> controller_mapping_physical_button_mappings = {};
     QMap<QString, QString> controller_mapping_original_controller_mappings = {};
+    bool controller_mapping_reset_requested = false;
     bool controller_mapping_in_progress = false;
     bool enable_analog_stick_mapping = false;
     bool resume_session = false;

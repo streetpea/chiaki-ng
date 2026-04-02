@@ -122,6 +122,7 @@ public:
 public slots:
     void resetPlaceboQueue();
     void schedulePlaceboReset();
+    void queuePlaceboReset(bool preserve_timeline);
 
     void updatePlacebo();
     void updateVSync();
@@ -163,6 +164,12 @@ private:
     bool hasPendingFrame() const;
     int effectiveQueueDepthLimit() const;
     bool storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership = false);
+    bool storeResetSeedFrame(const AVFrame *frame, double pts, float duration, quint64 generation);
+    bool storeResetSeedFromPendingFrame(quint64 generation);
+    bool applyKeptFrameSnapshot();
+    bool applyResetSeedFrame(quint64 generation);
+    bool queueStoredFrame(AVFrame *frame, double pts, float duration,
+                          void (*discard_cb)(const struct pl_source_frame *));
     void refreshPendingFrameAge();
     void snapshotPendingFrame();
     bool handleShortcut(QKeyEvent *event);
@@ -178,7 +185,9 @@ private:
     struct pl_frame_mix frame_mix;
     uint64_t ts_start = 0;
     double queue_pts_origin = -1.0;
+    double newest_queued_frame_pts = -1.0;
     bool playback_started = false;
+    bool preserve_playback_timeline = false;
     bool was_maximized = false;
     bool amd_card = false;
     bool nvidia_card = false;
@@ -202,6 +211,7 @@ private:
     double queue_depth_average = 0.0;
     double pending_frame_age = 0.0;
     uint64_t last_placebo_reset_ts = 0;
+    uint64_t pending_frame_stored_us = 0;
     mutable QMutex pending_frame_age_mutex;
 
     pl_cache placebo_cache = {};
@@ -228,6 +238,11 @@ private:
     float pending_duration = 0.0f;
     double pending_frame_queue_origin = 0.0;
     QAtomicInteger<int> pending_frame_present = 0;
+    QMutex reset_seed_mutex;
+    AVFrame *reset_seed_frame = nullptr;
+    double reset_seed_pts = 0.0;
+    float reset_seed_duration = 0.0f;
+    quint64 reset_seed_generation = 0;
     QAtomicInteger<quint64> snapshot_generation = 0;
     QAtomicInteger<quint64> pending_reset_snapshot_generation = 0;
     QAtomicInteger<quint64> last_reset_snapshot_generation = 0;
@@ -240,6 +255,10 @@ private:
     QAtomicInteger<int> swapchain_recreate_pending = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
+    QAtomicInteger<int> placebo_reset_preserve_timeline = 0;
+    QAtomicInteger<int> reset_seed_capture_active = 0;
+    QAtomicInteger<quint64> reset_seed_capture_generation = 0;
+    QAtomicInteger<quint64> placebo_reset_throttle_generation = 0;
     QAtomicInteger<int> render_active = 0;
     bool present_vsync_enabled = true;
 

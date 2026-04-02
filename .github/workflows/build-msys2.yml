@@ -2,6 +2,11 @@ name: Build chiaki-ng msys2 x86 Windows
 
 on:
   workflow_dispatch:
+    inputs:
+      libplacebo_version:
+        description: "libplacebo git tag to build"
+        required: false
+        default: "v7.360.1"
 
 jobs:
   build-windows_x64-msys2:
@@ -68,6 +73,8 @@ jobs:
       - name: Build libbplacebo
         run: |
           scripts/build-libplacebo-windows.sh
+        env:
+          LIBPLACEBO_VERSION: ${{ github.event.inputs.libplacebo_version }}
 
       - name: Setup ffmpeg
         run: |

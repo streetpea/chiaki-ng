@@ -559,6 +559,7 @@ static void stream_connection_takion_data_pad_info(ChiakiStreamConnection *strea
 				led_changed = true;
 				memcpy(stream_connection->led_state, buf + 9, 3);
 			}
+			break;
 		}
 		case 0x11:
 		{
