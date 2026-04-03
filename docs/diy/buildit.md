@@ -106,15 +106,9 @@
     curl -Lo chiaki-ng.yaml https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/chiaki4deck.yaml
     ```
 
-4. Get the patch files
+4. Get the patch file
 
-    1. 0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
-
-        ```
-        curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-Vulkan-Don-t-try-to-reuse-old-swapchain.patch
-        ```
-
-    2. 0001-vulkan-ignore-frames-without-hw-context.patch
+    1. 0001-vulkan-ignore-frames-without-hw-context.patch
 
         ```
         curl -LO https://raw.githubusercontent.com/streetpea/chiaki-ng/main/scripts/flatpak/0001-vulkan-ignore-frames-without-hw-context.patch
@@ -166,4 +160,3 @@
     ``` bash
     flatpak --user install chiaki-ng-diy io.github.streetpea.Chiaki4deck
     ```
-
