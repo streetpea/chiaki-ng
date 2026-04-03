@@ -25,6 +25,19 @@
   <update_contact>streetpea@proton.me</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2026-04-02" version="1.10.0">
+      <description>
+        <p>This release provides the following improvements:</p>
+        <ul>
+          <li>improve streaming quality and stability with better queueing, reset handling, congestion control, and streaming metrics</li>
+          <li>add an OpenGL renderer backend plus major renderer and libplacebo fixes, adaptive queue depth, and custom upscalers</li>
+          <li>add VSync support plus spatial upscaler presets under settings->video->Render</li>
+          <li>improve PSN remote play reliability with configurable NAT port guessing and holepunching fixes</li>
+          <li>rework audio, microphone, and haptics paths for better recovery and fewer failure cases</li>
+          <li>fix macOS ARM rendering, crash-on-exit, and controller input issues, and add iOS/tvOS compilation support</li>
+        </ul>
+      </description>
+    </release>
     <release date="2025-8-10" version="1.9.9">
       <description>
         <p>This release provides the following improvements:</p>
