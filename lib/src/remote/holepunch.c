@@ -3450,7 +3450,7 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
         CHIAKI_LOGE(session->log, "Couldn't find a valid external address!");
         return CHIAKI_ERR_NETWORK;
     }
-
+    return err;
 #else
     struct ifaddrs *local_addrs, *current_addr;
     void *in_addr;
@@ -3771,7 +3771,6 @@ static ChiakiErrorCode check_candidates(
 #ifdef __SWITCH__
     // Use poll() on Switch — select() fails when FD numbers >= FD_SETSIZE (256)
     struct pollfd *pollfds = NULL;
-    nfds_t npollfds = 0;
 #endif
 #ifdef __ANDROID__
     fd_set fds;
@@ -4020,7 +4019,7 @@ static ChiakiErrorCode check_candidates(
         err = CHIAKI_ERR_NETWORK;
         goto cleanup_sockets;
     }
-    struct pollfd *pollfds = calloc(poll_capacity, sizeof(struct pollfd));
+    pollfds = calloc(poll_capacity, sizeof(struct pollfd));
     if(!pollfds)
     {
         err = CHIAKI_ERR_MEMORY;
@@ -4032,8 +4031,9 @@ static ChiakiErrorCode check_candidates(
     {
         bool timed_out = false;
         chiaki_socket_t ready_sock = CHIAKI_INVALID_SOCKET;
+#if !defined(__SWITCH__)
         struct timeval timeout;
-        ready_sock = CHIAKI_INVALID_SOCKET;
+#endif
 #ifdef __SWITCH__
         nfds_t npollfds = 0;
         if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
