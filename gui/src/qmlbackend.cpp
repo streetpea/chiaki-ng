@@ -776,6 +776,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
 
     session_info = connect_info;
+    window->setStreamMaxFPS(connect_info.video_profile.max_fps);
     disable_zero_copy = !settings->GetUseZeroCopy();
     {
         QMutexLocker locker(&hw_transfer_state_mutex);

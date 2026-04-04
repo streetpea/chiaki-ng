@@ -195,7 +195,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(EwaLanczosSharp, FSR on modest upscale, or FSRCNNX with FSR fallback below 1.2x)")
+                        text: qsTr("(EwaLanczosSharp)")
                     }
 
                     Label {

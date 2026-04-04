@@ -1147,7 +1147,7 @@ static const QMap<PlaceboUpscaler, QString> placebo_upscaler_values = {
 	{ PlaceboUpscaler::FSRCNNX16, "fsrcnnx_x2_16_0_4_1" },
 };
 
-static const PlaceboUpscaler placebo_upscaler_default = PlaceboUpscaler::Lanczos;
+static const PlaceboUpscaler placebo_upscaler_default = PlaceboUpscaler::EwaLanczosSharp;
 
 PlaceboUpscaler Settings::GetPlaceboUpscaler() const
 {
