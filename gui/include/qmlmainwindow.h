@@ -155,6 +155,7 @@ private:
     void destroySwapchain();
     void resizeSwapchain();
     void updateSwapchain();
+    void drainRenderThread();
     void sync();
     void beginFrame();
     void endFrame();

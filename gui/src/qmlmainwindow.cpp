@@ -343,6 +343,8 @@ QmlMainWindow::~QmlMainWindow()
 {
     Q_ASSERT(!placebo_swapchain);
 
+    drainRenderThread();
+
     if (render_backend == RenderBackend::Vulkan)
         av_buffer_unref(&vulkan_hw_dev_ctx);
 
@@ -1736,6 +1738,7 @@ renderer_backend_ready:
         if (session)
             session->BlockInput(0);
         update_timer->stop();
+        drainRenderThread();
         {
             QMutexLocker locker(&placebo_state_mutex);
             pl_queue_reset(placebo_queue);
@@ -1862,6 +1865,18 @@ renderer_backend_ready:
         break;
     }
     setZoomFactor(settings->GetZoomFactor());
+}
+
+void QmlMainWindow::drainRenderThread()
+{
+    if (!quick_render)
+        return;
+
+    if (quick_render->thread() == QThread::currentThread())
+        return;
+
+    // Wait for queued render work to finish before tearing down libplacebo stuff which can cause crash on closing stream
+    QMetaObject::invokeMethod(quick_render, []() {}, Qt::BlockingQueuedConnection);
 }
 
 void QmlMainWindow::normalTime()
