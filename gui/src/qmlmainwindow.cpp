@@ -1364,6 +1364,18 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     if (vulkan_hw_dev_ctx || vk_decode_queue_index < 0)
         return vulkan_hw_dev_ctx;
 
+    // Check if we're on a broken Mesa version on a Steam Deck, if so, fail early.
+    // 0x163F is AMD Custom GPU 0405 (AMD Aerith (Steam Deck LCD) or Aerith Plus (Xbox ROG Ally) )
+    // 0x1435 is AMD Custom GPU 0932 (AMD Sephiroth (Steam Deck OLED))
+    // Both are VANGOGH GPUs and have broken Vulkan HW decode on radv between 24.1.0-24.1.2
+    // Sadly, Valve marks all of their Mesa builds as patch version .99, which makes it impossible to tell if we're on a
+    // fixed 24.1 driver, so let's require a 24.2 driver or newer on Steam Deck devices just to be safe.
+    bool is_steam_deck = amd_card && (vk_device_props.deviceID == 0x163F || vk_device_props.deviceID == 0x163F);
+    if (is_steam_deck && vk_device_driver_props.driverID == VK_DRIVER_ID_MESA_RADV && vk_device_props.driverVersion < VK_MAKE_VERSION(24, 2, 0)){
+        qCWarning(chiakiGui) << "Refusing to create Vulkan decode context due to us running on a Steam Deck with a broken radv version ";
+        return nullptr;
+    }
+
     vulkan_hw_dev_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_VULKAN);
     AVHWDeviceContext *hwctx = reinterpret_cast<AVHWDeviceContext*>(vulkan_hw_dev_ctx->data);
     hwctx->user_opaque = const_cast<void*>(reinterpret_cast<const void*>(placebo_vulkan));
@@ -1609,7 +1621,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 #endif
         GET_PROC(vkDestroySurfaceKHR)
         GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties)
-        GET_PROC(vkGetPhysicalDeviceProperties)
+        GET_PROC(vkGetPhysicalDeviceProperties2)
 #undef GET_PROC
 
         const char *opt_dev_extensions[] = {
@@ -1652,14 +1664,22 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         });
         if (queue_it != queueFamilyProperties.end())
             vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
-        VkPhysicalDeviceProperties device_props;
-        vk_funcs.vkGetPhysicalDeviceProperties(placebo_vulkan->phys_device, &device_props);
-        if(device_props.vendorID == 0x1002)
+        VkPhysicalDeviceDriverProperties driver_props = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+        };
+        VkPhysicalDeviceProperties2 device_props = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+            .pNext = &driver_props,
+        };
+        vk_funcs.vkGetPhysicalDeviceProperties2(placebo_vulkan->phys_device, &device_props);
+        vk_device_props = device_props.properties;
+        vk_device_driver_props = driver_props;
+        if(vk_device_props.vendorID == 0x1002)
         {
             amd_card = true;
             qCInfo(chiakiGui) << "Using amd graphics card";
         }
-        else if(device_props.vendorID == 0x10de)
+        else if(vk_device_props.vendorID == 0x10de)
         {
             nvidia_card = true;
             qCInfo(chiakiGui) << "Using nvidia graphics card";
