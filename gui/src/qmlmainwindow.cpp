@@ -1370,7 +1370,7 @@ AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
     // Both are Van Gogh GPUs and have broken Vulkan HW decode on radv between 24.1.0-24.1.2
     // Sadly, SteamOS marks all of their Mesa builds as patch version .99, which makes it impossible to tell if we're on a
     // fixed 24.1 driver, so let's require a 24.2 driver or newer on Van Gogh devices just to be safe.
-    bool is_van_gogh = amd_card && (vk_device_props.deviceID == 0x163F || vk_device_props.deviceID == 0x163F);
+    bool is_van_gogh = amd_card && (vk_device_props.deviceID == 0x163F || vk_device_props.deviceID == 0x1435);
     if (is_van_gogh && vk_device_driver_props.driverID == VK_DRIVER_ID_MESA_RADV && vk_device_props.driverVersion < VK_MAKE_VERSION(24, 2, 0)){
         qCWarning(chiakiGui) << "Refusing to create Vulkan decode context due to us running on a Van Gogh GPU with a broken radv version ";
         return nullptr;
