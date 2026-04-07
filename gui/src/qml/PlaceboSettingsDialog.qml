@@ -195,7 +195,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(EwaLanczosSharp, FSR on modest upscale, or FSRCNNX with FSR fallback below 1.2x)")
+                        text: qsTr("(EwaLanczosSharp)")
                     }
 
                     Label {
@@ -250,23 +250,6 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(Chosen Downscaler)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Frame Mixer:")
-                    }
-
-                    C.ComboBox {
-                        Layout.preferredWidth: 400
-                        model: [qsTr("None"), qsTr("Oversample"), qsTr("Hermite"), qsTr("Linear"), qsTr("Cubic")]
-                        currentIndex: Chiaki.settings.placeboFrameMixer
-                        onActivated: index => Chiaki.settings.placeboFrameMixer = index
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Oversample)")
                     }
 
                     Label {

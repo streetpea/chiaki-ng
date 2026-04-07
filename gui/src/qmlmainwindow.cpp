@@ -559,6 +559,7 @@ QmlMainWindow::VideoPreset QmlMainWindow::videoPreset() const
 void QmlMainWindow::setVideoPreset(VideoPreset preset)
 {
     video_preset = preset;
+    schedule_frame_mixer_active.storeRelaxed(configuredFrameMixerEnabledForScheduling() ? 1 : 0);
     emit videoPresetChanged();
 }
 
@@ -618,6 +619,71 @@ void QmlMainWindow::show()
 namespace {
 constexpr int kDefaultQueueDepthLimit = 2;
 constexpr int kAdaptiveQueueDepthBoost = 1;
+
+static const struct pl_filter_config *frame_mixer_config(Settings *settings)
+{
+    if (!settings)
+        return pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+
+    switch (settings->GetPlaceboFrameMixer()) {
+    case PlaceboFrameMixer::None:
+        return nullptr;
+    case PlaceboFrameMixer::Oversample:
+        return pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+    case PlaceboFrameMixer::Hermite:
+        return pl_find_filter_config("hermite", PL_FILTER_FRAME_MIXING);
+    case PlaceboFrameMixer::Linear:
+        return pl_find_filter_config("linear", PL_FILTER_FRAME_MIXING);
+    case PlaceboFrameMixer::Cubic:
+        return pl_find_filter_config("cubic", PL_FILTER_FRAME_MIXING);
+    }
+
+    return pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+}
+
+}
+
+const struct pl_filter_config *QmlMainWindow::effectiveFrameMixerConfig(const struct pl_render_params *render_params) const
+{
+    Q_UNUSED(render_params);
+
+    switch (video_preset) {
+    case VideoPreset::Fast:
+        return frame_mixer_config(settings);
+    case VideoPreset::Custom: {
+        return frame_mixer_config(settings);
+    }
+    case VideoPreset::Default:
+    case VideoPreset::HighQuality:
+    case VideoPreset::HighQualitySpatial:
+    case VideoPreset::HighQualityAdvancedSpatial:
+        return frame_mixer_config(settings);
+    }
+
+    return frame_mixer_config(settings);
+}
+
+bool QmlMainWindow::effectiveFrameMixerEnabled(const struct pl_render_params *render_params) const
+{
+    return effectiveFrameMixerConfig(render_params) != nullptr;
+}
+
+bool QmlMainWindow::configuredFrameMixerEnabledForScheduling() const
+{
+    switch (video_preset) {
+    case VideoPreset::Fast:
+        return frame_mixer_config(settings) != nullptr;
+    case VideoPreset::Custom: {
+        return frame_mixer_config(settings) != nullptr;
+    }
+    case VideoPreset::Default:
+    case VideoPreset::HighQuality:
+    case VideoPreset::HighQualitySpatial:
+    case VideoPreset::HighQualityAdvancedSpatial:
+        return frame_mixer_config(settings) != nullptr;
+    }
+
+    return frame_mixer_config(settings) != nullptr;
 }
 
 void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
@@ -658,6 +724,8 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
     frame.frame->opaque = this;
 
+    if (frame.duration > 0.0f)
+        source_frame_interval_ms = 1000.0 * frame.duration;
     bool deinterlace_enabled = false;
     {
         QMutexLocker locker(&placebo_state_mutex);
@@ -691,9 +759,11 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     const int depth_limit = effectiveQueueDepthLimit();
     bool queued = false;
     bool depth_exceeded = false;
+    bool queue_was_empty = false;
     {
         QMutexLocker locker(&placebo_state_mutex);
         const int depth = pl_queue_num_frames(placebo_queue);
+        queue_was_empty = depth == 0;
         depth_exceeded = depth >= depth_limit;
         updateQueueDepthAverage(depth);
         if (!depth_exceeded)
@@ -759,7 +829,15 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             setCursor(Qt::BlankCursor);
         emit hasVideoChanged();
     }
-    scheduleUpdate();
+    if (queued && queue_was_empty)
+        scheduleUpdate();
+}
+
+void QmlMainWindow::setStreamMaxFPS(unsigned int max_fps)
+{
+    const double interval_ms = max_fps > 0 ? 1000.0 / max_fps : 16.6667;
+    stream_configured_frame_interval_ms = interval_ms;
+    source_frame_interval_ms = interval_ms;
 }
 
 void QmlMainWindow::resetPlaceboQueue()
@@ -1168,6 +1246,8 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
 
     frame->opaque = this;
 
+    if (duration > 0.0f)
+        source_frame_interval_ms = 1000.0 * duration;
     bool deinterlace_enabled = false;
     struct pl_source_frame src_frame;
     {
@@ -1744,6 +1824,13 @@ renderer_backend_ready:
     quick_window->setColor(QColor(0, 0, 0, 0));
     connect(quick_window, &QQuickWindow::focusObjectChanged, this, &QmlMainWindow::focusObjectChanged);
 
+    pace_timer = new QTimer(this);
+    pace_timer->setSingleShot(true);
+    pace_timer->setTimerType(Qt::PreciseTimer);
+    connect(pace_timer, &QTimer::timeout, this, [this]() {
+        scheduleBufferedUpdate();
+    });
+
     qml_engine = new QQmlEngine(this);
     qml_engine->addImageProvider(QStringLiteral("svg"), new QmlSvgProvider);
     if (!qml_engine->incubationController())
@@ -1757,7 +1844,6 @@ renderer_backend_ready:
         grab_input = 0;
         if (session)
             session->BlockInput(0);
-        update_timer->stop();
         drainRenderThread();
         {
             QMutexLocker locker(&placebo_state_mutex);
@@ -1777,12 +1863,15 @@ renderer_backend_ready:
         pending_reset_snapshot_generation.storeRelaxed(0);
         last_reset_snapshot_generation.storeRelaxed(0);
         renderer_cache_flush_pending.storeRelaxed(1);
+        next_buffered_update_us = 0;
+        last_buffered_interval_us = 0;
         queue_pts_origin = -1.0;
         newest_queued_frame_pts = -1.0;
         reset_seed_capture_active.storeRelease(0);
         reset_seed_capture_generation.storeRelease(0);
         playback_started = false;
         ts_start = 0;
+        schedule_frame_mixer_active.storeRelaxed(configuredFrameMixerEnabledForScheduling() ? 1 : 0);
         if (has_video) {
             has_video = false;
             setCursor(Qt::ArrowCursor);
@@ -1794,6 +1883,7 @@ renderer_backend_ready:
         }
         if(!session)
         {
+            setStreamMaxFPS(60);
             setStreamWindowAdjustable(false);
             if(qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope")
             {
@@ -1824,16 +1914,19 @@ renderer_backend_ready:
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         quick_need_sync.storeRelaxed(1);
-        scheduleUpdate();
+        if (stream_session_active.loadAcquire() != 0 && schedule_frame_mixer_active.loadAcquire() == 0)
+            scheduleBufferedUpdate();
+        else
+            scheduleUpdate();
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        scheduleUpdate();
+        if (stream_session_active.loadAcquire() != 0 && schedule_frame_mixer_active.loadAcquire() == 0)
+            scheduleBufferedUpdate();
+        else
+            scheduleUpdate();
     });
 
-    update_timer = new QTimer(this);
-    update_timer->setSingleShot(true);
-    connect(update_timer, &QTimer::timeout, this, &QmlMainWindow::update);
 
     if (render_backend == RenderBackend::OpenGL) {
         if (!makeOpenGLContextCurrent())
@@ -1958,31 +2051,94 @@ void QmlMainWindow::update()
             QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
     }
 
-    update_timer->stop();
     QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::render, this));
 }
 
-void QmlMainWindow::scheduleUpdate()
+void QmlMainWindow::scheduleUpdate(bool force)
 {
     if (QThread::currentThread() != QGuiApplication::instance()->thread()) {
-        QMetaObject::invokeMethod(this, &QmlMainWindow::scheduleUpdate, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, [this, force]() { scheduleUpdate(force); }, Qt::QueuedConnection);
         return;
     }
 
-    if (!update_timer->isActive()) {
+    if (!update_pending.testAndSetRelaxed(0, 1))
+        return;
+    QMetaObject::invokeMethod(this, [this]() {
+        update_pending.storeRelaxed(0);
+        last_update_us = chiaki_time_now_monotonic_us();
+        update();
+    }, Qt::QueuedConnection);
+}
+
+void QmlMainWindow::scheduleBufferedUpdate()
+{
+    if (QThread::currentThread() != QGuiApplication::instance()->thread()) {
+        QMetaObject::invokeMethod(this, &QmlMainWindow::scheduleBufferedUpdate, Qt::QueuedConnection);
+        return;
+    }
+    if (!pace_timer)
+        return;
+    double interval_ms = stream_configured_frame_interval_ms;
+    if (schedule_frame_mixer_active.loadAcquire() != 0) {
         double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
         if (refresh_rate <= 1.0)
             refresh_rate = 60.0;
-        int interval_ms = has_video ? qMax(1, (int)(1000.0 / refresh_rate)) : 10;
-        if (hasPendingFrame())
-            interval_ms = qMax(1, interval_ms / 2);
-        update_timer->start(interval_ms);
+        interval_ms = 1000.0 / refresh_rate;
     }
+    const qint64 interval_us = static_cast<qint64>(qMax(1.0, interval_ms) * 1000.0);
+    const qint64 now_us = chiaki_time_now_monotonic_us();
+    if (last_buffered_interval_us != interval_us) {
+        next_buffered_update_us = 0;
+        last_buffered_interval_us = interval_us;
+    }
+    if (next_buffered_update_us == 0) {
+        const qint64 anchor_us = last_update_us > 0 ? last_update_us : now_us;
+        next_buffered_update_us = anchor_us + interval_us;
+    }
+    if (now_us >= next_buffered_update_us) {
+        if (now_us - next_buffered_update_us >= interval_us)
+            next_buffered_update_us = now_us + interval_us;
+        else
+            next_buffered_update_us += interval_us;
+        scheduleUpdate();
+        return;
+    }
+    qint64 wait_us = next_buffered_update_us - now_us;
+    int delay_ms = qMax(1, static_cast<int>((wait_us + 999) / 1000));
+    pace_timer->start(delay_ms);
+}
+
+void QmlMainWindow::throttleFramePresentation(double interval_s)
+{
+    if (interval_s <= 0.0) {
+        next_frame_target_us = 0;
+        last_throttle_interval_s = 0.0;
+        return;
+    }
+    const uint64_t interval_us = static_cast<uint64_t>(interval_s * 1000000.0 + 0.5);
+    if (!interval_us)
+        return;
+    if (qAbs(last_throttle_interval_s - interval_s) > 1e-6)
+        next_frame_target_us = 0;
+    last_throttle_interval_s = interval_s;
+
+    const uint64_t now_us = chiaki_time_now_monotonic_us();
+    if (!next_frame_target_us)
+        next_frame_target_us = now_us + interval_us;
+    while (next_frame_target_us <= now_us)
+        next_frame_target_us += interval_us;
+
+    const uint64_t wait_us = next_frame_target_us - now_us;
+    if (wait_us > 0)
+        QThread::usleep(static_cast<unsigned long>(wait_us));
+
+    next_frame_target_us += interval_us;
 }
 
 void QmlMainWindow::updatePlacebo()
 {
     renderparams_changed = true;
+    schedule_frame_mixer_active.storeRelaxed(configuredFrameMixerEnabledForScheduling() ? 1 : 0);
 }
 
 void QmlMainWindow::updateVSync()
@@ -2282,7 +2438,11 @@ void QmlMainWindow::render()
         ~RenderActiveGuard() { flag.storeRelease(0); }
     } render_guard(render_active);
 
-    bool schedule_next_update = false;
+    auto queueHasWork = [this]() {
+        QMutexLocker locker(&placebo_state_mutex);
+        return pl_queue_num_frames(placebo_queue) > 0;
+    };
+
     auto finalize_render = [this]() {
         bool pending = false;
         {
@@ -2293,9 +2453,13 @@ void QmlMainWindow::render()
         }
         if (pending) {
             QMetaObject::invokeMethod(this, [this]() {
-                update();
+                if (stream_session_active.loadAcquire() != 0 && schedule_frame_mixer_active.loadAcquire() == 0)
+                    scheduleBufferedUpdate();
+                else
+                    scheduleUpdate();
             }, Qt::QueuedConnection);
         }
+        return pending;
     };
     if (swapchain_recreate_pending.fetchAndStoreRelaxed(0)) {
         destroySwapchain();
@@ -2308,7 +2472,9 @@ void QmlMainWindow::render()
 
     if (!placebo_swapchain)
     {
-        finalize_render();
+        bool scheduled_pending = finalize_render();
+        if (!scheduled_pending && (queueHasWork() || placebo_reset_pending.loadAcquire() != 0))
+            scheduleUpdate();
         return;
     }
 
@@ -2380,8 +2546,12 @@ void QmlMainWindow::render()
     }
 
     struct pl_render_params params = *render_params;
-    if (!params.frame_mixer)
-        params.frame_mixer = pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+    params.frame_mixer = effectiveFrameMixerConfig(&params);
+    const bool content_timed = params.frame_mixer == nullptr;
+    const bool mixer_active = params.frame_mixer != nullptr;
+    const double stream_interval_s = stream_configured_frame_interval_ms > 0.0
+        ? stream_configured_frame_interval_ms / 1000.0
+        : 0.0;
 
     const bool has_settings = settings != nullptr;
     const bool apply_display_target = has_settings && stream_session_active.loadAcquire() != 0;
@@ -2394,9 +2564,26 @@ void QmlMainWindow::render()
     double refresh_rate = screen() ? screen()->refreshRate() : 60.0;
     if (refresh_rate <= 1.0)
         refresh_rate = 60.0;
+    const double refresh_interval_s = 1.0 / refresh_rate;
     const bool pending_frame_waiting = hasPendingFrame();
-    const double vsync_duration = present_vsync_enabled ? 1.0 / refresh_rate : 0.0;
+    auto hasBufferedWork = [this, pending_frame_waiting, &queueHasWork]() {
+        if (queueHasWork())
+            return true;
+        if (pending_frame_waiting)
+            return true;
+        if (quick_need_sync.loadRelaxed() != 0 || quick_need_render.loadRelaxed() != 0)
+            return true;
+        if (placebo_reset_pending.loadAcquire() != 0)
+            return true;
+        return false;
+    };
+    const double throttle_interval_s = !present_vsync_enabled
+        ? (content_timed ? stream_interval_s : (mixer_active ? refresh_interval_s : 0.0))
+        : 0.0;
+    const double vsync_duration = present_vsync_enabled ? refresh_interval_s : stream_interval_s;
     qparams.timeout = 0;
+    schedule_frame_mixer_active.storeRelaxed(mixer_active ? 1 : 0);
+    qparams.interpolation_threshold = mixer_active ? 0.01 : 0.0;
     qparams.radius = pl_frame_mix_radius(&params);
     qparams.vsync_duration = vsync_duration;
     qparams.pts = playback_started
@@ -2468,11 +2655,13 @@ void QmlMainWindow::render()
         finalize_render();
         return;
     }
-    auto close_started_frame = [this](bool present) {
+    auto close_started_frame = [this, throttle_interval_s](bool present) {
         if (!pl_swapchain_submit_frame(placebo_swapchain))
             qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
-        else if (present)
+        else if (present) {
+            throttleFramePresentation(throttle_interval_s);
             pl_swapchain_swap_buffers(placebo_swapchain);
+        }
     };
 
     const struct pl_frame *hint_frame = nullptr;
@@ -2599,11 +2788,9 @@ void QmlMainWindow::render()
     if (frame_mix.num_frames == 0) {
         if (replay_attempted && replay_enqueued) {
             close_started_frame(false);
-            schedule_next_update = true;
-            finalize_render();
-            QMetaObject::invokeMethod(this, [this]() {
-                scheduleUpdate();
-            }, Qt::QueuedConnection);
+            bool scheduled_pending = finalize_render();
+            if (!scheduled_pending && hasBufferedWork())
+                scheduleBufferedUpdate();
             return;
         }
 
@@ -2616,17 +2803,9 @@ void QmlMainWindow::render()
         }
 
         close_started_frame(true);
-        schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF)
-            || pending_frame_waiting
-            || quick_need_sync.loadRelaxed() != 0
-            || quick_need_render.loadRelaxed() != 0
-            || placebo_reset_pending.loadAcquire() != 0;
-        finalize_render();
-        if (schedule_next_update) {
-            QMetaObject::invokeMethod(this, [this]() {
-                scheduleUpdate();
-            }, Qt::QueuedConnection);
-        }
+        bool scheduled_pending = finalize_render();
+        if (!scheduled_pending && hasBufferedWork())
+            scheduleBufferedUpdate();
         return;
     }
 
@@ -2729,18 +2908,9 @@ void QmlMainWindow::render()
 
     close_started_frame(true);
 
-    schedule_next_update = (has_video && queue_status != PL_QUEUE_EOF)
-        || pending_frame_waiting
-        || quick_need_sync.loadRelaxed() != 0
-        || quick_need_render.loadRelaxed() != 0
-        || placebo_reset_pending.loadAcquire() != 0;
-
-    finalize_render();
-    if (schedule_next_update) {
-        QMetaObject::invokeMethod(this, [this]() {
-            scheduleUpdate();
-        }, Qt::QueuedConnection);
-    }
+    bool scheduled_pending = finalize_render();
+    if (!scheduled_pending && hasBufferedWork())
+        scheduleBufferedUpdate();
 
 }
 

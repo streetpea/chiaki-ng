@@ -954,6 +954,23 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Frame Mixer:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("None"), qsTr("Oversample"), qsTr("Hermite"), qsTr("Linear"), qsTr("Cubic")]
+                        currentIndex: Chiaki.settings.placeboFrameMixer
+                        onActivated: index => Chiaki.settings.placeboFrameMixer = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Oversample)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Placebo Queue Depth Limit")
                     }
 
@@ -1031,7 +1048,7 @@ DialogView {
                         lastInFocusChain: true
                     }
 
-                        Label {}
+                    Label {}
                     }
                 }
             }
@@ -1441,7 +1458,8 @@ DialogView {
                     C.ComboBox {
                         id: codecLocalPS5
                         Layout.preferredWidth: 400
-                        model: [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
+                        property bool openGlBackend: Chiaki.settings.rendererBackend === 1
+						model: openGlBackend ? [qsTr("H264"), qsTr("H265 (Default)")] : [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
                         currentIndex: Chiaki.settings.codecLocalPS5
                         onActivated: (index) => Chiaki.settings.codecLocalPS5 = index
                         visible: selectedConsole == SettingsDialog.Console.PS5
@@ -1466,7 +1484,8 @@ DialogView {
                         C.ComboBox {
                             id: codecRemotePS5
                             Layout.preferredWidth: 400
-                            model: [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
+                        property bool openGlBackend: Chiaki.settings.rendererBackend === 1
+                        model: openGlBackend ? [qsTr("H264"), qsTr("H265 (Default)")] : [qsTr("H264"), qsTr("H265 (Default)"), qsTr("H265 HDR")]
                             currentIndex: Chiaki.settings.codecRemotePS5
                             onActivated: (index) => Chiaki.settings.codecRemotePS5 = index
                             visible: selectedConsole == SettingsDialog.Console.PS5
