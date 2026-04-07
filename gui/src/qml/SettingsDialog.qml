@@ -954,6 +954,23 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Frame Mixer:")
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("None"), qsTr("Oversample"), qsTr("Hermite"), qsTr("Linear"), qsTr("Cubic")]
+                        currentIndex: Chiaki.settings.placeboFrameMixer
+                        onActivated: index => Chiaki.settings.placeboFrameMixer = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Oversample)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Placebo Queue Depth Limit")
                     }
 
@@ -1031,7 +1048,7 @@ DialogView {
                         lastInFocusChain: true
                     }
 
-                        Label {}
+                    Label {}
                     }
                 }
             }

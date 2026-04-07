@@ -14,6 +14,26 @@
 static const int PORT_GUESS_COUNT_DEFAULT = 75;
 static const int PORT_GUESS_SOCKS_DEFAULT = 250;
 
+static const QMap<PlaceboFrameMixer, QString> placebo_frame_mixer_values = {
+	{ PlaceboFrameMixer::None, "none" },
+	{ PlaceboFrameMixer::Oversample, "oversample" },
+	{ PlaceboFrameMixer::Hermite, "hermite" },
+	{ PlaceboFrameMixer::Linear, "linear" },
+	{ PlaceboFrameMixer::Cubic, "cubic" },
+};
+
+static const PlaceboFrameMixer placebo_frame_mixer_default = PlaceboFrameMixer::Oversample;
+
+static const QMap<QString, PlaceboFrameMixer> placebo_frame_mixer_lookup = {
+	{ "none", PlaceboFrameMixer::None },
+	{ "oversample", PlaceboFrameMixer::Oversample },
+	{ "hermite", PlaceboFrameMixer::Hermite },
+	{ "linear", PlaceboFrameMixer::Linear },
+	{ "cubic", PlaceboFrameMixer::Cubic },
+};
+
+static const QString frame_mixer_key = QStringLiteral("settings/placebo_frame_mixer");
+
 static void MigrateSettingsTo2(QSettings *settings)
 {
 	QList<QMap<QString, QVariant>> hosts;
@@ -91,6 +111,50 @@ static void InitializePlaceboSettings(QSettings *settings)
 	settings->setValue("contrast_recovery", 0.3);
 	settings->setValue("peak_percentile", 99.995);
 	settings->endGroup();
+}
+
+static void MigrateLegacyFrameMixerSetting(QSettings *settings, QSettings *placebo_settings,
+                                           const QStringList *profiles = nullptr, bool allowOverwrite = false)
+{
+	if (!settings || !placebo_settings)
+		return;
+	if (settings->contains(frame_mixer_key) && !allowOverwrite)
+		return;
+
+	placebo_settings->beginGroup("placebo_settings");
+	if (!placebo_settings->contains("frame_mixer")) {
+		placebo_settings->endGroup();
+		return;
+	}
+	const QString legacy = placebo_settings->value("frame_mixer").toString().trimmed().toLower();
+	if (legacy.isEmpty()) {
+		placebo_settings->endGroup();
+		return;
+	}
+	const auto it = placebo_frame_mixer_lookup.constFind(legacy);
+	if (it == placebo_frame_mixer_lookup.constEnd()) {
+		placebo_settings->endGroup();
+		return;
+	}
+	const QString mapped = placebo_frame_mixer_values[it.value()];
+
+	auto apply_frame_mixer = [&](QSettings &target) {
+		if (!allowOverwrite && target.contains(frame_mixer_key))
+			return;
+		target.setValue(frame_mixer_key, mapped);
+	};
+
+	apply_frame_mixer(*settings);
+	if (profiles) {
+		for (const QString &profile : *profiles) {
+			QSettings profile_settings(QCoreApplication::organizationName(),
+			                           QStringLiteral("%1-%2").arg(QCoreApplication::applicationName(), profile));
+			apply_frame_mixer(profile_settings);
+		}
+	}
+
+	placebo_settings->remove("frame_mixer");
+	placebo_settings->endGroup();
 }
 
 static void MigrateVideoProfile(QSettings *settings)
@@ -190,6 +254,7 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	default_settings.setValue("version", SETTINGS_VERSION);
 	LoadProfiles();
 	InitializePlaceboSettings(&placebo_settings);
+	MigrateLegacyFrameMixerSetting(&settings, &placebo_settings, &profiles);
 }
 
 void Settings::ExportSettings(QString filepath)
@@ -269,6 +334,7 @@ void Settings::ImportSettings(QString filepath)
 		{
 			settings.setValue( *i, settings_backup.value( *i ) );
 		}
+		MigrateLegacyFrameMixerSetting(&settings, &placebo_settings, nullptr, true);
 		SetCurrentProfile(std::move(profile));
 	}
 	else
@@ -284,6 +350,7 @@ void Settings::ImportSettings(QString filepath)
 		{
 			profile_settings.setValue( *i, settings_backup.value( *i ) );
 		}
+		MigrateLegacyFrameMixerSetting(&profile_settings, &placebo_settings, nullptr, true);
 		SetCurrentProfile(std::move(profile));
 	}
 }
@@ -297,6 +364,7 @@ void Settings::ImportPlaceboSettings(QString filepath)
 	{
 		placebo_settings.setValue( *i, settings_backup.value( *i ) );
 	}
+	MigrateLegacyFrameMixerSetting(&settings, &placebo_settings, nullptr, true);
 }
 
 uint32_t Settings::GetLogLevelMask()
@@ -1211,25 +1279,15 @@ void Settings::SetPlaceboPlaneDownscaler(PlaceboDownscaler downscaler)
 	placebo_settings.setValue("placebo_settings/plane_downscaler", placebo_downscaler_values[downscaler]);
 }
 
-static const QMap<PlaceboFrameMixer, QString> placebo_frame_mixer_values = {
-	{ PlaceboFrameMixer::None, "none" },
-	{ PlaceboFrameMixer::Oversample, "oversample" },
-	{ PlaceboFrameMixer::Hermite, "hermite" },
-	{ PlaceboFrameMixer::Linear, "linear" },
-	{ PlaceboFrameMixer::Cubic, "cubic" },
-};
-
-static const PlaceboFrameMixer placebo_frame_mixer_default = PlaceboFrameMixer::Oversample;
-
 PlaceboFrameMixer Settings::GetPlaceboFrameMixer() const
 {
-	auto v = placebo_settings.value("placebo_settings/frame_mixer", placebo_frame_mixer_values[placebo_frame_mixer_default]).toString();
-	return placebo_frame_mixer_values.key(v, placebo_frame_mixer_default);
+	auto v = settings.value(frame_mixer_key, placebo_frame_mixer_values[placebo_frame_mixer_default]).toString().toLower();
+	return placebo_frame_mixer_lookup.value(v, placebo_frame_mixer_default);
 }
 
 void Settings::SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer)
 {
-	placebo_settings.setValue("placebo_settings/frame_mixer", placebo_frame_mixer_values[frame_mixer]);
+	settings.setValue(frame_mixer_key, placebo_frame_mixer_values[frame_mixer]);
 }
 
 float Settings::GetPlaceboAntiringingStrength() const

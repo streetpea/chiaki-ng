@@ -641,68 +641,26 @@ static const struct pl_filter_config *frame_mixer_config(Settings *settings)
     return pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
 }
 
-enum class CustomFrameMixerOverride {
-    None,
-    Disabled,
-    Valid,
-};
-
-static CustomFrameMixerOverride custom_frame_mixer_override_config(Settings *settings, const struct pl_filter_config **config)
-{
-    if (config)
-        *config = nullptr;
-    if (!settings)
-        return CustomFrameMixerOverride::None;
-
-    const QMap<QString, QString> params = settings->GetPlaceboValues();
-    const auto it = params.constFind(QStringLiteral("frame_mixer"));
-    if (it == params.cend())
-        return CustomFrameMixerOverride::None;
-
-    const QString value = it.value().trimmed();
-    if (value.compare(QLatin1String("none"), Qt::CaseInsensitive) == 0)
-        return CustomFrameMixerOverride::Disabled;
-
-    const QByteArray utf8 = value.toUtf8();
-    if (const struct pl_filter_config *found =
-            pl_find_filter_config(utf8.constData(), PL_FILTER_FRAME_MIXING)) {
-        if (config)
-            *config = found;
-        return CustomFrameMixerOverride::Valid;
-    }
-
-    return CustomFrameMixerOverride::None;
-}
-
 }
 
 const struct pl_filter_config *QmlMainWindow::effectiveFrameMixerConfig(const struct pl_render_params *render_params) const
 {
+    Q_UNUSED(render_params);
+
     switch (video_preset) {
     case VideoPreset::Fast:
-        return nullptr;
+        return frame_mixer_config(settings);
     case VideoPreset::Custom: {
-        const struct pl_filter_config *override_config = nullptr;
-        switch (custom_frame_mixer_override_config(settings, &override_config)) {
-        case CustomFrameMixerOverride::Disabled:
-            return nullptr;
-        case CustomFrameMixerOverride::Valid:
-            return override_config;
-        case CustomFrameMixerOverride::None:
-            break;
-        }
         return frame_mixer_config(settings);
     }
     case VideoPreset::Default:
     case VideoPreset::HighQuality:
     case VideoPreset::HighQualitySpatial:
     case VideoPreset::HighQualityAdvancedSpatial:
-        if (render_params && render_params->frame_mixer)
-            return render_params->frame_mixer;
-        return pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+        return frame_mixer_config(settings);
     }
 
-    return pl_find_filter_config("oversample", PL_FILTER_FRAME_MIXING);
+    return frame_mixer_config(settings);
 }
 
 bool QmlMainWindow::effectiveFrameMixerEnabled(const struct pl_render_params *render_params) const
@@ -714,17 +672,18 @@ bool QmlMainWindow::configuredFrameMixerEnabledForScheduling() const
 {
     switch (video_preset) {
     case VideoPreset::Fast:
-        return false;
-    case VideoPreset::Custom:
-        return effectiveFrameMixerConfig(nullptr) != nullptr;
+        return frame_mixer_config(settings) != nullptr;
+    case VideoPreset::Custom: {
+        return frame_mixer_config(settings) != nullptr;
+    }
     case VideoPreset::Default:
     case VideoPreset::HighQuality:
     case VideoPreset::HighQualitySpatial:
     case VideoPreset::HighQualityAdvancedSpatial:
-        return true;
+        return frame_mixer_config(settings) != nullptr;
     }
 
-    return true;
+    return frame_mixer_config(settings) != nullptr;
 }
 
 void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
