@@ -18,6 +18,7 @@ extern "C" {
 #include <libavutil/pixfmt.h>
 }
 
+#include <QByteArray>
 #include <QDebug>
 #include <QThread>
 #include <QShortcut>
@@ -2490,25 +2491,21 @@ void QmlMainWindow::render()
         break;
     case VideoPreset::Default:
         render_params = &pl_render_default_params;
-        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
             this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::HighQuality:
         render_params = &pl_render_high_quality_params;
-        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
             this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::HighQualitySpatial:
         render_params = &pl_render_high_quality_params;
-        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
             this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
     case VideoPreset::HighQualityAdvancedSpatial:
         render_params = &pl_render_high_quality_params;
-        pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
         if (render_params->deinterlace_params)
             this->renderparams_opts->params.deinterlace_params = render_params->deinterlace_params;
         break;
@@ -2521,7 +2518,6 @@ void QmlMainWindow::render()
             {
                 QMutexLocker locker(&placebo_state_mutex);
                 this->renderparams_opts->params = pl_render_default_params;
-                pl_options_set_str(this->renderparams_opts, "deinterlace", "yes");
                 if (pl_render_default_params.deinterlace_params)
                     this->renderparams_opts->params.deinterlace_params = pl_render_default_params.deinterlace_params;
                 while (i.hasNext()) {
@@ -2579,7 +2575,7 @@ void QmlMainWindow::render()
         return false;
     };
     const double throttle_interval_s = !present_vsync_enabled
-        ? (content_timed ? stream_interval_s : (mixer_active ? refresh_interval_s : 0.0))
+        ? (mixer_active ? refresh_interval_s : 0.0)
         : 0.0;
     const double vsync_duration = present_vsync_enabled ? refresh_interval_s : stream_interval_s;
     qparams.timeout = 0;

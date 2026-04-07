@@ -983,6 +983,54 @@ void QmlSettings::setPlaceboFrameMixer(int mixer)
     emit placeboChanged();
 }
 
+bool QmlSettings::placeboDeinterlaceEnabled() const
+{
+    return settings->GetPlaceboDeinterlaceEnabled();
+}
+
+void QmlSettings::setPlaceboDeinterlaceEnabled(bool enabled)
+{
+    settings->SetPlaceboDeinterlaceEnabled(enabled);
+    emit placeboDeinterlaceEnabledChanged();
+    emit placeboChanged();
+}
+
+int QmlSettings::placeboDeinterlacePreset() const
+{
+    return static_cast<int>(settings->GetPlaceboDeinterlacePreset());
+}
+
+void QmlSettings::setPlaceboDeinterlacePreset(int preset)
+{
+    settings->SetPlaceboDeinterlacePreset(static_cast<PlaceboDeinterlacePreset>(preset));
+    emit placeboDeinterlacePresetChanged();
+    emit placeboChanged();
+}
+
+int QmlSettings::placeboDeinterlaceAlgorithm() const
+{
+    return static_cast<int>(settings->GetPlaceboDeinterlaceAlgorithm());
+}
+
+void QmlSettings::setPlaceboDeinterlaceAlgorithm(int algorithm)
+{
+    settings->SetPlaceboDeinterlaceAlgorithm(static_cast<PlaceboDeinterlaceAlgorithm>(algorithm));
+    emit placeboDeinterlaceAlgorithmChanged();
+    emit placeboChanged();
+}
+
+bool QmlSettings::placeboDeinterlaceSkipSpatial() const
+{
+    return settings->GetPlaceboDeinterlaceSkipSpatial();
+}
+
+void QmlSettings::setPlaceboDeinterlaceSkipSpatial(bool skip)
+{
+    settings->SetPlaceboDeinterlaceSkipSpatial(skip);
+    emit placeboDeinterlaceSkipSpatialChanged();
+    emit placeboChanged();
+}
+
 float QmlSettings::placeboAntiringingStrength() const
 {
     return settings->GetPlaceboAntiringingStrength();
@@ -1912,6 +1960,10 @@ void QmlSettings::refreshAllPlaceboKeys()
     emit placeboDownscalerChanged();
     emit placeboPlaneDownscalerChanged();
     emit placeboFrameMixerChanged();
+    emit placeboDeinterlaceEnabledChanged();
+    emit placeboDeinterlacePresetChanged();
+    emit placeboDeinterlaceAlgorithmChanged();
+    emit placeboDeinterlaceSkipSpatialChanged();
     emit placeboAntiringingStrengthChanged();
     emit placeboDebandEnabledChanged();
     emit placeboDebandPresetChanged();

@@ -22,7 +22,7 @@ static const QMap<PlaceboFrameMixer, QString> placebo_frame_mixer_values = {
 	{ PlaceboFrameMixer::Cubic, "cubic" },
 };
 
-static const PlaceboFrameMixer placebo_frame_mixer_default = PlaceboFrameMixer::Oversample;
+static const PlaceboFrameMixer placebo_frame_mixer_default = PlaceboFrameMixer::None;
 
 static const QMap<QString, PlaceboFrameMixer> placebo_frame_mixer_lookup = {
 	{ "none", PlaceboFrameMixer::None },
@@ -30,6 +30,32 @@ static const QMap<QString, PlaceboFrameMixer> placebo_frame_mixer_lookup = {
 	{ "hermite", PlaceboFrameMixer::Hermite },
 	{ "linear", PlaceboFrameMixer::Linear },
 	{ "cubic", PlaceboFrameMixer::Cubic },
+};
+
+static const QMap<PlaceboDeinterlacePreset, QString> placebo_deinterlace_preset_values = {
+	{ PlaceboDeinterlacePreset::Default, "default" },
+};
+
+static const PlaceboDeinterlacePreset placebo_deinterlace_preset_default = PlaceboDeinterlacePreset::Default;
+
+static const QMap<QString, PlaceboDeinterlacePreset> placebo_deinterlace_preset_lookup = {
+	{ "default", PlaceboDeinterlacePreset::Default },
+};
+
+static const QMap<PlaceboDeinterlaceAlgorithm, QString> placebo_deinterlace_algo_values = {
+	{ PlaceboDeinterlaceAlgorithm::Weave, "weave" },
+	{ PlaceboDeinterlaceAlgorithm::Bob, "bob" },
+	{ PlaceboDeinterlaceAlgorithm::Yadif, "yadif" },
+	{ PlaceboDeinterlaceAlgorithm::Bwdif, "bwdif" },
+};
+
+static const PlaceboDeinterlaceAlgorithm placebo_deinterlace_algo_default = PlaceboDeinterlaceAlgorithm::Yadif;
+
+static const QMap<QString, PlaceboDeinterlaceAlgorithm> placebo_deinterlace_algo_lookup = {
+	{ "weave", PlaceboDeinterlaceAlgorithm::Weave },
+	{ "bob", PlaceboDeinterlaceAlgorithm::Bob },
+	{ "yadif", PlaceboDeinterlaceAlgorithm::Yadif },
+	{ "bwdif", PlaceboDeinterlaceAlgorithm::Bwdif },
 };
 
 static const QString frame_mixer_key = QStringLiteral("settings/placebo_frame_mixer");
@@ -104,7 +130,11 @@ static void InitializePlaceboSettings(QSettings *settings)
 		return;
 	settings->beginGroup("placebo_settings");
 	settings->setValue("version", "0");
-	settings->setValue("upscaler", "ewa_lanczossharp");
+	settings->setValue("upscaler", "ewa_lanczos");
+	settings->setValue("deinterlace", "no");
+	settings->setValue("deinterlace_preset", "default");
+	settings->setValue("deinterlace_algo", "yadif");
+	settings->setValue("deinterlace_skip_spatial", "no");
 	settings->setValue("deband", "yes");
 	settings->setValue("peak_detect_preset", "high_quality");
 	settings->setValue("color_map_preset", "high_quality");
@@ -1297,6 +1327,60 @@ void Settings::SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer)
 	settings.setValue(frame_mixer_key, placebo_frame_mixer_values[frame_mixer]);
 }
 
+bool Settings::GetPlaceboDeinterlaceEnabled() const
+{
+	QString value = placebo_settings.value("placebo_settings/deinterlace", "no").toString().toLower();
+	return value == "yes";
+}
+
+void Settings::SetPlaceboDeinterlaceEnabled(bool enabled)
+{
+	placebo_settings.setValue("placebo_settings/deinterlace", enabled ? "yes" : "no");
+}
+
+PlaceboDeinterlacePreset Settings::GetPlaceboDeinterlacePreset() const
+{
+	auto v = placebo_settings.value("placebo_settings/deinterlace_preset", placebo_deinterlace_preset_values[placebo_deinterlace_preset_default]).toString();
+	return placebo_deinterlace_preset_lookup.value(v, placebo_deinterlace_preset_default);
+}
+
+void Settings::SetPlaceboDeinterlacePreset(PlaceboDeinterlacePreset preset)
+{
+	placebo_settings.setValue("placebo_settings/deinterlace_preset", placebo_deinterlace_preset_values[preset]);
+}
+
+PlaceboDeinterlaceAlgorithm Settings::GetPlaceboDeinterlaceAlgorithm() const
+{
+	auto v = placebo_settings.value("placebo_settings/deinterlace_algo", placebo_deinterlace_algo_values[placebo_deinterlace_algo_default]).toString();
+	return placebo_deinterlace_algo_lookup.value(v, placebo_deinterlace_algo_default);
+}
+
+void Settings::SetPlaceboDeinterlaceAlgorithm(PlaceboDeinterlaceAlgorithm algorithm)
+{
+	placebo_settings.setValue("placebo_settings/deinterlace_algo", placebo_deinterlace_algo_values[algorithm]);
+}
+
+bool Settings::GetPlaceboDeinterlaceSkipSpatial() const
+{
+	QString value = placebo_settings.value("placebo_settings/deinterlace_skip_spatial", "no").toString().toLower();
+	return value == "yes";
+}
+
+void Settings::SetPlaceboDeinterlaceSkipSpatial(bool skip)
+{
+	placebo_settings.setValue("placebo_settings/deinterlace_skip_spatial", skip ? "yes" : "no");
+}
+
+QString Settings::GetPlaceboDeinterlacePresetValue() const
+{
+	return placebo_settings.value("placebo_settings/deinterlace_preset", placebo_deinterlace_preset_values[placebo_deinterlace_preset_default]).toString();
+}
+
+QString Settings::GetPlaceboDeinterlaceAlgorithmValue() const
+{
+	return placebo_settings.value("placebo_settings/deinterlace_algo", placebo_deinterlace_algo_values[placebo_deinterlace_algo_default]).toString();
+}
+
 float Settings::GetPlaceboAntiringingStrength() const
 {
 	return placebo_settings.value("placebo_settings/antiringing_strength", 0.0).toFloat();
@@ -1320,10 +1404,7 @@ bool Settings::GetPlaceboDebandEnabled() const
 
 void Settings::SetPlaceboDebandEnabled(bool enabled)
 {
-	if(enabled)
-		placebo_settings.setValue("placebo_settings/deband", "yes");
-	else
-		placebo_settings.setValue("placebo_settings/inverse_tone_mapping", "no");
+	placebo_settings.setValue("placebo_settings/deband", enabled ? "yes" : "no");
 }
 
 static const QMap<PlaceboDebandPreset, QString> placebo_deband_preset_values = {

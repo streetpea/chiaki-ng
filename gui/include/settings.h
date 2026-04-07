@@ -119,6 +119,17 @@ enum class PlaceboFrameMixer {
 	Cubic
 };
 
+enum class PlaceboDeinterlacePreset {
+	Default,
+};
+
+enum class PlaceboDeinterlaceAlgorithm {
+	Weave,
+	Bob,
+	Yadif,
+	Bwdif,
+};
+
 enum class PlaceboDebandPreset {
 	None,
 	Default
@@ -503,6 +514,17 @@ class Settings : public QObject
 
 		PlaceboFrameMixer GetPlaceboFrameMixer() const;
 		void SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer);
+
+		bool GetPlaceboDeinterlaceEnabled() const;
+		void SetPlaceboDeinterlaceEnabled(bool enabled);
+		PlaceboDeinterlacePreset GetPlaceboDeinterlacePreset() const;
+		void SetPlaceboDeinterlacePreset(PlaceboDeinterlacePreset preset);
+		PlaceboDeinterlaceAlgorithm GetPlaceboDeinterlaceAlgorithm() const;
+		void SetPlaceboDeinterlaceAlgorithm(PlaceboDeinterlaceAlgorithm algorithm);
+		bool GetPlaceboDeinterlaceSkipSpatial() const;
+		void SetPlaceboDeinterlaceSkipSpatial(bool skip);
+		QString GetPlaceboDeinterlacePresetValue() const;
+		QString GetPlaceboDeinterlaceAlgorithmValue() const;
 
 		float GetPlaceboAntiringingStrength() const;
 		void SetPlaceboAntiringingStrength(float strength);

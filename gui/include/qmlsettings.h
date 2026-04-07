@@ -96,10 +96,14 @@ class QmlSettings : public QObject
     Q_PROPERTY(uint streamMenuShortcut4 READ streamMenuShortcut4 WRITE setStreamMenuShortcut4 NOTIFY streamMenuShortcut4Changed)
     Q_PROPERTY(int placeboUpscaler READ placeboUpscaler WRITE setPlaceboUpscaler NOTIFY placeboUpscalerChanged)
     Q_PROPERTY(int placeboPlaneUpscaler READ placeboPlaneUpscaler WRITE setPlaceboPlaneUpscaler NOTIFY placeboPlaneUpscalerChanged)
-    Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
-    Q_PROPERTY(int placeboPlaneDownscaler READ placeboPlaneDownscaler WRITE setPlaceboPlaneDownscaler NOTIFY placeboPlaneDownscalerChanged)
-    Q_PROPERTY(int placeboFrameMixer READ placeboFrameMixer WRITE setPlaceboFrameMixer NOTIFY placeboFrameMixerChanged)
-    Q_PROPERTY(float placeboAntiringingStrength READ placeboAntiringingStrength WRITE setPlaceboAntiringingStrength NOTIFY placeboAntiringingStrengthChanged)
+	Q_PROPERTY(int placeboDownscaler READ placeboDownscaler WRITE setPlaceboDownscaler NOTIFY placeboDownscalerChanged)
+	Q_PROPERTY(int placeboPlaneDownscaler READ placeboPlaneDownscaler WRITE setPlaceboPlaneDownscaler NOTIFY placeboPlaneDownscalerChanged)
+	Q_PROPERTY(int placeboFrameMixer READ placeboFrameMixer WRITE setPlaceboFrameMixer NOTIFY placeboFrameMixerChanged)
+	Q_PROPERTY(bool placeboDeinterlaceEnabled READ placeboDeinterlaceEnabled WRITE setPlaceboDeinterlaceEnabled NOTIFY placeboDeinterlaceEnabledChanged)
+	Q_PROPERTY(int placeboDeinterlacePreset READ placeboDeinterlacePreset WRITE setPlaceboDeinterlacePreset NOTIFY placeboDeinterlacePresetChanged)
+	Q_PROPERTY(int placeboDeinterlaceAlgorithm READ placeboDeinterlaceAlgorithm WRITE setPlaceboDeinterlaceAlgorithm NOTIFY placeboDeinterlaceAlgorithmChanged)
+	Q_PROPERTY(bool placeboDeinterlaceSkipSpatial READ placeboDeinterlaceSkipSpatial WRITE setPlaceboDeinterlaceSkipSpatial NOTIFY placeboDeinterlaceSkipSpatialChanged)
+	Q_PROPERTY(float placeboAntiringingStrength READ placeboAntiringingStrength WRITE setPlaceboAntiringingStrength NOTIFY placeboAntiringingStrengthChanged)
     Q_PROPERTY(bool placeboDebandEnabled READ placeboDebandEnabled WRITE setPlaceboDebandEnabled NOTIFY placeboDebandEnabledChanged)
     Q_PROPERTY(int placeboDebandPreset READ placeboDebandPreset WRITE setPlaceboDebandPreset NOTIFY placeboDebandPresetChanged)
     Q_PROPERTY(int placeboDebandIterations READ placeboDebandIterations WRITE setPlaceboDebandIterations NOTIFY placeboDebandIterationsChanged)
@@ -341,6 +345,18 @@ public:
 
     int placeboFrameMixer() const;
     void setPlaceboFrameMixer(int mixer);
+
+    bool placeboDeinterlaceEnabled() const;
+    void setPlaceboDeinterlaceEnabled(bool enabled);
+
+    int placeboDeinterlacePreset() const;
+    void setPlaceboDeinterlacePreset(int preset);
+
+    int placeboDeinterlaceAlgorithm() const;
+    void setPlaceboDeinterlaceAlgorithm(int algorithm);
+
+    bool placeboDeinterlaceSkipSpatial() const;
+    void setPlaceboDeinterlaceSkipSpatial(bool skip);
 
     float placeboAntiringingStrength() const;
     void setPlaceboAntiringingStrength(float strength);
@@ -684,6 +700,10 @@ signals:
     void placeboDownscalerChanged();
     void placeboPlaneDownscalerChanged();
     void placeboFrameMixerChanged();
+    void placeboDeinterlaceEnabledChanged();
+    void placeboDeinterlacePresetChanged();
+    void placeboDeinterlaceAlgorithmChanged();
+    void placeboDeinterlaceSkipSpatialChanged();
     void placeboAntiringingStrengthChanged();
     void placeboDebandEnabledChanged();
     void placeboDebandPresetChanged();

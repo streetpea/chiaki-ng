@@ -966,7 +966,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Oversample)")
+                        text: qsTr("(None)")
                     }
 
                     Label {

@@ -51,6 +51,11 @@ DialogView {
             }
 
             TabButton {
+                text: qsTr("Deinterlace")
+                focusPolicy: Qt.NoFocus
+            }
+
+            TabButton {
                 text: qsTr("Debanding")
                 focusPolicy: Qt.NoFocus
             }
@@ -195,7 +200,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(EwaLanczosSharp)")
+                        text: qsTr("(EwaLanczos)")
                     }
 
                     Label {
@@ -278,6 +283,97 @@ DialogView {
                     Label {
                         Layout.alignment: Qt.AlignRight
                         text: qsTr("(0.00)")
+                    }
+                }
+            }
+
+            Item {
+                // Deinterlace
+                GridLayout {
+                    anchors {
+                        top: parent.top
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: 20
+                    }
+                    columns: 3
+                    rowSpacing: 10
+                    columnSpacing: 20
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Enable Deinterlace:")
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.placeboDeinterlaceEnabled
+                        onToggled: Chiaki.settings.placeboDeinterlaceEnabled = checked
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(no)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Preset:")
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Default")]
+                        currentIndex: Chiaki.settings.placeboDeinterlacePreset
+                        enabled: Chiaki.settings.placeboDeinterlaceEnabled
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                        onActivated: index => Chiaki.settings.placeboDeinterlacePreset = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Default)")
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Algorithm:")
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                    }
+
+                    C.ComboBox {
+                        Layout.preferredWidth: 400
+                        model: [qsTr("Weave"), qsTr("Bob"), qsTr("Yadif"), qsTr("Bwdif")]
+                        currentIndex: Chiaki.settings.placeboDeinterlaceAlgorithm
+                        enabled: Chiaki.settings.placeboDeinterlaceEnabled
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                        onActivated: index => Chiaki.settings.placeboDeinterlaceAlgorithm = index
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Yadif)")
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Skip spatial check:")
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.placeboDeinterlaceSkipSpatial
+                        enabled: Chiaki.settings.placeboDeinterlaceEnabled
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
+                        onToggled: Chiaki.settings.placeboDeinterlaceSkipSpatial = checked
+                        Material.roundedScale: Material.SmallScale
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(no)")
+                        visible: Chiaki.settings.placeboDeinterlaceEnabled
                     }
                 }
             }
