@@ -1744,6 +1744,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
         });
         if (queue_it != queueFamilyProperties.end())
             vk_decode_queue_index = std::distance(queueFamilyProperties.begin(), queue_it);
+        // device driver properties is core since vulkan 1.2 and libplacebo requires 1.2+ so if device is created, it's safe to assume this exists
         VkPhysicalDeviceDriverProperties driver_props = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
         };
