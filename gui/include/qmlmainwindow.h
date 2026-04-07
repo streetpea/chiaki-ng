@@ -294,6 +294,8 @@ private:
     qint64 next_buffered_update_us = 0;
     qint64 last_buffered_interval_us = 0;
     QString pending_renderer_fallback_reason;
+    VkPhysicalDeviceProperties vk_device_props = {};
+    VkPhysicalDeviceDriverProperties vk_device_driver_props = {};
     pl_options renderparams_opts = {};
     bool renderparams_changed = false;
     const struct pl_hook *fsr_hook = nullptr;
@@ -313,7 +315,7 @@ private:
         PFN_vkDestroySurfaceKHR vkDestroySurfaceKHR;
         PFN_vkWaitSemaphores vkWaitSemaphores;
         PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
-        PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
+        PFN_vkGetPhysicalDeviceProperties2 vkGetPhysicalDeviceProperties2;
     } vk_funcs;
 
     friend class QmlBackend;
