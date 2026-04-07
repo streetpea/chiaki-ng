@@ -765,7 +765,9 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         QMutexLocker locker(&placebo_state_mutex);
         const int depth = pl_queue_num_frames(placebo_queue);
         queue_was_empty = depth == 0;
-        depth_exceeded = depth >= depth_limit;
+        const bool pending_exists = pending_frame_present.loadAcquire() != 0;
+        const int tolerated_depth = depth_limit + (pending_exists ? 1 : 0);
+        depth_exceeded = depth >= tolerated_depth;
         updateQueueDepthAverage(depth);
         if (!depth_exceeded)
         {
