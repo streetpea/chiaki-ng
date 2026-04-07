@@ -572,6 +572,13 @@ static const QMap<ChiakiCodec, QString> codecs = {
 static const ChiakiCodec codec_default_ps5 = CHIAKI_CODEC_H265;
 static const ChiakiCodec codec_default_ps4 = CHIAKI_CODEC_H264;
 
+static ChiakiCodec clampCodecForBackend(RenderBackend backend, ChiakiCodec codec)
+{
+	if (backend == RenderBackend::OpenGL && codec == CHIAKI_CODEC_H265_HDR)
+		return CHIAKI_CODEC_H265;
+	return codec;
+}
+
 ChiakiCodec Settings::GetCodecPS4() const
 {
 	auto v = settings.value("settings/codec_ps4", codecs[codec_default_ps4]).toString();
@@ -583,14 +590,14 @@ ChiakiCodec Settings::GetCodecLocalPS5() const
 {
 	auto v = settings.value("settings/codec_local_ps5", codecs[codec_default_ps5]).toString();
 	auto codec = codecs.key(v, codec_default_ps5);
-	return codec;
+	return clampCodecForBackend(GetRenderBackend(), codec);
 }
 
 ChiakiCodec Settings::GetCodecRemotePS5() const
 {
 	auto v = settings.value("settings/codec_remote_ps5", codecs[codec_default_ps5]).toString();
 	auto codec = codecs.key(v, codec_default_ps5);
-	return codec;
+	return clampCodecForBackend(GetRenderBackend(), codec);
 }
 
 void Settings::SetCodecPS4(ChiakiCodec codec)
