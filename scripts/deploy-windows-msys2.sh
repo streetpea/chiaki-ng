@@ -91,6 +91,18 @@ while [[ ${#queue[@]} -gt 0 ]]; do
     done < <(extract_dependencies "$current")
 done
 
+# Ensure SDL3 is bundled even if ldd/Qt doesn't list it.
+shopt -s nullglob
+for dll_dir in "$msys_prefix/bin" "/clangarm64/bin" "$msys_prefix/mingw64/bin"; do
+    for sdl3 in "$dll_dir"/SDL3*.dll; do
+        if [[ -f "$sdl3" ]]; then
+            echo "Staging SDL3 runtime $sdl3"
+            cp "$sdl3" "$output_dir/"
+        fi
+    done
+done
+shopt -u nullglob
+
 windeployqt6.exe --no-translations --qmldir="$qml_dir" "$output_dir/$(basename "$exe_path")"
 
 # Remove system-provided DLLs that Windows already supplies and
