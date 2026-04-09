@@ -33,9 +33,143 @@
 #include <QtConcurrent>
 
 extern "C" {
+#include <chiaki/time.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/pixfmt.h>
+}
+
+static void logDecoderDeliveryStats(qint64 now_us, int32_t frames_lost, bool recovered)
+{
+    static qint64 last_sample_us = 0;
+    static qint64 last_log_us = 0;
+    static qint64 min_interval_us = 0;
+    static qint64 max_interval_us = 0;
+    static qint64 sum_interval_us = 0;
+    static int samples = 0;
+    static int lost_samples = 0;
+    static int recovered_samples = 0;
+
+    if (frames_lost > 0)
+        lost_samples += frames_lost;
+    if (recovered)
+        recovered_samples++;
+
+    if (last_sample_us != 0) {
+        const qint64 interval_us = now_us - last_sample_us;
+        if (min_interval_us == 0 || interval_us < min_interval_us)
+            min_interval_us = interval_us;
+        if (interval_us > max_interval_us)
+            max_interval_us = interval_us;
+        sum_interval_us += interval_us;
+        samples++;
+    }
+    last_sample_us = now_us;
+
+    if (last_log_us == 0)
+        last_log_us = now_us;
+    else if (now_us - last_log_us >= 1000000 && samples > 0) {
+        qCInfo(chiakiGui).nospace()
+            << "[decode] arrival interval_us_min=" << min_interval_us
+            << " interval_us_max=" << max_interval_us
+            << " interval_us_avg=" << (sum_interval_us / samples)
+            << " frames_lost=" << lost_samples
+            << " recovered=" << recovered_samples
+            << " samples=" << samples;
+        last_log_us = now_us;
+        min_interval_us = 0;
+        max_interval_us = 0;
+        sum_interval_us = 0;
+        samples = 0;
+        lost_samples = 0;
+        recovered_samples = 0;
+    }
+}
+
+static void logDecoderHandoffStats(qint64 now_us, qint64 handoff_us, double pts)
+{
+    static qint64 last_log_us = 0;
+    static qint64 min_handoff_us = 0;
+    static qint64 max_handoff_us = 0;
+    static qint64 sum_handoff_us = 0;
+    static int samples = 0;
+
+    if (handoff_us < 0)
+        handoff_us = 0;
+    if (min_handoff_us == 0 || handoff_us < min_handoff_us)
+        min_handoff_us = handoff_us;
+    if (handoff_us > max_handoff_us)
+        max_handoff_us = handoff_us;
+    sum_handoff_us += handoff_us;
+    samples++;
+
+    if (last_log_us == 0)
+        last_log_us = now_us;
+    else if (now_us - last_log_us >= 1000000 && samples > 0) {
+        qCInfo(chiakiGui).nospace()
+            << "[decode] handoff_us_min=" << min_handoff_us
+            << " handoff_us_max=" << max_handoff_us
+            << " handoff_us_avg=" << (sum_handoff_us / samples)
+            << " pts=" << pts
+            << " samples=" << samples;
+        last_log_us = now_us;
+        min_handoff_us = 0;
+        max_handoff_us = 0;
+        sum_handoff_us = 0;
+        samples = 0;
+    }
+}
+
+static void logDecoderFramePtsStats(qint64 now_us, double pts, float duration)
+{
+    static qint64 last_log_us = 0;
+    static double last_pts = -1.0;
+    static qint64 min_interval_us = 0;
+    static qint64 max_interval_us = 0;
+    static qint64 sum_interval_us = 0;
+    static qint64 min_duration_us = 0;
+    static qint64 max_duration_us = 0;
+    static qint64 sum_duration_us = 0;
+    static int samples = 0;
+
+    if (last_pts >= 0.0) {
+        const qint64 interval_us = static_cast<qint64>((pts - last_pts) * 1000000.0 + 0.5);
+        if (min_interval_us == 0 || interval_us < min_interval_us)
+            min_interval_us = interval_us;
+        if (interval_us > max_interval_us)
+            max_interval_us = interval_us;
+        sum_interval_us += interval_us;
+        samples++;
+    }
+    last_pts = pts;
+
+    const qint64 duration_us = static_cast<qint64>(duration * 1000000.0 + 0.5);
+    if (min_duration_us == 0 || duration_us < min_duration_us)
+        min_duration_us = duration_us;
+    if (duration_us > max_duration_us)
+        max_duration_us = duration_us;
+    sum_duration_us += duration_us;
+
+    if (last_log_us == 0)
+        last_log_us = now_us;
+    else if (now_us - last_log_us >= 1000000 && samples > 0) {
+        qCInfo(chiakiGui).nospace()
+            << "[decode] pts interval_us_min=" << min_interval_us
+            << " interval_us_max=" << max_interval_us
+            << " interval_us_avg=" << (sum_interval_us / samples)
+            << " duration_us_min=" << min_duration_us
+            << " duration_us_max=" << max_duration_us
+            << " duration_us_avg=" << (sum_duration_us / samples)
+            << " samples=" << samples;
+        last_log_us = now_us;
+        min_interval_us = 0;
+        max_interval_us = 0;
+        sum_interval_us = 0;
+        min_duration_us = 0;
+        max_duration_us = 0;
+        sum_duration_us = 0;
+        samples = 0;
+    }
 }
 
 static inline bool frame_has_planes(const AVFrame *frame)
@@ -936,6 +1070,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         ChiakiFfmpegFrame frame = chiaki_ffmpeg_decoder_pull_frame(decoder, &frames_lost);
         if (!frame.frame)
             return;
+        logDecoderDeliveryStats(static_cast<qint64>(chiaki_time_now_monotonic_us()), frames_lost, frame.recovered);
+        logDecoderFramePtsStats(static_cast<qint64>(chiaki_time_now_monotonic_us()), frame.pts, frame.duration);
         if (frame.recovered)
             pending_recovered_frame.storeRelaxed(1);
 
@@ -949,7 +1085,14 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             frame.recovered = true;
         }
 
-        QMetaObject::invokeMethod(window, std::bind(&QmlMainWindow::presentFrame, window, frame, frames_lost));
+        const qint64 delivery_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        QmlMainWindow *target_window = window;
+        QMetaObject::invokeMethod(target_window, [target_window, frame, frames_lost, delivery_us]() mutable {
+            const qint64 gui_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (gui_us >= delivery_us)
+                logDecoderHandoffStats(gui_us, gui_us - delivery_us, frame.pts);
+            target_window->presentFrame(frame, frames_lost);
+        });
     });
 
     connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {

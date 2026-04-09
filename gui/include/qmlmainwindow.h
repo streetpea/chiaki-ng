@@ -57,6 +57,22 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(double pendingFrameAge READ pendingFrameAge NOTIFY pendingFrameAgeChanged)
 
 public:
+    enum class UpdateRequestReason {
+        Unknown,
+        SceneChanged,
+        RenderRequested,
+        Timer,
+        QueueStoredFrame,
+        QueueReset,
+        PendingFrame,
+        Replay,
+        PlaceboReset,
+        FinalizePending,
+        NoSwapchain,
+        VSync
+    };
+    Q_ENUM(UpdateRequestReason);
+
     enum class VideoMode {
         Normal,
         Stretch,
@@ -98,6 +114,7 @@ public:
 
     double queueDepthAverage() const;
     double pendingFrameAge() const;
+    QString describePlaceboDiscardReason(qint64 now_us) const;
 
     bool amdCard() const;
     bool nvidiaCard() const;
@@ -151,7 +168,9 @@ private:
     pl_gpu placeboGpu() const;
     void update();
     void scheduleUpdate(bool force = false);
+    void scheduleUpdate(bool force, UpdateRequestReason reason);
     void scheduleBufferedUpdate();
+    void scheduleBufferedUpdate(UpdateRequestReason reason);
     void throttleFramePresentation(double interval_s);
     void setStreamMaxFPS(unsigned int max_fps);
     void createSwapchain();
@@ -241,6 +260,9 @@ private:
     QMutex placebo_state_mutex;
     bool render_scheduled = false;
     bool render_pending = false;
+    QAtomicInteger<int> render_pending_during_cycle = 0;
+    QAtomicInteger<int> last_update_request_reason = 0;
+    QAtomicInteger<int> queue_stored_frame_pending = 0;
     QMutex pending_frame_mutex;
     AVFrame *pending_frame = nullptr;
     double pending_pts = 0.0;
@@ -278,18 +300,26 @@ private:
     QQuickWindow *quick_window = {};
     QQuickRenderControl *quick_render = {};
     QQuickItem *quick_item = {};
+    VkFormat quick_vk_format = VK_FORMAT_UNDEFINED;
     pl_tex quick_tex = {};
     QOpenGLFramebufferObject *quick_fbo = {};
     VkSemaphore quick_sem = VK_NULL_HANDLE;
     uint64_t quick_sem_value = 0;
+    VkImage quick_vk_image = VK_NULL_HANDLE;
     bool quick_frame = false;
     QAtomicInteger<int> quick_need_sync = 0;
     QAtomicInteger<int> quick_need_render = 0;
+    qint64 quick_begin_wait_last_us = 0;
+    int quick_render_skip_next = 0;
     QAtomicInteger<int> update_pending = 0;
     QAtomicInteger<int> schedule_frame_mixer_active = 0;
     double source_frame_interval_ms = 16.6667;
     double stream_configured_frame_interval_ms = 16.6667;
     QTimer *pace_timer = {};
+    QAtomicInteger<qint64> last_schedule_update_us = 0;
+    QAtomicInteger<qint64> last_render_entry_us = 0;
+    QAtomicInteger<qint64> last_swap_return_us = 0;
+    QAtomicInteger<int> buffered_timer_fired = 0;
     qint64 last_update_us = 0;
     qint64 next_buffered_update_us = 0;
     qint64 last_buffered_interval_us = 0;
