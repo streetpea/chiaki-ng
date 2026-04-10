@@ -376,6 +376,7 @@ class Settings : public QObject
 
 		RenderBackend GetRenderBackend() const;
 		void SetRenderBackend(RenderBackend backend);
+		void Sync();
 
 		float GetZoomFactor() const;
 		void SetZoomFactor(float factor);

@@ -39,13 +39,208 @@ extern "C" {
 #include <QQuickGraphicsDevice>
 #include <QTimer>
 #include <QtGlobal>
+#include <chrono>
+#include <condition_variable>
 #include <cstring>
+#include <mutex>
 #include <utility>
 #if defined(Q_OS_MACOS)
 #include <objc/message.h>
 #endif
 
 Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
+
+class DeferredPresentPacerThread final : public QThread
+{
+public:
+    explicit DeferredPresentPacerThread(QmlMainWindow *owner) : owner(owner) {}
+
+    void arm(qint64 target_wakeup_us)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (stopping)
+            return;
+        if (!armed || target_wakeup_us < wakeup_target_us)
+            wakeup_target_us = target_wakeup_us;
+        armed = true;
+        ++generation;
+        condition.notify_one();
+    }
+
+    void disarm()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        armed = false;
+        ++generation;
+        condition.notify_one();
+    }
+
+    void stopThread()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        stopping = true;
+        armed = false;
+        ++generation;
+        condition.notify_one();
+    }
+
+protected:
+    void run() override
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        while (!stopping) {
+            if (!armed) {
+                condition.wait(lock, [this]() { return stopping || armed; });
+                continue;
+            }
+
+            const qint64 target_wakeup_us_now = wakeup_target_us;
+            const quint64 observed_generation = generation;
+            const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (target_wakeup_us_now <= now_us) {
+                armed = false;
+                lock.unlock();
+                notifyWake(static_cast<qint64>(chiaki_time_now_monotonic_us()));
+                lock.lock();
+                continue;
+            }
+
+            const auto wait_duration = std::chrono::microseconds(target_wakeup_us_now - now_us);
+            condition.wait_for(lock,
+                               wait_duration,
+                               [this, observed_generation, target_wakeup_us_now]() {
+                                   return stopping || !armed || generation != observed_generation || wakeup_target_us != target_wakeup_us_now;
+                               });
+            if (stopping)
+                break;
+            if (!armed || generation != observed_generation || wakeup_target_us != target_wakeup_us_now)
+                continue;
+
+            armed = false;
+            lock.unlock();
+            notifyWake(static_cast<qint64>(chiaki_time_now_monotonic_us()));
+            lock.lock();
+        }
+    }
+
+private:
+    void notifyWake(qint64 timer_fire_us)
+    {
+        if (!owner)
+            return;
+        QMetaObject::invokeMethod(owner, [owner = this->owner, timer_fire_us]() {
+            if (owner)
+                owner->handleDeferredPresentWake(timer_fire_us);
+        }, Qt::QueuedConnection);
+    }
+
+    QmlMainWindow *owner = nullptr;
+    std::mutex mutex;
+    std::condition_variable condition;
+    bool stopping = false;
+    bool armed = false;
+    qint64 wakeup_target_us = 0;
+    quint64 generation = 0;
+};
+
+class BufferedPlaybackPacerThread final : public QThread
+{
+public:
+    explicit BufferedPlaybackPacerThread(QmlMainWindow *owner) : owner(owner) {}
+
+    void arm(qint64 target_wakeup_us)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (stopping)
+            return;
+        if (!armed || target_wakeup_us < wakeup_target_us)
+            wakeup_target_us = target_wakeup_us;
+        armed = true;
+        ++generation;
+        condition.notify_one();
+    }
+
+    void disarm()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        armed = false;
+        ++generation;
+        condition.notify_one();
+    }
+
+    void stopThread()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        stopping = true;
+        armed = false;
+        ++generation;
+        condition.notify_one();
+    }
+
+    bool isArmed() const
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return armed && !stopping;
+    }
+
+protected:
+    void run() override
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        while (!stopping) {
+            if (!armed) {
+                condition.wait(lock, [this]() { return stopping || armed; });
+                continue;
+            }
+
+            const qint64 target_wakeup_us_now = wakeup_target_us;
+            const quint64 observed_generation = generation;
+            const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (target_wakeup_us_now <= now_us) {
+                armed = false;
+                lock.unlock();
+                notifyWake(static_cast<qint64>(chiaki_time_now_monotonic_us()));
+                lock.lock();
+                continue;
+            }
+
+            const auto wait_duration = std::chrono::microseconds(target_wakeup_us_now - now_us);
+            condition.wait_for(lock,
+                               wait_duration,
+                               [this, observed_generation, target_wakeup_us_now]() {
+                                   return stopping || !armed || generation != observed_generation || wakeup_target_us != target_wakeup_us_now;
+                               });
+            if (stopping)
+                break;
+            if (!armed || generation != observed_generation || wakeup_target_us != target_wakeup_us_now)
+                continue;
+
+            armed = false;
+            lock.unlock();
+            notifyWake(static_cast<qint64>(chiaki_time_now_monotonic_us()));
+            lock.lock();
+        }
+    }
+
+private:
+    void notifyWake(qint64 timer_fire_us)
+    {
+        if (!owner)
+            return;
+        QMetaObject::invokeMethod(owner, [owner = this->owner, timer_fire_us]() {
+            if (owner)
+                owner->handleBufferedPlaybackWake(timer_fire_us);
+        }, Qt::QueuedConnection);
+    }
+
+    QmlMainWindow *owner = nullptr;
+    mutable std::mutex mutex;
+    std::condition_variable condition;
+    bool stopping = false;
+    bool armed = false;
+    qint64 wakeup_target_us = 0;
+    quint64 generation = 0;
+};
 
 static void logPtsRollback(const char *source, double frame_pts, double queue_pts_origin, bool preserve_timeline, double source_frame_interval_ms)
 {
@@ -127,6 +322,210 @@ static void logSwapInterval(qint64 now_us)
         min_interval_us = 0;
         max_interval_us = 0;
         sum_interval_us = 0;
+        samples = 0;
+    }
+}
+
+static void logPresentOutlier(const char *stage,
+                              qint64 now_us,
+                              qint64 duration_us,
+                              bool deferred_present,
+                              bool present_vsync_enabled,
+                              qint64 present_interval_us,
+                              int queue_depth,
+                              int depth_limit,
+                              bool pending_frame_waiting,
+                              bool render_active_now,
+                              bool render_scheduled_now,
+                              bool render_pending_now)
+{
+    qint64 threshold_us = 0;
+    if (qstrcmp(stage, "present_interval") == 0)
+        threshold_us = qMax<qint64>(45000, present_interval_us + 4000);
+    else if (qstrcmp(stage, "start_frame_block") == 0)
+        threshold_us = 12000;
+    else if (qstrcmp(stage, "submit_call") == 0)
+        threshold_us = 8000;
+    else if (qstrcmp(stage, "swap_call") == 0)
+        threshold_us = 8000;
+    else
+        threshold_us = 12000;
+
+    if (duration_us < threshold_us)
+        return;
+
+    qCInfo(chiakiGui).nospace()
+        << "[outlier] stage=" << stage
+        << " duration_us=" << duration_us
+        << " threshold_us=" << threshold_us
+        << " pacing_mode=" << (deferred_present ? "deferred" : "immediate")
+        << " swapchain_mode=" << (present_vsync_enabled ? "FIFO" : "IMMEDIATE")
+        << " target_interval_us=" << present_interval_us
+        << " queue_depth=" << queue_depth
+        << " depth_limit=" << depth_limit
+        << " pending_frame_waiting=" << (pending_frame_waiting ? 1 : 0)
+        << " render_active=" << (render_active_now ? 1 : 0)
+        << " render_scheduled=" << (render_scheduled_now ? 1 : 0)
+        << " render_pending=" << (render_pending_now ? 1 : 0)
+        << " ts_us=" << now_us;
+}
+
+static void logDeferredPresentRetry(qint64 now_us, bool render_active_now, bool render_scheduled_now)
+{
+    static qint64 last_log_us = 0;
+    static int retries = 0;
+
+    retries++;
+
+    if (last_log_us == 0)
+        last_log_us = now_us;
+    else if (now_us - last_log_us >= 1000000) {
+        qCInfo(chiakiGui).nospace()
+            << "[outlier] stage=deferred_present_retry"
+            << " retries=" << retries
+            << " render_active=" << (render_active_now ? 1 : 0)
+            << " render_scheduled=" << (render_scheduled_now ? 1 : 0)
+            << " ts_us=" << now_us;
+        last_log_us = now_us;
+        retries = 0;
+    }
+}
+
+static void logDeferredPresentDecision(qint64 now_us,
+                                       qint64 target_us,
+                                       qint64 target_wakeup_us,
+                                       qint64 remaining_to_target_us,
+                                       qint64 start_frame_block_estimate_us,
+                                       qint64 lead_us,
+                                       qint64 extra_lead_us,
+                                       bool deferred)
+{
+    static qint64 last_log_us = 0;
+    static qint64 min_remaining_us = 0;
+    static qint64 max_remaining_us = 0;
+    static qint64 min_estimate_us = 0;
+    static qint64 max_estimate_us = 0;
+    static qint64 min_late_budget_us = 0;
+    static qint64 max_late_budget_us = 0;
+    static qint64 sum_remaining_us = 0;
+    static qint64 sum_estimate_us = 0;
+    static int deferred_samples = 0;
+    static int immediate_samples = 0;
+    static int near_deadline_samples = 0;
+    static int samples = 0;
+
+    const qint64 late_budget_us = remaining_to_target_us - qMax<qint64>(0, start_frame_block_estimate_us);
+
+    if (min_remaining_us == 0 || remaining_to_target_us < min_remaining_us)
+        min_remaining_us = remaining_to_target_us;
+    if (remaining_to_target_us > max_remaining_us)
+        max_remaining_us = remaining_to_target_us;
+    if (min_estimate_us == 0 || start_frame_block_estimate_us < min_estimate_us)
+        min_estimate_us = start_frame_block_estimate_us;
+    if (start_frame_block_estimate_us > max_estimate_us)
+        max_estimate_us = start_frame_block_estimate_us;
+    if (min_late_budget_us == 0 || late_budget_us < min_late_budget_us)
+        min_late_budget_us = late_budget_us;
+    if (late_budget_us > max_late_budget_us)
+        max_late_budget_us = late_budget_us;
+
+    sum_remaining_us += remaining_to_target_us;
+    sum_estimate_us += start_frame_block_estimate_us;
+    if (deferred)
+        deferred_samples++;
+    else
+        immediate_samples++;
+    if (late_budget_us <= 4000)
+        near_deadline_samples++;
+    samples++;
+
+    if (last_log_us == 0)
+        last_log_us = now_us;
+    else if (now_us - last_log_us >= 1000000 && samples > 0) {
+        qCInfo(chiakiGui).nospace()
+            << "[defer] decision"
+            << " deferred_samples=" << deferred_samples
+            << " immediate_samples=" << immediate_samples
+            << " near_deadline_samples=" << near_deadline_samples
+            << " remaining_us_min=" << min_remaining_us
+            << " remaining_us_max=" << max_remaining_us
+            << " remaining_us_avg=" << (sum_remaining_us / samples)
+            << " estimate_us_min=" << min_estimate_us
+            << " estimate_us_max=" << max_estimate_us
+            << " estimate_us_avg=" << (sum_estimate_us / samples)
+            << " budget_us_min=" << min_late_budget_us
+            << " budget_us_max=" << max_late_budget_us
+            << " last_target_us=" << target_us
+            << " last_wakeup_target_us=" << target_wakeup_us
+            << " last_lead_us=" << lead_us
+            << " extra_lead_us=" << extra_lead_us;
+        last_log_us = now_us;
+        min_remaining_us = 0;
+        max_remaining_us = 0;
+        min_estimate_us = 0;
+        max_estimate_us = 0;
+        min_late_budget_us = 0;
+        max_late_budget_us = 0;
+        sum_remaining_us = 0;
+        sum_estimate_us = 0;
+        deferred_samples = 0;
+        immediate_samples = 0;
+        near_deadline_samples = 0;
+        samples = 0;
+    }
+}
+
+static void logDeferredTimerWakeup(qint64 timer_fire_us,
+                                   qint64 target_wakeup_us,
+                                   qint64 target_us,
+                                   qint64 extra_lead_us,
+                                   bool render_active_now,
+                                   bool render_scheduled_now)
+{
+    static qint64 last_log_us = 0;
+    static qint64 min_late_us = 0;
+    static qint64 max_late_us = 0;
+    static qint64 sum_late_us = 0;
+    static qint64 max_target_slack_us = 0;
+    static int blocked_samples = 0;
+    static int samples = 0;
+
+    const qint64 late_us = target_wakeup_us > 0 ? qMax<qint64>(0, timer_fire_us - target_wakeup_us) : -1;
+    const qint64 target_slack_us = target_us > 0 ? (target_us - timer_fire_us) : -1;
+
+    if (late_us >= 0) {
+        if (min_late_us == 0 || late_us < min_late_us)
+            min_late_us = late_us;
+        if (late_us > max_late_us)
+            max_late_us = late_us;
+        sum_late_us += late_us;
+    }
+    if (target_slack_us > max_target_slack_us)
+        max_target_slack_us = target_slack_us;
+    if (render_active_now || render_scheduled_now)
+        blocked_samples++;
+    samples++;
+
+    if (last_log_us == 0)
+        last_log_us = timer_fire_us;
+    else if (timer_fire_us - last_log_us >= 1000000 && samples > 0) {
+        qCInfo(chiakiGui).nospace()
+            << "[defer] timer_wakeup"
+            << " late_us_min=" << min_late_us
+            << " late_us_max=" << max_late_us
+            << " late_us_avg=" << (samples > 0 ? (sum_late_us / samples) : 0)
+            << " blocked_samples=" << blocked_samples
+            << " extra_lead_us=" << extra_lead_us
+            << " target_slack_us_last=" << target_slack_us
+            << " target_slack_us_max=" << max_target_slack_us
+            << " target_wakeup_us_last=" << target_wakeup_us
+            << " target_us_last=" << target_us;
+        last_log_us = timer_fire_us;
+        min_late_us = 0;
+        max_late_us = 0;
+        sum_late_us = 0;
+        max_target_slack_us = 0;
+        blocked_samples = 0;
         samples = 0;
     }
 }
@@ -229,9 +628,9 @@ static void logPresentSubmitStats(qint64 now_us, bool present, bool timer_owned_
     }
 }
 
-static bool shouldBufferPlaybackUpdates(bool stream_active, bool present_vsync_enabled, int schedule_frame_mixer_active)
+static bool shouldUseRefreshPacedBuffering(bool stream_active, bool present_vsync_enabled, int schedule_frame_mixer_active)
 {
-    return stream_active && present_vsync_enabled && schedule_frame_mixer_active == 0;
+    return stream_active && present_vsync_enabled && schedule_frame_mixer_active != 0;
 }
 
 static void logLatencyStats(const char *label, qint64 delta_us)
@@ -429,6 +828,245 @@ static void logPendingFrameLifecycle(const char *stage, double pts, float durati
     consumed = 0;
     blocked = 0;
     last_log_us = now_us;
+}
+
+static void logPendingFrameGate(const char *stage,
+                                const char *reason,
+                                double pts,
+                                qint64 age_us,
+                                int queue_depth,
+                                int depth_limit,
+                                bool render_active_now,
+                                bool render_scheduled_now,
+                                bool render_pending_now,
+                                bool pending_exists,
+                                bool has_capacity)
+{
+    static qint64 last_log_us = 0;
+    static int total = 0;
+    static int render_busy = 0;
+    static int queue_full = 0;
+    static int other = 0;
+
+    total++;
+    if (strcmp(reason, "render_busy") == 0)
+        render_busy++;
+    else if (strcmp(reason, "queue_full") == 0)
+        queue_full++;
+    else
+        other++;
+
+    const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (last_log_us == 0) {
+        last_log_us = now_us;
+        return;
+    }
+    if (now_us - last_log_us < 1000000)
+        return;
+
+    qCInfo(chiakiGui).nospace()
+        << "[latency] pending_gate stage=" << stage
+        << " reason=" << reason
+        << " total=" << total
+        << " render_busy=" << render_busy
+        << " queue_full=" << queue_full
+        << " other=" << other
+        << " pts=" << pts
+        << " age_us=" << age_us
+        << " queue_depth=" << queue_depth
+        << " depth_limit=" << depth_limit
+        << " render_active=" << render_active_now
+        << " render_scheduled=" << render_scheduled_now
+        << " render_pending=" << render_pending_now
+        << " pending_exists=" << pending_exists
+        << " has_capacity=" << has_capacity;
+
+    total = 0;
+    render_busy = 0;
+    queue_full = 0;
+    other = 0;
+    last_log_us = now_us;
+}
+
+static void logPendingQueueDepthHold(const char *stage,
+                                     qint64 now_us,
+                                     int queue_depth,
+                                     int depth_limit,
+                                     bool pending_exists,
+                                     bool render_active_now,
+                                     bool render_scheduled_now,
+                                     bool render_pending_now)
+{
+    static qint64 hold_start_us = 0;
+    static qint64 last_log_us = 0;
+    static int hold_samples = 0;
+    static int max_queue_depth = 0;
+
+    const bool holding = pending_exists && queue_depth >= depth_limit;
+    if (holding) {
+        if (hold_start_us == 0) {
+            hold_start_us = now_us;
+            hold_samples = 0;
+            max_queue_depth = queue_depth;
+        }
+        hold_samples++;
+        if (queue_depth > max_queue_depth)
+            max_queue_depth = queue_depth;
+        if (last_log_us != 0 && now_us - last_log_us < 1000000)
+            return;
+        qCInfo(chiakiGui).nospace()
+            << "[latency] pending_queue_hold stage=" << stage
+            << " duration_us=" << (now_us - hold_start_us)
+            << " samples=" << hold_samples
+            << " queue_depth=" << queue_depth
+            << " depth_limit=" << depth_limit
+            << " max_queue_depth=" << max_queue_depth
+            << " render_active=" << render_active_now
+            << " render_scheduled=" << render_scheduled_now
+            << " render_pending=" << render_pending_now;
+        last_log_us = now_us;
+        return;
+    }
+
+    if (hold_start_us == 0)
+        return;
+
+    qCInfo(chiakiGui).nospace()
+        << "[latency] pending_queue_release stage=" << stage
+        << " duration_us=" << (now_us - hold_start_us)
+        << " samples=" << hold_samples
+        << " queue_depth=" << queue_depth
+        << " depth_limit=" << depth_limit
+        << " max_queue_depth=" << max_queue_depth
+        << " render_active=" << render_active_now
+        << " render_scheduled=" << render_scheduled_now
+        << " render_pending=" << render_pending_now;
+
+    hold_start_us = 0;
+    last_log_us = now_us;
+    hold_samples = 0;
+    max_queue_depth = 0;
+}
+
+static void logRenderPhaseStall(qint64 now_us,
+                                const char *phase,
+                                qint64 delta_us,
+                                int queue_depth,
+                                int depth_limit,
+                                bool pending_frame_waiting,
+                                bool render_active_now,
+                                bool render_scheduled_now,
+                                bool render_pending_now)
+{
+    static qint64 last_log_us = 0;
+    static qint64 min_us = 0;
+    static qint64 max_us = 0;
+    static qint64 sum_us = 0;
+    static int samples = 0;
+    static int max_queue_depth = 0;
+    static int max_depth_limit = 0;
+
+    if (min_us == 0 || delta_us < min_us)
+        min_us = delta_us;
+    if (delta_us > max_us)
+        max_us = delta_us;
+    sum_us += delta_us;
+    samples++;
+    if (queue_depth > max_queue_depth)
+        max_queue_depth = queue_depth;
+    if (depth_limit > max_depth_limit)
+        max_depth_limit = depth_limit;
+
+    if (last_log_us == 0)
+        last_log_us = now_us;
+    else if (now_us - last_log_us >= 1000000 && samples > 0) {
+        qCInfo(chiakiGui).nospace()
+            << "[latency] render_phase_stall phase=" << phase
+            << " min_us=" << min_us
+            << " max_us=" << max_us
+            << " avg_us=" << (sum_us / samples)
+            << " samples=" << samples
+            << " max_queue_depth=" << max_queue_depth
+            << " depth_limit=" << max_depth_limit
+            << " pending_frame_waiting=" << pending_frame_waiting
+            << " render_active=" << render_active_now
+            << " render_scheduled=" << render_scheduled_now
+            << " render_pending=" << render_pending_now;
+        last_log_us = now_us;
+        min_us = 0;
+        max_us = 0;
+        sum_us = 0;
+        samples = 0;
+        max_queue_depth = 0;
+        max_depth_limit = 0;
+    }
+}
+
+static void logRenderHandoffStats(qint64 now_us,
+                                  qint64 idle_age_us,
+                                  qint64 request_age_us,
+                                  int queue_depth,
+                                  bool pending_frame_waiting,
+                                  bool render_active_now,
+                                  bool render_scheduled_now,
+                                  bool render_pending_now)
+{
+    static qint64 last_log_us = 0;
+    static qint64 min_idle_age_us = 0;
+    static qint64 max_idle_age_us = 0;
+    static qint64 sum_idle_age_us = 0;
+    static qint64 min_request_age_us = 0;
+    static qint64 max_request_age_us = 0;
+    static qint64 sum_request_age_us = 0;
+    static int samples = 0;
+    static int max_queue_depth = 0;
+
+    if (min_idle_age_us == 0 || idle_age_us < min_idle_age_us)
+        min_idle_age_us = idle_age_us;
+    if (idle_age_us > max_idle_age_us)
+        max_idle_age_us = idle_age_us;
+    sum_idle_age_us += idle_age_us;
+
+    if (min_request_age_us == 0 || request_age_us < min_request_age_us)
+        min_request_age_us = request_age_us;
+    if (request_age_us > max_request_age_us)
+        max_request_age_us = request_age_us;
+    sum_request_age_us += request_age_us;
+
+    if (queue_depth > max_queue_depth)
+        max_queue_depth = queue_depth;
+    samples++;
+
+    if (last_log_us == 0) {
+        last_log_us = now_us;
+        return;
+    }
+    if (now_us - last_log_us < 1000000 || samples == 0)
+        return;
+
+    qCInfo(chiakiGui).nospace()
+        << "[latency] render_handoff idle_min_us=" << min_idle_age_us
+        << " idle_max_us=" << max_idle_age_us
+        << " idle_avg_us=" << (sum_idle_age_us / samples)
+        << " request_min_us=" << min_request_age_us
+        << " request_max_us=" << max_request_age_us
+        << " request_avg_us=" << (sum_request_age_us / samples)
+        << " samples=" << samples
+        << " max_queue_depth=" << max_queue_depth
+        << " pending_frame_waiting=" << pending_frame_waiting
+        << " render_active=" << render_active_now
+        << " render_scheduled=" << render_scheduled_now
+        << " render_pending=" << render_pending_now;
+
+    last_log_us = now_us;
+    min_idle_age_us = 0;
+    max_idle_age_us = 0;
+    sum_idle_age_us = 0;
+    min_request_age_us = 0;
+    max_request_age_us = 0;
+    sum_request_age_us = 0;
+    samples = 0;
+    max_queue_depth = 0;
 }
 
 static void logRenderQueueUpdateStats(qint64 now_us, qint64 delta_us)
@@ -813,7 +1451,7 @@ static const char *updateRequestReasonName(int reason)
     }
 }
 
-static void logUpdateRequestReasonStats(int reason)
+[[maybe_unused]] static void logUpdateRequestReasonStats(int reason)
 {
     static qint64 last_log_us = 0;
     static std::array<int, 11> blocked_counts{};
@@ -1035,12 +1673,14 @@ static void unmap_frame(pl_gpu gpu, struct pl_frame *frame,
 static void discard_frame(const struct pl_source_frame *src)
 {
     AVFrame *frame = reinterpret_cast<AVFrame *>(src->frame_data);
-    QmlMainWindow *q = reinterpret_cast<QmlMainWindow *>(frame->opaque);
     const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-    const QString detail = q->describePlaceboDiscardReason(now_us);
+    QmlMainWindow *q = frame ? reinterpret_cast<QmlMainWindow *>(frame->opaque) : nullptr;
+    const QString detail = q ? q->describePlaceboDiscardReason(now_us)
+                             : QStringLiteral("cause=owner_missing");
     const QByteArray detail_utf8 = detail.toUtf8();
     logDroppedFrameReason("placebo_discard", now_us, src->pts, detail_utf8.constData());
-    q->increaseDroppedFrames();
+    if (q)
+        q->increaseDroppedFrames();
     av_frame_free(&frame);
     qCDebug(chiakiGui) << "Dropped frame with PTS" << src->pts;
 }
@@ -1249,6 +1889,19 @@ QmlMainWindow::~QmlMainWindow()
     Q_ASSERT(!placebo_swapchain);
 
     drainRenderThread();
+
+    if (buffered_pace_thread) {
+        buffered_pace_thread->stopThread();
+        buffered_pace_thread->wait();
+        delete buffered_pace_thread;
+        buffered_pace_thread = nullptr;
+    }
+    if (present_pace_thread) {
+        present_pace_thread->stopThread();
+        present_pace_thread->wait();
+        delete present_pace_thread;
+        present_pace_thread = nullptr;
+    }
 
     if (render_backend == RenderBackend::Vulkan)
         av_buffer_unref(&vulkan_hw_dev_ctx);
@@ -1665,9 +2318,20 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     const int depth_limit = effectiveQueueDepthLimit();
     bool queued = false;
     bool depth_exceeded = false;
-    bool queue_was_empty = false;
     bool promote_pending = false;
     const bool render_busy = render_active.loadAcquire() != 0;
+    bool render_scheduled_now = false;
+    bool render_pending_now = false;
+    const bool should_rearm_stored_frame = [&]() {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled_now = render_scheduled;
+        render_pending_now = render_pending;
+        return !render_busy &&
+               !render_scheduled &&
+               !render_pending &&
+               queue_stored_frame_pending.loadAcquire() == 0 &&
+               pending_frame_present.loadAcquire() == 0;
+    }();
     AVFrame *promoted_frame = nullptr;
     double promoted_pts = 0.0;
     float promoted_duration = 0.0f;
@@ -1683,7 +2347,6 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         QMutexLocker locker(&placebo_state_mutex);
         const int depth = pl_queue_num_frames(placebo_queue);
         queue_depth_snapshot = depth;
-        queue_was_empty = depth == 0;
         const bool pending_exists = pending_frame_present.loadAcquire() != 0;
         pending_exists_snapshot = pending_exists;
         const int tolerated_depth = depth_limit + (pending_exists ? 1 : 0);
@@ -1723,7 +2386,10 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         idle_gap_us_snapshot = idle_us > 0 ? qMax<qint64>(0, now_us - idle_us) : -1;
     }
+
     if (pending_exists_snapshot && !promote_eligible_snapshot) {
+        const char *gate_reason = render_busy ? "render_busy"
+                                              : (!has_capacity_snapshot ? "queue_full" : "promotion_window");
         qint64 blocked_age_us = -1;
         double blocked_pts = 0.0;
         float blocked_duration = 0.0f;
@@ -1746,6 +2412,17 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                                  depth_limit,
                                  render_busy,
                                  has_capacity_snapshot);
+        logPendingFrameGate("blocked",
+                            gate_reason,
+                            blocked_pts,
+                            blocked_age_us,
+                            queue_depth_snapshot,
+                            depth_limit,
+                            render_busy,
+                            render_scheduled_now,
+                            render_pending_now,
+                            pending_exists_snapshot,
+                            has_capacity_snapshot);
     }
     if (promote_pending) {
         if (promoted_frame) {
@@ -1779,11 +2456,24 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             snapshotPendingFrame();
         if (frame.frame)
             av_frame_free(&frame.frame);
-        scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
+        if (should_rearm_stored_frame)
+            scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
         return;
     }
     if (!queued)
     {
+        const char *gate_reason = pending_exists_snapshot ? "pending_exists" : (depth_exceeded ? "queue_full" : "not_queued");
+        logPendingFrameGate("store_pending",
+                            gate_reason,
+                            frame.pts,
+                            -1,
+                            queue_depth_snapshot,
+                            depth_limit,
+                            render_busy,
+                            render_scheduled_now,
+                            render_pending_now,
+                            pending_exists_snapshot,
+                            has_capacity_snapshot);
         const quint64 reset_seed_generation = reset_seed_capture_generation.loadAcquire();
         if (reset_seed_capture_active.loadAcquire() != 0 && reset_seed_generation != 0)
             storeResetSeedFrame(frame.frame, frame.pts, frame.duration, reset_seed_generation);
@@ -1791,7 +2481,8 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             snapshotPendingFrame();
         if (frame.frame)
             av_frame_free(&frame.frame);
-        scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
+        if (should_rearm_stored_frame)
+            scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
         return;
     }
 
@@ -1841,7 +2532,8 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         emit hasVideoChanged();
     }
     if (queued) {
-        scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
+        if (should_rearm_stored_frame)
+            scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
     }
 }
 
@@ -2381,7 +3073,10 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
             setCursor(Qt::BlankCursor);
         emit hasVideoChanged();
     }
-    scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
+    if (stream_session_active.loadAcquire() != 0 && configuredFrameMixerEnabledForScheduling())
+        scheduleBufferedUpdate(UpdateRequestReason::QueueStoredFrame);
+    else
+        scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
     return true;
 }
 
@@ -2476,10 +3171,30 @@ bool QmlMainWindow::applyPendingFrameIfQueueHasCapacity()
 {
     if (!hasPendingFrame())
         return false;
-    if (render_active.loadAcquire() != 0)
-        return false;
-
     const int depth_limit = effectiveQueueDepthLimit();
+    const bool render_active_now = render_active.loadAcquire() != 0;
+    bool render_scheduled_now = false;
+    bool render_pending_now = false;
+    {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled_now = render_scheduled;
+        render_pending_now = render_pending;
+    }
+    if (render_active_now) {
+        logPendingFrameGate("deferred",
+                            "render_busy",
+                            0.0,
+                            -1,
+                            -1,
+                            depth_limit,
+                            render_active_now,
+                            render_scheduled_now,
+                            render_pending_now,
+                            true,
+                            false);
+        return false;
+    }
+
     int queue_depth = -1;
     bool has_capacity = false;
     {
@@ -2487,10 +3202,38 @@ bool QmlMainWindow::applyPendingFrameIfQueueHasCapacity()
         queue_depth = pl_queue_num_frames(placebo_queue);
         has_capacity = queue_depth < depth_limit;
     }
+    logPendingQueueDepthHold("applyPendingFrameIfQueueHasCapacity",
+                             static_cast<qint64>(chiaki_time_now_monotonic_us()),
+                             queue_depth,
+                             depth_limit,
+                             true,
+                             render_active_now,
+                             render_scheduled_now,
+                             render_pending_now);
     if (has_capacity) {
         applyPendingFrame();
         return true;
     }
+    qint64 deferred_age_us = -1;
+    double deferred_pts = 0.0;
+    {
+        QMutexLocker locker(&pending_frame_mutex);
+        deferred_pts = pending_pts;
+        deferred_age_us = pending_frame_stored_us > 0
+            ? static_cast<qint64>(chiaki_time_now_monotonic_us()) - static_cast<qint64>(pending_frame_stored_us)
+            : -1;
+    }
+    logPendingFrameGate("deferred",
+                        "queue_full",
+                        deferred_pts,
+                        deferred_age_us,
+                        queue_depth,
+                        depth_limit,
+                        render_active_now,
+                        render_scheduled_now,
+                        render_pending_now,
+                        true,
+                        false);
     {
         QMutexLocker locker(&pending_frame_mutex);
         const qint64 deferred_idle_us = last_render_idle_us.loadAcquire();
@@ -2526,6 +3269,11 @@ int QmlMainWindow::effectiveQueueDepthLimit() const
         depth_limit += kAdaptiveQueueDepthBoost;
 
     return depth_limit;
+}
+
+bool QmlMainWindow::traceVaapiRenderPath() const
+{
+    return settings && settings->GetHardwareDecoder() == "vaapi";
 }
 
 AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
@@ -2919,14 +3667,11 @@ renderer_backend_ready:
     quick_window->setColor(QColor(0, 0, 0, 0));
     connect(quick_window, &QQuickWindow::focusObjectChanged, this, &QmlMainWindow::focusObjectChanged);
 
-    pace_timer = new QTimer(this);
-    pace_timer->setSingleShot(true);
-    pace_timer->setTimerType(Qt::PreciseTimer);
-    connect(pace_timer, &QTimer::timeout, this, [this]() {
-        logTimerFireInterval(static_cast<qint64>(chiaki_time_now_monotonic_us()));
-        buffered_timer_fired.storeRelease(1);
-        scheduleBufferedUpdate(UpdateRequestReason::Timer);
-    });
+    buffered_pace_thread = new BufferedPlaybackPacerThread(this);
+    buffered_pace_thread->start();
+
+    present_pace_thread = new DeferredPresentPacerThread(this);
+    present_pace_thread->start();
 
     qml_engine = new QQmlEngine(this);
     qml_engine->addImageProvider(QStringLiteral("svg"), new QmlSvgProvider);
@@ -2971,6 +3716,12 @@ renderer_backend_ready:
         quick_begin_wait_last_us = 0;
         quick_render_skip_next = 0;
         queue_stored_frame_pending.storeRelease(0);
+        if (buffered_pace_thread)
+            buffered_pace_thread->disarm();
+        present_pace_timer_rearm.storeRelease(0);
+        if (present_pace_thread)
+            present_pace_thread->disarm();
+        last_swap_return_us.storeRelease(0);
         schedule_frame_mixer_active.storeRelaxed(configuredFrameMixerEnabledForScheduling() ? 1 : 0);
         if (has_video) {
             has_video = false;
@@ -3014,20 +3765,22 @@ renderer_backend_ready:
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         quick_need_sync.storeRelaxed(1);
-        if (!(stream_session_active.loadAcquire() != 0 && present_vsync_enabled))
+        bool render_busy_now = false;
+        {
+            QMutexLocker locker(&render_schedule_mutex);
+            render_busy_now = render_scheduled;
+        }
+        if (!render_busy_now)
             scheduleUpdate(false, UpdateRequestReason::SceneChanged);
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        bool render_scheduled_now = false;
+        bool render_busy_now = false;
         {
             QMutexLocker locker(&render_schedule_mutex);
-            render_scheduled_now = render_scheduled;
+            render_busy_now = render_scheduled;
         }
-        const bool render_active_now = render_active.loadAcquire() != 0;
-        const bool quick_need_render_now = quick_need_render.loadRelaxed() != 0;
-        logRenderRequestedSignalStats(render_scheduled_now, render_active_now, quick_need_render_now);
-        if (!(stream_session_active.loadAcquire() != 0 && present_vsync_enabled))
+        if (!render_busy_now)
             scheduleUpdate(false, UpdateRequestReason::RenderRequested);
     });
 
@@ -3171,6 +3924,7 @@ void QmlMainWindow::update()
             QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
     }
 
+    last_render_dispatch_us.storeRelease(static_cast<qint64>(chiaki_time_now_monotonic_us()));
     QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::render, this));
 }
 
@@ -3186,43 +3940,12 @@ void QmlMainWindow::scheduleUpdate(bool force, UpdateRequestReason reason)
         return;
     }
 
-    const bool buffer_playback_updates = shouldBufferPlaybackUpdates(
-        stream_session_active.loadAcquire() != 0,
-        present_vsync_enabled,
-        schedule_frame_mixer_active.loadAcquire());
-    if (!force && buffer_playback_updates) {
-        const bool render_busy_now = render_active.loadAcquire() != 0;
-        if (render_busy_now) {
-            switch (reason) {
-            case UpdateRequestReason::QueueStoredFrame:
-            case UpdateRequestReason::QueueReset:
-            case UpdateRequestReason::PendingFrame:
-            case UpdateRequestReason::Replay:
-            case UpdateRequestReason::FinalizePending:
-                scheduleBufferedUpdate(reason);
-                return;
-            default:
-                break;
-            }
-        }
+    if (!force) {
+        if (!update_pending.testAndSetRelaxed(0, 1))
+            return;
+    } else {
+        update_pending.storeRelaxed(1);
     }
-
-    if (!force &&
-        stream_session_active.loadAcquire() != 0 &&
-        present_vsync_enabled &&
-        schedule_frame_mixer_active.loadAcquire() == 0 &&
-        render_active.loadAcquire() != 0) {
-        if (reason == UpdateRequestReason::QueueStoredFrame) {
-            QMutexLocker locker(&render_schedule_mutex);
-            render_pending = true;
-            queue_stored_frame_pending.storeRelease(1);
-        }
-        logUpdateRequestReasonStats(static_cast<int>(reason));
-        return;
-    }
-
-    if (!update_pending.testAndSetRelaxed(0, 1))
-        return;
     last_update_request_reason.storeRelaxed(static_cast<int>(reason));
     last_schedule_update_us.storeRelease(static_cast<qint64>(chiaki_time_now_monotonic_us()));
     QMetaObject::invokeMethod(this, [this]() {
@@ -3246,13 +3969,15 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
         QMetaObject::invokeMethod(this, [this, reason]() { scheduleBufferedUpdate(reason); }, Qt::QueuedConnection);
         return;
     }
-    if (!pace_timer)
+    if (!buffered_pace_thread)
         return;
-    const bool timer_owned_playback = stream_session_active.loadAcquire() != 0 &&
-                                      present_vsync_enabled &&
-                                      schedule_frame_mixer_active.loadAcquire() == 0;
+    const bool stream_owned_playback = stream_session_active.loadAcquire() != 0;
+    const bool timer_owned_playback = shouldUseRefreshPacedBuffering(
+        stream_owned_playback,
+        present_vsync_enabled,
+        schedule_frame_mixer_active.loadAcquire());
     const bool render_busy_now = render_active.loadAcquire() != 0;
-    auto hasBufferedWork = [this]() {
+    auto hasBufferedWork = [this, stream_owned_playback]() {
         if (hasPendingFrame())
             return true;
         {
@@ -3260,7 +3985,8 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
             if (placebo_queue && pl_queue_num_frames(placebo_queue) > 0)
                 return true;
         }
-        if (quick_need_sync.loadRelaxed() != 0 || quick_need_render.loadRelaxed() != 0)
+        if (stream_owned_playback &&
+            (quick_need_sync.loadRelaxed() != 0 || quick_need_render.loadRelaxed() != 0))
             return true;
         if (placebo_reset_pending.loadAcquire() != 0)
             return true;
@@ -3277,9 +4003,6 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
     const qint64 now_us = chiaki_time_now_monotonic_us();
     const qint64 last_swap_return_us = this->last_swap_return_us.loadAcquire();
     const qint64 start_frame_block_estimate_us = this->start_frame_block_estimate_us.loadAcquire();
-    const qint64 block_bias_us = qBound<qint64>(0, start_frame_block_estimate_us, interval_us / 2);
-    const qint64 pacing_margin_us = 750;
-    const qint64 deadline_hysteresis_us = 250;
     if (last_buffered_interval_us != interval_us) {
         next_buffered_update_us = 0;
         last_buffered_interval_us = interval_us;
@@ -3288,35 +4011,26 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
         const qint64 anchor_us = last_swap_return_us > 0 ? last_swap_return_us : now_us;
         next_buffered_update_us = anchor_us + interval_us;
     }
-    if (timer_owned_playback && last_swap_return_us > 0) {
-        const qint64 target_us = last_swap_return_us + interval_us + block_bias_us + pacing_margin_us;
-        if (target_us > next_buffered_update_us + deadline_hysteresis_us)
-            next_buffered_update_us = target_us;
-    }
-    if (timer_owned_playback && pace_timer->isActive())
+    const bool pace_thread_active = timer_owned_playback && buffered_pace_thread->isArmed();
+    if (timer_owned_playback && pace_thread_active)
         return;
     if (timer_owned_playback && render_busy_now) {
         const qint64 next_wait_us = qMax<qint64>(1, next_buffered_update_us - now_us);
-        const int next_delay_ms = qMax(1, static_cast<int>((next_wait_us + 999) / 1000));
-        logBufferedPacingStats(now_us, interval_us, next_wait_us, timer_owned_playback, pace_timer->isActive());
-        pace_timer->start(next_delay_ms);
+        logBufferedPacingStats(now_us, interval_us, next_wait_us, timer_owned_playback, pace_thread_active);
+        buffered_pace_thread->arm(next_buffered_update_us);
         return;
     }
     if (now_us >= next_buffered_update_us) {
         const qint64 elapsed_us = now_us - next_buffered_update_us;
         const qint64 missed_intervals = elapsed_us >= 0 ? (elapsed_us / interval_us) + 1 : 1;
         next_buffered_update_us += missed_intervals * interval_us;
-        logBufferedPacingStats(now_us, interval_us, -elapsed_us, timer_owned_playback, pace_timer->isActive());
+        logBufferedPacingStats(now_us, interval_us, -elapsed_us, timer_owned_playback, pace_thread_active);
         if (timer_owned_playback) {
             if (reason == UpdateRequestReason::Timer && !hasBufferedWork()) {
-                const qint64 next_wait_us = qMax<qint64>(1, next_buffered_update_us - now_us);
-                const int next_delay_ms = qMax(1, static_cast<int>((next_wait_us + 999) / 1000));
-                pace_timer->start(next_delay_ms);
+                buffered_pace_thread->arm(next_buffered_update_us);
                 return;
             }
-            const qint64 next_wait_us = qMax<qint64>(1, next_buffered_update_us - now_us);
-            const int next_delay_ms = qMax(1, static_cast<int>((next_wait_us + 999) / 1000));
-            pace_timer->start(next_delay_ms);
+            buffered_pace_thread->arm(next_buffered_update_us);
             if (buffered_timer_fired.fetchAndStoreRelaxed(0) == 0)
                 return;
         }
@@ -3324,21 +4038,30 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
         return;
     }
     qint64 wait_us = next_buffered_update_us - now_us;
-    logBufferedPacingStats(now_us, interval_us, wait_us, timer_owned_playback, pace_timer->isActive());
-    int delay_ms = qMax(1, static_cast<int>((wait_us + 999) / 1000));
-    pace_timer->start(delay_ms);
+    logBufferedPacingStats(now_us, interval_us, wait_us, timer_owned_playback, pace_thread_active);
+    buffered_pace_thread->arm(next_buffered_update_us);
 }
 
-void QmlMainWindow::throttleFramePresentation(double interval_s)
+void QmlMainWindow::handleBufferedPlaybackWake(qint64 timer_fire_us)
+{
+    logTimerFireInterval(timer_fire_us);
+    buffered_timer_fired.storeRelease(1);
+    scheduleBufferedUpdate(UpdateRequestReason::Timer);
+}
+
+bool QmlMainWindow::throttleFramePresentation(double interval_s)
 {
     if (interval_s <= 0.0) {
         next_frame_target_us = 0;
         last_throttle_interval_s = 0.0;
-        return;
+        present_pace_timer_rearm.storeRelease(0);
+        if (present_pace_thread)
+            present_pace_thread->disarm();
+        return true;
     }
     const uint64_t interval_us = static_cast<uint64_t>(interval_s * 1000000.0 + 0.5);
     if (!interval_us)
-        return;
+        return true;
     if (qAbs(last_throttle_interval_s - interval_s) > 1e-6)
         next_frame_target_us = 0;
     last_throttle_interval_s = interval_s;
@@ -3346,14 +4069,69 @@ void QmlMainWindow::throttleFramePresentation(double interval_s)
     const uint64_t now_us = chiaki_time_now_monotonic_us();
     if (!next_frame_target_us)
         next_frame_target_us = now_us + interval_us;
+
     while (next_frame_target_us <= now_us)
         next_frame_target_us += interval_us;
 
-    const uint64_t wait_us = next_frame_target_us - now_us;
-    if (wait_us > 0)
-        QThread::usleep(static_cast<unsigned long>(wait_us));
+    const qint64 start_frame_block_estimate_us = this->start_frame_block_estimate_us.loadAcquire();
+    const uint64_t base_lead_us = static_cast<uint64_t>(qBound<qint64>(0, start_frame_block_estimate_us, static_cast<qint64>(interval_us / 2)));
+    const qint64 extra_lead_us = 0;
+    const uint64_t total_lead_us = base_lead_us;
+    const uint64_t target_wakeup_us = next_frame_target_us > total_lead_us ? (next_frame_target_us - total_lead_us) : next_frame_target_us;
+    const uint64_t remaining_to_target_us = next_frame_target_us > now_us ? (next_frame_target_us - now_us) : 0;
+    logDeferredPresentDecision(static_cast<qint64>(now_us),
+                               static_cast<qint64>(next_frame_target_us),
+                               static_cast<qint64>(target_wakeup_us),
+                               static_cast<qint64>(remaining_to_target_us),
+                               start_frame_block_estimate_us,
+                               static_cast<qint64>(total_lead_us),
+                               extra_lead_us,
+                               target_wakeup_us > now_us);
 
+    const uint64_t wait_us = target_wakeup_us > now_us ? (target_wakeup_us - now_us) : 0;
+    if (wait_us > 0) {
+        present_pace_timer_rearm.storeRelease(1);
+        last_present_target_us.storeRelease(static_cast<qint64>(next_frame_target_us));
+        last_present_wakeup_target_us.storeRelease(static_cast<qint64>(target_wakeup_us));
+        if (present_pace_thread)
+            present_pace_thread->arm(static_cast<qint64>(target_wakeup_us));
+        return false;
+    }
     next_frame_target_us += interval_us;
+    present_pace_timer_rearm.storeRelease(0);
+    last_present_target_us.storeRelease(0);
+    last_present_wakeup_target_us.storeRelease(0);
+    if (present_pace_thread)
+        present_pace_thread->disarm();
+    return true;
+}
+
+void QmlMainWindow::handleDeferredPresentWake(qint64 timer_fire_us)
+{
+    logTimerFireInterval(timer_fire_us);
+    if (present_pace_timer_rearm.fetchAndStoreRelaxed(0) == 0)
+        return;
+
+    const qint64 target_wakeup_us = last_present_wakeup_target_us.loadAcquire();
+    const qint64 target_us = last_present_target_us.loadAcquire();
+    bool render_scheduled_now = false;
+    {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled_now = render_scheduled;
+    }
+    const bool render_active_now = render_active.loadAcquire() != 0;
+    logDeferredTimerWakeup(timer_fire_us,
+                           target_wakeup_us,
+                           target_us,
+                           0,
+                           render_active_now,
+                           render_scheduled_now);
+    if (render_active_now || render_scheduled_now) {
+        logDeferredPresentRetry(timer_fire_us, render_active_now, render_scheduled_now);
+        present_pace_timer_rearm.storeRelease(1);
+        return;
+    }
+    scheduleUpdate(false, UpdateRequestReason::VSync);
 }
 
 void QmlMainWindow::updatePlacebo()
@@ -3433,7 +4211,7 @@ void QmlMainWindow::createSwapchain()
     const int swapchain_depth = settings->GetVSyncEnabled() ? 2 : 1;
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
-        .present_mode = settings->GetVSyncEnabled() ? VK_PRESENT_MODE_MAILBOX_KHR
+        .present_mode = settings->GetVSyncEnabled() ? VK_PRESENT_MODE_FIFO_KHR
                                                     : VK_PRESENT_MODE_IMMEDIATE_KHR,
         .swapchain_depth = swapchain_depth,
     };
@@ -3452,6 +4230,16 @@ void QmlMainWindow::createSwapchain()
         placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
         present_vsync_enabled = true;
     }
+    qCInfo(chiakiGui).nospace()
+        << "[present] swapchain_create vsync_setting=" << (settings->GetVSyncEnabled() ? 1 : 0)
+        << " requested_mode=" << (settings->GetVSyncEnabled() ? "FIFO" : "IMMEDIATE")
+        << " selected_mode="
+        << (swapchain_params.present_mode == VK_PRESENT_MODE_FIFO_KHR ? "FIFO"
+            : swapchain_params.present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR ? "IMMEDIATE"
+            : "OTHER")
+        << " swapchain_depth=" << swapchain_depth
+        << " present_vsync_enabled=" << (present_vsync_enabled ? 1 : 0)
+        << " created=" << (placebo_swapchain ? 1 : 0);
     if (!placebo_swapchain) {
         vk_funcs.vkDestroySurfaceKHR(placebo_vk_inst->instance, surface, nullptr);
         surface = VK_NULL_HANDLE;
@@ -3494,12 +4282,17 @@ void QmlMainWindow::resizeSwapchain()
         return;
 
     const QSize window_size(width() * devicePixelRatio(), height() * devicePixelRatio());
-    const bool swapchain_ready = quick_tex && (render_backend != RenderBackend::OpenGL || quick_fbo);
+    const bool swapchain_ready = quick_tex &&
+                                 (render_backend != RenderBackend::OpenGL || quick_fbo) &&
+                                 (render_backend != RenderBackend::Vulkan || quick_vk_image);
     if (window_size == swapchain_size && swapchain_ready)
         return;
 
     QSize new_swapchain_size = window_size;
     pl_swapchain_resize(placebo_swapchain, &new_swapchain_size.rwidth(), &new_swapchain_size.rheight());
+
+    if (quick_frame)
+        endFrame();
 
     if (render_backend == RenderBackend::OpenGL) {
         if (!makeOpenGLContextCurrent()) {
@@ -3555,15 +4348,23 @@ void QmlMainWindow::resizeSwapchain()
         .renderable = true,
     };
     VkFormat vk_format = VK_FORMAT_UNDEFINED;
-    if (!pl_tex_recreate(placebo_vulkan->gpu, &quick_tex, &tex_params)) {
+    pl_tex new_quick_tex = nullptr;
+    if (!pl_tex_recreate(placebo_vulkan->gpu, &new_quick_tex, &tex_params)) {
         qCCritical(chiakiGui) << "Failed to create placebo texture";
+        if (new_quick_tex)
+            pl_tex_destroy(placebo_vulkan->gpu, &new_quick_tex);
         return;
     }
-    quick_vk_image = pl_vulkan_unwrap(placebo_vulkan->gpu, quick_tex, &vk_format, nullptr);
-    if (!quick_vk_image) {
+    VkImage new_quick_vk_image = pl_vulkan_unwrap(placebo_vulkan->gpu, new_quick_tex, &vk_format, nullptr);
+    if (!new_quick_vk_image) {
         qCCritical(chiakiGui) << "Failed to unwrap placebo texture";
+        pl_tex_destroy(placebo_vulkan->gpu, &new_quick_tex);
         return;
     }
+    if (quick_tex)
+        pl_tex_destroy(placebo_vulkan->gpu, &quick_tex);
+    quick_tex = new_quick_tex;
+    quick_vk_image = new_quick_vk_image;
     quick_vk_format = vk_format;
     quick_sem_value = 0;
     swapchain_size = new_swapchain_size;
@@ -3697,6 +4498,7 @@ void QmlMainWindow::render()
     Q_ASSERT(QThread::currentThread() == render_thread);
     const qint64 render_entry_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     last_render_entry_us.storeRelease(render_entry_us);
+    const bool trace_vaapi = traceVaapiRenderPath();
     render_pending_during_cycle.storeRelaxed(0);
     const qint64 schedule_us = last_schedule_update_us.loadAcquire();
     if (schedule_us > 0 && render_entry_us >= schedule_us)
@@ -3704,6 +4506,37 @@ void QmlMainWindow::render()
     const qint64 update_us = last_update_us;
     if (update_us > 0 && render_entry_us >= update_us)
         logUpdateToRenderStats(render_entry_us, render_entry_us - update_us);
+    const qint64 dispatch_us = last_render_dispatch_us.loadAcquire();
+    if (trace_vaapi && dispatch_us > 0 && render_entry_us >= dispatch_us)
+        logLatencyStats("render_dispatch_to_entry", render_entry_us - dispatch_us);
+    if (trace_vaapi) {
+        const qint64 last_render_idle_us_local = last_render_idle_us.loadAcquire();
+        if (last_render_idle_us_local > 0 && render_entry_us >= last_render_idle_us_local)
+            logLatencyStats("render_idle_to_entry", render_entry_us - last_render_idle_us_local);
+    }
+
+    auto snapshotRenderScheduleState = [this]() {
+        QMutexLocker locker(&render_schedule_mutex);
+        return qMakePair(render_scheduled, render_pending);
+    };
+    auto snapshotQueueDepth = [this]() {
+        QMutexLocker locker(&placebo_state_mutex);
+        return pl_queue_num_frames(placebo_queue);
+    };
+    if (trace_vaapi) {
+        const qint64 last_render_idle_us_local = last_render_idle_us.loadAcquire();
+        const qint64 request_age_us = schedule_us > 0 ? qMax<qint64>(0, render_entry_us - schedule_us) : -1;
+        const qint64 idle_age_us = last_render_idle_us_local > 0 ? qMax<qint64>(0, render_entry_us - last_render_idle_us_local) : -1;
+        const auto render_schedule_state = snapshotRenderScheduleState();
+        logRenderHandoffStats(render_entry_us,
+                              idle_age_us,
+                              request_age_us,
+                              snapshotQueueDepth(),
+                              hasPendingFrame(),
+                              render_active.loadAcquire() != 0,
+                              render_schedule_state.first,
+                              render_schedule_state.second);
+    }
 
     struct RenderActiveGuard {
         QmlMainWindow *self;
@@ -3736,12 +4569,34 @@ void QmlMainWindow::render()
                                    pending_during_cycle_now);
             if (pending_frame_waiting_now)
                 self->applyPendingFrameIfQueueHasCapacity();
+            if (self->present_pace_timer_rearm.fetchAndStoreRelaxed(0) != 0) {
+                bool render_scheduled_now = false;
+                {
+                    QMutexLocker locker(&self->render_schedule_mutex);
+                    render_scheduled_now = self->render_scheduled || self->render_pending;
+                }
+                if (render_scheduled_now)
+                    self->present_pace_timer_rearm.storeRelease(1);
+            }
         }
     } render_guard(this, render_active, render_entry_us);
 
     auto queueHasWork = [this]() {
         QMutexLocker locker(&placebo_state_mutex);
         return pl_queue_num_frames(placebo_queue) > 0;
+    };
+
+    auto hasBufferedWork = [this]() {
+        {
+            QMutexLocker locker(&placebo_state_mutex);
+            if (pl_queue_num_frames(placebo_queue) > 0)
+                return true;
+        }
+        if (hasPendingFrame())
+            return true;
+        if (placebo_reset_pending.loadAcquire() != 0)
+            return true;
+        return false;
     };
 
     auto finalize_render = [this]() {
@@ -3760,9 +4615,9 @@ void QmlMainWindow::render()
             }
             QMetaObject::invokeMethod(this, [this]() {
                 const bool pending_stored_frame = queue_stored_frame_pending.fetchAndStoreRelaxed(0) != 0;
-                if (pending_stored_frame ||
-                    !(stream_session_active.loadAcquire() != 0 && present_vsync_enabled))
-                    scheduleUpdate(false, UpdateRequestReason::FinalizePending);
+                if (!pending_stored_frame)
+                    return;
+                scheduleUpdate(false, UpdateRequestReason::FinalizePending);
             }, Qt::QueuedConnection);
         }
         return pending;
@@ -3850,10 +4705,6 @@ void QmlMainWindow::render()
     params.frame_mixer = effectiveFrameMixerConfig(&params);
     const bool content_timed = params.frame_mixer == nullptr;
     const bool mixer_active = params.frame_mixer != nullptr;
-    const double stream_interval_s = stream_configured_frame_interval_ms > 0.0
-        ? stream_configured_frame_interval_ms / 1000.0
-        : 0.0;
-
     const bool has_settings = settings != nullptr;
     const bool apply_display_target = has_settings && stream_session_active.loadAcquire() != 0;
     const int target_trc = apply_display_target ? settings->GetDisplayTargetTrc() : 0;
@@ -3867,35 +4718,36 @@ void QmlMainWindow::render()
         refresh_rate = 60.0;
     const double refresh_interval_s = 1.0 / refresh_rate;
     const bool pending_frame_waiting = hasPendingFrame();
-    auto hasBufferedWork = [this, pending_frame_waiting, &queueHasWork]() {
-        if (queueHasWork())
-            return true;
-        if (pending_frame_waiting)
-            return true;
-        if (quick_need_sync.loadRelaxed() != 0 || quick_need_render.loadRelaxed() != 0)
-            return true;
-        if (placebo_reset_pending.loadAcquire() != 0)
-            return true;
-        return false;
-    };
-    const double vsync_duration = present_vsync_enabled ? refresh_interval_s : stream_interval_s;
+    const double stream_interval_s = stream_configured_frame_interval_ms > 0.0
+        ? stream_configured_frame_interval_ms / 1000.0
+        : 0.0;
+    const double vsync_duration = refresh_interval_s;
+    const double present_interval_s = refresh_interval_s;
     const qint64 present_interval_us = static_cast<qint64>(qMax(1.0, vsync_duration * 1000000.0) + 0.5);
-    const bool timer_owned_playback = stream_session_active.loadAcquire() != 0 &&
-                                      present_vsync_enabled &&
-                                      schedule_frame_mixer_active.loadAcquire() == 0;
+    const bool timer_owned_playback = stream_session_active.loadAcquire() != 0 && mixer_active;
+    auto schedulePostRenderWork = [this, &hasBufferedWork]() {
+        if (!hasBufferedWork())
+            return;
+        scheduleUpdate(false, UpdateRequestReason::FinalizePending);
+    };
     qparams.timeout = 0;
     schedule_frame_mixer_active.storeRelaxed(mixer_active ? 1 : 0);
     qparams.interpolation_threshold = mixer_active ? 0.01 : 0.0;
     qparams.radius = pl_frame_mix_radius(&params);
     qparams.vsync_duration = vsync_duration;
     qparams.pts = playback_started
-        ? (double)(ts_pre_update - ts_start) / 1000000.0
+        ? (double)(ts_pre_update - ts_start) / 1000000.0 + vsync_duration
         : 0.0;
-    const int depth_limit = pending_frame_waiting ? effectiveQueueDepthLimit() : 0;
+    const int depth_limit = effectiveQueueDepthLimit();
     enum pl_queue_status queue_status;
     bool replay_attempted = false;
     bool replay_enqueued = false;
     const qint64 queue_update_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    int queue_depth_before_update = -1;
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        queue_depth_before_update = pl_queue_num_frames(placebo_queue);
+    }
     {
         QMutexLocker locker(&placebo_state_mutex);
         queue_status = pl_queue_update(placebo_queue, &frame_mix, &qparams);
@@ -3942,9 +4794,20 @@ void QmlMainWindow::render()
     }
     {
         const qint64 queue_update_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (queue_update_after_us >= queue_update_begin_us)
+        if (queue_update_after_us >= queue_update_begin_us) {
             logRenderQueueUpdateStats(queue_update_after_us, queue_update_after_us - queue_update_begin_us);
+            logRenderPhaseStall(queue_update_after_us,
+                                "queue_update",
+                                queue_update_after_us - queue_update_begin_us,
+                                queue_depth_before_update,
+                                depth_limit,
+                                pending_frame_waiting,
+                                render_active.loadAcquire() != 0,
+                                snapshotRenderScheduleState().first,
+                                snapshotRenderScheduleState().second);
+        }
     }
+    updateQueueDepthAverage(snapshotQueueDepth());
     refreshPendingFrameAge();
 
     if (render_backend == RenderBackend::OpenGL && quick_need_render.loadRelaxed()) {
@@ -3980,9 +4843,10 @@ void QmlMainWindow::render()
     }
 
     const qint64 start_frame_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-    const qint64 last_swap_return_us = this->last_swap_return_us.loadAcquire();
-    if (last_swap_return_us > 0 && start_frame_begin_us >= last_swap_return_us)
-        logSwapToStartGapStats(start_frame_begin_us, start_frame_begin_us - last_swap_return_us);
+    const int queue_depth_before_start = snapshotQueueDepth();
+    const qint64 last_present_complete_us = this->last_present_complete_us.loadAcquire();
+    if (last_present_complete_us > 0 && start_frame_begin_us >= last_present_complete_us)
+        logSwapToStartGapStats(start_frame_begin_us, start_frame_begin_us - last_present_complete_us);
     struct pl_swapchain_frame sw_frame = {};
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
         qCWarning(chiakiGui) << "Failed to start Placebo frame!";
@@ -3994,6 +4858,28 @@ void QmlMainWindow::render()
     {
         const qint64 start_frame_block_us = start_frame_us - start_frame_begin_us;
         logLatencyStats("start_frame_block", start_frame_block_us);
+        const auto render_schedule_state = snapshotRenderScheduleState();
+        logRenderPhaseStall(start_frame_us,
+                            "start_frame",
+                            start_frame_block_us,
+                            queue_depth_before_start,
+                            depth_limit,
+                            pending_frame_waiting,
+                            render_active.loadAcquire() != 0,
+                                render_schedule_state.first,
+                                render_schedule_state.second);
+        logPresentOutlier("start_frame_block",
+                          start_frame_us,
+                          start_frame_block_us,
+                          false,
+                          present_vsync_enabled,
+                          present_interval_us,
+                          queue_depth_before_start,
+                          depth_limit,
+                          pending_frame_waiting,
+                          render_active.loadAcquire() != 0,
+                          render_schedule_state.first,
+                          render_schedule_state.second);
         const qint64 prior_estimate_us = start_frame_block_estimate_us.loadAcquire();
         const qint64 next_estimate_us = prior_estimate_us > 0
             ? ((prior_estimate_us * 7) + start_frame_block_us) / 8
@@ -4004,20 +4890,99 @@ void QmlMainWindow::render()
     const qint64 render_entry_us_local = last_render_entry_us.loadAcquire();
     if (render_entry_us_local > 0 && render_to_start_frame_us >= render_entry_us_local)
         logLatencyStats("render_to_start_frame", render_to_start_frame_us - render_entry_us_local);
-    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us](bool present) {
+    const bool throttle_present_for_stream = stream_session_active.loadAcquire() != 0 &&
+        !pending_frame_waiting &&
+        queue_depth_before_start < depth_limit;
+    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, snapshotQueueDepth, snapshotRenderScheduleState, trace_vaapi, stream_interval_s, throttle_present_for_stream](bool present) -> bool {
         const qint64 submit_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         if (submit_begin_us >= start_frame_us)
             logLatencyStats("start_frame_to_submit", submit_begin_us - start_frame_us);
+        const int queue_depth_now = snapshotQueueDepth();
+        const int pending_during_cycle_now = render_pending_during_cycle.loadAcquire();
+        const bool should_throttle_present_now = present &&
+            throttle_present_for_stream &&
+            !pending_frame_waiting &&
+            pending_during_cycle_now == 0 &&
+            queue_depth_now < depth_limit;
+        if (present && !should_throttle_present_now)
+            throttleFramePresentation(0.0);
+        if (should_throttle_present_now) {
+            const uint64_t interval_us = static_cast<uint64_t>(stream_interval_s * 1000000.0 + 0.5);
+            if (interval_us) {
+                if (qAbs(last_throttle_interval_s - stream_interval_s) > 1e-6)
+                    next_frame_target_us = 0;
+                last_throttle_interval_s = stream_interval_s;
+
+                const uint64_t now_us = chiaki_time_now_monotonic_us();
+                if (!next_frame_target_us)
+                    next_frame_target_us = now_us + interval_us;
+                while (next_frame_target_us <= now_us)
+                    next_frame_target_us += interval_us;
+
+                const uint64_t wait_us = next_frame_target_us - now_us;
+                if (wait_us > 0)
+                    QThread::usleep(static_cast<unsigned long>(wait_us));
+
+                next_frame_target_us += interval_us;
+            }
+        }
+        /* Non-blocking pacing kept for reference:
+         * if (should_throttle_present_now)
+         *     throttleFramePresentation(stream_interval_s);
+         */
         if (!pl_swapchain_submit_frame(placebo_swapchain))
             qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
         else {
             const qint64 submit_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            qint64 present_complete_us = submit_us;
+            const auto submit_render_state = snapshotRenderScheduleState();
             if (submit_us >= submit_begin_us)
             {
-                logLatencyStats("submit_call", submit_us - submit_begin_us);
-                logLatencyStats("submit_frame_block", submit_us - submit_begin_us);
+                const qint64 submit_call_us = submit_us - submit_begin_us;
+                logLatencyStats("submit_call", submit_call_us);
+                logLatencyStats("submit_frame_block", submit_call_us);
+                logPresentOutlier("submit_call",
+                                  submit_us,
+                                  submit_call_us,
+                                  false,
+                                  present_vsync_enabled,
+                                  present_interval_us,
+                                  queue_depth_now,
+                                  depth_limit,
+                                  pending_frame_waiting,
+                                  render_active.loadAcquire() != 0,
+                                  submit_render_state.first,
+                                  submit_render_state.second);
             }
+            logRenderPhaseStall(submit_us,
+                                "submit",
+                                submit_us - submit_begin_us,
+                                snapshotQueueDepth(),
+                                depth_limit,
+                                pending_frame_waiting,
+                                render_active.loadAcquire() != 0,
+                                submit_render_state.first,
+                                submit_render_state.second);
             logPresentSubmitStats(submit_us, present, timer_owned_playback, present_interval_us);
+            if (present) {
+                static qint64 last_present_submit_us = 0;
+                if (last_present_submit_us != 0 && submit_us >= last_present_submit_us) {
+                    const qint64 present_submit_interval_us = submit_us - last_present_submit_us;
+                    logPresentOutlier("present_interval",
+                                      submit_us,
+                                      present_submit_interval_us,
+                                      false,
+                                      present_vsync_enabled,
+                                      present_interval_us,
+                                      queue_depth_now,
+                                      depth_limit,
+                                      pending_frame_waiting,
+                                      render_active.loadAcquire() != 0,
+                                      submit_render_state.first,
+                                      submit_render_state.second);
+                }
+                last_present_submit_us = submit_us;
+            }
             if (present) {
                 const qint64 present_swap_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                 if (present_swap_begin_us >= submit_us)
@@ -4026,13 +4991,42 @@ void QmlMainWindow::render()
                 const qint64 swap_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                 logSwapInterval(swap_us);
                 this->last_swap_return_us.storeRelease(swap_us);
+                present_complete_us = swap_us;
+                const auto swap_render_state = snapshotRenderScheduleState();
+                logRenderPhaseStall(swap_us,
+                                    "swap",
+                                    swap_us - present_swap_begin_us,
+                                    snapshotQueueDepth(),
+                                    depth_limit,
+                                    pending_frame_waiting,
+                                    render_active.loadAcquire() != 0,
+                                    swap_render_state.first,
+                                    swap_render_state.second);
                 if (swap_us >= present_swap_begin_us)
-                    logLatencyStats("swap_call", swap_us - present_swap_begin_us);
+                {
+                    const qint64 swap_call_us = swap_us - present_swap_begin_us;
+                    logLatencyStats("swap_call", swap_call_us);
+                    logPresentOutlier("swap_call",
+                                      swap_us,
+                                      swap_call_us,
+                                      false,
+                                      present_vsync_enabled,
+                                      present_interval_us,
+                                      snapshotQueueDepth(),
+                                      depth_limit,
+                                      pending_frame_waiting,
+                                      render_active.loadAcquire() != 0,
+                                      swap_render_state.first,
+                                      swap_render_state.second);
+                }
                 const qint64 render_us = last_render_entry_us.loadAcquire();
                 if (render_us > 0 && swap_us >= render_us)
                     logLatencyStats("render_to_swap", swap_us - render_us);
             }
+            if (present)
+                this->last_present_complete_us.storeRelease(present_complete_us);
         }
+        return true;
     };
 
     const struct pl_frame *hint_frame = nullptr;
@@ -4081,7 +5075,25 @@ void QmlMainWindow::render()
             hint.hdr.min_luma = hint.hdr.max_luma / (float)target_contrast;
             break;
     }
+    const qint64 render_setup_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    const int queue_depth_before_render_setup = [&]() {
+        QMutexLocker locker(&placebo_state_mutex);
+        return pl_queue_num_frames(placebo_queue);
+    }();
     pl_swapchain_colorspace_hint(placebo_swapchain, &hint);
+    const qint64 render_setup_config_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (render_setup_config_after_us >= render_setup_begin_us) {
+        const auto render_schedule_state = snapshotRenderScheduleState();
+        logRenderPhaseStall(render_setup_config_after_us,
+                            "render_setup_config",
+                            render_setup_config_after_us - render_setup_begin_us,
+                            queue_depth_before_render_setup,
+                            depth_limit,
+                            pending_frame_waiting,
+                            render_active.loadAcquire() != 0,
+                            render_schedule_state.first,
+                            render_schedule_state.second);
+    }
 
     struct pl_frame target_frame = {};
     pl_frame_from_swapchain(&target_frame, &sw_frame);
@@ -4091,7 +5103,6 @@ void QmlMainWindow::render()
         finalize_render();
         return;
     }
-    const qint64 render_setup_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     struct pl_overlay_part overlay_part = {
         .src = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
         .dst = {0, 0, static_cast<float>(swapchain_size.width()), static_cast<float>(swapchain_size.height())},
@@ -4179,13 +5190,28 @@ void QmlMainWindow::render()
         }
     }
 
+    {
+        const qint64 render_setup_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (render_setup_after_us >= render_setup_begin_us) {
+        const auto render_schedule_state = snapshotRenderScheduleState();
+        logRenderPhaseStall(render_setup_after_us,
+                            "render_setup",
+                            render_setup_after_us - render_setup_begin_us,
+                                queue_depth_before_render_setup,
+                                depth_limit,
+                                pending_frame_waiting,
+                                render_active.loadAcquire() != 0,
+                                render_schedule_state.first,
+                                render_schedule_state.second);
+        }
+    }
+
     if (frame_mix.num_frames == 0) {
         if (replay_attempted && replay_enqueued) {
             close_started_frame(false);
             bool scheduled_pending = finalize_render();
-            if (!scheduled_pending && hasBufferedWork() &&
-                !present_vsync_enabled)
-                scheduleUpdate(false, UpdateRequestReason::Replay);
+            if (!scheduled_pending)
+                schedulePostRenderWork();
             return;
         }
 
@@ -4211,9 +5237,8 @@ void QmlMainWindow::render()
 
         close_started_frame(true);
         bool scheduled_pending = finalize_render();
-        if (!scheduled_pending && hasBufferedWork() &&
-            !present_vsync_enabled)
-            scheduleUpdate(false, UpdateRequestReason::Replay);
+        if (!scheduled_pending)
+            schedulePostRenderWork();
         return;
     }
 
@@ -4306,6 +5331,20 @@ void QmlMainWindow::render()
         }
     }
 
+    const qint64 render_setup_ready_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (render_setup_ready_us >= render_setup_config_after_us) {
+        const auto render_schedule_state = snapshotRenderScheduleState();
+        logRenderPhaseStall(render_setup_ready_us,
+                            "render_setup_ready",
+                            render_setup_ready_us - render_setup_config_after_us,
+                            snapshotQueueDepth(),
+                            depth_limit,
+                            pending_frame_waiting,
+                            render_active.loadAcquire() != 0,
+                            render_schedule_state.first,
+                            render_schedule_state.second);
+    }
+
     const qint64 render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     if (render_entry_us_local > 0 && render_call_begin_us >= render_entry_us_local)
         logLatencyStats("render_prep", render_call_begin_us - render_entry_us_local);
@@ -4330,9 +5369,8 @@ void QmlMainWindow::render()
     close_started_frame(true);
 
     bool scheduled_pending = finalize_render();
-    if (!scheduled_pending && hasBufferedWork() &&
-        !present_vsync_enabled)
-        scheduleUpdate(false, UpdateRequestReason::FinalizePending);
+    if (!scheduled_pending)
+        schedulePostRenderWork();
 
 }
 

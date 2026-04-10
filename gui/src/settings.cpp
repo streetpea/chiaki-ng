@@ -736,6 +736,13 @@ void Settings::SetRenderBackend(RenderBackend backend)
 			    render_backend_values.value(backend, render_backend_values[render_backend_default]));
 }
 
+void Settings::Sync()
+{
+	settings.sync();
+	default_settings.sync();
+	placebo_settings.sync();
+}
+
 float Settings::GetZoomFactor() const
 {
 	return settings.value("settings/zoom_factor", -1).toFloat();

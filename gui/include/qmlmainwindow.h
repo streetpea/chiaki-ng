@@ -41,6 +41,8 @@ class QmlBackend;
 class QOffscreenSurface;
 class QOpenGLContext;
 class QOpenGLFramebufferObject;
+class BufferedPlaybackPacerThread;
+class DeferredPresentPacerThread;
 
 class QmlMainWindow : public QWindow
 {
@@ -161,6 +163,9 @@ signals:
     void pendingFrameAgeChanged();
 
 private:
+    friend class BufferedPlaybackPacerThread;
+    friend class DeferredPresentPacerThread;
+
     bool makeOpenGLContextCurrent();
     void doneOpenGLContextCurrent();
 
@@ -171,7 +176,9 @@ private:
     void scheduleUpdate(bool force, UpdateRequestReason reason);
     void scheduleBufferedUpdate();
     void scheduleBufferedUpdate(UpdateRequestReason reason);
-    void throttleFramePresentation(double interval_s);
+    void handleBufferedPlaybackWake(qint64 timer_fire_us);
+    bool throttleFramePresentation(double interval_s);
+    void handleDeferredPresentWake(qint64 timer_fire_us);
     void setStreamMaxFPS(unsigned int max_fps);
     void createSwapchain();
     void destroySwapchain();
@@ -206,6 +213,7 @@ private:
     const struct pl_filter_config *effectiveFrameMixerConfig(const struct pl_render_params *render_params = nullptr) const;
     bool effectiveFrameMixerEnabled(const struct pl_render_params *render_params = nullptr) const;
     bool configuredFrameMixerEnabledForScheduling() const;
+    bool traceVaapiRenderPath() const;
     bool has_video = false;
     struct pl_queue_params qparams;
     struct pl_frame_mix frame_mix;
@@ -220,6 +228,7 @@ private:
     bool direct_stream = false;
     uint64_t next_frame_target_us = 0;
     double last_throttle_interval_s = 0.0;
+    QAtomicInteger<int> present_pace_timer_rearm = 0;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
     int grab_input = 0;
@@ -300,6 +309,8 @@ private:
     QQuickWindow *quick_window = {};
     QQuickRenderControl *quick_render = {};
     QQuickItem *quick_item = {};
+    BufferedPlaybackPacerThread *buffered_pace_thread = {};
+    DeferredPresentPacerThread *present_pace_thread = {};
     VkFormat quick_vk_format = VK_FORMAT_UNDEFINED;
     pl_tex quick_tex = {};
     QOpenGLFramebufferObject *quick_fbo = {};
@@ -315,12 +326,15 @@ private:
     QAtomicInteger<int> schedule_frame_mixer_active = 0;
     double source_frame_interval_ms = 16.6667;
     double stream_configured_frame_interval_ms = 16.6667;
-    QTimer *pace_timer = {};
     QAtomicInteger<qint64> last_schedule_update_us = 0;
+    QAtomicInteger<qint64> last_render_dispatch_us = 0;
     QAtomicInteger<qint64> last_render_entry_us = 0;
     QAtomicInteger<qint64> last_render_idle_us = 0;
-    QAtomicInteger<qint64> start_frame_block_estimate_us = 0;
     QAtomicInteger<qint64> last_swap_return_us = 0;
+    QAtomicInteger<qint64> last_present_complete_us = 0;
+    QAtomicInteger<qint64> last_present_target_us = 0;
+    QAtomicInteger<qint64> last_present_wakeup_target_us = 0;
+    QAtomicInteger<qint64> start_frame_block_estimate_us = 0;
     QAtomicInteger<int> buffered_timer_fired = 0;
     qint64 last_update_us = 0;
     qint64 next_buffered_update_us = 0;
