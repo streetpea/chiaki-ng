@@ -318,6 +318,8 @@ private:
     QTimer *pace_timer = {};
     QAtomicInteger<qint64> last_schedule_update_us = 0;
     QAtomicInteger<qint64> last_render_entry_us = 0;
+    QAtomicInteger<qint64> last_render_idle_us = 0;
+    QAtomicInteger<qint64> start_frame_block_estimate_us = 0;
     QAtomicInteger<qint64> last_swap_return_us = 0;
     QAtomicInteger<int> buffered_timer_fired = 0;
     qint64 last_update_us = 0;
