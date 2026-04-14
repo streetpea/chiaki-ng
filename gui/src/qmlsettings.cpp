@@ -644,17 +644,6 @@ void QmlSettings::setPacketLossReportedMax(int packet_loss_reported_max)
     emit packetLossReportedMaxChanged();
 }
 
-int QmlSettings::queueDepthLimit() const
-{
-    return settings->GetQueueDepthLimit();
-}
-
-void QmlSettings::setQueueDepthLimit(int queue_depth_limit)
-{
-    settings->SetQueueDepthLimit(queue_depth_limit);
-    emit queueDepthLimitChanged();
-}
-
 int QmlSettings::videoPreset() const
 {
     return static_cast<int>(settings->GetPlaceboPreset());
@@ -1948,7 +1937,6 @@ void QmlSettings::refreshAllKeys()
     emit streamMenuShortcut4Changed();
     emit controllerMappingChanged();
     emit packetLossReportedMaxChanged();
-    emit queueDepthLimitChanged();
     emit currentProfileChanged();
     emit profilesChanged();
     refreshAllPlaceboKeys();

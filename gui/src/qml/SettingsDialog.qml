@@ -974,34 +974,6 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Placebo Queue Depth Limit")
-                    }
-
-                    C.Slider {
-                        Layout.preferredWidth: 360
-                        from: 2
-                        to: 5
-                        stepSize: 1
-                        value: Chiaki.settings.queueDepthLimit
-                        onMoved: Chiaki.settings.queueDepthLimit = value
-
-                        Label {
-                            anchors {
-                                left: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin: 10
-                            }
-                            text: qsTr("%1 frames").arg(parent.value)
-                        }
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("(2)")
-                    }
-
-                    Label {
-                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Renderer Backend:")
                     }
 

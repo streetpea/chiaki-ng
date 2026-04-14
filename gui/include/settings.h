@@ -383,8 +383,6 @@ class Settings : public QObject
 
 		float GetPacketLossReportedMax() const;
 		void SetPacketLossReportedMax(float reported_max);
-		int GetQueueDepthLimit() const;
-		void SetQueueDepthLimit(int limit);
 
 		RegisteredHost GetAutoConnectHost() const;
 		void SetAutoConnectHost(const QByteArray &mac);

@@ -8,6 +8,7 @@
 #include <QWindow>
 #include <QQuickWindow>
 #include <QLoggingCategory>
+#include <deque>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -168,6 +169,8 @@ private:
     friend class DeferredPresentPacerThread;
     friend class DeferredSwapThread;
 
+    struct PendingFrameEntry;
+
     bool makeOpenGLContextCurrent();
     void doneOpenGLContextCurrent();
 
@@ -178,6 +181,7 @@ private:
     void scheduleUpdate(bool force, UpdateRequestReason reason);
     void scheduleBufferedUpdate();
     void scheduleBufferedUpdate(UpdateRequestReason reason);
+    void scheduleRenderIfBacklog(UpdateRequestReason reason = UpdateRequestReason::PendingFrame);
     void handleBufferedPlaybackWake(qint64 timer_fire_us);
     bool throttleFramePresentation(double interval_s);
     void handleDeferredPresentWake(qint64 timer_fire_us);
@@ -210,9 +214,16 @@ private:
     bool applyPendingFrameIfQueueHasCapacity();
     bool hasPendingFrame() const;
     int effectiveQueueDepthLimit() const;
+    int pendingFrameOverflowLimit(int submission_depth_limit) const;
+    void clearPendingFrameStateLocked();
+    void insertPendingOverflowLocked(PendingFrameEntry entry);
+    bool takePendingFrameLocked(PendingFrameEntry &entry);
+    bool dropPendingFrameLocked();
+    bool promotePendingFrameFromOverflowLocked();
     bool storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership = false);
     bool storeResetSeedFrame(const AVFrame *frame, double pts, float duration, quint64 generation);
     bool storeResetSeedFromPendingFrame(quint64 generation);
+    bool cloneNewestPendingFrameLocked(AVFrame *&clone, double &pts, float &duration, uint64_t *stored_us = nullptr);
     bool applyKeptFrameSnapshot();
     bool applyResetSeedFrame(quint64 generation);
     bool queueStoredFrame(AVFrame *frame, double pts, float duration,
@@ -290,7 +301,15 @@ private:
     QAtomicInteger<int> last_update_request_reason = 0;
     QAtomicInteger<int> queue_stored_frame_pending = 0;
     QMutex pending_frame_mutex;
+    struct PendingFrameEntry {
+        AVFrame *frame = nullptr;
+        double pts = 0.0;
+        float duration = 0.0f;
+        double queue_origin = 0.0;
+        uint64_t stored_us = 0;
+    };
     AVFrame *pending_frame = nullptr;
+    std::deque<PendingFrameEntry> pending_frame_overflow;
     double pending_pts = 0.0;
     float pending_duration = 0.0f;
     double pending_frame_queue_origin = 0.0;

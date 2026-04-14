@@ -767,18 +767,6 @@ void Settings::SetPacketLossReportedMax(float reported_max)
 	settings.setValue("settings/packet_loss_reported_max", QString("%1").arg(reported_max, 0, 'f', 2));
 }
 
-int Settings::GetQueueDepthLimit() const
-{
-	if (settings.contains("settings/queue_depth_limit"))
-		return settings.value("settings/queue_depth_limit").toInt();
-	return 2;
-}
-
-void Settings::SetQueueDepthLimit(int limit)
-{
-	settings.setValue("settings/queue_depth_limit", limit);
-}
-
 static const QMap<WindowType, QString> window_type_values = {
 	{ WindowType::SelectedResolution, "Selected Resolution" },
 	{ WindowType::CustomResolution, "Custom Resolution"},
