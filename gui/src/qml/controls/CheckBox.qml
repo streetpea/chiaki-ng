@@ -30,6 +30,7 @@ CheckBox {
         case Qt.Key_Return:
             if (visualFocus) {
                 toggle();
+                clicked();
                 toggled();
             }
             event.accepted = true;

@@ -913,10 +913,13 @@ DialogView {
 
                     C.CheckBox {
                         checked: Chiaki.settings.vSyncEnabled
-                        onToggled: {
-                            Chiaki.settings.vSyncEnabled = checked
-                            if (Chiaki.window.runtimeRendererBackend === 1)
-                                Chiaki.settings.restartApplication()
+                        onClicked: {
+                            const enabled = checked
+                            Qt.callLater(function() {
+                                Chiaki.settings.vSyncEnabled = enabled
+                                if (Chiaki.window.runtimeRendererBackend === 1)
+                                    Chiaki.settings.restartApplication()
+                            })
                         }
                     }
 

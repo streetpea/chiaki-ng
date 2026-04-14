@@ -3954,7 +3954,12 @@ renderer_backend_ready:
         grab_input = 0;
         if (session)
             session->BlockInput(0);
-        drainRenderThread();
+        // Only drain at session end (teardown): prevents frame_mix use-after-free.
+        // At session start there is no prior in-flight frame_mix, and the queue
+        // reset below is mutex-protected, so blocking the main thread here is
+        // unnecessary and causes a visible freeze in the connecting UI.
+        if (!s)
+            drainRenderThread();
         {
             QMutexLocker locker(&placebo_state_mutex);
             pl_queue_reset(placebo_queue);
@@ -4499,8 +4504,10 @@ void QmlMainWindow::updateVSync()
 {
     if (render_backend != RenderBackend::Vulkan)
         return;
+    quick_need_sync.storeRelaxed(1);
+    quick_need_render.storeRelaxed(1);
     swapchain_recreate_pending.storeRelaxed(1);
-    scheduleUpdate(false, UpdateRequestReason::VSync);
+    scheduleUpdate(true, UpdateRequestReason::VSync);
 }
 
 void QmlMainWindow::createSwapchain()
@@ -4980,19 +4987,28 @@ void QmlMainWindow::render()
                     << "[latency] render_cycle_pending count=" << pending_during_cycle;
             }
             QMetaObject::invokeMethod(this, [this]() {
-                const bool pending_stored_frame = queue_stored_frame_pending.fetchAndStoreRelaxed(0) != 0;
-                if (!pending_stored_frame)
-                    return;
+                queue_stored_frame_pending.fetchAndStoreRelaxed(0);
                 scheduleUpdate(false, UpdateRequestReason::FinalizePending);
             }, Qt::QueuedConnection);
         }
         return pending;
     };
-    if (swapchain_recreate_pending.fetchAndStoreRelaxed(0)) {
+    const bool swapchain_recreated = swapchain_recreate_pending.fetchAndStoreRelaxed(0) != 0;
+    if (swapchain_recreated) {
         destroySwapchain();
         createSwapchain();
         resizeSwapchain();
     }
+
+    auto schedulePostSwapchainRecreateRefresh = [this, swapchain_recreated]() {
+        if (!swapchain_recreated)
+            return;
+        QMetaObject::invokeMethod(this, [this]() {
+            quick_need_sync.storeRelaxed(1);
+            quick_need_render.storeRelaxed(1);
+            scheduleUpdate(true, UpdateRequestReason::VSync);
+        }, Qt::QueuedConnection);
+    };
 
     if (placebo_reset_pending.fetchAndStoreRelaxed(0) != 0)
         resetPlaceboQueue();
@@ -5002,6 +5018,7 @@ void QmlMainWindow::render()
         bool scheduled_pending = finalize_render();
         if (!scheduled_pending && (queueHasWork() || placebo_reset_pending.loadAcquire() != 0))
             scheduleUpdate(false, UpdateRequestReason::NoSwapchain);
+        schedulePostSwapchainRecreateRefresh();
         return;
     }
 
@@ -5310,7 +5327,7 @@ void QmlMainWindow::render()
                         : static_cast<qint64>(target_us);
                     const uint64_t sleep_us = wait_us > static_cast<uint64_t>(qMax<long long>(0, est))
                         ? (wait_us - static_cast<uint64_t>(qMax<long long>(0, est))) : 0;
-                    const uint64_t max_render_sleep_us = 1000;
+                    const uint64_t max_render_sleep_us = 500;
                     /* Debug: print calculated clamp/wake values when enabled */
                     if (__chiaki_dbg_clamp) {
                         qCInfo(chiakiGui).nospace()
@@ -5704,6 +5721,7 @@ void QmlMainWindow::render()
             qCWarning(chiakiGui) << "Failed to render held/overlay-only frame";
             close_started_frame(false);
             finalize_render();
+            schedulePostSwapchainRecreateRefresh();
             return;
         }
         const qint64 render_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -5717,6 +5735,7 @@ void QmlMainWindow::render()
         bool scheduled_pending = finalize_render();
         if (!scheduled_pending)
             schedulePostRenderWork();
+        schedulePostSwapchainRecreateRefresh();
         return;
     }
 
@@ -5833,6 +5852,7 @@ void QmlMainWindow::render()
         qCWarning(chiakiGui) << "Failed to render Placebo frame!";
         close_started_frame(false);
         finalize_render();
+        schedulePostSwapchainRecreateRefresh();
         return;
     }
     {
@@ -5849,6 +5869,7 @@ void QmlMainWindow::render()
     bool scheduled_pending = finalize_render();
     if (!scheduled_pending)
         schedulePostRenderWork();
+    schedulePostSwapchainRecreateRefresh();
 
 }
 
