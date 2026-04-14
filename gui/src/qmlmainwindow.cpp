@@ -475,14 +475,17 @@ static void logPresentOutlier(const char *stage,
         << " ts_us=" << now_us;
 }
 
-static void logDeferredPresentRetry(qint64 now_us, bool render_active_now, bool render_scheduled_now)
+static void logDeferredPresentRetry(qint64 now_us, bool render_active_now, bool render_scheduled_now, bool retry_armed)
 {
     if (!chiakiGui().isDebugEnabled())
         return;
     static qint64 last_log_us = 0;
     static int retries = 0;
+    static int armed_retries = 0;
 
     retries++;
+    if (retry_armed)
+        armed_retries++;
 
     if (last_log_us == 0)
         last_log_us = now_us;
@@ -490,11 +493,13 @@ static void logDeferredPresentRetry(qint64 now_us, bool render_active_now, bool 
         qCInfo(chiakiGui).nospace()
             << "[outlier] stage=deferred_present_retry"
             << " retries=" << retries
+            << " armed_retries=" << armed_retries
             << " render_active=" << (render_active_now ? 1 : 0)
             << " render_scheduled=" << (render_scheduled_now ? 1 : 0)
             << " ts_us=" << now_us;
         last_log_us = now_us;
         retries = 0;
+        armed_retries = 0;
     }
 }
 
@@ -2334,6 +2339,11 @@ void QmlMainWindow::show()
 namespace {
 constexpr int kDefaultQueueDepthLimit = 2;
 constexpr int kAdaptiveQueueDepthBoost = 1;
+// When vsync_duration == frame_interval (e.g. 60fps source / 60Hz display),
+// libplacebo's advance() declares a just-pushed frame stale because its PTS
+// equals qparams.pts exactly.  Subtracting this margin from qparams.pts
+// keeps the next frame safely in the future so it is rendered, not discarded.
+constexpr double kPtsStaleMarginS = 0.0005; // 500 µs
 
 static const struct pl_filter_config *frame_mixer_config(Settings *settings)
 {
@@ -2483,6 +2493,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                queue_stored_frame_pending.loadAcquire() == 0 &&
                pending_frame_present.loadAcquire() == 0;
     }();
+    const bool render_pipeline_busy = render_busy || render_scheduled_now || render_pending_now;
     AVFrame *promoted_frame = nullptr;
     double promoted_pts = 0.0;
     float promoted_duration = 0.0f;
@@ -2501,9 +2512,17 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         const bool pending_exists = pending_frame_present.loadAcquire() != 0;
         pending_exists_snapshot = pending_exists;
         const int tolerated_depth = depth_limit + (pending_exists ? 1 : 0);
-        depth_exceeded = depth >= tolerated_depth;
+        // If render is currently active, avoid pushing a new frame when the
+        // queue is already one slot below the limit. Otherwise a second push
+        // in the same render cycle can momentarily hit the ceiling and be
+        // immediately culled by pl_queue_update.
+        // Keep direct producer pushes one slot below limit to avoid transient
+        // submit-time queue trims when render is about to consume.
+        const bool near_full_for_direct_path =
+            depth >= qMax(depth_limit - 1, 1);
+        depth_exceeded = depth >= tolerated_depth || near_full_for_direct_path;
         has_capacity_snapshot = depth < depth_limit;
-        promote_eligible_snapshot = !render_busy && pending_exists && has_capacity_snapshot;
+        promote_eligible_snapshot = !render_pipeline_busy && pending_exists && has_capacity_snapshot;
         updateQueueDepthAverage(depth);
         if (promote_eligible_snapshot) {
             QMutexLocker pending_locker(&pending_frame_mutex);
@@ -2545,7 +2564,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     }
 
     if (pending_exists_snapshot && !promote_eligible_snapshot) {
-        const char *gate_reason = render_busy ? "render_busy"
+        const char *gate_reason = render_pipeline_busy ? "render_busy"
                                               : (!has_capacity_snapshot ? "queue_full" : "promotion_window");
         qint64 blocked_age_us = -1;
         double blocked_pts = 0.0;
@@ -2567,7 +2586,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                                  idle_gap_us_snapshot,
                                  queue_depth_snapshot,
                                  depth_limit,
-                                 render_busy,
+                                   render_pipeline_busy,
                                  has_capacity_snapshot);
         logPendingFrameGate("blocked",
                             gate_reason,
@@ -2575,7 +2594,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                             blocked_age_us,
                             queue_depth_snapshot,
                             depth_limit,
-                            render_busy,
+                               render_pipeline_busy,
                             render_scheduled_now,
                             render_pending_now,
                             pending_exists_snapshot,
@@ -2606,7 +2625,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                         << "[latency] pl_queue_push_promoted_us=" << (push_end_us - push_begin_us)
                         << " queue_depth=" << pl_queue_num_frames(placebo_queue);
                     newest_queued_frame_pts = qMax(newest_queued_frame_pts, promoted_pts);
-                    if (pl_queue_num_frames(placebo_queue) < depth_limit) {
+                    if (pl_queue_num_frames(placebo_queue) < qMax(depth_limit - 1, 1)) {
                         const qint64 push2_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                         pl_queue_push(placebo_queue, &src_frame);
                         const qint64 push2_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -2755,6 +2774,7 @@ void QmlMainWindow::resetPlaceboQueue()
         << "queue_pts_origin=" << queue_pts_origin
         << "playback_started=" << playback_started;
     pl_queue_reset(placebo_queue);
+    renderer_cache_flush_pending.storeRelaxed(1);
     newest_queued_frame_pts = -1.0;
     const bool keep_timeline = preserve_timeline && queue_pts_origin >= 0.0 && playback_started;
     preserve_playback_timeline = keep_timeline;
@@ -2831,8 +2851,14 @@ QString QmlMainWindow::describePlaceboDiscardReason(qint64 now_us) const
         cause = QStringLiteral("present_vsync_disabled");
     } else if (pending_exists) {
         cause = QStringLiteral("pending_frame_waiting");
-    } else if (render_active_now != 0 || pending_during_cycle > 0) {
+    } else if (pending_during_cycle > 0) {
+        // Multiple render requests arrived while render was running — genuine render backlog
         cause = QStringLiteral("render_busy");
+    } else if (render_active_now != 0) {
+        // discard_frame fires from inside pl_queue_update() which is always within render();
+        // render_active is therefore always 1 here. A transient submit spike let queue depth
+        // briefly exceed the limit; libplacebo pruned the excess frame. Not a render backlog.
+        cause = QStringLiteral("submit_spike_queue_trim");
     } else if (swap_age_us >= 0 && swap_age_us > 20000) {
         cause = QStringLiteral("late_acquire_or_missed_present_window");
     } else {
@@ -2926,6 +2952,7 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
                              depth_limit,
                              render_active.loadAcquire() != 0,
                              queue_depth < depth_limit);
+    queue_stored_frame_pending.storeRelease(1);
     refreshPendingFrameAge();
     return true;
 }
@@ -3193,6 +3220,15 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         source_frame_interval_ms = 1000.0 * duration;
     bool deinterlace_enabled = false;
     struct pl_source_frame src_frame;
+    bool defer_to_pending = false;
+    int queue_depth_before_push = -1;
+    int depth_limit_snapshot = effectiveQueueDepthLimit();
+    const bool render_active_now = render_active.loadAcquire() != 0;
+    bool render_scheduled_now = false;
+    {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled_now = render_scheduled || render_pending;
+    }
     {
         QMutexLocker locker(&placebo_state_mutex);
         if (newest_queued_frame_pts >= 0.0 && pts <= newest_queued_frame_pts + 1e-6) {
@@ -3237,7 +3273,15 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
             .unmap = unmap_frame,
             .discard = discard_cb,
         };
-        {
+        queue_depth_before_push = pl_queue_num_frames(placebo_queue);
+        // Stored/replayed frames are best-effort backlog recovery.  If the
+        // queue is already one slot from its current limit, always defer to
+        // pending so this path cannot create a transient depth-3 spike.
+        const bool near_full_for_stored_path =
+            queue_depth_before_push >= qMax(depth_limit_snapshot - 1, 1);
+        if (near_full_for_stored_path) {
+            defer_to_pending = true;
+        } else {
             const qint64 push_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             pl_queue_push(placebo_queue, &src_frame);
             const qint64 push_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -3245,8 +3289,24 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
             qCInfo(chiakiGui).nospace()
                 << "[latency] pl_queue_push_stored_us=" << (push_end_us - push_begin_us)
                 << " queue_depth=" << pl_queue_num_frames(placebo_queue);
+            newest_queued_frame_pts = qMax(newest_queued_frame_pts, pts);
         }
-        newest_queued_frame_pts = qMax(newest_queued_frame_pts, pts);
+    }
+
+    if (defer_to_pending) {
+        ChiakiFfmpegFrame deferred_frame = {
+            .frame = frame,
+            .pts = pts,
+            .duration = duration,
+            .recovered = false,
+        };
+        const bool stored = storePendingFrame(deferred_frame, true);
+        if (!stored) {
+            av_frame_free(&frame);
+            return false;
+        }
+        scheduleUpdate(false, UpdateRequestReason::PendingFrame);
+        return true;
     }
 
     uint64_t now_us = chiaki_time_now_monotonic_us();
@@ -4337,8 +4397,15 @@ void QmlMainWindow::handleDeferredPresentWake(qint64 timer_fire_us)
                            render_active_now,
                            render_scheduled_now);
     if (render_active_now || render_scheduled_now) {
-        logDeferredPresentRetry(timer_fire_us, render_active_now, render_scheduled_now);
+        bool retry_armed = false;
         present_pace_timer_rearm.storeRelease(1);
+        if (present_pace_thread) {
+            const qint64 retry_wakeup_us = timer_fire_us + 1000;
+            last_present_wakeup_target_us.storeRelease(retry_wakeup_us);
+            present_pace_thread->arm(retry_wakeup_us);
+            retry_armed = true;
+        }
+        logDeferredPresentRetry(timer_fire_us, render_active_now, render_scheduled_now, retry_armed);
         return;
     }
     scheduleUpdate(false, UpdateRequestReason::VSync);
@@ -5035,7 +5102,7 @@ void QmlMainWindow::render()
     qparams.radius = pl_frame_mix_radius(&params);
     qparams.vsync_duration = vsync_duration;
     qparams.pts = playback_started
-        ? (double)(ts_pre_update - ts_start) / 1000000.0 + vsync_duration
+        ? (double)(ts_pre_update - ts_start) / 1000000.0 + vsync_duration - kPtsStaleMarginS
         : 0.0;
     const int depth_limit = effectiveQueueDepthLimit();
     enum pl_queue_status queue_status;
@@ -5209,14 +5276,18 @@ void QmlMainWindow::render()
             !pending_frame_waiting &&
             pending_during_cycle_now == 0 &&
             queue_depth_now < depth_limit;
+        bool paced_submit_target_valid = false;
+        uint64_t paced_submit_target_us = 0;
+        uint64_t paced_submit_interval_us = 0;
         if (present && !should_throttle_present_now)
             throttleFramePresentation(0.0);
         if (should_throttle_present_now) {
             const uint64_t interval_us = static_cast<uint64_t>(stream_interval_s * 1000000.0 + 0.5);
-                if (interval_us) {
+            if (interval_us) {
                 if (qAbs(last_throttle_interval_s - stream_interval_s) > 1e-6)
                     next_frame_target_us = 0;
                 last_throttle_interval_s = stream_interval_s;
+                paced_submit_interval_us = interval_us;
 
                 const uint64_t now_us = chiaki_time_now_monotonic_us();
                 if (!next_frame_target_us)
@@ -5227,6 +5298,8 @@ void QmlMainWindow::render()
                 /* Use a local target_us for wake/sleep/clamp so we don't rely on
                  * modifying the shared `next_frame_target_us` until after submit. */
                 const uint64_t target_us = next_frame_target_us;
+                paced_submit_target_valid = true;
+                paced_submit_target_us = target_us;
                 const uint64_t wait_us = target_us > now_us ? (target_us - now_us) : 0;
                 if (wait_us > 0) {
                     const long long est = g_submit_swap_est_us.load(std::memory_order_acquire);
@@ -5280,10 +5353,17 @@ void QmlMainWindow::render()
             }
             if (target_us > now_for_clamp_us) {
                 qint64 rem = target_us - now_for_clamp_us;
-                if (rem > 2000)
-                    QThread::usleep(static_cast<unsigned long>(rem - 1000));
+                if (rem > 1200)
+                    QThread::usleep(static_cast<unsigned long>(rem - 400));
                 while (static_cast<qint64>(chiaki_time_now_monotonic_us()) < target_us) {
-                    QThread::usleep(500);
+                    const qint64 now_spin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+                    const qint64 rem_spin_us = target_us - now_spin_us;
+                    if (rem_spin_us > 200)
+                        QThread::usleep(100);
+                    else if (rem_spin_us > 50)
+                        QThread::usleep(20);
+                    else
+                        break;
                 }
             }
         }
@@ -5326,6 +5406,7 @@ void QmlMainWindow::render()
                                 submit_render_state.first,
                                 submit_render_state.second);
             logPresentSubmitStats(submit_us, present, timer_owned_playback, present_interval_us);
+            bool async_present_completion = false;
             if (present) {
                 static qint64 last_present_submit_us = 0;
                 if (last_present_submit_us != 0 && submit_us >= last_present_submit_us) {
@@ -5354,6 +5435,7 @@ void QmlMainWindow::render()
                                                                 present_interval_us,
                                                                 __chiaki_dbg_clamp);
                 if (async_enqueued) {
+                    async_present_completion = true;
                     present_complete_us = submit_us;
                 } else {
                     const qint64 present_swap_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -5413,8 +5495,14 @@ void QmlMainWindow::render()
                     }
                 }
             }
-            if (present)
+            if (present && !async_present_completion)
                 this->last_present_complete_us.storeRelease(present_complete_us);
+            if (present && paced_submit_target_valid && paced_submit_interval_us > 0) {
+                const uint64_t now_after_submit_us = chiaki_time_now_monotonic_us();
+                next_frame_target_us = paced_submit_target_us + paced_submit_interval_us;
+                while (next_frame_target_us <= now_after_submit_us)
+                    next_frame_target_us += paced_submit_interval_us;
+            }
         }
         return true;
     };
