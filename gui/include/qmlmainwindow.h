@@ -43,6 +43,7 @@ class QOpenGLContext;
 class QOpenGLFramebufferObject;
 class BufferedPlaybackPacerThread;
 class DeferredPresentPacerThread;
+class DeferredSwapThread;
 
 class QmlMainWindow : public QWindow
 {
@@ -165,6 +166,7 @@ signals:
 private:
     friend class BufferedPlaybackPacerThread;
     friend class DeferredPresentPacerThread;
+    friend class DeferredSwapThread;
 
     bool makeOpenGLContextCurrent();
     void doneOpenGLContextCurrent();
@@ -179,6 +181,21 @@ private:
     void handleBufferedPlaybackWake(qint64 timer_fire_us);
     bool throttleFramePresentation(double interval_s);
     void handleDeferredPresentWake(qint64 timer_fire_us);
+    bool enqueueDeferredSwap(qint64 submit_begin_us,
+                             qint64 submit_us,
+                             int queue_depth_at_submit,
+                             int depth_limit,
+                             bool pending_frame_waiting,
+                             qint64 present_interval_us,
+                             bool clamp_debug_enabled);
+    void processDeferredSwapTask(qint64 submit_begin_us,
+                                 qint64 submit_us,
+                                 int queue_depth_at_submit,
+                                 int depth_limit,
+                                 bool pending_frame_waiting,
+                                 qint64 present_interval_us,
+                                 bool clamp_debug_enabled);
+    void drainDeferredSwaps();
     void setStreamMaxFPS(unsigned int max_fps);
     void createSwapchain();
     void destroySwapchain();
@@ -311,6 +328,7 @@ private:
     QQuickItem *quick_item = {};
     BufferedPlaybackPacerThread *buffered_pace_thread = {};
     DeferredPresentPacerThread *present_pace_thread = {};
+    DeferredSwapThread *deferred_swap_thread = {};
     VkFormat quick_vk_format = VK_FORMAT_UNDEFINED;
     pl_tex quick_tex = {};
     QOpenGLFramebufferObject *quick_fbo = {};
