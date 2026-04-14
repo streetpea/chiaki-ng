@@ -339,13 +339,20 @@ private:
     static constexpr int maxQueueDepth = 2;
 };
 
+static bool detailedVerboseTelemetryEnabled()
+{
+    return qEnvironmentVariableIntValue("CHIAKI_VERBOSE_LOG_NOISE") == 1;
+}
+
+#define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(chiakiGui)
+
 static void logPtsRollback(const char *source, double frame_pts, double queue_pts_origin, bool preserve_timeline, double source_frame_interval_ms)
 {
     if (!chiakiGui().isDebugEnabled())
         return;
     if (queue_pts_origin < 0.0)
         return;
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[rollback] " << source
         << " frame_pts=" << frame_pts
         << " queue_pts_origin=" << queue_pts_origin
@@ -378,7 +385,7 @@ static void logTimerFireInterval(qint64 now_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[timer] interval_us min=" << min_interval_us
             << " max=" << max_interval_us
             << " avg=" << (sum_interval_us / samples)
@@ -416,7 +423,7 @@ static void logSwapInterval(qint64 now_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[swap] interval_us min=" << min_interval_us
             << " max=" << max_interval_us
             << " avg=" << (sum_interval_us / samples)
@@ -459,7 +466,7 @@ static void logPresentOutlier(const char *stage,
     if (duration_us < threshold_us)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    qCDebug(chiakiGui).nospace()
         << "[outlier] stage=" << stage
         << " duration_us=" << duration_us
         << " threshold_us=" << threshold_us
@@ -490,7 +497,7 @@ static void logDeferredPresentRetry(qint64 now_us, bool render_active_now, bool 
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000) {
-        qCInfo(chiakiGui).nospace()
+        qCDebug(chiakiGui).nospace()
             << "[outlier] stage=deferred_present_retry"
             << " retries=" << retries
             << " armed_retries=" << armed_retries
@@ -556,7 +563,7 @@ static void logDeferredPresentDecision(qint64 now_us,
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[defer] decision"
             << " deferred_samples=" << deferred_samples
             << " immediate_samples=" << immediate_samples
@@ -629,7 +636,7 @@ static void logDeferredTimerWakeup(qint64 timer_fire_us,
     if (last_log_us == 0)
         last_log_us = timer_fire_us;
     else if (timer_fire_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[defer] timer_wakeup"
             << " late_us_min=" << min_late_us
             << " late_us_max=" << max_late_us
@@ -685,7 +692,7 @@ static void logBufferedPacingStats(qint64 now_us, qint64 interval_us, qint64 del
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[pace] timer_owned interval_us=" << interval_us
             << " delta_us_min=" << min_delta_us
             << " delta_us_max=" << max_delta_us
@@ -735,7 +742,7 @@ static void logPresentSubmitStats(qint64 now_us, bool present, bool timer_owned_
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[present] submit interval_us_min=" << min_interval_us
             << " interval_us_max=" << max_interval_us
             << " interval_us_avg=" << (sum_interval_us / samples)
@@ -752,9 +759,9 @@ static void logPresentSubmitStats(qint64 now_us, bool present, bool timer_owned_
     }
 }
 
-static bool shouldUseRefreshPacedBuffering(bool stream_active, bool present_vsync_enabled, int schedule_frame_mixer_active)
+static bool shouldUseRefreshPacedBuffering(bool stream_active, int schedule_frame_mixer_active)
 {
-    return stream_active && present_vsync_enabled && schedule_frame_mixer_active != 0;
+    return stream_active && schedule_frame_mixer_active != 0;
 }
 
 static void logLatencyStats(const char *label, qint64 delta_us)
@@ -804,7 +811,7 @@ static void logLatencyStats(const char *label, qint64 delta_us)
     if (*last_log_us == 0)
         *last_log_us = now_us;
     else if (now_us - *last_log_us >= 1000000 && *samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] " << label
             << " min_us=" << *min_us
             << " max_us=" << *max_us
@@ -838,7 +845,7 @@ static void logScheduleToUpdateStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] schedule_to_update min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -871,7 +878,7 @@ static void logUpdateToRenderStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] update_to_render min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -895,7 +902,7 @@ static void logRenderPendingStats(qint64 now_us, const char *reason, bool render
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] render_pending count=" << pending_count
             << " reason=" << reason
             << " render_active=" << render_active_now
@@ -938,7 +945,7 @@ static void logPendingFrameLifecycle(const char *stage, double pts, float durati
     if (now_us - last_log_us < 1000000)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] pending_lifecycle stage=" << stage
         << " total=" << total
             << " stored=" << stored
@@ -1000,7 +1007,7 @@ static void logPendingFrameGate(const char *stage,
     if (now_us - last_log_us < 1000000)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] pending_gate stage=" << stage
         << " reason=" << reason
         << " total=" << total
@@ -1052,7 +1059,7 @@ static void logPendingQueueDepthHold(const char *stage,
             max_queue_depth = queue_depth;
         if (last_log_us != 0 && now_us - last_log_us < 1000000)
             return;
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] pending_queue_hold stage=" << stage
             << " duration_us=" << (now_us - hold_start_us)
             << " samples=" << hold_samples
@@ -1069,7 +1076,7 @@ static void logPendingQueueDepthHold(const char *stage,
     if (hold_start_us == 0)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] pending_queue_release stage=" << stage
         << " duration_us=" << (now_us - hold_start_us)
         << " samples=" << hold_samples
@@ -1120,7 +1127,7 @@ static void logRenderPhaseStall(qint64 now_us,
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] render_phase_stall phase=" << phase
             << " min_us=" << min_us
             << " max_us=" << max_us
@@ -1186,7 +1193,7 @@ static void logRenderHandoffStats(qint64 now_us,
     if (now_us - last_log_us < 1000000 || samples == 0)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] render_handoff idle_min_us=" << min_idle_age_us
         << " idle_max_us=" << max_idle_age_us
         << " idle_avg_us=" << (sum_idle_age_us / samples)
@@ -1231,7 +1238,7 @@ static void logRenderQueueUpdateStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] render_queue_update min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1264,7 +1271,7 @@ static void logQuickRenderStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_render_work min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1297,7 +1304,7 @@ static void logQuickBeginFrameStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_begin_frame min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1330,7 +1337,7 @@ static void logQuickBeginHoldStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_begin_hold min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1361,7 +1368,7 @@ static void logQuickBeginWaitStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_begin_wait min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1392,7 +1399,7 @@ static void logQuickBeginQtStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_begin_qt min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1423,7 +1430,7 @@ static void logQuickEndFrameStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_end_frame min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1454,7 +1461,7 @@ static void logQuickEndQtStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_end_qt min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1485,7 +1492,7 @@ static void logQuickReleaseStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] quick_release min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1516,7 +1523,7 @@ static void logSwapToStartGapStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] swap_to_start_gap min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1547,7 +1554,7 @@ static void logRenderSetupStats(qint64 now_us, qint64 delta_us)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] render_setup min_us=" << min_us
             << " max_us=" << max_us
             << " avg_us=" << (sum_us / samples)
@@ -1563,7 +1570,7 @@ static void logRenderSetupStats(qint64 now_us, qint64 delta_us)
 static void logDroppedFrameReason(const char *reason, qint64 now_us, double pts, const char *detail = nullptr)
 {
     Q_UNUSED(now_us);
-    qCInfo(chiakiGui).nospace()
+    qCDebug(chiakiGui).nospace()
         << "[drop] reason=" << reason
         << " pts=" << pts
         << (detail ? " detail=" : "")
@@ -1621,7 +1628,7 @@ static const char *updateRequestReasonName(int reason)
     if (now_us - last_log_us < 1000000)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] update_blocked total=" << total_blocked
         << " scene_changed=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::SceneChanged)]
         << " render_requested=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::RenderRequested)]
@@ -1670,7 +1677,7 @@ static void logRenderRequestedSignalStats(bool render_scheduled_now, bool render
     if (now_us - last_log_us < 1000000)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] render_requested_signal total=" << total
         << " while_scheduled=" << while_scheduled
         << " while_active=" << while_active
@@ -1739,7 +1746,7 @@ static void logRenderIdleStats(qint64 now_us, qint64 render_duration_us, bool re
     if (now_us - last_log_us < 1000000 || samples == 0)
         return;
 
-    qCInfo(chiakiGui).nospace()
+    CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] render_idle duration_us_min=" << min_duration_us
         << " duration_us_max=" << max_duration_us
         << " duration_us_avg=" << (sum_duration_us / samples)
@@ -2550,7 +2557,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             pl_queue_push(placebo_queue, &src_frame);
             const qint64 push_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             logLatencyStats("pl_queue_push", push_end_us - push_begin_us);
-            qCInfo(chiakiGui).nospace()
+            CHIAKI_NOISY_DEBUG().nospace()
                 << "[latency] pl_queue_push_us=" << (push_end_us - push_begin_us)
                 << " queue_depth=" << pl_queue_num_frames(placebo_queue);
             newest_queued_frame_pts = qMax(newest_queued_frame_pts, frame.pts);
@@ -2621,7 +2628,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                     pl_queue_push(placebo_queue, &promoted_src_frame);
                     const qint64 push_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                     logLatencyStats("pl_queue_push", push_end_us - push_begin_us);
-                    qCInfo(chiakiGui).nospace()
+                    CHIAKI_NOISY_DEBUG().nospace()
                         << "[latency] pl_queue_push_promoted_us=" << (push_end_us - push_begin_us)
                         << " queue_depth=" << pl_queue_num_frames(placebo_queue);
                     newest_queued_frame_pts = qMax(newest_queued_frame_pts, promoted_pts);
@@ -2630,7 +2637,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                         pl_queue_push(placebo_queue, &src_frame);
                         const qint64 push2_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                         logLatencyStats("pl_queue_push", push2_end_us - push2_begin_us);
-                        qCInfo(chiakiGui).nospace()
+                        CHIAKI_NOISY_DEBUG().nospace()
                             << "[latency] pl_queue_push_after_promote_us=" << (push2_end_us - push2_begin_us)
                             << " queue_depth=" << pl_queue_num_frames(placebo_queue);
                         newest_queued_frame_pts = qMax(newest_queued_frame_pts, frame.pts);
@@ -3200,7 +3207,7 @@ bool QmlMainWindow::enqueueKeptFrame(double queue_pts_origin_hint, bool deinterl
         pl_queue_push(placebo_queue, &snapshot_src);
         const qint64 push_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         logLatencyStats("pl_queue_push", push_end_us - push_begin_us);
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[latency] pl_queue_push_snapshot_us=" << (push_end_us - push_begin_us)
             << " queue_depth=" << pl_queue_num_frames(placebo_queue);
     }
@@ -3286,7 +3293,7 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
             pl_queue_push(placebo_queue, &src_frame);
             const qint64 push_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             logLatencyStats("pl_queue_push", push_end_us - push_begin_us);
-            qCInfo(chiakiGui).nospace()
+            CHIAKI_NOISY_DEBUG().nospace()
                 << "[latency] pl_queue_push_stored_us=" << (push_end_us - push_begin_us)
                 << " queue_depth=" << pl_queue_num_frames(placebo_queue);
             newest_queued_frame_pts = qMax(newest_queued_frame_pts, pts);
@@ -4177,7 +4184,7 @@ void QmlMainWindow::update()
             const qint64 last_swap_us = last_swap_return_us.loadAcquire();
             const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             const qint64 swap_age_us = last_swap_us > 0 ? qMax<qint64>(0, now_us - last_swap_us) : -1;
-            qCInfo(chiakiGui).nospace()
+            CHIAKI_NOISY_DEBUG().nospace()
                 << "[latency] render_pending reason="
                 << updateRequestReasonName(reason)
                 << " count=1";
@@ -4249,7 +4256,6 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
     const bool stream_owned_playback = stream_session_active.loadAcquire() != 0;
     const bool timer_owned_playback = shouldUseRefreshPacedBuffering(
         stream_owned_playback,
-        present_vsync_enabled,
         schedule_frame_mixer_active.loadAcquire());
     const bool render_busy_now = render_active.loadAcquire() != 0;
     auto hasBufferedWork = [this, stream_owned_playback]() {
@@ -4473,7 +4479,7 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
         logLatencyStats("swap_call", swap_us - present_swap_begin_us);
 
     if (clamp_debug_enabled) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[clamp] submit_begin=" << submit_begin_us
             << " submit_end=" << submit_us
             << " swap_end=" << swap_us
@@ -4571,28 +4577,20 @@ void QmlMainWindow::createSwapchain()
         qFatal("Failed to create VkSurfaceKHR");
 
     const int swapchain_depth = settings->GetVSyncEnabled() ? 2 : 1;
-    const char *force_mailbox_env = getenv("CHIAKI_FORCE_MAILBOX");
-    const bool force_mailbox = (force_mailbox_env && strcmp(force_mailbox_env, "1") == 0);
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
-        /* Prefer MAILBOX for vsynced playback (lower latency when supported).
-         * When CHIAKI_FORCE_MAILBOX=1 is set, attempt MAILBOX and avoid
-         * falling back to FIFO so we can test MAILBOX behavior. */
-        .present_mode = (settings->GetVSyncEnabled() || force_mailbox) ? VK_PRESENT_MODE_MAILBOX_KHR
-                                                                       : VK_PRESENT_MODE_IMMEDIATE_KHR,
+        /* Prefer MAILBOX for vsynced playback (lower latency when supported). */
+        .present_mode = settings->GetVSyncEnabled() ? VK_PRESENT_MODE_MAILBOX_KHR
+                                                    : VK_PRESENT_MODE_IMMEDIATE_KHR,
         .swapchain_depth = swapchain_depth,
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
     present_vsync_enabled = swapchain_params.present_mode != VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (!placebo_swapchain && settings->GetVSyncEnabled()) {
-        if (force_mailbox) {
-            qCWarning(chiakiGui) << "MAILBOX present mode unsupported and CHIAKI_FORCE_MAILBOX=1 set; not falling back";
-        } else {
-            qCWarning(chiakiGui) << "MAILBOX present mode unsupported, falling back to FIFO VSync";
-            swapchain_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
-            placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
-            present_vsync_enabled = true;
-        }
+        qCWarning(chiakiGui) << "MAILBOX present mode unsupported, falling back to FIFO VSync";
+        swapchain_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
+        placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
+        present_vsync_enabled = true;
     }
     if (!placebo_swapchain && !settings->GetVSyncEnabled()) {
         qCWarning(chiakiGui) << "Immediate present mode unsupported, falling back to FIFO VSync";
@@ -4983,7 +4981,7 @@ void QmlMainWindow::render()
         if (pending) {
             const int pending_during_cycle = render_pending_during_cycle.loadAcquire();
             if (pending_during_cycle > 0) {
-                qCInfo(chiakiGui).nospace()
+                CHIAKI_NOISY_DEBUG().nospace()
                     << "[latency] render_cycle_pending count=" << pending_during_cycle;
             }
             QMetaObject::invokeMethod(this, [this]() {
@@ -5106,8 +5104,12 @@ void QmlMainWindow::render()
         : 0.0;
     const double vsync_duration = refresh_interval_s;
     const double present_interval_s = refresh_interval_s;
+    const bool stream_active = stream_session_active.loadAcquire() != 0;
+    const bool timer_owned_playback = stream_active && mixer_active;
+    const double present_submit_interval_s = timer_owned_playback
+        ? present_interval_s
+        : stream_interval_s;
     const qint64 present_interval_us = static_cast<qint64>(qMax(1.0, vsync_duration * 1000000.0) + 0.5);
-    const bool timer_owned_playback = stream_session_active.loadAcquire() != 0 && mixer_active;
     auto schedulePostRenderWork = [this, &hasBufferedWork]() {
         if (!hasBufferedWork())
             return;
@@ -5276,10 +5278,10 @@ void QmlMainWindow::render()
     const qint64 render_entry_us_local = last_render_entry_us.loadAcquire();
     if (render_entry_us_local > 0 && render_to_start_frame_us >= render_entry_us_local)
         logLatencyStats("render_to_start_frame", render_to_start_frame_us - render_entry_us_local);
-    const bool throttle_present_for_stream = stream_session_active.loadAcquire() != 0 &&
+    const bool throttle_present_for_stream = stream_active &&
         !pending_frame_waiting &&
         queue_depth_before_start < depth_limit;
-    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, snapshotQueueDepth, snapshotRenderScheduleState, trace_vaapi, stream_interval_s, throttle_present_for_stream](bool present) -> bool {
+    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, snapshotQueueDepth, snapshotRenderScheduleState, trace_vaapi, present_submit_interval_s, throttle_present_for_stream](bool present) -> bool {
         const qint64 submit_ready_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         /* One-time debug flag for clamp diagnostics within this lambda */
         const char *__chiaki_dbg_clamp_env = getenv("CHIAKI_DEBUG_CLAMP");
@@ -5299,11 +5301,11 @@ void QmlMainWindow::render()
         if (present && !should_throttle_present_now)
             throttleFramePresentation(0.0);
         if (should_throttle_present_now) {
-            const uint64_t interval_us = static_cast<uint64_t>(stream_interval_s * 1000000.0 + 0.5);
+            const uint64_t interval_us = static_cast<uint64_t>(present_submit_interval_s * 1000000.0 + 0.5);
             if (interval_us) {
-                if (qAbs(last_throttle_interval_s - stream_interval_s) > 1e-6)
+                if (qAbs(last_throttle_interval_s - present_submit_interval_s) > 1e-6)
                     next_frame_target_us = 0;
-                last_throttle_interval_s = stream_interval_s;
+                last_throttle_interval_s = present_submit_interval_s;
                 paced_submit_interval_us = interval_us;
 
                 const uint64_t now_us = chiaki_time_now_monotonic_us();
@@ -5330,7 +5332,7 @@ void QmlMainWindow::render()
                     const uint64_t max_render_sleep_us = 500;
                     /* Debug: print calculated clamp/wake values when enabled */
                     if (__chiaki_dbg_clamp) {
-                        qCInfo(chiakiGui).nospace()
+                        CHIAKI_NOISY_DEBUG().nospace()
                             << "[clamp] pre-wake target_us=" << target_us
                             << " wait_us=" << wait_us
                             << " est=" << est
@@ -5349,21 +5351,16 @@ void QmlMainWindow::render()
                         QThread::usleep(static_cast<unsigned long>(sleep_us));
                     }
                 }
-                /* Do NOT advance `next_frame_target_us` here; advance after submit
-                 * so the clamp logic below compares against the intended target_us. */
+
             }
         }
-        /* Non-blocking pacing kept for reference:
-         * if (should_throttle_present_now)
-         *     throttleFramePresentation(stream_interval_s);
-         */
         /* If we're pacing for the stream, ensure we don't submit earlier than the scheduled target. */
         if (should_throttle_present_now) {
             const qint64 now_for_clamp_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             const qint64 target_us = next_frame_target_us;
             /* Debug: log clamp target vs now when enabled */
             if (__chiaki_dbg_clamp) {
-                qCInfo(chiakiGui).nospace()
+                CHIAKI_NOISY_DEBUG().nospace()
                     << "[clamp] pre-clamp target_us=" << target_us
                     << " now=" << now_for_clamp_us
                     << " rem=" << (target_us > now_for_clamp_us ? (target_us - now_for_clamp_us) : 0);
@@ -5390,7 +5387,7 @@ void QmlMainWindow::render()
         else {
             const qint64 submit_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             logLatencyStats("pl_swapchain_submit_frame", submit_us - submit_begin_us);
-            qCInfo(chiakiGui).nospace()
+            CHIAKI_NOISY_DEBUG().nospace()
                 << "[latency] pl_swapchain_submit_frame_us=" << (submit_us - submit_begin_us)
                 << " queue_depth=" << pl_queue_num_frames(placebo_queue);
             qint64 present_complete_us = submit_us;
@@ -5495,7 +5492,7 @@ void QmlMainWindow::render()
                         logLatencyStats("render_to_swap", swap_us - render_us);
                     /* Debug: report submit/swap timestamps when clamp debug enabled */
                     if (__chiaki_dbg_clamp) {
-                        qCInfo(chiakiGui).nospace()
+                        CHIAKI_NOISY_DEBUG().nospace()
                             << "[clamp] submit_begin=" << submit_begin_us
                             << " submit_end=" << submit_us
                             << " swap_end=" << swap_us

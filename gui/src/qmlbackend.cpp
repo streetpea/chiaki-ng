@@ -39,6 +39,13 @@ extern "C" {
 #include <libavutil/pixfmt.h>
 }
 
+static bool detailedVerboseTelemetryEnabled()
+{
+    return qEnvironmentVariableIntValue("CHIAKI_VERBOSE_LOG_NOISE") == 1;
+}
+
+#define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(chiakiGui)
+
 static void logDecoderDeliveryStats(qint64 now_us, int32_t frames_lost, bool recovered)
 {
     static qint64 last_sample_us = 0;
@@ -69,7 +76,7 @@ static void logDecoderDeliveryStats(qint64 now_us, int32_t frames_lost, bool rec
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[decode] arrival interval_us_min=" << min_interval_us
             << " interval_us_max=" << max_interval_us
             << " interval_us_avg=" << (sum_interval_us / samples)
@@ -106,7 +113,7 @@ static void logDecoderHandoffStats(qint64 now_us, qint64 handoff_us, double pts)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[decode] handoff_us_min=" << min_handoff_us
             << " handoff_us_max=" << max_handoff_us
             << " handoff_us_avg=" << (sum_handoff_us / samples)
@@ -153,7 +160,7 @@ static void logDecoderFramePtsStats(qint64 now_us, double pts, float duration)
     if (last_log_us == 0)
         last_log_us = now_us;
     else if (now_us - last_log_us >= 1000000 && samples > 0) {
-        qCInfo(chiakiGui).nospace()
+        CHIAKI_NOISY_DEBUG().nospace()
             << "[decode] pts interval_us_min=" << min_interval_us
             << " interval_us_max=" << max_interval_us
             << " interval_us_avg=" << (sum_interval_us / samples)
