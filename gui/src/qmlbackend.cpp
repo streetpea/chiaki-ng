@@ -1176,7 +1176,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             wakeup_start = true;
             wakeup_start_timer->start(WAKEUP_WAIT_SECONDS * 1000);
             emit wakeupStartInitiated();
-            updateDiscoveryHosts();
+            QTimer::singleShot(0, this, &QmlBackend::updateDiscoveryHosts);
         }
         else
         {
@@ -1264,6 +1264,8 @@ void QmlBackend::wakeUpHost(int index, QString nickname)
     auto server = displayServerAt(index);
     if (!server.valid)
         return;
+    if (!server.registered)
+        return;
     if (!nickname.isEmpty())
     {
         waking_sleeping_nicknames.append(nickname);
@@ -1272,7 +1274,13 @@ void QmlBackend::wakeUpHost(int index, QString nickname)
             emit hostsChanged();
         });
     }
-    sendWakeup(server);
+    const QString wake_host = server.GetHostAddr();
+    const QByteArray wake_regist_key = server.registered_host.GetRPRegistKey();
+    const bool wake_ps5 = server.IsPS5();
+    QTimer::singleShot(0, this, [this, wake_host, wake_regist_key, wake_ps5]() {
+        if(!sendWakeup(wake_host, wake_regist_key, wake_ps5))
+            qCWarning(chiakiGui) << "Couldn't wakeup server";
+    });
 }
 
 void QmlBackend::setConsolePin(int index, QString console_pin)
@@ -1508,9 +1516,13 @@ void QmlBackend::connectToHost(int index, QString nickname)
 
     if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
     {
-        if(!sendWakeup(server))
+        const QString wake_host = server.GetHostAddr();
+        const QByteArray wake_regist_key = server.registered_host.GetRPRegistKey();
+        const bool wake_ps5 = server.IsPS5();
+        if(!sendWakeup(wake_host, wake_regist_key, wake_ps5))
         {
             qCWarning(chiakiGui) << "Couldn't wakeup server";
+            window->setWindowAdjustable(true);
             return;
         }
         if(nickname.isEmpty())

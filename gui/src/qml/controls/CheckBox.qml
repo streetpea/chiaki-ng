@@ -31,7 +31,6 @@ CheckBox {
             if (visualFocus) {
                 toggle();
                 clicked();
-                toggled();
             }
             event.accepted = true;
             break;

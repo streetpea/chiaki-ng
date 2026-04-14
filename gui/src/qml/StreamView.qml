@@ -64,7 +64,13 @@ Item {
         separateDialogY = Math.round(hostWindow.y + (hostWindow.height - height) / 2);
     }
 
-    StackView.onActivating: Chiaki.window.keepVideo = true
+    StackView.onActivating: {
+        Chiaki.window.keepVideo = true;
+        sessionError = false;
+        errorTitleLabel.text = "";
+        errorTextLabel.text = "";
+        sessionLoading = !(Chiaki.window.hasVideo || (Chiaki.settings.audioVideoDisabled & 0x02));
+    }
     StackView.onDeactivated: Chiaki.window.keepVideo = false
 
     Component.onCompleted: updateSeparateMenuGeometry()
@@ -135,6 +141,7 @@ Item {
                 width: 70
                 height: width
                 visible: sessionLoading
+                running: sessionLoading
             }
 
             Label {
@@ -1211,6 +1218,11 @@ Item {
                     closeTimer.start();
                 else
                     root.showMainView();
+            } else {
+                sessionError = false;
+                errorTitleLabel.text = "";
+                errorTextLabel.text = "";
+                sessionLoading = !(Chiaki.window.hasVideo || (Chiaki.settings.audioVideoDisabled & 0x02));
             }
         }
 

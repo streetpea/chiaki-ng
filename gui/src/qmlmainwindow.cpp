@@ -57,6 +57,7 @@ class DeferredPresentPacerThread final : public QThread
 {
 public:
     explicit DeferredPresentPacerThread(QmlMainWindow *owner) : owner(owner) {}
+    // use std instead of qt functions for microsecond waits
 
     void arm(qint64 target_wakeup_us)
     {
@@ -451,6 +452,8 @@ static void logPresentOutlier(const char *stage,
 {
     if (!chiakiGui().isDebugEnabled())
         return;
+    if (qstrcmp(stage, "start_frame_block") == 0 && !detailedVerboseTelemetryEnabled())
+        return;
     qint64 threshold_us = 0;
     if (qstrcmp(stage, "present_interval") == 0)
         threshold_us = qMax<qint64>(45000, present_interval_us + 4000);
@@ -467,7 +470,7 @@ static void logPresentOutlier(const char *stage,
         return;
 
     qCDebug(chiakiGui).nospace()
-        << "[outlier] stage=" << stage
+    << "[outlier] stage=" << stage
         << " duration_us=" << duration_us
         << " threshold_us=" << threshold_us
         << " pacing_mode=" << (deferred_present ? "deferred" : "immediate")
@@ -768,6 +771,12 @@ static void logLatencyStats(const char *label, qint64 delta_us)
 {
     if (!chiakiGui().isDebugEnabled())
         return;
+    if (!label)
+        return;
+
+    static QMutex stats_mutex;
+    QMutexLocker locker(&stats_mutex);
+
     static qint64 last_log_us_schedule_to_render = 0;
     static qint64 min_us_schedule_to_render = 0;
     static qint64 max_us_schedule_to_render = 0;
@@ -4284,7 +4293,8 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
     const qint64 now_us = chiaki_time_now_monotonic_us();
     const qint64 last_swap_return_us = this->last_swap_return_us.loadAcquire();
     const qint64 start_frame_block_estimate_us = this->start_frame_block_estimate_us.loadAcquire();
-    if (last_buffered_interval_us != interval_us) {
+    const bool buffered_interval_changed = last_buffered_interval_us != interval_us;
+    if (buffered_interval_changed) {
         next_buffered_update_us = 0;
         last_buffered_interval_us = interval_us;
     }
@@ -4293,7 +4303,7 @@ void QmlMainWindow::scheduleBufferedUpdate(UpdateRequestReason reason)
         next_buffered_update_us = anchor_us + interval_us;
     }
     const bool pace_thread_active = timer_owned_playback && buffered_pace_thread->isArmed();
-    if (timer_owned_playback && pace_thread_active)
+    if (timer_owned_playback && pace_thread_active && !buffered_interval_changed)
         return;
     if (timer_owned_playback && render_busy_now) {
         const qint64 next_wait_us = qMax<qint64>(1, next_buffered_update_us - now_us);
@@ -4423,18 +4433,16 @@ void QmlMainWindow::handleDeferredPresentWake(qint64 timer_fire_us)
 }
 
 bool QmlMainWindow::enqueueDeferredSwap(qint64 submit_begin_us,
-                                       qint64 submit_us,
-                                       int queue_depth_at_submit,
-                                       int depth_limit,
-                                       bool pending_frame_waiting,
-                                       qint64 present_interval_us,
-                                       bool clamp_debug_enabled)
+                                        qint64 submit_us,
+                                        int queue_depth_at_submit,
+                                        int depth_limit,
+                                        bool pending_frame_waiting,
+                                        qint64 present_interval_us,
+                                        bool clamp_debug_enabled)
 {
     if (!deferred_swap_thread || render_backend != RenderBackend::Vulkan || !placebo_swapchain)
         return false;
-
-    const int async_swap_enabled = qEnvironmentVariableIntValue("CHIAKI_ASYNC_SWAP");
-    if (async_swap_enabled != 1)
+    if (qEnvironmentVariableIntValue("CHIAKI_ASYNC_SWAP") != 1)
         return false;
 
     DeferredSwapTask task;

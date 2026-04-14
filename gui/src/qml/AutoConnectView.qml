@@ -62,6 +62,7 @@ Rectangle {
             anchors.centerIn: parent
             width: 70
             height: width
+            running: view.visible
         }
         Label {
             id: closeMessageLabel
