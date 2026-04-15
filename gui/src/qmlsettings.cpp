@@ -676,17 +676,16 @@ void QmlSettings::setRendererBackend(int backend)
     emit rendererBackendChanged();
 }
 
-void QmlSettings::restartApplication()
+bool QmlSettings::restartApplication()
 {
     settings->Sync();
     const QString application = QCoreApplication::applicationFilePath();
     const QStringList arguments = QCoreApplication::arguments().mid(1);
-    if (!QProcess::startDetached(application, arguments))
-    {
-        qWarning() << "Failed to relaunch application for renderer backend switch";
-        return;
+    if (!QProcess::startDetached(application, arguments)) {
+        qWarning() << "Failed to relaunch application";
+        return false;
     }
-    QCoreApplication::quit();
+    return true;
 }
 
 QString QmlSettings::autoConnectMac() const

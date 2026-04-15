@@ -173,7 +173,6 @@ DialogView {
                 right: parent.right
                 topMargin: 5
             }
-
             TabButton {
                 id: general
                 text: qsTr("General")
@@ -917,8 +916,8 @@ DialogView {
                             const enabled = checked
                             Qt.callLater(function() {
                                 Chiaki.settings.vSyncEnabled = enabled
-                                if (Chiaki.window.runtimeRendererBackend === 1)
-                                    Chiaki.settings.restartApplication()
+                                if (Chiaki.window.runtimeRendererBackend === 1 && Chiaki.settings.restartApplication())
+                                    Qt.quit()
                             })
                         }
                     }
@@ -985,7 +984,8 @@ DialogView {
                             if (index === Chiaki.settings.rendererBackend)
                                 return;
                             Chiaki.settings.rendererBackend = index;
-                            Chiaki.settings.restartApplication();
+                            if (Chiaki.settings.restartApplication())
+                                Qt.quit();
                         }
                     }
 
