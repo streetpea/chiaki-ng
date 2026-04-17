@@ -371,7 +371,9 @@ private:
     QAtomicInteger<qint64> last_present_complete_us = 0;
     QAtomicInteger<qint64> last_present_target_us = 0;
     QAtomicInteger<qint64> last_present_wakeup_target_us = 0;
+    QAtomicInteger<qint64> swap_to_start_gap_estimate_us = 0;
     QAtomicInteger<qint64> start_frame_block_estimate_us = 0;
+    QAtomicInteger<qint64> render_submit_estimate_us = 0;
     QAtomicInteger<int> buffered_timer_fired = 0;
     qint64 last_update_us = 0;
     qint64 next_buffered_update_us = 0;

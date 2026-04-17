@@ -4585,9 +4585,15 @@ bool QmlMainWindow::throttleFramePresentation(double interval_s)
     while (next_frame_target_us <= now_us)
         next_frame_target_us += interval_us;
 
+    static constexpr qint64 kMaxSwapToStartGapLeadUs = 1500;
+    const qint64 swap_to_start_gap_estimate_us = this->swap_to_start_gap_estimate_us.loadAcquire();
     const qint64 start_frame_block_estimate_us = this->start_frame_block_estimate_us.loadAcquire();
+    const qint64 render_submit_estimate_us = this->render_submit_estimate_us.loadAcquire();
     const qint64 submit_swap_estimate_us = qMax<qint64>(0, static_cast<qint64>(g_submit_swap_est_us.load(std::memory_order_acquire)));
-    const uint64_t base_lead_us = static_cast<uint64_t>(qBound<qint64>(0, start_frame_block_estimate_us, static_cast<qint64>(interval_us / 2)));
+    const qint64 render_path_estimate_us = qMin<qint64>(qMax<qint64>(0, swap_to_start_gap_estimate_us), kMaxSwapToStartGapLeadUs) +
+        qMax<qint64>(0, start_frame_block_estimate_us) +
+        qMax<qint64>(0, render_submit_estimate_us);
+    const uint64_t base_lead_us = static_cast<uint64_t>(qBound<qint64>(0, render_path_estimate_us, static_cast<qint64>(interval_us / 2)));
     const uint64_t extra_lead_us = static_cast<uint64_t>(qBound<qint64>(0, submit_swap_estimate_us, static_cast<qint64>(interval_us / 2)));
     const uint64_t total_lead_us = qBound<uint64_t>(0, base_lead_us + extra_lead_us, interval_us / 2);
     const uint64_t target_wakeup_us = next_frame_target_us > total_lead_us ? (next_frame_target_us - total_lead_us) : next_frame_target_us;
@@ -5469,9 +5475,23 @@ void QmlMainWindow::render()
 
     const qint64 start_frame_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     const int queue_depth_before_start = snapshotQueueDepth();
+    const bool start_frame_backlogged = pending_frame_waiting;
     const qint64 last_present_complete_us = this->last_present_complete_us.loadAcquire();
-    if (last_present_complete_us > 0 && start_frame_begin_us >= last_present_complete_us)
+    if (last_present_complete_us > 0 && start_frame_begin_us >= last_present_complete_us) {
+        const qint64 swap_to_start_gap_us = start_frame_begin_us - last_present_complete_us;
         logSwapToStartGapStats(start_frame_begin_us, start_frame_begin_us - last_present_complete_us);
+        const bool update_swap_to_start_gap_estimate = !pending_frame_waiting &&
+            queue_depth_before_start < depth_limit &&
+            present_interval_us > 0 &&
+            swap_to_start_gap_us <= (present_interval_us * 2);
+        if (update_swap_to_start_gap_estimate) {
+            const qint64 prior_swap_to_start_gap_estimate_us = this->swap_to_start_gap_estimate_us.loadAcquire();
+            const qint64 next_swap_to_start_gap_estimate_us = prior_swap_to_start_gap_estimate_us > 0
+                ? ((prior_swap_to_start_gap_estimate_us * 7) + swap_to_start_gap_us) / 8
+                : swap_to_start_gap_us;
+            this->swap_to_start_gap_estimate_us.storeRelease(next_swap_to_start_gap_estimate_us);
+        }
+    }
     struct pl_swapchain_frame sw_frame = {};
     if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
         qCWarning(chiakiGui) << "Failed to start Placebo frame!";
@@ -5505,11 +5525,13 @@ void QmlMainWindow::render()
                           render_active.loadAcquire() != 0,
                           render_schedule_state.first,
                           render_schedule_state.second);
-        const qint64 prior_estimate_us = start_frame_block_estimate_us.loadAcquire();
-        const qint64 next_estimate_us = prior_estimate_us > 0
-            ? ((prior_estimate_us * 7) + start_frame_block_us) / 8
-            : start_frame_block_us;
-        start_frame_block_estimate_us.storeRelease(next_estimate_us);
+        if (!start_frame_backlogged && present_interval_us > 0 && start_frame_block_us <= (present_interval_us * 2)) {
+            const qint64 prior_estimate_us = start_frame_block_estimate_us.loadAcquire();
+            const qint64 next_estimate_us = prior_estimate_us > 0
+                ? ((prior_estimate_us * 7) + start_frame_block_us) / 8
+                : start_frame_block_us;
+            start_frame_block_estimate_us.storeRelease(next_estimate_us);
+        }
     }
     const qint64 render_to_start_frame_us = start_frame_begin_us;
     const qint64 render_entry_us_local = last_render_entry_us.loadAcquire();
@@ -5518,13 +5540,23 @@ void QmlMainWindow::render()
     // Submit immediately and let the swapchain / render path enforce pacing.
     auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, snapshotQueueDepth, snapshotRenderScheduleState, trace_vaapi, present_submit_interval_s](bool present) -> bool {
         const qint64 submit_ready_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        const int queue_depth_now = snapshotQueueDepth();
+        const bool backlog_active = pending_frame_waiting;
         // clamp flag for clamp diagnostics
         const char *__chiaki_dbg_clamp_env = getenv("CHIAKI_DEBUG_CLAMP");
         const bool __chiaki_dbg_clamp = __chiaki_dbg_clamp_env && strcmp(__chiaki_dbg_clamp_env, "1") == 0;
-        if (submit_ready_us >= start_frame_us)
+        if (submit_ready_us >= start_frame_us) {
             logLatencyStats("start_frame_to_submit", submit_ready_us - start_frame_us);
-        const int queue_depth_now = snapshotQueueDepth();
-        if (present)
+            const qint64 render_submit_us = submit_ready_us - start_frame_us;
+            if (!backlog_active && present_interval_us > 0 && render_submit_us <= (present_interval_us * 2)) {
+                const qint64 prior_render_submit_estimate_us = this->render_submit_estimate_us.loadAcquire();
+                const qint64 next_render_submit_estimate_us = prior_render_submit_estimate_us > 0
+                    ? ((prior_render_submit_estimate_us * 7) + render_submit_us) / 8
+                    : render_submit_us;
+                this->render_submit_estimate_us.storeRelease(next_render_submit_estimate_us);
+            }
+        }
+        if (present && !backlog_active)
             throttleFramePresentation(present_submit_interval_s);
         else
             throttleFramePresentation(0.0);
