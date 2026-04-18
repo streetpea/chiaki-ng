@@ -147,6 +147,7 @@ public slots:
 
     void updatePlacebo();
     void updateVSync();
+    void updateVulkanDeferredSwap();
     void show();
     void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost);
 
@@ -186,14 +187,13 @@ private:
     bool throttleFramePresentation(double interval_s);
     void handleDeferredPresentWake(qint64 timer_fire_us);
     bool enqueueDeferredSwap(qint64 submit_begin_us,
-                             qint64 submit_us,
                              int queue_depth_at_submit,
                              int depth_limit,
                              bool pending_frame_waiting,
                              qint64 present_interval_us,
                              bool clamp_debug_enabled);
+    void finalizeDeferredPresentIfIdle();
     void processDeferredSwapTask(qint64 submit_begin_us,
-                                 qint64 submit_us,
                                  int queue_depth_at_submit,
                                  int depth_limit,
                                  bool pending_frame_waiting,
@@ -211,6 +211,7 @@ private:
     void endFrame();
     void render();
     void applyPendingFrame();
+    void queuePendingFrameRelease();
     bool applyPendingFrameIfQueueHasCapacity();
     bool hasPendingFrame() const;
     int effectiveQueueDepthLimit() const;
@@ -295,6 +296,7 @@ private:
     bool owns_render_thread = false;
     QMutex render_schedule_mutex;
     QMutex placebo_state_mutex;
+    QMutex placebo_swapchain_mutex;
     bool render_scheduled = false;
     bool render_pending = false;
     QAtomicInteger<int> render_pending_during_cycle = 0;
@@ -314,6 +316,8 @@ private:
     float pending_duration = 0.0f;
     double pending_frame_queue_origin = 0.0;
     QAtomicInteger<int> pending_frame_present = 0;
+    QAtomicInteger<int> pending_frame_release_queued = 0;
+    QAtomicInteger<qint64> pending_frame_release_queued_us = 0;
     QMutex reset_seed_mutex;
     AVFrame *reset_seed_frame = nullptr;
     double reset_seed_pts = 0.0;
@@ -336,6 +340,8 @@ private:
     QAtomicInteger<quint64> reset_seed_capture_generation = 0;
     QAtomicInteger<quint64> placebo_reset_throttle_generation = 0;
     QAtomicInteger<int> render_active = 0;
+    QAtomicInteger<int> deferred_present_in_flight = 0;
+    bool vulkan_deferred_swap_enabled = true;
     bool present_vsync_enabled = true;
 
     QVulkanInstance *qt_vk_inst = {};

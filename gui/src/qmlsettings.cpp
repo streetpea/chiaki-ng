@@ -588,6 +588,17 @@ void QmlSettings::setUseZeroCopy(bool enabled)
     emit useZeroCopyChanged();
 }
 
+bool QmlSettings::vulkanDeferredSwap() const
+{
+    return settings->GetVulkanDeferredSwap();
+}
+
+void QmlSettings::setVulkanDeferredSwap(bool enabled)
+{
+    settings->SetVulkanDeferredSwap(enabled);
+    emit vulkanDeferredSwapChanged();
+}
+
 int QmlSettings::windowType() const
 {
     return static_cast<int>(settings->GetWindowType());
@@ -1913,6 +1924,7 @@ void QmlSettings::refreshAllKeys()
     emit sZoomFactorChanged();
     emit videoPresetChanged();
     emit rendererBackendChanged();
+    emit vulkanDeferredSwapChanged();
     emit autoConnectMacChanged();
     emit audioDevicesChanged();
     emit registeredHostsChanged();

@@ -310,6 +310,11 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             window,
             &QmlMainWindow::updateVSync,
             Qt::QueuedConnection);
+    connect(settings_qml,
+            &QmlSettings::vulkanDeferredSwapChanged,
+            window,
+            &QmlMainWindow::updateVulkanDeferredSwap,
+            Qt::QueuedConnection);
     connect(settings_qml, &QmlSettings::streamMenuEnabledChanged, this, &QmlBackend::updateStreamShortcut);
     connect(settings_qml, &QmlSettings::streamMenuShortcut1Changed, this, &QmlBackend::updateStreamShortcut);
     connect(settings_qml, &QmlSettings::streamMenuShortcut2Changed, this, &QmlBackend::updateStreamShortcut);
