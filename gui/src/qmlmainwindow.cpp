@@ -480,7 +480,7 @@ static void logPresentOutlier(const char *stage,
         << " duration_us=" << duration_us
         << " threshold_us=" << threshold_us
         << " pacing_mode=" << (deferred_present ? "deferred" : "immediate")
-        << " swapchain_mode=" << (present_vsync_enabled ? "FIFO" : "IMMEDIATE")
+        << " swapchain_mode=" << (present_vsync_enabled ? "MAILBOX or FIFO" : "IMMEDIATE")
         << " target_interval_us=" << present_interval_us
         << " queue_depth=" << queue_depth
         << " depth_limit=" << depth_limit
