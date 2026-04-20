@@ -9,6 +9,7 @@
 #include <QQuickWindow>
 #include <QLoggingCategory>
 #include <deque>
+#include <atomic>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -218,6 +219,7 @@ private:
     void insertPendingOverflowLocked(PendingFrameEntry entry);
     bool takePendingFrameLocked(PendingFrameEntry &entry);
     bool dropPendingFrameLocked();
+    void resetQueueDepthTracking();
     bool promotePendingFrameFromOverflowLocked();
     bool storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership = false);
     bool storeResetSeedFrame(const AVFrame *frame, double pts, float duration, quint64 generation);
@@ -254,6 +256,7 @@ private:
     bool direct_stream = false;
     uint64_t next_frame_target_us = 0;
     double last_throttle_interval_s = 0.0;
+    QAtomicInteger<int> present_backpressure_active = 0;
     QAtomicInteger<int> present_pace_timer_rearm = 0;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
@@ -271,7 +274,7 @@ private:
     QmlBackend *backend = {};
     StreamSession *session = {};
     AVBufferRef *vulkan_hw_dev_ctx = nullptr;
-    double queue_depth_average = 0.0;
+    std::atomic<double> queue_depth_average{0.0};
     double pending_frame_age = 0.0;
     uint64_t last_placebo_reset_ts = 0;
     uint64_t pending_frame_stored_us = 0;

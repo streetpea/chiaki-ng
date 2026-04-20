@@ -1696,7 +1696,7 @@ static void logRenderSetupStats(qint64 now_us, qint64 delta_us)
 static void logDroppedFrameReason(const char *reason, qint64 now_us, double pts, const char *detail = nullptr)
 {
     Q_UNUSED(now_us);
-    qCDebug(chiakiGui).nospace()
+    qCInfo(chiakiGui).nospace()
         << "[drop] reason=" << reason
         << " pts=" << pts
         << (detail ? " detail=" : "")
@@ -1937,7 +1937,7 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex,
         return false;
     }
     if (out_frame->num_planes <= 0) {
-        qCWarning(chiakiGui) << "Mapped frame contains no planes, dropping";
+        qCInfo(chiakiGui) << "Mapped frame contains no planes, dropping";
         pl_unmap_avframe(gpu, out_frame);
         av_frame_free(&frame);
         return false;
@@ -1965,7 +1965,7 @@ static void discard_frame(const struct pl_source_frame *src)
     if (q)
         q->increaseDroppedFrames();
     av_frame_free(&frame);
-    qCDebug(chiakiGui) << "Dropped frame with PTS" << src->pts;
+    qCInfo(chiakiGui) << "Dropped frame with PTS" << src->pts;
 }
 
 static void discard_snapshot_frame(const struct pl_source_frame *src)
@@ -2579,6 +2579,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
             logPtsRollback("presentFrame/rollback", frame.pts, queue_pts_origin, false, frame.duration * 1000.0);
             pl_queue_reset(placebo_queue);
+            resetQueueDepthTracking();
             ts_start = 0;
             queue_pts_origin = frame.pts;
             newest_queued_frame_pts = -1.0;
@@ -2836,7 +2837,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                 render_scheduled_now = render_scheduled;
                 render_pending_now = render_pending;
             }
-            qCDebug(chiakiGui)
+            qCInfo(chiakiGui)
                 << "Dropping stale pending frame after newer direct queue submission"
                 << "pending_pts=" << dropped_pts
                 << "queued_pts=" << frame.pts;
@@ -2928,6 +2929,7 @@ void QmlMainWindow::resetPlaceboQueue()
     pl_queue_reset(placebo_queue);
     renderer_cache_flush_pending.storeRelaxed(1);
     newest_queued_frame_pts = -1.0;
+    resetQueueDepthTracking();
     const bool keep_timeline = preserve_timeline && queue_pts_origin >= 0.0 && playback_started;
     preserve_playback_timeline = keep_timeline;
     if (!keep_timeline) {
@@ -2978,7 +2980,14 @@ void QmlMainWindow::queuePlaceboReset(bool preserve_timeline)
 
 double QmlMainWindow::queueDepthAverage() const
 {
-    return queue_depth_average;
+    return queue_depth_average.load(std::memory_order_acquire);
+}
+
+void QmlMainWindow::resetQueueDepthTracking()
+{
+    queue_depth_average.store(0.0, std::memory_order_release);
+    present_backpressure_active.storeRelease(0);
+    emit queueDepthAverageChanged();
 }
 
 double QmlMainWindow::pendingFrameAge() const
@@ -2995,7 +3004,7 @@ QString QmlMainWindow::describePlaceboDiscardReason(qint64 now_us) const
     const bool pending_exists = hasPendingFrame();
     const int render_active_now = render_active.loadAcquire();
     const int pending_during_cycle = render_pending_during_cycle.loadAcquire();
-    const qint64 queue_depth_avg_scaled = static_cast<qint64>(queue_depth_average * 1000.0);
+    const qint64 queue_depth_avg_scaled = static_cast<qint64>(queue_depth_average.load(std::memory_order_acquire) * 1000.0);
     const qint64 pending_age_scaled = static_cast<qint64>(pendingFrameAge() * 1000.0);
 
     QString cause;
@@ -3031,8 +3040,15 @@ QString QmlMainWindow::describePlaceboDiscardReason(qint64 now_us) const
 void QmlMainWindow::updateQueueDepthAverage(int depth)
 {
     const double alpha = 0.15;
-    double next = queue_depth_average * (1.0 - alpha) + static_cast<double>(depth) * alpha;
-    queue_depth_average = next;
+    double current = queue_depth_average.load(std::memory_order_acquire);
+    double next = 0.0;
+    do {
+        next = current * (1.0 - alpha) + static_cast<double>(depth) * alpha;
+    } while (!queue_depth_average.compare_exchange_weak(
+        current,
+        next,
+        std::memory_order_release,
+        std::memory_order_acquire));
     emit queueDepthAverageChanged();
 }
 
@@ -3548,7 +3564,7 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         if (newest_queued_frame_pts >= 0.0 && pts <= newest_queued_frame_pts + 1e-6) {
             logDroppedFrameReason("stale_stored_frame", static_cast<qint64>(chiaki_time_now_monotonic_us()), pts,
                                   "before queue submission");
-            qCDebug(chiakiGui)
+            qCInfo(chiakiGui)
                 << "Dropping stale stored frame before queue submission"
                 << "frame_pts=" << pts
                 << "newest_queued_pts=" << newest_queued_frame_pts;
@@ -3561,6 +3577,7 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         if (queue_pts_origin < 0.0 || pts + 1e-6 < queue_pts_origin) {
             logPtsRollback("applyPendingFrame/rollback", pts, queue_pts_origin, preserve_timeline, duration * 1000.0);
             pl_queue_reset(placebo_queue);
+            resetQueueDepthTracking();
             const double old_origin = queue_pts_origin;
             queue_pts_origin = pts;
             newest_queued_frame_pts = -1.0;
@@ -4311,6 +4328,7 @@ renderer_backend_ready:
             pl_queue_reset(placebo_queue);
             newest_queued_frame_pts = -1.0;
         }
+        resetQueueDepthTracking();
         {
             QMutexLocker locker(&reset_seed_mutex);
             if (reset_seed_frame)
@@ -5777,11 +5795,13 @@ void QmlMainWindow::render()
             }
         }
         const double queue_depth_average = queueDepthAverage();
-        static bool present_backpressure = false;
-        if (queue_depth_average >= static_cast<double>(depth_limit) - 0.15)
-            present_backpressure = true;
-        else if (queue_depth_average <= static_cast<double>(depth_limit) - 0.65)
-            present_backpressure = false;
+        if (queue_depth_now >= depth_limit ||
+            queue_depth_average >= static_cast<double>(depth_limit) - 0.15) {
+            present_backpressure_active.storeRelease(1);
+        } else if (queue_depth_now < depth_limit &&
+                   queue_depth_average <= static_cast<double>(depth_limit) - 0.65) {
+            present_backpressure_active.storeRelease(0);
+        }
         const bool backlog_active = pending_frame_waiting;
         if (submit_ready_us >= start_frame_us) {
             logLatencyStats("start_frame_to_submit", submit_ready_us - start_frame_us);
@@ -5795,7 +5815,7 @@ void QmlMainWindow::render()
             }
         }
         if (present) {
-            const double paced_interval_s = present_backpressure
+            const double paced_interval_s = present_backpressure_active.loadAcquire() != 0
                 ? (present_submit_interval_s * 0.90)
                 : present_submit_interval_s;
             throttleFramePresentation(paced_interval_s);
