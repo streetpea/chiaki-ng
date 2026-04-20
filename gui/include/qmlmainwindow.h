@@ -190,15 +190,13 @@ private:
                              int queue_depth_at_submit,
                              int depth_limit,
                              bool pending_frame_waiting,
-                             qint64 present_interval_us,
-                             bool clamp_debug_enabled);
+                             qint64 present_interval_us);
     void finalizeDeferredPresentIfIdle();
     void processDeferredSwapTask(qint64 submit_begin_us,
                                  int queue_depth_at_submit,
                                  int depth_limit,
                                  bool pending_frame_waiting,
-                                 qint64 present_interval_us,
-                                 bool clamp_debug_enabled);
+                                 qint64 present_interval_us);
     void drainDeferredSwaps();
     void setStreamMaxFPS(unsigned int max_fps);
     void createSwapchain();
@@ -242,7 +240,6 @@ private:
     const struct pl_filter_config *effectiveFrameMixerConfig(const struct pl_render_params *render_params = nullptr) const;
     bool effectiveFrameMixerEnabled(const struct pl_render_params *render_params = nullptr) const;
     bool configuredFrameMixerEnabledForScheduling() const;
-    bool traceVaapiRenderPath() const;
     bool has_video = false;
     struct pl_queue_params qparams;
     struct pl_frame_mix frame_mix;
@@ -286,6 +283,8 @@ private:
     pl_vulkan placebo_vulkan = {};
     pl_opengl placebo_opengl = {};
     pl_swapchain placebo_swapchain = {};
+    pl_color_space last_swapchain_colorspace_hint = {};
+    bool last_swapchain_colorspace_hint_valid = false;
     pl_renderer placebo_renderer = {};
     pl_queue placebo_queue = {};
     std::array<pl_tex, 8> placebo_tex{};
