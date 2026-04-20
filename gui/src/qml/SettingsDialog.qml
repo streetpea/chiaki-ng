@@ -993,6 +993,24 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("Vulkan Deferred Swap:")
+                        visible: Chiaki.settings.rendererBackend == 0
+                    }
+
+                    C.CheckBox {
+                        checked: Chiaki.settings.vulkanDeferredSwap
+                        onToggled: Chiaki.settings.vulkanDeferredSwap = checked
+                        visible: Chiaki.settings.rendererBackend == 0
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Checked)")
+                        visible: Chiaki.settings.rendererBackend == 0
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Custom Renderer Settings")
                         visible: Chiaki.window.videoPreset == ChiakiWindow.VideoPreset.Custom
                     }

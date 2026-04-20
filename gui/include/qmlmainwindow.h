@@ -283,8 +283,6 @@ private:
     pl_vulkan placebo_vulkan = {};
     pl_opengl placebo_opengl = {};
     pl_swapchain placebo_swapchain = {};
-    pl_color_space last_swapchain_colorspace_hint = {};
-    bool last_swapchain_colorspace_hint_valid = false;
     pl_renderer placebo_renderer = {};
     pl_queue placebo_queue = {};
     std::array<pl_tex, 8> placebo_tex{};
