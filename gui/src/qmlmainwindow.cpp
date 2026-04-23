@@ -2371,6 +2371,20 @@ void QmlMainWindow::releaseInput()
         session->BlockInput(grab_input);
 }
 
+void QmlMainWindow::requestOverlayUpdate()
+{
+    scheduleUpdate(true, UpdateRequestReason::Unknown);
+}
+
+void QmlMainWindow::setOverlayInteractionActive(bool active)
+{
+    const int previous = overlay_interaction_active.fetchAndStoreRelaxed(active ? 1 : 0);
+    if (active)
+        scheduleUpdate(true, UpdateRequestReason::Unknown);
+    else if (previous != 0)
+        scheduleUpdate(true, UpdateRequestReason::Unknown);
+}
+
 bool QmlMainWindow::directStream() const
 {
     return direct_stream;
@@ -4408,7 +4422,9 @@ renderer_backend_ready:
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         quick_need_sync.storeRelaxed(1);
-        if (stream_session_active.loadAcquire() != 0) {
+        if (stream_session_active.loadAcquire() != 0 &&
+            has_video &&
+            overlay_interaction_active.loadAcquire() == 0) {
             bool render_scheduled_now = false;
             bool render_pending_now = false;
             {
@@ -4423,7 +4439,9 @@ renderer_backend_ready:
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        if (stream_session_active.loadAcquire() != 0) {
+        if (stream_session_active.loadAcquire() != 0 &&
+            has_video &&
+            overlay_interaction_active.loadAcquire() == 0) {
             bool render_scheduled_now = false;
             bool render_pending_now = false;
             {

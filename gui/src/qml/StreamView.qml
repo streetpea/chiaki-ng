@@ -27,6 +27,8 @@ Item {
     property int separateStatsHeight: 0
     property int separateDialogX: 0
     property int separateDialogY: 0
+    property bool sessionStopDialogActive: false
+    property bool sessionPinDialogActive: false
 
     function grabInput(item) {
         Chiaki.window.grabInput();
@@ -64,6 +66,17 @@ Item {
         separateDialogY = Math.round(hostWindow.y + (hostWindow.height - height) / 2);
     }
 
+    function updateOverlayInteractionActive() {
+        Chiaki.window.setOverlayInteractionActive(
+            menuController.open ||
+            menuController.closing ||
+            sessionStopDialogActive ||
+            separateSessionStopWindow.visible ||
+            sessionPinDialogActive ||
+            separateSessionPinWindow.visible
+        );
+    }
+
     StackView.onActivating: {
         Chiaki.window.keepVideo = true;
         sessionError = false;
@@ -73,7 +86,10 @@ Item {
     }
     StackView.onDeactivated: Chiaki.window.keepVideo = false
 
-    Component.onCompleted: updateSeparateMenuGeometry()
+    Component.onCompleted: {
+        updateSeparateMenuGeometry();
+        updateOverlayInteractionActive();
+    }
     onWidthChanged: updateSeparateMenuGeometry()
     onHeightChanged: updateSeparateMenuGeometry()
     onUseSeparateMenuWindowChanged: updateSeparateMenuGeometry()
@@ -107,6 +123,7 @@ Item {
                 }
                 open = true;
             }
+            view.updateOverlayInteractionActive();
         }
 
         function close() {
@@ -115,6 +132,7 @@ Item {
             closing = true;
             open = false;
             view.releaseInput();
+            view.updateOverlayInteractionActive();
         }
     }
 
@@ -872,8 +890,10 @@ Item {
                 id: inlineMenuAnimation
                 duration: 250
                 onRunningChanged: {
-                    if (!running && !menuController.open)
+                    if (!running && !menuController.open) {
                         menuController.closing = false;
+                        view.updateOverlayInteractionActive();
+                    }
                 }
             }
         }
@@ -909,6 +929,7 @@ Item {
             if (view.hostWindow)
                 view.hostWindow.requestActivate();
             menuController.closing = false;
+            view.updateOverlayInteractionActive();
         }
     }
 
@@ -922,9 +943,13 @@ Item {
         padding: 30
         onAboutToShow: {
             closeAction = 0;
+            sessionStopDialogActive = true;
+            view.updateOverlayInteractionActive();
         }
         onClosed: {
             view.releaseInput();
+            sessionStopDialogActive = false;
+            view.updateOverlayInteractionActive();
             if (closeAction)
                 Chiaki.stopSession(closeAction == 1);
         }
@@ -1015,6 +1040,7 @@ Item {
                 if (closeAction)
                     Chiaki.stopSession(closeAction === 1);
             }
+            view.updateOverlayInteractionActive();
         }
 
         Rectangle {
@@ -1100,8 +1126,14 @@ Item {
                 return pinField.acceptableInput;
             });
             view.grabInput(pinField);
+            sessionPinDialogActive = true;
+            view.updateOverlayInteractionActive();
         }
-        onClosed: view.releaseInput()
+        onClosed: {
+            view.releaseInput();
+            sessionPinDialogActive = false;
+            view.updateOverlayInteractionActive();
+        }
         onAccepted: Chiaki.enterPin(pinField.text)
         onRejected: Chiaki.stopSession(false)
         Material.roundedScale: Material.MediumScale
@@ -1141,6 +1173,7 @@ Item {
             } else {
                 view.releaseInput();
             }
+            view.updateOverlayInteractionActive();
         }
 
         Rectangle {
@@ -1242,6 +1275,7 @@ Item {
                 separateSessionPinWindow.visible = true;
             else
                 sessionPinDialog.open();
+            Chiaki.window.requestOverlayUpdate();
         }
 
         function onSessionStopDialogRequested() {
@@ -1252,6 +1286,7 @@ Item {
                 separateSessionStopWindow.visible = true;
             else
                 sessionStopDialog.open();
+            Chiaki.window.requestOverlayUpdate();
         }
     }
 
@@ -1267,6 +1302,7 @@ Item {
             if (sessionPinDialog.opened || sessionStopDialog.opened || separateSessionPinWindow.visible || separateSessionStopWindow.visible)
                 return;
             menuController.toggle();
+            Chiaki.window.requestOverlayUpdate();
         }
     }
     Connections {

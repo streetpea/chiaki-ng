@@ -140,6 +140,8 @@ public:
 
     Q_INVOKABLE void grabInput();
     Q_INVOKABLE void releaseInput();
+    Q_INVOKABLE void requestOverlayUpdate();
+    Q_INVOKABLE void setOverlayInteractionActive(bool active);
 
 public slots:
     void resetPlaceboQueue();
@@ -258,6 +260,7 @@ private:
     double last_throttle_interval_s = 0.0;
     QAtomicInteger<int> present_backpressure_active = 0;
     QAtomicInteger<int> present_pace_timer_rearm = 0;
+    QAtomicInteger<int> overlay_interaction_active = 0;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
     int grab_input = 0;
