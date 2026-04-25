@@ -1227,6 +1227,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         else
             window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
     }
+    if (connect_info.video_profile.width > 0 && connect_info.video_profile.height > 0)
+        window->presentStartupWarmupFrame(connect_info.video_profile.width,
+                                          connect_info.video_profile.height,
+                                          connect_info.video_profile.codec == CHIAKI_CODEC_H265_HDR);
 }
 
 bool QmlBackend::closeRequested()

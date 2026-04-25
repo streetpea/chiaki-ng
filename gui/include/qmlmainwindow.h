@@ -142,6 +142,7 @@ public:
     Q_INVOKABLE void releaseInput();
     Q_INVOKABLE void requestOverlayUpdate();
     Q_INVOKABLE void setOverlayInteractionActive(bool active);
+    Q_INVOKABLE void presentStartupWarmupFrame(unsigned width, unsigned height, bool hdr);
 
 public slots:
     void resetPlaceboQueue();
@@ -187,6 +188,7 @@ private:
     void scheduleBufferedUpdate(UpdateRequestReason reason);
     void scheduleRenderIfBacklog(UpdateRequestReason reason = UpdateRequestReason::PendingFrame);
     void handleBufferedPlaybackWake(qint64 timer_fire_us);
+    void completeStartupVideoVisibility(quint64 generation);
     bool throttleFramePresentation(double interval_s);
     void handleDeferredPresentWake(qint64 timer_fire_us);
     bool enqueueDeferredSwap(qint64 submit_begin_us,
@@ -218,19 +220,21 @@ private:
     int effectiveQueueDepthLimit() const;
     int pendingFrameOverflowLimit(int submission_depth_limit) const;
     void clearPendingFrameStateLocked();
+    void prunePendingFramesBeforeLocked(double cutoff_pts);
     void insertPendingOverflowLocked(PendingFrameEntry entry);
     bool takePendingFrameLocked(PendingFrameEntry &entry);
     bool dropPendingFrameLocked();
     void resetQueueDepthTracking();
     bool promotePendingFrameFromOverflowLocked();
-    bool storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership = false);
+    bool storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership = false, bool synthetic_warmup = false);
     bool storeResetSeedFrame(const AVFrame *frame, double pts, float duration, quint64 generation);
     bool storeResetSeedFromPendingFrame(quint64 generation);
     bool cloneNewestPendingFrameLocked(AVFrame *&clone, double &pts, float &duration, uint64_t *stored_us = nullptr);
     bool applyKeptFrameSnapshot();
     bool applyResetSeedFrame(quint64 generation);
     bool queueStoredFrame(AVFrame *frame, double pts, float duration,
-                          void (*discard_cb)(const struct pl_source_frame *));
+                          void (*discard_cb)(const struct pl_source_frame *),
+                          bool synthetic_warmup = false);
     void refreshPendingFrameAge();
     void snapshotPendingFrame();
     bool handleShortcut(QKeyEvent *event);
@@ -240,6 +244,7 @@ private:
     void updatePendingFrameAge(double age);
     void snapshotLastFrame(AVFrame *frame, double pts, float duration, bool take_ownership = false);
     void clearSnapshotFrame();
+    bool hasBufferedWork();
     bool enqueueKeptFrame(double queue_pts_origin_hint, bool deinterlace_enabled, double &used_origin);
     const struct pl_filter_config *effectiveFrameMixerConfig(const struct pl_render_params *render_params = nullptr) const;
     bool effectiveFrameMixerEnabled(const struct pl_render_params *render_params = nullptr) const;
@@ -305,6 +310,7 @@ private:
     QAtomicInteger<int> render_pending_during_cycle = 0;
     QAtomicInteger<int> last_update_request_reason = 0;
     QAtomicInteger<int> queue_stored_frame_pending = 0;
+    QAtomicInteger<int> pending_frame_submission_active = 0;
     QMutex pending_frame_mutex;
     struct PendingFrameEntry {
         AVFrame *frame = nullptr;
@@ -312,9 +318,11 @@ private:
         float duration = 0.0f;
         double queue_origin = 0.0;
         uint64_t stored_us = 0;
+        bool synthetic_warmup = false;
     };
     AVFrame *pending_frame = nullptr;
     std::deque<PendingFrameEntry> pending_frame_overflow;
+    bool pending_frame_synthetic_warmup = false;
     double pending_pts = 0.0;
     float pending_duration = 0.0f;
     double pending_frame_queue_origin = 0.0;
@@ -344,7 +352,10 @@ private:
     QAtomicInteger<quint64> placebo_reset_throttle_generation = 0;
     QAtomicInteger<int> render_active = 0;
     QAtomicInteger<int> deferred_present_in_flight = 0;
-    bool vulkan_deferred_swap_enabled = true;
+    QAtomicInteger<int> startup_video_visible_pending = 0;
+    QAtomicInteger<quint64> startup_video_visible_generation = 0;
+    bool startup_warmup_frame_active = false;
+    bool vulkan_deferred_swap_enabled = false;
     bool present_vsync_enabled = true;
 
     QVulkanInstance *qt_vk_inst = {};

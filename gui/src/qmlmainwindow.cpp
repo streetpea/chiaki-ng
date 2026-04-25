@@ -13,6 +13,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/pixfmt.h>
@@ -337,7 +338,11 @@ protected:
                 QMutexLocker locker(&mutex);
                 if (!has_pending_task) {
                     QMetaObject::invokeMethod(owner, [owner = this->owner]() {
-                        if (owner)
+                        if (!owner)
+                            return;
+                        if (owner->hasBufferedWork())
+                            owner->scheduleUpdate(false, QmlMainWindow::UpdateRequestReason::PendingFrame);
+                        else
                             owner->scheduleUpdate(false, QmlMainWindow::UpdateRequestReason::FinalizePending);
                     }, Qt::QueuedConnection);
                 }
@@ -2023,6 +2028,62 @@ static AVFrame *make_fallback_snapshot_frame(const AVFrame *frame)
     return copy;
 }
 
+static AVFrame *make_startup_warmup_frame(unsigned width, unsigned height, bool hdr)
+{
+    if (width == 0 || height == 0)
+        return nullptr;
+
+    const enum AVPixelFormat format = hdr ? AV_PIX_FMT_YUV420P10LE : AV_PIX_FMT_YUV420P;
+    AVFrame *frame = av_frame_alloc();
+    if (!frame)
+        return nullptr;
+
+    frame->format = format;
+    frame->width = static_cast<int>(width);
+    frame->height = static_cast<int>(height);
+    frame->sample_aspect_ratio = AVRational{1, 1};
+    frame->colorspace = hdr ? AVCOL_SPC_BT2020_NCL : AVCOL_SPC_BT709;
+    frame->color_range = AVCOL_RANGE_MPEG;
+    frame->color_primaries = hdr ? AVCOL_PRI_BT2020 : AVCOL_PRI_BT709;
+    frame->color_trc = hdr ? AVCOL_TRC_SMPTE2084 : AVCOL_TRC_BT709;
+
+    if (av_frame_get_buffer(frame, 32) < 0) {
+        av_frame_free(&frame);
+        return nullptr;
+    }
+    if (av_frame_make_writable(frame) < 0) {
+        av_frame_free(&frame);
+        return nullptr;
+    }
+
+    const int chroma_width = (frame->width + 1) / 2;
+    const int chroma_height = (frame->height + 1) / 2;
+    if (format == AV_PIX_FMT_YUV420P) {
+        for (int y = 0; y < frame->height; ++y)
+            memset(frame->data[0] + y * frame->linesize[0], 16, frame->width);
+        for (int y = 0; y < chroma_height; ++y) {
+            memset(frame->data[1] + y * frame->linesize[1], 128, chroma_width);
+            memset(frame->data[2] + y * frame->linesize[2], 128, chroma_width);
+        }
+    } else {
+        for (int y = 0; y < frame->height; ++y) {
+            auto *row = reinterpret_cast<uint16_t *>(frame->data[0] + y * frame->linesize[0]);
+            for (int x = 0; x < frame->width; ++x)
+                row[x] = 64;
+        }
+        for (int y = 0; y < chroma_height; ++y) {
+            auto *row_u = reinterpret_cast<uint16_t *>(frame->data[1] + y * frame->linesize[1]);
+            auto *row_v = reinterpret_cast<uint16_t *>(frame->data[2] + y * frame->linesize[2]);
+            for (int x = 0; x < chroma_width; ++x) {
+                row_u[x] = 512;
+                row_v[x] = 512;
+            }
+        }
+    }
+
+    return frame;
+}
+
 static QString shader_cache_path()
 {
     static QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/pl_shader.cache";
@@ -2376,6 +2437,25 @@ void QmlMainWindow::requestOverlayUpdate()
     scheduleUpdate(true, UpdateRequestReason::Unknown);
 }
 
+void QmlMainWindow::presentStartupWarmupFrame(unsigned width, unsigned height, bool hdr)
+{
+    if (has_video || width == 0 || height == 0)
+        return;
+
+    AVFrame *frame = make_startup_warmup_frame(width, height, hdr);
+    if (!frame)
+        return;
+    startup_warmup_frame_active = true;
+    ChiakiFfmpegFrame warmup_frame = {
+        .frame = frame,
+        .pts = 0.0,
+        .duration = source_frame_interval_ms > 0.0 ? source_frame_interval_ms / 1000.0 : 1.0 / 60.0,
+        .recovered = false,
+    };
+    presentFrame(warmup_frame, 0);
+    startup_warmup_frame_active = false;
+}
+
 void QmlMainWindow::setOverlayInteractionActive(bool active)
 {
     const int previous = overlay_interaction_active.fetchAndStoreRelaxed(active ? 1 : 0);
@@ -2555,11 +2635,16 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     if (!frame.frame)
         return;
 
+    const bool synthetic_warmup_frame = startup_warmup_frame_active;
+    double frame_queue_origin = synthetic_warmup_frame ? 0.0 : queue_pts_origin;
+
     if (frame.recovered)
     {
-        const bool stored_pending = storePendingFrame(frame, true);
+        const bool stored_pending = storePendingFrame(frame, true, synthetic_warmup_frame);
         if (stored_pending)
             snapshotPendingFrame();
+        if (stored_pending && !synthetic_warmup_frame && !has_video && startup_video_visible_pending.loadAcquire() == 0)
+            startup_video_visible_pending.storeRelease(1);
         if (frame.frame)
             av_frame_free(&frame.frame);
         bool need_reset = false;
@@ -2585,25 +2670,32 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
 
     frame.frame->opaque = this;
 
-    if (frame.duration > 0.0f)
+    if (!synthetic_warmup_frame && frame.duration > 0.0f)
         source_frame_interval_ms = 1000.0 * frame.duration;
     bool deinterlace_enabled = false;
-    {
-        QMutexLocker locker(&placebo_state_mutex);
-        if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
-            logPtsRollback("presentFrame/rollback", frame.pts, queue_pts_origin, false, frame.duration * 1000.0);
-            pl_queue_reset(placebo_queue);
-            resetQueueDepthTracking();
-            ts_start = 0;
-            queue_pts_origin = frame.pts;
-            newest_queued_frame_pts = -1.0;
-            playback_started = false;
-        }
+        if (!synthetic_warmup_frame) {
+            QMutexLocker locker(&placebo_state_mutex);
+            if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
+                logPtsRollback("presentFrame/rollback", frame.pts, queue_pts_origin, false, frame.duration * 1000.0);
+                pl_queue_reset(placebo_queue);
+                resetQueueDepthTracking();
+                ts_start = 0;
+                queue_pts_origin = frame.pts;
+                newest_queued_frame_pts = -1.0;
+                playback_started = false;
+                frame_queue_origin = queue_pts_origin;
+                {
+                    QMutexLocker pending_locker(&pending_frame_mutex);
+                    prunePendingFramesBeforeLocked(frame.pts);
+                }
+            }
+        deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
+    } else {
         deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
     }
 
     struct pl_source_frame src_frame{
-        .pts = frame.pts - queue_pts_origin,
+        .pts = frame.pts - frame_queue_origin,
         .duration = static_cast<float>(frame.duration),
         // allow soft-disabling deinterlacing at the source frame level
         .first_field = deinterlace_enabled
@@ -2615,8 +2707,8 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         .discard = discard_frame,
     };
     const int depth_limit = effectiveQueueDepthLimit();
-    // In non-mixer mode the effective depth_limit is already 2 (current + next),
-    // which is the minimum libplacebo needs to advance past a displayed frame.
+    // In non-mixer mode the effective depth_limit is already 2, which is the
+    // minimum libplacebo needs to advance past a displayed frame.
     const int submission_depth_limit = depth_limit;
     bool queued = false;
     bool depth_exceeded = false;
@@ -2624,6 +2716,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     const bool render_busy = render_active.loadAcquire() != 0;
     bool render_scheduled_now = false;
     bool render_pending_now = false;
+    const bool pending_submission_active = pending_frame_submission_active.loadAcquire() != 0;
     const bool should_rearm_stored_frame = [&]() {
         QMutexLocker locker(&render_schedule_mutex);
         render_scheduled_now = render_scheduled;
@@ -2631,11 +2724,11 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         return !render_busy &&
                !render_scheduled &&
                !render_pending &&
+               !pending_submission_active &&
                queue_stored_frame_pending.loadAcquire() == 0 &&
                pending_frame_present.loadAcquire() == 0;
     }();
     const bool render_pipeline_busy = render_busy || render_scheduled_now || render_pending_now;
-    const bool allow_burst_submission = configuredFrameMixerEnabledForScheduling();
     AVFrame *promoted_frame = nullptr;
     double promoted_pts = 0.0;
     float promoted_duration = 0.0f;
@@ -2651,7 +2744,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
         QMutexLocker locker(&placebo_state_mutex);
         const int depth = pl_queue_num_frames(placebo_queue);
         queue_depth_snapshot = depth;
-        const bool pending_exists = pending_frame_present.loadAcquire() != 0;
+        const bool pending_exists = pending_frame_present.loadAcquire() != 0 || pending_submission_active;
         pending_exists_snapshot = pending_exists;
         const int tolerated_depth = submission_depth_limit + (pending_exists ? 1 : 0);
         depth_exceeded = depth >= tolerated_depth;
@@ -2694,10 +2787,16 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
             CHIAKI_NOISY_DEBUG().nospace()
                 << "[latency] pl_queue_push_us=" << (push_end_us - push_begin_us)
                 << " queue_depth=" << pl_queue_num_frames(placebo_queue);
-            newest_queued_frame_pts = qMax(newest_queued_frame_pts, frame.pts);
+            if (!synthetic_warmup_frame)
+                newest_queued_frame_pts = qMax(newest_queued_frame_pts, frame.pts);
             queued = true;
         }
     }
+
+    auto armStartupVisibility = [this, synthetic_warmup_frame]() {
+        if (!synthetic_warmup_frame && !has_video && startup_video_visible_pending.loadAcquire() == 0)
+            startup_video_visible_pending.storeRelease(1);
+    };
     {
         const qint64 idle_us = last_render_idle_us.loadAcquire();
         const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -2743,7 +2842,6 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     }
     bool promoted_frame_queued = false;
     if (promote_pending) {
-        bool queued_after_promotion = false;
         if (promoted_frame) {
             struct pl_source_frame promoted_src_frame = {
                 .pts = promoted_pts - promoted_queue_origin,
@@ -2772,18 +2870,6 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                     // queued/queued_after_promotion here — the current frame
                     // still needs to go through the storage/free path below.
                     promoted_frame_queued = true;
-                    if (allow_burst_submission && pl_queue_num_frames(placebo_queue) < submission_depth_limit) {
-                        const qint64 push2_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-                        pl_queue_push(placebo_queue, &src_frame);
-                        const qint64 push2_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-                        logLatencyStats("pl_queue_push", push2_end_us - push2_begin_us);
-                        CHIAKI_NOISY_DEBUG().nospace()
-                            << "[latency] pl_queue_push_after_promote_us=" << (push2_end_us - push2_begin_us)
-                            << " queue_depth=" << pl_queue_num_frames(placebo_queue);
-                        newest_queued_frame_pts = qMax(newest_queued_frame_pts, frame.pts);
-                        queued = true;
-                        queued_after_promotion = true;
-                    }
                 }
             }
             logPendingFrameLifecycle("promoted",
@@ -2796,37 +2882,39 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
                                      render_busy,
                                      true);
         }
-        if (!queued_after_promotion) {
-            if (storePendingFrame(frame, true))
-                snapshotPendingFrame();
-            if (frame.frame)
-                av_frame_free(&frame.frame);
-            // Schedule even when render pipeline is busy: a promoted frame
-            // was just queued so we must re-arm to consume it.
-            if (should_rearm_stored_frame || promoted_frame_queued)
-                scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
-            return;
+        if (storePendingFrame(frame, true, synthetic_warmup_frame)) {
+            snapshotPendingFrame();
+            armStartupVisibility();
         }
+        if (frame.frame)
+            av_frame_free(&frame.frame);
+        // Schedule even when render pipeline is busy: a promoted frame
+        // was just queued so we must re-arm to consume it.
+        if (should_rearm_stored_frame || promoted_frame_queued)
+            scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
+        return;
     }
     if (!queued)
-    {
-        const char *gate_reason = pending_exists_snapshot ? "pending_exists" : (depth_exceeded ? "queue_full" : "not_queued");
-        logPendingFrameGate("store_pending",
-                            gate_reason,
+        {
+            const char *gate_reason = pending_exists_snapshot ? "pending_exists" : (depth_exceeded ? "queue_full" : "not_queued");
+            logPendingFrameGate("store_pending",
+                                gate_reason,
                             frame.pts,
                             -1,
                             queue_depth_snapshot,
                             submission_depth_limit,
                             render_busy,
                             render_scheduled_now,
-                            render_pending_now,
-                            pending_exists_snapshot,
-                            has_capacity_snapshot);
+                                render_pending_now,
+                                pending_exists_snapshot,
+                                has_capacity_snapshot);
         const quint64 reset_seed_generation = reset_seed_capture_generation.loadAcquire();
         if (reset_seed_capture_active.loadAcquire() != 0 && reset_seed_generation != 0)
             storeResetSeedFrame(frame.frame, frame.pts, frame.duration, reset_seed_generation);
-        if (storePendingFrame(frame, true))
+        if (storePendingFrame(frame, true, synthetic_warmup_frame)) {
             snapshotPendingFrame();
+            armStartupVisibility();
+        }
         if (frame.frame)
             av_frame_free(&frame.frame);
         if (should_rearm_stored_frame)
@@ -2874,29 +2962,26 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     if (dropped_stale_pending)
         refreshPendingFrameAge();
 
-    {
-        const quint64 reset_seed_generation = reset_seed_capture_generation.loadAcquire();
-        if (reset_seed_capture_active.loadAcquire() != 0 && reset_seed_generation != 0)
-            storeResetSeedFrame(frame.frame, frame.pts, frame.duration, reset_seed_generation);
+    if (!synthetic_warmup_frame) {
+        {
+            const quint64 reset_seed_generation = reset_seed_capture_generation.loadAcquire();
+            if (reset_seed_capture_active.loadAcquire() != 0 && reset_seed_generation != 0)
+                storeResetSeedFrame(frame.frame, frame.pts, frame.duration, reset_seed_generation);
+        }
+
+        snapshotLastFrame(frame.frame, frame.pts, frame.duration);
+
+        if (!playback_started) {
+            uint64_t now_us = chiaki_time_now_monotonic_us();
+            uint64_t frame_pts_us = src_frame.pts > 0.0
+                ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
+                : 0;
+            ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
+            playback_started = true;
+        }
     }
 
-    snapshotLastFrame(frame.frame, frame.pts, frame.duration);
-
-    if (!playback_started) {
-        uint64_t now_us = chiaki_time_now_monotonic_us();
-        uint64_t frame_pts_us = src_frame.pts > 0.0
-            ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
-            : 0;
-        ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
-        playback_started = true;
-    }
-
-    if (!has_video) {
-        has_video = true;
-        if (!grab_input && settings->GetHideCursor())
-            setCursor(Qt::BlankCursor);
-        emit hasVideoChanged();
-    }
+    armStartupVisibility();
     if (queued) {
         if (should_rearm_stored_frame || promoted_frame_queued)
             scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
@@ -3076,7 +3161,7 @@ void QmlMainWindow::updatePendingFrameAge(double age)
     emit pendingFrameAgeChanged();
 }
 
-bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership)
+bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_ownership, bool synthetic_warmup)
 {
     if (!frame.frame)
         return false;
@@ -3086,18 +3171,6 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
     const int submission_depth_limit = depth_limit;
     bool queued_existing = false;
     bool replaced_existing = false;
-    {
-        QMutexLocker locker(&pending_frame_mutex);
-        const double newest_pending_pts = pending_frame_overflow.empty()
-            ? pending_pts
-            : pending_frame_overflow.back().pts;
-        if (pending_frame && frame.pts <= newest_pending_pts + 1e-6) {
-            logDroppedFrameReason("stale_pending_reject", static_cast<qint64>(chiaki_time_now_monotonic_us()), frame.pts,
-                                  "before pending insert");
-            increaseDroppedFrames();
-            return false;
-        }
-    }
 
     AVFrame *stored_frame = take_ownership ? frame.frame : av_frame_clone(frame.frame);
     if (!stored_frame)
@@ -3117,30 +3190,59 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
         const uint64_t now_us = chiaki_time_now_monotonic_us();
         if (!pending_frame) {
             pending_frame = stored_frame;
+            pending_frame_synthetic_warmup = synthetic_warmup;
             pending_pts = frame.pts;
             pending_duration = frame.duration;
             pending_frame_queue_origin = queue_origin;
             pending_frame_stored_us = now_us;
         } else {
-            const size_t overflow_limit = static_cast<size_t>(pendingFrameOverflowLimit(submission_depth_limit));
-            if (pending_frame_overflow.size() >= overflow_limit) {
-                PendingFrameEntry dropped = std::move(pending_frame_overflow.front());
-                pending_frame_overflow.pop_front();
-                if (dropped.frame) {
-                    logDroppedFrameReason("pending_overflow_evict", static_cast<qint64>(chiaki_time_now_monotonic_us()), dropped.pts,
-                                          "overflow queue full");
+            if (pending_frame_synthetic_warmup && !synthetic_warmup) {
+                av_frame_free(&pending_frame);
+                pending_frame = stored_frame;
+                pending_frame_synthetic_warmup = false;
+                pending_pts = frame.pts;
+                pending_duration = frame.duration;
+                pending_frame_queue_origin = queue_origin;
+                pending_frame_stored_us = now_us;
+                replaced_existing = true;
+            } else {
+                const double newest_pending_pts = pending_frame_overflow.empty()
+                    ? pending_pts
+                    : pending_frame_overflow.back().pts;
+                if (frame.pts <= newest_pending_pts + 1e-6) {
+                    logDroppedFrameReason("stale_pending_reject", static_cast<qint64>(chiaki_time_now_monotonic_us()), frame.pts,
+                                          "before pending insert");
+                    qCInfo(chiakiGui)
+                        << "Dropping stale pending frame before overflow insert"
+                        << "frame_pts=" << frame.pts
+                        << "newest_pending_pts=" << newest_pending_pts;
                     increaseDroppedFrames();
-                    av_frame_free(&dropped.frame);
+                    av_frame_free(&stored_frame);
+                    if (take_ownership)
+                        frame.frame = nullptr;
+                    return false;
                 }
+                const size_t overflow_limit = static_cast<size_t>(pendingFrameOverflowLimit(submission_depth_limit));
+                if (pending_frame_overflow.size() >= overflow_limit) {
+                    PendingFrameEntry dropped = std::move(pending_frame_overflow.front());
+                    pending_frame_overflow.pop_front();
+                    if (dropped.frame) {
+                        logDroppedFrameReason("pending_overflow_evict", static_cast<qint64>(chiaki_time_now_monotonic_us()), dropped.pts,
+                                              "overflow queue full");
+                        increaseDroppedFrames();
+                        av_frame_free(&dropped.frame);
+                    }
+                }
+                insertPendingOverflowLocked({
+                    stored_frame,
+                    frame.pts,
+                    static_cast<float>(frame.duration),
+                    queue_origin,
+                    now_us,
+                    synthetic_warmup,
+                });
+                replaced_existing = true;
             }
-            insertPendingOverflowLocked({
-                stored_frame,
-                frame.pts,
-                static_cast<float>(frame.duration),
-                queue_origin,
-                now_us,
-            });
-            replaced_existing = true;
         }
 
         pending_frame_present.storeRelease(1);
@@ -3308,6 +3410,7 @@ void QmlMainWindow::clearPendingFrameStateLocked()
     pending_duration = 0.0f;
     pending_frame_queue_origin = 0.0;
     pending_frame_stored_us = 0;
+    pending_frame_synthetic_warmup = false;
     while (!pending_frame_overflow.empty()) {
         PendingFrameEntry entry = std::move(pending_frame_overflow.front());
         pending_frame_overflow.pop_front();
@@ -3316,6 +3419,60 @@ void QmlMainWindow::clearPendingFrameStateLocked()
     }
     pending_frame_present.storeRelease(0);
     queue_stored_frame_pending.storeRelease(0);
+    pending_frame_submission_active.storeRelease(0);
+}
+
+void QmlMainWindow::prunePendingFramesBeforeLocked(double cutoff_pts)
+{
+    if (cutoff_pts < 0.0)
+        return;
+
+    constexpr double pts_epsilon = 1e-6;
+    const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+
+    auto drop_entry = [&](PendingFrameEntry &entry, const char *reason) {
+        if (!entry.frame)
+            return;
+        logDroppedFrameReason(reason, now_us, entry.pts, "rollback cleanup");
+        increaseDroppedFrames();
+        av_frame_free(&entry.frame);
+    };
+
+    if (pending_frame && (
+            pending_pts + pts_epsilon < cutoff_pts ||
+            (pending_frame_synthetic_warmup && pending_pts <= cutoff_pts + pts_epsilon))) {
+        PendingFrameEntry dropped;
+        dropped.frame = pending_frame;
+        dropped.pts = pending_pts;
+        dropped.duration = pending_duration;
+        dropped.queue_origin = pending_frame_queue_origin;
+        dropped.stored_us = pending_frame_stored_us;
+        pending_frame = nullptr;
+        pending_frame_synthetic_warmup = false;
+        pending_pts = 0.0;
+        pending_duration = 0.0f;
+        pending_frame_queue_origin = 0.0;
+        pending_frame_stored_us = 0;
+        drop_entry(dropped, "rollback_pending_prune");
+    }
+
+    while (!pending_frame_overflow.empty() && (
+                pending_frame_overflow.front().pts + pts_epsilon < cutoff_pts ||
+                (pending_frame_overflow.front().synthetic_warmup &&
+                 pending_frame_overflow.front().pts <= cutoff_pts + pts_epsilon))) {
+        PendingFrameEntry dropped = std::move(pending_frame_overflow.front());
+        pending_frame_overflow.pop_front();
+        drop_entry(dropped, "rollback_pending_prune");
+    }
+
+    if (!pending_frame && !pending_frame_overflow.empty())
+        promotePendingFrameFromOverflowLocked();
+
+    const bool pending_now = pending_frame != nullptr || !pending_frame_overflow.empty();
+    pending_frame_present.storeRelease(pending_now ? 1 : 0);
+    queue_stored_frame_pending.storeRelease(pending_now ? 1 : 0);
+    if (!pending_now)
+        pending_frame_release_queued.storeRelease(0);
 }
 
 bool QmlMainWindow::cloneNewestPendingFrameLocked(AVFrame *&clone, double &pts, float &duration, uint64_t *stored_us)
@@ -3374,6 +3531,7 @@ bool QmlMainWindow::promotePendingFrameFromOverflowLocked()
     PendingFrameEntry entry = std::move(pending_frame_overflow.front());
     pending_frame_overflow.pop_front();
     pending_frame = entry.frame;
+    pending_frame_synthetic_warmup = entry.synthetic_warmup;
     pending_pts = entry.pts;
     pending_duration = entry.duration;
     pending_frame_queue_origin = entry.queue_origin;
@@ -3395,12 +3553,14 @@ bool QmlMainWindow::takePendingFrameLocked(PendingFrameEntry &entry)
     entry.duration = pending_duration;
     entry.queue_origin = pending_frame_queue_origin;
     entry.stored_us = pending_frame_stored_us;
+    entry.synthetic_warmup = pending_frame_synthetic_warmup;
 
     pending_frame = nullptr;
     pending_pts = 0.0;
     pending_duration = 0.0f;
     pending_frame_queue_origin = 0.0;
     pending_frame_stored_us = 0;
+    pending_frame_synthetic_warmup = false;
     promotePendingFrameFromOverflowLocked();
     return true;
 }
@@ -3413,6 +3573,7 @@ bool QmlMainWindow::dropPendingFrameLocked()
     pending_duration = 0.0f;
     pending_frame_queue_origin = 0.0;
     pending_frame_stored_us = 0;
+    pending_frame_synthetic_warmup = false;
     return promotePendingFrameFromOverflowLocked();
 }
 
@@ -3552,7 +3713,8 @@ bool QmlMainWindow::enqueueKeptFrame(double queue_pts_origin_hint, bool deinterl
 }
 
 bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
-                                     void (*discard_cb)(const struct pl_source_frame *))
+                                     void (*discard_cb)(const struct pl_source_frame *),
+                                     bool synthetic_warmup)
 {
     if (!frame)
         return false;
@@ -3575,7 +3737,7 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
     }
     {
         QMutexLocker locker(&placebo_state_mutex);
-        if (newest_queued_frame_pts >= 0.0 && pts <= newest_queued_frame_pts + 1e-6) {
+        if (!synthetic_warmup && newest_queued_frame_pts >= 0.0 && pts <= newest_queued_frame_pts + 1e-6) {
             logDroppedFrameReason("stale_stored_frame", static_cast<qint64>(chiaki_time_now_monotonic_us()), pts,
                                   "before queue submission");
             qCInfo(chiakiGui)
@@ -3588,13 +3750,19 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         }
         const bool preserve_timeline = preserve_playback_timeline;
         preserve_playback_timeline = false;
-        if (queue_pts_origin < 0.0 || pts + 1e-6 < queue_pts_origin) {
+        double queue_origin = synthetic_warmup ? pts : queue_pts_origin;
+        if (!synthetic_warmup && (queue_pts_origin < 0.0 || pts + 1e-6 < queue_pts_origin)) {
             logPtsRollback("applyPendingFrame/rollback", pts, queue_pts_origin, preserve_timeline, duration * 1000.0);
             pl_queue_reset(placebo_queue);
             resetQueueDepthTracking();
             const double old_origin = queue_pts_origin;
             queue_pts_origin = pts;
+            queue_origin = queue_pts_origin;
             newest_queued_frame_pts = -1.0;
+            {
+                QMutexLocker pending_locker(&pending_frame_mutex);
+                prunePendingFramesBeforeLocked(pts);
+            }
             if (preserve_timeline && old_origin >= 0.0 && playback_started) {
                 const double delta_pts = queue_pts_origin - old_origin;
                 const int64_t delta_us = static_cast<int64_t>(delta_pts * 1000000.0);
@@ -3609,7 +3777,7 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         }
         deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
         src_frame = {
-            .pts = pts - queue_pts_origin,
+            .pts = pts - queue_origin,
             .duration = static_cast<float>(duration),
             .first_field = deinterlace_enabled
                 ? pl_field_from_avframe(frame)
@@ -3630,7 +3798,8 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
             CHIAKI_NOISY_DEBUG().nospace()
                 << "[latency] pl_queue_push_stored_us=" << (push_end_us - push_begin_us)
                 << " queue_depth=" << pl_queue_num_frames(placebo_queue);
-            newest_queued_frame_pts = qMax(newest_queued_frame_pts, pts);
+            if (!synthetic_warmup)
+                newest_queued_frame_pts = qMax(newest_queued_frame_pts, pts);
         }
     }
 
@@ -3641,36 +3810,36 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
             .duration = duration,
             .recovered = false,
         };
-        const bool stored = storePendingFrame(deferred_frame, true);
+        const bool stored = storePendingFrame(deferred_frame, true, synthetic_warmup);
         if (!stored) {
             av_frame_free(&frame);
             return false;
         }
+        if (!synthetic_warmup && !has_video && startup_video_visible_pending.loadAcquire() == 0)
+            startup_video_visible_pending.storeRelease(1);
         if (queue_stored_frame_pending.fetchAndStoreRelaxed(1) == 0)
             scheduleUpdate(false, UpdateRequestReason::PendingFrame);
         return true;
     }
 
-    uint64_t now_us = chiaki_time_now_monotonic_us();
-    uint64_t frame_pts_us = src_frame.pts > 0.0
-        ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
-        : 0;
-    if (!playback_started) {
-        ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
-        playback_started = true;
-    } else if (ts_start) {
-        const double current_pts = static_cast<double>(now_us - ts_start) / 1000000.0;
-        const double catch_up_threshold = qMax(static_cast<double>(duration) * 2.0, 0.05);
-        if (src_frame.pts > current_pts + catch_up_threshold)
+    if (!synthetic_warmup) {
+        uint64_t now_us = chiaki_time_now_monotonic_us();
+        uint64_t frame_pts_us = src_frame.pts > 0.0
+            ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
+            : 0;
+        if (!playback_started) {
             ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
+            playback_started = true;
+        } else if (ts_start) {
+            const double current_pts = static_cast<double>(now_us - ts_start) / 1000000.0;
+            const double catch_up_threshold = qMax(static_cast<double>(duration) * 2.0, 0.05);
+            if (src_frame.pts > current_pts + catch_up_threshold)
+                ts_start = frame_pts_us < now_us ? now_us - frame_pts_us : 0;
+        }
     }
 
-    if (!has_video) {
-        has_video = true;
-        if (!grab_input && settings->GetHideCursor())
-            setCursor(Qt::BlankCursor);
-        emit hasVideoChanged();
-    }
+    if (!synthetic_warmup && !has_video && startup_video_visible_pending.loadAcquire() == 0)
+        startup_video_visible_pending.storeRelease(1);
     if (queue_stored_frame_pending.fetchAndStoreRelaxed(1) == 0) {
         if (stream_session_active.loadAcquire() != 0 && configuredFrameMixerEnabledForScheduling())
             scheduleBufferedUpdate(UpdateRequestReason::QueueStoredFrame);
@@ -3705,6 +3874,11 @@ bool QmlMainWindow::applyResetSeedFrame(quint64 generation)
         reset_seed_generation = 0;
     }
 
+    {
+        QMutexLocker locker(&pending_frame_mutex);
+        prunePendingFramesBeforeLocked(pts);
+    }
+
     return queueStoredFrame(frame, pts, duration, discard_frame);
 }
 
@@ -3734,8 +3908,10 @@ void QmlMainWindow::applyPendingFrame()
     bool pending_still_present = false;
     {
         QMutexLocker locker(&pending_frame_mutex);
+        pending_frame_submission_active.storeRelease(1);
         if (!takePendingFrameLocked(pending_entry))
         {
+            pending_frame_submission_active.storeRelease(0);
             updatePendingFrameAge(0.0);
             return;
         }
@@ -3782,8 +3958,15 @@ void QmlMainWindow::applyPendingFrame()
         pending_queue_depth = pl_queue_num_frames(placebo_queue);
     }
     const qint64 queue_stored_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-    queueStoredFrame(pending_entry.frame, pending_entry.pts, pending_entry.duration, discard_frame);
+    queueStoredFrame(pending_entry.frame,
+                     pending_entry.pts,
+                     pending_entry.duration,
+                     discard_frame,
+                     pending_entry.synthetic_warmup);
     const qint64 queue_stored_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    pending_frame_submission_active.storeRelease(0);
+    if (pending_still_present)
+        queuePendingFrameRelease();
     logLatencyStats("pending_apply_queueStoredFrame", queue_stored_end_us - queue_stored_begin_us);
     CHIAKI_NOISY_DEBUG().nospace()
         << "[latency] pending_apply_queueStoredFrame_us=" << (queue_stored_end_us - queue_stored_begin_us)
@@ -3890,6 +4073,22 @@ void QmlMainWindow::queuePendingFrameRelease()
 bool QmlMainWindow::hasPendingFrame() const
 {
     return pending_frame_present.loadAcquire() != 0;
+}
+
+bool QmlMainWindow::hasBufferedWork()
+{
+    {
+        QMutexLocker locker(&placebo_state_mutex);
+        if (placebo_queue && pl_queue_num_frames(placebo_queue) > 0)
+            return true;
+    }
+    if (hasPendingFrame())
+        return true;
+    if (pending_frame_submission_active.loadAcquire() != 0)
+        return true;
+    if (placebo_reset_pending.loadAcquire() != 0)
+        return true;
+    return false;
 }
 
 int QmlMainWindow::effectiveQueueDepthLimit() const
@@ -4328,6 +4527,7 @@ renderer_backend_ready:
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         session = s;
         stream_session_active.storeRelease(s ? 1 : 0);
+        startup_video_visible_generation.fetchAndAddRelaxed(1);
         grab_input = 0;
         if (session)
             session->BlockInput(0);
@@ -4367,6 +4567,7 @@ renderer_backend_ready:
         quick_begin_wait_last_us = 0;
         quick_render_skip_next = 0;
         queue_stored_frame_pending.storeRelease(0);
+        pending_frame_submission_active.storeRelease(0);
         {
             QMutexLocker locker(&pending_frame_mutex);
             clearPendingFrameStateLocked();
@@ -4385,6 +4586,7 @@ renderer_backend_ready:
             setCursor(Qt::ArrowCursor);
             emit hasVideoChanged();
         }
+        startup_video_visible_pending.storeRelease(0);
         if(session && exit_app_on_stream_exit)
         {
             connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
@@ -4714,17 +4916,7 @@ void QmlMainWindow::scheduleRenderIfBacklog(UpdateRequestReason reason)
     if (render_backend == RenderBackend::Vulkan && vulkan_deferred_swap_enabled && deferred_present_in_flight.loadAcquire() != 0)
         return;
 
-    bool has_backlog = false;
-    {
-        QMutexLocker locker(&placebo_state_mutex);
-        if (placebo_queue && pl_queue_num_frames(placebo_queue) > 0)
-            has_backlog = true;
-    }
-    if (!has_backlog && hasPendingFrame())
-        has_backlog = true;
-    if (!has_backlog && placebo_reset_pending.loadAcquire() != 0)
-        has_backlog = true;
-    if (has_backlog)
+    if (hasBufferedWork())
         scheduleUpdate(false, reason);
 }
 
@@ -4920,6 +5112,12 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
             logSwapInterval(swap_us);
             this->last_swap_return_us.storeRelease(swap_us);
             this->last_present_complete_us.storeRelease(swap_us);
+            if (startup_video_visible_pending.loadAcquire() != 0) {
+                const quint64 startup_visibility_generation = startup_video_visible_generation.loadAcquire();
+                QMetaObject::invokeMethod(this, [this, startup_visibility_generation]() {
+                    completeStartupVideoVisibility(startup_visibility_generation);
+                }, Qt::QueuedConnection);
+            }
             logPresentCompletionStats(swap_us,
                                       submit_begin_us,
                                       swap_us,
@@ -4942,8 +5140,27 @@ void QmlMainWindow::finalizeDeferredPresentIfIdle()
 {
     if (deferred_swap_thread && !deferred_swap_thread->isIdle())
         return;
-    if (deferred_present_in_flight.loadAcquire() == 0)
-        scheduleUpdate(false, UpdateRequestReason::FinalizePending);
+    if (deferred_present_in_flight.loadAcquire() == 0) {
+        if (hasBufferedWork())
+            scheduleUpdate(false, UpdateRequestReason::PendingFrame);
+        else
+            scheduleUpdate(false, UpdateRequestReason::FinalizePending);
+    }
+}
+
+void QmlMainWindow::completeStartupVideoVisibility(quint64 generation)
+{
+    if (startup_video_visible_generation.loadAcquire() != generation)
+        return;
+    if (startup_video_visible_pending.fetchAndStoreRelaxed(0) == 0)
+        return;
+    if (has_video)
+        return;
+
+    has_video = true;
+    if (!grab_input && settings->GetHideCursor())
+        setCursor(Qt::BlankCursor);
+    emit hasVideoChanged();
 }
 
 void QmlMainWindow::drainDeferredSwaps()
@@ -5185,6 +5402,7 @@ void QmlMainWindow::resizeSwapchain()
         quick_tex = new_quick_tex;
         swapchain_size = new_swapchain_size;
         quick_window->setRenderTarget(QQuickRenderTarget::fromOpenGLTexture(quick_fbo->texture(), quick_fbo->size()));
+        (void)0;
         doneOpenGLContextCurrent();
         return;
     }
@@ -5303,6 +5521,8 @@ void QmlMainWindow::beginFrame()
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         quick_vk_format,
         swapchain_size));
+    if (startup_video_visible_pending.loadAcquire() != 0)
+        scheduleUpdate(true, UpdateRequestReason::PendingFrame);
     quick_frame = true;
     const qint64 quick_qt_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     quick_render->beginFrame();
@@ -5608,7 +5828,7 @@ void QmlMainWindow::render()
     if (refresh_rate <= 1.0)
         refresh_rate = 60.0;
     const double refresh_interval_s = 1.0 / refresh_rate;
-    const bool pending_frame_waiting = hasPendingFrame();
+    const bool pending_frame_waiting = hasPendingFrame() || pending_frame_submission_active.loadAcquire() != 0;
     const double stream_interval_s = stream_configured_frame_interval_ms > 0.0
         ? stream_configured_frame_interval_ms / 1000.0
         : 0.0;
@@ -5722,6 +5942,18 @@ void QmlMainWindow::render()
     const qint64 start_frame_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     const int queue_depth_before_start = snapshotQueueDepth();
     const bool start_frame_backlogged = pending_frame_waiting;
+    if (start_frame_backlogged && queue_depth_before_start >= depth_limit) {
+        logRenderPhaseStall(start_frame_begin_us,
+                            "start_frame_deferred",
+                            0,
+                            queue_depth_before_start,
+                            depth_limit,
+                            pending_frame_waiting,
+                            render_active.loadAcquire() != 0,
+                            snapshotRenderScheduleState().first,
+                            snapshotRenderScheduleState().second);
+        finalize_render();
+    }
     const qint64 last_present_complete_us = this->last_present_complete_us.loadAcquire();
     if (last_present_complete_us > 0 && start_frame_begin_us >= last_present_complete_us) {
         const qint64 swap_to_start_gap_us = start_frame_begin_us - last_present_complete_us;
@@ -5974,8 +6206,15 @@ void QmlMainWindow::render()
                                           render_backend,
                                           false);
             }
-            if (present && !async_present_completion)
+            if (present && !async_present_completion) {
                 this->last_present_complete_us.storeRelease(present_complete_us);
+                if (startup_video_visible_pending.loadAcquire() != 0) {
+                    const quint64 startup_visibility_generation = startup_video_visible_generation.loadAcquire();
+                    QMetaObject::invokeMethod(this, [this, startup_visibility_generation]() {
+                        completeStartupVideoVisibility(startup_visibility_generation);
+                    }, Qt::QueuedConnection);
+                }
+            }
         }
         return true;
     };
@@ -6145,7 +6384,7 @@ void QmlMainWindow::render()
     }
 
     {
-        const qint64 render_setup_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    const qint64 render_setup_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     if (render_setup_after_us >= render_setup_begin_us) {
         const auto render_schedule_state = snapshotRenderScheduleState();
         logRenderPhaseStall(render_setup_after_us,
@@ -6159,7 +6398,6 @@ void QmlMainWindow::render()
                                 render_schedule_state.second);
         }
     }
-
     if (frame_mix.num_frames == 0) {
         if (kept_frame_enqueued) {
             close_started_frame(false);
@@ -6324,7 +6562,6 @@ void QmlMainWindow::render()
                 logLatencyStats("render_work", render_after_us - render_entry_us_local);
         }
     }
-
     close_started_frame(true);
 
     bool scheduled_pending = finalize_render();

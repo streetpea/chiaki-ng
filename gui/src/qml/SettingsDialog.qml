@@ -1005,7 +1005,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Checked)")
+                        text: qsTr("(Unchecked)")
                         visible: Chiaki.settings.rendererBackend == 0
                     }
 
