@@ -31,6 +31,7 @@
 #include <QProcessEnvironment>
 #include <QDesktopServices>
 #include <QtConcurrent>
+#include <QTimer>
 
 extern "C" {
 #include <chiaki/time.h>
@@ -103,6 +104,11 @@ static void logDecoderHandoffStats(qint64 now_us, qint64 handoff_us, double pts)
 
     if (handoff_us < 0)
         handoff_us = 0;
+    if (handoff_us >= 12000) {
+        CHIAKI_NOISY_DEBUG().nospace()
+            << "[decode] handoff_outlier_us=" << handoff_us
+            << " pts=" << pts;
+    }
     if (min_handoff_us == 0 || handoff_us < min_handoff_us)
         min_handoff_us = handoff_us;
     if (handoff_us > max_handoff_us)
@@ -896,17 +902,38 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
 
 void QmlBackend::psnSessionStart()
 {
+    startSession(true);
+}
+
+void QmlBackend::startSession(bool emit_session_changed)
+{
+    if (window)
+        window->armVerbosePlaceboQuietWindow();
+
+    applyStartupWindowSizing();
+    if (emit_session_changed)
+        prepareStartupPresentation(true);
+
     try {
         session->Start();
     } catch (const Exception &e) {
+        StreamSession *failed_session = session;
+        session = nullptr;
         chiaki_log_mutex.lock();
         chiaki_log_ctx = nullptr;
         chiaki_log_mutex.unlock();
-        session->deleteLater();
-        session = nullptr;
+        if (window) {
+            emit sessionChanged(nullptr);
+            window->resetPlaceboQueue();
+            window->requestOverlayUpdate();
+        }
+        failed_session->deleteLater();
         emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
         return;
     }
+
+    if (emit_session_changed)
+        emit sessionChanged(session);
 
     sleep_inhibit->inhibit();
 }
@@ -1104,10 +1131,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         const qint64 delivery_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         QmlMainWindow *target_window = window;
         QMetaObject::invokeMethod(target_window, [target_window, frame, frames_lost, delivery_us]() mutable {
-            const qint64 gui_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-            if (gui_us >= delivery_us)
-                logDecoderHandoffStats(gui_us, gui_us - delivery_us, frame.pts);
-            target_window->presentFrame(frame, frames_lost);
+            target_window->presentFrame(frame, frames_lost, delivery_us);
         });
     });
 
@@ -1155,7 +1179,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if(finished)
         {
             setConnectState(PsnConnectState::DataConnectionFinished);
-            emit sessionChanged(session);
         }
         else
             setConnectState(PsnConnectState::DataConnectionStart);
@@ -1169,7 +1192,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (session->IsConnected())
             setDiscoveryEnabled(false);
     });
-    QmlMainWindow *window_ptr = window;
     chiaki_log_mutex.lock();
     chiaki_log_ctx = session->GetChiakiLog();
     chiaki_log_mutex.unlock();
@@ -1185,20 +1207,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         }
         else
         {
-            try {
-                session->Start();
-            } catch (const Exception &e) {
-                emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
-                chiaki_log_mutex.lock();
-                chiaki_log_ctx = nullptr;
-                chiaki_log_mutex.unlock();
-                session->deleteLater();
-                session = nullptr;
-                return;
-            }
-            emit sessionChanged(session);
-
-            sleep_inhibit->inhibit();
+            startSession(true);
         }
     }
     else
@@ -1209,28 +1218,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             setConnectState(PsnConnectState::RegisteringConsole);
         else
             setConnectState(PsnConnectState::InitiatingConnection);
-        emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
+            emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
     }
-    if (window->windowState() != Qt::WindowFullScreen)
-    {
-        if(settings->GetWindowType() == WindowType::CustomResolution)
-        {
-            window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
-            window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
-        }
-        else if(settings->GetWindowType() == WindowType::AdjustableResolution)
-        {
-            window->normalTime();
-            if(!settings->GetStreamGeometry().isEmpty())
-                window->setGeometry(settings->GetStreamGeometry());
-        }
-        else
-            window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
-    }
-    if (connect_info.video_profile.width > 0 && connect_info.video_profile.height > 0)
-        window->presentStartupWarmupFrame(connect_info.video_profile.width,
-                                          connect_info.video_profile.height,
-                                          connect_info.video_profile.codec == CHIAKI_CODEC_H265_HDR);
 }
 
 bool QmlBackend::closeRequested()
@@ -2328,24 +2317,7 @@ void QmlBackend::updateDiscoveryHosts()
                 wakeup_nickname.clear();
                 wakeup_start = false;
                 wakeup_start_timer->stop();
-                bool session_start_succeeded = true;
-
-                try {
-                    session->Start();
-                } catch (const Exception &e) {
-                    emit error(tr("Stream failed"), tr("Failed to start Stream Session: %1").arg(e.what()));
-                    session_start_succeeded = false;
-                    chiaki_log_mutex.lock();
-                    chiaki_log_ctx = nullptr;
-                    chiaki_log_mutex.unlock();
-                    session->deleteLater();
-                    session = nullptr;
-                }
-                if(session_start_succeeded)
-                {
-                    emit sessionChanged(session);
-                    sleep_inhibit->inhibit();
-                }
+                startSession(true);
             }
             else if(host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && session && session->IsConnecting())
             {
@@ -2372,6 +2344,44 @@ void QmlBackend::updateDiscoveryHosts()
         }
     }
     emit hostsChanged();
+}
+
+void QmlBackend::prepareStartupPresentation(bool present_warmup)
+{
+    if (!window)
+        return;
+
+    const auto &connect_info = session_info;
+    if (present_warmup && connect_info.video_profile.width > 0 && connect_info.video_profile.height > 0)
+        window->presentStartupWarmupFrame(connect_info.video_profile.width,
+                                          connect_info.video_profile.height,
+                                          connect_info.video_profile.codec == CHIAKI_CODEC_H265_HDR);
+}
+
+void QmlBackend::applyStartupWindowSizing()
+{
+    if (!window)
+        return;
+
+    const auto &connect_info = session_info;
+    if (window->windowState() == Qt::WindowFullScreen)
+        return;
+
+    if(settings->GetWindowType() == WindowType::CustomResolution)
+    {
+        window->resize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight());
+        window->setMaximumSize(QSize(settings->GetCustomResolutionWidth(), settings->GetCustomResolutionHeight()));
+    }
+    else if(settings->GetWindowType() == WindowType::AdjustableResolution)
+    {
+        window->normalTime();
+        if(!settings->GetStreamGeometry().isEmpty())
+            window->setGeometry(settings->GetStreamGeometry());
+    }
+    else if (connect_info.video_profile.width > 0 && connect_info.video_profile.height > 0)
+    {
+        window->resize(connect_info.video_profile.width, connect_info.video_profile.height);
+    }
 }
 
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT

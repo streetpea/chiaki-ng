@@ -23,6 +23,7 @@
 #define SETSU_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_HAPTIC_INTERVAL_MS 10 // check every interval
+#define STEAMDECK_HAPTIC_CONNECT_DELAY_MS 1100
 #define NEW_DPAD_TOUCH_INTERVAL_MS 500
 #define DPAD_TOUCH_UPDATE_INTERVAL_MS 10
 #define STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS 4 // send packets every interval * packets per analysis
@@ -45,6 +46,193 @@
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
 #define ECHO_QUEUE_MAX 40
+#endif
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+class SdeckHapticsWorker : public QObject
+{
+	public:
+		SdeckHapticsWorker(SDeck *sdeck, QMutex *sdeck_mutex, ChiakiLog *log)
+			: sdeck(sdeck), sdeck_mutex(sdeck_mutex), log(log)
+		{
+		}
+
+		~SdeckHapticsWorker() override
+		{
+			Stop();
+		}
+
+		bool Start()
+		{
+			if(running || !sdeck || !sdeck_mutex)
+				return false;
+
+			const int num_channels = 2; // Left and right haptics
+			const uint32_t samples_per_packet = 120 * sizeof(uint8_t) / (2.0 * sizeof(int16_t));
+			sdeck_queue_segment = samples_per_packet * STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS;
+			{
+				QMutexLocker locker(sdeck_mutex);
+				if(sdeck_haptic_init(sdeck, sdeck_queue_segment) < 0)
+				{
+					CHIAKI_LOGE(log, "Steam Deck Haptics Audio could not be connected :(");
+					sdeck_haptic_fini(sdeck);
+					return false;
+				}
+			}
+
+			sdeck_haptics_senderl = static_cast<int16_t *>(calloc(sdeck_queue_segment, sizeof(int16_t)));
+			if(!sdeck_haptics_senderl)
+			{
+				CHIAKI_LOGE(log, "Steam Deck Haptics senderl buf could not be allocated :(");
+				sdeck_haptic_fini(sdeck);
+				return false;
+			}
+			sdeck_haptics_senderr = static_cast<int16_t *>(calloc(sdeck_queue_segment, sizeof(int16_t)));
+			if(!sdeck_haptics_senderr)
+			{
+				CHIAKI_LOGE(log, "Steam Deck Haptics senderr buf could not be allocated :(");
+				sdeck_haptic_fini(sdeck);
+				free(sdeck_haptics_senderl);
+				sdeck_haptics_senderl = nullptr;
+				return false;
+			}
+
+			CHIAKI_LOGI(log,
+			            "Steam Deck Haptics Audio opened with %d channels @ %d Hz with %u samples per audio analysis.",
+			            num_channels,
+			            STEAMDECK_HAPTIC_SAMPLING_RATE,
+			            sdeck_queue_segment);
+			sdeck_hapticl.reserve(20);
+			sdeck_hapticr.reserve(20);
+			sdeck_last_haptic = chiaki_time_now_monotonic_ms();
+			running = true;
+
+			timer = new QTimer(this);
+			connect(timer, &QTimer::timeout, this, [this] {
+				ProcessQueuedHaptics();
+			});
+			timer->start(STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS * STEAMDECK_HAPTIC_INTERVAL_MS);
+			return true;
+		}
+
+		void Stop()
+		{
+			running = false;
+			if(timer)
+			{
+				timer->stop();
+				delete timer;
+				timer = nullptr;
+			}
+			sdeck_hapticl.clear();
+			sdeck_hapticr.clear();
+			if(sdeck_haptics_senderl)
+			{
+				free(sdeck_haptics_senderl);
+				sdeck_haptics_senderl = nullptr;
+			}
+			if(sdeck_haptics_senderr)
+			{
+				free(sdeck_haptics_senderr);
+				sdeck_haptics_senderr = nullptr;
+			}
+		}
+
+		void EnqueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr)
+		{
+			if(!running)
+				return;
+			sdeck_hapticl.enqueue(packetl);
+			sdeck_hapticr.enqueue(packetr);
+		}
+
+	private:
+		void ProcessQueuedHaptics()
+		{
+			if(!running || !sdeck_haptics_senderl || !sdeck_haptics_senderr)
+				return;
+
+			haptic_packet_t haptic_packetl = {}, haptic_packetr = {};
+			bool changedl = false, changedr = false;
+			for(uint64_t i = 0; i < STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS; i++)
+			{
+				uint64_t current_tick = sdeck_last_haptic + i * STEAMDECK_HAPTIC_INTERVAL_MS;
+				if(!sdeck_hapticl.isEmpty())
+				{
+					uint64_t next_timestamp = sdeck_hapticl.head().timestamp;
+					if(next_timestamp > (current_tick + STEAMDECK_HAPTIC_INTERVAL_MS))
+						memset(sdeck_haptics_senderl + 30 * i, 0, 30 * sizeof(int16_t));
+					else
+					{
+						haptic_packetl = sdeck_hapticl.dequeue();
+						memcpy(sdeck_haptics_senderl + 30 * i, haptic_packetl.haptic_packet, 30 * sizeof(int16_t));
+						changedl = true;
+					}
+				}
+				else
+					memset(sdeck_haptics_senderl + 30 * i, 0, 30 * sizeof(int16_t));
+
+				if(!sdeck_hapticr.isEmpty())
+				{
+					uint64_t next_timestamp = sdeck_hapticr.head().timestamp;
+					if(next_timestamp > (current_tick + STEAMDECK_HAPTIC_INTERVAL_MS))
+						memset(sdeck_haptics_senderr + 30 * i, 0, 30 * sizeof(int16_t));
+					else
+					{
+						haptic_packetr = sdeck_hapticr.dequeue();
+						memcpy(sdeck_haptics_senderr + 30 * i, haptic_packetr.haptic_packet, 30 * sizeof(int16_t));
+						changedr = true;
+					}
+				}
+				else
+					memset(sdeck_haptics_senderr + 30 * i, 0, 30 * sizeof(int16_t));
+			}
+
+			if(!changedl || sdeck_skipl)
+				sdeck_skipl = false;
+			else
+			{
+				int intervals = 0;
+				{
+					QMutexLocker locker(sdeck_mutex);
+					intervals = play_pcm_haptic(sdeck, TRACKPAD_LEFT, sdeck_haptics_senderl, sdeck_queue_segment, STEAMDECK_HAPTIC_SAMPLING_RATE);
+				}
+				if(intervals < 0)
+					CHIAKI_LOGE(log, "Failed to submit haptics audio to SteamDeck");
+				else if(intervals == 2)
+					sdeck_skipl = true;
+			}
+			if(!changedr || sdeck_skipr)
+				sdeck_skipr = false;
+			else
+			{
+				int intervals = 0;
+				{
+					QMutexLocker locker(sdeck_mutex);
+					intervals = play_pcm_haptic(sdeck, TRACKPAD_RIGHT, sdeck_haptics_senderr, sdeck_queue_segment, STEAMDECK_HAPTIC_SAMPLING_RATE);
+				}
+				if(intervals < 0)
+					CHIAKI_LOGE(log, "Failed to submit haptics audio to SteamDeck");
+				else if(intervals == 2)
+					sdeck_skipr = true;
+			}
+			sdeck_last_haptic = chiaki_time_now_monotonic_ms();
+		}
+
+		SDeck *sdeck = nullptr;
+		QMutex *sdeck_mutex = nullptr;
+		ChiakiLog *log = nullptr;
+		QTimer *timer = nullptr;
+		QQueue<haptic_packet_t> sdeck_hapticl;
+		QQueue<haptic_packet_t> sdeck_hapticr;
+		int16_t *sdeck_haptics_senderl = nullptr;
+		int16_t *sdeck_haptics_senderr = nullptr;
+		int sdeck_queue_segment = 0;
+		uint64_t sdeck_last_haptic = 0;
+		bool sdeck_skipl = false;
+		bool sdeck_skipr = false;
+		bool running = false;
+};
 #endif
 
 static bool isLocalAddress(QString host)
@@ -184,8 +372,6 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	haptics_handheld(0),
 	session_started(false),
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	sdeck_haptics_senderl(nullptr),
-	sdeck_haptics_senderr(nullptr),
 	sdeck(nullptr),
 #endif
 #if CHIAKI_GUI_ENABLE_SPEEX
@@ -448,7 +634,12 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 		auto sdeck_timer = new QTimer(this);
 		connect(sdeck_timer, &QTimer::timeout, this, [this]{
-			sdeck_read(sdeck, SessionSDeckCb, this);
+			if (!sdeck_mutex.tryLock())
+				return;
+			{
+				sdeck_read(sdeck, SessionSDeckCb, this);
+			}
+			sdeck_mutex.unlock();
 			if(sdeck_orient_dirty)
 			{
 				chiaki_orientation_tracker_apply_to_controller_state(&sdeck_orient_tracker, &sdeck_state);
@@ -468,7 +659,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 		if(sdeck)
 		{
 			haptics_handheld++;
-			QTimer::singleShot(1100, this, &StreamSession::ConnectSdeckHaptics);
+			QTimer::singleShot(STEAMDECK_HAPTIC_CONNECT_DELAY_MS, this, &StreamSession::ConnectSdeckHaptics);
 		}
 #endif
 		rumble_haptics_intensity = connect_info.rumble_haptics_intensity;
@@ -521,6 +712,10 @@ StreamSession::~StreamSession()
 	}
 	if(audio_in)
 		SDL_CloseAudioDevice(audio_in);
+
+#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
+	StopSdeckHaptics();
+#endif
 
 	// Prepare log for shutdown BEFORE joining session threads
 	// This prevents crashes from log callbacks during shutdown
@@ -577,18 +772,6 @@ StreamSession::~StreamSession()
 		free(haptics_resampler_buf);
 		haptics_resampler_buf = nullptr;
 	}
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	if (sdeck_haptics_senderl)
-	{
-		free(sdeck_haptics_senderl);
-		sdeck_haptics_senderl = nullptr;
-	}
-	if (sdeck_haptics_senderr)
-	{
-		free(sdeck_haptics_senderr);
-		sdeck_haptics_senderr = nullptr;
-	}
-#endif
 	if(mic_buf.buf)
 	{
 		free(mic_buf.buf);
@@ -1538,10 +1721,6 @@ void StreamSession::InitHaptics()
 {
 	haptics_output = 0;
 	haptics_buffer_size = 480; //10ms * number of ms delay configured
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	sdeck_haptics_senderr = nullptr;
-	sdeck_haptics_senderl = nullptr;
-#endif
 	haptics_resampler_buf = nullptr;
 #ifdef Q_OS_LINUX
 	// Haptics work most reliably with Pipewire, so try to use that if available
@@ -1680,99 +1859,50 @@ void StreamSession::ConnectHaptics()
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 void StreamSession::ConnectSdeckHaptics()
 {
-	if(!enable_steamdeck_haptics)
+	if(!enable_steamdeck_haptics || !sdeck || sdeck_haptics_thread)
 		return;
-	sdeck_last_haptic = chiaki_time_now_monotonic_ms();
-	const int num_channels = 2; // Left and right haptics
-	const uint32_t samples_per_packet = 120 * sizeof(uint8_t) / (2.0 * sizeof(int16_t));
-	sdeck_queue_segment = samples_per_packet * STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS;
-	if (sdeck_haptic_init(sdeck, sdeck_queue_segment) < 0)
-	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics Audio could not be connected :(");
-		return;
-	}
-	CHIAKI_LOGI(log.GetChiakiLog(), "Steam Deck Haptics Audio opened with %d channels @ %d Hz with %u samples per audio analysis.", num_channels, STEAMDECK_HAPTIC_SAMPLING_RATE, sdeck_queue_segment);
-	sdeck_hapticl = {};
-	sdeck_hapticl.reserve(20);
-	sdeck_hapticr = {};
-	sdeck_hapticr.reserve(20);
-	sdeck_skipl = false;
-	sdeck_skipr = false;
-	sdeck_haptics_senderl = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
-	if(!sdeck_haptics_senderl)
-	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics senderl buf could not be allocated :(");
-	}
-	sdeck_haptics_senderr = (int16_t *) calloc(sdeck_queue_segment, sizeof(uint16_t));
-	if(!sdeck_haptics_senderr)
-	{
-		CHIAKI_LOGE(log.GetChiakiLog(), "Steam Deck Haptics senderr buf could not be allocated :(");
-	}
+
 	qRegisterMetaType<haptic_packet_t>();
-	connect(this, &StreamSession::SdeckHapticPushed, this, &StreamSession::SdeckQueueHaptics);
-	auto sdeck_haptic_interval = STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS * 10;
-	auto sdeck_haptic_timer = new QTimer(this);
-	connect(sdeck_haptic_timer, &QTimer::timeout, this, [this]{
-		haptic_packet_t haptic_packetl = {}, haptic_packetr = {};
-		bool changedl = false, changedr = false;
-		for(uint64_t i = 0; i < STEAMDECK_HAPTIC_PACKETS_PER_ANALYSIS; i++)
-		{
-			uint64_t current_tick = sdeck_last_haptic + i * 10; // 10ms packet
-			if(!sdeck_hapticl.isEmpty())
-			{
-				uint64_t next_timestamp = sdeck_hapticl.head().timestamp;
-				if(next_timestamp > (current_tick + 10))
-					memset(sdeck_haptics_senderl + 30 * i, 0, 30);
-				else
-				{
-					haptic_packetl = sdeck_hapticl.dequeue();
-					memcpy(sdeck_haptics_senderl + 30 * i, haptic_packetl.haptic_packet, 30);
-					changedl = true;
-				}
-			}
-			else
-				memset(sdeck_haptics_senderl + 30 * i, 0, 30);
-
-			if(!sdeck_hapticr.isEmpty())
-			{
-				uint64_t next_timestamp = sdeck_hapticr.head().timestamp;
-				if(next_timestamp > (current_tick + 10))
-					memset(sdeck_haptics_senderr + 30 * i, 0, 30);
-				else
-				{
-					haptic_packetr = sdeck_hapticr.dequeue();
-					memcpy(sdeck_haptics_senderr + 30 * i, haptic_packetr.haptic_packet, 30);
-					changedr = true;
-				}
-			}
-			else
-				memset(sdeck_haptics_senderr + 30 * i, 0, 30);
+	sdeck_haptics_thread = new QThread(this);
+	sdeck_haptics_worker = new SdeckHapticsWorker(sdeck, &sdeck_mutex, log.GetChiakiLog());
+	sdeck_haptics_worker->moveToThread(sdeck_haptics_thread);
+	connect(sdeck_haptics_thread, &QThread::started, sdeck_haptics_worker, [this] {
+		if (!sdeck_haptics_worker->Start()) {
+			QMetaObject::invokeMethod(this, [this] {
+				StopSdeckHaptics();
+			}, Qt::QueuedConnection);
 		}
-
-		if(!changedl || sdeck_skipl)
-			sdeck_skipl = false;
-		else
-		{
-			int intervals = play_pcm_haptic(sdeck, TRACKPAD_LEFT, sdeck_haptics_senderl, sdeck_queue_segment, STEAMDECK_HAPTIC_SAMPLING_RATE);
-			if (intervals < 0)
-				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to submit haptics audio to SteamDeck");
-			else if (intervals == 2)
-				sdeck_skipl = true;
-		}
-		if(!changedr || sdeck_skipr)
-			sdeck_skipr = false;
-		else
-		{
-			int intervals = play_pcm_haptic(sdeck, TRACKPAD_RIGHT, sdeck_haptics_senderr, sdeck_queue_segment, STEAMDECK_HAPTIC_SAMPLING_RATE);
-			if (intervals < 0)
-				CHIAKI_LOGE(log.GetChiakiLog(), "Failed to submit haptics audio to SteamDeck");
-			else if (intervals == 2)
-				sdeck_skipr = true;
-		}
-		sdeck_last_haptic = chiaki_time_now_monotonic_ms();
 	});
-	sdeck_haptic_timer->start(sdeck_haptic_interval);
-	return;
+	connect(this,
+	        &StreamSession::SdeckHapticPushed,
+	        sdeck_haptics_worker,
+	        [this](haptic_packet_t packetl, haptic_packet_t packetr) {
+		        if(sdeck_haptics_worker)
+			        sdeck_haptics_worker->EnqueueHaptics(packetl, packetr);
+	        },
+	        Qt::QueuedConnection);
+	sdeck_haptics_thread->start();
+}
+
+void StreamSession::StopSdeckHaptics()
+{
+	if(!sdeck_haptics_thread)
+		return;
+	QThread *thread = sdeck_haptics_thread;
+	SdeckHapticsWorker *worker = sdeck_haptics_worker;
+	if (worker) {
+		QMetaObject::invokeMethod(worker, [worker, thread] {
+			worker->Stop();
+			delete worker;
+			thread->quit();
+		}, Qt::QueuedConnection);
+	} else {
+		thread->quit();
+	}
+	thread->wait();
+	sdeck_haptics_thread = nullptr;
+	sdeck_haptics_worker = nullptr;
+	delete thread;
 }
 #endif
 
@@ -2193,14 +2323,6 @@ void StreamSession::PushHapticsFrame(uint8_t *buf, size_t buf_size)
 		return;
 	}
 }
-
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-void StreamSession::SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr)
-{
-	sdeck_hapticl.enqueue(packetl);
-	sdeck_hapticr.enqueue(packetr);
-}
-#endif
 
 void StreamSession::Event(ChiakiEvent *event)
 {

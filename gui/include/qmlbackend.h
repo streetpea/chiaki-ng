@@ -158,6 +158,7 @@ public:
     void createSession(const StreamSessionConnectInfo &connect_info);
 
     void psnSessionStart();
+    void startSession(bool emit_session_changed = true);
 
     void checkPsnConnection(const ChiakiErrorCode &err);
 
@@ -171,6 +172,8 @@ public:
 
     void profileChanged();
     bool prepareFrameForPresentation(ChiakiFfmpegFrame &frame, bool use_opengl_renderer);
+    void prepareStartupPresentation(bool present_warmup);
+    void applyStartupWindowSizing();
 
     void goToSleep();
 

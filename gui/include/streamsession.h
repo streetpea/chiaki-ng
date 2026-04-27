@@ -63,6 +63,8 @@ typedef struct haptic_packet_t
    	int16_t haptic_packet[30];
     uint64_t timestamp;
 } haptic_packet_t;
+
+class SdeckHapticsWorker;
 #endif
 
 	struct StreamSessionConnectInfo
@@ -203,14 +205,10 @@ class StreamSession : public QObject
 
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
 		SDeck *sdeck;
+		QMutex sdeck_mutex;
+		QThread *sdeck_haptics_thread = nullptr;
+		SdeckHapticsWorker *sdeck_haptics_worker = nullptr;
 		ChiakiControllerState sdeck_state;
-		QQueue<haptic_packet_t> sdeck_hapticl;
-		QQueue<haptic_packet_t> sdeck_hapticr;
-		int16_t * sdeck_haptics_senderl;
-		int16_t * sdeck_haptics_senderr;
-		int sdeck_queue_segment;
-		uint64_t sdeck_last_haptic;
-		bool sdeck_skipl, sdeck_skipr;
 		bool enable_steamdeck_haptics;
 		ChiakiOrientationTracker sdeck_orient_tracker;
 		ChiakiAccelNewZero sdeck_accel_zero, sdeck_real_accel;
@@ -324,8 +322,8 @@ class StreamSession : public QObject
 		void DisconnectHaptics();
 		void ConnectHaptics();
 #if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-		void SdeckQueueHaptics(haptic_packet_t packetl, haptic_packet_t packetr);
 		void ConnectSdeckHaptics();
+		void StopSdeckHaptics();
 #endif
 		void QueueRumbleHaptics(uint16_t strength);
 		void ConnectRumbleHaptics();

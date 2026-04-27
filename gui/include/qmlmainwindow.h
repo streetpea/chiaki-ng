@@ -143,6 +143,8 @@ public:
     Q_INVOKABLE void requestOverlayUpdate();
     Q_INVOKABLE void setOverlayInteractionActive(bool active);
     Q_INVOKABLE void presentStartupWarmupFrame(unsigned width, unsigned height, bool hdr);
+    void armVerbosePlaceboQuietWindow();
+    bool startupWarmupFrameActive() const { return startup_warmup_frame_active; }
 
 public slots:
     void resetPlaceboQueue();
@@ -153,7 +155,7 @@ public slots:
     void updateVSync();
     void updateVulkanDeferredSwap();
     void show();
-    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost);
+    void presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, qint64 decoder_delivery_us = 0);
 
     AVBufferRef *vulkanHwDeviceCtx();
 
@@ -287,6 +289,7 @@ private:
     uint64_t last_placebo_reset_ts = 0;
     uint64_t pending_frame_stored_us = 0;
     mutable QMutex pending_frame_age_mutex;
+    bool startup_warmup_preserve_next_session_change = false;
 
     pl_cache placebo_cache = {};
     pl_log placebo_log = {};

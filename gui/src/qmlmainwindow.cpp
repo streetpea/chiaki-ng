@@ -12,6 +12,7 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavutil/buffer.h>
 #include <libavutil/frame.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/hwcontext.h>
@@ -371,6 +372,8 @@ static bool detailedVerboseTelemetryEnabled()
 }
 
 #define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(chiakiGui)
+
+static std::atomic<uint64_t> placebo_verbose_log_quiet_until_us{0};
 
 static void logPtsRollback(const char *source, double frame_pts, double queue_pts_origin, bool preserve_timeline, double source_frame_interval_ms)
 {
@@ -1898,6 +1901,14 @@ static void logRenderIdleStats(qint64 now_us, qint64 render_duration_us, bool re
 
 static void placebo_log_cb(void *user, pl_log_level level, const char *msg)
 {
+    (void)user;
+    if (detailedVerboseTelemetryEnabled() &&
+        (level == PL_LOG_TRACE || level == PL_LOG_DEBUG)) {
+        const uint64_t now_us = chiaki_time_now_monotonic_us();
+        if (now_us < placebo_verbose_log_quiet_until_us.load(std::memory_order_relaxed))
+            return;
+    }
+
     ChiakiLogLevel chiaki_level;
     switch (level) {
     case PL_LOG_NONE:
@@ -1958,9 +1969,16 @@ static void unmap_frame(pl_gpu gpu, struct pl_frame *frame,
     av_frame_free(&av_frame);
 }
 
+static AVBufferRef *startupWarmupFrameMarker();
+
 static void discard_frame(const struct pl_source_frame *src)
 {
     AVFrame *frame = reinterpret_cast<AVFrame *>(src->frame_data);
+    AVBufferRef *marker = startupWarmupFrameMarker();
+    if (marker && frame && frame->opaque_ref && frame->opaque_ref->data == marker->data) {
+        av_frame_free(&frame);
+        return;
+    }
     const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     QmlMainWindow *q = frame ? reinterpret_cast<QmlMainWindow *>(frame->opaque) : nullptr;
     const QString detail = q ? q->describePlaceboDiscardReason(now_us)
@@ -1977,6 +1995,12 @@ static void discard_snapshot_frame(const struct pl_source_frame *src)
 {
     AVFrame *frame = reinterpret_cast<AVFrame *>(src->frame_data);
     av_frame_free(&frame);
+}
+
+static AVBufferRef *startupWarmupFrameMarker()
+{
+    static AVBufferRef *marker = av_buffer_alloc(1);
+    return marker;
 }
 
 static AVFrame *clone_frame_for_replay(const AVFrame *frame)
@@ -2038,6 +2062,9 @@ static AVFrame *make_startup_warmup_frame(unsigned width, unsigned height, bool 
     if (!frame)
         return nullptr;
 
+    AVBufferRef *marker = startupWarmupFrameMarker();
+    if (marker)
+        frame->opaque_ref = av_buffer_ref(marker);
     frame->format = format;
     frame->width = static_cast<int>(width);
     frame->height = static_cast<int>(height);
@@ -2445,6 +2472,7 @@ void QmlMainWindow::presentStartupWarmupFrame(unsigned width, unsigned height, b
     AVFrame *frame = make_startup_warmup_frame(width, height, hdr);
     if (!frame)
         return;
+    startup_warmup_preserve_next_session_change = true;
     startup_warmup_frame_active = true;
     ChiakiFfmpegFrame warmup_frame = {
         .frame = frame,
@@ -2454,6 +2482,11 @@ void QmlMainWindow::presentStartupWarmupFrame(unsigned width, unsigned height, b
     };
     presentFrame(warmup_frame, 0);
     startup_warmup_frame_active = false;
+}
+
+void QmlMainWindow::armVerbosePlaceboQuietWindow()
+{
+    placebo_verbose_log_quiet_until_us.store(chiaki_time_now_monotonic_us() + 3000000, std::memory_order_relaxed);
 }
 
 void QmlMainWindow::setOverlayInteractionActive(bool active)
@@ -2628,8 +2661,18 @@ bool QmlMainWindow::configuredFrameMixerEnabledForScheduling() const
     return frame_mixer_config(settings) != nullptr;
 }
 
-void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
+void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, qint64 decoder_delivery_us)
 {
+    const qint64 present_entry_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (decoder_delivery_us > 0 && present_entry_us >= decoder_delivery_us) {
+        const qint64 gui_handoff_us = present_entry_us - decoder_delivery_us;
+        if (gui_handoff_us >= 12000) {
+            CHIAKI_NOISY_DEBUG().nospace()
+                << "[decode] gui_handoff_outlier_us=" << gui_handoff_us
+                << " pts=" << frame.pts;
+        }
+    }
+
     dropped_frames_current.fetchAndAddRelaxed(frames_lost);
 
     if (!frame.frame)
@@ -2673,22 +2716,22 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost)
     if (!synthetic_warmup_frame && frame.duration > 0.0f)
         source_frame_interval_ms = 1000.0 * frame.duration;
     bool deinterlace_enabled = false;
-        if (!synthetic_warmup_frame) {
-            QMutexLocker locker(&placebo_state_mutex);
-            if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
-                logPtsRollback("presentFrame/rollback", frame.pts, queue_pts_origin, false, frame.duration * 1000.0);
-                pl_queue_reset(placebo_queue);
-                resetQueueDepthTracking();
-                ts_start = 0;
-                queue_pts_origin = frame.pts;
-                newest_queued_frame_pts = -1.0;
-                playback_started = false;
-                frame_queue_origin = queue_pts_origin;
-                {
-                    QMutexLocker pending_locker(&pending_frame_mutex);
-                    prunePendingFramesBeforeLocked(frame.pts);
-                }
+    if (!synthetic_warmup_frame) {
+        QMutexLocker locker(&placebo_state_mutex);
+        if (queue_pts_origin < 0.0 || frame.pts + 1e-6 < queue_pts_origin) {
+            logPtsRollback("presentFrame/rollback", frame.pts, queue_pts_origin, false, frame.duration * 1000.0);
+            pl_queue_reset(placebo_queue);
+            resetQueueDepthTracking();
+            ts_start = 0;
+            queue_pts_origin = frame.pts;
+            newest_queued_frame_pts = -1.0;
+            playback_started = false;
+            frame_queue_origin = queue_pts_origin;
+            {
+                QMutexLocker pending_locker(&pending_frame_mutex);
+                prunePendingFramesBeforeLocked(frame.pts);
             }
+        }
         deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
     } else {
         deinterlace_enabled = this->renderparams_opts->params.deinterlace_params;
@@ -3282,17 +3325,8 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
                              render_active.loadAcquire() != 0,
                              queue_depth < submission_depth_limit);
     refreshPendingFrameAge();
-    if (queued_existing || replaced_existing) {
-        bool render_scheduled_now = false;
-        bool render_pending_now = false;
-        {
-            QMutexLocker locker(&render_schedule_mutex);
-            render_scheduled_now = render_scheduled;
-            render_pending_now = render_pending;
-        }
-        if (render_active.loadAcquire() == 0 && !render_scheduled_now && !render_pending_now)
-            scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
-    }
+    if (render_active.loadAcquire() == 0 && !render_scheduled_now && !render_pending_now)
+        scheduleUpdate(false, UpdateRequestReason::PendingFrame);
     return true;
 }
 
@@ -3822,7 +3856,36 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         return true;
     }
 
-    if (!synthetic_warmup) {
+    if (synthetic_warmup) {
+        bool warmup_render_pending_now = false;
+        {
+            QMutexLocker locker(&render_schedule_mutex);
+            warmup_render_pending_now = render_scheduled || render_pending;
+        }
+        if (render_active.loadAcquire() != 0 || render_scheduled_now || warmup_render_pending_now) {
+            ChiakiFfmpegFrame deferred_warmup_frame = {
+                .frame = frame,
+                .pts = pts,
+                .duration = duration,
+                .recovered = false,
+            };
+            if (!storePendingFrame(deferred_warmup_frame, true, true)) {
+                av_frame_free(&frame);
+                return false;
+            }
+            scheduleUpdate(false, UpdateRequestReason::PendingFrame);
+            return true;
+        }
+        if (queue_stored_frame_pending.fetchAndStoreRelaxed(1) == 0) {
+            if (stream_session_active.loadAcquire() != 0 && configuredFrameMixerEnabledForScheduling())
+                scheduleBufferedUpdate(UpdateRequestReason::QueueStoredFrame);
+            else
+                scheduleUpdate(false, UpdateRequestReason::QueueStoredFrame);
+        }
+        return true;
+    }
+
+    {
         uint64_t now_us = chiaki_time_now_monotonic_us();
         uint64_t frame_pts_us = src_frame.pts > 0.0
             ? static_cast<uint64_t>(src_frame.pts * 1000000.0)
@@ -3838,7 +3901,7 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         }
     }
 
-    if (!synthetic_warmup && !has_video && startup_video_visible_pending.loadAcquire() == 0)
+    if (!has_video && startup_video_visible_pending.loadAcquire() == 0)
         startup_video_visible_pending.storeRelease(1);
     if (queue_stored_frame_pending.fetchAndStoreRelaxed(1) == 0) {
         if (stream_session_active.loadAcquire() != 0 && configuredFrameMixerEnabledForScheduling())
@@ -4318,7 +4381,7 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 
     struct pl_log_params log_params = {
         .log_cb = placebo_log_cb,
-        .log_level = PL_LOG_DEBUG,
+        .log_level = detailedVerboseTelemetryEnabled() ? PL_LOG_DEBUG : PL_LOG_INFO,
     };
     placebo_log = pl_log_create(PL_API_VER, &log_params);
 
@@ -4525,6 +4588,8 @@ renderer_backend_ready:
 
     backend = new QmlBackend(settings, this);
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
+        const bool preserve_startup_warmup = s && startup_warmup_preserve_next_session_change;
+        startup_warmup_preserve_next_session_change = false;
         session = s;
         stream_session_active.storeRelease(s ? 1 : 0);
         startup_video_visible_generation.fetchAndAddRelaxed(1);
@@ -4537,56 +4602,58 @@ renderer_backend_ready:
         // unnecessary and causes a visible freeze in the connecting UI.
         if (!s)
             drainRenderThread();
-        {
-            QMutexLocker locker(&placebo_state_mutex);
-            pl_queue_reset(placebo_queue);
+        if (!preserve_startup_warmup) {
+            {
+                QMutexLocker locker(&placebo_state_mutex);
+                pl_queue_reset(placebo_queue);
+                newest_queued_frame_pts = -1.0;
+            }
+            resetQueueDepthTracking();
+            {
+                QMutexLocker locker(&reset_seed_mutex);
+                if (reset_seed_frame)
+                    av_frame_free(&reset_seed_frame);
+                reset_seed_pts = 0.0;
+                reset_seed_duration = 0.0f;
+                reset_seed_generation = 0;
+            }
+            clearSnapshotFrame();
+            snapshot_generation.storeRelaxed(0);
+            pending_reset_snapshot_generation.storeRelaxed(0);
+            last_reset_snapshot_generation.storeRelaxed(0);
+            next_buffered_update_us = 0;
+            last_buffered_interval_us = 0;
+            buffered_timer_fired.storeRelease(0);
+            queue_pts_origin = -1.0;
             newest_queued_frame_pts = -1.0;
+            reset_seed_capture_active.storeRelease(0);
+            reset_seed_capture_generation.storeRelease(0);
+            playback_started = false;
+            ts_start = 0;
+            quick_begin_wait_last_us = 0;
+            quick_render_skip_next = 0;
+            queue_stored_frame_pending.storeRelease(0);
+            pending_frame_submission_active.storeRelease(0);
+            {
+                QMutexLocker locker(&pending_frame_mutex);
+                clearPendingFrameStateLocked();
+            }
+            updatePendingFrameAge(0.0);
+            if (buffered_pace_thread)
+                buffered_pace_thread->disarm();
+            present_pace_timer_rearm.storeRelease(0);
+            if (present_pace_thread)
+                present_pace_thread->disarm();
+            last_swap_return_us.storeRelease(0);
+            deferred_present_in_flight.storeRelease(0);
+            schedule_frame_mixer_active.storeRelaxed(configuredFrameMixerEnabledForScheduling() ? 1 : 0);
+            if (has_video) {
+                has_video = false;
+                setCursor(Qt::ArrowCursor);
+                emit hasVideoChanged();
+            }
+            startup_video_visible_pending.storeRelease(0);
         }
-        resetQueueDepthTracking();
-        {
-            QMutexLocker locker(&reset_seed_mutex);
-            if (reset_seed_frame)
-                av_frame_free(&reset_seed_frame);
-            reset_seed_pts = 0.0;
-            reset_seed_duration = 0.0f;
-            reset_seed_generation = 0;
-        }
-        clearSnapshotFrame();
-        snapshot_generation.storeRelaxed(0);
-        pending_reset_snapshot_generation.storeRelaxed(0);
-        last_reset_snapshot_generation.storeRelaxed(0);
-        next_buffered_update_us = 0;
-        last_buffered_interval_us = 0;
-        buffered_timer_fired.storeRelease(0);
-        queue_pts_origin = -1.0;
-        newest_queued_frame_pts = -1.0;
-        reset_seed_capture_active.storeRelease(0);
-        reset_seed_capture_generation.storeRelease(0);
-        playback_started = false;
-        ts_start = 0;
-        quick_begin_wait_last_us = 0;
-        quick_render_skip_next = 0;
-        queue_stored_frame_pending.storeRelease(0);
-        pending_frame_submission_active.storeRelease(0);
-        {
-            QMutexLocker locker(&pending_frame_mutex);
-            clearPendingFrameStateLocked();
-        }
-        updatePendingFrameAge(0.0);
-        if (buffered_pace_thread)
-            buffered_pace_thread->disarm();
-        present_pace_timer_rearm.storeRelease(0);
-        if (present_pace_thread)
-            present_pace_thread->disarm();
-        last_swap_return_us.storeRelease(0);
-        deferred_present_in_flight.storeRelease(0);
-        schedule_frame_mixer_active.storeRelaxed(configuredFrameMixerEnabledForScheduling() ? 1 : 0);
-        if (has_video) {
-            has_video = false;
-            setCursor(Qt::ArrowCursor);
-            emit hasVideoChanged();
-        }
-        startup_video_visible_pending.storeRelease(0);
         if(session && exit_app_on_stream_exit)
         {
             connect(session, &StreamSession::SessionQuit, qGuiApp, &QGuiApplication::quit);
@@ -4780,8 +4847,15 @@ void QmlMainWindow::update()
         quick_render->polishItems();
         if (quick_render->thread() == QThread::currentThread())
             sync();
-        else
+        else {
+            const qint64 sync_block_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
+            const qint64 sync_block_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (sync_block_end_us >= sync_block_begin_us && sync_block_end_us - sync_block_begin_us >= 12000) {
+                CHIAKI_NOISY_DEBUG().nospace()
+                    << "[latency] update_sync_block_us=" << (sync_block_end_us - sync_block_begin_us);
+            }
+        }
     }
 
     last_render_dispatch_us.storeRelease(static_cast<qint64>(chiaki_time_now_monotonic_us()));
@@ -5441,20 +5515,40 @@ void QmlMainWindow::resizeSwapchain()
 void QmlMainWindow::updateSwapchain()
 {
     Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
+    const qint64 update_swapchain_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
 
     quick_item->setSize(size());
     quick_window->resize(size());
 
     if (quick_render->thread() == QThread::currentThread())
         resizeSwapchain();
-    else
+    else {
+        const qint64 resize_block_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::resizeSwapchain, this), Qt::BlockingQueuedConnection);
+        const qint64 resize_block_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        if (resize_block_end_us >= resize_block_begin_us && resize_block_end_us - resize_block_begin_us >= 12000) {
+            CHIAKI_NOISY_DEBUG().nospace()
+                << "[latency] update_swapchain_resize_block_us=" << (resize_block_end_us - resize_block_begin_us);
+        }
+    }
     quick_render->polishItems();
     if (quick_render->thread() == QThread::currentThread())
         sync();
-    else
+    else {
+        const qint64 sync_block_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         QMetaObject::invokeMethod(quick_render, std::bind(&QmlMainWindow::sync, this), Qt::BlockingQueuedConnection);
+        const qint64 sync_block_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        if (sync_block_end_us >= sync_block_begin_us && sync_block_end_us - sync_block_begin_us >= 12000) {
+            CHIAKI_NOISY_DEBUG().nospace()
+                << "[latency] update_swapchain_sync_block_us=" << (sync_block_end_us - sync_block_begin_us);
+        }
+    }
     update();
+    const qint64 update_swapchain_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (update_swapchain_end_us >= update_swapchain_begin_us && update_swapchain_end_us - update_swapchain_begin_us >= 12000) {
+        CHIAKI_NOISY_DEBUG().nospace()
+            << "[latency] update_swapchain_total_us=" << (update_swapchain_end_us - update_swapchain_begin_us);
+    }
 }
 
 void QmlMainWindow::sync()
@@ -5464,10 +5558,16 @@ void QmlMainWindow::sync()
     if (!quick_tex)
         return;
 
+    const qint64 sync_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     beginFrame();
     if (!quick_frame)
         return;
     quick_need_render.storeRelaxed(quick_render->sync() ? 1 : 0);
+    const qint64 sync_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (sync_end_us >= sync_begin_us && sync_end_us - sync_begin_us >= 12000) {
+        CHIAKI_NOISY_DEBUG().nospace()
+            << "[latency] render_sync_us=" << (sync_end_us - sync_begin_us);
+    }
 }
 
 void QmlMainWindow::beginFrame()

@@ -61,6 +61,7 @@ void generate_event(SDeck *sdeck, SDeckEventType type, SDeckEventCb cb, void *us
 double * butterworth_init();
 void lpf_apply(double * pcm_data, double * butterworth, int N);
 FreqFinder *freqfinder_new(int samples);
+void haptic_free(FreqFinder *freqfinder);
 
 SDeck *sdeck_new()
 {
@@ -97,6 +98,16 @@ int sdeck_haptic_init(SDeck *sdeck, int samples)
 	return 0;
 }
 
+void sdeck_haptic_fini(SDeck *sdeck)
+{
+	if (!sdeck)
+		return;
+	if (sdeck->freqfinder) {
+		haptic_free(sdeck->freqfinder);
+		sdeck->freqfinder = NULL;
+	}
+}
+
 FreqFinder *freqfinder_new(int samples)
 {
 	FreqFinder *freqfinder = fftw_malloc(sizeof(FreqFinder));
@@ -128,8 +139,7 @@ void sdeck_free(SDeck *sdeck)
 		return;
 	hid_close(sdeck->hiddev);
 	hid_exit();
-	if (sdeck->freqfinder)
-		haptic_free(sdeck->freqfinder);
+	sdeck_haptic_fini(sdeck);
 	free(sdeck);
 }
 
