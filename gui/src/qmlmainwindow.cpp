@@ -21,12 +21,19 @@ extern "C" {
 }
 
 #include <QByteArray>
+#include <QPointer>
+#include <QColor>
 #include <QDebug>
 #include <QThread>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QGuiApplication>
 #include <QFile>
+#include <QWidget>
+#include <QLabel>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QFrame>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
@@ -53,6 +60,230 @@ extern "C" {
 #endif
 
 Q_LOGGING_CATEGORY(chiakiGui, "chiaki.gui", QtInfoMsg);
+
+class TimedMutexLocker
+{
+public:
+    TimedMutexLocker(QMutex &mutex, const char *label, qint64 threshold_us = 500)
+        : mutex(mutex), label(label), threshold_us(threshold_us)
+    {
+        begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        mutex.lock();
+        locked_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        const qint64 wait_us = locked_us - begin_us;
+        if (wait_us >= threshold_us) {
+            qCDebug(chiakiGui).nospace()
+                << "[latency] placebo_mutex_wait_us=" << wait_us
+                << " label=" << label;
+        }
+    }
+
+    ~TimedMutexLocker()
+    {
+        mutex.unlock();
+        const qint64 unlock_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        const qint64 hold_us = unlock_us - locked_us;
+        if (hold_us >= threshold_us) {
+            qCDebug(chiakiGui).nospace()
+                << "[latency] placebo_mutex_hold_us=" << hold_us
+                << " label=" << label;
+        }
+    }
+
+private:
+    QMutex &mutex;
+    const char *label;
+    qint64 threshold_us;
+    qint64 begin_us = 0;
+    qint64 locked_us = 0;
+};
+
+class StatsOverlayWidget : public QWidget
+{
+public:
+    StatsOverlayWidget(QmlMainWindow *owner, QmlBackend *backend)
+        : QWidget(nullptr)
+        , owner(owner)
+        , backend(backend)
+    {
+        setObjectName(QStringLiteral("statsOverlayWidget"));
+        setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus | Qt::WindowTransparentForInput);
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_ShowWithoutActivating);
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        setFocusPolicy(Qt::NoFocus);
+        setAutoFillBackground(false);
+
+        auto *outer = new QHBoxLayout(this);
+        outer->setContentsMargins(0, 0, 6, 0);
+        outer->setSpacing(0);
+        outer->addStretch(1);
+
+        auto *panel = new QFrame(this);
+        panel->setObjectName(QStringLiteral("statsPanel"));
+        panel->setStyleSheet(QStringLiteral(
+            "#statsPanel {"
+            "  background: rgba(0, 0, 0, 140);"
+            "  border-radius: 10px;"
+            "}"
+            "QLabel { color: white; }"));
+        panel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
+
+        auto *panelLayout = new QVBoxLayout(panel);
+        panelLayout->setContentsMargins(14, 12, 14, 12);
+        panelLayout->setSpacing(8);
+
+        auto makeRow = [panelLayout](const QString &title, const QColor &valueColor, QFont titleFont, QFont valueFont, QLabel *&valueLabel) {
+            auto *row = new QWidget(panelLayout->parentWidget());
+            auto *rowLayout = new QHBoxLayout(row);
+            rowLayout->setContentsMargins(0, 0, 0, 0);
+            rowLayout->setSpacing(8);
+            auto *titleLabel = new QLabel(title, row);
+            titleLabel->setFont(titleFont);
+            titleLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            titleLabel->setMinimumWidth(110);
+            auto *value = new QLabel(row);
+            value->setFont(valueFont);
+            value->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            value->setStyleSheet(QStringLiteral("color: %1;").arg(valueColor.name()));
+            value->setTextInteractionFlags(Qt::NoTextInteraction);
+            valueLabel = value;
+            rowLayout->addWidget(titleLabel);
+            rowLayout->addWidget(value, 1);
+            panelLayout->addWidget(row);
+            return row;
+        };
+
+        QFont titleFont;
+        titleFont.setPixelSize(15);
+        QFont valueFont;
+        valueFont.setPixelSize(18);
+        valueFont.setBold(true);
+
+        bitrateRow = makeRow(tr("Mbps"), QColor(QStringLiteral("#00a7ff")), titleFont, valueFont, bitrateValue);
+        queueRow = makeRow(tr("queue depth avg"), QColor(QStringLiteral("#90caf9")), titleFont, valueFont, queueDepthValue);
+        pendingRow = makeRow(tr("pending frame age"), QColor(QStringLiteral("#90caf9")), titleFont, valueFont, pendingAgeValue);
+        packetLossRow = makeRow(tr("packet loss"), QColor(QStringLiteral("#ef9a9a")), titleFont, valueFont, packetLossValue);
+        droppedFramesRow = makeRow(tr("dropped frames"), QColor(QStringLiteral("#ef9a9a")), titleFont, valueFont, droppedFramesValue);
+        lostFramesRow = makeRow(tr("lost frames"), QColor(QStringLiteral("#ef9a9a")), titleFont, valueFont, lostFramesValue);
+
+        outer->addWidget(panel, 0, Qt::AlignRight | Qt::AlignVCenter);
+
+        connect(owner, &QmlMainWindow::queueDepthAverageChanged, this, &StatsOverlayWidget::refresh);
+        connect(owner, &QmlMainWindow::pendingFrameAgeChanged, this, &StatsOverlayWidget::refresh);
+        connect(owner, &QmlMainWindow::droppedFramesChanged, this, &StatsOverlayWidget::refresh);
+        if (backend) {
+            connect(backend, &QmlBackend::sessionChanged, this, [this](StreamSession *s) {
+                setSession(s);
+                refresh();
+            });
+            setSession(backend->qmlSession());
+        }
+        refresh();
+    }
+
+    void setOverlayVisible(bool visible)
+    {
+        if (visible) {
+            updateTransientParent();
+            syncGeometry();
+            refresh();
+            if (!isVisible())
+                show();
+            updateTransientParent();
+            if (owner)
+                owner->requestActivate();
+        } else {
+            if (QWindow *overlay_window = windowHandle())
+                overlay_window->setTransientParent(nullptr);
+            hide();
+        }
+    }
+
+    void syncGeometry()
+    {
+        if (!owner)
+            return;
+        const QRect g = owner->geometry();
+        if (geometry() != g)
+            setGeometry(g);
+    }
+
+    void updateTransientParent()
+    {
+        if (!owner)
+            return;
+        if (QWindow *overlay_window = windowHandle())
+            overlay_window->setTransientParent(owner);
+    }
+
+    void setSession(StreamSession *session)
+    {
+        if (session == current_session)
+            return;
+        if (current_session)
+            QObject::disconnect(current_session, nullptr, this, nullptr);
+        current_session = session;
+        if (current_session) {
+            connect(current_session, &StreamSession::MeasuredBitrateChanged, this, &StatsOverlayWidget::refresh);
+            connect(current_session, &StreamSession::AveragePacketLossChanged, this, &StatsOverlayWidget::refresh);
+            connect(current_session, &StreamSession::FramesLostChanged, this, &StatsOverlayWidget::refresh);
+            connect(current_session, &StreamSession::ConnectedChanged, this, &StatsOverlayWidget::refresh);
+        }
+    }
+
+    void refresh()
+    {
+        StreamSession *session = current_session;
+        const bool hasSession = session != nullptr;
+
+        bitrateRow->setVisible(hasSession);
+        if (hasSession)
+            bitrateValue->setText(QString::number(session->GetMeasuredBitrate(), 'f', 1));
+        else
+            bitrateValue->clear();
+
+        queueRow->setVisible(true);
+        queueDepthValue->setText(QString::number(owner ? owner->queueDepthAverage() : 0.0, 'f', 1));
+        pendingRow->setVisible(true);
+        pendingAgeValue->setText(tr("%1 ms").arg((owner ? owner->pendingFrameAge() : 0.0) * 1000.0, 0, 'f', 0));
+
+        packetLossRow->setVisible(hasSession);
+        if (hasSession) {
+            const double packetLoss = session->GetAveragePacketLoss();
+            packetLossValue->setText(QStringLiteral("%1%").arg((packetLoss * 100.0), 0, 'f', 1));
+        } else {
+            packetLossValue->clear();
+        }
+
+        const int droppedFrames = owner ? owner->droppedFrames() : 0;
+        droppedFramesValue->setText(QString::number(droppedFrames));
+        droppedFramesRow->setVisible(droppedFrames > 0);
+
+        lostFramesRow->setVisible(hasSession);
+        if (hasSession)
+            lostFramesValue->setText(QString::number(session->GetFramesLost()));
+        else
+            lostFramesValue->clear();
+    }
+
+private:
+    QPointer<QmlMainWindow> owner;
+    QPointer<QmlBackend> backend;
+    QPointer<StreamSession> current_session;
+    QWidget *bitrateRow = nullptr;
+    QWidget *queueRow = nullptr;
+    QWidget *pendingRow = nullptr;
+    QWidget *packetLossRow = nullptr;
+    QWidget *droppedFramesRow = nullptr;
+    QWidget *lostFramesRow = nullptr;
+    QLabel *bitrateValue = nullptr;
+    QLabel *queueDepthValue = nullptr;
+    QLabel *pendingAgeValue = nullptr;
+    QLabel *packetLossValue = nullptr;
+    QLabel *droppedFramesValue = nullptr;
+    QLabel *lostFramesValue = nullptr;
+};
 
 class DeferredPresentPacerThread final : public QThread
 {
@@ -252,6 +483,7 @@ struct DeferredSwapTask
     int depth_limit = 0;
     bool pending_frame_waiting = false;
     qint64 present_interval_us = 0;
+    qint64 present_submit_interval_us = 0;
 };
 
 class DeferredSwapThread final : public QThread
@@ -321,7 +553,8 @@ protected:
                                                task.queue_depth_at_submit,
                                                task.depth_limit,
                                                task.pending_frame_waiting,
-                                               task.present_interval_us);
+                                               task.present_interval_us,
+                                               task.present_submit_interval_us);
             }
 
             {
@@ -374,6 +607,36 @@ static bool detailedVerboseTelemetryEnabled()
 #define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(chiakiGui)
 
 static std::atomic<uint64_t> placebo_verbose_log_quiet_until_us{0};
+
+void QmlMainWindow::armQuickNeedSync(const char *reason)
+{
+    if (quick_need_sync.fetchAndStoreRelaxed(1) != 0)
+        return;
+    if (!detailedVerboseTelemetryEnabled())
+        return;
+
+    const bool stream_active = stream_session_active.loadAcquire() != 0;
+    const bool pending_visible = startup_video_visible_pending.loadAcquire() != 0;
+    const bool overlay_active = overlay_interaction_active.loadAcquire() != 0;
+    if (qstrcmp(reason, "sceneChanged") == 0 && overlay_active)
+        return;
+    bool render_scheduled_now = false;
+    bool render_pending_now = false;
+    {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled_now = render_scheduled;
+        render_pending_now = render_pending;
+    }
+    CHIAKI_NOISY_DEBUG().nospace()
+        << "[latency] quick_need_sync_arm reason=" << reason
+        << " stream_active=" << stream_active
+        << " has_video=" << has_video
+        << " overlay_active=" << overlay_active
+        << " startup_pending=" << pending_visible
+        << " render_active=" << (render_active.loadAcquire() != 0)
+        << " render_scheduled=" << render_scheduled_now
+        << " render_pending=" << render_pending_now;
+}
 
 static void logPtsRollback(const char *source, double frame_pts, double queue_pts_origin, bool preserve_timeline, double source_frame_interval_ms)
 {
@@ -2492,10 +2755,35 @@ void QmlMainWindow::armVerbosePlaceboQuietWindow()
 void QmlMainWindow::setOverlayInteractionActive(bool active)
 {
     const int previous = overlay_interaction_active.fetchAndStoreRelaxed(active ? 1 : 0);
-    if (active)
+    if (active) {
+        armQuickNeedSync("overlay_interaction_active");
         scheduleUpdate(true, UpdateRequestReason::Unknown);
+    }
     else if (previous != 0)
         scheduleUpdate(true, UpdateRequestReason::Unknown);
+}
+
+void QmlMainWindow::setStatsOverlayActive(bool active)
+{
+    const bool previous = stats_overlay_visible;
+    stats_overlay_visible = active;
+    if (stats_overlay_widget)
+        stats_overlay_widget->setOverlayVisible(active);
+    if (active)
+        updateStatsOverlayGeometry();
+    if (previous != stats_overlay_visible)
+        emit statsOverlayActiveChanged();
+}
+
+void QmlMainWindow::noteLoadingTransitionComplete()
+{
+    armQuickNeedSync("loading_transition_complete");
+}
+
+void QmlMainWindow::updateStatsOverlayGeometry()
+{
+    if (stats_overlay_widget)
+        stats_overlay_widget->syncGeometry();
 }
 
 bool QmlMainWindow::directStream() const
@@ -2686,6 +2974,8 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, q
         const bool stored_pending = storePendingFrame(frame, true, synthetic_warmup_frame);
         if (stored_pending)
             snapshotPendingFrame();
+        if (stored_pending && !synthetic_warmup_frame && !has_video && startup_first_real_frame_queued_pending_visibility.loadAcquire() == 0)
+            startup_first_real_frame_queued_pending_visibility.storeRelease(1);
         if (stored_pending && !synthetic_warmup_frame && !has_video && startup_video_visible_pending.loadAcquire() == 0)
             startup_video_visible_pending.storeRelease(1);
         if (frame.frame)
@@ -2837,6 +3127,8 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, q
     }
 
     auto armStartupVisibility = [this, synthetic_warmup_frame]() {
+        if (!synthetic_warmup_frame && !has_video && startup_first_real_frame_queued_pending_visibility.loadAcquire() == 0)
+            startup_first_real_frame_queued_pending_visibility.storeRelease(1);
         if (!synthetic_warmup_frame && !has_video && startup_video_visible_pending.loadAcquire() == 0)
             startup_video_visible_pending.storeRelease(1);
     };
@@ -3454,6 +3746,8 @@ void QmlMainWindow::clearPendingFrameStateLocked()
     pending_frame_present.storeRelease(0);
     queue_stored_frame_pending.storeRelease(0);
     pending_frame_submission_active.storeRelease(0);
+    pending_frame_release_queued.storeRelease(0);
+    pending_frame_release_queued_us.storeRelease(0);
 }
 
 void QmlMainWindow::prunePendingFramesBeforeLocked(double cutoff_pts)
@@ -3505,8 +3799,10 @@ void QmlMainWindow::prunePendingFramesBeforeLocked(double cutoff_pts)
     const bool pending_now = pending_frame != nullptr || !pending_frame_overflow.empty();
     pending_frame_present.storeRelease(pending_now ? 1 : 0);
     queue_stored_frame_pending.storeRelease(pending_now ? 1 : 0);
-    if (!pending_now)
+    if (!pending_now) {
         pending_frame_release_queued.storeRelease(0);
+        pending_frame_release_queued_us.storeRelease(0);
+    }
 }
 
 bool QmlMainWindow::cloneNewestPendingFrameLocked(AVFrame *&clone, double &pts, float &duration, uint64_t *stored_us)
@@ -3572,6 +3868,10 @@ bool QmlMainWindow::promotePendingFrameFromOverflowLocked()
     pending_frame_stored_us = entry.stored_us;
     pending_frame_present.storeRelease(pending_frame ? 1 : 0);
     queue_stored_frame_pending.storeRelease(pending_frame ? 1 : 0);
+    if (!pending_frame) {
+        pending_frame_release_queued.storeRelease(0);
+        pending_frame_release_queued_us.storeRelease(0);
+    }
     return pending_frame != nullptr;
 }
 
@@ -3596,6 +3896,10 @@ bool QmlMainWindow::takePendingFrameLocked(PendingFrameEntry &entry)
     pending_frame_stored_us = 0;
     pending_frame_synthetic_warmup = false;
     promotePendingFrameFromOverflowLocked();
+    if (!pending_frame) {
+        pending_frame_release_queued.storeRelease(0);
+        pending_frame_release_queued_us.storeRelease(0);
+    }
     return true;
 }
 
@@ -3608,7 +3912,12 @@ bool QmlMainWindow::dropPendingFrameLocked()
     pending_frame_queue_origin = 0.0;
     pending_frame_stored_us = 0;
     pending_frame_synthetic_warmup = false;
-    return promotePendingFrameFromOverflowLocked();
+    const bool promoted = promotePendingFrameFromOverflowLocked();
+    if (!pending_frame) {
+        pending_frame_release_queued.storeRelease(0);
+        pending_frame_release_queued_us.storeRelease(0);
+    }
+    return promoted;
 }
 
 void QmlMainWindow::snapshotLastFrame(AVFrame *frame, double pts, float duration, bool take_ownership)
@@ -3851,6 +4160,8 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
         }
         if (!synthetic_warmup && !has_video && startup_video_visible_pending.loadAcquire() == 0)
             startup_video_visible_pending.storeRelease(1);
+        if (!synthetic_warmup && !has_video && startup_first_real_frame_queued_pending_visibility.loadAcquire() == 0)
+            startup_first_real_frame_queued_pending_visibility.storeRelease(1);
         if (queue_stored_frame_pending.fetchAndStoreRelaxed(1) == 0)
             scheduleUpdate(false, UpdateRequestReason::PendingFrame);
         return true;
@@ -3903,6 +4214,8 @@ bool QmlMainWindow::queueStoredFrame(AVFrame *frame, double pts, float duration,
 
     if (!has_video && startup_video_visible_pending.loadAcquire() == 0)
         startup_video_visible_pending.storeRelease(1);
+    if (!has_video && startup_first_real_frame_queued_pending_visibility.loadAcquire() == 0)
+        startup_first_real_frame_queued_pending_visibility.storeRelease(1);
     if (queue_stored_frame_pending.fetchAndStoreRelaxed(1) == 0) {
         if (stream_session_active.loadAcquire() != 0 && configuredFrameMixerEnabledForScheduling())
             scheduleBufferedUpdate(UpdateRequestReason::QueueStoredFrame);
@@ -4138,6 +4451,12 @@ bool QmlMainWindow::hasPendingFrame() const
     return pending_frame_present.loadAcquire() != 0;
 }
 
+bool QmlMainWindow::hasPendingFrameOverflow()
+{
+    QMutexLocker locker(&pending_frame_mutex);
+    return !pending_frame_overflow.empty();
+}
+
 bool QmlMainWindow::hasBufferedWork()
 {
     {
@@ -4166,6 +4485,10 @@ int QmlMainWindow::effectiveQueueDepthLimit() const
         if (ok && v > 0)
             depth_limit = v;
     }
+
+    if (stream_session_active.loadAcquire() != 0 &&
+        loading_transition_complete.loadAcquire() == 0)
+        return 1;
 
     // Always use low-latency queue depth regardless of frame mixer mode.
     return qMax(depth_limit, 2);
@@ -4587,6 +4910,7 @@ renderer_backend_ready:
     connect(qml_engine, &QQmlEngine::quit, this, &QWindow::close);
 
     backend = new QmlBackend(settings, this);
+    stats_overlay_widget = new StatsOverlayWidget(this, backend);
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         const bool preserve_startup_warmup = s && startup_warmup_preserve_next_session_change;
         startup_warmup_preserve_next_session_change = false;
@@ -4634,6 +4958,10 @@ renderer_backend_ready:
             quick_render_skip_next = 0;
             queue_stored_frame_pending.storeRelease(0);
             pending_frame_submission_active.storeRelease(0);
+            loading_transition_complete.storeRelease(0);
+            emit loadingTransitionCompleteChanged();
+            startup_video_visible_refresh_pending.storeRelease(0);
+            startup_first_real_frame_queued_pending_visibility.storeRelease(0);
             {
                 QMutexLocker locker(&pending_frame_mutex);
                 clearPendingFrameStateLocked();
@@ -4653,6 +4981,8 @@ renderer_backend_ready:
                 emit hasVideoChanged();
             }
             startup_video_visible_pending.storeRelease(0);
+            if (stats_overlay_widget)
+                stats_overlay_widget->setOverlayVisible(false);
         }
         if(session && exit_app_on_stream_exit)
         {
@@ -5100,7 +5430,8 @@ bool QmlMainWindow::enqueueDeferredSwap(qint64 submit_begin_us,
                                         int queue_depth_at_submit,
                                         int depth_limit,
                                         bool pending_frame_waiting,
-                                        qint64 present_interval_us)
+                                        qint64 present_interval_us,
+                                        qint64 present_submit_interval_us)
 {
     if (!vulkan_deferred_swap_enabled || !deferred_swap_thread || render_backend != RenderBackend::Vulkan || !placebo_swapchain)
         return false;
@@ -5110,6 +5441,7 @@ bool QmlMainWindow::enqueueDeferredSwap(qint64 submit_begin_us,
     task.depth_limit = depth_limit;
     task.pending_frame_waiting = pending_frame_waiting;
     task.present_interval_us = present_interval_us;
+    task.present_submit_interval_us = present_submit_interval_us;
     deferred_present_in_flight.storeRelease(1);
     const bool enqueued = deferred_swap_thread->enqueue(task);
     if (!enqueued)
@@ -5121,7 +5453,8 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
                                             int queue_depth_at_submit,
                                             int depth_limit,
                                             bool pending_frame_waiting,
-                                            qint64 present_interval_us)
+                                            qint64 present_interval_us,
+                                            qint64 present_submit_interval_us)
 {
     auto snapshot_render_schedule_state = [this]() {
         QMutexLocker locker(&render_schedule_mutex);
@@ -5137,6 +5470,7 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
     if (submit_begin_local_us >= submit_begin_us)
         logLatencyStats("submit_queue_delay", submit_begin_local_us - submit_begin_us);
 
+    const qint64 submit_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     {
         QMutexLocker locker(&placebo_swapchain_mutex);
         if (!pl_swapchain_submit_frame(placebo_swapchain))
@@ -5228,13 +5562,20 @@ void QmlMainWindow::completeStartupVideoVisibility(quint64 generation)
         return;
     if (startup_video_visible_pending.fetchAndStoreRelaxed(0) == 0)
         return;
+    if (startup_first_real_frame_queued_pending_visibility.loadAcquire() == 0)
+        return;
     if (has_video)
         return;
 
     has_video = true;
+    startup_first_real_frame_queued_pending_visibility.storeRelease(0);
     if (!grab_input && settings->GetHideCursor())
         setCursor(Qt::BlankCursor);
     emit hasVideoChanged();
+    startup_video_visible_refresh_pending.storeRelease(1);
+    armQuickNeedSync("completeStartupVideoVisibility");
+    quick_need_render.storeRelaxed(1);
+    scheduleUpdate(true, UpdateRequestReason::PendingFrame);
 }
 
 void QmlMainWindow::drainDeferredSwaps()
@@ -5254,6 +5595,7 @@ void QmlMainWindow::updateVSync()
 {
     if (render_backend != RenderBackend::Vulkan)
         return;
+    armQuickNeedSync("updateVSync");
     quick_need_sync.storeRelaxed(1);
     quick_need_render.storeRelaxed(1);
     swapchain_recreate_pending.storeRelaxed(1);
@@ -5928,7 +6270,6 @@ void QmlMainWindow::render()
     if (refresh_rate <= 1.0)
         refresh_rate = 60.0;
     const double refresh_interval_s = 1.0 / refresh_rate;
-    const bool pending_frame_waiting = hasPendingFrame() || pending_frame_submission_active.loadAcquire() != 0;
     const double stream_interval_s = stream_configured_frame_interval_ms > 0.0
         ? stream_configured_frame_interval_ms / 1000.0
         : 0.0;
@@ -5940,6 +6281,7 @@ void QmlMainWindow::render()
         ? present_interval_s
         : stream_interval_s;
     const qint64 present_interval_us = static_cast<qint64>(qMax(1.0, vsync_duration * 1000000.0) + 0.5);
+    const bool pending_frame_waiting = snapshotQueueDepth() >= effectiveQueueDepthLimit() || hasPendingFrame();
     auto schedulePostRenderWork = [this]() {
         scheduleRenderIfBacklog(UpdateRequestReason::FinalizePending);
     };
@@ -6179,7 +6521,8 @@ void QmlMainWindow::render()
                                                             queue_depth_now,
                                                             depth_limit,
                                                             pending_frame_waiting,
-                                                            present_interval_us);
+                                                            present_interval_us,
+                                                            static_cast<qint64>(qMax(1.0, present_submit_interval_s * 1000000.0) + 0.5));
             if (async_enqueued) {
                 async_present_completion = true;
                 present_complete_us = submit_ready_us;
@@ -6664,6 +7007,12 @@ void QmlMainWindow::render()
     }
     close_started_frame(true);
 
+    if (startup_video_visible_refresh_pending.loadAcquire() != 0) {
+        loading_transition_complete.storeRelease(1);
+        emit loadingTransitionCompleteChanged();
+        startup_video_visible_refresh_pending.storeRelease(0);
+    }
+
     bool scheduled_pending = finalize_render();
     if (!scheduled_pending)
         schedulePostRenderWork();
@@ -6810,6 +7159,7 @@ bool QmlMainWindow::event(QEvent *event)
             settings->SetGeometry(geometry());
         else if(session && settings->GetWindowType() == WindowType::AdjustableResolution && isStreamWindowAdjustable())
             settings->SetStreamGeometry(geometry());
+        updateStatsOverlayGeometry();
         break;
     case QEvent::Resize:
         if(!session && isWindowAdjustable())
@@ -6818,6 +7168,7 @@ bool QmlMainWindow::event(QEvent *event)
             settings->SetStreamGeometry(geometry());
         if (isExposed())
             updateSwapchain();
+        updateStatsOverlayGeometry();
         break;
     default:
         break;

@@ -43,6 +43,12 @@ class QmlBackend;
 class QOffscreenSurface;
 class QOpenGLContext;
 class QOpenGLFramebufferObject;
+class QWidget;
+class QLabel;
+class QVBoxLayout;
+class QHBoxLayout;
+class QFrame;
+class StatsOverlayWidget;
 class BufferedPlaybackPacerThread;
 class DeferredPresentPacerThread;
 class DeferredSwapThread;
@@ -53,6 +59,7 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
     Q_PROPERTY(int droppedFrames READ droppedFrames NOTIFY droppedFramesChanged)
     Q_PROPERTY(bool keepVideo READ keepVideo WRITE setKeepVideo NOTIFY keepVideoChanged)
+    Q_PROPERTY(bool loadingTransitionComplete READ loadingTransitionComplete NOTIFY loadingTransitionCompleteChanged)
     Q_PROPERTY(VideoMode videoMode READ videoMode WRITE setVideoMode NOTIFY videoModeChanged)
     Q_PROPERTY(float ZoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY zoomFactorChanged)
     Q_PROPERTY(VideoPreset videoPreset READ videoPreset WRITE setVideoPreset NOTIFY videoPresetChanged)
@@ -107,6 +114,7 @@ public:
 
     bool directStream() const;
     int runtimeRendererBackend() const { return static_cast<int>(render_backend); }
+    bool loadingTransitionComplete() const { return loading_transition_complete.loadAcquire() != 0; }
 
     bool keepVideo() const;
     void setKeepVideo(bool keep);
@@ -142,6 +150,8 @@ public:
     Q_INVOKABLE void releaseInput();
     Q_INVOKABLE void requestOverlayUpdate();
     Q_INVOKABLE void setOverlayInteractionActive(bool active);
+    Q_INVOKABLE void setStatsOverlayActive(bool active);
+    Q_INVOKABLE void noteLoadingTransitionComplete();
     Q_INVOKABLE void presentStartupWarmupFrame(unsigned width, unsigned height, bool hdr);
     void armVerbosePlaceboQuietWindow();
     bool startupWarmupFrameActive() const { return startup_warmup_frame_active; }
@@ -170,6 +180,8 @@ signals:
     void directStreamChanged();
     void queueDepthAverageChanged();
     void pendingFrameAgeChanged();
+    void loadingTransitionCompleteChanged();
+    void statsOverlayActiveChanged();
 
 private:
     friend class BufferedPlaybackPacerThread;
@@ -188,6 +200,9 @@ private:
     void scheduleUpdate(bool force, UpdateRequestReason reason);
     void scheduleBufferedUpdate();
     void scheduleBufferedUpdate(UpdateRequestReason reason);
+    void updateStatsOverlayGeometry();
+    bool statsOverlayActive() const { return stats_overlay_visible; }
+    void armQuickNeedSync(const char *reason);
     void scheduleRenderIfBacklog(UpdateRequestReason reason = UpdateRequestReason::PendingFrame);
     void handleBufferedPlaybackWake(qint64 timer_fire_us);
     void completeStartupVideoVisibility(quint64 generation);
@@ -197,13 +212,15 @@ private:
                              int queue_depth_at_submit,
                              int depth_limit,
                              bool pending_frame_waiting,
-                             qint64 present_interval_us);
+                             qint64 present_interval_us,
+                             qint64 present_submit_interval_us);
     void finalizeDeferredPresentIfIdle();
     void processDeferredSwapTask(qint64 submit_begin_us,
                                  int queue_depth_at_submit,
                                  int depth_limit,
                                  bool pending_frame_waiting,
-                                 qint64 present_interval_us);
+                                 qint64 present_interval_us,
+                                 qint64 present_submit_interval_us);
     void drainDeferredSwaps();
     void setStreamMaxFPS(unsigned int max_fps);
     void createSwapchain();
@@ -248,6 +265,9 @@ private:
     void clearSnapshotFrame();
     bool hasBufferedWork();
     bool enqueueKeptFrame(double queue_pts_origin_hint, bool deinterlace_enabled, double &used_origin);
+    bool hasPendingFrameOverflow();
+    double queuePtsOriginCached() const;
+    void setQueuePtsOriginCached(double queue_pts_origin);
     const struct pl_filter_config *effectiveFrameMixerConfig(const struct pl_render_params *render_params = nullptr) const;
     bool effectiveFrameMixerEnabled(const struct pl_render_params *render_params = nullptr) const;
     bool configuredFrameMixerEnabledForScheduling() const;
@@ -263,6 +283,7 @@ private:
     bool amd_card = false;
     bool nvidia_card = false;
     bool direct_stream = false;
+    std::atomic<qint64> queue_pts_origin_cached_us = -1;
     uint64_t next_frame_target_us = 0;
     double last_throttle_interval_s = 0.0;
     QAtomicInteger<int> present_backpressure_active = 0;
@@ -285,6 +306,7 @@ private:
     StreamSession *session = {};
     AVBufferRef *vulkan_hw_dev_ctx = nullptr;
     std::atomic<double> queue_depth_average{0.0};
+    QAtomicInteger<int> queue_depth_cached = 0;
     double pending_frame_age = 0.0;
     uint64_t last_placebo_reset_ts = 0;
     uint64_t pending_frame_stored_us = 0;
@@ -356,6 +378,12 @@ private:
     QAtomicInteger<int> render_active = 0;
     QAtomicInteger<int> deferred_present_in_flight = 0;
     QAtomicInteger<int> startup_video_visible_pending = 0;
+    QAtomicInteger<int> startup_first_real_frame_queued_pending_visibility = 0;
+    QAtomicInteger<int> loading_transition_complete = 0;
+    QAtomicInteger<int> startup_video_visible_refresh_pending = 0;
+    QAtomicInteger<int> stats_overlay_active = 0;
+    StatsOverlayWidget *stats_overlay_widget = nullptr;
+    bool stats_overlay_visible = false;
     QAtomicInteger<quint64> startup_video_visible_generation = 0;
     bool startup_warmup_frame_active = false;
     bool vulkan_deferred_swap_enabled = false;

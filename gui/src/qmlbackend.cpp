@@ -336,6 +336,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
     connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, this, &QmlBackend::setAllowJoystickBackgroundEvents);
     connect(window, &QmlMainWindow::activeChanged, this, &QmlBackend::setIsAppActive);
+    connect(this, &QmlBackend::sessionChanged, this, &QmlBackend::setIsAppActive);
     setAllowJoystickBackgroundEvents();
     setIsAppActive();
     ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
@@ -1118,10 +1119,17 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (frame.recovered)
             pending_recovered_frame.storeRelaxed(1);
 
+        const qint64 prepare_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         if (!prepareFrameForPresentation(frame, use_opengl_renderer))
         {
             av_frame_free(&frame.frame);
             return;
+        }
+        const qint64 prepare_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+        if (prepare_end_us >= prepare_begin_us && prepare_end_us - prepare_begin_us >= 5000) {
+            CHIAKI_NOISY_DEBUG().nospace()
+                << "[decode] prepare_frame_us=" << (prepare_end_us - prepare_begin_us)
+                << " pts=" << frame.pts;
         }
 
         if (pending_recovered_frame.fetchAndStoreRelaxed(0) != 0) {
