@@ -181,7 +181,6 @@ signals:
     void queueDepthAverageChanged();
     void pendingFrameAgeChanged();
     void loadingTransitionCompleteChanged();
-    void statsOverlayActiveChanged();
 
 private:
     friend class BufferedPlaybackPacerThread;
@@ -201,8 +200,6 @@ private:
     void scheduleBufferedUpdate();
     void scheduleBufferedUpdate(UpdateRequestReason reason);
     void updateStatsOverlayGeometry();
-    bool statsOverlayActive() const { return stats_overlay_visible; }
-    void armQuickNeedSync(const char *reason);
     void scheduleRenderIfBacklog(UpdateRequestReason reason = UpdateRequestReason::PendingFrame);
     void handleBufferedPlaybackWake(qint64 timer_fire_us);
     void completeStartupVideoVisibility(quint64 generation);
@@ -383,7 +380,6 @@ private:
     QAtomicInteger<int> startup_video_visible_refresh_pending = 0;
     QAtomicInteger<int> stats_overlay_active = 0;
     StatsOverlayWidget *stats_overlay_widget = nullptr;
-    bool stats_overlay_visible = false;
     QAtomicInteger<quint64> startup_video_visible_generation = 0;
     bool startup_warmup_frame_active = false;
     bool vulkan_deferred_swap_enabled = false;
@@ -409,8 +405,6 @@ private:
     QAtomicInteger<int> quick_need_sync = 0;
     QAtomicInteger<int> quick_need_render = 0;
     qint64 quick_begin_wait_last_us = 0;
-    int quick_render_skip_next = 0;
-    QAtomicInteger<int> update_pending = 0;
     QAtomicInteger<int> schedule_frame_mixer_active = 0;
     double source_frame_interval_ms = 16.6667;
     double stream_configured_frame_interval_ms = 16.6667;
