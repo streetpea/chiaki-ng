@@ -75,7 +75,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/libevent/libevent
-        tag: release-2.2.9-stable
+        tag: release-2.1.12-stable
 
   - name: nv-codec-headers
     only-arches:
