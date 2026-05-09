@@ -68,10 +68,10 @@ modules:
         tag: v7.360.1
 
   - name: libevent
-    buildsystem: meson
+    buildsystem: cmake-ninja
     config-opts:
-      - -Dexamples=false
-      - -Dtests=false
+      - -DEVENT__DISABLE_SAMPLES:BOOL=OFF
+      - -DEVENT__DISABLE_TESTS:BOOL=OFF
     sources:
       - type: git
         url: https://github.com/libevent/libevent
