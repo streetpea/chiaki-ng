@@ -58,6 +58,19 @@ modules:
         url: https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz
         sha256: 4eab9b524aa5913c6fffb20b2a8abf5ef7f95a80bc0701f3a6dbb4c607f73460
 
+  - name: libevent
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DEVENT__DISABLE_SAMPLES:BOOL=OFF
+      - -DEVENT__DISABLE_TESTS:BOOL=OFF
+    sources:
+      - type: git
+        url: https://github.com/libevent/libevent
+        tag: release-2.1.12-stable
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+
   - name: libplacebo
     buildsystem: meson
     config-opts:
