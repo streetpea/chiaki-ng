@@ -2356,14 +2356,10 @@ void QmlBackend::updateDiscoveryHosts()
 
 void QmlBackend::prepareStartupPresentation(bool present_warmup)
 {
+    Q_UNUSED(present_warmup);
+
     if (!window)
         return;
-
-    const auto &connect_info = session_info;
-    if (present_warmup && connect_info.video_profile.width > 0 && connect_info.video_profile.height > 0)
-        window->presentStartupWarmupFrame(connect_info.video_profile.width,
-                                          connect_info.video_profile.height,
-                                          connect_info.video_profile.codec == CHIAKI_CODEC_H265_HDR);
 }
 
 void QmlBackend::applyStartupWindowSizing()

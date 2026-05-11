@@ -236,6 +236,7 @@ private:
     void queuePendingFrameRelease();
     bool applyPendingFrameIfQueueHasCapacity();
     bool hasPendingFrame() const;
+    bool hasPendingFrameOverflow();
     int effectiveQueueDepthLimit() const;
     int pendingFrameOverflowLimit(int submission_depth_limit) const;
     void clearPendingFrameStateLocked();
@@ -265,7 +266,6 @@ private:
     void clearSnapshotFrame();
     bool hasBufferedWork();
     bool enqueueKeptFrame(double queue_pts_origin_hint, bool deinterlace_enabled, double &used_origin);
-    bool hasPendingFrameOverflow();
     double queuePtsOriginCached() const;
     void setQueuePtsOriginCached(double queue_pts_origin);
     const struct pl_filter_config *effectiveFrameMixerConfig(const struct pl_render_params *render_params = nullptr) const;
