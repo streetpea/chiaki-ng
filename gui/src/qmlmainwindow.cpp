@@ -5725,7 +5725,7 @@ void QmlMainWindow::createSwapchain()
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
         // Prefer MAILBOX for vsync (lower) latency when supported).
-        .present_mode = settings->GetVSyncEnabled() ? VK_PRESENT_MODE_MAILBOX_KHR
+        .present_mode = settings->GetVSyncEnabled() ? VK_PRESENT_MODE_FIFO_KHR
                                                     : VK_PRESENT_MODE_IMMEDIATE_KHR,
         .swapchain_depth = swapchain_depth,
     };
@@ -6990,10 +6990,7 @@ void QmlMainWindow::render()
             if (render_entry_us_local > 0 && render_after_us >= render_entry_us_local)
                 logLatencyStats("render_work", render_after_us - render_entry_us_local);
         }
-        if (loading_transition_complete.loadAcquire() != 0)
-            close_started_frame(true);
-        else
-            close_started_frame(false);
+        close_started_frame(true);
         bool scheduled_pending = finalize_render();
         if (!scheduled_pending)
             schedulePostRenderWork();
