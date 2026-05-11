@@ -185,11 +185,17 @@ public:
     void setOverlayVisible(bool visible)
     {
         if (visible) {
+            updateTransientParent();
             syncGeometry();
             refresh();
             if (!isVisible())
                 show();
+            updateTransientParent();
+            if (owner)
+                owner->requestActivate();
         } else {
+            if (QWindow *overlay_window = windowHandle())
+                overlay_window->setTransientParent(nullptr);
             hide();
         }
     }
@@ -201,6 +207,14 @@ public:
         const QRect g = owner->geometry();
         if (geometry() != g)
             setGeometry(g);
+    }
+
+    void updateTransientParent()
+    {
+        if (!owner)
+            return;
+        if (QWindow *overlay_window = windowHandle())
+            overlay_window->setTransientParent(owner);
     }
 
     void setSession(StreamSession *session)
@@ -593,6 +607,36 @@ static bool detailedVerboseTelemetryEnabled()
 #define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(chiakiGui)
 
 static std::atomic<uint64_t> placebo_verbose_log_quiet_until_us{0};
+
+void QmlMainWindow::armQuickNeedSync(const char *reason)
+{
+    if (quick_need_sync.fetchAndStoreRelaxed(1) != 0)
+        return;
+    if (!detailedVerboseTelemetryEnabled())
+        return;
+
+    const bool stream_active = stream_session_active.loadAcquire() != 0;
+    const bool pending_visible = startup_video_visible_pending.loadAcquire() != 0;
+    const bool overlay_active = overlay_interaction_active.loadAcquire() != 0;
+    if (qstrcmp(reason, "sceneChanged") == 0 && overlay_active)
+        return;
+    bool render_scheduled_now = false;
+    bool render_pending_now = false;
+    {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled_now = render_scheduled;
+        render_pending_now = render_pending;
+    }
+    CHIAKI_NOISY_DEBUG().nospace()
+        << "[latency] quick_need_sync_arm reason=" << reason
+        << " stream_active=" << stream_active
+        << " has_video=" << has_video
+        << " overlay_active=" << overlay_active
+        << " startup_pending=" << pending_visible
+        << " render_active=" << (render_active.loadAcquire() != 0)
+        << " render_scheduled=" << render_scheduled_now
+        << " render_pending=" << render_pending_now;
+}
 
 static void logPtsRollback(const char *source, double frame_pts, double queue_pts_origin, bool preserve_timeline, double source_frame_interval_ms)
 {
@@ -1930,6 +1974,77 @@ static void logDroppedFrameReason(const char *reason, qint64 now_us, double pts,
         << (detail ? detail : "");
 }
 
+static const char *updateRequestReasonName(int reason)
+{
+    switch (static_cast<QmlMainWindow::UpdateRequestReason>(reason)) {
+    case QmlMainWindow::UpdateRequestReason::SceneChanged:
+        return "scene_changed";
+    case QmlMainWindow::UpdateRequestReason::RenderRequested:
+        return "render_requested";
+    case QmlMainWindow::UpdateRequestReason::Timer:
+        return "timer";
+    case QmlMainWindow::UpdateRequestReason::QueueStoredFrame:
+        return "queue_stored_frame";
+    case QmlMainWindow::UpdateRequestReason::QueueReset:
+        return "queue_reset";
+    case QmlMainWindow::UpdateRequestReason::PendingFrame:
+        return "pending_frame";
+    case QmlMainWindow::UpdateRequestReason::Replay:
+        return "replay";
+    case QmlMainWindow::UpdateRequestReason::PlaceboReset:
+        return "placebo_reset";
+    case QmlMainWindow::UpdateRequestReason::FinalizePending:
+        return "finalize_pending";
+    case QmlMainWindow::UpdateRequestReason::NoSwapchain:
+        return "no_swapchain";
+    case QmlMainWindow::UpdateRequestReason::VSync:
+        return "vsync";
+    case QmlMainWindow::UpdateRequestReason::Unknown:
+    default:
+        return "unknown";
+    }
+}
+
+[[maybe_unused]] static void logUpdateRequestReasonStats(int reason)
+{
+    static qint64 last_log_us = 0;
+    static std::array<int, 11> blocked_counts{};
+    static int total_blocked = 0;
+
+    const int idx = static_cast<int>(reason);
+    if (idx >= 0 && idx < static_cast<int>(blocked_counts.size())) {
+        blocked_counts[idx]++;
+        total_blocked++;
+    }
+
+    const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+    if (last_log_us == 0) {
+        last_log_us = now_us;
+        return;
+    }
+    if (now_us - last_log_us < 1000000)
+        return;
+
+    CHIAKI_NOISY_DEBUG().nospace()
+        << "[latency] update_blocked total=" << total_blocked
+        << " scene_changed=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::SceneChanged)]
+        << " render_requested=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::RenderRequested)]
+        << " timer=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::Timer)]
+        << " queue_stored_frame=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::QueueStoredFrame)]
+        << " queue_reset=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::QueueReset)]
+        << " pending_frame=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::PendingFrame)]
+        << " replay=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::Replay)]
+        << " placebo_reset=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::PlaceboReset)]
+        << " finalize_pending=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::FinalizePending)]
+        << " no_swapchain=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::NoSwapchain)]
+        << " vsync=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::VSync)]
+        << " unknown=" << blocked_counts[static_cast<int>(QmlMainWindow::UpdateRequestReason::Unknown)];
+
+    blocked_counts.fill(0);
+    total_blocked = 0;
+    last_log_us = now_us;
+}
+
 static void logRenderRequestedSignalStats(bool render_scheduled_now, bool render_active_now, bool quick_need_render_now)
 {
     static qint64 last_log_us = 0;
@@ -2640,22 +2755,29 @@ void QmlMainWindow::armVerbosePlaceboQuietWindow()
 void QmlMainWindow::setOverlayInteractionActive(bool active)
 {
     const int previous = overlay_interaction_active.fetchAndStoreRelaxed(active ? 1 : 0);
-    if (active)
+    if (active) {
+        armQuickNeedSync("overlay_interaction_active");
         scheduleUpdate(true, UpdateRequestReason::Unknown);
+    }
     else if (previous != 0)
         scheduleUpdate(true, UpdateRequestReason::Unknown);
 }
 
 void QmlMainWindow::setStatsOverlayActive(bool active)
 {
+    const bool previous = stats_overlay_visible;
+    stats_overlay_visible = active;
     if (stats_overlay_widget)
         stats_overlay_widget->setOverlayVisible(active);
     if (active)
         updateStatsOverlayGeometry();
+    if (previous != stats_overlay_visible)
+        emit statsOverlayActiveChanged();
 }
 
 void QmlMainWindow::noteLoadingTransitionComplete()
 {
+    armQuickNeedSync("loading_transition_complete");
 }
 
 void QmlMainWindow::updateStatsOverlayGeometry()
@@ -3773,12 +3895,12 @@ bool QmlMainWindow::takePendingFrameLocked(PendingFrameEntry &entry)
     pending_frame_queue_origin = 0.0;
     pending_frame_stored_us = 0;
     pending_frame_synthetic_warmup = false;
-    const bool promoted = promotePendingFrameFromOverflowLocked();
+    promotePendingFrameFromOverflowLocked();
     if (!pending_frame) {
         pending_frame_release_queued.storeRelease(0);
         pending_frame_release_queued_us.storeRelease(0);
     }
-    return promoted;
+    return true;
 }
 
 bool QmlMainWindow::dropPendingFrameLocked()
@@ -4364,6 +4486,10 @@ int QmlMainWindow::effectiveQueueDepthLimit() const
             depth_limit = v;
     }
 
+    if (stream_session_active.loadAcquire() != 0 &&
+        loading_transition_complete.loadAcquire() == 0)
+        return 1;
+
     // Always use low-latency queue depth regardless of frame mixer mode.
     return qMax(depth_limit, 2);
 }
@@ -4829,6 +4955,7 @@ renderer_backend_ready:
             playback_started = false;
             ts_start = 0;
             quick_begin_wait_last_us = 0;
+            quick_render_skip_next = 0;
             queue_stored_frame_pending.storeRelease(0);
             pending_frame_submission_active.storeRelease(0);
             loading_transition_complete.storeRelease(0);
@@ -4894,11 +5021,37 @@ renderer_backend_ready:
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         quick_need_sync.storeRelaxed(1);
-        scheduleUpdate();
+        if (stream_session_active.loadAcquire() != 0 &&
+            has_video &&
+            overlay_interaction_active.loadAcquire() == 0) {
+            bool render_scheduled_now = false;
+            bool render_pending_now = false;
+            {
+                QMutexLocker locker(&render_schedule_mutex);
+                render_scheduled_now = render_scheduled;
+                render_pending_now = render_pending;
+            }
+            if (render_active.loadAcquire() != 0 || render_scheduled_now || render_pending_now)
+                return;
+        }
+        scheduleUpdate(false, UpdateRequestReason::SceneChanged);
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        scheduleUpdate();
+        if (stream_session_active.loadAcquire() != 0 &&
+            has_video &&
+            overlay_interaction_active.loadAcquire() == 0) {
+            bool render_scheduled_now = false;
+            bool render_pending_now = false;
+            {
+                QMutexLocker locker(&render_schedule_mutex);
+                render_scheduled_now = render_scheduled;
+                render_pending_now = render_pending;
+            }
+            if (render_scheduled_now || render_pending_now)
+                return;
+        }
+        scheduleUpdate(false, UpdateRequestReason::RenderRequested);
     });
 
 
@@ -5060,9 +5213,16 @@ void QmlMainWindow::scheduleUpdate(bool force, UpdateRequestReason reason)
         return;
     }
 
+    if (!force) {
+        if (!update_pending.testAndSetRelaxed(0, 1))
+            return;
+    } else {
+        update_pending.storeRelaxed(1);
+    }
     last_update_request_reason.storeRelaxed(static_cast<int>(reason));
     last_schedule_update_us.storeRelease(static_cast<qint64>(chiaki_time_now_monotonic_us()));
     QMetaObject::invokeMethod(this, [this]() {
+        update_pending.storeRelaxed(0);
         last_update_us = chiaki_time_now_monotonic_us();
         const qint64 schedule_us = last_schedule_update_us.loadAcquire();
         if (schedule_us > 0 && last_update_us >= schedule_us)
@@ -5413,6 +5573,8 @@ void QmlMainWindow::completeStartupVideoVisibility(quint64 generation)
         setCursor(Qt::BlankCursor);
     emit hasVideoChanged();
     startup_video_visible_refresh_pending.storeRelease(1);
+    armQuickNeedSync("completeStartupVideoVisibility");
+    quick_need_render.storeRelaxed(1);
     scheduleUpdate(true, UpdateRequestReason::PendingFrame);
 }
 
@@ -5433,6 +5595,9 @@ void QmlMainWindow::updateVSync()
 {
     if (render_backend != RenderBackend::Vulkan)
         return;
+    armQuickNeedSync("updateVSync");
+    quick_need_sync.storeRelaxed(1);
+    quick_need_render.storeRelaxed(1);
     swapchain_recreate_pending.storeRelaxed(1);
     scheduleUpdate(true, UpdateRequestReason::VSync);
 }
@@ -6009,6 +6174,8 @@ void QmlMainWindow::render()
         if (!swapchain_recreated)
             return;
         QMetaObject::invokeMethod(this, [this]() {
+            quick_need_sync.storeRelaxed(1);
+            quick_need_render.storeRelaxed(1);
             scheduleUpdate(true, UpdateRequestReason::VSync);
         }, Qt::QueuedConnection);
     };
@@ -6114,7 +6281,7 @@ void QmlMainWindow::render()
         ? present_interval_s
         : stream_interval_s;
     const qint64 present_interval_us = static_cast<qint64>(qMax(1.0, vsync_duration * 1000000.0) + 0.5);
-    const bool pending_frame_waiting = snapshotQueueDepth() >= effectiveQueueDepthLimit() || hasPendingFrameOverflow();
+    const bool pending_frame_waiting = snapshotQueueDepth() >= effectiveQueueDepthLimit() || hasPendingFrame();
     auto schedulePostRenderWork = [this]() {
         scheduleRenderIfBacklog(UpdateRequestReason::FinalizePending);
     };
@@ -6183,26 +6350,35 @@ void QmlMainWindow::render()
     refreshPendingFrameAge();
 
     if (render_backend == RenderBackend::OpenGL && quick_need_render.loadRelaxed()) {
-        quick_need_render.storeRelaxed(0);
-        const qint64 quick_begin_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (!quick_frame)
-            beginFrame();
-        const qint64 quick_begin_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (quick_begin_after_us >= quick_begin_begin_us)
-            logQuickBeginFrameStats(quick_begin_after_us, quick_begin_after_us - quick_begin_begin_us);
-        if (quick_frame) {
-            const qint64 quick_render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-            clearQuickOpenGLTarget(quick_fbo);
-            quick_render->render();
-            const qint64 quick_render_call_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-            if (quick_render_call_after_us >= quick_render_call_begin_us)
-                logQuickRenderStats(quick_render_call_after_us, quick_render_call_after_us - quick_render_call_begin_us);
+        const bool quick_skip_next = stream_session_active.loadAcquire() != 0 && quick_render_skip_next != 0;
+        if (quick_skip_next && !quick_frame) {
+            quick_render_skip_next = 0;
+            quick_need_render.storeRelaxed(1);
+        } else {
+            quick_need_render.storeRelaxed(0);
+            const qint64 quick_begin_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (!quick_frame)
+                beginFrame();
+            const qint64 quick_begin_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (quick_begin_after_us >= quick_begin_begin_us)
+                logQuickBeginFrameStats(quick_begin_after_us, quick_begin_after_us - quick_begin_begin_us);
+            if (quick_frame) {
+                const qint64 quick_render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+                clearQuickOpenGLTarget(quick_fbo);
+                quick_render->render();
+                const qint64 quick_render_call_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+                if (quick_render_call_after_us >= quick_render_call_begin_us)
+                    logQuickRenderStats(quick_render_call_after_us, quick_render_call_after_us - quick_render_call_begin_us);
+            }
+            const qint64 quick_end_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            endFrame();
+            const qint64 quick_end_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (quick_end_after_us >= quick_end_begin_us)
+                logQuickEndFrameStats(quick_end_after_us, quick_end_after_us - quick_end_begin_us);
+            quick_render_skip_next = stream_session_active.loadAcquire() != 0 &&
+                render_pending_during_cycle.loadAcquire() > 1 &&
+                quick_begin_wait_last_us > 1500 ? 1 : 0;
         }
-        const qint64 quick_end_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        endFrame();
-        const qint64 quick_end_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (quick_end_after_us >= quick_end_begin_us)
-            logQuickEndFrameStats(quick_end_after_us, quick_end_after_us - quick_end_begin_us);
     }
 
     const qint64 start_frame_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -6310,8 +6486,14 @@ void QmlMainWindow::render()
                 present_false_count = 0;
             }
         }
-        const bool pending_overflow_now = hasPendingFrameOverflow();
-        present_backpressure_active.storeRelease(queue_depth_now >= depth_limit || pending_overflow_now ? 1 : 0);
+        const double queue_depth_average = queueDepthAverage();
+        if (queue_depth_now >= depth_limit ||
+            queue_depth_average >= static_cast<double>(depth_limit) - 0.15) {
+            present_backpressure_active.storeRelease(1);
+        } else if (queue_depth_now < depth_limit &&
+                   queue_depth_average <= static_cast<double>(depth_limit) - 0.65) {
+            present_backpressure_active.storeRelease(0);
+        }
         const bool backlog_active = pending_frame_waiting;
         if (submit_ready_us >= start_frame_us) {
             logLatencyStats("start_frame_to_submit", submit_ready_us - start_frame_us);
@@ -6612,27 +6794,36 @@ void QmlMainWindow::render()
         }
     }
     if (quick_need_render.loadRelaxed()) {
-        quick_need_render.storeRelaxed(0);
-        const qint64 quick_begin_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (!quick_frame)
-            beginFrame();
-        const qint64 quick_begin_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (quick_begin_after_us >= quick_begin_begin_us)
-            logQuickBeginFrameStats(quick_begin_after_us, quick_begin_after_us - quick_begin_begin_us);
-        if (quick_frame) {
-            const qint64 quick_render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-            if (render_backend == RenderBackend::OpenGL)
-                clearQuickOpenGLTarget(quick_fbo);
-            quick_render->render();
-            const qint64 quick_render_call_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-            if (quick_render_call_after_us >= quick_render_call_begin_us)
-                logQuickRenderStats(quick_render_call_after_us, quick_render_call_after_us - quick_render_call_begin_us);
+        const bool quick_skip_next = stream_session_active.loadAcquire() != 0 && quick_render_skip_next != 0;
+        if (quick_skip_next && !quick_frame) {
+            quick_render_skip_next = 0;
+            quick_need_render.storeRelaxed(1);
+        } else {
+            quick_need_render.storeRelaxed(0);
+            const qint64 quick_begin_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (!quick_frame)
+                beginFrame();
+            const qint64 quick_begin_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (quick_begin_after_us >= quick_begin_begin_us)
+                logQuickBeginFrameStats(quick_begin_after_us, quick_begin_after_us - quick_begin_begin_us);
+            if (quick_frame) {
+                const qint64 quick_render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+                if (render_backend == RenderBackend::OpenGL)
+                    clearQuickOpenGLTarget(quick_fbo);
+                quick_render->render();
+                const qint64 quick_render_call_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+                if (quick_render_call_after_us >= quick_render_call_begin_us)
+                    logQuickRenderStats(quick_render_call_after_us, quick_render_call_after_us - quick_render_call_begin_us);
+            }
+            const qint64 quick_end_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            endFrame();
+            const qint64 quick_end_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            if (quick_end_after_us >= quick_end_begin_us)
+                logQuickEndFrameStats(quick_end_after_us, quick_end_after_us - quick_end_begin_us);
+            quick_render_skip_next = stream_session_active.loadAcquire() != 0 &&
+                render_pending_during_cycle.loadAcquire() > 1 &&
+                quick_begin_wait_last_us > 1500 ? 1 : 0;
         }
-        const qint64 quick_end_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        endFrame();
-        const qint64 quick_end_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-        if (quick_end_after_us >= quick_end_begin_us)
-            logQuickEndFrameStats(quick_end_after_us, quick_end_after_us - quick_end_begin_us);
     }
 
     {

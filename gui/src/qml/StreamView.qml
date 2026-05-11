@@ -10,6 +10,7 @@ import "controls" as C
 
 Item {
     id: view
+    focus: true
 
     readonly property var hostWindow: view.Window.window
     property bool sessionError: false
@@ -17,11 +18,14 @@ Item {
     property list<Item> restoreFocusItems
     readonly property bool useSeparateMenuWindow: Chiaki.window.runtimeRendererBackend === 1
     readonly property int streamMenuHeight: 200
+    readonly property bool streamStatsVisible: Chiaki.settings.showStreamStats && Chiaki.session && !(menuController.open || menuController.closing) && !sessionLoading && !sessionError && !(Chiaki.settings.audioVideoDisabled & 0x02)
     property int separateMenuX: 0
     property int separateMenuY: 0
     property int separateMenuWidth: 0
     property int separateDialogX: 0
     property int separateDialogY: 0
+    property bool sessionStopDialogActive: false
+    property bool sessionPinDialogActive: false
 
     function grabInput(item) {
         Chiaki.window.grabInput();
@@ -55,17 +59,37 @@ Item {
         separateDialogY = Math.round(hostWindow.y + (hostWindow.height - height) / 2);
     }
 
+    function updateOverlayInteractionActive() {
+        Chiaki.window.setOverlayInteractionActive(
+            menuController.open ||
+            menuController.closing ||
+            sessionStopDialogActive ||
+            separateSessionStopWindow.visible ||
+            sessionPinDialogActive ||
+            separateSessionPinWindow.visible
+        );
+    }
+
     StackView.onActivating: {
+        view.forceActiveFocus(Qt.TabFocusReason);
+        if (view.Window && view.Window.window)
+            view.Window.window.requestActivate();
         Chiaki.window.keepVideo = true;
         sessionError = false;
         errorTitleLabel.text = "";
         errorTextLabel.text = "";
-        sessionLoading = !(Chiaki.window.hasVideo || (Chiaki.settings.audioVideoDisabled & 0x02));
+        sessionLoading = !(Chiaki.window.loadingTransitionComplete || (Chiaki.settings.audioVideoDisabled & 0x02));
     }
     StackView.onDeactivated: Chiaki.window.keepVideo = false
 
     Component.onCompleted: {
         updateSeparateMenuGeometry();
+        updateOverlayInteractionActive();
+        Chiaki.window.setStatsOverlayActive(streamStatsVisible);
+    }
+    onStreamStatsVisibleChanged: {
+        if (Chiaki.window)
+            Chiaki.window.setStatsOverlayActive(streamStatsVisible);
     }
     onWidthChanged: updateSeparateMenuGeometry()
     onHeightChanged: updateSeparateMenuGeometry()
@@ -100,6 +124,7 @@ Item {
                 }
                 open = true;
             }
+            view.updateOverlayInteractionActive();
         }
 
         function close() {
@@ -108,6 +133,7 @@ Item {
             closing = true;
             open = false;
             view.releaseInput();
+            view.updateOverlayInteractionActive();
         }
     }
 
@@ -599,6 +625,7 @@ Item {
                 onRunningChanged: {
                     if (!running && !menuController.open) {
                         menuController.closing = false;
+                        view.updateOverlayInteractionActive();
                     }
                 }
             }
@@ -635,6 +662,7 @@ Item {
             if (view.hostWindow)
                 view.hostWindow.requestActivate();
             menuController.closing = false;
+            view.updateOverlayInteractionActive();
         }
     }
 
@@ -648,9 +676,13 @@ Item {
         padding: 30
         onAboutToShow: {
             closeAction = 0;
+            sessionStopDialogActive = true;
+            view.updateOverlayInteractionActive();
         }
         onClosed: {
             view.releaseInput();
+            sessionStopDialogActive = false;
+            view.updateOverlayInteractionActive();
             if (closeAction)
                 Chiaki.stopSession(closeAction == 1);
         }
@@ -741,6 +773,7 @@ Item {
                 if (closeAction)
                     Chiaki.stopSession(closeAction === 1);
             }
+            view.updateOverlayInteractionActive();
         }
 
         Rectangle {
@@ -826,9 +859,13 @@ Item {
                 return pinField.acceptableInput;
             });
             view.grabInput(pinField);
+            sessionPinDialogActive = true;
+            view.updateOverlayInteractionActive();
         }
         onClosed: {
             view.releaseInput();
+            sessionPinDialogActive = false;
+            view.updateOverlayInteractionActive();
         }
         onAccepted: Chiaki.enterPin(pinField.text)
         onRejected: Chiaki.stopSession(false)
@@ -869,6 +906,7 @@ Item {
             } else {
                 view.releaseInput();
             }
+            view.updateOverlayInteractionActive();
         }
 
         Rectangle {
@@ -942,7 +980,6 @@ Item {
 
         function onSessionChanged() {
             if (!Chiaki.session) {
-                sessionLoading = false;
                 if (errorTitleLabel.text)
                     closeTimer.start();
                 else
@@ -951,7 +988,7 @@ Item {
                 sessionError = false;
                 errorTitleLabel.text = "";
                 errorTextLabel.text = "";
-                sessionLoading = !(Chiaki.window.hasVideo || (Chiaki.settings.audioVideoDisabled & 0x02));
+                sessionLoading = !(Chiaki.window.loadingTransitionComplete || (Chiaki.settings.audioVideoDisabled & 0x02));
             }
         }
 
@@ -971,6 +1008,7 @@ Item {
                 separateSessionPinWindow.visible = true;
             else
                 sessionPinDialog.open();
+            Chiaki.window.requestOverlayUpdate();
         }
 
         function onSessionStopDialogRequested() {
@@ -981,6 +1019,7 @@ Item {
                 separateSessionStopWindow.visible = true;
             else
                 sessionStopDialog.open();
+            Chiaki.window.requestOverlayUpdate();
         }
     }
 
@@ -992,10 +1031,21 @@ Item {
                 sessionLoading = false;
         }
 
+        function onLoadingTransitionCompleteChanged() {
+            if (Chiaki.window.loadingTransitionComplete) {
+                sessionLoading = false;
+                Chiaki.window.noteLoadingTransitionComplete();
+                Chiaki.window.requestOverlayUpdate();
+            } else if (Chiaki.session) {
+                sessionLoading = !(Chiaki.settings.audioVideoDisabled & 0x02);
+            }
+        }
+
         function onMenuRequested() {
             if (sessionPinDialog.opened || sessionStopDialog.opened || separateSessionPinWindow.visible || separateSessionStopWindow.visible)
                 return;
             menuController.toggle();
+            Chiaki.window.requestOverlayUpdate();
         }
     }
     Connections {
