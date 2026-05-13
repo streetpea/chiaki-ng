@@ -5132,19 +5132,6 @@ renderer_backend_ready:
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        if (stream_session_active.loadAcquire() != 0 &&
-            has_video &&
-            overlay_interaction_active.loadAcquire() == 0) {
-            bool render_scheduled_now = false;
-            bool render_pending_now = false;
-            {
-                QMutexLocker locker(&render_schedule_mutex);
-                render_scheduled_now = render_scheduled;
-                render_pending_now = render_pending;
-            }
-            if (render_scheduled_now || render_pending_now)
-                return;
-        }
         scheduleUpdate(false, UpdateRequestReason::RenderRequested);
     });
 
