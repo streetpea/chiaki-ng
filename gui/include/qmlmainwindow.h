@@ -237,6 +237,7 @@ private:
     bool applyPendingFrameIfQueueHasCapacity();
     bool hasPendingFrame() const;
     bool hasPendingFrameOverflow();
+    bool pendingFrameOverflowEnabled() const;
     int effectiveQueueDepthLimit() const;
     int pendingFrameOverflowLimit(int submission_depth_limit) const;
     void clearPendingFrameStateLocked();

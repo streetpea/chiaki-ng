@@ -3573,6 +3573,20 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
         queued_existing = pending_frame != nullptr;
 
         const uint64_t now_us = chiaki_time_now_monotonic_us();
+        const bool overflow_enabled = pendingFrameOverflowEnabled();
+        if (!overflow_enabled) {
+            while (!pending_frame_overflow.empty()) {
+                PendingFrameEntry dropped = std::move(pending_frame_overflow.front());
+                pending_frame_overflow.pop_front();
+                if (dropped.frame) {
+                    logDroppedFrameReason("pending_overflow_disabled_drop", static_cast<qint64>(now_us), dropped.pts,
+                                          "overflow disabled");
+                    increaseDroppedFrames();
+                    av_frame_free(&dropped.frame);
+                }
+            }
+        }
+
         if (!pending_frame) {
             pending_frame = stored_frame;
             pending_frame_synthetic_warmup = synthetic_warmup;
@@ -3591,6 +3605,7 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
                 pending_frame_stored_us = now_us;
                 replaced_existing = true;
             } else {
+                const size_t overflow_limit = static_cast<size_t>(pendingFrameOverflowLimit(submission_depth_limit));
                 const double newest_pending_pts = pending_frame_overflow.empty()
                     ? pending_pts
                     : pending_frame_overflow.back().pts;
@@ -3607,26 +3622,39 @@ bool QmlMainWindow::storePendingFrame(ChiakiFfmpegFrame &frame, bool take_owners
                         frame.frame = nullptr;
                     return false;
                 }
-                const size_t overflow_limit = static_cast<size_t>(pendingFrameOverflowLimit(submission_depth_limit));
-                if (pending_frame_overflow.size() >= overflow_limit) {
-                    PendingFrameEntry dropped = std::move(pending_frame_overflow.front());
-                    pending_frame_overflow.pop_front();
-                    if (dropped.frame) {
-                        logDroppedFrameReason("pending_overflow_evict", static_cast<qint64>(chiaki_time_now_monotonic_us()), dropped.pts,
-                                              "overflow queue full");
-                        increaseDroppedFrames();
-                        av_frame_free(&dropped.frame);
+                if (overflow_limit == 0) {
+                    logDroppedFrameReason("pending_overflow_disabled_replace", static_cast<qint64>(chiaki_time_now_monotonic_us()), pending_pts,
+                                          "overflow disabled");
+                    increaseDroppedFrames();
+                    av_frame_free(&pending_frame);
+                    pending_frame = stored_frame;
+                    pending_frame_synthetic_warmup = synthetic_warmup;
+                    pending_pts = frame.pts;
+                    pending_duration = frame.duration;
+                    pending_frame_queue_origin = queue_origin;
+                    pending_frame_stored_us = now_us;
+                    replaced_existing = true;
+                } else {
+                    if (pending_frame_overflow.size() >= overflow_limit) {
+                        PendingFrameEntry dropped = std::move(pending_frame_overflow.front());
+                        pending_frame_overflow.pop_front();
+                        if (dropped.frame) {
+                            logDroppedFrameReason("pending_overflow_evict", static_cast<qint64>(chiaki_time_now_monotonic_us()), dropped.pts,
+                                                  "overflow queue full");
+                            increaseDroppedFrames();
+                            av_frame_free(&dropped.frame);
+                        }
                     }
+                    insertPendingOverflowLocked({
+                        stored_frame,
+                        frame.pts,
+                        static_cast<float>(frame.duration),
+                        queue_origin,
+                        now_us,
+                        synthetic_warmup,
+                    });
+                    replaced_existing = true;
                 }
-                insertPendingOverflowLocked({
-                    stored_frame,
-                    frame.pts,
-                    static_cast<float>(frame.duration),
-                    queue_origin,
-                    now_us,
-                    synthetic_warmup,
-                });
-                replaced_existing = true;
             }
         }
 
@@ -4508,6 +4536,19 @@ bool QmlMainWindow::hasPendingFrameOverflow()
     return !pending_frame_overflow.empty();
 }
 
+bool QmlMainWindow::pendingFrameOverflowEnabled() const
+{
+    static const bool enabled = []() {
+        const QByteArray value = qgetenv("CHIAKI_ENABLE_PENDING_OVERFLOW");
+        if (value.isEmpty())
+            return false;
+
+        const QByteArray normalized = value.trimmed().toLower();
+        return normalized != "0" && normalized != "false" && normalized != "off";
+    }();
+    return enabled;
+}
+
 bool QmlMainWindow::hasBufferedWork()
 {
     if (queue_depth_cached.loadAcquire() > 0)
@@ -4547,6 +4588,12 @@ int QmlMainWindow::effectiveQueueDepthLimit() const
 
 int QmlMainWindow::pendingFrameOverflowLimit(int submission_depth_limit) const
 {
+    if (!pendingFrameOverflowEnabled())
+        return 0;
+
+    // Disabled by default. Set CHIAKI_ENABLE_PENDING_OVERFLOW=1 to restore
+    // the extra pending-frame queue for either VSync or non-VSync presentation.
+    //
     // Keep a little extra slack beyond the active libplacebo queue depth.
     // The pending slot already accounts for one frame; this buffer is meant
     // to absorb short render stalls without immediately evicting older frames.
@@ -5633,6 +5680,20 @@ void QmlMainWindow::updatePlacebo()
 
 void QmlMainWindow::updateVSync()
 {
+    if (!pendingFrameOverflowEnabled()) {
+        QMutexLocker locker(&pending_frame_mutex);
+        while (!pending_frame_overflow.empty()) {
+            PendingFrameEntry entry = std::move(pending_frame_overflow.front());
+            pending_frame_overflow.pop_front();
+            if (entry.frame)
+                av_frame_free(&entry.frame);
+        }
+        if (!pending_frame) {
+            pending_frame_present.storeRelease(0);
+            queue_stored_frame_pending.storeRelease(0);
+        }
+    }
+
     if (render_backend != RenderBackend::Vulkan)
         return;
     armQuickNeedSync("updateVSync");
@@ -6593,7 +6654,7 @@ void QmlMainWindow::render()
         }
         const double queue_depth_average = queueDepthAverage();
         if (queue_depth_now >= depth_limit ||
-            queue_depth_average >= static_cast<double>(depth_limit) - 0.15) {
+            hasPendingFrame()) {
             present_backpressure_active.storeRelease(1);
         } else if (queue_depth_now < depth_limit &&
                    queue_depth_average <= static_cast<double>(depth_limit) - 0.65) {
