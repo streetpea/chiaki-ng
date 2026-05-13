@@ -1,0 +1,15 @@
+diff --git a/src/vulkan/swapchain.c b/src/vulkan/swapchain.c
+index efc19ade..95ac67e7 100644
+--- a/src/vulkan/swapchain.c
++++ b/src/vulkan/swapchain.c
+@@ -789,8 +789,7 @@ static bool vk_sw_recreate(pl_swapchain sw, int w, int h)
+     // the issue is consistent across Windows and Linux drivers.
+     // See for more info <https://github.com/mpv-player/mpv/issues/17318>,
+     // <https://github.com/mpv-player/mpv/issues/17543>
+-    if (vk->props.vendorID == VK_VENDOR_ID_NVIDIA)
+-        use_deferred_alloc = false;
++    use_deferred_alloc = false;
+ 
+     if (use_deferred_alloc)
+         sinfo.flags |= VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_KHR;
+
