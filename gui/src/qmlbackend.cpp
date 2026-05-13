@@ -1143,7 +1143,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         });
     });
 
-    connect(session, &StreamSession::SessionQuit, this, [this](ChiakiQuitReason reason, const QString &reason_str) {
+    StreamSession *session_for_connections = session;
+    connect(session, &StreamSession::SessionQuit, this, [this, session_for_connections](ChiakiQuitReason reason, const QString &reason_str) {
+        if (session != session_for_connections)
+            return;
+
         if (chiaki_quit_reason_is_error(reason)) {
             QString m = tr("Chiaki Session has quit") + ":\n" + chiaki_quit_reason_string(reason);
             if (!reason_str.isEmpty())
@@ -1161,7 +1165,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             logged_hw_transfer_failures.clear();
         }
 
-        session->deleteLater();
+        session_for_connections->deleteLater();
         session = nullptr;
         emit sessionChanged(session);
 
@@ -1196,8 +1200,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     connect(session, &StreamSession::AutoRegistSucceeded, this, &QmlBackend::finishAutoRegister);
 
-    connect(session, &StreamSession::ConnectedChanged, this, [this]() {
-        if (session->IsConnected())
+    connect(session, &StreamSession::ConnectedChanged, this, [this, session_for_connections]() {
+        if (session != session_for_connections)
+            return;
+
+        if (session_for_connections->IsConnected())
             setDiscoveryEnabled(false);
     });
     chiaki_log_mutex.lock();

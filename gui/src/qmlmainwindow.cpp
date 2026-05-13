@@ -833,7 +833,7 @@ static void logPresentOutlier(const char *stage,
         << " duration_us=" << duration_us
         << " threshold_us=" << threshold_us
         << " pacing_mode=" << (deferred_present ? "deferred" : "immediate")
-        << " swapchain_mode=" << (present_vsync_enabled ? "MAILBOX or FIFO" : "IMMEDIATE")
+        << " swapchain_mode=" << (present_vsync_enabled ? "FIFO" : "IMMEDIATE")
         << " target_interval_us=" << present_interval_us
         << " queue_depth=" << queue_depth
         << " depth_limit=" << depth_limit
@@ -5087,6 +5087,15 @@ renderer_backend_ready:
         }
         if(!session)
         {
+            {
+                QMutexLocker locker(&render_schedule_mutex);
+                render_scheduled = false;
+                render_pending = false;
+                render_pending_during_cycle.storeRelaxed(0);
+            }
+            update_pending.storeRelaxed(0);
+            armQuickNeedSync("session_disconnected");
+            quick_need_render.storeRelaxed(1);
             setStreamMaxFPS(60);
             setStreamWindowAdjustable(false);
             if(qEnvironmentVariable("XDG_CURRENT_DESKTOP") != "gamescope")
@@ -5099,6 +5108,7 @@ renderer_backend_ready:
                 else
                     showMaximized();
             }
+            scheduleUpdate(true, UpdateRequestReason::SceneChanged);
         }
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
@@ -5775,7 +5785,7 @@ void QmlMainWindow::createSwapchain()
     if (err != VK_SUCCESS)
         qFatal("Failed to create VkSurfaceKHR");
 
-    const int swapchain_depth = settings->GetVSyncEnabled() ? 2 : 1;
+    const int swapchain_depth = 1;
     struct pl_vulkan_swapchain_params swapchain_params = {
         .surface = surface,
         // Prefer MAILBOX for vsync (lower) latency when supported).
@@ -5785,12 +5795,6 @@ void QmlMainWindow::createSwapchain()
     };
     placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
     present_vsync_enabled = swapchain_params.present_mode != VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (!placebo_swapchain && settings->GetVSyncEnabled()) {
-        qCWarning(chiakiGui) << "MAILBOX present mode unsupported, falling back to FIFO VSync";
-        swapchain_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
-        placebo_swapchain = pl_vulkan_create_swapchain(placebo_vulkan, &swapchain_params);
-        present_vsync_enabled = true;
-    }
     if (!placebo_swapchain && !settings->GetVSyncEnabled()) {
         qCWarning(chiakiGui) << "Immediate present mode unsupported, falling back to FIFO VSync";
         swapchain_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
