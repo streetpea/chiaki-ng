@@ -4541,13 +4541,6 @@ int QmlMainWindow::effectiveQueueDepthLimit() const
             depth_limit = v;
     }
 
-    // While startup visibility has not completed, keep the queue to a single
-    // displayed frame so the first real frame cannot be trimmed before the
-    // loading screen has handed off.
-    if (stream_session_active.loadAcquire() != 0 &&
-        loading_transition_complete.loadAcquire() == 0)
-        return 1;
-
     // Always use low-latency queue depth regardless of frame mixer mode.
     return qMax(depth_limit, 2);
 }
