@@ -232,6 +232,8 @@ private:
     void beginFrame();
     void endFrame();
     void render();
+    void handleVulkanDeviceLost(const QString &reason);
+    void handleVulkanRendererFallback(const QString &title, const QString &message, const QString &fallback_reason);
     void applyPendingFrame();
     void queuePendingFrameRelease();
     bool applyPendingFrameIfQueueHasCapacity();
@@ -370,6 +372,7 @@ private:
     float kept_frame_duration = 0.0f;
     AVFrame *fallback_frame = nullptr;
     QAtomicInteger<int> swapchain_recreate_pending = 0;
+    QAtomicInteger<int> vulkan_device_lost = 0;
     QAtomicInteger<int> renderer_cache_flush_pending = 0;
     QAtomicInteger<int> placebo_reset_pending = 0;
     QAtomicInteger<int> placebo_reset_preserve_timeline = 0;
@@ -426,6 +429,10 @@ private:
     QAtomicInteger<qint64> swap_to_start_gap_estimate_us = 0;
     QAtomicInteger<qint64> start_frame_block_estimate_us = 0;
     QAtomicInteger<qint64> render_submit_estimate_us = 0;
+    QAtomicInteger<int> surface_create_failures = 0;
+    qint64 surface_create_failure_first_us = 0;
+    QAtomicInteger<int> swapchain_start_failures = 0;
+    qint64 swapchain_start_failure_first_us = 0;
     QAtomicInteger<int> buffered_timer_fired = 0;
     qint64 last_update_us = 0;
     qint64 next_buffered_update_us = 0;

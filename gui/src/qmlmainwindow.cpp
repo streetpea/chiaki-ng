@@ -27,6 +27,7 @@ extern "C" {
 #include <QThread>
 #include <QShortcut>
 #include <QStandardPaths>
+#include <QCoreApplication>
 #include <QGuiApplication>
 #include <QFile>
 #include <QWidget>
@@ -48,6 +49,8 @@ extern "C" {
 #include <QQuickGraphicsDevice>
 #include <QTimer>
 #include <QWaitCondition>
+#include <QProcess>
+#include <QProcessEnvironment>
 #include <QtGlobal>
 #include <chrono>
 #include <condition_variable>
@@ -4808,7 +4811,10 @@ void QmlMainWindow::init(Settings *settings, bool exit_app_on_stream_exit)
 
     if (render_backend == RenderBackend::Vulkan) {
         if (qEnvironmentVariableIsSet("CHIAKI_FORCE_VULKAN_FALLBACK")) {
-            fallbackToOpenGL(QStringLiteral("Forced Vulkan fallback for testing"));
+            QString reason = qEnvironmentVariable("CHIAKI_FORCE_VULKAN_FALLBACK_REASON");
+            if (reason.isEmpty())
+                reason = QStringLiteral("Forced Vulkan fallback for testing");
+            fallbackToOpenGL(reason);
             goto renderer_backend_ready;
         }
 
@@ -5769,8 +5775,48 @@ void QmlMainWindow::createSwapchain()
     err = vk_funcs.vkCreateWin32SurfaceKHR(placebo_vk_inst->instance, &surfaceInfo, nullptr, &surface);
 #endif
 
-    if (err != VK_SUCCESS)
-        qFatal("Failed to create VkSurfaceKHR");
+    if (err != VK_SUCCESS) {
+        if (err == VK_ERROR_DEVICE_LOST) {
+            qCWarning(chiakiGui)
+                << "Failed to create VkSurfaceKHR"
+                << "result=" << err;
+            handleVulkanDeviceLost(QStringLiteral("vkCreateSurfaceKHR returned VK_ERROR_DEVICE_LOST"));
+        } else {
+            const bool surface_renderable = isExposed() && width() > 0 && height() > 0;
+            const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            int failures = 0;
+            qint64 failure_duration_us = 0;
+            if (surface_renderable) {
+                failures = surface_create_failures.fetchAndAddRelaxed(1) + 1;
+                if (surface_create_failure_first_us <= 0)
+                    surface_create_failure_first_us = now_us;
+                failure_duration_us = now_us - surface_create_failure_first_us;
+            } else {
+                surface_create_failures.storeRelease(0);
+                surface_create_failure_first_us = 0;
+            }
+            qCWarning(chiakiGui)
+                << "Failed to create VkSurfaceKHR"
+                << "result=" << err
+                << "consecutive_failures=" << failures
+                << "failure_duration_us=" << failure_duration_us
+                << "surface_renderable=" << surface_renderable;
+            if (surface_renderable && failures >= 60 && failure_duration_us >= 3000000) {
+                handleVulkanRendererFallback(
+                    tr("Vulkan renderer stalled"),
+                    tr("The Vulkan surface could not recover. Chiaki-ng will relaunch with OpenGL for this run only."),
+                    tr("Vulkan surface creation failed repeatedly while the window was visible. OpenGL is being used for this launch only."));
+            } else {
+                swapchain_recreate_pending.storeRelease(1);
+                QMetaObject::invokeMethod(this, [this]() {
+                    scheduleUpdate(true, UpdateRequestReason::VSync);
+                }, Qt::QueuedConnection);
+            }
+        }
+        return;
+    }
+    surface_create_failures.storeRelease(0);
+    surface_create_failure_first_us = 0;
 
     const int swapchain_depth = 1;
     struct pl_vulkan_swapchain_params swapchain_params = {
@@ -6052,7 +6098,27 @@ void QmlMainWindow::beginFrame()
         .pSemaphores = &quick_sem,
         .pValues = &quick_sem_value,
     };
-    vk_funcs.vkWaitSemaphores(placebo_vulkan->device, &wait_info, UINT64_MAX);
+    const VkResult wait_result = vk_funcs.vkWaitSemaphores(placebo_vulkan->device, &wait_info, UINT64_MAX);
+    if (wait_result != VK_SUCCESS) {
+        qCWarning(chiakiGui)
+            << "Failed waiting for Qt Quick Vulkan semaphore"
+            << "result=" << wait_result;
+        struct pl_vulkan_release_params release_params = {
+            .tex = quick_tex,
+            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .qf = VK_QUEUE_FAMILY_IGNORED,
+        };
+        pl_vulkan_release_ex(placebo_vulkan->gpu, &release_params);
+        if (wait_result == VK_ERROR_DEVICE_LOST) {
+            handleVulkanDeviceLost(QStringLiteral("vkWaitSemaphores returned VK_ERROR_DEVICE_LOST"));
+        } else {
+            swapchain_recreate_pending.storeRelease(1);
+            QMetaObject::invokeMethod(this, [this]() {
+                scheduleUpdate(true, UpdateRequestReason::VSync);
+            }, Qt::QueuedConnection);
+        }
+        return;
+    }
     const qint64 quick_wait_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     if (quick_wait_after_us >= quick_wait_begin_us) {
         quick_begin_wait_last_us = quick_wait_after_us - quick_wait_begin_us;
@@ -6115,9 +6181,66 @@ void QmlMainWindow::endFrame()
         logQuickReleaseStats(quick_release_after_us, quick_release_after_us - quick_release_begin_us);
 }
 
+void QmlMainWindow::handleVulkanDeviceLost(const QString &reason)
+{
+    handleVulkanRendererFallback(
+        tr("Vulkan device lost"),
+        tr("The Vulkan renderer stopped responding. Chiaki-ng will relaunch with OpenGL for this run only.\n\nReason: %1").arg(reason),
+        tr("Vulkan device was lost. OpenGL is being used for this launch only. Reason: %1").arg(reason));
+}
+
+void QmlMainWindow::handleVulkanRendererFallback(const QString &title, const QString &message, const QString &fallback_reason)
+{
+    if (render_backend != RenderBackend::Vulkan)
+        return;
+    if (vulkan_device_lost.fetchAndStoreRelaxed(1) != 0)
+        return;
+
+    qCCritical(chiakiGui) << "Vulkan renderer fallback:" << title << fallback_reason;
+    vulkan_deferred_swap_enabled = false;
+    swapchain_recreate_pending.storeRelease(0);
+    deferred_present_in_flight.storeRelease(0);
+    quick_need_sync.storeRelease(0);
+    quick_need_render.storeRelease(0);
+    if (present_pace_thread)
+        present_pace_thread->disarm();
+    if (buffered_pace_thread)
+        buffered_pace_thread->disarm();
+
+    QMetaObject::invokeMethod(this, [this, title, message, fallback_reason]() {
+        if (backend) {
+            QMetaObject::invokeMethod(backend,
+                                      "sessionError",
+                                      Qt::DirectConnection,
+                                      Q_ARG(QString, title),
+                                      Q_ARG(QString, message));
+            backend->stopSession(false);
+        }
+
+        QProcess process;
+        process.setProgram(QCoreApplication::applicationFilePath());
+        process.setArguments(QCoreApplication::arguments().mid(1));
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert(QStringLiteral("CHIAKI_FORCE_VULKAN_FALLBACK"), QStringLiteral("1"));
+        env.insert(QStringLiteral("CHIAKI_FORCE_VULKAN_FALLBACK_REASON"), fallback_reason);
+        process.setProcessEnvironment(env);
+        if (!process.startDetached())
+            qCCritical(chiakiGui) << "Failed to relaunch with OpenGL after Vulkan renderer failure";
+
+        QTimer::singleShot(0, QGuiApplication::instance(), &QGuiApplication::quit);
+    }, Qt::QueuedConnection);
+}
+
 void QmlMainWindow::render()
 {
     Q_ASSERT(QThread::currentThread() == render_thread);
+    if (vulkan_device_lost.loadAcquire() != 0) {
+        QMutexLocker locker(&render_schedule_mutex);
+        render_scheduled = false;
+        render_pending = false;
+        render_pending_during_cycle.storeRelaxed(0);
+        return;
+    }
     const qint64 render_entry_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     last_render_entry_us.storeRelease(render_entry_us);
     render_pending_during_cycle.storeRelaxed(0);
@@ -6573,11 +6696,41 @@ void QmlMainWindow::render()
     {
         QMutexLocker locker(&placebo_swapchain_mutex);
         if (!pl_swapchain_start_frame(placebo_swapchain, &sw_frame)) {
-            qCWarning(chiakiGui) << "Failed to start Placebo frame!";
+            const bool surface_renderable = isExposed() && width() > 0 && height() > 0;
+            const qint64 now_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
+            int failures = 0;
+            qint64 failure_duration_us = 0;
+            if (surface_renderable) {
+                failures = swapchain_start_failures.fetchAndAddRelaxed(1) + 1;
+                if (swapchain_start_failure_first_us <= 0)
+                    swapchain_start_failure_first_us = now_us;
+                failure_duration_us = now_us - swapchain_start_failure_first_us;
+            } else {
+                swapchain_start_failures.storeRelease(0);
+                swapchain_start_failure_first_us = 0;
+            }
+            qCWarning(chiakiGui)
+                << "Failed to start Placebo frame"
+                << "consecutive_failures=" << failures
+                << "failure_duration_us=" << failure_duration_us
+                << "surface_renderable=" << surface_renderable;
+            if (surface_renderable && failures >= 60 && failure_duration_us >= 3000000) {
+                handleVulkanRendererFallback(
+                    tr("Vulkan renderer stalled"),
+                    tr("The Vulkan swapchain could not recover. Chiaki-ng will relaunch with OpenGL for this run only."),
+                    tr("Vulkan swapchain failed repeatedly while the window was visible. OpenGL is being used for this launch only."));
+            } else {
+                swapchain_recreate_pending.storeRelease(1);
+                QMetaObject::invokeMethod(this, [this]() {
+                    scheduleUpdate(true, UpdateRequestReason::VSync);
+                }, Qt::QueuedConnection);
+            }
             finalize_render();
             return;
         }
     }
+    swapchain_start_failures.storeRelease(0);
+    swapchain_start_failure_first_us = 0;
     const qint64 start_frame_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
     if (start_frame_us >= start_frame_begin_us)
     {

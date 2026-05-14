@@ -790,7 +790,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Auto / On)")
+                        text: qsTr("(Auto)")
                     }
 
                     Label {
@@ -921,7 +921,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Checked)")
+                        text: qsTr("(Unchecked)")
                     }
 
                     Label {
