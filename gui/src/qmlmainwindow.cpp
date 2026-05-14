@@ -5134,11 +5134,11 @@ renderer_backend_ready:
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         armQuickNeedSync("sceneChanged");
-        scheduleUpdate(false, UpdateRequestReason::SceneChanged);
+        scheduleUpdate(true, UpdateRequestReason::SceneChanged);
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        scheduleUpdate(false, UpdateRequestReason::RenderRequested);
+        scheduleUpdate(true, UpdateRequestReason::RenderRequested);
     });
 
 
@@ -5284,6 +5284,21 @@ void QmlMainWindow::scheduleUpdate(bool force, UpdateRequestReason reason)
         return;
     }
 
+    const bool ui_priority = reason == UpdateRequestReason::SceneChanged ||
+        reason == UpdateRequestReason::RenderRequested;
+    if (ui_priority) {
+        if (buffered_pace_thread)
+            buffered_pace_thread->disarm();
+        if (present_pace_thread)
+            present_pace_thread->disarm();
+        buffered_timer_fired.storeRelease(0);
+        present_pace_timer_rearm.storeRelease(0);
+        next_buffered_update_us = 0;
+        present_pacing_reset_pending.storeRelease(1);
+        ui_priority_update_pending.storeRelease(1);
+        force = true;
+    }
+
     if (force && reason == UpdateRequestReason::PendingFrame) {
         last_update_request_reason.storeRelaxed(static_cast<int>(reason));
         const qint64 schedule_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -5413,9 +5428,16 @@ void QmlMainWindow::handleBufferedPlaybackWake(qint64 timer_fire_us)
 
 bool QmlMainWindow::throttleFramePresentation(double interval_s)
 {
-    if (interval_s <= 0.0) {
+    auto reset_present_pacing = [this]() {
         next_frame_target_us = 0;
         last_throttle_interval_s = 0.0;
+    };
+
+    if (present_pacing_reset_pending.fetchAndStoreRelaxed(0) != 0)
+        reset_present_pacing();
+
+    if (interval_s <= 0.0) {
+        reset_present_pacing();
         present_pace_timer_rearm.storeRelease(0);
         if (present_pace_thread)
             present_pace_thread->disarm();
@@ -5456,10 +5478,19 @@ bool QmlMainWindow::throttleFramePresentation(double interval_s)
                                static_cast<qint64>(extra_lead_us),
                                target_wakeup_us > now_us);
 
-    const uint64_t wait_us = target_wakeup_us > now_us ? (target_wakeup_us - now_us) : 0;
-    if (wait_us > 0)
-        QThread::usleep(static_cast<unsigned long>(wait_us));
-    next_frame_target_us += interval_us;
+    uint64_t wait_us = target_wakeup_us > now_us ? (target_wakeup_us - now_us) : 0;
+    while (wait_us > 0 && ui_priority_update_pending.loadAcquire() == 0) {
+        const uint64_t sleep_us = qMin<uint64_t>(wait_us, 1000);
+        QThread::usleep(static_cast<unsigned long>(sleep_us));
+        const uint64_t after_sleep_us = chiaki_time_now_monotonic_us();
+        wait_us = target_wakeup_us > after_sleep_us ? (target_wakeup_us - after_sleep_us) : 0;
+    }
+    if (ui_priority_update_pending.loadAcquire() != 0 ||
+        present_pacing_reset_pending.fetchAndStoreRelaxed(0) != 0) {
+        reset_present_pacing();
+    } else {
+        next_frame_target_us += interval_us;
+    }
     present_pace_timer_rearm.storeRelease(0);
     last_present_target_us.storeRelease(0);
     last_present_wakeup_target_us.storeRelease(0);
@@ -6406,6 +6437,7 @@ void QmlMainWindow::render()
                     scheduleUpdate(false, UpdateRequestReason::FinalizePending);
             }, Qt::QueuedConnection);
         } else {
+            ui_priority_update_pending.storeRelease(0);
             scheduleRenderIfBacklog(UpdateRequestReason::PendingFrame);
         }
         return pending;
