@@ -212,6 +212,7 @@ private:
                              int queue_depth_at_submit,
                              int depth_limit,
                              bool pending_frame_waiting,
+                             bool pending_overflow_waiting,
                              qint64 present_interval_us,
                              qint64 present_submit_interval_us);
     void finalizeDeferredPresentIfIdle();
@@ -219,6 +220,7 @@ private:
                                  int queue_depth_at_submit,
                                  int depth_limit,
                                  bool pending_frame_waiting,
+                                 bool pending_overflow_waiting,
                                  qint64 present_interval_us,
                                  qint64 present_submit_interval_us);
     void drainDeferredSwaps();
@@ -292,7 +294,6 @@ private:
     QAtomicInteger<int> present_backpressure_active = 0;
     QAtomicInteger<int> present_pace_timer_rearm = 0;
     QAtomicInteger<int> present_pacing_reset_pending = 0;
-    QAtomicInteger<int> ui_priority_update_pending = 0;
     QAtomicInteger<int> overlay_interaction_active = 0;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;

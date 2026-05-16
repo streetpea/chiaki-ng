@@ -485,6 +485,7 @@ struct DeferredSwapTask
     int queue_depth_at_submit = 0;
     int depth_limit = 0;
     bool pending_frame_waiting = false;
+    bool pending_overflow_waiting = false;
     qint64 present_interval_us = 0;
     qint64 present_submit_interval_us = 0;
 };
@@ -556,6 +557,7 @@ protected:
                                                task.queue_depth_at_submit,
                                                task.depth_limit,
                                                task.pending_frame_waiting,
+                                               task.pending_overflow_waiting,
                                                task.present_interval_us,
                                                task.present_submit_interval_us);
             }
@@ -4544,7 +4546,7 @@ bool QmlMainWindow::pendingFrameOverflowEnabled() const
     static const bool enabled = []() {
         const QByteArray value = qgetenv("CHIAKI_ENABLE_PENDING_OVERFLOW");
         if (value.isEmpty())
-            return false;
+            return true;
 
         const QByteArray normalized = value.trimmed().toLower();
         return normalized != "0" && normalized != "false" && normalized != "off";
@@ -4594,13 +4596,12 @@ int QmlMainWindow::pendingFrameOverflowLimit(int submission_depth_limit) const
     if (!pendingFrameOverflowEnabled())
         return 0;
 
-    // Disabled by default. Set CHIAKI_ENABLE_PENDING_OVERFLOW=1 to restore
-    // the extra pending-frame queue for either VSync or non-VSync presentation.
-    //
-    // Keep a little extra slack beyond the active libplacebo queue depth.
-    // The pending slot already accounts for one frame; this buffer is meant
-    // to absorb short render stalls without immediately evicting older frames.
-    return qMax(6, submission_depth_limit * 3);
+    // Enabled by default. Set CHIAKI_ENABLE_PENDING_OVERFLOW=0 to disable the
+    // small overflow queue behind the primary pending-frame slot. Keep this
+    // intentionally tight so it absorbs short bursts without building a long
+    // presentation backlog.
+    Q_UNUSED(submission_depth_limit);
+    return 2;
 }
 
 AVBufferRef *QmlMainWindow::vulkanHwDeviceCtx()
@@ -5288,15 +5289,6 @@ void QmlMainWindow::scheduleUpdate(bool force, UpdateRequestReason reason)
         (reason == UpdateRequestReason::SceneChanged ||
          reason == UpdateRequestReason::RenderRequested);
     if (ui_priority) {
-        if (buffered_pace_thread)
-            buffered_pace_thread->disarm();
-        if (present_pace_thread)
-            present_pace_thread->disarm();
-        buffered_timer_fired.storeRelease(0);
-        present_pace_timer_rearm.storeRelease(0);
-        next_buffered_update_us = 0;
-        present_pacing_reset_pending.storeRelease(1);
-        ui_priority_update_pending.storeRelease(1);
         force = true;
     }
 
@@ -5480,14 +5472,13 @@ bool QmlMainWindow::throttleFramePresentation(double interval_s)
                                target_wakeup_us > now_us);
 
     uint64_t wait_us = target_wakeup_us > now_us ? (target_wakeup_us - now_us) : 0;
-    while (wait_us > 0 && ui_priority_update_pending.loadAcquire() == 0) {
+    while (wait_us > 0) {
         const uint64_t sleep_us = qMin<uint64_t>(wait_us, 1000);
         QThread::usleep(static_cast<unsigned long>(sleep_us));
         const uint64_t after_sleep_us = chiaki_time_now_monotonic_us();
         wait_us = target_wakeup_us > after_sleep_us ? (target_wakeup_us - after_sleep_us) : 0;
     }
-    if (ui_priority_update_pending.loadAcquire() != 0 ||
-        present_pacing_reset_pending.fetchAndStoreRelaxed(0) != 0) {
+    if (present_pacing_reset_pending.fetchAndStoreRelaxed(0) != 0) {
         reset_present_pacing();
     } else {
         next_frame_target_us += interval_us;
@@ -5540,6 +5531,7 @@ bool QmlMainWindow::enqueueDeferredSwap(qint64 submit_begin_us,
                                         int queue_depth_at_submit,
                                         int depth_limit,
                                         bool pending_frame_waiting,
+                                        bool pending_overflow_waiting,
                                         qint64 present_interval_us,
                                         qint64 present_submit_interval_us)
 {
@@ -5550,6 +5542,7 @@ bool QmlMainWindow::enqueueDeferredSwap(qint64 submit_begin_us,
     task.queue_depth_at_submit = queue_depth_at_submit;
     task.depth_limit = depth_limit;
     task.pending_frame_waiting = pending_frame_waiting;
+    task.pending_overflow_waiting = pending_overflow_waiting;
     task.present_interval_us = present_interval_us;
     task.present_submit_interval_us = present_submit_interval_us;
     deferred_present_in_flight.storeRelease(1);
@@ -5563,6 +5556,7 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
                                             int queue_depth_at_submit,
                                             int depth_limit,
                                             bool pending_frame_waiting,
+                                            bool pending_overflow_waiting,
                                             qint64 present_interval_us,
                                             qint64 present_submit_interval_us)
 {
@@ -5582,9 +5576,10 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
 
     if (present_submit_interval_us > 0) {
         const bool backpressure_active = queue_depth_at_submit >= qMax(2, depth_limit - 1) || pending_frame_waiting;
-        const double paced_interval_s = backpressure_active
-            ? (static_cast<double>(present_submit_interval_us) / 1000000.0 * 0.90)
-            : (static_cast<double>(present_submit_interval_us) / 1000000.0);
+        const double pace_multiplier = pending_overflow_waiting
+            ? 0.80
+            : (backpressure_active ? 0.90 : 1.0);
+        const double paced_interval_s = static_cast<double>(present_submit_interval_us) / 1000000.0 * pace_multiplier;
         const qint64 pace_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         throttleFramePresentation(paced_interval_s);
         const qint64 pace_end_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
@@ -6438,7 +6433,6 @@ void QmlMainWindow::render()
                     scheduleUpdate(false, UpdateRequestReason::FinalizePending);
             }, Qt::QueuedConnection);
         } else {
-            ui_priority_update_pending.storeRelease(0);
             scheduleRenderIfBacklog(UpdateRequestReason::PendingFrame);
         }
         return pending;
@@ -6568,6 +6562,7 @@ void QmlMainWindow::render()
         ? present_interval_s
         : stream_interval_s;
     const qint64 present_interval_us = static_cast<qint64>(qMax(1.0, vsync_duration * 1000000.0) + 0.5);
+    const bool pending_overflow_waiting = hasPendingFrameOverflow();
     const bool pending_frame_waiting = snapshotQueueDepth() >= effectiveQueueDepthLimit() || hasPendingFrame();
     auto schedulePostRenderWork = [this]() {
         scheduleRenderIfBacklog(UpdateRequestReason::FinalizePending);
@@ -6804,7 +6799,7 @@ void QmlMainWindow::render()
     if (render_entry_us_local > 0 && render_to_start_frame_us >= render_entry_us_local)
         logLatencyStats("render_to_start_frame", render_to_start_frame_us - render_entry_us_local);
     // Submit immediately and let the swapchain / render path enforce pacing.
-    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, snapshotQueueDepth, snapshotRenderScheduleState, present_submit_interval_s](bool present) -> bool {
+    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, pending_overflow_waiting, snapshotQueueDepth, snapshotRenderScheduleState, present_submit_interval_s](bool present) -> bool {
         const qint64 submit_ready_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         const int queue_depth_now = snapshotQueueDepth();
         if (detailedVerboseTelemetryEnabled()) {
@@ -6856,9 +6851,10 @@ void QmlMainWindow::render()
             deferred_present_in_flight.loadAcquire() == 0;
         if (!use_deferred_swap) {
             if (present) {
-                const double paced_interval_s = present_backpressure_active.loadAcquire() != 0
-                    ? (present_submit_interval_s * 0.90)
-                    : present_submit_interval_s;
+                const double pace_multiplier = pending_overflow_waiting
+                    ? 0.80
+                    : (present_backpressure_active.loadAcquire() != 0 ? 0.90 : 1.0);
+                const double paced_interval_s = present_submit_interval_s * pace_multiplier;
                 throttleFramePresentation(paced_interval_s);
             }
             else
@@ -6871,6 +6867,7 @@ void QmlMainWindow::render()
                                                             queue_depth_now,
                                                             depth_limit,
                                                             pending_frame_waiting,
+                                                            pending_overflow_waiting,
                                                             present_interval_us,
                                                             static_cast<qint64>(qMax(1.0, present_submit_interval_s * 1000000.0) + 0.5));
             if (async_enqueued) {
