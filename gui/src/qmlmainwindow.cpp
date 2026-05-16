@@ -5134,11 +5134,11 @@ renderer_backend_ready:
 
     connect(quick_render, &QQuickRenderControl::sceneChanged, this, [this]() {
         armQuickNeedSync("sceneChanged");
-        scheduleUpdate(true, UpdateRequestReason::SceneChanged);
+        scheduleUpdate(render_backend != RenderBackend::OpenGL, UpdateRequestReason::SceneChanged);
     });
     connect(quick_render, &QQuickRenderControl::renderRequested, this, [this]() {
         quick_need_render.storeRelaxed(1);
-        scheduleUpdate(true, UpdateRequestReason::RenderRequested);
+        scheduleUpdate(render_backend != RenderBackend::OpenGL, UpdateRequestReason::RenderRequested);
     });
 
 
@@ -5284,8 +5284,9 @@ void QmlMainWindow::scheduleUpdate(bool force, UpdateRequestReason reason)
         return;
     }
 
-    const bool ui_priority = reason == UpdateRequestReason::SceneChanged ||
-        reason == UpdateRequestReason::RenderRequested;
+    const bool ui_priority = render_backend != RenderBackend::OpenGL &&
+        (reason == UpdateRequestReason::SceneChanged ||
+         reason == UpdateRequestReason::RenderRequested);
     if (ui_priority) {
         if (buffered_pace_thread)
             buffered_pace_thread->disarm();
