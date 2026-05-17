@@ -334,6 +334,8 @@ typedef struct session_t
     size_t num_stun_servers_ipv6;
     UPNPGatewayInfo gw;
     UPNPGatewayStatus gw_status;
+    ChiakiThread upnp_thread;
+    bool upnp_thread_running;
 
     uint8_t data1[16];
     uint8_t data2[16];
@@ -771,6 +773,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->num_stun_servers_ipv6 = 0;
     session->gw.data = NULL;
     session->gw_status = GATEWAY_STATUS_UNKNOWN;
+    session->upnp_thread_running = false;
 
     ChiakiErrorCode err;
     err = chiaki_mutex_init(&session->notif_mutex, false);
@@ -810,6 +813,30 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     return session;
 }
 
+#define UPNP_DISCOVER_TIMEOUT_MS 7000
+
+static void *upnp_discover_thread_func(void *arg)
+{
+    Session *session = (Session *)arg;
+    ChiakiErrorCode err = upnp_get_gateway_info(session->log, &session->gw);
+
+    chiaki_mutex_lock(&session->state_mutex);
+    if (err == CHIAKI_ERR_SUCCESS)
+        session->gw_status = GATEWAY_STATUS_FOUND;
+    else
+    {
+        session->gw_status = GATEWAY_STATUS_NOT_FOUND;
+        free(session->gw.data);
+        session->gw.data = NULL;
+        free(session->gw.urls);
+        session->gw.urls = NULL;
+    }
+    session->upnp_thread_running = false;
+    chiaki_cond_signal(&session->state_cond);
+    chiaki_mutex_unlock(&session->state_mutex);
+    return NULL;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_upnp_discover(Session *session)
 {
     session->gw.data = calloc(1, sizeof(struct IGDdatas));
@@ -823,17 +850,45 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_upnp_discover(Session *session)
         free(session->gw.data);
         return CHIAKI_ERR_MEMORY;
     }
-    ChiakiErrorCode err = upnp_get_gateway_info(session->log, &session->gw);
-    if (err == CHIAKI_ERR_SUCCESS)
-        session->gw_status = GATEWAY_STATUS_FOUND;
-    else
+
+    session->upnp_thread_running = true;
+    ChiakiErrorCode err = chiaki_thread_create(&session->upnp_thread, upnp_discover_thread_func, session);
+    if(err != CHIAKI_ERR_SUCCESS)
     {
-        session->gw_status = GATEWAY_STATUS_NOT_FOUND;
-        free(session->gw.data);
-        session->gw.data = NULL;
-        free(session->gw.urls);
-        session->gw.urls = NULL;
+        CHIAKI_LOGE(session->log, "Failed to create UPnP discovery thread, falling back to synchronous");
+        session->upnp_thread_running = false;
+        err = upnp_get_gateway_info(session->log, &session->gw);
+        if (err == CHIAKI_ERR_SUCCESS)
+            session->gw_status = GATEWAY_STATUS_FOUND;
+        else
+        {
+            session->gw_status = GATEWAY_STATUS_NOT_FOUND;
+            free(session->gw.data);
+            session->gw.data = NULL;
+            free(session->gw.urls);
+            session->gw.urls = NULL;
+        }
+        return CHIAKI_ERR_SUCCESS;
     }
+
+    chiaki_mutex_lock(&session->state_mutex);
+    while(session->upnp_thread_running)
+    {
+        err = chiaki_cond_timedwait(&session->state_cond, &session->state_mutex, UPNP_DISCOVER_TIMEOUT_MS);
+        if(err == CHIAKI_ERR_TIMEOUT)
+            break;
+    }
+
+    if(session->upnp_thread_running)
+    {
+        chiaki_mutex_unlock(&session->state_mutex);
+        CHIAKI_LOGW(session->log, "UPnP discovery timed out after %d ms, skipping", UPNP_DISCOVER_TIMEOUT_MS);
+        session->gw_status = GATEWAY_STATUS_NOT_FOUND;
+        return CHIAKI_ERR_SUCCESS;
+    }
+    chiaki_mutex_unlock(&session->state_mutex);
+
+    chiaki_thread_join(&session->upnp_thread, NULL);
     return CHIAKI_ERR_SUCCESS;
 }
 
@@ -1723,6 +1778,12 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
         chiaki_stop_pipe_stop(&session->select_pipe);
         chiaki_thread_join(&session->ws_thread, NULL);
     }
+    if(session->upnp_thread_running)
+    {
+        CHIAKI_LOGI(session->log, "Waiting for UPnP discovery thread to finish...");
+        chiaki_thread_join(&session->upnp_thread, NULL);
+        session->upnp_thread_running = false;
+    }
     if(session->gw.data)
     {
         if(session->local_port_ctrl != 0)
@@ -1737,7 +1798,7 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
             if(upnp_delete_udp_port_mapping(session->log, &session->gw, session->local_port_data))
                 CHIAKI_LOGI(session->log, "Deleted UPNP local port data mapping");
             else
-                CHIAKI_LOGE(session->log, "Couldn't delete UPNP local port data mapping"); 
+                CHIAKI_LOGE(session->log, "Couldn't delete UPNP local port data mapping");
         }
         free(session->gw.data);
         free(session->gw.urls);
@@ -3508,27 +3569,25 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
  */
 static ChiakiErrorCode upnp_get_gateway_info(ChiakiLog *log, UPNPGatewayInfo *info)
 {
-    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
     int success = 0;
     struct UPNPDev *devlist = upnpDiscover(
         2000 /** ms, delay*/, NULL, NULL, 0, 0, 2, &success);
-    if (devlist == NULL || err != UPNPDISCOVER_SUCCESS) {
-        CHIAKI_LOGI(log, "Failed to find UPnP-capable devices on network: err=%d", err);
+    if (devlist == NULL || success != UPNPDISCOVER_SUCCESS) {
+        CHIAKI_LOGI(log, "Failed to find UPnP-capable devices on network: err=%d", success);
         return CHIAKI_ERR_NETWORK;
     }
 
+    ChiakiErrorCode err = CHIAKI_ERR_SUCCESS;
 #if MINIUPNPC_API_VERSION >= 18
-    success = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip), NULL, 0);
+    int igd_ret = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip), NULL, 0);
 #else
-    success = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip));
+    int igd_ret = UPNP_GetValidIGD(devlist, info->urls, info->data, info->lan_ip, sizeof(info->lan_ip));
 #endif
-    if (success != 1) {
-        CHIAKI_LOGI(log, "Failed to discover internet gateway via UPnP: err=%d", err);
+    if (igd_ret != 1) {
+        CHIAKI_LOGI(log, "Failed to discover internet gateway via UPnP: err=%d", igd_ret);
         err = CHIAKI_ERR_NETWORK;
-        goto cleanup;
     }
 
-cleanup:
     freeUPNPDevlist(devlist);
     return err;
 }
