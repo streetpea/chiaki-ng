@@ -5289,6 +5289,8 @@ void QmlMainWindow::scheduleUpdate(bool force, UpdateRequestReason reason)
         (reason == UpdateRequestReason::SceneChanged ||
          reason == UpdateRequestReason::RenderRequested);
     if (ui_priority) {
+        if (render_active.loadAcquire() != 0 || deferred_present_in_flight.loadAcquire() != 0)
+            ui_priority_update_pending.storeRelease(1);
         force = true;
     }
 
@@ -5472,13 +5474,14 @@ bool QmlMainWindow::throttleFramePresentation(double interval_s)
                                target_wakeup_us > now_us);
 
     uint64_t wait_us = target_wakeup_us > now_us ? (target_wakeup_us - now_us) : 0;
-    while (wait_us > 0) {
+    while (wait_us > 0 && ui_priority_update_pending.loadAcquire() == 0) {
         const uint64_t sleep_us = qMin<uint64_t>(wait_us, 1000);
         QThread::usleep(static_cast<unsigned long>(sleep_us));
         const uint64_t after_sleep_us = chiaki_time_now_monotonic_us();
         wait_us = target_wakeup_us > after_sleep_us ? (target_wakeup_us - after_sleep_us) : 0;
     }
-    if (present_pacing_reset_pending.fetchAndStoreRelaxed(0) != 0) {
+    if (ui_priority_update_pending.fetchAndStoreRelaxed(0) != 0 ||
+        present_pacing_reset_pending.fetchAndStoreRelaxed(0) != 0) {
         reset_present_pacing();
     } else {
         next_frame_target_us += interval_us;
@@ -6433,6 +6436,7 @@ void QmlMainWindow::render()
                     scheduleUpdate(false, UpdateRequestReason::FinalizePending);
             }, Qt::QueuedConnection);
         } else {
+            ui_priority_update_pending.storeRelease(0);
             scheduleRenderIfBacklog(UpdateRequestReason::PendingFrame);
         }
         return pending;

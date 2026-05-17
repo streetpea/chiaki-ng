@@ -294,6 +294,7 @@ private:
     QAtomicInteger<int> present_backpressure_active = 0;
     QAtomicInteger<int> present_pace_timer_rearm = 0;
     QAtomicInteger<int> present_pacing_reset_pending = 0;
+    QAtomicInteger<int> ui_priority_update_pending = 0;
     QAtomicInteger<int> overlay_interaction_active = 0;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
