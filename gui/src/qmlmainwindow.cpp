@@ -5197,6 +5197,12 @@ renderer_backend_ready:
 
 void QmlMainWindow::drainRenderThread()
 {
+    ui_priority_update_pending.storeRelease(1);
+    present_pacing_reset_pending.storeRelease(1);
+    present_pace_timer_rearm.storeRelease(0);
+    if (present_pace_thread)
+        present_pace_thread->disarm();
+
     drainDeferredSwaps();
 
     if (!quick_render)
@@ -5450,6 +5456,8 @@ bool QmlMainWindow::throttleFramePresentation(double interval_s)
         next_frame_target_us = now_us + interval_us;
     while (next_frame_target_us <= now_us)
         next_frame_target_us += interval_us;
+    if (next_frame_target_us > now_us + (2 * interval_us))
+        next_frame_target_us = now_us + interval_us;
     const qint64 swap_to_start_gap_estimate_us = this->swap_to_start_gap_estimate_us.loadAcquire();
     const qint64 start_frame_block_estimate_us = this->start_frame_block_estimate_us.loadAcquire();
     const qint64 render_submit_estimate_us = this->render_submit_estimate_us.loadAcquire();
@@ -5460,10 +5468,17 @@ bool QmlMainWindow::throttleFramePresentation(double interval_s)
     const uint64_t base_lead_us = static_cast<uint64_t>(qMax<qint64>(0, render_path_estimate_us));
     const uint64_t extra_lead_us = static_cast<uint64_t>(qMax<qint64>(0, submit_swap_estimate_us));
     const uint64_t total_lead_us = base_lead_us + extra_lead_us;
-    const uint64_t remaining_to_target_us = next_frame_target_us > now_us ? (next_frame_target_us - now_us) : 0;
-    const uint64_t target_wakeup_us = remaining_to_target_us > total_lead_us
+    uint64_t remaining_to_target_us = next_frame_target_us > now_us ? (next_frame_target_us - now_us) : 0;
+    uint64_t target_wakeup_us = remaining_to_target_us > total_lead_us
         ? (next_frame_target_us - total_lead_us)
         : now_us;
+    if (target_wakeup_us > now_us + interval_us) {
+        next_frame_target_us = now_us + interval_us;
+        remaining_to_target_us = interval_us;
+        target_wakeup_us = next_frame_target_us > total_lead_us
+            ? (next_frame_target_us - total_lead_us)
+            : now_us;
+    }
     logDeferredPresentDecision(static_cast<qint64>(now_us),
                                static_cast<qint64>(next_frame_target_us),
                                static_cast<qint64>(target_wakeup_us),
@@ -7484,6 +7499,11 @@ bool QmlMainWindow::event(QEvent *event)
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::Close:
+        ui_priority_update_pending.storeRelease(1);
+        present_pacing_reset_pending.storeRelease(1);
+        present_pace_timer_rearm.storeRelease(0);
+        if (present_pace_thread)
+            present_pace_thread->disarm();
         if (!backend->closeRequested()) {
             event->ignore();
             return true;
