@@ -6,7 +6,7 @@ cd "./$1"
 shift
 ROOT="`pwd`"
 
-TAG=v7.360.1
+TAG=3be579e6c7f6b421d9ac3ab4860edc437c50b3eb
 if [ ! -d "libplacebo" ]; then
 git clone --recursive https://github.com/haasn/libplacebo.git || exit 1
 fi

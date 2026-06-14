@@ -212,6 +212,7 @@ private:
                              int queue_depth_at_submit,
                              int depth_limit,
                              bool pending_frame_waiting,
+                             bool pending_overflow_waiting,
                              qint64 present_interval_us,
                              qint64 present_submit_interval_us);
     void finalizeDeferredPresentIfIdle();
@@ -219,6 +220,7 @@ private:
                                  int queue_depth_at_submit,
                                  int depth_limit,
                                  bool pending_frame_waiting,
+                                 bool pending_overflow_waiting,
                                  qint64 present_interval_us,
                                  qint64 present_submit_interval_us);
     void drainDeferredSwaps();
