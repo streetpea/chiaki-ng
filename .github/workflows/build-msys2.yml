@@ -6,7 +6,7 @@ on:
       libplacebo_version:
         description: "libplacebo git tag to build"
         required: false
-        default: "v7.360.1"
+        default: "3be579e6c7f6b421d9ac3ab4860edc437c50b3eb"
 
 jobs:
   build-windows_x64-msys2:
