@@ -58,6 +58,8 @@ static jbyteArray jnibytearray_create(JNIEnv *env, const uint8_t *buf, size_t bu
 static jobject get_kotlin_global_object(JNIEnv *env, const char *id)
 {
 	size_t idlen = strlen(id);
+	if(idlen > SIZE_MAX - 3)
+		return NULL;
 	char *sig = malloc(idlen + 3);
 	if(!sig)
 		return NULL;
