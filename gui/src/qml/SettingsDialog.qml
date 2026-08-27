@@ -16,6 +16,7 @@ DialogView {
     }
     property int selectedConsole: SettingsDialog.Console.PS5
     property bool quitControllerMapping: true
+    signal showGyroSteerSettingsDialog()
     id: dialog
     title: qsTr("Settings")
     header: qsTr("* Defaults in () to right of value or marked with (Default)")
@@ -2826,6 +2827,42 @@ DialogView {
                                 onToggled: Chiaki.settings.ds5GyroFix = checked
                                 KeyNavigation.priority: KeyNavigation.BeforeItem
                                 KeyNavigation.up: hapticOverride
+                            }
+
+                            Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("(Unchecked)")
+                            }
+                        }
+                        RowLayout {
+                            spacing: 10
+                            Layout.alignment: Qt.AlignHCenter
+                            Label {
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("Gyro Steering:")
+                            }
+
+                            RowLayout {
+                                Layout.preferredWidth: 650
+                                Layout.maximumWidth: 650
+                                Layout.alignment: Qt.AlignLeft
+                                spacing: 10
+                                C.CheckBox {
+                                    id: gyroSteeringCheck
+                                    text: qsTr("Enable Gyro Steering (tilt to steer)")
+                                    checked: Chiaki.settings.gyroSteering
+                                    onToggled: Chiaki.settings.gyroSteering = checked
+                                    KeyNavigation.priority: KeyNavigation.BeforeItem
+                                    KeyNavigation.up: ds5GyroFix
+                                }
+                                C.Button {
+                                    id: gyroSteeringEntry
+                                    visible: Chiaki.settings.gyroSteering
+                                    lastInFocusChain: true
+                                    text: qsTr("Settings")
+                                    onClicked: dialog.showGyroSteerSettingsDialog()
+                                    Material.roundedScale: Material.SmallScale
+                                }
                             }
 
                             Label {

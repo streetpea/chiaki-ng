@@ -1,5 +1,7 @@
 #include "qmlsettings.h"
 #include "sessionlog.h"
+#include <controllermanager.h>
+#include <gyrosteer.h>
 
 #include <QSet>
 #include <QKeySequence>
@@ -1894,6 +1896,93 @@ void QmlSettings::setSettings(Settings *new_settings)
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
     refreshAllKeys();
+    applyGyroSteerConfig();
+}
+
+bool QmlSettings::gyroSteering() const
+{
+	return settings->GetGyroSteeringEnabled();
+}
+
+void QmlSettings::setGyroSteering(bool enabled)
+{
+	settings->SetGyroSteeringEnabled(enabled);
+	emit gyroSteeringChanged();
+	applyGyroSteerConfig();
+}
+
+qreal QmlSettings::gyroSteeringSensitivity() const
+{
+	return settings->GetGyroSteeringSensitivity();
+}
+
+void QmlSettings::setGyroSteeringSensitivity(qreal value)
+{
+	settings->SetGyroSteeringSensitivity((float)value);
+	emit gyroSteeringChanged();
+	applyGyroSteerConfig();
+}
+
+qreal QmlSettings::gyroSteeringDeadzone() const
+{
+	return settings->GetGyroSteeringDeadzone();
+}
+
+void QmlSettings::setGyroSteeringDeadzone(qreal value)
+{
+	settings->SetGyroSteeringDeadzone((float)value);
+	emit gyroSteeringChanged();
+	applyGyroSteerConfig();
+}
+
+bool QmlSettings::gyroSteeringInvert() const
+{
+	return settings->GetGyroSteeringInvert();
+}
+
+void QmlSettings::setGyroSteeringInvert(bool invert)
+{
+	settings->SetGyroSteeringInvert(invert);
+	emit gyroSteeringChanged();
+	applyGyroSteerConfig();
+}
+
+void QmlSettings::applyGyroSteerConfig()
+{
+	ControllerManager::GetInstance()->ApplyGyroSteerSettings(settings);
+}
+
+float QmlSettings::gyroSteerAngle()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	auto bridge = ControllerManager::GetInstance()->GetGyroSteerBridge();
+	if(!bridge)
+		return 0.0f;
+	return bridge->GetAngleDeg();
+#else
+	return 0.0f;
+#endif
+}
+
+float QmlSettings::gyroSteerLeftX()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	auto bridge = ControllerManager::GetInstance()->GetGyroSteerBridge();
+	if(!bridge)
+		return 0.0f;
+	return bridge->GetLeftX();
+#else
+	return 0.0f;
+#endif
+}
+
+void QmlSettings::setGyroSteerRestPoint()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	auto bridge = ControllerManager::GetInstance()->GetGyroSteerBridge();
+	if(bridge)
+		bridge->SetRestPoint();
+#endif
 }
 
 void QmlSettings::refreshAllKeys()
@@ -1986,6 +2075,7 @@ void QmlSettings::refreshAllKeys()
     emit packetLossReportedMaxChanged();
     emit currentProfileChanged();
     emit profilesChanged();
+    emit gyroSteeringChanged();
     refreshAllPlaceboKeys();
 }
 

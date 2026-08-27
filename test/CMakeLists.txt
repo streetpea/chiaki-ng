@@ -15,7 +15,8 @@ set(CHIAKI_UNIT_SOURCES
 				test_log.c
 				test_log.h
 				bitstream.c
-				regist.c)
+				regist.c
+				gyrosteer.c)
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND CHIAKI_UNIT_SOURCES ffmpegdecoder.c)

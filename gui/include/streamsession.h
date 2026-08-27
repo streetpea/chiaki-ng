@@ -322,6 +322,9 @@ class StreamSession : public QObject
 #endif
 		void AdjustAdaptiveTriggerPacket(uint8_t *buf, uint8_t type);
 		void WaitHaptics();
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+		void MergeGyroSteer(ChiakiControllerState &state);
+#endif
 
 	private slots:
 		void InitAudio(unsigned int channels, unsigned int rate);

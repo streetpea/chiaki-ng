@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <controllermanager.h>
+#include <gyrosteer.h>
+#include <settings.h>
 
 #include <QCoreApplication>
 #include <QByteArray>
@@ -149,6 +151,9 @@ ControllerManager *ControllerManager::GetInstance()
 ControllerManager::ControllerManager(QObject *parent)
 	: QObject(parent), creating_controller_mapping(false),
 	joystick_allow_background_events(true), dualsense_intensity(0x00), ds5_gyro_fix_enabled(false), is_app_active(true)
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	, gyro_steer_bridge(nullptr)
+#endif
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	SDL_SetMainReady();
@@ -167,6 +172,7 @@ ControllerManager::ControllerManager(QObject *parent)
 	auto move_timer = new QTimer(this);
 	connect(move_timer, &QTimer::timeout, this, &ControllerManager::CheckMoved);
 	move_timer->start(MOVE_CHECK_MS);
+	gyro_steer_bridge = new GyroSteerBridge(this);
 #endif
 
 	UpdateAvailableControllers();
@@ -175,6 +181,8 @@ ControllerManager::ControllerManager(QObject *parent)
 ControllerManager::~ControllerManager()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	delete gyro_steer_bridge;
+	gyro_steer_bridge = nullptr;
 	open_controllers.clear();
 	SDL_Quit();
 #endif
@@ -343,6 +351,26 @@ QSet<int> ControllerManager::GetAvailableControllers()
 	return available_controllers;
 #else
 	return {};
+#endif
+}
+
+void ControllerManager::ApplyGyroSteerSettings(const Settings *settings)
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	if(!gyro_steer_bridge)
+		return;
+	gyro_steer_bridge->ApplyConfig(settings);
+#else
+	Q_UNUSED(settings);
+#endif
+}
+
+GyroSteerBridge *ControllerManager::GetGyroSteerBridge()
+{
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	return gyro_steer_bridge;
+#else
+	return nullptr;
 #endif
 }
 
@@ -671,6 +699,11 @@ inline bool Controller::HandleSensorEvent(SDL_ControllerSensorEvent event)
 	}
 	last_motion_timestamp = event.timestamp * 1000;
 	chiaki_orientation_tracker_apply_to_controller_state(&orientation_tracker, &state);
+	if(manager->gyro_steer_bridge)
+	{
+		ChiakiOrientation orient = { state.orient_x, state.orient_y, state.orient_z, state.orient_w };
+		manager->gyro_steer_bridge->UpdateFromOrientation(orient);
+	}
 	return true;
 }
 

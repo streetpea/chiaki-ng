@@ -20,6 +20,8 @@
 #define PS_TOUCHPAD_MAXY 1079
 
 class Controller;
+class Settings;
+class GyroSteerBridge;
 
 class ControllerManager : public QObject
 {
@@ -38,6 +40,9 @@ class ControllerManager : public QObject
 		bool moved;
 		uint8_t dualsense_intensity;
 		bool ds5_gyro_fix_enabled;
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+		GyroSteerBridge *gyro_steer_bridge;
+#endif
 
 		void ControllerClosed(Controller *controller);
 		void CheckMoved();
@@ -61,6 +66,8 @@ class ControllerManager : public QObject
 		uint8_t GetDualSenseIntensity() { return dualsense_intensity; };
 		void SetDS5GyroFixEnabled(bool enabled) { ds5_gyro_fix_enabled = enabled; };
 		bool GetDS5GyroFixEnabled() { return ds5_gyro_fix_enabled; };
+		void ApplyGyroSteerSettings(const Settings *settings);
+		GyroSteerBridge *GetGyroSteerBridge();
 		void creatingControllerMapping(bool creating_controller_mapping);
 		QSet<int> GetAvailableControllers();
 		Controller *OpenController(int device_id);

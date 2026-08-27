@@ -3,6 +3,7 @@
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
+#include <gyrosteer.h>
 
 #include <chiaki/base64.h>
 #include <chiaki/streamconnection.h>
@@ -19,6 +20,10 @@
 #include <algorithm>
 
 #include <cstring>
+
+#include <cstdlib>
+
+#include <math.h>
 
 #define SETSU_UPDATE_INTERVAL_MS 4
 #define STEAMDECK_UPDATE_INTERVAL_MS 4
@@ -600,6 +605,13 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	if(connect_info.buttons_by_pos)
 		ControllerManager::GetInstance()->SetButtonsByPos();
 	ControllerManager::GetInstance()->SetDS5GyroFixEnabled(connect_info.settings->GetDS5GyroFixEnabled());
+	ControllerManager::GetInstance()->ApplyGyroSteerSettings(connect_info.settings);
+	auto gyro_steer = ControllerManager::GetInstance()->GetGyroSteerBridge();
+	if(gyro_steer)
+	{
+		connect(gyro_steer, &GyroSteerBridge::StateChanged, this, &StreamSession::SendFeedbackState);
+		gyro_steer->RequestRecenter(); // 流启动:以当前握持姿态为回正中心
+	}
 #endif
 #if CHIAKI_GUI_ENABLE_SETSU
 	setsu_motion_device = nullptr;
@@ -1221,6 +1233,19 @@ void StreamSession::WaitHaptics()
 		QTimer::singleShot(14000, this, &StreamSession::ConnectHaptics);
 }
 
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+void StreamSession::MergeGyroSteer(ChiakiControllerState &state)
+{
+	auto gyro_steer = ControllerManager::GetInstance()->GetGyroSteerBridge();
+	if(!gyro_steer || !gyro_steer->IsActive())
+		return;
+	int16_t gs_left_x = (int16_t)(gyro_steer->GetLeftX() * 32767.0f);
+	// 物理摇杆优先:体感仅在偏移更大时接管(等价 MAX_ABS)
+	if(gs_left_x != 0 && std::abs(state.left_x) < std::abs(gs_left_x))
+		state.left_x = gs_left_x;
+}
+#endif
+
 void StreamSession::DpadSendFeedbackState()
 {
 	ChiakiControllerState state;
@@ -1242,6 +1267,10 @@ void StreamSession::DpadSendFeedbackState()
 #endif
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
+
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	MergeGyroSteer(state);
+#endif
 
 	if(input_block)
 	{
@@ -1298,6 +1327,10 @@ void StreamSession::SendFeedbackState()
 #endif
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
+
+#ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	MergeGyroSteer(state);
+#endif
 
 	if(input_block)
 	{
