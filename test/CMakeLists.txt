@@ -15,8 +15,11 @@ set(CHIAKI_UNIT_SOURCES
 				test_log.c
 				test_log.h
 				bitstream.c
-				regist.c
-				aia.c)
+				regist.c)
+
+if(NOT CHIAKI_LIB_ENABLE_MBEDTLS)
+	list(APPEND CHIAKI_UNIT_SOURCES aia.c)
+endif()
 
 if(CHIAKI_ENABLE_FFMPEG_DECODER)
 	list(APPEND CHIAKI_UNIT_SOURCES ffmpegdecoder.c)

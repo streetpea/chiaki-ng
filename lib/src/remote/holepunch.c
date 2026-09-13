@@ -352,6 +352,7 @@ typedef struct session_t
     char* ws_fqdn;
     char* ws_fqdn_override;
     ChiakiThread ws_thread;
+    bool ws_thread_created;
     NotificationQueue* ws_notification_queue;
     bool ws_thread_should_stop;
     bool ws_open;
@@ -388,6 +389,18 @@ static ChiakiErrorCode hex_to_bytes(const char* hex_str, uint8_t* bytes, size_t 
 static void bytes_to_hex(const uint8_t* bytes, size_t len, char* hex_str, size_t max_len);
 static void random_uuidv4(char* out);
 static void *websocket_thread_func(void *user);
+
+static void stop_websocket_thread(Session *session)
+{
+    if(!session->ws_thread_created)
+        return;
+    chiaki_mutex_lock(&session->stop_mutex);
+    session->ws_thread_should_stop = true;
+    chiaki_mutex_unlock(&session->stop_mutex);
+    chiaki_stop_pipe_stop(&session->select_pipe);
+    chiaki_thread_join(&session->ws_thread, NULL);
+    session->ws_thread_created = false;
+}
 static NotificationType parse_notification_type(ChiakiLog *log, json_object* json);
 static ChiakiErrorCode send_offer(Session *session);
 static ChiakiErrorCode send_accept(Session *session, int req_id, Candidate *selected_candidate);
@@ -756,6 +769,7 @@ CHIAKI_EXPORT Session* chiaki_holepunch_session_init(
     session->local_candidates = NULL;
     session->our_offer_msg = NULL;
     session->ws_open = false;
+    session->ws_thread_created = false;
     session->online_id = NULL;
     memset(&session->session_id, 0, sizeof(session->session_id));
     memset(&session->console_uid, 0, sizeof(session->console_uid));
@@ -929,6 +943,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     err = chiaki_thread_create(&session->ws_thread, websocket_thread_func, session);
     if (err != CHIAKI_ERR_SUCCESS)
         return err;
+    session->ws_thread_created = true;
     chiaki_thread_set_name(&session->ws_thread, "Chiaki Holepunch WS");
     CHIAKI_LOGV(session->log, "chiaki_holepunch_session_create: Created websocket thread");
 
@@ -959,6 +974,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_session_create(Session* session)
     if(ws_wait_timed_out)
     {
         CHIAKI_LOGE(session->log, "chiaki_holepunch_session_create: Timed out after %d seconds waiting for the push notification websocket to open", SESSION_CREATION_TIMEOUT_SEC);
+        stop_websocket_thread(session);
         return CHIAKI_ERR_TIMEOUT;
     }
 
@@ -1789,7 +1805,10 @@ CHIAKI_EXPORT void chiaki_holepunch_session_set_port_guessing_socks(Session* ses
 
 CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
 {
-    if(session->ws_open)
+    chiaki_mutex_lock(&session->state_mutex);
+    bool ws_open = session->ws_open;
+    chiaki_mutex_unlock(&session->state_mutex);
+    if(ws_open && session->ws_thread_created)
     {
         ChiakiErrorCode err = deleteSession(session);
         if(err != CHIAKI_ERR_SUCCESS)
@@ -1828,12 +1847,8 @@ CHIAKI_EXPORT void chiaki_holepunch_session_fini(Session* session)
             }
             clear_notification(session, notif);
         }
-        chiaki_mutex_lock(&session->stop_mutex);
-        session->ws_thread_should_stop = true;
-        chiaki_mutex_unlock(&session->stop_mutex);
-        chiaki_stop_pipe_stop(&session->select_pipe);
-        chiaki_thread_join(&session->ws_thread, NULL);
     }
+    stop_websocket_thread(session);
     if(session->upnp_thread_running)
     {
         CHIAKI_LOGI(session->log, "Waiting for UPnP discovery thread to finish...");
@@ -2120,8 +2135,29 @@ static void random_uuidv4(char* out)
  *
  * @param user Pointer to the session context
 */
+static bool websocket_recovery_canceled(void *user)
+{
+    Session *session = user;
+    chiaki_mutex_lock(&session->stop_mutex);
+    bool stop = session->ws_thread_should_stop || session->main_should_stop;
+    chiaki_mutex_unlock(&session->stop_mutex);
+    return stop;
+}
+
+static int websocket_transfer_progress(void *user, curl_off_t total_down, curl_off_t down,
+    curl_off_t total_up, curl_off_t up)
+{
+    (void)total_down; (void)down; (void)total_up; (void)up;
+    return chiaki_aia_should_stop(user) ? 1 : 0;
+}
+
 static void* websocket_thread_func(void *user) {
     Session* session = (Session*) user;
+    ChiakiAiaControl recovery_control = {
+        .canceled = websocket_recovery_canceled,
+        .user = session,
+        .deadline_ms = chiaki_time_now_monotonic_ms() + SESSION_CREATION_TIMEOUT_SEC * 1000,
+    };
     chiaki_thread_set_affinity(CHIAKI_THREAD_NAME_HOLEPUNCH);
 
     char ws_url[128] = {0};
@@ -2134,6 +2170,11 @@ static void* websocket_thread_func(void *user) {
         return NULL;
     }
     struct curl_slist *headers = NULL;
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, websocket_transfer_progress);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &recovery_control);
+    recovery_control.connection = curl;
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, (long)SESSION_CREATION_TIMEOUT_SEC);
     headers = curl_slist_append(headers, session->oauth_header);
     headers = curl_slist_append(headers, "Sec-WebSocket-Protocol: np-pushpacket");
     headers = curl_slist_append(headers, "User-Agent: WebSocket++/0.8.2");
@@ -2166,20 +2207,69 @@ static void* websocket_thread_func(void *user) {
     bool aia_attempted = false;
     bool aia_blob_supported =
         curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, NULL) == CURLE_OK;
+    const curl_version_info_data *curl_version = curl_version_info(CURLVERSION_NOW);
+    bool schannel_aia = false;
+    if(curl_version && curl_version->ssl_version && strstr(curl_version->ssl_version, "Schannel"))
+    {
+#ifdef CHIAKI_CURL_SCHANNEL_AIA
+        schannel_aia = true;
+        CHIAKI_LOGI(session->log, "websocket_thread_func: Schannel AIA recovery uses untrusted issuers and native Windows roots");
+#else
+        // Schannel treats CAINFO_BLOB as an exclusive root store. Keep native
+        // verification until recovered issuers can be supplied as untrusted data.
+        aia_blob_supported = false;
+        CHIAKI_LOGI(session->log, "websocket_thread_func: custom chain recovery disabled for Schannel to preserve Windows certificate trust");
+#endif
+    }
+#ifdef CHIAKI_LIB_ENABLE_MBEDTLS
+    // Certificate-chain recovery currently requires the OpenSSL implementation.
+    aia_blob_supported = false;
+#endif
     if(!aia_blob_supported)
-        CHIAKI_LOGW(session->log, "websocket_thread_func: TLS backend does not accept a CA blob, chain repair unavailable");
+        CHIAKI_LOGW(session->log, "websocket_thread_func: custom chain repair unavailable for this TLS backend");
 
 ws_connect_attempt:
+    if(chiaki_aia_should_stop(&recovery_control)) {
+        res = CURLE_ABORTED_BY_CALLBACK;
+        goto ws_after_recovery;
+    }
     {
         size_t aia_blob_len = 0;
-        char *aia_blob = aia_blob_supported ? chiaki_aia_blob_take(&aia_blob_len) : NULL;
+        char *aia_blob = NULL;
+        if(aia_blob_supported && chiaki_aia_blob_len() > 0)
+        {
+            if(schannel_aia)
+                aia_blob = chiaki_aia_blob_take(&aia_blob_len);
+            else {
+                const char *ca_path = NULL;
+                CURLcode ca_info_res = curl_easy_getinfo(curl, CURLINFO_CAINFO, &ca_path);
+                FILE *ca_file = ca_path ? fopen(ca_path, "rb") : NULL;
+                if(ca_info_res == CURLE_OK && (!ca_path || ca_file))
+                    aia_blob = chiaki_aia_blob_with_ca(ca_file, &aia_blob_len);
+                if(ca_file)
+                    fclose(ca_file);
+            }
+            if(!aia_blob)
+            {
+                CHIAKI_LOGW(session->log, "websocket_thread_func: cannot preserve the configured CA bundle, skipping chain repair");
+                aia_blob_supported = false;
+            }
+        }
         if(aia_blob)
         {
             struct curl_blob ca_blob;
             ca_blob.data = aia_blob;
             ca_blob.len = aia_blob_len;
             ca_blob.flags = CURL_BLOB_COPY;
-            CURLcode blob_res = curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, &ca_blob);
+            // Cached intermediates must not terminate verification before a root.
+            long ssl_options = CURLSSLOPT_NO_PARTIALCHAIN;
+#ifdef CHIAKI_CURL_SCHANNEL_AIA
+            if(schannel_aia)
+                ssl_options |= CURLSSLOPT_SCHANNEL_AIA;
+#endif
+            CURLcode blob_res = curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, ssl_options);
+            if(blob_res == CURLE_OK)
+                blob_res = curl_easy_setopt(curl, CURLOPT_CAINFO_BLOB, &ca_blob);
             if(blob_res != CURLE_OK)
             {
                 CHIAKI_LOGE(session->log, "websocket_thread_func: could not apply the repaired chain: %s",
@@ -2199,7 +2289,7 @@ ws_connect_attempt:
     if(res != CURLE_OK && res != CURLE_HTTP_RETURNED_ERROR && !aia_attempted && !aia_blob_supported)
     {
         aia_attempted = true;
-        CHIAKI_LOGE(session->log, "websocket_thread_func: %s failed and certificate chain repair was SKIPPED because the TLS backend will not accept a CA blob; a leaf-only chain cannot be repaired on this build",
+        CHIAKI_LOGE(session->log, "websocket_thread_func: %s failed; custom certificate chain repair is disabled or unavailable, keeping the original TLS trust configuration",
             session->ws_fqdn);
     }
     else if(res != CURLE_OK && res != CURLE_HTTP_RETURNED_ERROR && !aia_attempted)
@@ -2223,14 +2313,14 @@ ws_connect_attempt:
 
         uint8_t *leaf_der = NULL;
         size_t leaf_len = 0;
-        if(!chiaki_aia_peek_leaf(session->ws_fqdn, &leaf_der, &leaf_len, session->log))
+        if(!chiaki_aia_peek_leaf(session->ws_fqdn, &leaf_der, &leaf_len, session->log, &recovery_control))
             CHIAKI_LOGE(session->log, "websocket_thread_func: %s served no certificate to walk from", session->ws_fqdn);
         else
         {
             char *recovered = NULL;
             size_t recovered_len = 0;
             ChiakiErrorCode aia_err = chiaki_aia_recover(leaf_der, leaf_len,
-                &recovered, &recovered_len, session->log);
+                &recovered, &recovered_len, session->log, &recovery_control);
             free(leaf_der);
 
             if(aia_err == CHIAKI_ERR_SUCCESS && recovered)
@@ -2262,10 +2352,10 @@ ws_after_recovery:
         }
         goto cleanup;
     }
-    session->ws_open = true;
     CHIAKI_LOGV(session->log, "websocket_thread_func: Connected to push notification WebSocket %s", ws_url);
     ChiakiErrorCode err = chiaki_mutex_lock(&session->state_mutex);
     assert(err == CHIAKI_ERR_SUCCESS);
+    session->ws_open = true;
     session->state |= SESSION_STATE_WS_OPEN;
     log_session_state(session);
     err = chiaki_cond_signal(&session->state_cond);
@@ -2441,11 +2531,7 @@ ws_after_recovery:
                 }
                 session_message_free(msg);
             }
-            ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->notif_mutex);
-            assert(mutex_err == CHIAKI_ERR_SUCCESS);
-            enqueueNq(session->ws_notification_queue, notif);
-            chiaki_cond_signal(&session->notif_cond);
-            chiaki_mutex_unlock(&session->notif_mutex);
+            bool session_deleted = false;
             if (notif->type == NOTIFICATION_TYPE_SESSION_DELETED)
             {
                 const char *deleted_id = NULL;
@@ -2464,9 +2550,18 @@ ws_after_recovery:
                 {
                     CHIAKI_LOGI(session->log, "websocket_thread_func: ignoring deletion of unrelated session %s (ours is %s)",
                         deleted_id, session->session_id);
-                    continue;
                 }
-
+                else
+                    session_deleted = true;
+            }
+            // Publishing transfers ownership to consumers, which may free notif immediately.
+            ChiakiErrorCode mutex_err = chiaki_mutex_lock(&session->notif_mutex);
+            assert(mutex_err == CHIAKI_ERR_SUCCESS);
+            enqueueNq(session->ws_notification_queue, notif);
+            chiaki_cond_signal(&session->notif_cond);
+            chiaki_mutex_unlock(&session->notif_mutex);
+            if (session_deleted)
+            {
                 CHIAKI_LOGI(session->log, "websocket_thread_func: Holepunch session was deleted on PSN server, exiting....");
                 goto cleanup_json;
             }
@@ -2478,9 +2573,8 @@ cleanup_json:
     free(buf);
 cleanup:
     curl_easy_cleanup(curl);
-    session->ws_open = false;
-
     chiaki_mutex_lock(&session->state_mutex);
+    session->ws_open = false;
     if(!(session->state & SESSION_STATE_WS_OPEN))
     {
         session->state |= SESSION_STATE_WS_FAILED;
