@@ -2,6 +2,12 @@
 add_library(munit "${CMAKE_CURRENT_SOURCE_DIR}/munit/munit.c")
 target_include_directories(munit PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/munit")
 
+# MinGW's tmpfile() fails in some Windows/MSYS environments. MUnit uses it
+# only to buffer test stderr, so disable that optional capture on Windows.
+if(WIN32)
+	target_compile_definitions(munit PRIVATE MUNIT_NO_BUFFER)
+endif()
+
 set(CHIAKI_UNIT_SOURCES
 				main.c
 				http.c

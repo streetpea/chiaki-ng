@@ -212,7 +212,10 @@ static MunitResult test_aia_preserves_ca_bundle(const MunitParameter params[], v
 	char *issuer = chiaki_aia_der_to_pem(fx_inter_der, sizeof(fx_inter_der), &issuer_len);
 	munit_assert_not_null(root);
 	munit_assert_not_null(issuer);
-	FILE *file = tmpfile();
+	/* MinGW's tmpfile() may use an unavailable system temporary directory.
+	 * The test working directory is writable, so use a local scratch file. */
+	const char *ca_bundle_path = ".chiaki-aia-ca-bundle-test.pem";
+	FILE *file = fopen(ca_bundle_path, "wb+");
 	munit_assert_not_null(file);
 	// Repeat to exercise reads across chunk boundaries and preserve all roots.
 	for(int i = 0; i < 8; i++)
@@ -228,6 +231,7 @@ static MunitResult test_aia_preserves_ca_bundle(const MunitParameter params[], v
 	munit_assert_size(strlen(bundle), ==, bundle_len);
 	free(bundle);
 	fclose(file);
+	remove(ca_bundle_path);
 	free(root);
 	free(issuer);
 	chiaki_aia_blob_reset();
