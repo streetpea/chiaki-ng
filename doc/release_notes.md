@@ -21,7 +21,8 @@
   ```
   brew install --cask streetpea/streetpea/chiaki-ng
   ```
--  Attached releases (arm64 and x86_64) attached
+- Attached releases for Apple Silicon (arm64) only
+- Intel macOS (x86_64/amd64) release, weekly, and manual builds are no longer produced, and pull requests are no longer tested on Intel macOS.
 
 ### Windows:
 - winget

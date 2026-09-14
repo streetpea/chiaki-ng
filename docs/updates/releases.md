@@ -71,7 +71,7 @@ In order to update your already installed `chiaki-ng` to the newest version, eit
 
 === "Windows/MacOS/Linux Appimage"
 
-     Download the appropriate package from the [releases page](https://github.com/streetpea/chiaki-ng/releases){target="_blank" rel="noopener"} on GitHub (for Mac there are separate packages for the Intel (`-amd64`) and Apple (`-arm64`) based Macs)
+     Download the appropriate package from the [releases page](https://github.com/streetpea/chiaki-ng/releases){target="_blank" rel="noopener"} on GitHub (for macOS, use the Apple Silicon `-arm64` package; Intel `-amd64`/`-x86_64` packages are no longer built)
 
 ## Releases (Newest First)
 
