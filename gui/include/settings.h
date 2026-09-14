@@ -514,6 +514,8 @@ class Settings : public QObject
 		void SetPlaceboPlaneDownscaler(PlaceboDownscaler downscaler);
 
 		PlaceboFrameMixer GetPlaceboFrameMixer() const;
+		bool GetDirectFrameMapping() const { return settings.value("settings/direct_frame_mapping", true).toBool(); }
+		void SetDirectFrameMapping(bool enabled) { settings.setValue("settings/direct_frame_mapping", enabled); }
 		void SetPlaceboFrameMixer(PlaceboFrameMixer frame_mixer);
 
 		bool GetPlaceboDeinterlaceEnabled() const;

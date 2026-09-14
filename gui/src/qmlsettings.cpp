@@ -976,6 +976,19 @@ int QmlSettings::placeboFrameMixer() const
 {
     return static_cast<int>(settings->GetPlaceboFrameMixer());
 }
+bool QmlSettings::directFrameMapping() const
+{
+    return settings->GetDirectFrameMapping();
+}
+
+void QmlSettings::setDirectFrameMapping(bool enabled)
+{
+    if (enabled == settings->GetDirectFrameMapping())
+        return;
+    settings->SetDirectFrameMapping(enabled);
+    emit directFrameMappingChanged();
+}
+
 void QmlSettings::setPlaceboFrameMixer(int mixer)
 {
     settings->SetPlaceboFrameMixer(static_cast<PlaceboFrameMixer>(mixer));
@@ -1955,6 +1968,7 @@ void QmlSettings::refreshAllKeys()
 
 void QmlSettings::refreshAllPlaceboKeys()
 {
+    emit directFrameMappingChanged();
     emit placeboUpscalerChanged();
     emit placeboPlaneUpscalerChanged();
     emit placeboDownscalerChanged();

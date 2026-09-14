@@ -279,6 +279,12 @@ private:
     bool has_video = false;
     struct pl_queue_params qparams;
     struct pl_frame_mix frame_mix;
+    // Direct rendering retains the displayed mapping and replaces only pending input.
+    bool bypass_frame_queue = true;
+    QMutex direct_frame_mutex;
+    AVFrame *direct_pending_frame = nullptr;
+    struct pl_frame direct_frame = {};
+    QAtomicInteger<int> direct_frame_reset = 0;
     uint64_t ts_start = 0;
     double queue_pts_origin = -1.0;
     double newest_queued_frame_pts = -1.0;
