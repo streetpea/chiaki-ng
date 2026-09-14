@@ -12,6 +12,9 @@ extern MunitTest tests_gkcrypt[];
 extern MunitTest tests_takion[];
 extern MunitTest tests_fec[];
 extern MunitTest tests_regist[];
+#ifndef CHIAKI_LIB_ENABLE_MBEDTLS
+extern MunitTest tests_aia[];
+#endif
 extern MunitTest tests_bitstream[];
 #if CHIAKI_LIB_ENABLE_FFMPEG_DECODER
 extern MunitTest tests_ffmpegdecoder[];
@@ -81,6 +84,15 @@ static MunitSuite suites[] = {
 		1,
 		MUNIT_SUITE_OPTION_NONE
 	},
+#ifndef CHIAKI_LIB_ENABLE_MBEDTLS
+	{
+		"/aia",
+		tests_aia,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
+#endif
 	{
 		"/bitstream",
 		tests_bitstream,
