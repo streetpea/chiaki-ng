@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 280" fill="none">
+  <g fill="#ffffff">
+    <path d="M86 28 L128 98 H44 Z"/>
+    <circle cx="210" cy="66" r="40" fill="none" stroke="#ffffff" stroke-width="14"/>
+    <path d="M278 32 L342 100 M342 32 L278 100" stroke="#ffffff" stroke-width="14" stroke-linecap="round" fill="none"/>
+    <rect x="368" y="28" width="78" height="78" rx="6" transform="rotate(12 407 67)" fill="none" stroke="#ffffff" stroke-width="12"/>
+  </g>
+  <text x="260" y="198" text-anchor="middle" fill="#ffffff" font-family="Roboto, Segoe UI, Arial, sans-serif" font-size="45" font-weight="500" letter-spacing="1">Chiaki-NG  Web Edition</text>
+</svg>

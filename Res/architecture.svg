@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" fill="none">
+  <rect width="960" height="360" fill="#212121"/>
+  <text x="480" y="36" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="18" font-weight="600">Chiaki-NG Web Edition</text>
+  <rect x="40" y="80" width="260" height="200" rx="12" fill="#303030" stroke="#3f51b5" stroke-width="2"/>
+  <text x="170" y="118" text-anchor="middle" fill="#448aff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="14" font-weight="600">Browser / Electron</text>
+  <text x="170" y="158" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">UI + WebCodecs</text>
+  <text x="170" y="182" text-anchor="middle" fill="#bdbdbd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">chiaki-lib (WASM)</text>
+  <text x="170" y="206" text-anchor="middle" fill="#bdbdbd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">POSIX socket wrap</text>
+  <rect x="350" y="80" width="260" height="200" rx="12" fill="#303030" stroke="#3f51b5" stroke-width="2"/>
+  <text x="480" y="118" text-anchor="middle" fill="#448aff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="14" font-weight="600">Node.js proxy</text>
+  <text x="480" y="158" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">HTTP + COOP / COEP</text>
+  <text x="480" y="182" text-anchor="middle" fill="#bdbdbd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">WebSocket /posix-net</text>
+  <text x="480" y="206" text-anchor="middle" fill="#bdbdbd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">TCP / UDP relay + API</text>
+  <rect x="660" y="80" width="260" height="200" rx="12" fill="#303030" stroke="#3f51b5" stroke-width="2"/>
+  <text x="790" y="118" text-anchor="middle" fill="#448aff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="14" font-weight="600">PS4 / PS5</text>
+  <text x="790" y="158" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">Remote Play</text>
+  <text x="790" y="182" text-anchor="middle" fill="#bdbdbd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">TCP 9295</text>
+  <text x="790" y="206" text-anchor="middle" fill="#bdbdbd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">UDP 9296 / 9297</text>
+  <path d="M300 180 H350" stroke="#00aaff" stroke-width="3"/>
+  <polygon points="350,174 364,180 350,186" fill="#00aaff"/>
+  <text x="325" y="168" text-anchor="middle" fill="#00aaff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">HTTPS / WSS</text>
+  <path d="M610 180 H660" stroke="#00aaff" stroke-width="3"/>
+  <polygon points="660,174 674,180 660,186" fill="#00aaff"/>
+  <text x="635" y="168" text-anchor="middle" fill="#00aaff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">LAN / WAN</text>
+  <text x="480" y="320" text-anchor="middle" fill="#9e9e9e" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">The browser has no POSIX sockets. The proxy is the only hop that talks to the console.</text>
+</svg>

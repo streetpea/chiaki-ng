@@ -19,6 +19,7 @@ nav:
     - Planned: updates/planned.md
   - DIY:
     - Building the Flatpak Yourself: diy/buildit.md
+    - Building the WASM Client: diy/buildwasm.md
     - Locally Building Documentation: diy/builddocs.md
     - Developing chiaki-ng on Steam Deck: diy/steamdeckdev.md
 

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Overview — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="index" data-root="..">
+<article class="md-typeset">
+	<h1>Set Up Remote Play</h1>
+	<p>This section covers PlayStation Remote Play to a <strong>PS4 / PS5</strong> with <strong>Chiaki-NG Web</strong> (browser), not the desktop app.</p>
+	<aside class="admonition tip">
+		<p class="admonition-title">Tip</p>
+		<p>Open this documentation on the device you play on for easy copy/paste. Play site: <a href="https://chiaki.csphere.fr/" target="_blank" rel="noopener">chiaki.csphere.fr</a>.</p>
+	</aside>
+	<h2>How to connect</h2>
+	<table>
+		<thead><tr><th>Situation</th><th>What to do</th></tr></thead>
+		<tbody>
+			<tr><td>Same Wi‑Fi as the console, <strong>Electron</strong> app</td><td>No ports to open. LAN discovery.</td></tr>
+			<tr><td>Cloud site from the Internet</td><td><a href="home-proxy.html">Chiaki Home Proxy</a> (recommended) <strong>or</strong> <a href="ports.html">open ports</a></td></tr>
+			<tr><td>Router on <strong>CGNAT</strong></td><td>Home Proxy — desktop chiaki-ng PSN holepunch is <strong>not</strong> in the browser</td></tr>
+		</tbody>
+	</table>
+	<p>Details: <a href="connection.html">Connection modes</a>.</p>
+	<h2>What the site does</h2>
+	<ul>
+		<li>Account (email / password): consoles and settings follow you</li>
+		<li>PS4/PS5 discovery (especially via Home Proxy)</li>
+		<li>Several consoles and PSN Account IDs (base64) on the <strong>same</strong> Chiaki account</li>
+		<li>Hide / show / delete a console</li>
+		<li>PIN registration (Remote Play → Add Device)</li>
+		<li>H.264 / H.265 stream, keyboard, mouse, gamepad, on-screen pad</li>
+		<li>Stream sharing (viewers)</li>
+	</ul>
+	<h2>IPv4 only</h2>
+	<p>Same as PlayStation Remote Play and <a href="https://streetpea.github.io/chiaki-ng/setup/remoteconnection/" target="_blank" rel="noopener">chiaki-ng</a>: <strong>no IPv6</strong>.</p>
+	<h2>Next</h2>
+	<ol>
+		<li><a href="connection.html">Connection modes</a></li>
+		<li><a href="ports.html">Open ports</a> if you are not using the proxy</li>
+		<li><a href="home-proxy.html">Chiaki Home Proxy</a></li>
+		<li><a href="consoles.html">Consoles</a></li>
+	</ol>
+	<aside class="admonition note">
+		<p class="admonition-title">Desktop app</p>
+		<p>Steam Deck / Flatpak / Windows: follow the <a href="https://streetpea.github.io/chiaki-ng/setup/" target="_blank" rel="noopener">official chiaki-ng setup</a> (Desktop Mode, installation, Game Mode).</p>
+	</aside>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

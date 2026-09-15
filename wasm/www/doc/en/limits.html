@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Limits vs chiaki-ng — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="limits" data-root="..">
+<article class="md-typeset">
+	<h1>Limits vs desktop chiaki-ng</h1>
+	<p>Official native-app docs: <a href="https://streetpea.github.io/chiaki-ng/setup/" target="_blank" rel="noopener">chiaki-ng Setup</a>.</p>
+	<table>
+		<thead>
+			<tr><th></th><th>chiaki-ng (Steam Deck, PC…)</th><th>Chiaki-NG Web</th></tr>
+		</thead>
+		<tbody>
+			<tr><td>PSN holepunch away from LAN</td><td><a href="https://streetpea.github.io/chiaki-ng/setup/remoteconnection/" target="_blank" rel="noopener">Yes (some networks)</a></td><td><strong>No</strong></td></tr>
+			<tr><td>Manual connection + NAT ports</td><td>Yes</td><td>Yes, without Home Proxy</td></tr>
+			<tr><td>Home-PC relay, no open ports</td><td>VPN / other</td><td><strong>Chiaki Home Proxy</strong></td></tr>
+			<tr><td>Cloud account syncing consoles</td><td>No (local)</td><td>Yes</td></tr>
+			<tr><td>Viewer sharing</td><td>No (this fork)</td><td>Yes</td></tr>
+			<tr><td>LAN discovery from the Internet</td><td>No (unless WAN UDP)</td><td>Via Home Proxy</td></tr>
+		</tbody>
+	</table>
+	<p>PlayStation Remote Play is <strong>IPv4</strong>. PS4: PSN remote play only works with the primary console on the account (Sony limit).</p>
+	<p>Desktop install: <a href="https://streetpea.github.io/chiaki-ng/setup/installation/" target="_blank" rel="noopener">chiaki-ng Installation</a>.</p>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

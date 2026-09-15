@@ -1,0 +1,45 @@
+appId: fr.csphere.chiaki-ng-web
+productName: Chiaki-NG Web
+copyright: Chiaki-NG Web
+asar: true
+npmRebuild: false
+directories:
+  output: ../build
+  buildResources: build
+files:
+  - main.mjs
+  - preload.cjs
+  - package.json
+extraResources:
+  - from: .stage
+    to: chiaki-wasm
+
+win:
+  target:
+    - nsis
+    - portable
+  artifactName: "${productName}-${version}-win-${arch}.${ext}"
+  executableName: chiaki-ng-web
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: Chiaki-NG Web
+  uninstallDisplayName: Chiaki-NG Web
+
+linux:
+  target:
+    - AppImage
+  category: Game
+  artifactName: "${productName}-${version}-linux-${arch}.${ext}"
+  executableName: chiaki-ng-web
+
+mac:
+  category: public.app-category.games
+  artifactName: "${productName}-${version}-mac-${arch}.${ext}"
+  hardenedRuntime: true
+  entitlements: entitlements.mac.plist
+  entitlementsInherit: entitlements.mac.plist
+  target:
+    - dmg
+    - zip

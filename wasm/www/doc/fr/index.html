@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Vue d’ensemble — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="index" data-root="..">
+<article class="md-typeset">
+	<h1>Set Up Remote Play</h1>
+	<p>Cette section explique comment jouer en Remote Play vers une <strong>PS4 / PS5</strong> avec <strong>Chiaki-NG Web</strong> (navigateur), pas l’appli bureau.</p>
+	<aside class="admonition tip">
+		<p class="admonition-title">Astuce</p>
+		<p>Ouvrez cette doc sur l’appareil où vous jouez pour copier-coller les commandes. Site de jeu : <a href="https://chiaki.csphere.fr/" target="_blank" rel="noopener">chiaki.csphere.fr</a>.</p>
+	</aside>
+	<h2>Choisir comment se connecter</h2>
+	<table>
+		<thead><tr><th>Situation</th><th>Que faire</th></tr></thead>
+		<tbody>
+			<tr><td>Même Wi‑Fi que la console, appli <strong>Electron</strong></td><td>Rien à ouvrir. Découverte LAN.</td></tr>
+			<tr><td>Site cloud depuis Internet</td><td><a href="home-proxy.html">Chiaki Home Proxy</a> (recommandé) <strong>ou</strong> <a href="ports.html">ouvrir les ports</a></td></tr>
+			<tr><td>Box en <strong>CGNAT</strong></td><td>Home Proxy — le holepunch PSN de chiaki-ng <strong>n’existe pas</strong> dans le navigateur</td></tr>
+		</tbody>
+	</table>
+	<p>Détail : <a href="connexion.html">Modes de connexion</a>.</p>
+	<h2>Ce que fait le site</h2>
+	<ul>
+		<li>Compte (e-mail / mot de passe) : consoles et réglages suivent l’appareil</li>
+		<li>Découverte PS4/PS5 (surtout via Home Proxy)</li>
+		<li>Plusieurs consoles et plusieurs ID PSN (base64) sur le <strong>même</strong> compte Chiaki</li>
+		<li>Masquer / afficher / supprimer une console</li>
+		<li>Enregistrement PIN (Remote Play → Ajouter un appareil)</li>
+		<li>Stream H.264 / H.265, clavier, souris, manette, manette virtuelle</li>
+		<li>Partage du stream (spectateurs)</li>
+	</ul>
+	<h2>IPv4 uniquement</h2>
+	<p>Comme le Remote Play PlayStation et <a href="https://streetpea.github.io/chiaki-ng/setup/remoteconnection/" target="_blank" rel="noopener">chiaki-ng</a> : <strong>pas d’IPv6</strong>.</p>
+	<h2>Suite</h2>
+	<ol>
+		<li><a href="connexion.html">Modes de connexion</a></li>
+		<li><a href="ports.html">Ouvrir les ports</a> si vous n’utilisez pas le proxy</li>
+		<li><a href="home-proxy.html">Chiaki Home Proxy</a></li>
+		<li><a href="consoles.html">Consoles</a></li>
+	</ol>
+	<aside class="admonition note">
+		<p class="admonition-title">Applis bureau</p>
+		<p>Steam Deck / Flatpak / Windows : suivez la <a href="https://streetpea.github.io/chiaki-ng/setup/" target="_blank" rel="noopener">doc officielle chiaki-ng</a> (Desktop Mode, installation, Game Mode).</p>
+	</aside>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>
