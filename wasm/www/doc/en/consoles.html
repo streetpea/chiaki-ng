@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Consoles — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="consoles" data-root="..">
+<article class="md-typeset">
+	<h1>Consoles</h1>
+	<h2>Discovery</h2>
+	<p>Round FAB at the bottom right, or automatic <strong>via Home Proxy</strong>.</p>
+	<p>Cards show PS4 or PS5, state (ready / standby / unknown), and registration.</p>
+	<p><strong>General → Discovery = false</strong> stops the scan even with the proxy.</p>
+	<h2>Several consoles</h2>
+	<p>One Chiaki account can store several consoles. The <strong>PSN Account ID (base64)</strong> is set in <strong>Settings → Config</strong>.</p>
+	<p>Cap: <code>CHIAKI_MAX_HOSTS</code> (often 4).</p>
+	<h2>Settings → Consoles</h2>
+	<table>
+		<thead><tr><th>Button</th><th>Effect</th></tr></thead>
+		<tbody>
+			<tr><td>Hide</td><td>Removed from home</td></tr>
+			<tr><td>Show</td><td>Unhide</td></tr>
+			<tr><td>Delete</td><td>Forget registration (Remote Play keys)</td></tr>
+		</tbody>
+	</table>
+	<h2>Add manually</h2>
+	<ol>
+		<li><code>+</code> → IPv4 only</li>
+		<li><strong>Test</strong> TCP 9295 (required)</li>
+		<li>Name, PS4/PS5, optional PSN</li>
+	</ol>
+	<p>Without proxy: <a href="ports.html">public IP + ports</a>.</p>
+	<h2>Register (PIN)</h2>
+	<p>Console: <strong>Settings → Remote Play → Add Device</strong>. PS5: 8-byte PSN ID. Helper: <a href="https://www.psntools.com/" target="_blank" rel="noopener">psntools</a>.</p>
+	<h2>Wake</h2>
+	<p>Registered console in standby: Wake (UDP).</p>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

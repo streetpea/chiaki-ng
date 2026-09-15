@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Chiaki Home Proxy — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="home-proxy" data-root="..">
+<article class="md-typeset">
+	<h1>Chiaki Home Proxy</h1>
+	<p>Small program on the <strong>PC next to the PS4/PS5</strong>. It relays Remote Play and LAN discovery. <strong>Outbound</strong> connection: <strong>no ports to open</strong> on the router.</p>
+	<aside class="admonition note">
+		<p class="admonition-title">Web only</p>
+		<p>Hidden in Electron, which already has LAN.</p>
+	</aside>
+	<h2>Setup</h2>
+	<ol>
+		<li>Sign in on the site (same account as the agent).</li>
+		<li><strong>Settings → Config → Chiaki Home Proxy</strong> → Download for Windows or Linux (macOS if published).</li>
+		<li>Run it, Chiaki email + password. Leave the window open.</li>
+		<li>On the site: <strong>Approve</strong>. Trust lasts 12 hours.</li>
+		<li>LAN discovery starts.</li>
+	</ol>
+	<p><strong>Disconnect</strong> in Config: the agent will not reconnect by itself.</p>
+	<h2>What you get</h2>
+	<ul>
+		<li><code>192.168.x</code> from the Internet</li>
+		<li>Auto PS4/PS5 discovery</li>
+		<li>9295 test from the home PC</li>
+		<li>Stream without NAT</li>
+	</ul>
+	<p>Another Chiaki account cannot see your LAN.</p>
+	<h2>Troubleshooting</h2>
+	<ul>
+		<li>Approve the prompt; pending agents do not relay LAN.</li>
+		<li>Relaunch the exe after an update (banner 1.1+).</li>
+		<li>Do not put the console IP in Custom proxy.</li>
+		<li>Windows Firewall: allow the exe on the private network.</li>
+	</ul>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="theme-color" content="#000000">
+	<title>Chiaki-NG Web Edition</title>
+	<link rel="icon" href="icons/chiaking-logo.svg" type="image/svg+xml">
+	<link rel="preload" href="style.css" as="style">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div id="boot-screen" class="boot-screen">
+		<img src="icons/chiaking-logo.svg" alt="">
+		<p id="boot-msg" data-i18n="boot.loading">Chargement…</p>
+	</div>
+	<div id="auth-screen" class="auth-screen hidden">
+		<div class="auth-card">
+			<img src="icons/chiaking-logo.svg" alt="Chiaki-NG Web Edition">
+			<p id="auth-error" class="auth-error hidden"></p>
+			<form id="auth-login-form" novalidate>
+				<p class="auth-help" data-i18n="auth.help">Sign in to load your consoles and settings on any device.</p>
+				<label><span data-i18n="auth.email">Email</span><input id="auth-email" name="email" type="email" autocomplete="email" maxlength="128"></label>
+				<label><span data-i18n="auth.pass">Password</span><input id="auth-pass" name="password" type="password" autocomplete="current-password"></label>
+				<div class="auth-actions">
+					<button type="submit" class="primary" data-i18n="auth.login">Sign in</button>
+					<button type="button" id="auth-to-register" data-i18n="auth.register">Create account</button>
+				</div>
+			</form>
+			<form id="auth-register-form" class="hidden" novalidate>
+				<p class="auth-help" data-i18n="auth.helpRegister">Create an account to save your consoles and settings.</p>
+				<label><span data-i18n="auth.user">Username</span><input id="auth-reg-name" name="username" autocomplete="username" maxlength="32"></label>
+				<label><span data-i18n="auth.email">Email</span><input id="auth-reg-email" name="email" type="email" autocomplete="email" maxlength="128"></label>
+				<label><span data-i18n="auth.pass">Password</span><input id="auth-reg-pass" name="password" type="password" autocomplete="new-password"></label>
+				<div class="auth-actions">
+					<button type="submit" class="primary" data-i18n="auth.register">Create account</button>
+					<button type="button" id="auth-to-login" data-i18n="auth.toLogin">Sign in</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	<div id="app" class="app">
+		<div id="share-banner" class="share-banner hidden">
+			<span id="share-banner-text"></span>
+			<button type="button" id="share-banner-manage" data-i18n="share.manage">Manage</button>
+			<button type="button" id="share-banner-ok" class="primary" data-i18n="share.ok">OK</button>
+		</div>
+		<header class="toolbar" id="welcome-bar">
+			<span class="tb-brand" data-i18n="brand">Chiaki-NG Web Edition</span>
+			<div class="tb-spacer"></div>
+			<button class="tb-btn tb-add" id="btn-add" data-i18n-title="addHost" title="Add Manual Host" type="button">+</button>
+			<button class="tb-btn tb-icon" id="btn-settings" data-i18n-title="settingsBtn" title="Settings" type="button">
+				<img src="icons/settings-20px.svg" alt="">
+			</button>
+			<div class="tb-account hidden" id="tb-account">
+				<button class="tb-btn tb-icon" id="btn-account" type="button" data-i18n-title="auth.account" title="Account" aria-haspopup="true" aria-expanded="false">
+					<img src="icons/user-20px.svg" alt="">
+				</button>
+				<div class="tb-account-menu hidden" id="account-menu" role="menu">
+					<div class="tb-account-name" id="auth-who"></div>
+					<button type="button" id="btn-account-settings" role="menuitem" data-i18n="account.menu">Account settings</button>
+					<button type="button" id="btn-share" role="menuitem" data-i18n="share.menu">Share</button>
+					<button type="button" id="btn-logout" role="menuitem" data-i18n="auth.logout">Log out</button>
+				</div>
+			</div>
+		</header>
+
+		<main class="welcome" id="welcome">
+			<img class="watermark" src="icons/chiaking-logo.svg" alt="">
+			<ul id="hosts" class="host-list"></ul>
+			<button class="fab" id="btn-discover" type="button" data-i18n-title="discovery" title="Discovery" aria-pressed="false">
+				<img id="fab-icon" src="icons/discover-off-24px.svg" alt="">
+			</button>
+			<button class="fab fab-help" id="btn-help" type="button" data-i18n-title="help.fab" title="Help" aria-label="?">?</button>
+			<button class="version" id="app-version" type="button" title="Credits">1.10.0</button>
+		</main>
+
+		<section class="stream hidden" id="stream-view">
+			<header class="toolbar stream-bar">
+				<button class="tb-btn tb-close" id="btn-stop" type="button" data-i18n-title="stream.stop" title="Stop">×</button>
+				<span class="tb-brand" data-i18n="brand">Chiaki-NG Web Edition</span>
+				<div class="tb-spacer"></div>
+				<button class="tb-btn tb-icon" id="btn-stream-share" type="button" data-i18n-title="share.menu" title="Share">
+					<img src="icons/share-24px.svg" alt="">
+				</button>
+				<button class="tb-btn tb-icon" id="btn-vpad" type="button" data-i18n-title="vpad.toggle" title="Virtual pad" aria-pressed="false">
+					<img src="icons/gamepad-24px.svg" alt="">
+				</button>
+				<button class="tb-btn tb-icon" id="btn-stream-fs" type="button" data-i18n-title="stream.fullscreen" title="Fullscreen" aria-pressed="false">
+					<img id="btn-stream-fs-icon" src="icons/fullscreen-24px.svg" alt="">
+				</button>
+				<button class="tb-btn tb-icon" id="btn-stream-settings" type="button" data-i18n-title="settingsBtn" title="Settings">
+					<img src="icons/settings-20px.svg" alt="">
+				</button>
+			</header>
+			<div class="stage">
+				<canvas id="video" width="1280" height="720"></canvas>
+				<video id="share-player" class="share-video hidden" autoplay playsinline></video>
+				<div id="share-pause-cover" class="share-pause-cover hidden" aria-hidden="true"></div>
+				<div id="overlay" class="overlay hidden"></div>
+			</div>
+			<div id="vpad" class="vpad hidden" aria-hidden="true"></div>
+		</section>
+
+		<section class="settings hidden" id="settings-view">
+			<header class="toolbar settings-bar">
+				<button class="tb-btn tb-back" id="btn-settings-back" type="button">❮</button>
+				<h1 data-i18n="settings">Settings</h1>
+				<p class="defaults-hint" data-i18n="defaultsHint">* Defaults in () to right of value or marked with (Default)</p>
+			</header>
+			<nav class="tabs" id="settings-tabs">
+				<button type="button" data-tab="general" class="active" data-i18n="tab.general">General</button>
+				<button type="button" data-tab="video" data-i18n="tab.video">Video</button>
+				<button type="button" data-tab="stream" data-i18n="tab.stream">Stream</button>
+				<button type="button" data-tab="audio" data-i18n="tab.audio">Audio/Wifi</button>
+				<button type="button" data-tab="consoles" data-i18n="tab.consoles">Consoles</button>
+				<button type="button" data-tab="keys" data-i18n="tab.keys">Keys</button>
+				<button type="button" data-tab="controllers" data-i18n="tab.controllers">Controllers</button>
+				<button type="button" data-tab="config" data-i18n="tab.config">Config</button>
+			</nav>
+			<div class="settings-body">
+				<div class="tab-page" data-page="general">
+					<div class="form-row">
+						<label data-i18n="general.language">Language:</label>
+						<select id="s-language">
+							<option value="en" data-i18n="lang.en">English</option>
+							<option value="fr" data-i18n="lang.fr">French</option>
+						</select>
+						<span class="def" data-i18n="general.languageDef">(English)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="general.disconnect">Disconnect Action:</label>
+						<select id="s-disconnect">
+							<option value="0" data-i18n="action.nothing">Do Nothing</option>
+							<option value="1" data-i18n="action.sleep">Enter Sleep Mode</option>
+							<option value="2" selected data-i18n="action.ask">Ask</option>
+						</select>
+						<span class="def" data-i18n="general.disconnectDef">(Ask)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="general.suspend">Action On Suspend:</label>
+						<select id="s-suspend">
+							<option value="0" selected data-i18n="action.nothing">Do Nothing</option>
+							<option value="1" data-i18n="action.sleep">Enter Sleep Mode</option>
+						</select>
+						<span class="def" data-i18n="general.suspendDef">(Do Nothing)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="general.av">Audio/Video:</label>
+						<select id="s-av">
+							<option value="0" selected data-i18n="av.both">Audio and Video Enabled</option>
+							<option value="1" data-i18n="av.noAudio">Audio Disabled</option>
+							<option value="2" data-i18n="av.noVideo">Video Disabled</option>
+							<option value="3" data-i18n="av.none">Audio and Video Disabled</option>
+						</select>
+						<span class="def" data-i18n="general.avDef">(Audio and Video Enabled)</span>
+					</div>
+					<div class="form-row" id="s-discovery-row">
+						<label data-i18n="general.discovery">Discovery:</label>
+						<select id="s-discovery">
+							<option value="true" selected data-i18n="general.discoveryOn">true</option>
+							<option value="false" data-i18n="general.discoveryOff">false</option>
+						</select>
+						<span class="def" data-i18n="general.discoveryDef">(true)</span>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="video">
+					<div class="form-row">
+						<label data-i18n="video.decoder">Hardware Decoder:</label>
+						<select id="s-decoder">
+							<option value="auto" selected>auto</option>
+							<option value="prefer-hardware">prefer-hardware</option>
+							<option value="prefer-software">prefer-software</option>
+						</select>
+						<span class="def" data-i18n="video.decoderDef">(Auto)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="video.window">Window Type:</label>
+						<select id="s-window">
+							<option value="0" selected data-i18n="window.selected">Selected Resolution</option>
+							<option value="1" data-i18n="window.custom">Custom Resolution</option>
+							<option value="2" data-i18n="window.manual">Adjust Resolution Manually</option>
+							<option value="3" data-i18n="window.fullscreen">Fullscreen</option>
+							<option value="4" data-i18n="window.zoom">Zoom</option>
+							<option value="5" data-i18n="window.stretch">Stretch</option>
+						</select>
+						<span class="def" data-i18n="video.windowDef">(Selected Resolution)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="video.dblfs">Toggle Fullscreen on Double-click:</label>
+						<input id="s-dblfs" type="checkbox">
+						<span class="def" data-i18n="video.unchecked">(Unchecked)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="video.preset">Render Preset:</label>
+						<select id="s-preset">
+							<option value="0" data-i18n="preset.fast">Fast</option>
+							<option value="1" data-i18n="preset.default">Default</option>
+							<option value="2" selected data-i18n="preset.hq">High Quality</option>
+							<option value="3" data-i18n="preset.hqSpatial">High Quality + Spatial Upscaling</option>
+							<option value="4" data-i18n="preset.hqAdv">High Quality + Advanced Spatial Upscaling</option>
+							<option value="5" data-i18n="preset.custom">Custom</option>
+						</select>
+						<span class="def" data-i18n="video.presetDef">(High Quality)</span>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="stream">
+					<div class="form-row">
+						<label data-i18n="stream.console">Console:</label>
+						<select id="s-console">
+							<option value="0">PS4</option>
+							<option value="1" selected>PS5</option>
+						</select>
+						<span class="def" data-i18n="stream.consoleDef">(PS5)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="stream.resolution">Resolution:</label>
+						<select id="s-resolution">
+							<option value="1">360p</option>
+							<option value="2">540p</option>
+							<option value="3">720p</option>
+							<option value="4" selected data-i18n="stream.1080Default">1080p (Default)</option>
+						</select>
+						<span class="def" data-i18n="stream.resolutionDef">(1080p)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="stream.fps">FPS:</label>
+						<select id="s-fps">
+							<option value="30">30 fps</option>
+							<option value="60" selected data-i18n="stream.60Default">60 fps (Default)</option>
+						</select>
+						<span class="def" data-i18n="stream.fpsDef">(60 fps)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="stream.bitrate">Bitrate (kbps):</label>
+						<input id="s-bitrate" type="number" value="15000" min="2000" max="15000">
+						<span class="def" data-i18n="stream.bitrateDef">(15000)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="stream.codec">Codec:</label>
+						<select id="s-codec">
+							<option value="0" data-i18n="stream.h264">H264</option>
+							<option value="1" selected data-i18n="stream.h265Default">H265 (Default)</option>
+						</select>
+						<span class="def" data-i18n="stream.codecDef">(H265)</span>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="audio">
+					<div class="form-row">
+						<label data-i18n="audio.output">Audio Output:</label>
+						<span class="plain" data-i18n="audio.web">Web Audio (browser default)</span>
+						<span class="def" data-i18n="audio.default">(Default)</span>
+					</div>
+					<div class="form-row">
+						<label data-i18n="audio.buffer">Audio Buffer Size:</label>
+						<input id="s-audiobuf" type="number" value="60" min="0" max="500">
+						<span class="def">(60)</span>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="consoles">
+					<p class="hint" data-i18n="consoles.hint">Registered and discovered consoles. Each can have its own PSN Account ID (base64). Hidden consoles stay hidden until you show them again.</p>
+					<ul id="saved-list" class="mini-list console-admin-list"></ul>
+					<div class="form-row">
+						<label></label>
+						<button type="button" class="ghost" id="btn-clear-hidden" data-i18n="consoles.clearHidden">Show all hidden consoles</button>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="keys">
+					<div class="keys-toolbar">
+						<button type="button" class="ghost" id="btn-reset-keys" data-i18n="keys.reset">Reset All Keys</button>
+						<label class="check-label"><input id="s-keyboard" type="checkbox" checked> <span data-i18n="keys.keyboard">Keyboard as controller</span></label>
+					</div>
+					<div class="keys-layout">
+						<div class="keys-table-wrap">
+							<table class="keymap-table">
+								<thead>
+									<tr>
+										<th data-i18n="keys.col.action">Control</th>
+										<th data-i18n="keys.col.bind">Binding</th>
+									</tr>
+								</thead>
+								<tbody id="keys-table-body"></tbody>
+							</table>
+						</div>
+						<div class="keys-side">
+							<aside class="mouse-panel hotkey-panel">
+								<h3 data-i18n="keys.hotkeys">Stream shortcuts</h3>
+								<table class="keymap-table hotkey-table">
+									<tbody id="hotkeys-body"></tbody>
+								</table>
+							</aside>
+							<aside class="mouse-panel">
+								<h3 data-i18n="keys.mouseTitle">Mouse</h3>
+								<label class="check-label"><input id="s-mouse" type="checkbox" checked> <span data-i18n="keys.mouse">Enable Mouse Touchpad</span></label>
+								<div class="mouse-field">
+									<label data-i18n="keys.mouseStick">Movement:</label>
+									<select id="s-mouse-stick">
+										<option value="none" data-i18n="keys.mouseNone">None</option>
+										<option value="ls" data-i18n="keys.mouseLs">Left Stick</option>
+										<option value="rs" selected data-i18n="keys.mouseRs">Right Stick</option>
+									</select>
+								</div>
+								<div class="mouse-field">
+									<label data-i18n="keys.mouseSens">Sensitivity:</label>
+									<div class="range-row">
+										<input id="s-mouse-sens" type="range" min="10" max="200" step="5" value="80">
+										<output id="s-mouse-sens-val">80</output>
+									</div>
+								</div>
+								<label class="check-label"><input id="s-mouse-invert" type="checkbox"> <span data-i18n="keys.mouseInvert">Invert Y axis</span></label>
+								<p class="hint" data-i18n="keys.mouseHint">Click the video to lock the cursor in keyboard/mouse mode. The virtual pad keeps the cursor free. F8 toggles lock by default.</p>
+							</aside>
+						</div>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="controllers">
+					<p class="hint" data-i18n="controllers.hint">The first Gamepad API controller is used (DualShock / DualSense). Connect it, then press a button so the browser can see it.</p>
+					<div class="form-row">
+						<label data-i18n="controllers.status">Status:</label>
+						<span class="plain" id="pad-status">No gamepad</span>
+					</div>
+					<p class="hint" data-i18n="vpad.hint">The on-screen virtual pad is toggled from the stream toolbar. Place its buttons below.</p>
+					<div class="form-row">
+						<label data-i18n="vpad.theme">Theme:</label>
+						<div id="vpad-theme-picker" class="vpad-theme-picker"></div>
+					</div>
+					<p class="hint" data-i18n="vpad.themeHelp">Choose a supplied skin, then optionally assign your own image to each button in the layout editor.</p>
+					<div class="form-row">
+						<label data-i18n="vpad.layout">Virtual pad:</label>
+						<button type="button" class="ghost" id="btn-vpad-layout" data-i18n="vpad.place">Place buttons</button>
+					</div>
+					<div class="form-row">
+						<label></label>
+						<button type="button" class="ghost" id="btn-vpad-reset" data-i18n="vpad.reset">Reset layout</button>
+					</div>
+				</div>
+				<div class="tab-page hidden" data-page="config">
+					<p class="hint" id="config-hint" data-i18n="config.hint">LAN Remote Play only. PSN / holepunch is not available in the WASM build.</p>
+					<div class="form-row">
+						<label data-i18n="config.proxy">Proxy :</label>
+						<div class="proxy-row">
+							<select id="s-proxy-mode">
+								<option value="default" data-i18n="config.proxyModeDefault">Default</option>
+								<option value="custom" data-i18n="config.proxyModeCustom">Custom</option>
+							</select>
+							<span class="plain" id="proxy-status">—</span>
+							<button type="button" class="ghost hidden" id="btn-home-proxy-disconnect" data-i18n="config.homeProxyDisconnect">Disconnect</button>
+						</div>
+					</div>
+					<div class="form-row hidden" id="proxy-custom-row">
+						<label></label>
+						<div class="lookup-row">
+							<input id="s-proxy-url" spellcheck="false" autocomplete="off" data-i18n-placeholder="config.proxyUrlPh" placeholder="wss://…">
+							<button type="button" class="ghost" id="btn-proxy-apply" data-i18n="config.proxyApply">Apply</button>
+						</div>
+					</div>
+					<p class="hint hidden" id="proxy-home-hint" data-i18n="config.homeProxyOn">Home proxy is online. Traffic goes through your PC — no router ports to open.</p>
+					<p class="hint" data-i18n="config.proxyHelp">By default, this page’s local proxy is used. Custom lets you set another WebSocket URL (ws:// or wss://).</p>
+					<div id="proxy-dl-block">
+					<div class="form-row" id="proxy-dl-row">
+						<label data-i18n="config.proxyDl">Chiaki Home Proxy:</label>
+						<div class="proxy-dl-row" id="proxy-dl-btns">
+							<a class="proxy-dl-win" id="proxy-dl-windows" href="/downloads/chiaki-proxy-windows.exe" download data-i18n="config.proxyDlWin">Download for Windows</a>
+							<a class="proxy-dl-win" id="proxy-dl-linux" href="/downloads/chiaki-proxy-linux" download data-i18n="config.proxyDlLinux">Download for Linux</a>
+						</div>
+					</div>
+					<p class="hint" data-i18n="config.proxyDlHelp">Download it, run it on the PC next to your console, then sign in with this account. No router ports to open.</p>
+					</div>
+					<div class="form-row">
+						<label data-i18n="config.psn">PSN Account ID (base64):</label>
+						<input id="s-psn-id" data-i18n-placeholder="config.psnPh" placeholder="required for PS5">
+					</div>
+					<div class="form-row">
+						<label data-i18n="config.psnUser">PSN username:</label>
+						<div class="lookup-row">
+							<input id="s-psn-user" data-i18n-placeholder="config.psnUserPh" placeholder="online ID" autocomplete="off">
+							<button type="button" class="ghost" id="btn-psn-lookup" data-i18n="regist.lookup">Look up</button>
+						</div>
+					</div>
+					<p class="hint" data-i18n="config.psnHelp">Default PSN Account ID (8-byte base64) for new PS5 registrations. Each console can also have its own ID in the Consoles tab.</p>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<div id="account-modal" class="modal hidden">
+		<form class="modal-card" id="account-form" novalidate>
+			<h3 data-i18n="account.title">Account settings</h3>
+			<p class="account-meta"><span data-i18n="account.created">Created</span> <span id="acc-created"></span></p>
+			<p id="account-error" class="auth-error hidden"></p>
+			<label><span data-i18n="auth.user">Username</span><input id="acc-user" name="username" autocomplete="username" maxlength="32"></label>
+			<label><span data-i18n="auth.email">Email</span><span id="acc-email" class="account-value"></span></label>
+			<label><span data-i18n="account.currentPass">Current password</span><input id="acc-current" type="password" autocomplete="current-password" required></label>
+			<div class="account-section">
+				<h4 data-i18n="account.password">Change password</h4>
+				<label><span data-i18n="account.newPass">New password</span><input id="acc-new" type="password" autocomplete="new-password"></label>
+				<label><span data-i18n="account.confirmPass">Confirm new password</span><input id="acc-confirm" type="password" autocomplete="new-password"></label>
+			</div>
+			<div class="modal-actions">
+				<button type="submit" class="primary" data-i18n="account.save">Save</button>
+				<button type="button" id="account-close" data-i18n="account.close">Close</button>
+			</div>
+			<hr class="account-sep">
+			<button type="button" id="btn-open-delete" class="danger-link" data-i18n="account.delete">Delete account</button>
+		</form>
+	</div>
+
+	<div id="share-modal" class="modal hidden">
+		<div class="modal-card">
+			<h3 data-i18n="share.title">Share stream</h3>
+			<p class="hint" data-i18n="share.help">While you stream, people with the link receive video, audio and, if you allow it, the virtual pad or a physical gamepad. The virtual pad uses your theme.</p>
+			<p id="share-stream-state" class="account-meta share-stream-state"></p>
+			<label class="check-label"><input id="share-opt-video" type="checkbox" checked> <span data-i18n="share.video">Video</span></label>
+			<label class="check-label"><input id="share-opt-audio" type="checkbox" checked> <span data-i18n="share.audio">Audio</span></label>
+			<label class="check-label"><input id="share-opt-vpad" type="checkbox" checked> <span data-i18n="share.vpad">Virtual pad</span></label>
+			<label class="check-label"><input id="share-opt-gamepad" type="checkbox"> <span data-i18n="share.gamepad">Physical gamepad</span></label>
+			<div id="share-keyword-block" class="share-keyword-block hidden">
+			<label class="check-label"><input id="share-opt-keyword-pause" type="checkbox"> <span data-i18n="share.keywordPause">Auto-pause on keyword</span></label>
+			<p id="share-keyword-delay-warn" class="hint share-keyword-delay-warn hidden" data-i18n="share.keywordDelayWarn">Your own game stays live. Viewers are a few seconds behind: a frame is sent only after the screen was checked with no keyword, so pause happens before they see the word.</p>
+			<label class="share-keywords-field">
+				<span data-i18n="share.keywords">Keywords</span>
+				<textarea id="share-keywords" rows="3" data-i18n-placeholder="share.keywordsPh" placeholder="Help, password"></textarea>
+			</label>
+			<p class="hint share-keywords-help" data-i18n="share.keywordsHelp">Separate several keywords with a comma, a semicolon or a new line.</p>
+			<p id="share-keyword-status" class="account-meta share-keyword-status"></p>
+			</div>
+			<div id="share-vpad-keys" class="share-vpad-keys">
+				<div class="share-vpad-keys-head">
+					<span data-i18n="share.vpadKeys">Allowed buttons</span>
+					<span class="share-vpad-keys-actions">
+						<button type="button" class="ghost" id="share-vpad-keys-all" data-i18n="share.vpadKeysAll">All</button>
+						<button type="button" class="ghost" id="share-vpad-keys-none" data-i18n="share.vpadKeysNone">None</button>
+					</span>
+				</div>
+				<p class="hint share-vpad-keys-help" data-i18n="share.vpadKeysHelp">Unchecked buttons are blocked for viewers, on the virtual pad and on a physical gamepad.</p>
+				<div id="share-vpad-keys-list" class="share-vpad-keys-list"></div>
+			</div>
+			<p class="account-meta"><span data-i18n="share.viewers">Viewers</span> <span id="share-viewers">0</span></p>
+			<label><span data-i18n="share.link">Link</span>
+				<div class="lookup-row">
+					<input id="share-link" readonly>
+					<button type="button" class="ghost" id="share-copy" data-i18n="share.copy">Copy</button>
+				</div>
+			</label>
+			<p id="share-error" class="auth-error hidden"></p>
+			<div class="modal-actions">
+				<button type="button" id="share-toggle" class="primary" data-i18n="share.enable">Enable sharing</button>
+				<button type="button" id="share-regen" data-i18n="share.regen">New link</button>
+				<button type="button" id="share-close" data-i18n="account.close">Close</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="delete-account-modal" class="modal hidden">
+		<form class="modal-card" id="delete-account-form" novalidate>
+			<h3 data-i18n="account.delete">Delete account</h3>
+			<p class="hint" data-i18n="account.deleteHelp">This permanently deletes your account, consoles and settings.</p>
+			<p class="account-meta"><span data-i18n="auth.user">Username</span> <span id="del-user"></span></p>
+			<p class="account-meta"><span data-i18n="auth.email">Email</span> <span id="del-email"></span></p>
+			<p id="delete-account-error" class="auth-error hidden"></p>
+			<label><span data-i18n="account.currentPass">Current password</span><input id="acc-delete-pass" type="password" autocomplete="current-password"></label>
+			<div class="modal-actions">
+				<button type="submit" class="danger" data-i18n="account.deleteBtn">Delete account</button>
+				<button type="button" id="delete-account-cancel" data-i18n="account.close">Close</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="add-modal" class="modal hidden">
+		<div class="modal-card add-card">
+			<h3 data-i18n="add.title">Add Manual Host</h3>
+			<div class="add-modal-body">
+			<label><span data-i18n="add.address">Address</span>
+				<div class="lookup-row">
+					<input id="add-host" data-i18n-placeholder="add.addressPh" placeholder="IPv4" autocomplete="off" spellcheck="false" inputmode="decimal">
+					<button type="button" class="ghost" id="add-portcheck" data-i18n="add.portcheck">Tester</button>
+				</div>
+			</label>
+			<p class="hint hidden" id="add-home-hint"></p>
+			<div id="add-portcheck-out" class="portcheck hidden"></div>
+			<label><span data-i18n="add.name">Name</span><input id="add-name" placeholder="Streetpea's PS5"></label>
+			<label><span data-i18n="add.console">Console</span>
+				<select id="add-ps5">
+					<option value="1">PS5</option>
+					<option value="0">PS4</option>
+				</select>
+			</label>
+			<label><span data-i18n="add.psn">PSN Account ID (base64)</span><input id="add-psn" data-i18n-placeholder="add.psnPh" placeholder="optional, PS5 regist" autocomplete="off"></label>
+			<label><span data-i18n="add.regist">Regist Key</span><input id="add-regist" data-i18n-placeholder="add.registPh" placeholder="optional if already registered"></label>
+			<label><span data-i18n="add.morning">RP Key / Morning</span><input id="add-morning" data-i18n-placeholder="add.morningPh" placeholder="32 hex chars"></label>
+			</div>
+			<div class="modal-actions">
+				<button type="button" id="add-ok" class="primary" data-i18n="add.ok" disabled>Add</button>
+				<button type="button" id="add-cancel" data-i18n="add.cancel">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="regist-modal" class="modal hidden">
+		<div class="modal-card">
+			<h3 data-i18n="regist.title">Register Console</h3>
+			<p data-i18n="regist.help">On the console: Settings → Remote Play → Add Device. Enter the PIN shown there.</p>
+			<label><span data-i18n="regist.host">Host</span><input id="reg-host" readonly></label>
+			<div id="psn-regist-fields">
+				<p class="hint" data-i18n="regist.psnHelp">PS5 requires your PSN Account ID, not your online ID. Look it up below or paste the base64 / numeric ID.</p>
+				<label><span data-i18n="regist.psnUser">PSN username</span>
+					<div class="lookup-row">
+						<input id="reg-psn-user" data-i18n-placeholder="config.psnUserPh" placeholder="online ID" autocomplete="off">
+						<button type="button" class="ghost" id="reg-lookup" data-i18n="regist.lookup">Look up</button>
+					</div>
+				</label>
+				<label><span data-i18n="regist.psn">PSN Account ID</span><input id="reg-psn" data-i18n-placeholder="config.psnPh" placeholder="required for PS5" autocomplete="off"></label>
+			</div>
+			<label><span data-i18n="regist.pin">PIN</span><input id="reg-pin" inputmode="numeric" maxlength="8" placeholder="00000000"></label>
+			<div class="modal-actions">
+				<button type="button" id="reg-ok" class="primary" data-i18n="regist.ok">Register</button>
+				<button type="button" id="reg-cancel" data-i18n="regist.cancel">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="home-proxy-modal" class="modal hidden">
+		<div class="modal-card">
+			<h3 data-i18n="config.proxyApproveTitle">Chiaki Home Proxy</h3>
+			<p id="home-proxy-modal-text"></p>
+			<div class="modal-actions">
+				<button type="button" id="home-proxy-approve" class="primary" data-i18n="config.proxyApproveBtn">Approve</button>
+				<button type="button" id="home-proxy-reject" data-i18n="config.proxyCancelBtn">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="confirm-modal" class="modal hidden">
+		<div class="modal-card">
+			<h3 id="confirm-title">Hide Console</h3>
+			<p id="confirm-text"></p>
+			<div class="modal-actions">
+				<button type="button" id="confirm-yes" class="primary" data-i18n="confirm.yes">Yes</button>
+				<button type="button" id="confirm-no" data-i18n="confirm.no">No</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="keycap-modal" class="modal hidden">
+		<div class="modal-card">
+			<h3 data-i18n="keycap.title">Key Capture</h3>
+			<p data-i18n="keycap.help">Press a keyboard key and/or a mouse button. Both can be assigned. Close when done.</p>
+			<p class="plain" id="keycap-target"></p>
+			<div class="keycap-slots">
+				<div class="keycap-slot" data-slot="keyboard" id="keycap-slot-kb">
+					<span data-i18n="keys.col.keyboard">Keyboard</span>
+					<div id="keycap-kb" class="bind-chips"></div>
+				</div>
+				<div class="keycap-slot" data-slot="mouse" id="keycap-slot-ms">
+					<span data-i18n="keys.col.mouse">Mouse</span>
+					<div id="keycap-ms" class="bind-chips"></div>
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button type="button" id="keycap-unbind" class="primary" data-i18n="keycap.unbind">Clear</button>
+				<button type="button" id="keycap-close" data-i18n="keycap.close">Close</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="help-modal" class="modal hidden">
+		<div class="modal-card help-card">
+			<div class="help-modal-bar">
+				<h3 data-i18n="help.title">Aide</h3>
+				<button type="button" class="help-close" id="help-close" data-i18n="help.close">Fermer</button>
+			</div>
+			<iframe id="help-frame" title="Documentation"></iframe>
+		</div>
+	</div>
+
+	<div id="credits-modal" class="modal hidden">
+		<div class="modal-card credits-card">
+			<h3>Credits</h3>
+			<div class="credits-body">
+				<p class="credits-label">Developed by:</p>
+				<ul>
+					<li>~thestr4ng3r — Original developer of the project</li>
+					<li>streetpea — Graphical and system improvements, including Chiaki-NG</li>
+					<li>CSystem — Chiaki-NG Web Edition</li>
+				</ul>
+				<p class="credits-label">Special Thanks:</p>
+				<p>A huge thank you to all the developers and contributors who have helped develop and improve this project.</p>
+			</div>
+			<div class="modal-actions">
+				<button type="button" id="credits-close" class="primary">Close</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="pin-modal" class="modal hidden">
+		<div class="modal-card">
+			<h3 data-i18n="pin.title">Login PIN</h3>
+			<p data-i18n="pin.help">Enter the PIN displayed on the console.</p>
+			<input id="login-pin" inputmode="numeric" maxlength="8">
+			<div class="modal-actions">
+				<button type="button" id="btn-pin-ok" class="primary" data-i18n="pin.send">Send</button>
+				<button type="button" id="btn-pin-cancel" data-i18n="pin.cancel">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="vpad-editor-modal" class="vpad-editor hidden">
+		<header class="toolbar">
+			<button class="tb-btn tb-back" id="vpad-editor-done" type="button">❮</button>
+			<span class="tb-brand" data-i18n="vpad.editorTitle">Virtual pad layout</span>
+			<div class="tb-spacer"></div>
+			<button type="button" class="tb-btn tb-text" id="vpad-editor-reset" data-i18n="vpad.reset">Reset layout</button>
+		</header>
+		<div class="vpad-editor-body">
+			<div id="vpad-editor-stage" class="vpad-stage vpad-edit"></div>
+			<div class="vpad-editor-footer">
+				<div class="vpad-editor-tools">
+					<label data-i18n="vpad.theme">Theme:</label>
+					<div id="vpad-theme-picker-editor" class="vpad-theme-picker"></div>
+				</div>
+				<div class="vpad-editor-tools">
+					<label data-i18n="vpad.opacity">Button transparency:</label>
+					<div class="range-row">
+						<input id="vpad-editor-opacity" type="range" min="1" max="100" step="1" value="55">
+						<output id="vpad-editor-opacity-val">55 %</output>
+					</div>
+				</div>
+				<div class="vpad-editor-tools vpad-custom-tools">
+					<span id="vpad-custom-name" class="vpad-custom-name" data-i18n="vpad.customIdle">Select a button to assign a custom image.</span>
+					<button type="button" class="ghost" id="btn-vpad-custom" data-i18n="vpad.customImage" disabled>Use image</button>
+					<button type="button" class="ghost" id="btn-vpad-custom-clear" data-i18n="vpad.customClear" disabled>Remove image</button>
+					<input id="vpad-custom-file" type="file" accept="image/*" hidden>
+				</div>
+				<p class="vpad-editor-hint" data-i18n="vpad.editorHelp">Drag a button to move it. Use the corner handle or the mouse wheel to resize.</p>
+			</div>
+		</div>
+	</div>
+
+	<pre id="log" class="log" hidden></pre>
+
+	<script>
+		var Module = {
+			locateFile: function (path) {
+				try { return new URL(path, document.baseURI).href; }
+				catch (e) { return path; }
+			},
+			onAbort: function (what) {
+				window.__chiakiWasmAbort = String(what);
+				console.error(what);
+			},
+			onRuntimeInitialized: function () {
+				window.__chiakiWasmReady = 1;
+			}
+		};
+	</script>
+	<script src="app.js"></script>
+</body>
+</html>

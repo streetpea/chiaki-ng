@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Modes de connexion — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="connexion" data-root="..">
+<article class="md-typeset">
+	<h1>Modes de connexion</h1>
+	<p>Le navigateur <strong>ne parle jamais directement</strong> à la PS4/PS5. Un relais POSIX (serveur Node, Electron, ou Home Proxy) ouvre les sockets TCP/UDP.</p>
+	<h2>1. Même réseau local (LAN)</h2>
+	<p>Vous êtes chez vous, sur le <strong>même Wi‑Fi / Ethernet</strong> que la console.</p>
+	<ul>
+		<li><strong>Electron</strong> : le relais tourne sur <code>127.0.0.1</code>. Aucun port à ouvrir sur Internet.</li>
+		<li><strong>Node sur le PC du salon</strong> (<code>node wasm/proxy/server.mjs</code>) : idem, tant que le navigateur atteint ce PC (souvent HTTPS LAN).</li>
+	</ul>
+	<p>Découverte UDP (987 / 9302) + session 9295 suffisent en général. <strong>Pas de NAT.</strong></p>
+	<h2>2. Site cloud sans Chiaki Home Proxy</h2>
+	<p>Vous ouvrez <a href="https://chiaki.csphere.fr/" target="_blank" rel="noopener">chiaki.csphere.fr</a> <strong>depuis Internet</strong>. Le VPS essaie d’atteindre la console <strong>lui-même</strong>.</p>
+	<p>Il faut alors la <strong>connexion manuelle</strong> de chiaki-ng : IP publique + <strong>redirection de ports</strong> vers la console.</p>
+	<ul>
+		<li>Guide : <a href="ports.html">Ouvrir les ports</a></li>
+		<li>Référence : <a href="https://streetpea.github.io/chiaki-ng/setup/remoteconnection/" target="_blank" rel="noopener">Remote Connection (chiaki-ng)</a></li>
+	</ul>
+	<aside class="admonition warning">
+		<p class="admonition-title">Sans NAT</p>
+		<p>Une IP <code>192.168.x</code> / <code>10.x</code> / <code>172.16–31.x</code> n’est pas joignable depuis le VPS → <em>need home proxy</em>.</p>
+		<p>L’ajout manuel refuse tant que <strong>TCP 9295</strong> n’est pas ouvert (test intégré).</p>
+	</aside>
+	<h2>3. Site cloud avec Chiaki Home Proxy (recommandé)</h2>
+	<p>Un petit programme sur le <strong>PC à côté de la console</strong> se connecte <strong>en sortie</strong> vers le cloud. <strong>Aucun port à ouvrir</strong> sur la box.</p>
+	<p>Navigateur → serveur → agent → LAN → PS4/PS5.</p>
+	<p>→ <a href="home-proxy.html">Chiaki Home Proxy</a></p>
+	<h2>Comparatif</h2>
+	<table>
+		<thead>
+			<tr><th></th><th>LAN / Electron</th><th>Cloud sans proxy</th><th>Cloud + Home Proxy</th></tr>
+		</thead>
+		<tbody>
+			<tr><td>Ouvrir les ports box</td><td>Non</td><td><strong>Oui</strong></td><td>Non</td></tr>
+			<tr><td>IP à saisir</td><td><code>192.168.x</code></td><td><strong>IP publique</strong> du routeur</td><td><code>192.168.x</code> (ou découverte)</td></tr>
+			<tr><td>Découverte auto</td><td>Oui</td><td>Rare / partielle</td><td>Oui</td></tr>
+			<tr><td>CGNAT</td><td>—</td><td>Souvent impossible</td><td>OK</td></tr>
+			<tr><td>Holepunch PSN (bureau)</td><td>—</td><td>Absent du Web</td><td>Inutile</td></tr>
+		</tbody>
+	</table>
+	<aside class="admonition danger">
+		<p class="admonition-title">Ne pas faire</p>
+		<p>Ne collez <strong>pas</strong> l’IP de la console dans <strong>Config → Proxy custom</strong>. C’est une URL WebSocket <code>wss://…/posix-net</code>, pas l’adresse de la PS5.</p>
+	</aside>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

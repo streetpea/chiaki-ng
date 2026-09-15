@@ -1,0 +1,22 @@
+{
+	"name": "chiaki-ng-web",
+	"productName": "Chiaki-NG Web",
+	"version": "1.10.0",
+	"description": "Chiaki-NG Web Edition",
+	"author": "Chiaki-NG Web",
+	"license": "AGPL-3.0-only",
+	"type": "module",
+	"main": "main.mjs",
+	"scripts": {
+		"start": "electron .",
+		"pack": "electron-builder --dir",
+		"dist": "electron-builder --publish never",
+		"dist:win": "electron-builder --win --publish never",
+		"dist:linux": "electron-builder --linux --publish never",
+		"dist:mac": "electron-builder --mac --publish never"
+	},
+	"devDependencies": {
+		"electron": "^37.2.6",
+		"electron-builder": "^26.0.12"
+	}
+}

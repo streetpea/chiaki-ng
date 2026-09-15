@@ -13,7 +13,7 @@
 #include <switch.h>
 #endif
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
 struct chiaki_timedjoin_ctx
 {
 	pthread_t target;
@@ -309,8 +309,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void
 		return CHIAKI_ERR_THREAD;
 	if(retval)
 		*retval = thread->ret;
-#elif defined(__ANDROID__)
-	// Android Bionic lacks pthread_clockjoin_np/pthread_timedjoin_np.
+#elif defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+	// Android Bionic and Emscripten lack pthread_clockjoin_np/pthread_timedjoin_np.
 	// Use a helper thread + condvar to implement timed join portably.
 	struct chiaki_timedjoin_ctx *ctx = calloc(1, sizeof(*ctx));
 	if(!ctx)

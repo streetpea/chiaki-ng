@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Chiaki Home Proxy — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="home-proxy" data-root="..">
+<article class="md-typeset">
+	<h1>Chiaki Home Proxy</h1>
+	<p>Petit programme sur le <strong>PC à côté de la PS4/PS5</strong>. Il relais le Remote Play et la découverte LAN. Connexion <strong>sortante</strong> : <strong>aucun port à ouvrir</strong> sur la box.</p>
+	<aside class="admonition note">
+		<p class="admonition-title">Web only</p>
+		<p>Masqué dans Electron, qui a déjà le LAN.</p>
+	</aside>
+	<h2>Installation</h2>
+	<ol>
+		<li>Connectez-vous sur le site (même compte que l’agent).</li>
+		<li><strong>Paramètres → Config → Chiaki Home Proxy</strong> → Télécharger pour Windows ou Linux (macOS si publié).</li>
+		<li>Lancez le programme, e-mail + mot de passe Chiaki. Laissez la fenêtre ouverte.</li>
+		<li>Sur le site : <strong>Approuver</strong>. Confiance 12 h.</li>
+		<li>La découverte LAN démarre.</li>
+	</ol>
+	<p><strong>Déconnexion</strong> dans Config : l’agent ne se reconnecte plus tout seul.</p>
+	<h2>Ce que ça débloque</h2>
+	<ul>
+		<li>IP <code>192.168.x</code> depuis Internet</li>
+		<li>Découverte auto PS4/PS5</li>
+		<li>Test 9295 depuis le PC maison</li>
+		<li>Stream sans NAT</li>
+	</ul>
+	<p>Un autre compte Chiaki ne voit pas votre LAN.</p>
+	<h2>Dépannage</h2>
+	<ul>
+		<li>Approuvez la demande ; en attente, pas de relais LAN.</li>
+		<li>Relancez l’exe après une mise à jour (bannière 1.1+).</li>
+		<li>Pas d’IP console dans Proxy custom.</li>
+		<li>Pare-feu Windows : autoriser l’exe (réseau privé).</li>
+	</ul>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

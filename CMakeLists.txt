@@ -14,6 +14,7 @@ option(CHIAKI_ENABLE_CLI "Enable CLI for Chiaki" ON)
 option(CHIAKI_ENABLE_GUI "Enable Qt GUI" ON)
 option(CHIAKI_ENABLE_ANDROID "Enable Android (Use only as part of the Gradle Project)" OFF)
 option(CHIAKI_ENABLE_BOREALIS "Enable Borealis GUI (For Nintendo Switch or PC)" OFF)
+option(CHIAKI_ENABLE_WASM "Build the browser WebAssembly client (use with emcmake)" OFF)
 tri_option(CHIAKI_ENABLE_SETSU "Enable libsetsu for touchpad input from controller" AUTO)
 tri_option(CHIAKI_ENABLE_STEAMDECK_NATIVE "Enable sdeck for native gyro and haptic feedback from Steam Deck" ON)
 option(CHIAKI_LIB_ENABLE_OPUS "Use Opus as part of Chiaki Lib" ON)
@@ -54,6 +55,36 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 include(CPack)
 
 set(CHIAKI_IS_SWITCH ${NSWITCH})
+
+if(EMSCRIPTEN)
+	set(CHIAKI_ENABLE_WASM ON)
+endif()
+
+if(CHIAKI_ENABLE_WASM)
+	message(STATUS "Chiaki WASM client enabled (LAN Remote Play via local POSIX-net proxy)")
+	# mbedTLS 2.28 / older CMakeLists are rejected by CMake 4.x without this.
+	set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+	set(CHIAKI_ENABLE_GUI OFF)
+	set(CHIAKI_ENABLE_CLI OFF)
+	set(CHIAKI_ENABLE_TESTS OFF)
+	set(CHIAKI_ENABLE_ANDROID OFF)
+	set(CHIAKI_ENABLE_BOREALIS OFF)
+	set(CHIAKI_ENABLE_SETSU OFF)
+	set(CHIAKI_ENABLE_STEAMDECK_NATIVE OFF)
+	set(CHIAKI_ENABLE_FFMPEG_DECODER OFF)
+	set(CHIAKI_ENABLE_PI_DECODER OFF)
+	set(CHIAKI_ENABLE_STEAM_SHORTCUT OFF)
+	set(CHIAKI_ENABLE_SPEEX OFF)
+	set(CHIAKI_ENABLE_RUDP OFF)
+	set(CHIAKI_LIB_ENABLE_MBEDTLS ON)
+	set(CHIAKI_LIB_MBEDTLS_EXTERNAL_PROJECT ON)
+	set(CHIAKI_LIB_ENABLE_OPUS ON)
+	set(CHIAKI_LIB_OPENSSL_EXTERNAL_PROJECT OFF)
+	set(CHIAKI_LIB_JSONC_EXTERNAL_PROJECT OFF)
+	set(CHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT OFF)
+	set(CHIAKI_USE_SYSTEM_CURL OFF)
+	add_definitions(-DCHIAKI_ENABLE_WASM=1)
+endif()
 
 if(APPLE)
 	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
@@ -139,6 +170,7 @@ if(CHIAKI_LIB_ENABLE_MBEDTLS)
 		set(ENABLE_TESTING CACHE INTERNAL OFF)
 		set(ENABLE_PROGRAMS CACHE INTERNAL OFF)
 		set(USE_SHARED_MBEDTLS_LIBRARY CACHE INTERNAL OFF)
+		set(MBEDTLS_FATAL_WARNINGS OFF CACHE BOOL "" FORCE)
 		FetchContent_Declare(
 			mbedtls
 			GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
@@ -146,7 +178,32 @@ if(CHIAKI_LIB_ENABLE_MBEDTLS)
 			GIT_PROGRESS TRUE
 		)
 		FetchContent_MakeAvailable(mbedtls)
+		foreach(_mbed_tgt IN ITEMS mbedcrypto mbedx509 mbedtls)
+			if(TARGET ${_mbed_tgt})
+				target_compile_options(${_mbed_tgt} PRIVATE -w -Wno-error)
+			endif()
+		endforeach()
 	endif()
+endif()
+
+if(CHIAKI_ENABLE_WASM AND CHIAKI_LIB_ENABLE_OPUS)
+	include(FetchContent)
+	set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
+	set(OPUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+	set(OPUS_INSTALL_PKG_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+	set(OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+	FetchContent_Declare(
+		opus
+		GIT_REPOSITORY https://github.com/xiph/opus.git
+		GIT_TAG v1.5.2
+		GIT_SHALLOW TRUE
+	)
+	FetchContent_MakeAvailable(opus)
+	# libopus ships include/opus.h; Chiaki includes <opus/opus.h> like distro packages.
+	set(_OPUS_COMPAT "${CMAKE_BINARY_DIR}/opus-compat")
+	file(MAKE_DIRECTORY "${_OPUS_COMPAT}/opus")
+	file(GLOB _OPUS_HDRS "${opus_SOURCE_DIR}/include/*.h")
+	file(COPY ${_OPUS_HDRS} DESTINATION "${_OPUS_COMPAT}/opus")
 endif()
 
 if(CHIAKI_ENABLE_STEAM_SHORTCUT)
@@ -289,4 +346,8 @@ endif()
 
 if(CHIAKI_ENABLE_BOREALIS)
 	add_subdirectory(switch)
+endif()
+
+if(CHIAKI_ENABLE_WASM)
+	add_subdirectory(wasm)
 endif()

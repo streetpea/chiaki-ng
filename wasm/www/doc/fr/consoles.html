@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Consoles — Chiaki-NG Web</title>
+	<link rel="icon" href="../assets/logo-mark.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="consoles" data-root="..">
+<article class="md-typeset">
+	<h1>Consoles</h1>
+	<h2>Découverte</h2>
+	<p>Bouton rond (FAB) en bas à droite, ou automatique <strong>via Home Proxy</strong>.</p>
+	<p>Les cartes montrent PS4 ou PS5, l’état (prête / veille / inconnu) et l’enregistrement.</p>
+	<p><strong>Général → Discovery = false</strong> coupe le scan, même avec le proxy.</p>
+	<h2>Plusieurs consoles</h2>
+	<p>Un seul compte Chiaki peut garder plusieurs consoles. L’<strong>ID PSN (base64)</strong> se règle dans <strong>Paramètres → Config</strong>.</p>
+	<p>Plafond : <code>CHIAKI_MAX_HOSTS</code> (souvent 4).</p>
+	<h2>Paramètres → Consoles</h2>
+	<table>
+		<thead><tr><th>Bouton</th><th>Effet</th></tr></thead>
+		<tbody>
+			<tr><td>Masquer</td><td>Disparaît de l’accueil</td></tr>
+			<tr><td>Afficher</td><td>Annule le masquage</td></tr>
+			<tr><td>Supprimer</td><td>Oublie l’enregistrement (clés Remote Play)</td></tr>
+		</tbody>
+	</table>
+	<h2>Ajouter à la main</h2>
+	<ol>
+		<li><code>+</code> → IPv4 uniquement</li>
+		<li><strong>Tester</strong> TCP 9295 (obligatoire)</li>
+		<li>Nom, PS4/PS5, PSN optionnel</li>
+	</ol>
+	<p>Sans proxy : <a href="ports.html">IP publique + ports</a>.</p>
+	<h2>Enregistrer (PIN)</h2>
+	<p>Console : <strong>Paramètres → Remote Play → Ajouter un appareil</strong>. PS5 : ID PSN 8 octets. Aide : <a href="https://www.psntools.com/" target="_blank" rel="noopener">psntools</a>.</p>
+	<h2>Réveil</h2>
+	<p>Console enregistrée en veille : bouton Wake (UDP).</p>
+</article>
+<script src="../assets/site.js"></script>
+</body>
+</html>

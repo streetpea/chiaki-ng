@@ -1,0 +1,18 @@
+[req]
+distinguished_name = dn
+x509_extensions = v3
+prompt = no
+[dn]
+CN = Chiaki WASM
+[v3]
+subjectAltName = @alt
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+[alt]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+IP.2 = 192.168.1.252
+IP.3 = 192.168.32.1
+IP.4 = 192.168.153.1
+IP.5 = 172.29.224.1

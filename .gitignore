@@ -1,6 +1,10 @@
 *~
 *.swp
 .idea
+.env
+/db/*.sqlite
+/db/*.sqlite-*
+/db/*.db
 build
 cmake-build-*
 /build_*
@@ -39,3 +43,10 @@ chiaki.conf
 .cache/
 *.vscode
 site/
+wasm/node_modules
+wasm/electron/node_modules
+wasm/electron/dist
+wasm/electron/.stage
+wasm/build/
+/tools/protoc
+/tools/wasm-python
