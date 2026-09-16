@@ -19,6 +19,7 @@ extern MunitTest tests_bitstream[];
 #if CHIAKI_LIB_ENABLE_FFMPEG_DECODER
 extern MunitTest tests_ffmpegdecoder[];
 #endif
+extern MunitTest tests_gyrosteer[];
 
 static MunitSuite suites[] = {
 	{
@@ -109,6 +110,13 @@ static MunitSuite suites[] = {
 		MUNIT_SUITE_OPTION_NONE
 	},
 #endif
+	{
+		"/gyrosteer",
+		tests_gyrosteer,
+		NULL,
+		1,
+		MUNIT_SUITE_OPTION_NONE
+	},
 	{ NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
 };
 
