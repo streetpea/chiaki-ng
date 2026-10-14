@@ -2,16 +2,13 @@
 
 package com.metallic.chiaki.session.output
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.InputDevice
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.session.DualSense
@@ -32,14 +29,14 @@ class TriggerOutputBackends(context: Context, preferences: Preferences): OutputB
 	private val rawUnavailable = mutableSetOf<Int>()
 	private var toastShown = false
 
-	private val hidHost: HidHostProxy? = when
+	private val hidHost: HidHostProxy? = when(RawOutputAccess.of(context, preferences))
 	{
-		!preferences.adaptiveTriggers || Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> null
-		ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED -> {
+		RawOutputAccess.OFF -> null
+		RawOutputAccess.NEEDS_PERMISSION -> {
 			unavailable()
 			null
 		}
-		else -> HidHostProxy(context) { handler.post { onBackendChanged?.invoke() } }
+		RawOutputAccess.READY -> HidHostProxy(context) { handler.post { onBackendChanged?.invoke() } }
 	}
 
 	override fun create(deviceId: Int?): ControllerOutput
