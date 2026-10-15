@@ -339,13 +339,19 @@ static void *discovery_thread_func(void *user)
 			break;
 		}
 
-		char buf[512];
-		struct sockaddr client_addr;
+		// Buffer alineado a 64 (DMA ioctlv) + sockaddr_storage: en wut
+		// struct sockaddr lleva array flexible y mide 2, no 16 como en
+		// POSIX — con sizeof(struct sockaddr) como capacidad de la
+		// direccion origen, el modulo IOS rechaza recvfrom con EINVAL
+		// (errno=22) en hardware (en Cemu no se comprueba). El modulo
+		// exige *addrlen >= 16; sockaddr_storage mide 16.
+		char buf[512] __attribute__((aligned(64)));
+		struct sockaddr_storage client_addr __attribute__((aligned(64)));
 		socklen_t client_addr_size = sizeof(client_addr);
-		CHIAKI_SSIZET_TYPE n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
+		CHIAKI_SSIZET_TYPE n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, (struct sockaddr *)&client_addr, &client_addr_size);
 		if(n < 0)
 		{
-			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket");
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket: errno=%d (%s)", (int)errno, strerror(errno));
 			break;
 		}
 
@@ -362,7 +368,7 @@ static void *discovery_thread_func(void *user)
 
 		char addr_buf[64];
 		ChiakiDiscoveryHost response;
-		err = chiaki_discovery_srch_response_parse(&response, &client_addr, addr_buf, sizeof(addr_buf), buf, n);
+		err = chiaki_discovery_srch_response_parse(&response, (struct sockaddr *)&client_addr, addr_buf, sizeof(addr_buf), buf, n);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");
@@ -393,13 +399,19 @@ static void *discovery_thread_func_oneshot(void *user)
 			break;
 		}
 
-		char buf[512];
-		struct sockaddr client_addr;
+		// Buffer alineado a 64 (DMA ioctlv) + sockaddr_storage: en wut
+		// struct sockaddr lleva array flexible y mide 2, no 16 como en
+		// POSIX — con sizeof(struct sockaddr) como capacidad de la
+		// direccion origen, el modulo IOS rechaza recvfrom con EINVAL
+		// (errno=22) en hardware (en Cemu no se comprueba). El modulo
+		// exige *addrlen >= 16; sockaddr_storage mide 16.
+		char buf[512] __attribute__((aligned(64)));
+		struct sockaddr_storage client_addr __attribute__((aligned(64)));
 		socklen_t client_addr_size = sizeof(client_addr);
-		CHIAKI_SSIZET_TYPE n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, &client_addr, &client_addr_size);
+		CHIAKI_SSIZET_TYPE n = recvfrom(discovery->socket, buf, sizeof(buf) - 1, 0, (struct sockaddr *)&client_addr, &client_addr_size);
 		if(n < 0)
 		{
-			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket");
+			CHIAKI_LOGE(discovery->log, "Discovery thread failed to read from socket: errno=%d (%s)", (int)errno, strerror(errno));
 			break;
 		}
 
@@ -416,7 +428,7 @@ static void *discovery_thread_func_oneshot(void *user)
 
 		char addr_buf[64];
 		ChiakiDiscoveryHost response;
-		err = chiaki_discovery_srch_response_parse(&response, &client_addr, addr_buf, sizeof(addr_buf), buf, n);
+		err = chiaki_discovery_srch_response_parse(&response, (struct sockaddr *)&client_addr, addr_buf, sizeof(addr_buf), buf, n);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
 			CHIAKI_LOGI(discovery->log, "Discovery Response invalid");

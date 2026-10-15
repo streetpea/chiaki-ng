@@ -20,8 +20,9 @@
  *   A = conectar Remote Play (despierta la PS4 si esta en standby)
  *   B = parar la sesion activa
  *
- * Los resultados van a la consola cafe (OSReport -> log de Cemu) y al
- * UDP 4405. Las claves de registro viven solo en RAM (persistencia del
+ * Los resultados van a la consola cafe (OSReport -> log de Cemu), al
+ * UDP 4405 y al archivo de la SD (fs:/vol/external01/wiiu/apps/chiaki/
+ * log.txt). Las claves de registro viven solo en RAM (persistencia del
  * archivo de configuracion en una fase posterior).
  */
 
@@ -29,12 +30,14 @@
 #include <whb/log.h>
 #include <whb/log_cafe.h>
 #include <whb/log_udp.h>
+#include <whb/crash.h>
 #include <whb/gfx.h>
 #include <vpad/input.h>
 #include <nsysnet/_socket.h>
 #include <coreinit/time.h>
 #include <coreinit/filesystem.h>
 #include <coreinit/memdefaultheap.h>
+#include <coreinit/mutex.h>
 #include <sndcore2/core.h>
 #include <nn/swkbd.h>
 
@@ -47,6 +50,7 @@
 #include <chiaki/controller.h>
 #include <chiaki/base64.h>
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -109,13 +113,278 @@ static bool g_swkbd_visible = false;
 static Prompt g_prompt = Prompt::None;
 static Prompt g_swkbd_reopen = Prompt::None;
 static char16_t g_swkbd_initial[40];
+// Tras DisappearInputForm el swkbd retail necesita Calc unos frames para
+// completar su transicion de salida; ver el guard en swkbd_frame.
+#define SWKBD_HIDE_FRAMES 30
+static uint32_t g_swkbd_hide_frames = 0;
+static int g_swkbd_appear_retries = 0;
+
+// ---------------------------------------------------------------------------
+// Log a archivo (SD): fs:/vol/external01/wiiu/apps/chiaki/log.txt
+// Se registra como handler de WHB: TODO lo que pase por WHBLogWrite/Print/Printf
+// (incluido el vuelco de registros y backtrace del crash handler de wut) cae en
+// el archivo. Cada linea lleva [s.mmm] desde el arranque. Ademas todo sigue
+// saliendo en consola cafe (OSReport) y por UDP 4405.
+// ---------------------------------------------------------------------------
+#define LOG_SD_ROTATE_BYTES (512 * 1024)
+
+static FSClient *g_log_fs_client = nullptr;
+static FSCmdBlock *g_log_fs_cmd = nullptr;
+static FSFileHandle g_log_fd = -1;
+// Un solo escritor en FS: solo quien retiene g_log_mutex toca el cliente
+// y el handle; quien no lo coge, ENCOLA (nunca FS). Motivo: la ruta
+// anterior usaba un segundo cliente con g_log_fd (abierto en el cliente
+// primario) cuando OSTryLock fallaba, y el retail FSA no admite un handle
+// de una sesion de cliente en otra: FSWriteFile se colgaba para siempre,
+// el hilo de regist quedaba muerto a medias y el join del apagado se
+// colgaba con el — la consola se congelaba al salir al HOME.
+static OSMutex g_log_mutex;
+static OSMutex g_logq_mutex; // solo head/tail; jamas se bloquea con ella
+static bool g_log_ready = false;
+
+// Buffer estatico alineado a 64 (mismo criterio que wut usa en su file.c
+// para los buffers que cruzan IPC hacia el modulo FS). Estatico para no
+// comer la pila del hilo de 4 KB del crash handler.
+#define LOG_LINE_SIZE 0x1200
+static char g_log_line[LOG_LINE_SIZE] __attribute__((aligned(64)));
+
+// Cola de respaldo para quien no puede escribir; la vacia el duenio del
+// mutex. Ambos bloqueos son TryLock: el logger jamas se bloquea en algo
+// que no sea su propia escritura FS (un hilo muerto con el mutex no puede
+// hundir al resto; si la cola esta ocupada, la linea se pierde aqui pero
+// ya esta en UDP/OSReport).
+#define LOGQ_LINES 32
+#define LOGQ_SIZE 640
+static char g_logq[LOGQ_LINES][LOGQ_SIZE] __attribute__((aligned(64)));
+static uint32_t g_logq_head = 0; // proxima a vaciar (duenio del mutex)
+static uint32_t g_logq_tail = 0; // proxima a encolar (el que no pudo)
+
+// Formatea "[t] str\r\n" (con NUL final); devuelve los bytes utiles.
+static int log_line_format(char *dst, size_t dst_size, const char *str)
+{
+	uint64_t ms = OSGetTime() / 125000; // OS_TIMER_CLOCK = 125 MHz
+	int n = snprintf(dst, dst_size, "[%llu.%03llu] ",
+			 (unsigned long long)(ms / 1000),
+			 (unsigned long long)(ms % 1000));
+	if(n < 0)
+		n = 0;
+	// Copia acotada (los vuelcos del crash handler llegan en trozos de
+	// 4 KB; aqui se truncan a lo que cabe en la linea).
+	size_t len = strlen(str);
+	size_t room = dst_size - (size_t)n - 3;
+	if(len > room)
+		len = room;
+	memcpy(dst + n, str, len);
+	n += (int)len;
+	if(n == 0 || dst[n - 1] != '\n')
+	{
+		dst[n++] = '\r';
+		dst[n++] = '\n';
+	}
+	dst[n] = '\0';
+	return n;
+}
+
+// SIEMPRE con g_log_mutex retenido (unico escritor FS). Un FSWriteFile
+// por linea (comando atomico en la cola del cliente) + flush: si la app
+// muere sin cerrar el archivo, lo escrito ya esta en el soporte.
+static void log_line_write(const char *buf, int n)
+{
+	FSWriteFile(g_log_fs_client, g_log_fs_cmd, (uint8_t *)(uintptr_t)buf,
+		    (uint32_t)n, 1, g_log_fd, 0, FS_ERROR_FLAG_ALL);
+	FSFlushFile(g_log_fs_client, g_log_fs_cmd, g_log_fd, FS_ERROR_FLAG_ALL);
+}
+
+// Vuelca la cola pendiente; solo el duenio de g_log_mutex. TryLock en la
+// cola: si alguien esta encolando en este instante, lo dejamos para la
+// proxima linea (nada se bloquea).
+static void logq_drain(void)
+{
+	for(;;)
+	{
+		if(!OSTryLockMutex(&g_logq_mutex))
+			return;
+		if(g_logq_head == g_logq_tail)
+		{
+			OSUnlockMutex(&g_logq_mutex);
+			return;
+		}
+		uint32_t slot = g_logq_head % LOGQ_LINES;
+		char tmp[LOGQ_SIZE] __attribute__((aligned(64)));
+		int len = (int)strlen(g_logq[slot]);
+		memcpy(tmp, g_logq[slot], (size_t)len + 1);
+		g_logq_head++;
+		OSUnlockMutex(&g_logq_mutex);
+		log_line_write(tmp, len);
+	}
+}
+
+static void log_sd_handler(const char *str)
+{
+	if(!g_log_ready)
+		return;
+
+	if(OSTryLockMutex(&g_log_mutex))
+	{
+		int n = log_line_format(g_log_line, sizeof(g_log_line), str);
+		log_line_write(g_log_line, n);
+		logq_drain();
+		OSUnlockMutex(&g_log_mutex);
+		return;
+	}
+
+	// Otro hilo esta escribiendo (o murio reteniendo el mutex): encolar
+	// y ya. Nunca FS desde aqui — es lo que colgaba el hilo regist.
+	if(!OSTryLockMutex(&g_logq_mutex))
+		return; // cola ocupada un microsegundo: UDP ya la tiene
+	char line[LOGQ_SIZE] __attribute__((aligned(64)));
+	int n = log_line_format(line, sizeof(line), str);
+	if(g_logq_tail - g_logq_head >= LOGQ_LINES)
+		g_logq_head++; // llena: descartamos la mas vieja
+	memcpy(g_logq[g_logq_tail % LOGQ_LINES], line, (size_t)n + 1);
+	g_logq_tail++;
+	OSUnlockMutex(&g_logq_mutex);
+}
+
+static void logprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+static void logprintf(const char *fmt, ...)
+{
+	char msg[400];
+	va_list va;
+	va_start(va, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, va);
+	va_end(va);
+	WHBLogWrite(msg); // handlers: cafe OSReport + UDP 4405 + SD (handler)
+}
+
+// Requiere FSInit() ya llamado. Si la carpeta no existe, seguimos con
+// consola cafe + UDP y lo indicamos una sola vez.
+static void log_file_init()
+{
+	OSInitMutex(&g_log_mutex);
+	OSInitMutex(&g_logq_mutex);
+	g_log_fs_client = (FSClient *)MEMAllocFromDefaultHeap(sizeof(FSClient));
+	g_log_fs_cmd = (FSCmdBlock *)MEMAllocFromDefaultHeapEx(sizeof(FSCmdBlock), 0x1000);
+	if(!g_log_fs_client || !g_log_fs_cmd)
+	{
+		logprintf("Log SD: sin memoria para los clientes FS");
+		return;
+	}
+	// FS_ERROR_FLAG_ALL en TODOS los calls: el FSA retail con
+	// FS_ERROR_FLAG_NONE no devuelve los errores como status — enruta el
+	// fallo al mecanismo de error del cliente y el call sincrono se queda
+	// BLOQUEADO (congelacion en consola; Cemu ignora la mask por completo,
+	// por eso ahi nunca fallo). Con ALL los errores llegan como status
+	// (FSGetStat de fichero inexistente, FSMakeDir de carpeta ya
+	// existente...). Mismo patron que el file.c del propio wut, probado en
+	// hardware. La mask de swkbd (cliente del sistema) queda como estaba.
+	FSAddClient(g_log_fs_client, FS_ERROR_FLAG_ALL);
+	FSInitCmdBlock(g_log_fs_cmd);
+	logprintf("Log SD: 1/5 cliente FS listo");
+
+	// Buffers que cruzan al modulo FSA con alineacion 64 (regla del FSA
+	// real para buffers de ioctl: en Cemu no se comprueba, en consola si).
+	FSStat stat __attribute__((aligned(64)));
+	FSMountSource mount_src __attribute__((aligned(64)));
+	char mount_path[64] __attribute__((aligned(64)));
+
+	// ¿La SD ya esta montada? En Aroma/HBL el loader la pre-monta y
+	// volver a montar puede dejar colgado el call sincrono de FSA en
+	// consola. Sondeamos /vol/external01: si responde, no tocamos nada.
+	FSStatus vol_st = FSGetStat(g_log_fs_client, g_log_fs_cmd,
+				    "/vol/external01", &stat, FS_ERROR_FLAG_ALL);
+	FSStatus mount_st = FS_STATUS_OK;
+	const char *base = "/vol/external01";
+	if(vol_st == FS_STATUS_OK)
+	{
+		logprintf("Log SD: 2/5 SD ya montada por el loader");
+	}
+	else
+	{
+		// Cemu: /vol/external01 no existe hasta que la app lo pide
+		// (FSGetMountSource(SD) + FSMount, como hacen los juegos).
+		logprintf("Log SD: 2/5 montando la SD (stat vol=%d)", (int)vol_st);
+		mount_st = FSGetMountSource(g_log_fs_client, g_log_fs_cmd,
+					    FS_MOUNT_SOURCE_SD, &mount_src,
+					    FS_ERROR_FLAG_ALL);
+		if(mount_st == FS_STATUS_OK)
+			mount_st = FSMount(g_log_fs_client, g_log_fs_cmd,
+					   &mount_src, mount_path,
+					   sizeof(mount_path), FS_ERROR_FLAG_ALL);
+		if(mount_st == FS_STATUS_OK)
+			base = mount_path;
+		logprintf("Log SD: 3/5 montaje=%d", (int)mount_st);
+	}
+
+	// Rutas SIN prefijo "fs:": la forma canonica es /vol/external01/...
+	// (como en los juegos). Con "fs:" la capa FSA/fsc no resuelve la
+	// ruta: mkdir daba FATAL_ERROR y open NOT_FOUND en Cemu.
+	char log_dir[128];
+	char log_path[160];
+	snprintf(log_dir, sizeof(log_dir), "%s/wiiu/apps/chiaki", base);
+	snprintf(log_path, sizeof(log_path), "%s/log.txt", log_dir);
+
+	// Carpeta propia, aunque el .wuhb no viva en apps/chiaki. Si ya
+	// existe, FSMakeDir devuelve ALREADY_EXISTS (-5), que ignoramos.
+	FSStatus mkdir_st = FSMakeDir(g_log_fs_client, g_log_fs_cmd, log_dir,
+				      FS_ERROR_FLAG_ALL);
+	logprintf("Log SD: 4/5 mkdir=%d", (int)mkdir_st);
+
+	// Rotacion: si el log anterior ya es grande, empezamos de cero.
+	if(FSGetStat(g_log_fs_client, g_log_fs_cmd, log_path, &stat,
+		     FS_ERROR_FLAG_ALL) == FS_STATUS_OK &&
+	   stat.size >= LOG_SD_ROTATE_BYTES)
+		FSRemove(g_log_fs_client, g_log_fs_cmd, log_path, FS_ERROR_FLAG_ALL);
+
+	// "a" (append); si el entorno no lo soporta, "w" crea/trunca.
+	FSStatus open_st = FSOpenFile(g_log_fs_client, g_log_fs_cmd, log_path,
+				       "a", &g_log_fd, FS_ERROR_FLAG_ALL);
+	if(open_st != FS_STATUS_OK)
+		open_st = FSOpenFile(g_log_fs_client, g_log_fs_cmd, log_path,
+				     "w", &g_log_fd, FS_ERROR_FLAG_ALL);
+	logprintf("Log SD: 5/5 open=%d", (int)open_st);
+	if(open_st != FS_STATUS_OK)
+	{
+		g_log_fd = -1;
+		logprintf("Log SD: no se pudo abrir %s (mount=%d mkdir=%d open=%d)",
+			    log_path, (int)mount_st, (int)mkdir_st, (int)open_st);
+		return;
+	}
+	g_log_ready = true;
+	WHBAddLogHandler(log_sd_handler);
+	logprintf("Log SD: escribiendo en %s", log_path);
+}
+
+static void log_file_close()
+{
+	WHBRemoveLogHandler(log_sd_handler);
+	g_log_ready = false;
+	// Unico escritor FS: ahora podemos bloquear con tranquilidad.
+	OSLockMutex(&g_log_mutex);
+	logq_drain();
+	if(g_log_fd >= 0)
+	{
+		FSFlushFile(g_log_fs_client, g_log_fs_cmd, g_log_fd, FS_ERROR_FLAG_ALL);
+		FSCloseFile(g_log_fs_client, g_log_fs_cmd, g_log_fd, FS_ERROR_FLAG_ALL);
+		g_log_fd = -1;
+	}
+	OSUnlockMutex(&g_log_mutex);
+	if(g_log_fs_client)
+	{
+		FSDelClient(g_log_fs_client, FS_ERROR_FLAG_ALL);
+		MEMFreeToDefaultHeap(g_log_fs_client);
+		MEMFreeToDefaultHeap(g_log_fs_cmd);
+		g_log_fs_client = nullptr;
+		g_log_fs_cmd = nullptr;
+	}
+}
 
 static void log_vpad_changes(const VPADStatus &status, uint32_t &last_hold,
 			     VPADTouchData &last_touch)
 {
 	if(status.hold != last_hold)
 	{
-		WHBLogPrintf("VPAD hold: %08x", status.hold);
+		logprintf("VPAD hold: %08x", status.hold);
 		last_hold = status.hold;
 	}
 
@@ -124,9 +393,9 @@ static void log_vpad_changes(const VPADStatus &status, uint32_t &last_hold,
 	   (touch.touched && (touch.x != last_touch.x || touch.y != last_touch.y)))
 	{
 		if(touch.touched)
-			WHBLogPrintf("VPAD touch: %u,%u", (unsigned)touch.x, (unsigned)touch.y);
+			logprintf("VPAD touch: %u,%u", (unsigned)touch.x, (unsigned)touch.y);
 		else
-			WHBLogPrint("VPAD touch: released");
+			logprintf("VPAD touch: released");
 		last_touch = touch;
 	}
 }
@@ -136,7 +405,7 @@ static void log_vpad_changes(const VPADStatus &status, uint32_t &last_hold,
 static void wiiu_chiaki_log_cb(ChiakiLogLevel level, const char *msg, void *user)
 {
 	(void)user;
-	WHBLogPrintf("[chiaki:%c] %s", chiaki_log_level_char(level), msg);
+	logprintf("[chiaki:%c] %s", chiaki_log_level_char(level), msg);
 }
 
 // cb del ChiakiDiscoveryService: se invoca (en el thread del servicio) cada vez
@@ -249,7 +518,7 @@ static void stop_discovery()
 	// Join de sus threads: valida el stoppipe UDP loopback de Cafe OS.
 	chiaki_discovery_service_fini(&g_discovery_service);
 	g_discovery_running = false;
-	WHBLogPrint("discovery service stopped");
+	logprintf("discovery service stopped");
 }
 
 static void restart_discovery()
@@ -281,7 +550,7 @@ static bool swkbd_init()
 	g_fs_client = (FSClient *)MEMAllocFromDefaultHeap(sizeof(FSClient));
 	if(!g_fs_client)
 	{
-		WHBLogPrint("swkbd: alloc FSClient failed");
+		logprintf("swkbd: alloc FSClient failed");
 		return false;
 	}
 	FSAddClient(g_fs_client, FS_ERROR_FLAG_NONE);
@@ -289,7 +558,7 @@ static bool swkbd_init()
 	g_swkbd_work_mem = MEMAllocFromDefaultHeap(nn::swkbd::GetWorkMemorySize(0));
 	if(!g_swkbd_work_mem)
 	{
-		WHBLogPrint("swkbd: alloc work memory failed");
+		logprintf("swkbd: alloc work memory failed");
 		return false;
 	}
 
@@ -299,7 +568,7 @@ static bool swkbd_init()
 	createArg.fsClient = g_fs_client;
 	if(!nn::swkbd::Create(createArg))
 	{
-		WHBLogPrint("swkbd: Create failed");
+		logprintf("swkbd: Create failed");
 		return false;
 	}
 	g_swkbd_created = true;
@@ -356,12 +625,20 @@ static void swkbd_show(Prompt p)
 
 	if(!nn::swkbd::AppearInputForm(appearArg))
 	{
-		WHBLogPrint("swkbd: AppearInputForm failed");
+		g_swkbd_appear_retries++;
+		logprintf("swkbd: AppearInputForm fallo (intento %d/3)%s",
+			     g_swkbd_appear_retries,
+			     g_swkbd_appear_retries < 3 ?
+				     " — reintento" :
+				     " — teclado abandonado");
+		if(g_swkbd_appear_retries < 3)
+			g_swkbd_reopen = p;
 		return;
 	}
+	g_swkbd_appear_retries = 0;
 	g_prompt = p;
 	g_swkbd_visible = true;
-	WHBLogPrint("Teclado abierto (A=OK, B=cancelar)");
+	logprintf("Teclado abierto (A=OK, B=cancelar)");
 }
 
 // Cuenta PSN: se introduce a mano. La consulta HTTP a flipscreen.games se
@@ -448,17 +725,17 @@ static void regist_event_cb(ChiakiRegistEvent *event, void *user)
 		}
 		chiaki_mutex_unlock(&g_host_mutex);
 		if(rh)
-			WHBLogPrintf("REGISTRO OK: consola '%s' clave=%.16s", rh->server_nickname,
+			logprintf("REGISTRO OK: consola '%s' clave=%.16s", rh->server_nickname,
 				     rh->rp_regist_key);
-		WHBLogPrint("Clave solo en RAM — pulsa A para conectar Remote Play");
+		logprintf("Clave solo en RAM — pulsa A para conectar Remote Play");
 		break;
 	}
 	case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
-		WHBLogPrint("Registro FALLIDO — revisa el PIN y que la PS4 este en "
+		logprintf("Registro FALLIDO — revisa el PIN y que la PS4 este en "
 			    "'Enlazar con otro dispositivo' (log chiaki arriba)");
 		break;
 	case CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED:
-		WHBLogPrint("Registro cancelado");
+		logprintf("Registro cancelado");
 		break;
 	}
 	// El main llama a chiaki_regist_fini (join) cuando ve este estado.
@@ -467,14 +744,14 @@ static void regist_event_cb(ChiakiRegistEvent *event, void *user)
 
 static bool start_regist(uint32_t pin)
 {
-	if(!g_host_found)
+	if(!g_host_found && !g_host_ip[0])
 	{
-		WHBLogPrint("Regist: no hay consola descubierta");
+		logprintf("Regist: sin consola descubierta — X para fijar la IP");
 		return false;
 	}
 	if(g_regist_state != RegistState::Idle)
 	{
-		WHBLogPrint("Regist: ya hay un registro en curso");
+		logprintf("Regist: ya hay un registro en curso");
 		return false;
 	}
 
@@ -483,15 +760,22 @@ static bool start_regist(uint32_t pin)
 	char host[48];
 	snprintf(host, sizeof(host), "%s", g_host_addr);
 	chiaki_mutex_unlock(&g_host_mutex);
+	if(!g_host_found)
+	{
+		// Fallback: IP manual tecleada con X (sin snapshot del discovery).
+		target = CHIAKI_TARGET_PS4_10;
+		snprintf(host, sizeof(host), "%s", g_host_ip);
+		logprintf("Regist: usando IP manual %s (PS4 10.x)", host);
+	}
 
 	if(target == CHIAKI_TARGET_PS4_UNKNOWN || target == CHIAKI_TARGET_PS5_UNKNOWN)
 	{
-		WHBLogPrint("Regist: version de la consola desconocida");
+		logprintf("Regist: version de la consola desconocida");
 		return false;
 	}
 	if(target >= CHIAKI_TARGET_PS4_9 && !g_have_psn_account)
 	{
-		WHBLogPrint("Regist: falta la cuenta PSN (ID publico)");
+		logprintf("Regist: falta la cuenta PSN (ID publico)");
 		return false;
 	}
 
@@ -520,11 +804,11 @@ static bool start_regist(uint32_t pin)
 						   regist_event_cb, nullptr);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		WHBLogPrintf("Regist: chiaki_regist_start fallo: %s", chiaki_error_string(err));
+		logprintf("Regist: chiaki_regist_start fallo: %s", chiaki_error_string(err));
 		return false;
 	}
 	g_regist_state = RegistState::Running;
-	WHBLogPrintf("Registro iniciado contra %s (PIN en la pantalla de la PS4)", regist_host);
+	logprintf("Registro iniciado contra %s (PIN en la pantalla de la PS4)", regist_host);
 	return true;
 }
 
@@ -554,29 +838,29 @@ static void session_event_cb(ChiakiEvent *event, void *user)
 	switch(event->type)
 	{
 	case CHIAKI_EVENT_CONNECTED:
-		WHBLogPrint("Sesion: conectada (session request OK)");
+		logprintf("Sesion: conectada (session request OK)");
 		break;
 	case CHIAKI_EVENT_NICKNAME_RECEIVED:
-		WHBLogPrintf("Sesion: PS4 '%s'", event->server_nickname);
+		logprintf("Sesion: PS4 '%s'", event->server_nickname);
 		break;
 	case CHIAKI_EVENT_LOGIN_PIN_REQUEST:
 		g_session_login_pin_incorrect = event->login_pin_request.pin_incorrect;
 		g_session_login_pin_requested = true;
-		WHBLogPrint("Sesion: la PS4 pide PIN de acceso — introducelo con A");
+		logprintf("Sesion: la PS4 pide PIN de acceso — introducelo con A");
 		break;
 	case CHIAKI_EVENT_VIDEO_FEC_FAILURE:
 		g_fec_failures++;
-		WHBLogPrintf("Sesion: FEC — frame %d perdido (idr enviado=%d)",
+		logprintf("Sesion: FEC — frame %d perdido (idr enviado=%d)",
 			     event->video_fec_failure.frame_index,
 			     (int)event->video_fec_failure.idr_request_sent);
 		break;
 	case CHIAKI_EVENT_QUIT:
 		if(event->quit.reason_str)
-			WHBLogPrintf("Sesion terminada: %s (%s)",
+			logprintf("Sesion terminada: %s (%s)",
 				     chiaki_quit_reason_string(event->quit.reason),
 				     event->quit.reason_str);
 		else
-			WHBLogPrintf("Sesion terminada: %s",
+			logprintf("Sesion terminada: %s",
 				     chiaki_quit_reason_string(event->quit.reason));
 		g_session_quit_received = true;
 		break;
@@ -587,19 +871,19 @@ static void session_event_cb(ChiakiEvent *event, void *user)
 
 static bool start_session()
 {
-	if(!g_host_found)
+	if(!g_host_found && !g_host_ip[0])
 	{
-		WHBLogPrint("Sesion: no hay consola descubierta");
+		logprintf("Sesion: sin consola descubierta — X para fijar la IP");
 		return false;
 	}
 	if(!g_registered)
 	{
-		WHBLogPrint("Sesion: sin registro — pulsa ↑ primero (PIN de la PS4)");
+		logprintf("Sesion: sin registro — pulsa ↑ primero (PIN de la PS4)");
 		return false;
 	}
 	if(g_session_active)
 	{
-		WHBLogPrint("Sesion: ya hay una sesion activa (B para parar)");
+		logprintf("Sesion: ya hay una sesion activa (B para parar)");
 		return false;
 	}
 
@@ -608,6 +892,12 @@ static bool start_session()
 	snprintf(host, sizeof(host), "%s", g_host_addr);
 	uint16_t req_port = g_host_request_port;
 	chiaki_mutex_unlock(&g_host_mutex);
+	if(!g_host_found)
+	{
+		snprintf(host, sizeof(host), "%s", g_host_ip);
+		logprintf("Sesion: usando IP manual %s (sin snapshot del discovery)",
+			     host);
+	}
 
 	ChiakiConnectInfo info = {};
 	info.ps5 = false; // session.c deriva CHIAKI_TARGET_PS4_10 y lo refina
@@ -626,13 +916,13 @@ static bool start_session()
 	info.enable_idr_on_fec_failure = true;
 	memcpy(info.psn_account_id, g_psn_account_id, sizeof(info.psn_account_id));
 
-	WHBLogPrintf("Sesion: conectando con %s (req_port %u informativo, chiaki usa 9295)",
+	logprintf("Sesion: conectando con %s (req_port %u informativo, chiaki usa 9295)",
 		     host, (unsigned int)req_port);
 
 	ChiakiErrorCode err = chiaki_session_init(&g_session, &info, &g_chiaki_log);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		WHBLogPrintf("Sesion: init fallo: %s", chiaki_error_string(err));
+		logprintf("Sesion: init fallo: %s", chiaki_error_string(err));
 		return false;
 	}
 
@@ -646,7 +936,7 @@ static bool start_session()
 	err = chiaki_session_start(&g_session);
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
-		WHBLogPrintf("Sesion: start fallo: %s", chiaki_error_string(err));
+		logprintf("Sesion: start fallo: %s", chiaki_error_string(err));
 		chiaki_session_fini(&g_session);
 		return false;
 	}
@@ -660,7 +950,7 @@ static bool start_session()
 	g_fec_failures = 0;
 	g_video_log_ticks = OSGetTime();
 	g_video_log_frames = 0;
-	WHBLogPrint("Sesion: thread en marcha (↑ registra | A conecta | B para)");
+	logprintf("Sesion: thread en marcha (↑ registra | A conecta | B para)");
 	return true;
 }
 
@@ -668,25 +958,25 @@ static void stop_session()
 {
 	if(!g_session_active)
 		return;
-	WHBLogPrint("Sesion: parando...");
+	logprintf("Sesion: parando...");
 	chiaki_session_stop(&g_session);
 	chiaki_session_join(&g_session);
 	chiaki_session_fini(&g_session);
 	g_session_active = false;
 	g_session_login_pin_requested = false;
-	WHBLogPrint("Sesion finalizada");
+	logprintf("Sesion finalizada");
 }
 
 static void handle_press_a()
 {
 	if(g_session_active)
 	{
-		WHBLogPrint("A: ya hay una sesion activa (B para parar)");
+		logprintf("A: ya hay una sesion activa (B para parar)");
 		return;
 	}
-	if(!g_host_found)
+	if(!g_host_found && !g_host_ip[0])
 	{
-		WHBLogPrint("A: no hay consola descubierta");
+		logprintf("A: sin consola descubierta — X para fijar la IP");
 		return;
 	}
 
@@ -695,12 +985,19 @@ static void handle_press_a()
 	snprintf(host, sizeof(host), "%s", g_host_addr);
 	ChiakiDiscoveryHostState state = g_host_state;
 	chiaki_mutex_unlock(&g_host_mutex);
+	if(!g_host_found)
+	{
+		// Sin discovery no podemos ver standby: asumimos ready y
+		// conectamos directo (el wakeup si requiere discovery).
+		snprintf(host, sizeof(host), "%s", g_host_ip);
+		state = CHIAKI_DISCOVERY_HOST_STATE_READY;
+	}
 
 	if(state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
 	{
 		if(!g_registered)
 		{
-			WHBLogPrint("A: la PS4 esta en standby y no hay clave de registro");
+			logprintf("A: la PS4 esta en standby y no hay clave de registro");
 			return;
 		}
 		char key_hex[CHIAKI_SESSION_AUTH_SIZE + 1];
@@ -709,16 +1006,16 @@ static void handle_press_a()
 		chiaki_mutex_unlock(&g_host_mutex);
 		key_hex[CHIAKI_SESSION_AUTH_SIZE] = 0;
 		uint64_t credential = strtoull(key_hex, NULL, 16);
-		WHBLogPrintf("A: despertando la PS4 %s ...", host);
+		logprintf("A: despertando la PS4 %s ...", host);
 		ChiakiErrorCode err = chiaki_discovery_wakeup(&g_chiaki_log, NULL, host,
 							       credential, false);
 		if(err != CHIAKI_ERR_SUCCESS)
-			WHBLogPrintf("A: wakeup fallo: %s", chiaki_error_string(err));
+			logprintf("A: wakeup fallo: %s", chiaki_error_string(err));
 		return;
 	}
 	if(state != CHIAKI_DISCOVERY_HOST_STATE_READY)
 	{
-		WHBLogPrint("A: la PS4 aun no esta en estado ready (espera al discovery)");
+		logprintf("A: la PS4 aun no esta en estado ready (espera al discovery)");
 		return;
 	}
 	start_session();
@@ -728,23 +1025,37 @@ static void handle_press_up()
 {
 	if(g_session_active)
 	{
-		WHBLogPrint("↑: ya hay una sesion activa (B para parar antes)");
-		return;
-	}
-	if(!g_host_found)
-	{
-		WHBLogPrint("↑: no hay consola descubierta");
+		logprintf("↑: ya hay una sesion activa (B para parar antes)");
 		return;
 	}
 	if(g_regist_state != RegistState::Idle)
 	{
-		WHBLogPrint("↑: ya hay un registro en curso");
+		logprintf("↑: ya hay un registro en curso");
 		return;
 	}
 
 	chiaki_mutex_lock(&g_host_mutex);
+	bool found = g_host_found;
 	ChiakiTarget target = g_host_target;
+	char addr[48];
+	snprintf(addr, sizeof(addr), "%s", g_host_addr);
 	chiaki_mutex_unlock(&g_host_mutex);
+
+	logprintf("↑: discovery found=%d addr='%s' ip_manual='%s'", (int)found, addr,
+		     g_host_ip);
+	if(!found && !g_host_ip[0])
+	{
+		logprintf("↑: sin consola descubierta — X para fijar la IP de la PS4");
+		return;
+	}
+	if(!found)
+	{
+		// Sin respuesta del discovery usamos la IP tecleada como destino
+		// directo (regist y sesion aceptan cualquier host).
+		target = CHIAKI_TARGET_PS4_10;
+		logprintf("↑: discovery sin respuesta — destino directo %s (PS4 10.x)",
+			     g_host_ip);
+	}
 
 	// PS4 antigua (< 7.0): regist con el ID online, sin account id.
 	// Desconocida = por defecto moderna (start_regist la rechazara si falla
@@ -753,7 +1064,7 @@ static void handle_press_up()
 	{
 		if(!g_psn_online_id[0])
 		{
-			WHBLogPrint("↑: introduce tu ID publico de PSN");
+			logprintf("↑: introduce tu ID publico de PSN");
 			swkbd_show(Prompt::PsnId);
 		}
 		else
@@ -763,12 +1074,12 @@ static void handle_press_up()
 
 	if(g_have_psn_account)
 	{
-		WHBLogPrint("↑: introduce el PIN de 8 digitos de la PS4");
+		logprintf("↑: introduce el PIN de 8 digitos de la PS4");
 		swkbd_show(Prompt::Pin);
 	}
 	else
 	{
-		WHBLogPrint("↑: introduce el Account ID de PSN (16 hex; en psn.flipscreen.games)");
+		logprintf("↑: introduce el Account ID de PSN (16 hex; en psn.flipscreen.games)");
 		swkbd_show(Prompt::AccountId);
 	}
 }
@@ -788,6 +1099,22 @@ static void swkbd_frame(VPADStatus &status)
 	if(nn::swkbd::IsNeedCalcSubThreadPredict())
 		nn::swkbd::CalcSubThreadPredict();
 
+	// El swkbd retail es una maquina de estados impulsada por Calc: tras
+	// DisappearInputForm hay que seguir bombeando Calc unos frames hasta
+	// que la transicion de salida termine. Si paramos del tirón, el
+	// proximo AppearInputForm no se llega a mostrar en hardware (en Cemu
+	// el HLE no lo simula — por ahi encadenaba bien). visible sigue
+	// true durante el bombeo para que Draw* siga pintando la salida.
+	if(g_swkbd_hide_frames > 0)
+	{
+		if(--g_swkbd_hide_frames == 0)
+		{
+			g_swkbd_visible = false;
+			g_prompt = Prompt::None;
+		}
+		return;
+	}
+
 	if(nn::swkbd::IsDecideOkButton(nullptr))
 	{
 		char input[64] = { 0 };
@@ -801,8 +1128,7 @@ static void swkbd_frame(VPADStatus &status)
 
 		Prompt p = g_prompt;
 		nn::swkbd::DisappearInputForm();
-		g_swkbd_visible = false;
-		g_prompt = Prompt::None;
+		g_swkbd_hide_frames = SWKBD_HIDE_FRAMES;
 
 		switch(p)
 		{
@@ -810,12 +1136,12 @@ static void swkbd_frame(VPADStatus &status)
 			if(valid_ipv4(input))
 			{
 				snprintf(g_host_ip, sizeof(g_host_ip), "%s", input);
-				WHBLogPrintf("IP de la consola fijada: %s", g_host_ip);
+				logprintf("IP de la consola fijada: %s", g_host_ip);
 				restart_discovery();
 			}
 			else
 			{
-				WHBLogPrintf("IP invalida: '%s' — reintenta", input);
+				logprintf("IP invalida: '%s' — reintenta", input);
 				g_swkbd_reopen = Prompt::IP;
 			}
 			break;
@@ -825,12 +1151,12 @@ static void swkbd_frame(VPADStatus &status)
 			// Solo PS4 < 7.0: el ID online va directo al regist.
 			if(!input[0])
 			{
-				WHBLogPrint("ID de PSN vacio — reintenta");
+				logprintf("ID de PSN vacio — reintenta");
 				g_swkbd_reopen = Prompt::PsnId;
 				break;
 			}
 			snprintf(g_psn_online_id, sizeof(g_psn_online_id), "%s", input);
-			WHBLogPrint("ID guardado — introduce el PIN de la PS4");
+			logprintf("ID guardado — introduce el PIN de la PS4");
 			g_swkbd_reopen = Prompt::Pin;
 			break;
 		}
@@ -839,7 +1165,7 @@ static void swkbd_frame(VPADStatus &status)
 		{
 			if(!parse_psn_account_id(input, g_psn_account_id))
 			{
-				WHBLogPrintf("Account ID invalido: '%s' — 16 hex o base64", input);
+				logprintf("Account ID invalido: '%s' — 16 hex o base64", input);
 				g_swkbd_reopen = Prompt::AccountId;
 				break;
 			}
@@ -847,8 +1173,8 @@ static void swkbd_frame(VPADStatus &status)
 			char hex[17] = { 0 };
 			for(size_t i = 0; i < sizeof(g_psn_account_id); i++)
 				snprintf(hex + i * 2, 3, "%02x", g_psn_account_id[i]);
-			WHBLogPrintf("Account ID guardado: %s", hex);
-			WHBLogPrint("Introduce el PIN de 8 digitos de la PS4");
+			logprintf("Account ID guardado: %s", hex);
+			logprintf("Introduce el PIN de 8 digitos de la PS4");
 			g_swkbd_reopen = Prompt::Pin;
 			break;
 		}
@@ -861,7 +1187,7 @@ static void swkbd_frame(VPADStatus &status)
 				digits = input[i] >= '0' && input[i] <= '9';
 			if(!digits)
 			{
-				WHBLogPrintf("PIN invalido: '%s' — requiere 8 digitos", input);
+				logprintf("PIN invalido: '%s' — requiere 8 digitos", input);
 				g_swkbd_reopen = Prompt::Pin;
 				break;
 			}
@@ -872,7 +1198,7 @@ static void swkbd_frame(VPADStatus &status)
 		case Prompt::LoginPin:
 			if(!input[0])
 			{
-				WHBLogPrint("PIN de acceso vacio — reintenta");
+				logprintf("PIN de acceso vacio — reintenta");
 				g_swkbd_reopen = Prompt::LoginPin;
 				break;
 			}
@@ -881,10 +1207,10 @@ static void swkbd_frame(VPADStatus &status)
 				ChiakiErrorCode err = chiaki_session_set_login_pin(
 					&g_session, (const uint8_t *)input, strlen(input));
 				if(err != CHIAKI_ERR_SUCCESS)
-					WHBLogPrintf("PIN de acceso: fallo %s",
+					logprintf("PIN de acceso: fallo %s",
 						     chiaki_error_string(err));
 				else
-					WHBLogPrint("PIN de acceso enviado a la PS4");
+					logprintf("PIN de acceso enviado a la PS4");
 			}
 			g_session_login_pin_requested = false;
 			break;
@@ -897,26 +1223,25 @@ static void swkbd_frame(VPADStatus &status)
 	{
 		Prompt p = g_prompt;
 		nn::swkbd::DisappearInputForm();
-		g_swkbd_visible = false;
-		g_prompt = Prompt::None;
+		g_swkbd_hide_frames = SWKBD_HIDE_FRAMES;
 
 		switch(p)
 		{
 		case Prompt::IP:
-			WHBLogPrint("IP no cambiada");
+			logprintf("IP no cambiada");
 			break;
 		case Prompt::PsnId:
-			WHBLogPrint("Registro cancelado (sin ID PSN)");
+			logprintf("Registro cancelado (sin ID PSN)");
 			break;
 		case Prompt::AccountId:
-			WHBLogPrint("Registro cancelado (sin Account ID)");
+			logprintf("Registro cancelado (sin Account ID)");
 			break;
 		case Prompt::Pin:
-			WHBLogPrint("Registro cancelado (sin PIN)");
+			logprintf("Registro cancelado (sin PIN)");
 			break;
 		case Prompt::LoginPin:
 			g_session_login_pin_requested = false;
-			WHBLogPrint("PIN de acceso no introducido (la PS4 puede rechazar)");
+			logprintf("PIN de acceso no introducido (la PS4 puede rechazar)");
 			break;
 		default:
 			break;
@@ -959,7 +1284,13 @@ int main(int argc, char **argv)
 
 	WHBLogUdpInit();
 
-	// Log de chiaki-lib → consola cafe. INFO+WARNING+ERROR: los pings del
+	// Vuelca motivo, registros y backtrace del crash por WHBLog
+	// (=> log.txt de la SD + UDP 4405). Tras los inits de log para que el
+	// vuelco tenga a donde ir; sin esto un crash en consola real solo se
+	// ve como "la app cerro sola".
+	WHBInitCrashHandler();
+
+	// Log de chiaki-lib → consola cafe + SD. INFO+WARNING+ERROR: los pings del
 	// servicio no generan ruido (sus logs VERBOSE/DEBUG están comentados).
 	chiaki_log_init(&g_chiaki_log,
 		       CHIAKI_LOG_INFO | CHIAKI_LOG_WARNING | CHIAKI_LOG_ERROR,
@@ -967,20 +1298,35 @@ int main(int argc, char **argv)
 
 	chiaki_mutex_init(&g_host_mutex, false);
 
-	WHBLogPrint("chiaki-ng Wii U: frontend starting");
+	logprintf("chiaki-ng Wii U: frontend starting");
 
+	// Orden de init identico al build validado en consola (fase 2); la
+	// consola en pantalla y el log SD se insertan sin mover nada mas.
+	logprintf("init: WHBGfxInit");
 	WHBGfxInit();
 	VPADInit();
+	logprintf("init: FSInit");
 	FSInit();
+	logprintf("init: AXInit");
 	AXInit();
 
 	// Teclado del sistema (IP, PSN, PINs).
+	logprintf("init: swkbd");
 	swkbd_init();
 
+	// Log a la SD: fs:/vol/external01/wiiu/apps/chiaki/log.txt
+	logprintf("init: log SD");
+	log_file_init();
+
+	// Tras log_file_init para que el marker llegue a la SD (antes solo
+	// iba a OSReport/UDP y no servia para confirmar el build desplegado).
+	logprintf("BUILD wiiu-2026-10-15 rcvbuf-32k-final");
+
 	// Requiere socket_lib_init ya hecho (crea sockets y threads).
+	logprintf("init: discovery");
 	g_discovery_running = start_discovery(nullptr);
 
-	WHBLogPrint("Controles: X=IP  Y=broadcast  Arriba=registrar  A=conectar  B=parar sesion");
+	logprintf("Controles: X=IP  Y=broadcast  Arriba=registrar  A=conectar  B=parar sesion");
 
 	uint32_t last_hold = 0;
 	VPADTouchData last_touch = {};
@@ -1037,7 +1383,7 @@ int main(int argc, char **argv)
 
 				if(rising & VPAD_BUTTON_X)
 				{
-					WHBLogPrint("X: abrir teclado para IP de la consola");
+					logprintf("X: abrir teclado para IP de la consola");
 					swkbd_show(Prompt::IP);
 				}
 				else if(rising & VPAD_BUTTON_Y)
@@ -1045,11 +1391,11 @@ int main(int argc, char **argv)
 					if(g_host_ip[0])
 					{
 						g_host_ip[0] = 0;
-						WHBLogPrint("Y: IP borrada — modo broadcast");
+						logprintf("Y: IP borrada — modo broadcast");
 						restart_discovery();
 					}
 					else
-						WHBLogPrint("Y: ya estás en modo broadcast");
+						logprintf("Y: ya estás en modo broadcast");
 				}
 				else if(rising & VPAD_BUTTON_UP)
 					handle_press_up();
@@ -1060,7 +1406,7 @@ int main(int argc, char **argv)
 					if(g_session_active)
 						stop_session();
 					else
-						WHBLogPrint("B: no hay sesion activa");
+						logprintf("B: no hay sesion activa");
 				}
 			}
 		}
@@ -1074,7 +1420,7 @@ int main(int argc, char **argv)
 			{
 				if(frames != g_video_log_frames)
 				{
-					WHBLogPrintf(
+					logprintf(
 						"Video: %llu frames (%.2f MB) perdidos=%llu "
 						"FEC_fallos=%llu",
 						(unsigned long long)frames,
@@ -1115,7 +1461,7 @@ int main(int argc, char **argv)
 		WHBGfxFinishRender();
 	}
 
-	WHBLogPrint("chiaki-ng Wii U: shutting down");
+	logprintf("chiaki-ng Wii U: shutting down");
 
 	// Orden inverso al arranque: sesion -> registro -> discovery -> teclado
 	// -> graficos -> log -> red.
@@ -1130,6 +1476,7 @@ int main(int argc, char **argv)
 	}
 	stop_discovery();
 	chiaki_mutex_fini(&g_host_mutex);
+	log_file_close();
 	swkbd_shutdown();
 	FSShutdown();
 	VPADShutdown();

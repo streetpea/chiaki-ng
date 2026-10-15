@@ -256,7 +256,7 @@ static void takion_send_buffer_resend(ChiakiTakionSendBuffer *send_buffer)
 					i-= 1;
 				continue;
 			}
-			CHIAKI_LOGI(send_buffer->log, "Takion Send Buffer re-sending packet with seqnum %#llx, tries: %llu", (unsigned long long)packet->seq_num, (unsigned long long)packet->tries);
+			CHIAKI_LOGV(send_buffer->log, "Takion Send Buffer re-sending packet with seqnum %#llx, tries: %llu", (unsigned long long)packet->seq_num, (unsigned long long)packet->tries);
 			packet->last_send_ms = now;
 			chiaki_takion_send_raw(send_buffer->takion, packet->buf, packet->buf_size);
 			packet->tries++;

@@ -55,6 +55,13 @@
 #define TAKION_AV_REORDER_TIMEOUT_US 16000 // ~1 frame at 60fps
 #define TAKION_SEND_BUFFER_SIZE 16
 
+// nsysnet (Wii U) fija un tope de recepcion por socket (SO_RCVBUF, 4096
+// por defecto): recv() con len mayor devuelve EMSGSIZE y descarta el
+// datagrama (en escritorio recv() trunca en silencio). Takion pone
+// SO_RCVBUF=32768 al conectar, asi que el buffer del loop es 32768 —
+// debe ser <= al tope, no mas.
+#define TAKION_RECV_BUF_MAX_SIZE 0x8000
+
 #define TAKION_POSTPONE_PACKETS_SIZE 32
 
 #define TAKION_MESSAGE_HEADER_SIZE 0x10
@@ -357,9 +364,25 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		int r = setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const CHIAKI_SOCKET_BUF_TYPE)&rcvbuf_val, sizeof(rcvbuf_val));
 		if(r < 0)
 		{
+#ifdef __WIIU__
+			// El modulo IOS de nsysnet fija un tope de recepcion por
+			// socket (SO_RCVBUF); el por defecto es 4096 y cualquier
+			// recv() con len mayor devuelve EMSGSIZE y descarta el
+			// datagrama entero. 32768 es el mayor valor aceptado
+			// (65536 da EINVAL); con el tope arriba llegan enteros el
+			// ack de senkusha, el bang del stream y los paquetes de
+			// video. No fatal: sin el, la sesion vive pero con datos
+			// truncados (frames corruptos y retransmisiones).
+			const int rcvbuf_final = 0x8000;
+			if(setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const CHIAKI_SOCKET_BUF_TYPE)&rcvbuf_final, sizeof(rcvbuf_final)) < 0)
+				CHIAKI_LOGE(takion->log, "Takion: setsockopt SO_RCVBUF 32768 fallo: " CHIAKI_SOCKET_ERROR_FMT " (tope sigue en 4096)", CHIAKI_SOCKET_ERROR_VALUE);
+			else
+				CHIAKI_LOGI(takion->log, "Takion: SO_RCVBUF=32768, tope de recepcion nsysnet subido de 4096");
+#else
 			CHIAKI_LOGE(takion->log, "Takion failed to setsockopt SO_RCVBUF: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 			ret = CHIAKI_ERR_NETWORK;
 			goto error_sock;
+#endif
 		}
 		if(info->ip_dontfrag)
 		{
@@ -1084,9 +1107,16 @@ static void *takion_thread_func(void *user)
 
 	chiaki_reorder_queue_set_drop_cb(&takion->data_queue, takion_data_drop, takion);
 
+	uint8_t *recv_buf = malloc(TAKION_RECV_BUF_MAX_SIZE);
+	if(!recv_buf)
+		goto error_reoder_queue;
+
 	// The send buffer size MUST be consistent with the acked seqnums array size in takion_handle_packet_message_data_ack()
 	if(chiaki_takion_send_buffer_init(&takion->send_buffer, takion, TAKION_SEND_BUFFER_SIZE) != CHIAKI_ERR_SUCCESS)
+	{
+		free(recv_buf);
 		goto error_reoder_queue;
+	}
 
 
 	if(takion->cb)
@@ -1139,21 +1169,16 @@ static void *takion_thread_func(void *user)
 			takion->postponed_packets_count = 0;
 		}
 
-		size_t received_size = 1500;
-		uint8_t *buf = malloc(received_size); // TODO: no malloc?
-		if(!buf)
-			break;
+		size_t received_size = TAKION_RECV_BUF_MAX_SIZE;
 		uint64_t recv_timeout_ms = takion_av_queues_next_timeout_ms(takion);
 		if(recv_timeout_ms == 0)
 		{
-			free(buf);
 			takion_av_queues_flush_with_timeout(takion);
 			continue;
 		}
-		ChiakiErrorCode err = takion_recv(takion, buf, &received_size, recv_timeout_ms);
+		ChiakiErrorCode err = takion_recv(takion, recv_buf, &received_size, recv_timeout_ms);
 		if(err != CHIAKI_ERR_SUCCESS)
 		{
-			free(buf);
 			if(err == CHIAKI_ERR_TIMEOUT)
 			{
 				takion_av_queues_flush_with_timeout(takion);
@@ -1161,14 +1186,16 @@ static void *takion_thread_func(void *user)
 			}
 			break;
 		}
-		uint8_t *resized_buf = realloc(buf, received_size);
-		if(!resized_buf)
-		{
-			free(buf);
+		// takion_handle_packet (y sus callbacks) asumen la propiedad del
+		// buffer: se copia al heap y recv_buf se reutiliza en cada vuelta.
+		uint8_t *packet_buf = malloc(received_size);
+		if(!packet_buf)
 			continue;
-		}
-		takion_handle_packet(takion, resized_buf, received_size);
+		memcpy(packet_buf, recv_buf, received_size);
+		takion_handle_packet(takion, packet_buf, received_size);
 	}
+
+	free(recv_buf);
 
 	chiaki_takion_send_buffer_fini(&takion->send_buffer);
 

@@ -317,7 +317,9 @@ static void *regist_thread_func(void *user)
 			goto fail;
 		}
 
-		struct sockaddr_storage recv_addr = { 0 };
+		// Destino de la respuesta de search: IOS escribe aqui por DMA
+		// (recvfrom), alineacion 64 requerida en consola.
+		struct sockaddr_storage recv_addr __attribute__((aligned(64))) = { 0 };
 		socklen_t recv_addr_size;
 		recv_addr_size = sizeof(recv_addr);
 		err = regist_search(regist, addrinfos, (struct sockaddr *)&recv_addr, &recv_addr_size);
@@ -471,7 +473,8 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 	if(regist->info.broadcast)
 		r = sendto_broadcast(regist->log, sock, src, strlen(src) + 1, 0, (struct sockaddr *)&send_addr, send_addr_len);
 	else
-		r = send(sock, src, strlen(src) + 1, 0);
+		// Sin connect() (ver regist_search_connect): destino via sendto.
+		r = sendto(sock, src, strlen(src) + 1, 0, (struct sockaddr *)&send_addr, send_addr_len);
 	if(r < 0)
 	{
 		CHIAKI_LOGE(regist->log, "Regist failed to send search: %s", strerror(errno));
@@ -494,7 +497,8 @@ static ChiakiErrorCode regist_search(ChiakiRegist *regist, struct addrinfo *addr
 			break;
 		}
 
-		uint8_t buf[0x100];
+		// Alineado a 64 (DMA del modulo de sockets de IOS, ver discovery.c).
+		uint8_t buf[0x100] __attribute__((aligned(64)));
 		CHIAKI_SSIZET_TYPE n = recvfrom(sock, (CHIAKI_SOCKET_BUF_TYPE)buf, sizeof(buf) - 1, 0, recv_addr, recv_addr_size);
 		if(n <= 0)
 		{
@@ -529,6 +533,10 @@ done:
 
 static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrinfo *addrinfos, struct sockaddr *send_addr, socklen_t *send_addr_len)
 {
+	// Breadcrumb: si no llega esta linea tras "Regist starting search",
+	// el hilo se quedo DENTRO de la propia llamada de log (escritura SD).
+	CHIAKI_LOGI(regist->log, "Regist search_connect: entry (ai_family=%d)",
+		    addrinfos ? (int)addrinfos->ai_family : -1);
 	chiaki_socket_t sock = CHIAKI_INVALID_SOCKET;
 	bool connected = false;
 	for(struct addrinfo *ai=addrinfos; ai; ai=ai->ai_next)
@@ -552,6 +560,8 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 			CHIAKI_LOGE(regist->log, "Regist failed to create socket for search");
 			continue;
 		}
+		CHIAKI_LOGI(regist->log, "Regist search socket ok (fd=%d, family=%d)",
+			    (int)sock, (int)send_addr->sa_family);
 		int r = 0;
 		if(regist->info.broadcast)
 		{
@@ -593,18 +603,37 @@ static chiaki_socket_t regist_search_connect(ChiakiRegist *regist, struct addrin
 		}
 		else
 		{
-			int r = connect(sock, send_addr, *send_addr_len);
+			// Sin connect(): en Wii U el connect() de un socket UDP se
+			// cuelga en el modulo IOS (constatado en consola; en Cemu
+			// funciona). Chiaki ya usa bind local + sendto en la rama
+			// broadcast — hacemos lo mismo aqui.
+			struct sockaddr_storage local_addr;
+			memset(&local_addr, 0, sizeof(local_addr));
+			socklen_t local_addr_len;
+			if(send_addr->sa_family == AF_INET6)
+			{
+				struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)&local_addr;
+				in6->sin6_addr = in6addr_any;
+				in6->sin6_port = 0;
+				in6->sin6_family = AF_INET6;
+				local_addr_len = sizeof(struct sockaddr_in6);
+			}
+			else
+			{
+				struct sockaddr_in *in = (struct sockaddr_in *)&local_addr;
+				in->sin_addr.s_addr = htonl(INADDR_ANY);
+				in->sin_port = 0;
+				in->sin_family = AF_INET;
+				local_addr_len = sizeof(struct sockaddr_in);
+			}
+			int r = bind(sock, (struct sockaddr *)&local_addr, local_addr_len);
 			if(r < 0)
 			{
-#ifdef _WIN32
-				CHIAKI_LOGE(regist->log, "Regist connect failed, error %u. Trying next address...", WSAGetLastError());
-#else
-				int errsv = errno;
-				CHIAKI_LOGE(regist->log, "Regist connect failed, error: %s. Trying next address...", strerror(errsv));
-#endif
+				CHIAKI_LOGE(regist->log, "Regist failed to bind socket, trying next address...");
 				continue;
 			}
 		}
+		CHIAKI_LOGI(regist->log, "Regist search bind ok — socket listo");
 		connected = true;
 		break;
 
@@ -672,7 +701,9 @@ static ChiakiErrorCode regist_request_connect(ChiakiRegist *regist, const struct
 
 static ChiakiErrorCode regist_recv_response(ChiakiRegist *regist, ChiakiRegisteredHost *host, chiaki_socket_t sock, ChiakiRPCrypt *rpcrypt, uint16_t remote_counter, char *send_buf, size_t send_buf_size)
 {
-	uint8_t buf[1500];
+	// Alineado a 64: recv() del TCP de regist (DMA del modulo de sockets
+	// de IOS en hardware — ver discovery.c).
+	uint8_t buf[1500] __attribute__((aligned(64)));
 	size_t buf_filled_size;
 	size_t header_size;
 	ChiakiErrorCode err;
