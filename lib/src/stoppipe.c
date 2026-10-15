@@ -2,7 +2,9 @@
 
 #include <chiaki/stoppipe.h>
 #include <chiaki/sock.h>
+#include <chiaki/time.h>
 
+#include <errno.h>
 #include <fcntl.h>
 
 #ifdef _WIN32
@@ -11,6 +13,9 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#if defined(__WIIU__)
+#include <sys/ioctl.h>
+#endif
 #endif
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe)
@@ -44,6 +49,25 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_init(ChiakiStopPipe *stop_pipe)
 		close(stop_pipe->fd);
 		return CHIAKI_ERR_UNKNOWN;
 	}
+#elif defined(__WIIU__)
+	// tampoco hay pipe()/socketpair() en Cafe OS: socket UDP en loopback como en Switch.
+	socklen_t addr_size = sizeof(stop_pipe->addr);
+
+	stop_pipe->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if(stop_pipe->fd < 0)
+		return CHIAKI_ERR_UNKNOWN;
+	stop_pipe->addr.sin_family = AF_INET;
+	stop_pipe->addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	stop_pipe->addr.sin_port = htons(0);
+	bind(stop_pipe->fd, (struct sockaddr *) &stop_pipe->addr, addr_size);
+	getsockname(stop_pipe->fd, (struct sockaddr *) &stop_pipe->addr, &addr_size);
+	// fcntl en fds de socket no es fiable en wut; FIONBIO vía ioctl sí lo es.
+	int nbio = 1;
+	if(ioctl(stop_pipe->fd, FIONBIO, &nbio) < 0)
+	{
+		close(stop_pipe->fd);
+		return CHIAKI_ERR_UNKNOWN;
+	}
 #else
 	int r = pipe(stop_pipe->fds);
 	if(r < 0)
@@ -63,7 +87,7 @@ CHIAKI_EXPORT void chiaki_stop_pipe_fini(ChiakiStopPipe *stop_pipe)
 {
 #ifdef _WIN32
 	WSACloseEvent(stop_pipe->event);
-#elif defined(__SWITCH__)
+#elif defined(__SWITCH__) || defined(__WIIU__)
 	close(stop_pipe->fd);
 #else
 	close(stop_pipe->fds[0]);
@@ -75,7 +99,7 @@ CHIAKI_EXPORT void chiaki_stop_pipe_stop(ChiakiStopPipe *stop_pipe)
 {
 #ifdef _WIN32
 	WSASetEvent(stop_pipe->event);
-#elif defined(__SWITCH__)
+#elif defined(__SWITCH__) || defined(__WIIU__)
 	// send to local socket (FIXME MSG_CONFIRM)
 	sendto(stop_pipe->fd, "\x00", 1, 0,
 		(struct sockaddr*)&stop_pipe->addr, sizeof(struct sockaddr_in));
@@ -116,10 +140,69 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_select_single(ChiakiStopPipe *sto
 		default:
 			return CHIAKI_ERR_UNKNOWN;
 	}
+#elif defined(__WIIU__)
+	// nsysnet/Cemu: select() con timeout NULL (UINT64_MAX) no es fiable —
+	// Cemu lo interpreta como "return inmediato" en vez de "esperar para
+	// siempre", y devuelve 0/mask sin tocar, matando el hilo receptor.
+	// En cambio, timeout finito se respeta bien (Cemu hace polling interno).
+	// Se espera en rodajas de 20 ms re-evaluando el deadline en cada vuelta.
+	fd_set rfds;
+	fd_set wfds;
+	int stop_fd = stop_pipe->fd;
+	struct timeval slice_tv;
+	uint64_t start_ms = timeout_ms == UINT64_MAX ? 0 : chiaki_time_now_monotonic_ms();
+
+	while(true)
+	{
+		FD_ZERO(&rfds);
+		FD_SET(stop_fd, &rfds);
+		int nfds = stop_fd;
+
+		FD_ZERO(&wfds);
+		if(!CHIAKI_SOCKET_IS_INVALID(fd))
+		{
+			FD_SET(fd, write ? &wfds : &rfds);
+			if(fd > nfds)
+				nfds = fd;
+		}
+		nfds++;
+
+		uint64_t slice_ms = 20;
+		if(timeout_ms != UINT64_MAX)
+		{
+			uint64_t elapsed = chiaki_time_now_monotonic_ms() - start_ms;
+			if(elapsed >= timeout_ms)
+				return CHIAKI_ERR_TIMEOUT;
+			if(timeout_ms - elapsed < slice_ms)
+				slice_ms = timeout_ms - elapsed;
+		}
+		slice_tv.tv_sec = slice_ms / 1000;
+		slice_tv.tv_usec = (slice_ms % 1000) * 1000;
+
+		int r = select(nfds, &rfds, write ? &wfds : NULL, NULL, &slice_tv);
+		if(r < 0)
+		{
+			if(errno == EINTR)
+				continue;
+			return CHIAKI_ERR_UNKNOWN;
+		}
+
+		if(r > 0)
+		{
+			if(FD_ISSET(stop_fd, &rfds))
+				return CHIAKI_ERR_CANCELED;
+			if(!CHIAKI_SOCKET_IS_INVALID(fd) && FD_ISSET(fd, write ? &wfds : &rfds))
+				return CHIAKI_ERR_SUCCESS;
+			// Señaló select pero ningún fd nuestro quedó marcado: sigue.
+			continue;
+		}
+		// r == 0: rodaja vencida; con timeout finito el chequeo de deadline
+		// de la próxima vuelta devuelve TIMEOUT.
+	}
 #else
 	fd_set rfds;
 	FD_ZERO(&rfds);
-#if defined(__SWITCH__)
+#ifdef __SWITCH__
 	// push udp local socket as fd
 	int stop_fd = stop_pipe->fd;
 #else
@@ -266,6 +349,13 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_stop_pipe_reset(ChiakiStopPipe *stop_pipe)
 	int r;
 	while((r = read(stop_pipe->fd, &v, sizeof(v))) > 0);
 	return r < 0 ? CHIAKI_ERR_UNKNOWN : CHIAKI_ERR_SUCCESS;
+#elif defined(__WIIU__)
+	// como el branch de Switch pero con recv(): read() en fds de socket no está
+	// garantizado en wut.
+	uint8_t v;
+	int r;
+	while((r = recv(stop_pipe->fd, &v, sizeof(v), MSG_DONTWAIT)) > 0);
+	return r < 0 && errno != EWOULDBLOCK && errno != EAGAIN ? CHIAKI_ERR_UNKNOWN : CHIAKI_ERR_SUCCESS;
 #else
 	uint8_t v;
 	int r;

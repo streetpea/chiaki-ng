@@ -14,6 +14,9 @@ extern "C" {
 
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__WIIU__)
+#include <coreinit/thread.h>
+#include <coreinit/mutex.h>
 #else
 #include <pthread.h>
 #endif
@@ -44,6 +47,13 @@ typedef struct chiaki_thread_t
 	ChiakiThreadFunc func;
 	void *arg;
 	void *ret;
+#elif defined(__WIIU__)
+	OSThread thread;
+	void *stack; // stack top addr, freed after join
+	ChiakiThreadFunc func;
+	void *arg;
+	void *ret;
+	bool created; // true si OSCreateThread tuvo éxito (los caller validan if(thread))
 #else
 	pthread_t thread;
 #endif
@@ -61,6 +71,12 @@ typedef struct chiaki_mutex_t
 {
 #ifdef _WIN32
 	CRITICAL_SECTION cs;
+#elif defined(__WIIU__)
+	OSMutex mutex;
+	// coreinit no expone el owner de OSMutex y chiaki_cond_wait debe saber si el
+	// caller tiene el mutex tomado; se lleva la cuenta aquí.
+	OSThread *owner;
+	uint32_t depth;
 #else
 	pthread_mutex_t mutex;
 #endif
@@ -77,6 +93,9 @@ typedef struct chiaki_cond_t
 {
 #ifdef _WIN32
 	CONDITION_VARIABLE cond;
+#elif defined(__WIIU__)
+	// coreinit no tiene condvars; ver la implementación por sondeo en thread.c.
+	uint32_t pending;
 #else
 	pthread_cond_t cond;
 #endif

@@ -39,6 +39,14 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <poll.h>
+#elif defined(__WIIU__)
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netdb.h>
+#include <poll.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -53,7 +61,7 @@
 #include <curl/curl.h>
 
 #include "../aia.h"
-#if !defined(__SWITCH__) && !defined(__ANDROID__)
+#if !defined(__SWITCH__) && !defined(__ANDROID__) && !defined(__WIIU__)
 #include <event2/event.h>
 #endif
 #include <json-c/json_object.h>
@@ -2694,7 +2702,7 @@ CHIAKI_EXPORT ChiakiErrorCode holepunch_session_create_offer(Session *session)
     }
 
     uint16_t local_port = ntohs(client_addr.sin_port);
-#ifndef __SWITCH__
+#if !defined(__SWITCH__) && !defined(__WIIU__)
     // Switch doesn't support IPv6 - skip IPv6 socket creation
     session->ipv6_sock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (CHIAKI_SOCKET_IS_INVALID(session->ipv6_sock))
@@ -3764,7 +3772,7 @@ static ChiakiErrorCode get_client_addr_local(Session *session, Candidate *local_
     return err;
 #undef MALLOC
 #undef FREE
-#elif defined(__SWITCH__)
+#elif defined(__SWITCH__) || defined(__WIIU__)
     // switch does not have ifaddrs.h, use arpa/inet.h
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -4021,7 +4029,7 @@ static bool get_client_addr_remote_stun(Session *session, char *address, uint16_
  * @param[out] out Pointer to the socket where the connection was established with the selected candidate
 */
 
-#if !defined(__SWITCH__) && !defined(__ANDROID__)
+#if !defined(__SWITCH__) && !defined(__ANDROID__) && !defined(__WIIU__)
 typedef struct {
     struct event_base *base;
     struct event **events;
@@ -4091,7 +4099,7 @@ static ChiakiErrorCode check_candidates(
     Candidate candidates[num_candidates + EXTRA_CANDIDATE_ADDRESSES];
     memcpy(candidates, candidates_received, num_candidates * sizeof(Candidate));
     int responses_received[num_candidates + EXTRA_CANDIDATE_ADDRESSES];
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__WIIU__)
     // Use poll() on Switch — select() fails when FD numbers >= FD_SETSIZE (256)
     struct pollfd *pollfds = NULL;
 #endif
@@ -4282,7 +4290,7 @@ static ChiakiErrorCode check_candidates(
     bool responded = false;
     bool connecting = false;
     int retry_counter = 0;
-#if !defined(__SWITCH__) && !defined(__ANDROID__)
+#if !defined(__SWITCH__) && !defined(__ANDROID__) && !defined(__WIIU__)
     CandidateEventContext poll_ctx = {0};
     size_t socket_slots = 0;
     if (!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
@@ -4329,7 +4337,7 @@ static ChiakiErrorCode check_candidates(
         }
     }
 #endif
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__WIIU__)
     int poll_capacity = 0;
     if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
         poll_capacity++;
@@ -4354,10 +4362,10 @@ static ChiakiErrorCode check_candidates(
     {
         bool timed_out = false;
         chiaki_socket_t ready_sock = CHIAKI_INVALID_SOCKET;
-#if !defined(__SWITCH__)
+#if !defined(__SWITCH__) && !defined(__WIIU__)
         struct timeval timeout;
 #endif
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__WIIU__)
         nfds_t npollfds = 0;
         if(!CHIAKI_SOCKET_IS_INVALID(session->ipv4_sock))
         {
@@ -4811,7 +4819,7 @@ static ChiakiErrorCode check_candidates(
     else if(err != CHIAKI_ERR_SUCCESS)
         goto cleanup_sockets;
 
-#if !defined(__SWITCH__) && !defined(__ANDROID__)
+#if !defined(__SWITCH__) && !defined(__ANDROID__) && !defined(__WIIU__)
     for (size_t i = 0; i < poll_ctx.events_count; i++)
         event_free(poll_ctx.events[i]);
     free(poll_ctx.events);
@@ -4874,14 +4882,14 @@ static ChiakiErrorCode check_candidates(
     memcpy(out_candidate, selected_candidate, sizeof(Candidate));
     session->ipv4_sock = CHIAKI_INVALID_SOCKET;
     session->ipv6_sock = CHIAKI_INVALID_SOCKET;
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__WIIU__)
     free(pollfds);
 #endif
     free(socks);
     return CHIAKI_ERR_SUCCESS;
 
 cleanup_sockets:
-#if !defined(__SWITCH__) && !defined(__ANDROID__)
+#if !defined(__SWITCH__) && !defined(__ANDROID__) && !defined(__WIIU__)
     for (size_t i = 0; poll_ctx.events && i < poll_ctx.events_count; i++)
         event_free(poll_ctx.events[i]);
     free(poll_ctx.events);
@@ -4892,7 +4900,7 @@ cleanup_sockets:
         poll_ctx.base = NULL;
     }
 #endif
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__WIIU__)
     free(pollfds);
     pollfds = NULL;
 #endif

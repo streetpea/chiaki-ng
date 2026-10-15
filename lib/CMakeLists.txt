@@ -128,6 +128,12 @@ if(CMAKE_C_COMPILER_ID STREQUAL GNU OR CMAKE_C_COMPILER_ID STREQUAL Clang)
 	target_compile_options(chiaki-lib PRIVATE -Wall)
 endif()
 
+if(CHIAKI_IS_WIIU)
+	# wut (nsysnet) es IPv4-only; ver lib/src/wiiu-ipv6-shim.h.
+	target_compile_options(chiaki-lib PRIVATE
+		-include "${CMAKE_CURRENT_SOURCE_DIR}/src/wiiu-ipv6-shim.h")
+endif()
+
 add_dependencies(chiaki-lib chiaki-pb)
 set_target_properties(chiaki-lib PROPERTIES OUTPUT_NAME chiaki)
 
@@ -171,7 +177,7 @@ else()
 	target_link_libraries(chiaki-lib PkgConfig::MINIUPNPC)
 endif()
 
-if(NOT CHIAKI_IS_SWITCH AND NOT CHIAKI_ENABLE_ANDROID)
+if(NOT CHIAKI_IS_SWITCH AND NOT CHIAKI_ENABLE_ANDROID AND NOT CHIAKI_IS_WIIU)
 	find_program(PKG_CONFIG_EXECUTABLE pkg-config)
 	if(PKG_CONFIG_EXECUTABLE)
 		pkg_search_module(LIBEVENT libevent QUIET IMPORTED_TARGET)
@@ -192,6 +198,11 @@ if(CHIAKI_LIB_ENABLE_MBEDTLS)
 		target_link_libraries(chiaki-lib mbedtls mbedx509 mbedcrypto)
 	else()
 		# provided by mbedtls-static (mbedtls-devel)
+		if(CHIAKI_IS_WIIU)
+			# portlibs headers are not part of the toolchain's global include path
+			find_path(MBEDTLS_INCLUDE_DIRS mbedtls/ssl.h PATH_SUFFIXES include)
+			target_include_directories(chiaki-lib PRIVATE ${MBEDTLS_INCLUDE_DIRS})
+		endif()
 		find_library(MBEDTLS mbedtls)
 		find_library(MBEDX509 mbedx509)
 		find_library(MBEDCRYPTO mbedcrypto)
@@ -221,7 +232,7 @@ if(CHIAKI_LIB_ENABLE_OPUS)
 endif()
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fanalyzer")
-if(CHIAKI_ENABLE_TESTS)
+if(CHIAKI_ENABLE_TESTS AND NOT CHIAKI_IS_WIIU)
 	add_executable(holepunch-test include/chiaki/remote/holepunch.h src/remote/holepunch-test.c)
 	target_link_libraries(holepunch-test chiaki-lib)
 endif()

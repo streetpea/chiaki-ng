@@ -14,6 +14,7 @@ option(CHIAKI_ENABLE_CLI "Enable CLI for Chiaki" ON)
 option(CHIAKI_ENABLE_GUI "Enable Qt GUI" ON)
 option(CHIAKI_ENABLE_ANDROID "Enable Android (Use only as part of the Gradle Project)" OFF)
 option(CHIAKI_ENABLE_BOREALIS "Enable Borealis GUI (For Nintendo Switch or PC)" OFF)
+option(CHIAKI_ENABLE_WIIU "Enable Wii U frontend (requires devkitPPC/wut)" OFF)
 tri_option(CHIAKI_ENABLE_SETSU "Enable libsetsu for touchpad input from controller" AUTO)
 tri_option(CHIAKI_ENABLE_STEAMDECK_NATIVE "Enable sdeck for native gyro and haptic feedback from Steam Deck" ON)
 option(CHIAKI_LIB_ENABLE_OPUS "Use Opus as part of Chiaki Lib" ON)
@@ -54,6 +55,29 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 include(CPack)
 
 set(CHIAKI_IS_SWITCH ${NSWITCH})
+set(CHIAKI_IS_WIIU ${WIIU})
+
+if(CHIAKI_IS_WIIU)
+	# Frontend-only console port: no Qt GUI/CLI, no Steam Deck extras. portlibs/wiiu
+	# ships mbedTLS but no OpenSSL, and newlib has no pthread implementation
+	# (lib/src/thread.c implements the chiaki thread layer on coreinit OSThread).
+	set(CHIAKI_ENABLE_GUI OFF)
+	set(CHIAKI_ENABLE_CLI OFF)
+	set(CHIAKI_ENABLE_SETSU OFF)
+	set(CHIAKI_ENABLE_STEAMDECK_NATIVE OFF)
+	set(CHIAKI_ENABLE_STEAM_SHORTCUT OFF)
+	set(CHIAKI_ENABLE_SPEEX OFF)
+	set(CHIAKI_ENABLE_FFMPEG_DECODER OFF)
+	set(CHIAKI_ENABLE_PI_DECODER OFF)
+	# force mbedtls as crypto lib
+	set(CHIAKI_LIB_ENABLE_MBEDTLS ON)
+	# json-c/miniupnpc are not in portlibs; build them from source instead of
+	# requiring a cross pkg-config setup.
+	set(CHIAKI_LIB_JSONC_EXTERNAL_PROJECT ON)
+	set(CHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT ON)
+	# newlib ships <pthread.h> but no implementation; skip FindThreads' link test.
+	set(CMAKE_HAVE_LIBC_PTHREAD 1 CACHE INTERNAL "Wii U: no pthreads, chiaki uses OSThread")
+endif()
 
 if(APPLE)
 	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
@@ -289,4 +313,11 @@ endif()
 
 if(CHIAKI_ENABLE_BOREALIS)
 	add_subdirectory(switch)
+endif()
+
+if(CHIAKI_ENABLE_WIIU)
+	if(NOT CHIAKI_IS_WIIU)
+		message(FATAL_ERROR "CHIAKI_ENABLE_WIIU requires the Wii U toolchain: -DCMAKE_TOOLCHAIN_FILE=$ENV{DEVKITPRO}/cmake/WiiU.cmake")
+	endif()
+	add_subdirectory(wiiu)
 endif()

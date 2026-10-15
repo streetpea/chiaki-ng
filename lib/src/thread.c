@@ -13,6 +13,11 @@
 #include <switch.h>
 #endif
 
+#ifdef __WIIU__
+#include <coreinit/time.h>
+#include <time.h>
+#endif
+
 #if defined(__ANDROID__)
 struct chiaki_timedjoin_ctx
 {
@@ -56,6 +61,21 @@ static DWORD WINAPI win32_thread_func(LPVOID param)
 }
 #endif
 
+#if defined(__WIIU__)
+#define CHIAKI_WIIU_THREAD_STACK_SIZE (128 * 1024)
+// 0 es la prioridad máxima y 31 la mínima;16 deja margen a la main thread de la app.
+#define CHIAKI_WIIU_THREAD_PRIORITY 16
+
+static int chiaki_wiiu_thread_entry(int argc, const char **argv)
+{
+	(void)argc;
+	// coreinit entrega el puntero argv sin tocar como user data de la entry point.
+	ChiakiThread *thread = (ChiakiThread *)(uintptr_t)argv;
+	thread->ret = thread->func(thread->arg);
+	return 0;
+}
+#endif
+
 #ifdef __SWITCH__
 int64_t get_thread_limit()
 {
@@ -78,6 +98,26 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_create(ChiakiThread *thread, ChiakiT
 	thread->thread = CreateThread(NULL, 0, win32_thread_func, thread, 0, 0);
 	if(!thread->thread)
 		return CHIAKI_ERR_THREAD;
+#elif defined(__WIIU__)
+	thread->created = false;
+	thread->func = func;
+	thread->arg = arg;
+	thread->ret = NULL;
+	thread->stack = malloc(CHIAKI_WIIU_THREAD_STACK_SIZE);
+	if(!thread->stack)
+		return CHIAKI_ERR_MEMORY;
+	// OSCreateThread espera la dirección TOP del stack y crea el hilo suspendido.
+	if(!OSCreateThread(&thread->thread, chiaki_wiiu_thread_entry, 0, (char *)thread,
+			((uint8_t *)thread->stack) + CHIAKI_WIIU_THREAD_STACK_SIZE,
+			CHIAKI_WIIU_THREAD_STACK_SIZE,
+			CHIAKI_WIIU_THREAD_PRIORITY, OS_THREAD_ATTRIB_AFFINITY_ANY))
+	{
+		free(thread->stack);
+		thread->stack = NULL;
+		return CHIAKI_ERR_THREAD;
+	}
+	thread->created = true;
+	OSResumeThread(&thread->thread);
 #else
 #ifdef __SWITCH__
 	if(get_thread_limit() <= 1)
@@ -96,6 +136,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_join(ChiakiThread *thread, void **re
 	int r = WaitForSingleObject(thread->thread, INFINITE);
 	if(r != WAIT_OBJECT_0)
 		return CHIAKI_ERR_THREAD;
+	if(retval)
+		*retval = thread->ret;
+#elif defined(__WIIU__)
+	if(!thread->created)
+		return CHIAKI_ERR_THREAD;
+	int result = 0;
+	if(!OSJoinThread(&thread->thread, &result))
+		return CHIAKI_ERR_THREAD;
+	free(thread->stack);
+	thread->stack = NULL;
 	if(retval)
 		*retval = thread->ret;
 #else
@@ -151,6 +201,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_init(ChiakiMutex *mutex, bool rec)
 #if _WIN32
 	InitializeCriticalSection(&mutex->cs);
 	(void)rec; // always recursive
+#elif defined(__WIIU__)
+	OSInitMutex(&mutex->mutex);
+	// OSMutex de coreinit ya admite locking recursivo por el mismo hilo.
+	mutex->owner = NULL;
+	mutex->depth = 0;
+	(void)rec;
 #else
 	pthread_mutexattr_t attr;
 	int r = pthread_mutexattr_init(&attr);
@@ -173,6 +229,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_fini(ChiakiMutex *mutex)
 {
 #if _WIN32
 	DeleteCriticalSection(&mutex->cs);
+#elif defined(__WIIU__)
+	// OSMutex no tiene destructor.
+	(void)mutex;
 #else
 	int r = pthread_mutex_destroy(&mutex->mutex);
 	if(r != 0)
@@ -185,6 +244,16 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_lock(ChiakiMutex *mutex)
 {
 #if _WIN32
 	EnterCriticalSection(&mutex->cs);
+#elif defined(__WIIU__)
+	OSThread *self = OSGetCurrentThread();
+	OSLockMutex(&mutex->mutex);
+	if(mutex->owner != self)
+	{
+		mutex->owner = self;
+		mutex->depth = 1;
+	}
+	else
+		mutex->depth++;
 #else
 	int r = pthread_mutex_lock(&mutex->mutex);
 	if(r != 0)
@@ -199,6 +268,17 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_trylock(ChiakiMutex *mutex)
 	int r = TryEnterCriticalSection(&mutex->cs);
 	if(!r)
 		return CHIAKI_ERR_MUTEX_LOCKED;
+#elif defined(__WIIU__)
+	if(!OSTryLockMutex(&mutex->mutex))
+		return CHIAKI_ERR_MUTEX_LOCKED;
+	OSThread *self = OSGetCurrentThread();
+	if(mutex->owner != self)
+	{
+		mutex->owner = self;
+		mutex->depth = 1;
+	}
+	else
+		mutex->depth++;
 #else
 	int r = pthread_mutex_trylock(&mutex->mutex);
 	if(r == EBUSY)
@@ -213,6 +293,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_mutex_unlock(ChiakiMutex *mutex)
 {
 #if _WIN32
 	LeaveCriticalSection(&mutex->cs);
+#elif defined(__WIIU__)
+	if(mutex->owner == OSGetCurrentThread() && mutex->depth > 0 && --mutex->depth == 0)
+		mutex->owner = NULL;
+	OSUnlockMutex(&mutex->mutex);
 #else
 	int r = pthread_mutex_unlock(&mutex->mutex);
 	if(r != 0)
@@ -225,6 +309,8 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond)
 {
 #if _WIN32
 	InitializeConditionVariable(&cond->cond);
+#elif defined(__WIIU__)
+	cond->pending = 0;
 #else
 	pthread_condattr_t attr;
 	int r = pthread_condattr_init(&attr);
@@ -252,6 +338,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_init(ChiakiCond *cond)
 CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_fini(ChiakiCond *cond)
 {
 #if _WIN32
+#elif defined(__WIIU__)
+	// no hay estado que liberar.
+	(void)cond;
 #else
 	int r = pthread_cond_destroy(&cond->cond);
 	if(r != 0)
@@ -266,6 +355,20 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mu
 	int r = SleepConditionVariableCS(&cond->cond, &mutex->cs, INFINITE);
 	if(!r)
 		return CHIAKI_ERR_THREAD;
+#elif defined(__WIIU__)
+	// coreinit no tiene condvars: ChiakiCond es un contador de señales pendientes
+	// que se consume con sondeo de1 ms. La señal nunca se pierde porque el
+	// contador persiste hasta ser consumido.
+	bool held = mutex->owner == OSGetCurrentThread();
+	while(!cond->pending)
+	{
+		if(held)
+			chiaki_mutex_unlock(mutex);
+		OSSleepTicks(OSMillisecondsToTicks(1));
+		if(held)
+			chiaki_mutex_lock(mutex);
+	}
+	cond->pending--;
 #else
 	int r = pthread_cond_wait(&cond->cond, &mutex->mutex);
 	if(r != 0)
@@ -275,6 +378,27 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_wait(ChiakiCond *cond, ChiakiMutex *mu
 }
 
 #if !__APPLE__ && !defined(_WIN32)
+#if defined(__WIIU__)
+static ChiakiErrorCode chiaki_cond_timedwait_abs(ChiakiCond *cond, ChiakiMutex *mutex, struct timespec *timeout)
+{
+	// Mismo mecanismo que chiaki_cond_wait, con chequeo de deadline en cada ciclo.
+	bool held = mutex->owner == OSGetCurrentThread();
+	while(!cond->pending)
+	{
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		if(now.tv_sec > timeout->tv_sec || (now.tv_sec == timeout->tv_sec && now.tv_nsec >= timeout->tv_nsec))
+			return CHIAKI_ERR_TIMEOUT;
+		if(held)
+			chiaki_mutex_unlock(mutex);
+		OSSleepTicks(OSMillisecondsToTicks(1));
+		if(held)
+			chiaki_mutex_lock(mutex);
+	}
+	cond->pending--;
+	return CHIAKI_ERR_SUCCESS;
+}
+#else
 static ChiakiErrorCode chiaki_cond_timedwait_abs(ChiakiCond *cond, ChiakiMutex *mutex, struct timespec *timeout)
 {
 	int r = pthread_cond_timedwait(&cond->cond, &mutex->mutex, timeout);
@@ -286,6 +410,7 @@ static ChiakiErrorCode chiaki_cond_timedwait_abs(ChiakiCond *cond, ChiakiMutex *
 	}
 	return CHIAKI_ERR_SUCCESS;
 }
+#endif
 
 static void set_timeout(struct timespec *timeout, uint64_t ms_from_now)
 {
@@ -360,6 +485,24 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_thread_timedjoin(ChiakiThread *thread, void
 		pthread_mutex_unlock(&ctx->mutex);
 		return CHIAKI_ERR_TIMEOUT;
 	}
+#elif defined(__WIIU__)
+	// OSJoinThread no admite timeout: se espera la terminación y luego se hace join.
+	if(!thread->created)
+		return CHIAKI_ERR_THREAD;
+	uint64_t start = chiaki_time_now_monotonic_ms();
+	while(!OSIsThreadTerminated(&thread->thread))
+	{
+		if(chiaki_time_now_monotonic_ms() - start >= timeout_ms)
+			return CHIAKI_ERR_TIMEOUT;
+		OSSleepTicks(OSMillisecondsToTicks(1));
+	}
+	int result = 0;
+	if(!OSJoinThread(&thread->thread, &result))
+		return CHIAKI_ERR_THREAD;
+	free(thread->stack);
+	thread->stack = NULL;
+	if(retval)
+		*retval = thread->ret;
 #else
 	struct timespec timeout;
 	set_timeout(&timeout, timeout_ms);
@@ -448,6 +591,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_signal(ChiakiCond *cond)
 {
 #if _WIN32
 	WakeConditionVariable(&cond->cond);
+#elif defined(__WIIU__)
+	if(cond->pending < 0xffff)
+		cond->pending++;
 #else
 	int r = pthread_cond_signal(&cond->cond);
 	if(r != 0)
@@ -460,6 +606,10 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_cond_broadcast(ChiakiCond *cond)
 {
 #if _WIN32
 	WakeAllConditionVariable(&cond->cond);
+#elif defined(__WIIU__)
+	// Los contadores extra se consumen como despertares espurios, que la
+	// semántica de condvars permite (los usuarios con pred los re-verifican).
+	cond->pending = 0xffff;
 #else
 	int r = pthread_cond_broadcast(&cond->cond);
 	if(r != 0)

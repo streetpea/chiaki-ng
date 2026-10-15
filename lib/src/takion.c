@@ -28,6 +28,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#elif defined(__WIIU__)
+// wut no trae <netinet/ip.h>; takion solo necesita netinet/in.h (IPPROTO_IP,
+// INET_*). Las opciones IP_DONTFRAGMENT/IP_MTU_DISCOVER están protegidas por
+// guards propios (#if defined(IP_PMTUDISC_DO)) que en Wii U caen al aviso.
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #else
 #include <unistd.h>
 #include <netinet/in.h>

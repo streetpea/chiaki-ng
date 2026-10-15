@@ -2271,7 +2271,12 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_rpcrypt_generate_iv(ChiakiRPCrypt *rpcrypt,
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 6] = (uint8_t)((counter >> 0x08) & 0xff);
 	buf[CHIAKI_RPCRYPT_KEY_SIZE + 7] = (uint8_t)((counter >> 0x00) & 0xff);
 
-	uint8_t hmac[CHIAKI_RPCRYPT_KEY_SIZE];
+	// SHA-256 escribe md_size = 32 bytes: con KEY_SIZE (16) md_hmac_finish
+	// desbordaba 16 bytes sobre ctx en la pila (layout PPC) y machacaba
+	// md_info/md_ctx -> fault en mbedtls_md_free tras generar el IV.
+	// El IV solo lee los primeros 16 bytes, asi que el protocolo no cambia
+	// (el branch OpenSSL de esta misma funcion usa hmac[32]).
+	uint8_t hmac[32];
 	unsigned int hmac_len = 0;
 
 

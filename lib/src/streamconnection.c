@@ -125,7 +125,11 @@ CHIAKI_EXPORT void chiaki_stream_connection_fini(ChiakiStreamConnection *stream_
 	chiaki_gkcrypt_free(stream_connection->gkcrypt_local);
 
 	free(stream_connection->ecdh_secret);
-	if (stream_connection->congestion_control.thread.thread)
+#if defined(__WIIU__)
+	if(stream_connection->congestion_control.thread.created)
+#else
+	if(stream_connection->congestion_control.thread.thread)
+#endif
 		chiaki_congestion_control_stop(&stream_connection->congestion_control);
 
 	chiaki_packet_stats_fini(&stream_connection->packet_stats);
