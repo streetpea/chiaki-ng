@@ -30,7 +30,7 @@ void wiiu_video_render(int viewport_w, int viewport_h);
 
 // Libera decoder (40 MB) y buffers. Idempotente: llamar al iniciar y parar
 // sesion, y en el apagado de la app.
-void wiiu_video_reset();
+void wiiu_video_reset(bool wait_gpu = true);
 
 struct WiiUVideoStats
 {

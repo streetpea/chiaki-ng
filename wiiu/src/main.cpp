@@ -56,6 +56,7 @@
 #include <cstring>
 
 #include "video.h"
+#include "config.h"
 
 #define DISCOVERY_PING_MS 500
 #define DISCOVERY_HOSTS_MAX 8
@@ -87,6 +88,13 @@ static uint8_t g_morning[0x10] = { 0 };
 static bool g_have_psn_account = false;
 static uint8_t g_psn_account_id[CHIAKI_PSN_ACCOUNT_ID_SIZE] = { 0 };
 static char g_psn_online_id[64] = { 0 };
+
+// Persistencia (fase 4a): consolas registradas y cuenta en
+// sd:/wiiu/apps/chiaki/config.ini. g_config se toca con g_host_mutex
+// (el cb de regist corre en su thread); g_config_dirty lo vacia el main.
+static Config g_config;
+static volatile bool g_config_dirty = false;
+static char g_regist_target_host[CONFIG_HOST_SIZE]; // host del regist en curso
 
 // Registro en curso (chiaki_regist lanza su propio thread).
 enum class RegistState { Idle, Running, Finished };
@@ -778,6 +786,144 @@ extern "C" char *wiiu_posix_basename(const char *path)
 }
 
 // ---------------------------------------------------------------------------
+// Persistencia (fase 4a): sd:/wiiu/apps/chiaki/config.ini por el mismo
+// cliente FS que el log, siempre con g_log_mutex (unico escritor FS en la
+// app; el logger usa TryLock y encola si estamos escribiendo aqui).
+// ---------------------------------------------------------------------------
+#define CONFIG_SD_PATH "/vol/external01/wiiu/apps/chiaki/config.ini"
+
+static int sd_read_file(const char *path, char *buf, size_t cap)
+{
+	if(!g_log_ready || cap < 2)
+		return -1;
+	// Diag config-2 (se quitara tras validar): mientras retenemos
+	// g_log_mutex, logprintf encola; logq_drain() vuelca la cola al
+	// fichero (solo el duenio del mutex puede drenar), asi cada marker
+	// llega a log.txt ANTES de la siguiente llamada FS y localiza un
+	// cuelgue con exactitud.
+	logprintf("cfg: rd %s", path);
+	OSLockMutex(&g_log_mutex);
+	logprintf("cfg: lock ok");
+	logq_drain();
+	FSFileHandle fd = -1;
+	FSStatus st = FSOpenFile(g_log_fs_client, g_log_fs_cmd, path, "r",
+				 &fd, FS_ERROR_FLAG_ALL);
+	logprintf("cfg: open=%d", (int)st);
+	logq_drain();
+	int total = 0;
+	if(st >= 0)
+	{
+		// Patron WHB (whb/file.c): FSGetStatFile + UNA FSReadFile con
+		// el tamano exacto del fichero, en vez de un bucle con count
+		// mayor que los bytes disponibles.
+		FSStat stat;
+		FSStatus ss = FSGetStatFile(g_log_fs_client, g_log_fs_cmd, fd,
+					    &stat, FS_ERROR_FLAG_ALL);
+		logprintf("cfg: stat=%d size=%u", (int)ss, (unsigned)stat.size);
+		logq_drain();
+		if(ss >= 0 && stat.size > 0)
+		{
+			uint32_t want = stat.size;
+			if(want > (uint32_t)(cap - 1))
+				want = (uint32_t)(cap - 1);
+			FSStatus rs = FSReadFile(g_log_fs_client, g_log_fs_cmd,
+						 (uint8_t *)(uintptr_t)buf, 1,
+						 want, fd, 0, FS_ERROR_FLAG_ALL);
+			logprintf("cfg: read=%d", (int)rs);
+			logq_drain();
+			if(rs > 0)
+				total = (int)rs;
+		}
+		FSStatus cs = FSCloseFile(g_log_fs_client, g_log_fs_cmd, fd,
+					  FS_ERROR_FLAG_ALL);
+		logprintf("cfg: close=%d", (int)cs);
+		logq_drain();
+	}
+	buf[total] = '\0';
+	OSUnlockMutex(&g_log_mutex);
+	return st >= 0 ? total : -1;
+}
+
+static bool sd_write_file(const char *path, const char *buf, size_t len)
+{
+	if(!g_log_ready)
+		return false;
+	OSLockMutex(&g_log_mutex);
+	FSFileHandle fd = -1;
+	FSStatus st = FSOpenFile(g_log_fs_client, g_log_fs_cmd, path, "w",
+				 &fd, FS_ERROR_FLAG_ALL);
+	bool ok = false;
+	if(st >= 0)
+	{
+		FSStatus ws = FSWriteFile(g_log_fs_client, g_log_fs_cmd,
+					   (uint8_t *)(uintptr_t)buf,
+					   (uint32_t)len, 1, fd, 0,
+					   FS_ERROR_FLAG_ALL);
+		FSFlushFile(g_log_fs_client, g_log_fs_cmd, fd, FS_ERROR_FLAG_ALL);
+		FSCloseFile(g_log_fs_client, g_log_fs_cmd, fd, FS_ERROR_FLAG_ALL);
+		ok = ws >= 0;
+	}
+	OSUnlockMutex(&g_log_mutex);
+	return ok;
+}
+
+static char g_cfg_in[4096] __attribute__((aligned(64)));
+static char g_cfg_out[2048] __attribute__((aligned(64)));
+
+static void config_load_sd(void)
+{
+	int n = sd_read_file(CONFIG_SD_PATH, g_cfg_in, sizeof(g_cfg_in));
+	if(n <= 0)
+	{
+		logprintf("Config: sin %s todavia (se creara al registrar)",
+			  CONFIG_SD_PATH);
+		return;
+	}
+	config_parse(&g_config, g_cfg_in, (size_t)n);
+	int count = config_console_count(&g_config);
+	logprintf("Config: %d consola(s) guardadas, account_id=%s", count,
+		  g_config.account_id_hex[0] ? g_config.account_id_hex
+					     : "(ninguna)");
+
+	// Preseleccionar la ultima consola (o la primera): IP + claves +
+	// cuenta => A conecta sin repetir registro ni teclados.
+	const char *host = g_config.last_host[0]
+				   ? g_config.last_host
+				   : (count > 0 ? g_config.consoles[0].host : nullptr);
+	int idx = config_find(&g_config, host);
+	if(idx < 0)
+		return;
+	const ConfigConsole *c = &g_config.consoles[idx];
+	snprintf(g_host_ip, sizeof(g_host_ip), "%s", c->host);
+	memcpy(g_regist_key, c->regist_key, sizeof(g_regist_key));
+	memcpy(g_morning, c->morning, sizeof(g_morning));
+	if(c->name[0])
+		snprintf(g_host_nickname, sizeof(g_host_nickname), "%s", c->name);
+	g_registered = true;
+	if(g_config.account_id_hex[0] &&
+	   parse_psn_account_id(g_config.account_id_hex, g_psn_account_id))
+		g_have_psn_account = true;
+	logprintf("Config: lista '%s' (%s) — A conecta sin registrar de nuevo",
+		  c->name[0] ? c->name : "?", c->host);
+}
+
+// Serializa bajo g_host_mutex (el cb de regist escribe desde su thread) y
+// escribe el fichero fuera del mutex.
+static void config_save_sd(void)
+{
+	chiaki_mutex_lock(&g_host_mutex);
+	size_t len = config_serialize(&g_config, g_cfg_out, sizeof(g_cfg_out));
+	chiaki_mutex_unlock(&g_host_mutex);
+	if(!len)
+		return;
+	if(sd_write_file(CONFIG_SD_PATH, g_cfg_out, len))
+		logprintf("Config: guardada en %s (%u bytes)", CONFIG_SD_PATH,
+			  (unsigned int)len);
+	else
+		logprintf("Config: fallo al escribir %s", CONFIG_SD_PATH);
+}
+
+// ---------------------------------------------------------------------------
 // Registro (chiaki_regist): emparejar con la PS4 mediante el PIN que muestra
 // la consola en "Enlazar con otro dispositivo".
 // ---------------------------------------------------------------------------
@@ -799,12 +945,21 @@ static void regist_event_cb(ChiakiRegistEvent *event, void *user)
 				snprintf(g_host_nickname, sizeof(g_host_nickname), "%s",
 					 rh->server_nickname);
 			g_registered = true;
+			// Fase 4a: persistir ya — el proximo arranque conecta
+			// sin repetir registro ni PIN.
+			config_set_console(&g_config, g_regist_target_host,
+					   rh->server_nickname,
+					   (const uint8_t *)rh->rp_regist_key,
+					   rh->rp_key, g_psn_account_id);
+			snprintf(g_config.last_host, sizeof(g_config.last_host),
+				 "%s", g_regist_target_host);
+			g_config_dirty = true;
 		}
 		chiaki_mutex_unlock(&g_host_mutex);
 		if(rh)
 			logprintf("REGISTRO OK: consola '%s' clave=%.16s", rh->server_nickname,
 				     rh->rp_regist_key);
-		logprintf("Clave solo en RAM — pulsa A para conectar Remote Play");
+		logprintf("Registro guardado en config.ini — pulsa A para conectar Remote Play");
 		break;
 	}
 	case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
@@ -844,6 +999,8 @@ static bool start_regist(uint32_t pin)
 		snprintf(host, sizeof(host), "%s", g_host_ip);
 		logprintf("Regist: usando IP manual %s (PS4 10.x)", host);
 	}
+	// Fase 4a: el cb de regist usa este host para guardar la consola.
+	snprintf(g_regist_target_host, sizeof(g_regist_target_host), "%s", host);
 
 	if(target == CHIAKI_TARGET_PS4_UNKNOWN || target == CHIAKI_TARGET_PS5_UNKNOWN)
 	{
@@ -1032,11 +1189,16 @@ static bool start_session()
 	g_fec_failures = 0;
 	g_video_log_ticks = OSGetTime();
 	g_video_log_frames = 0;
+	// Fase 4a: al proximo arranque se preselecciona esta consola.
+	chiaki_mutex_lock(&g_host_mutex);
+	snprintf(g_config.last_host, sizeof(g_config.last_host), "%s", host);
+	chiaki_mutex_unlock(&g_host_mutex);
+	g_config_dirty = true;
 	logprintf("Sesion: thread en marcha (↑ registra | A conecta | B para)");
 	return true;
 }
 
-static void stop_session()
+static void stop_session(bool shutdown = false)
 {
 	if(!g_session_active)
 		return;
@@ -1045,8 +1207,9 @@ static void stop_session()
 	chiaki_session_join(&g_session);
 	chiaki_session_fini(&g_session);
 	// Libera decoder h264 (~40 MB) y buffers; el hilo de video ya esta
-	// unido, asi que nadie llama a wiiu_video_sample ahora.
-	wiiu_video_reset();
+	// unido, asi que nadie llama a wiiu_video_sample ahora. En shutdown
+	// (HOME con stream) no se espera al GPU: ver wiiu_video_reset.
+	wiiu_video_reset(!shutdown);
 	g_session_active = false;
 	g_session_login_pin_requested = false;
 	logprintf("Sesion finalizada");
@@ -1259,6 +1422,10 @@ static void swkbd_frame(VPADStatus &status)
 			for(size_t i = 0; i < sizeof(g_psn_account_id); i++)
 				snprintf(hex + i * 2, 3, "%02x", g_psn_account_id[i]);
 			logprintf("Account ID guardado: %s", hex);
+			// Fase 4a: persistir la cuenta en config.ini.
+			snprintf(g_config.account_id_hex,
+				 sizeof(g_config.account_id_hex), "%s", hex);
+			g_config_dirty = true;
 			logprintf("Introduce el PIN de 8 digitos de la PS4");
 			g_swkbd_reopen = Prompt::Pin;
 			break;
@@ -1405,8 +1572,14 @@ int main(int argc, char **argv)
 
 	// Tras log_file_init para que el marker llegue a la SD (antes solo
 	// iba a OSReport/UDP y no servia para confirmar el build desplegado).
-	logprintf("BUILD wiiu-2026-10-16 h264-hw-video-10");
+	logprintf("BUILD wiiu-2026-10-16 config-3");
 	wiiu_video_set_log(video_log_sink);
+
+	// Fase 4a: consolas registradas y cuenta guardadas en la SD. Se carga
+	// antes del discovery para que la IP preseleccionada filtre el ping.
+	logprintf("init: config");
+	config_init(&g_config);
+	config_load_sd();
 
 	// Requiere socket_lib_init ya hecho (crea sockets y threads).
 	logprintf("init: discovery");
@@ -1433,6 +1606,14 @@ int main(int argc, char **argv)
 		{
 			chiaki_regist_fini(&g_regist);
 			g_regist_state = RegistState::Idle;
+		}
+
+		// Fase 4a: guardar cambios pendientes (registro nuevo, cuenta
+		// PSN o ultima consola conectada).
+		if(g_config_dirty)
+		{
+			g_config_dirty = false;
+			config_save_sd();
 		}
 
 		// La PS4 pide PIN de acceso: teclado (si no hay otro form abierto).
@@ -1564,9 +1745,13 @@ int main(int argc, char **argv)
 	// Orden inverso al arranque: sesion -> registro -> discovery -> teclado
 	// -> graficos -> log -> red.
 	if(g_session_active)
-		stop_session();
+		stop_session(true);
 	// Sin sesion activa no hay decoder, pero por si acaso (idempotente).
-	wiiu_video_reset();
+	// wait_gpu=false: en el camino de shutdown GX2DrawDone puede DSI
+	// (helper de gx2 con el contexto en background) y el crash handler
+	// de wut suspende el hilo principal = consola congelada al volver
+	// al menu HOME tras transmitir.
+	wiiu_video_reset(false);
 	if(g_regist_state == RegistState::Running)
 		chiaki_regist_stop(&g_regist);
 	if(g_regist_state != RegistState::Idle)

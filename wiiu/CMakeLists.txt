@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(chiaki-wiiu
 	src/main.cpp
 	src/video.cpp
+	src/config.cpp
 )
 
 # Fase 3a: h264.rpl (H264DEC*) esta resuelto dentro de libwut.a via

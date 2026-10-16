@@ -1012,7 +1012,7 @@ void wiiu_video_render(int viewport_w, int viewport_h)
 	GX2DrawEx(GX2_PRIMITIVE_MODE_QUADS, 4, 0, 1);
 }
 
-void wiiu_video_reset()
+void wiiu_video_reset(bool wait_gpu)
 {
 	lock_inited();
 
@@ -1023,7 +1023,12 @@ void wiiu_video_reset()
 
 	// El cierre se hace desde el hilo principal (inicio/parada/shutdown)
 	// y siempre con el hilo de video ya unido o todavia no creado.
-	if(s_render_ready || s_tex_ready)
+	// wait_gpu=false en el SHUTDOWN (HOME con stream activo): ahi
+	// GX2DrawDone explotaba con DSI en el helper de gx2 (contexto en
+	// estado background) y el crash handler de wut suspendia el hilo
+	// principal = consola congelada. Al salir no hace falta esperar: el
+	// GPU termina sus draws sobre memoria que sigue mapeada.
+	if(wait_gpu && (s_render_ready || s_tex_ready))
 		GX2DrawDone();
 
 	OSLockMutex(&s_lock);
