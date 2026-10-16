@@ -11,6 +11,7 @@ add_executable(chiaki-wiiu
 	src/main.cpp
 	src/video.cpp
 	src/config.cpp
+	src/gui.cpp
 )
 
 # Fase 3a: h264.rpl (H264DEC*) esta resuelto dentro de libwut.a via
@@ -44,4 +45,7 @@ wut_create_wuhb(chiaki-wiiu
 	NAME "Chiaki NG"
 	SHORTNAME "Chiaki"
 	AUTHOR "chiaki-ng contributors"
+	# Icono real de la app en el menu de la Wii U (Aroma/HBL): el
+	# wordmark + botones de chiaki-ng sobre el gris Material #121212.
+	ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.png"
 )

@@ -9,7 +9,7 @@
  *   salida limpia con HOME.
  * Fase 2: registro con PIN (chiaki_regist) y sesion de Remote Play
  *   (chiaki_session: session request TCP 9295, ctrl, takion UDP, senkusha,
- *   FEC). El Account ID de PSN se introduce a mano (16 hex).
+ *   FEC). El Account ID de PSN se introduce a mano en base64.
  *   Sin decoder aun: los frames de video se descartan y se contabilizan
  *   (valida FEC/gf-complete en la ruta real); el decode llega en fase 3.
  *
@@ -17,6 +17,7 @@
  *   X = configurar IP de la consola (teclado del sistema)
  *   Y = borrar IP y volver a broadcast 255.255.255.255
  *   ↑ = registrar consola (ID PSN + PIN de "Enlazar con otro dispositivo")
+ *   SELECT = editar el Account ID de PSN en cualquier momento
  *   A = conectar Remote Play (despierta la PS4 si esta en standby)
  *   B = parar la sesion activa
  *
@@ -57,6 +58,7 @@
 
 #include "video.h"
 #include "config.h"
+#include "gui.h"
 
 #define DISCOVERY_PING_MS 500
 #define DISCOVERY_HOSTS_MAX 8
@@ -94,6 +96,9 @@ static char g_psn_online_id[64] = { 0 };
 // (el cb de regist corre en su thread); g_config_dirty lo vacia el main.
 static Config g_config;
 static volatile bool g_config_dirty = false;
+// Consola resaltada en el menu (indice en g_config.consoles); la
+// navegan Izq/Dcha y la aplica apply_console() a los globals de sesion.
+static int g_menu_sel = 0;
 static char g_regist_target_host[CONFIG_HOST_SIZE]; // host del regist en curso
 
 // Registro en curso (chiaki_regist lanza su propio thread).
@@ -105,6 +110,10 @@ static RegistState g_regist_state = RegistState::Idle;
 static ChiakiSession g_session;
 static bool g_session_active = false;
 static volatile bool g_session_quit_received = false;
+// IP del destino de la sesion en curso (overlay "Conectando...") y
+// resultado de la ultima sesion (linea en el pie del menu).
+static char g_session_ip[48] = { 0 };
+static char g_last_session_msg[96] = { 0 };
 static volatile bool g_session_login_pin_requested = false;
 static volatile bool g_session_login_pin_incorrect = false;
 static volatile uint64_t g_video_frames = 0;
@@ -123,6 +132,9 @@ static bool g_swkbd_visible = false;
 static Prompt g_prompt = Prompt::None;
 static Prompt g_swkbd_reopen = Prompt::None;
 static char16_t g_swkbd_initial[40];
+// true cuando el Account ID se pide DENTRO del flujo de regist (↑):
+// ahi guardar encadena al PIN; con SELECT (edicion libre) no.
+static bool g_accountid_regist_flow = false;
 // Tras DisappearInputForm el swkbd retail necesita Calc unos frames para
 // completar su transicion de salida; ver el guard en swkbd_frame.
 #define SWKBD_HIDE_FRAMES 30
@@ -693,8 +705,25 @@ static void swkbd_show(Prompt p)
 		}
 		break;
 	case Prompt::AccountId:
-		appearArg.inputFormArg.hintText = u"Account ID PSN: 16 hex (psn.flipscreen.games)";
+		// Formato unico en el UI: base64 (el que sirve la API de
+		// PSN, para copiar y pegar directo de psn.flipscreen.games).
+		appearArg.inputFormArg.hintText = u"Account ID PSN en base64 (ej. wLEMeFoyimY=)";
 		appearArg.inputFormArg.maxTextLength = 16;
+		// Prefill con el ID actual si ya hay uno (SELECT = editar):
+		// asi solo se corrigen los digitos que fallan.
+		if(g_have_psn_account)
+		{
+			char b64[13] = { 0 };
+			if(chiaki_base64_encode(g_psn_account_id,
+					      sizeof(g_psn_account_id), b64,
+					      sizeof(b64)) == CHIAKI_ERR_SUCCESS)
+			{
+				u16_from_ascii(g_swkbd_initial,
+					       sizeof(g_swkbd_initial) / sizeof(char16_t),
+					       b64);
+				appearArg.inputFormArg.initialText = g_swkbd_initial;
+			}
+		}
 		break;
 	case Prompt::Pin:
 		appearArg.inputFormArg.hintText = u"PIN de 8 digitos mostrado en la PS4";
@@ -796,20 +825,10 @@ static int sd_read_file(const char *path, char *buf, size_t cap)
 {
 	if(!g_log_ready || cap < 2)
 		return -1;
-	// Diag config-2 (se quitara tras validar): mientras retenemos
-	// g_log_mutex, logprintf encola; logq_drain() vuelca la cola al
-	// fichero (solo el duenio del mutex puede drenar), asi cada marker
-	// llega a log.txt ANTES de la siguiente llamada FS y localiza un
-	// cuelgue con exactitud.
-	logprintf("cfg: rd %s", path);
 	OSLockMutex(&g_log_mutex);
-	logprintf("cfg: lock ok");
-	logq_drain();
 	FSFileHandle fd = -1;
 	FSStatus st = FSOpenFile(g_log_fs_client, g_log_fs_cmd, path, "r",
 				 &fd, FS_ERROR_FLAG_ALL);
-	logprintf("cfg: open=%d", (int)st);
-	logq_drain();
 	int total = 0;
 	if(st >= 0)
 	{
@@ -819,8 +838,6 @@ static int sd_read_file(const char *path, char *buf, size_t cap)
 		FSStat stat;
 		FSStatus ss = FSGetStatFile(g_log_fs_client, g_log_fs_cmd, fd,
 					    &stat, FS_ERROR_FLAG_ALL);
-		logprintf("cfg: stat=%d size=%u", (int)ss, (unsigned)stat.size);
-		logq_drain();
 		if(ss >= 0 && stat.size > 0)
 		{
 			uint32_t want = stat.size;
@@ -829,15 +846,11 @@ static int sd_read_file(const char *path, char *buf, size_t cap)
 			FSStatus rs = FSReadFile(g_log_fs_client, g_log_fs_cmd,
 						 (uint8_t *)(uintptr_t)buf, 1,
 						 want, fd, 0, FS_ERROR_FLAG_ALL);
-			logprintf("cfg: read=%d", (int)rs);
-			logq_drain();
 			if(rs > 0)
 				total = (int)rs;
 		}
-		FSStatus cs = FSCloseFile(g_log_fs_client, g_log_fs_cmd, fd,
-					  FS_ERROR_FLAG_ALL);
-		logprintf("cfg: close=%d", (int)cs);
-		logq_drain();
+		FSCloseFile(g_log_fs_client, g_log_fs_cmd, fd,
+			    FS_ERROR_FLAG_ALL);
 	}
 	buf[total] = '\0';
 	OSUnlockMutex(&g_log_mutex);
@@ -870,6 +883,24 @@ static bool sd_write_file(const char *path, const char *buf, size_t len)
 static char g_cfg_in[4096] __attribute__((aligned(64)));
 static char g_cfg_out[2048] __attribute__((aligned(64)));
 
+// Aplica la consola idx a los globals de sesion (IP + claves + nombre)
+// y la marca como seleccionada en el menu. Asi A conecta siempre con la
+// consola resaltada, igual al arranque o al cambiar con Izq/Dcha.
+static bool apply_console(int idx)
+{
+	if(idx < 0 || idx >= config_console_count(&g_config))
+		return false;
+	const ConfigConsole *c = &g_config.consoles[idx];
+	snprintf(g_host_ip, sizeof(g_host_ip), "%s", c->host);
+	memcpy(g_regist_key, c->regist_key, sizeof(g_regist_key));
+	memcpy(g_morning, c->morning, sizeof(g_morning));
+	if(c->name[0])
+		snprintf(g_host_nickname, sizeof(g_host_nickname), "%s", c->name);
+	g_registered = true;
+	g_menu_sel = idx;
+	return true;
+}
+
 static void config_load_sd(void)
 {
 	int n = sd_read_file(CONFIG_SD_PATH, g_cfg_in, sizeof(g_cfg_in));
@@ -891,20 +922,15 @@ static void config_load_sd(void)
 				   ? g_config.last_host
 				   : (count > 0 ? g_config.consoles[0].host : nullptr);
 	int idx = config_find(&g_config, host);
-	if(idx < 0)
-		return;
-	const ConfigConsole *c = &g_config.consoles[idx];
-	snprintf(g_host_ip, sizeof(g_host_ip), "%s", c->host);
-	memcpy(g_regist_key, c->regist_key, sizeof(g_regist_key));
-	memcpy(g_morning, c->morning, sizeof(g_morning));
-	if(c->name[0])
-		snprintf(g_host_nickname, sizeof(g_host_nickname), "%s", c->name);
-	g_registered = true;
+	if(idx >= 0 && apply_console(idx))
+		logprintf("Config: lista '%s' (%s) — A conecta sin registrar de nuevo",
+			  g_config.consoles[idx].name[0]
+				  ? g_config.consoles[idx].name
+				  : "?",
+			  g_config.consoles[idx].host);
 	if(g_config.account_id_hex[0] &&
 	   parse_psn_account_id(g_config.account_id_hex, g_psn_account_id))
 		g_have_psn_account = true;
-	logprintf("Config: lista '%s' (%s) — A conecta sin registrar de nuevo",
-		  c->name[0] ? c->name : "?", c->host);
 }
 
 // Serializa bajo g_host_mutex (el cb de regist escribe desde su thread) y
@@ -1098,6 +1124,21 @@ static void session_event_cb(ChiakiEvent *event, void *user)
 		else
 			logprintf("Sesion terminada: %s",
 				     chiaki_quit_reason_string(event->quit.reason));
+		// Resultado visible en el pie del menu al volver (chiaki
+		// solo lo mandaba al log: si la sesion falla, el usuario
+		// no veia nada en pantalla).
+		if(event->quit.reason == CHIAKI_QUIT_REASON_STOPPED)
+			snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+				 "Última sesión: detenida (B)");
+		else if(event->quit.reason_str)
+			snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+				 "Última sesión fallida: %s — %s",
+				 chiaki_quit_reason_string(event->quit.reason),
+				 event->quit.reason_str);
+		else
+			snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+				 "Última sesión fallida: %s",
+				 chiaki_quit_reason_string(event->quit.reason));
 		g_session_quit_received = true;
 		break;
 	default:
@@ -1152,6 +1193,7 @@ static bool start_session()
 	info.enable_idr_on_fec_failure = true;
 	memcpy(info.psn_account_id, g_psn_account_id, sizeof(info.psn_account_id));
 
+	snprintf(g_session_ip, sizeof(g_session_ip), "%s", host);
 	logprintf("Sesion: conectando con %s (req_port %u informativo, chiaki usa 9295)",
 		     host, (unsigned int)req_port);
 
@@ -1327,7 +1369,8 @@ static void handle_press_up()
 	}
 	else
 	{
-		logprintf("↑: introduce el Account ID de PSN (16 hex; en psn.flipscreen.games)");
+		logprintf("↑: introduce el Account ID de PSN en base64 (ej. wLEMeFoyimY=)");
+		g_accountid_regist_flow = true;
 		swkbd_show(Prompt::AccountId);
 	}
 }
@@ -1413,7 +1456,7 @@ static void swkbd_frame(VPADStatus &status)
 		{
 			if(!parse_psn_account_id(input, g_psn_account_id))
 			{
-				logprintf("Account ID invalido: '%s' — 16 hex o base64", input);
+				logprintf("Account ID invalido: '%s' — formato base64 (ej. wLEMeFoyimY=)", input);
 				g_swkbd_reopen = Prompt::AccountId;
 				break;
 			}
@@ -1421,13 +1464,27 @@ static void swkbd_frame(VPADStatus &status)
 			char hex[17] = { 0 };
 			for(size_t i = 0; i < sizeof(g_psn_account_id); i++)
 				snprintf(hex + i * 2, 3, "%02x", g_psn_account_id[i]);
-			logprintf("Account ID guardado: %s", hex);
+			// El config se queda en hex (formato del archivo); el
+			// log muestra tambien el base64 (wLEMeFoyimY=), que es
+			// el formato que sirve la API de PSN.
+			char b64[13] = { 0 };
+			if(chiaki_base64_encode(g_psn_account_id,
+					      sizeof(g_psn_account_id), b64,
+					      sizeof(b64)) != CHIAKI_ERR_SUCCESS)
+				b64[0] = 0;
+			logprintf("Account ID guardado: %s (base64: %s)", hex, b64);
 			// Fase 4a: persistir la cuenta en config.ini.
 			snprintf(g_config.account_id_hex,
 				 sizeof(g_config.account_id_hex), "%s", hex);
 			g_config_dirty = true;
-			logprintf("Introduce el PIN de 8 digitos de la PS4");
-			g_swkbd_reopen = Prompt::Pin;
+			if(g_accountid_regist_flow)
+			{
+				logprintf("Introduce el PIN de 8 digitos de la PS4");
+				g_swkbd_reopen = Prompt::Pin;
+			}
+			else
+				logprintf("Cuenta actualizada — A conecta con el nuevo ID");
+			g_accountid_regist_flow = false;
 			break;
 		}
 
@@ -1486,7 +1543,11 @@ static void swkbd_frame(VPADStatus &status)
 			logprintf("Registro cancelado (sin ID PSN)");
 			break;
 		case Prompt::AccountId:
-			logprintf("Registro cancelado (sin Account ID)");
+			if(g_accountid_regist_flow)
+				logprintf("Registro cancelado (sin Account ID)");
+			else
+				logprintf("Account ID no cambiado");
+			g_accountid_regist_flow = false;
 			break;
 		case Prompt::Pin:
 			logprintf("Registro cancelado (sin PIN)");
@@ -1519,6 +1580,259 @@ static void swkbd_shutdown()
 		MEMFreeToDefaultHeap(g_fs_client);
 		g_fs_client = nullptr;
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Menu principal: se dibuja en TV y DRC cuando no hay sesion activa.
+// Replica el look de chiaki-ng (gui/src/qml/Main.qml): tema Qt Material
+// Dark (fondo #121212, ToolBar #1e1e1e, acento #00a7ff) con su ToolBar de
+// botones planos, filas tipo ItemDelegate de180px con el icono PS4 real
+// (console-ps4.svg: cuerpo + tira de luz #light_on/#light_standby) y la
+// columna de acciones de la fila destacada. Izq/Dcha cambia la seleccion
+// (apply_console vuelca IP+claves a los globals con los que conecta A).
+// ---------------------------------------------------------------------------
+#define APP_BUILD_TAG "gui-9"
+
+// Overlay "Conectando..." mientras la sesion arranca: desde A hasta el
+// primer frame decodificado quedaba ~1 s de clear verde sin nada encima.
+// Tarjeta Material (#1e1e1e) centrada, como los dialogs de chiaki-ng.
+static void draw_connecting(int w, int h)
+{
+	int scale = (w >= 1280) ? 2 : 1;
+	int u = 8 * scale;
+
+	// Puntos animados (~270 ms por fase) como feedback de vida.
+	static const char *dots[] = { "", ".", "..", "..." };
+	int phase = (int)((OSGetTime() >> 24) & 3);
+	char line[80];
+	snprintf(line, sizeof(line), "Conectando con %s%s",
+		 g_session_ip[0] ? g_session_ip : "la consola", dots[phase]);
+	const char *hint = "B para cancelar";
+
+	gui_begin(w, h);
+
+	float tw = gui_text_width(line, scale);
+	float hw = gui_text_width(hint, scale);
+	float cw = (tw > hw ? tw : hw) + (float)(u * 3);
+	float ch = (float)(u * 5); // dos lineas + padding
+	float cx = ((float)w - cw) / 2.f;
+	float cy = ((float)h - ch) / 2.f;
+
+	gui_rect(cx, cy, cw, ch, GUI_RGBA(0x1e, 0x1e, 0x1e, 0xff));
+	gui_text(cx + (cw - tw) / 2.f, cy + (float)u, line,
+		 GUI_RGBA(0xff, 0xff, 0xff, 0xde), scale);
+	gui_text(cx + (cw - hw) / 2.f, cy + (float)(u * 3), hint,
+		 GUI_RGBA(0xff, 0xff, 0xff, 0x8a), scale);
+
+	gui_flush();
+}
+
+static void draw_menu(int w, int h)
+{
+	// Escala2x en TV (>=1280) y1x en DRC: la fuente8x8 queda legible
+	// en ambas salidas.
+	int scale = (w >= 1280) ? 2 : 1;
+	int u = 8 * scale; // celda de fuente
+	int m = w / 40;    // margen lateral (TV32, DRC21)
+
+	gui_begin(w, h);
+
+	// Paleta Qt Material Dark de chiaki-ng (Main.qml: Material.theme
+	// Dark + Material.accent "#00a7ff"); opacidades tipicas del tema
+	// (texto87/54/38%) y luz de consola del SVG console-ps4.
+	const uint32_t c_bg = GUI_RGBA(0x12, 0x12, 0x12, 0xff);     // fondo
+	const uint32_t c_bar = GUI_RGBA(0x1e, 0x1e, 0x1e, 0xff);    // ToolBar
+	const uint32_t c_text = GUI_RGBA(0xff, 0xff, 0xff, 0xde);   //87%
+	const uint32_t c_text2 = GUI_RGBA(0xff, 0xff, 0xff, 0x8a);  //54%
+	const uint32_t c_text3 = GUI_RGBA(0xff, 0xff, 0xff, 0x61);  //38%
+	const uint32_t c_white = GUI_RGBA(0xff, 0xff, 0xff, 0xff);
+	const uint32_t c_accent = GUI_RGBA(0x00, 0xa7, 0xff, 0xff);
+	const uint32_t c_standby = GUI_RGBA(0xff, 0xae, 0x2f, 0xff);
+	const uint32_t c_sel = GUI_RGBA(0x00, 0xa7, 0xff, 0x33); // highlight
+	const uint32_t c_icon = GUI_RGBA(0x30, 0x30, 0x30, 0xff); // cuerpo
+	const uint32_t c_off = GUI_RGBA(0x40, 0x40, 0x40, 0xff);  // luz off
+
+	// UVs de los assets del atlas (wordmark + PS4).
+	float lu, lv, lw, lh, bu, bv, bw, bh, su, sv, sw, sh;
+	gui_asset_uvs(GUI_ASSET_LOGO, &lu, &lv, &lw, &lh);
+	gui_asset_uvs(GUI_ASSET_PS4_BODY, &bu, &bv, &bw, &bh);
+	gui_asset_uvs(GUI_ASSET_PS4_LIGHT, &su, &sv, &sw, &sh);
+
+	// Fondo + ToolBar (chiaki-ng: barra de80/1080 con botones planos).
+	gui_rect(0.f, 0.f, (float)w, (float)h, c_bg);
+	int bar_h = u * 3 + u / 2;
+	gui_rect(0.f, 0.f, (float)w, (float)bar_h, c_bar);
+	// Divisor sutil bajo la barra (elevation de Material: 1dp).
+	gui_rect(0.f, (float)bar_h, (float)w, (float)scale,
+		 GUI_RGBA(0x2a, 0x2a, 0x2a, 0xff));
+
+	// Wordmark de chiaki-ng (asset real) a la izquierda de la barra.
+	float logo_h = (float)(u * 5 / 2);
+	float logo_w = logo_h * (128.f / 76.f); // aspecto del asset
+	gui_image((float)m, ((float)bar_h - logo_h) / 2.f, logo_w, logo_h,
+		  lu, lv, lw, lh, c_white);
+
+	// Botones planos del ToolBar, alineados a la derecha (chiaki-ng:
+	// × y acciones a la izquierda; aqui las acciones del gamepad).
+	const char *tb =
+		"Registrar (Arriba)   ID (SELECT)   IP (X)   Buscar (Y)   Salir (HOME)";
+	gui_text((float)(w - m) - gui_text_width(tb, scale),
+		 ((float)bar_h - (float)u) / 2.f, tb, c_text, scale);
+
+	int count = config_console_count(&g_config);
+	int sel = (g_menu_sel >= 0 && g_menu_sel < count) ? g_menu_sel : 0;
+	int list_y = bar_h + u * 2;
+	int row_h = u * 7; // filas tipo ItemDelegate (180/1080 de chiaki)
+	int max_rows = (h - u * 4 - list_y) / row_h;
+	if(max_rows < 2)
+		max_rows = 2;
+	int rows = count == 0 ? 2 : (count < max_rows ? count : max_rows);
+
+	// Snapshot del discovery de la consola SELECCIONADA (cb desde su
+	// thread; el filtro unicast la dirige a su IP).
+	chiaki_mutex_lock(&g_host_mutex);
+	bool found = g_host_found;
+	ChiakiDiscoveryHostState st = g_host_state;
+	chiaki_mutex_unlock(&g_host_mutex);
+
+	if(count == 0)
+	{
+		// Icono de discovery de chiaki-ng (discover-24px) centrado
+		// sobre el aviso: encendido (acento) si hay consola
+		// detectada, apagado si aun no se ve ninguna.
+		float ru, rv, rw, rh;
+		gui_asset_uvs(found ? GUI_ASSET_RADAR_ON : GUI_ASSET_RADAR_OFF,
+			       &ru, &rv, &rw, &rh);
+		float isz = (float)(u * 5);
+		gui_image(((float)w - isz) / 2.f, (float)(list_y + u * 2),
+			  isz, isz, ru, rv, rw, rh,
+			  found ? c_accent : c_text3);
+		if(found)
+		{
+			// Aviso unico y directo: detectada -> ↑ registra.
+			const char *msg =
+				"Consola detectada - pulsa Arriba para registrar";
+			gui_text(((float)w - gui_text_width(msg, scale)) / 2.f,
+				 (float)(list_y + u * 8), msg, c_text2,
+				 scale);
+		}
+		else
+		{
+			const char *empty =
+				"Sin consolas registradas - pulsa Arriba con el PIN de la PS4";
+			gui_text(((float)w - gui_text_width(empty, scale)) / 2.f,
+				 (float)(list_y + u * 8), empty, c_text3,
+				 scale);
+			const char *seek = "Buscando consolas en la red...";
+			gui_text(((float)w - gui_text_width(seek, scale)) / 2.f,
+				 (float)(list_y + u * 10), seek, c_text3,
+				 scale);
+		}
+	}
+	else
+	{
+		// Ventana de visibilidad si hay mas consolas que filas.
+		int start = sel - rows + 1;
+		if(start < 0)
+			start = 0;
+		for(int i = 0; i < rows; i++)
+		{
+			int idx = start + i;
+			const ConfigConsole *con = &g_config.consoles[idx];
+			int y = list_y + i * row_h;
+			bool is_sel = (idx == sel);
+			bool live = is_sel && found;
+
+			// ItemDelegate destacado de Material: acento suave
+			// + barra vertical como en el ListView de chiaki-ng.
+			if(is_sel)
+			{
+				gui_rect(0.f, (float)y, (float)w,
+					 (float)row_h, c_sel);
+				gui_rect(0.f, (float)y, (float)(u / 4),
+					 (float)row_h, c_accent);
+			}
+
+			// Icono PS4 real: cuerpo + tira de luz teñida por
+			// estado (azul encendida, ámbar standby, apagada si
+			// no hay discovery), igual que #light_on/#light_standby.
+			uint32_t light = c_off;
+			if(live)
+			{
+				if(st == CHIAKI_DISCOVERY_HOST_STATE_READY)
+					light = c_accent;
+				else if(st ==
+					CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+					light = c_standby;
+			}
+			float icon_w = (float)(u * 8);
+			float icon_h = icon_w * (22.f / 128.f);
+			float icon_x = (float)(m + u);
+			float icon_y = (float)y +
+				      ((float)row_h - icon_h) / 2.f;
+			gui_image(icon_x, icon_y, icon_w, icon_h, bu, bv, bw,
+				  bh, c_icon);
+			gui_image(icon_x, icon_y, icon_w, icon_h, su, sv, sw,
+				  sh, light);
+
+			// Labels del delegate: nombre / dirección / estado.
+			int tx = m + u * 10;
+			int lh2 = u * 2;
+			int ty = y + (row_h - lh2 * 3) / 2;
+			gui_text((float)tx, (float)ty,
+				 con->name[0] ? con->name : "?", c_text,
+				 scale);
+			char line[72];
+			snprintf(line, sizeof(line), "Dirección: %s",
+				 con->host);
+			gui_text((float)tx, (float)(ty + lh2), line, c_text2,
+				 scale);
+			const char *state;
+			if(!is_sel)
+				state = "Estado: -";
+			else if(g_regist_state != RegistState::Idle)
+				state = "Estado: registrando...";
+			else if(!found)
+				state = "Estado: sin discovery (Y=buscar)";
+			else if(st == CHIAKI_DISCOVERY_HOST_STATE_READY)
+				state = "Estado: lista";
+			else if(st == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+				state = "Estado: en espera";
+			else
+				state = "Estado: discovery";
+			gui_text((float)tx, (float)(ty + lh2 * 2), state,
+				 c_text2, scale);
+
+			// Acciones de la fila destacada (chiaki-ng: columna
+			// de botones planos a la derecha: Conectar/Wake Up).
+			if(is_sel)
+			{
+				const char *act =
+					(found && st ==
+						 CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
+						? "Despertar (A)"
+						: "Conectar (A)";
+				gui_text((float)(w - m) -
+						 gui_text_width(act, scale),
+					 (float)(y + (row_h - u) / 2), act,
+					 c_accent, scale);
+			}
+		}
+	}
+
+	// Pie (chiaki-ng: pista abajo-izquierda + etiqueta de version
+	// abajo-derecha).
+	const char *foot = g_regist_state != RegistState::Idle
+				   ? "Registrando... introduce el PIN que muestra la PS4"
+				   : "Izq/Dcha: elegir consola";
+	gui_text((float)m, (float)(h - m - u), foot, c_text2, scale);
+	if(g_last_session_msg[0])
+		gui_text((float)m, (float)(h - m - u * 2), g_last_session_msg,
+			 c_text3, scale);
+	gui_text((float)(w - m) - gui_text_width(APP_BUILD_TAG, scale),
+		 (float)(h - m - u), APP_BUILD_TAG, c_text3, scale);
+
+	gui_flush();
 }
 
 int main(int argc, char **argv)
@@ -1572,7 +1886,7 @@ int main(int argc, char **argv)
 
 	// Tras log_file_init para que el marker llegue a la SD (antes solo
 	// iba a OSReport/UDP y no servia para confirmar el build desplegado).
-	logprintf("BUILD wiiu-2026-10-16 config-3");
+	logprintf("BUILD wiiu-2026-10-16 " APP_BUILD_TAG);
 	wiiu_video_set_log(video_log_sink);
 
 	// Fase 4a: consolas registradas y cuenta guardadas en la SD. Se carga
@@ -1585,7 +1899,12 @@ int main(int argc, char **argv)
 	logprintf("init: discovery");
 	g_discovery_running = start_discovery(nullptr);
 
-	logprintf("Controles: X=IP  Y=broadcast  Arriba=registrar  A=conectar  B=parar sesion");
+	// Menu GX2 (fase 4b): shaders + fuente embebida. Tras el log para
+	// que un fallo quede registrado; sin GUI el menu no se dibuja y
+	// el resto de la app sigue funcionando (las primitivas son no-op).
+	logprintf("init: gui %s", gui_init() ? "ok" : "FALLO");
+
+	logprintf("Controles: A=conectar  Izq/Dcha=elegir consola  Arriba=registrar  SELECT=ID  X=IP  Y=broadcast  B=parar sesion");
 
 	uint32_t last_hold = 0;
 	VPADTouchData last_touch = {};
@@ -1606,6 +1925,11 @@ int main(int argc, char **argv)
 		{
 			chiaki_regist_fini(&g_regist);
 			g_regist_state = RegistState::Idle;
+			// Resaltar en el menu la consola recien registrada
+			// (el cb corrio en su thread; aqui ya esta todo quieto).
+			int idx = config_find(&g_config, g_regist_target_host);
+			if(idx >= 0)
+				g_menu_sel = idx;
 		}
 
 		// Fase 4a: guardar cambios pendientes (registro nuevo, cuenta
@@ -1675,6 +1999,74 @@ int main(int argc, char **argv)
 					else
 						logprintf("B: no hay sesion activa");
 				}
+				else if(rising & VPAD_BUTTON_MINUS)
+				{
+					// SELECT: editar el Account ID en
+					// cualquier momento (requisito del
+					// puerto: editable in-app); el flujo
+					// de regist solo lo pedia si faltaba.
+					if(g_session_active)
+						logprintf("SELECT: en sesion (B para parar)");
+					else if(g_regist_state !=
+							RegistState::Idle)
+						logprintf("SELECT: regist en curso — espera a que termine");
+					else
+					{
+						logprintf("SELECT: editar Account ID de PSN");
+						g_accountid_regist_flow = false;
+						swkbd_show(Prompt::AccountId);
+					}
+				}
+				else if(rising & (VPAD_BUTTON_LEFT |
+						  VPAD_BUTTON_RIGHT))
+				{
+					if(g_session_active)
+						logprintf("Izq/Dcha: en sesion (B para parar)");
+					else
+					{
+						int count =
+							config_console_count(&g_config);
+						if(count <= 0)
+							logprintf(
+								"Sin consolas: Arriba=registrar o X=IP");
+						else
+						{
+							int dir =
+								(rising & VPAD_BUTTON_RIGHT)
+									? 1
+									: -1;
+							int idx = (g_menu_sel + dir +
+								   count) %
+								  count;
+							if(apply_console(idx))
+							{
+								logprintf(
+									"Elegida consola %d/%d: '%s' (%s)",
+									idx + 1, count,
+									g_config.consoles[idx]
+											.name[0]
+										? g_config
+											  .consoles[idx]
+											  .name
+										: "?",
+									g_config.consoles[idx]
+										.host);
+								// La IP cambio: el estado
+								// visto antes no es de esta
+								// consola; limpiar y re-consultar.
+								chiaki_mutex_lock(
+									&g_host_mutex);
+								g_host_found = false;
+								g_host_state =
+									CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
+								g_host_addr[0] = 0;
+								chiaki_mutex_unlock(
+									&g_host_mutex);
+								restart_discovery();
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -1712,27 +2104,47 @@ int main(int argc, char **argv)
 		// del pass de cada pantalla y copiarse al scan buffer con Finish*TV/DRC;
 		// sin eso WHBGfxClearColor solo limpia el DRC (sDrawingTv arranca en
 		// FALSE) y la pantalla queda negra.
+		// Sesion activa: verde pulsante (senal de stream). Menu: clear
+		// #121212, el MISMO gris del fondo del menu — antes era el
+		// "azul discovery" pulsante y se veia como un brillo azul en
+		// los primeros frames hasta que el frame se asentaba.
 		uint64_t ticks = OSGetTime();
 		float pulse = 0.5f + 0.5f * (float)((ticks >> 24) & 0xff) / 255.0f;
+		float clear_r = 0.07f, clear_g = 0.07f, clear_b = 0.07f;
+		if(g_session_active)
+		{
+			clear_r = 0.05f;
+			clear_g = 0.15f + 0.35f * pulse;
+			clear_b = 0.1f;
+		}
 
 		WHBGfxBeginRender();
 
-		// Verde pulsante = sesion de Remote Play activa; azul = discovery.
-		float base_g = g_session_active ? 0.15f + 0.35f * pulse : 0.2f;
-		float base_b = g_session_active ? 0.1f : pulse;
-
 		WHBGfxBeginRenderTV();
-		WHBGfxClearColor(g_session_active ? 0.05f : 0.1f, base_g, base_b, 1.0f);
+		WHBGfxClearColor(clear_r, clear_g, clear_b, 1.0f);
 		if(g_session_active)
+		{
 			wiiu_video_render(1920, 1080);
+			// Sin muestra de video aun: tarjeta "Conectando".
+			if(g_video_frames == 0)
+				draw_connecting(1920, 1080);
+		}
+		else
+			draw_menu(1920, 1080);
 		if(g_swkbd_visible)
 			nn::swkbd::DrawTV();
 		WHBGfxFinishRenderTV();
 
 		WHBGfxBeginRenderDRC();
-		WHBGfxClearColor(g_session_active ? 0.05f : 0.1f, base_g, base_b, 1.0f);
+		WHBGfxClearColor(clear_r, clear_g, clear_b, 1.0f);
 		if(g_session_active)
+		{
 			wiiu_video_render(854, 480);
+			if(g_video_frames == 0)
+				draw_connecting(854, 480);
+		}
+		else
+			draw_menu(854, 480);
 		if(g_swkbd_visible)
 			nn::swkbd::DrawDRC();
 		WHBGfxFinishRenderDRC();

@@ -1,0 +1,26 @@
+; Pixel shader GUI: color de vertice con alfa enmascarado por la
+; textura de fuente8x8 (R8): out = (color.rgb, color.a * tex.r).
+; La textura contiene ademas un bloque blanco (filas64-71) cuyo
+; texel r=1 permite dibujar rectangulos solidos con el mismo shader.
+; t0 = textura de fuente (R8,128x72).
+
+; $MODE = "UniformRegister"
+
+; $NUM_SPI_PS_INPUT_CNTL = 2
+; v_color R0
+; $SPI_PS_INPUT_CNTL[0].SEMANTIC = 0
+; $SPI_PS_INPUT_CNTL[0].DEFAULT_VAL = 1
+; v_texCoord R1
+; $SPI_PS_INPUT_CNTL[1].SEMANTIC = 1
+; $SPI_PS_INPUT_CNTL[1].DEFAULT_VAL = 1
+
+; $SAMPLER_VARS[0].name = "u_font"
+; $SAMPLER_VARS[0].type = "SAMPLER2D"
+; $SAMPLER_VARS[0].location = 0
+
+00 TEX: VALID_PIX
+    0  SAMPLE R2, R1.xy0x, t0, s0
+01 ALU:
+    1  w: MUL R0.w, R0.w, R2.x
+02 EXP_DONE: PIX0, R0
+END_OF_PROGRAM
