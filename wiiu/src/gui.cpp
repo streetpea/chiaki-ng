@@ -53,7 +53,7 @@
 #include <string.h>
 
 #define FONT_TEX_W 256 // mitad izq: glifos; mitad der: assets
-#define FONT_TEX_H 192 // glifos (128) + blanco (8) + assets hasta 192
+#define FONT_TEX_H 224 // glifos (128) + blanco (8) + assets hasta 224
 #define FONT_WHITE_ROW 128 // filas de bloque blanco para solidos
 #define FONT_WHITE_H 8
 
@@ -70,6 +70,9 @@
 #define ASSET_RADAR_S 64            // discover-24px -> 64x64
 #define ASSET_RADAR_ON_X ASSET_LOGO_X
 #define ASSET_RADAR_OFF_X (ASSET_LOGO_X + ASSET_RADAR_S)
+#define ASSET_DISC_Y 192
+#define ASSET_DISC_S 32            // disco de los chips de boton
+#define ASSET_DISC_X ASSET_LOGO_X
 
 #define MAX_VERTS 4096 //1024 quads por frame (el menu usa ~500)
 
@@ -271,6 +274,9 @@ static bool font_create(void)
 		memcpy(p + (size_t)(ASSET_RADAR_Y + r) * pitch + ASSET_RADAR_OFF_X,
 		       gui_radar_off + (size_t)r * ASSET_RADAR_S, ASSET_RADAR_S);
 	}
+	for(int r = 0; r < ASSET_DISC_S; r++)
+		memcpy(p + (size_t)(ASSET_DISC_Y + r) * pitch + ASSET_DISC_X,
+		       gui_disc + (size_t)r * ASSET_DISC_S, ASSET_DISC_S);
 
 	DCFlushRange(img, s_font.surface.imageSize);
 	GX2RUnlockSurfaceEx(&s_font.surface, 0, GX2R_RESOURCE_BIND_NONE);
@@ -543,6 +549,12 @@ void gui_asset_uvs(GuiAsset asset, float *u, float *v, float *w, float *h)
 		*v = (float)ASSET_RADAR_Y / ah;
 		*w = (float)ASSET_RADAR_S / aw;
 		*h = (float)ASSET_RADAR_S / ah;
+		break;
+	case GUI_ASSET_DISC:
+		*u = (float)ASSET_DISC_X / aw;
+		*v = (float)ASSET_DISC_Y / ah;
+		*w = (float)ASSET_DISC_S / aw;
+		*h = (float)ASSET_DISC_S / ah;
 		break;
 	}
 }

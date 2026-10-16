@@ -1591,7 +1591,26 @@ static void swkbd_shutdown()
 // columna de acciones de la fila destacada. Izq/Dcha cambia la seleccion
 // (apply_console vuelca IP+claves a los globals con los que conecta A).
 // ---------------------------------------------------------------------------
-#define APP_BUILD_TAG "gui-9"
+#define APP_BUILD_TAG "gui-12"
+
+// Chip de boton del gamepad: disco (mask en la mitad derecha del atlas)
+// + letra centrada. Colores robustos (gris medio + letra blanca): si en
+// consola la mask sale completa o solo el aro (gui-10), la blanca se lee
+// en ambos casos. Devuelve el ancho dibujado; el caller gestiona el
+// hueco posterior.
+static float draw_button_chip(float x, float y, int scale, char letter,
+			      uint32_t disc, uint32_t letter_color)
+{
+	float du, dv, dw, dh;
+	gui_asset_uvs(GUI_ASSET_DISC, &du, &dv, &dw, &dh);
+	float d = (float)(scale * 12); // disco: 24 px TV / 12 px DRC
+	gui_image(x, y, d, d, du, dv, dw, dh, disc);
+	char s[2] = { letter, 0 };
+	float tw = gui_text_width(s, scale);
+	gui_text(x + (d - tw) / 2.f, y + (d - (float)(scale * 8)) / 2.f,
+		 s, letter_color, scale);
+	return d;
+}
 
 // Overlay "Conectando..." mientras la sesion arranca: desde A hasta el
 // primer frame decodificado quedaba ~1 s de clear verde sin nada encima.
@@ -1607,12 +1626,13 @@ static void draw_connecting(int w, int h)
 	char line[80];
 	snprintf(line, sizeof(line), "Conectando con %s%s",
 		 g_session_ip[0] ? g_session_ip : "la consola", dots[phase]);
-	const char *hint = "B para cancelar";
+	const char *hint = "para cancelar";
 
 	gui_begin(w, h);
 
 	float tw = gui_text_width(line, scale);
-	float hw = gui_text_width(hint, scale);
+	float chip_d = (float)(scale * 12), chip_gap = (float)(scale * 4);
+	float hw = chip_d + chip_gap + gui_text_width(hint, scale);
 	float cw = (tw > hw ? tw : hw) + (float)(u * 3);
 	float ch = (float)(u * 5); // dos lineas + padding
 	float cx = ((float)w - cw) / 2.f;
@@ -1621,7 +1641,11 @@ static void draw_connecting(int w, int h)
 	gui_rect(cx, cy, cw, ch, GUI_RGBA(0x1e, 0x1e, 0x1e, 0xff));
 	gui_text(cx + (cw - tw) / 2.f, cy + (float)u, line,
 		 GUI_RGBA(0xff, 0xff, 0xff, 0xde), scale);
-	gui_text(cx + (cw - hw) / 2.f, cy + (float)(u * 3), hint,
+	float bx = cx + (cw - hw) / 2.f;
+	draw_button_chip(bx, cy + (float)(u * 3) - (chip_d - (float)u) / 2.f,
+			 scale, 'B', GUI_RGBA(0x54, 0x54, 0x54, 0xff),
+			 GUI_RGBA(0xff, 0xff, 0xff, 0xde));
+	gui_text(bx + chip_d + chip_gap, cy + (float)(u * 3), hint,
 		 GUI_RGBA(0xff, 0xff, 0xff, 0x8a), scale);
 
 	gui_flush();
@@ -1651,6 +1675,8 @@ static void draw_menu(int w, int h)
 	const uint32_t c_sel = GUI_RGBA(0x00, 0xa7, 0xff, 0x33); // highlight
 	const uint32_t c_icon = GUI_RGBA(0x30, 0x30, 0x30, 0xff); // cuerpo
 	const uint32_t c_off = GUI_RGBA(0x40, 0x40, 0x40, 0xff);  // luz off
+	const uint32_t c_chip = GUI_RGBA(0x54, 0x54, 0x54, 0xff); // pastilla
+	const uint32_t c_chip_fg = GUI_RGBA(0xff, 0xff, 0xff, 0xde);
 
 	// UVs de los assets del atlas (wordmark + PS4).
 	float lu, lv, lw, lh, bu, bv, bw, bh, su, sv, sw, sh;
@@ -1672,12 +1698,52 @@ static void draw_menu(int w, int h)
 	gui_image((float)m, ((float)bar_h - logo_h) / 2.f, logo_w, logo_h,
 		  lu, lv, lw, lh, c_white);
 
-	// Botones planos del ToolBar, alineados a la derecha (chiaki-ng:
-	// × y acciones a la izquierda; aqui las acciones del gamepad).
-	const char *tb =
-		"Registrar (Arriba)   ID (SELECT)   IP (X)   Buscar (Y)   Salir (HOME)";
-	gui_text((float)(w - m) - gui_text_width(tb, scale),
-		 ((float)bar_h - (float)u) / 2.f, tb, c_text, scale);
+	// Botones planos del ToolBar (chiaki-ng) con chips de boton del
+	// gamepad para los que tienen tecla propia (SELECT, X, Y); HOME
+	// y las flechas del D-pad van en texto.
+	struct TbSeg
+	{
+		char chip;
+		const char *label;
+	};
+	static const TbSeg tb_segs[] = {
+		{ 0, "Registrar (Arriba)" },
+		{ '-', "ID" },
+		{ 'X', "IP" },
+		{ 'Y', "Buscar" },
+		{ 0, "Salir (HOME)" },
+	};
+	int nseg = (int)(sizeof(tb_segs) / sizeof(tb_segs[0]));
+	float chip_d = (float)(scale * 12);
+	// Hueco chip->etiqueta y entre segmentos ampliado: con el hueco
+	// previo no quedaba claro a que opcion apuntaba cada disco.
+	float chip_gap = (float)(scale * 6);
+	float seg_gap = (float)u * 2.f;
+	float total = 0;
+	for(int i = 0; i < nseg; i++)
+	{
+		if(i)
+			total += seg_gap;
+		if(tb_segs[i].chip)
+			total += chip_d + chip_gap;
+		total += gui_text_width(tb_segs[i].label, scale);
+	}
+	float ty = ((float)bar_h - (float)u) / 2.f;
+	float tx = (float)(w - m) - total;
+	for(int i = 0; i < nseg; i++)
+	{
+		if(tb_segs[i].chip)
+		{
+			draw_button_chip(tx, ty - (chip_d - (float)u) / 2.f,
+					 scale, tb_segs[i].chip, c_chip,
+					 c_chip_fg);
+			tx += chip_d + chip_gap;
+		}
+		gui_text(tx, ty, tb_segs[i].label, c_text, scale);
+		tx += gui_text_width(tb_segs[i].label, scale);
+		if(i + 1 < nseg)
+			tx += seg_gap;
+	}
 
 	int count = config_console_count(&g_config);
 	int sel = (g_menu_sel >= 0 && g_menu_sel < count) ? g_menu_sel : 0;
@@ -1804,20 +1870,34 @@ static void draw_menu(int w, int h)
 				 c_text2, scale);
 
 			// Acciones de la fila destacada (chiaki-ng: columna
-			// de botones planos a la derecha: Conectar/Wake Up).
+			// de botones planos a la derecha: Conectar/Wake Up),
+			// con chip A en color acento.
 			if(is_sel)
 			{
 				const char *act =
 					(found && st ==
 						 CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
-						? "Despertar (A)"
-						: "Conectar (A)";
-				gui_text((float)(w - m) -
-						 gui_text_width(act, scale),
-					 (float)(y + (row_h - u) / 2), act,
+						? "Despertar"
+						: "Conectar";
+				float ax = (float)(w - m) - chip_d -
+					   chip_gap - gui_text_width(act, scale);
+				float ay = (float)(y + (row_h - u) / 2);
+				draw_button_chip(ax, ay - (chip_d - (float)u) / 2.f,
+						 scale, 'A', c_accent, c_white);
+				gui_text(ax + chip_d + chip_gap, ay, act,
 					 c_accent, scale);
 			}
 		}
+	}
+
+	// Indicador de posicion "n/m" cuando la ventana no muestra toda
+	// la lista (arriba a la derecha, sobre la primera fila).
+	if(count > rows)
+	{
+		char pos[16];
+		snprintf(pos, sizeof(pos), "%d/%d", sel + 1, count);
+		gui_text((float)(w - m) - gui_text_width(pos, scale),
+			 (float)(list_y - u), pos, c_text3, scale);
 	}
 
 	// Pie (chiaki-ng: pista abajo-izquierda + etiqueta de version
