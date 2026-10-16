@@ -65,4 +65,9 @@ int config_set_console(Config *cfg, const char *host, const char *name,
 		       const uint8_t morning[CONFIG_REGIST_KEY_SIZE],
 		       const uint8_t account_id[CONFIG_ACCOUNT_ID_SIZE]);
 
+// Elimina la consola idx y COMPACTA el resto (los indices del menu son
+// slots consecutivos sin huecos). Si last_host apuntaba a esa consola,
+// se limpia para no preseleccionar un fantasma. false si idx no vale.
+bool config_del_console(Config *cfg, int idx);
+
 int config_console_count(const Config *cfg);

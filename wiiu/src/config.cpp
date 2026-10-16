@@ -125,6 +125,26 @@ int config_set_console(Config *cfg, const char *host, const char *name,
 	return idx;
 }
 
+bool config_del_console(Config *cfg, int idx)
+{
+	if(idx < 0 || idx >= CONFIG_MAX_CONSOLES || !cfg->consoles[idx].used)
+		return false;
+
+	char host[CONFIG_HOST_SIZE];
+	snprintf(host, sizeof(host), "%s", cfg->consoles[idx].host);
+
+	// Compactar: los indices visibles (filas, sel, Izq/Dcha) asumen
+	// used contiguos desde0.
+	for(int i = idx; i < CONFIG_MAX_CONSOLES - 1; i++)
+		cfg->consoles[i] = cfg->consoles[i + 1];
+	memset(&cfg->consoles[CONFIG_MAX_CONSOLES - 1], 0,
+	       sizeof(ConfigConsole));
+
+	if(!strcmp(cfg->last_host, host))
+		cfg->last_host[0] = '\0';
+	return true;
+}
+
 size_t config_serialize(const Config *cfg, char *buf, size_t buf_size)
 {
 	if(buf_size < 2)

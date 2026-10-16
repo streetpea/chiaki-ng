@@ -101,6 +101,10 @@ static volatile bool g_config_dirty = false;
 static int g_menu_sel = 0;
 static char g_regist_target_host[CONFIG_HOST_SIZE]; // host del regist en curso
 
+// Dialogo modal de confirmacion de borrado (PLUS en la toolbar): sin
+// navegacion — A confirma y B vuelve (como los dialogs de consola).
+static bool g_confirm_del = false;
+
 // Registro en curso (chiaki_regist lanza su propio thread).
 enum class RegistState { Idle, Running, Finished };
 static ChiakiRegist g_regist;
@@ -949,6 +953,68 @@ static void config_save_sd(void)
 		logprintf("Config: fallo al escribir %s", CONFIG_SD_PATH);
 }
 
+// Borra la consola seleccionada, persiste en SD y re-aplica la nueva
+// seleccion (IP + claves) para que A siga conectando a lo que quede.
+// El snapshot de discovery puede ser de la consola borrada: se limpia
+// y se reinicia en broadcast (asi el estado vacio vuelve a buscar).
+static void delete_selected_console(void)
+{
+	int idx = g_menu_sel;
+	int count = config_console_count(&g_config);
+	if(count <= 0 || idx < 0 || idx >= count)
+	{
+		// Nunca un retorno silencioso: si la seleccion no cuadra se
+		// ve en el pie y en el log (asi un "no se borro" es rastreable).
+		logprintf("Borrado: seleccion invalida (idx=%d, count=%d)",
+			  idx, count);
+		snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+			 "No se pudo eliminar la consola");
+		return;
+	}
+
+	char host[CONFIG_HOST_SIZE];
+	char name[CONFIG_NAME_SIZE + 1];
+	snprintf(host, sizeof(host), "%s", g_config.consoles[idx].host);
+	snprintf(name, sizeof(name), "%s", g_config.consoles[idx].name);
+
+	if(!config_del_console(&g_config, idx))
+	{
+		logprintf("Borrado: config_del_console fallo (idx=%d)", idx);
+		snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+			 "No se pudo eliminar la consola");
+		return;
+	}
+	config_save_sd();
+
+	count = config_console_count(&g_config);
+	if(g_menu_sel >= count)
+		g_menu_sel = count > 0 ? count - 1 : 0;
+	if(count > 0)
+		apply_console(g_menu_sel);
+	else
+	{
+		// Lista vacia: nada de la consola borrada queda vivo —
+		// ni cuenta, ni claves, ni IP de sesion.
+		g_registered = false;
+		g_host_ip[0] = 0;
+		g_host_nickname[0] = 0;
+		memset(g_regist_key, 0, sizeof(g_regist_key));
+		memset(g_morning, 0, sizeof(g_morning));
+	}
+
+	chiaki_mutex_lock(&g_host_mutex);
+	g_host_found = false;
+	g_host_state = CHIAKI_DISCOVERY_HOST_STATE_UNKNOWN;
+	g_host_addr[0] = 0;
+	chiaki_mutex_unlock(&g_host_mutex);
+	restart_discovery();
+
+	logprintf("Consola eliminada: '%s' (%s) — quedan %d",
+		  name[0] ? name : "?", host, count);
+	snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+		 "Consola eliminada: %s", name[0] ? name : host);
+}
+
 // ---------------------------------------------------------------------------
 // Registro (chiaki_regist): emparejar con la PS4 mediante el PIN que muestra
 // la consola en "Enlazar con otro dispositivo".
@@ -1257,11 +1323,26 @@ static void stop_session(bool shutdown = false)
 	logprintf("Sesion finalizada");
 }
 
+// Puerta de conexion: con la lista vacia A no conecta NUNCA aunque el
+// discovery vea la consola por broadcast (evita cualquier estado
+// heredado de una consola recien borrada). El motivo se ve en el pie.
+static void refuse_a_empty_list(void)
+{
+	logprintf("A: lista de consolas vacia — Arriba para registrar");
+	snprintf(g_last_session_msg, sizeof(g_last_session_msg),
+		 "Sin consolas registradas - pulsa Arriba con el PIN");
+}
+
 static void handle_press_a()
 {
 	if(g_session_active)
 	{
 		logprintf("A: ya hay una sesion activa (B para parar)");
+		return;
+	}
+	if(config_console_count(&g_config) <= 0)
+	{
+		refuse_a_empty_list();
 		return;
 	}
 	if(!g_host_found && !g_host_ip[0])
@@ -1591,7 +1672,7 @@ static void swkbd_shutdown()
 // columna de acciones de la fila destacada. Izq/Dcha cambia la seleccion
 // (apply_console vuelca IP+claves a los globals con los que conecta A).
 // ---------------------------------------------------------------------------
-#define APP_BUILD_TAG "gui-12"
+#define APP_BUILD_TAG "gui-17"
 
 // Chip de boton del gamepad: disco (mask en la mitad derecha del atlas)
 // + letra centrada. Colores robustos (gris medio + letra blanca): si en
@@ -1711,6 +1792,7 @@ static void draw_menu(int w, int h)
 		{ '-', "ID" },
 		{ 'X', "IP" },
 		{ 'Y', "Buscar" },
+		{ '+', "Eliminar" },
 		{ 0, "Salir (HOME)" },
 	};
 	int nseg = (int)(sizeof(tb_segs) / sizeof(tb_segs[0]));
@@ -1730,19 +1812,27 @@ static void draw_menu(int w, int h)
 	}
 	float ty = ((float)bar_h - (float)u) / 2.f;
 	float tx = (float)(w - m) - total;
-	for(int i = 0; i < nseg; i++)
+	// Con el dialogo de borrado abierto la toolbar se oculta: su
+	// etiqueta "Eliminar" (chip +) quedaba fuera del cuadro de
+	// confirmacion y se confundia con la accion del dialogo.
+	if(!g_confirm_del)
 	{
-		if(tb_segs[i].chip)
+		for(int i = 0; i < nseg; i++)
 		{
-			draw_button_chip(tx, ty - (chip_d - (float)u) / 2.f,
-					 scale, tb_segs[i].chip, c_chip,
-					 c_chip_fg);
-			tx += chip_d + chip_gap;
+			if(tb_segs[i].chip)
+			{
+				draw_button_chip(tx,
+						 ty - (chip_d - (float)u) /
+							 2.f,
+						 scale, tb_segs[i].chip,
+						 c_chip, c_chip_fg);
+				tx += chip_d + chip_gap;
+			}
+			gui_text(tx, ty, tb_segs[i].label, c_text, scale);
+			tx += gui_text_width(tb_segs[i].label, scale);
+			if(i + 1 < nseg)
+				tx += seg_gap;
 		}
-		gui_text(tx, ty, tb_segs[i].label, c_text, scale);
-		tx += gui_text_width(tb_segs[i].label, scale);
-		if(i + 1 < nseg)
-			tx += seg_gap;
 	}
 
 	int count = config_console_count(&g_config);
@@ -1901,16 +1991,64 @@ static void draw_menu(int w, int h)
 	}
 
 	// Pie (chiaki-ng: pista abajo-izquierda + etiqueta de version
-	// abajo-derecha).
+	// abajo-derecha). Con la lista vacia la pista de navegacion no
+	// aplica: se indica el flujo de registro.
 	const char *foot = g_regist_state != RegistState::Idle
 				   ? "Registrando... introduce el PIN que muestra la PS4"
-				   : "Izq/Dcha: elegir consola";
+				   : (count <= 0
+					      ? "Arriba: registrar con el PIN de la PS4"
+					      : "Izq/Dcha: elegir consola");
 	gui_text((float)m, (float)(h - m - u), foot, c_text2, scale);
 	if(g_last_session_msg[0])
 		gui_text((float)m, (float)(h - m - u * 2), g_last_session_msg,
 			 c_text3, scale);
 	gui_text((float)(w - m) - gui_text_width(APP_BUILD_TAG, scale),
 		 (float)(h - m - u), APP_BUILD_TAG, c_text3, scale);
+
+	// Dialogo modal de confirmacion de borrado (PLUS en la toolbar):
+	// scrim + carta Material centrada; fila inferior con [B] volver y
+	// [A] Eliminar lado a lado (sin navegacion ni Cancelar: eso es B).
+	// La toolbar se oculta mientras este abierto (su "Eliminar" del
+	// chip + quedaba fuera del cuadro).
+	if(g_confirm_del && count > 0)
+	{
+		gui_rect(0.f, 0.f, (float)w, (float)h,
+			 GUI_RGBA(0, 0, 0, 0x99));
+
+		float cw = (float)u * 56, ch = (float)u * 16;
+		float cx = ((float)w - cw) / 2.f;
+		float cy = ((float)h - ch) / 2.f;
+		gui_rect(cx, cy, cw, ch, GUI_RGBA(0x1e, 0x1e, 0x1e, 0xff));
+
+		const ConfigConsole *dc = &g_config.consoles[sel];
+		gui_text(cx + (float)u * 2, cy + (float)u * 2,
+			 "¿Eliminar consola?", c_text, scale);
+		char msg[112];
+		snprintf(msg, sizeof(msg), "Se eliminará '%.24s' de la lista.",
+			 dc->name[0] ? dc->name : "?");
+		gui_text(cx + (float)u * 2, cy + (float)u * 5, msg, c_text2,
+			 scale);
+		snprintf(msg, sizeof(msg), "Dirección: %.32s", dc->host);
+		gui_text(cx + (float)u * 2, cy + (float)u * 7, msg, c_text3,
+			 scale);
+
+		// Fila inferior de acciones, juntas a la izquierda:
+		// [B] volver ... [A] Eliminar (A confirma directamente).
+		// Etiqueta en gris como "volver" (con c_accent no salia en
+		// consola; el disco A ya lleva su acento).
+		float hy = cy + (float)u * 10;
+		float hx = cx + (float)u * 2;
+		draw_button_chip(hx, hy - (chip_d - (float)u) / 2.f, scale,
+				 'B', GUI_RGBA(0x54, 0x54, 0x54, 0xff),
+				 GUI_RGBA(0xff, 0xff, 0xff, 0xde));
+		hx += chip_d + chip_gap;
+		gui_text(hx, hy, "volver", c_text2, scale);
+		hx += gui_text_width("volver", scale) + (float)u * 2;
+		draw_button_chip(hx, hy - (chip_d - (float)u) / 2.f, scale,
+				 'A', c_accent, c_white);
+		hx += chip_d + chip_gap;
+		gui_text(hx, hy, "Eliminar", c_text2, scale);
+	}
 
 	gui_flush();
 }
@@ -2052,7 +2190,43 @@ int main(int argc, char **argv)
 				uint32_t rising = status.hold & ~last_hold;
 				log_vpad_changes(status, last_hold, last_touch);
 
-				if(rising & VPAD_BUTTON_X)
+				// Modal de borrado sin navegacion: A
+				// confirma, B vuelve; el resto se ignora.
+				if(g_confirm_del)
+				{
+					if(rising & VPAD_BUTTON_B)
+						g_confirm_del = false;
+					else if(rising & VPAD_BUTTON_A)
+					{
+						delete_selected_console();
+						g_confirm_del = false;
+					}
+				}
+				else if(rising & VPAD_BUTTON_PLUS)
+				{
+					// PLUS: borrado de la consola
+					// seleccionada, con confirmacion.
+					int count = config_console_count(
+						&g_config);
+					if(g_session_active)
+						logprintf("PLUS: en sesion (B para parar)");
+					else if(g_regist_state !=
+						RegistState::Idle)
+						logprintf("PLUS: regist en curso — espera a que termine");
+					else if(count <= 0)
+						logprintf("PLUS: no hay consolas registradas");
+					else
+					{
+						if(g_menu_sel < 0 ||
+						   g_menu_sel >= count)
+							g_menu_sel = 0;
+						g_confirm_del = true;
+						logprintf(
+							"PLUS: eliminar consola %d/%d — dialogo abierto (A/B)",
+							g_menu_sel + 1, count);
+					}
+				}
+				else if(rising & VPAD_BUTTON_X)
 				{
 					logprintf("X: abrir teclado para IP de la consola");
 					swkbd_show(Prompt::IP);
