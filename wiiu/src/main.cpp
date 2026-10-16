@@ -55,6 +55,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "video.h"
+
 #define DISCOVERY_PING_MS 500
 #define DISCOVERY_HOSTS_MAX 8
 #define DISCOVERY_DROP_PINGS 3
@@ -246,6 +248,26 @@ static void log_sd_handler(const char *str)
 	OSUnlockMutex(&g_logq_mutex);
 }
 
+// Dedup de seguridad: una misma linea consecutiva se registra una vez
+// y despues solo cada 100 repeticiones con "(xN repetido)". Protege el
+// log de la SD si alguna ruta llega a spammear (750 KB vistos en la
+// primera prueba de video). Comparacion por hash FNV-1a de 64 bits,
+// sin mutex a proposito: es solo diagnostico y un valor torcido en una
+// carrera entre hilos como mucho registra la linea igual.
+static uint64_t s_log_last_hash;
+static uint32_t s_log_repeat;
+
+static uint64_t log_line_hash(const char *s)
+{
+	uint64_t h = 14695981039346656037ULL;
+	for(; *s; s++)
+	{
+		h ^= (uint8_t)*s;
+		h *= 1099511628211ULL;
+	}
+	return h;
+}
+
 static void logprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 static void logprintf(const char *fmt, ...)
 {
@@ -254,7 +276,29 @@ static void logprintf(const char *fmt, ...)
 	va_start(va, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, va);
 	va_end(va);
+
+	const uint64_t hash = log_line_hash(msg);
+	if(hash == s_log_last_hash)
+	{
+		s_log_repeat++;
+		if((s_log_repeat % 100) == 0)
+		{
+			char extra[430];
+			snprintf(extra, sizeof(extra), "%s (x%u repetido)", msg,
+				 s_log_repeat);
+			WHBLogWrite(extra);
+		}
+		return;
+	}
+	s_log_last_hash = hash;
+	s_log_repeat = 0;
 	WHBLogWrite(msg); // handlers: cafe OSReport + UDP 4405 + SD (handler)
+}
+
+// Sink de log del modulo de video (h264/GX2), registrado en main().
+static void video_log_sink(const char *line)
+{
+	logprintf("%s", line);
 }
 
 // Requiere FSInit() ya llamado. Si la carpeta no existe, seguimos con
@@ -402,9 +446,42 @@ static void log_vpad_changes(const VPADStatus &status, uint32_t &last_hold,
 
 // Puente chiaki-log → WHBLog: todo lo que loguea chiaki-lib aparece en la
 // consola cafe (OSReport, visible en el log de Cemu) y en el UDP 4405.
+//
+// Rate-limit para INFO/WARNING: si el stream se rompe, chiaki avienta
+// cientos de lineas por segundo ("corrupt frame" con rangos de indices
+// distintos, imposibles de deduplicar) y el log se dispara. Tope de
+// 20 lineas/s para W/I; las suprimidas se resume en una sola linea al
+// cerrar la ventana. ERROR siempre pasa (pocos y determinantes).
 static void wiiu_chiaki_log_cb(ChiakiLogLevel level, const char *msg, void *user)
 {
 	(void)user;
+	if(level == CHIAKI_LOG_ERROR)
+	{
+		logprintf("[chiaki:%c] %s", chiaki_log_level_char(level), msg);
+		return;
+	}
+
+	// Best-effort sin lock (como el dedup de logprintf): en el peor caso
+	// un hilo deja pasar unas lineas de mas, nunca bloquea el hilo chiaki.
+	static uint64_t s_window_start;
+	static uint32_t s_budget;
+	static uint32_t s_suppressed;
+	uint64_t now = OSGetTime();
+	if(now - s_window_start > OSSecondsToTicks(1))
+	{
+		if(s_suppressed)
+			logprintf("[chiaki:*] (rate limit: %u lineas de aviso/info suprimidas)",
+				  s_suppressed);
+		s_suppressed = 0;
+		s_window_start = now;
+		s_budget = 20;
+	}
+	if(s_budget == 0)
+	{
+		s_suppressed++;
+		return;
+	}
+	s_budget--;
 	logprintf("[chiaki:%c] %s", chiaki_log_level_char(level), msg);
 }
 
@@ -822,13 +899,15 @@ static bool start_regist(uint32_t pin)
 static bool video_sample_cb(uint8_t *buf, size_t buf_size, int32_t frames_lost,
 			    bool frame_recovered, void *user)
 {
-	(void)buf;
 	(void)user;
 	(void)frame_recovered;
 	g_video_frames++;
 	g_video_bytes += buf_size;
 	if(frames_lost > 0)
 		g_video_frames_lost += (uint64_t)frames_lost;
+	// Fase 3a: primera muestra = cabecera SPS/PPS (abre el decoder de
+	// hardware y fija las dimensiones); despues, cada frame.
+	wiiu_video_sample(buf, buf_size);
 	return true;
 }
 
@@ -928,6 +1007,9 @@ static bool start_session()
 
 	chiaki_session_set_event_cb(&g_session, session_event_cb, nullptr);
 	chiaki_session_set_video_sample_cb(&g_session, video_sample_cb, nullptr);
+	// Fase 3a: estado de video fresco para cada sesion (si la anterior
+	// dejo el decoder de40 MB, aqui se libera antes del nuevo stream).
+	wiiu_video_reset();
 	// Mando en reposo: la fase 4 conectara VPAD; aqui validamos el canal.
 	ChiakiControllerState idle_state;
 	chiaki_controller_state_set_idle(&idle_state);
@@ -962,6 +1044,9 @@ static void stop_session()
 	chiaki_session_stop(&g_session);
 	chiaki_session_join(&g_session);
 	chiaki_session_fini(&g_session);
+	// Libera decoder h264 (~40 MB) y buffers; el hilo de video ya esta
+	// unido, asi que nadie llama a wiiu_video_sample ahora.
+	wiiu_video_reset();
 	g_session_active = false;
 	g_session_login_pin_requested = false;
 	logprintf("Sesion finalizada");
@@ -1320,7 +1405,8 @@ int main(int argc, char **argv)
 
 	// Tras log_file_init para que el marker llegue a la SD (antes solo
 	// iba a OSReport/UDP y no servia para confirmar el build desplegado).
-	logprintf("BUILD wiiu-2026-10-15 rcvbuf-32k-final");
+	logprintf("BUILD wiiu-2026-10-16 h264-hw-video-10");
+	wiiu_video_set_log(video_log_sink);
 
 	// Requiere socket_lib_init ya hecho (crea sockets y threads).
 	logprintf("init: discovery");
@@ -1420,13 +1506,21 @@ int main(int argc, char **argv)
 			{
 				if(frames != g_video_log_frames)
 				{
+					WiiUVideoStats vs = wiiu_video_stats();
 					logprintf(
 						"Video: %llu frames (%.2f MB) perdidos=%llu "
-						"FEC_fallos=%llu",
+						"FEC_fallos=%llu | hw_dec=%llu err=%llu drop=%llu "
+						"exec=%uus lock=%uus mem=%uus",
 						(unsigned long long)frames,
 						(double)g_video_bytes / (1024.0 * 1024.0),
 						(unsigned long long)g_video_frames_lost,
-						(unsigned long long)g_fec_failures);
+						(unsigned long long)g_fec_failures,
+						(unsigned long long)vs.decoded,
+						(unsigned long long)vs.errors,
+						(unsigned long long)vs.dropped,
+						(unsigned int)vs.exec_us,
+						(unsigned int)vs.lock_us,
+						(unsigned int)vs.mem_us);
 					g_video_log_frames = frames;
 				}
 				g_video_log_ticks = now;
@@ -1448,12 +1542,16 @@ int main(int argc, char **argv)
 
 		WHBGfxBeginRenderTV();
 		WHBGfxClearColor(g_session_active ? 0.05f : 0.1f, base_g, base_b, 1.0f);
+		if(g_session_active)
+			wiiu_video_render(1920, 1080);
 		if(g_swkbd_visible)
 			nn::swkbd::DrawTV();
 		WHBGfxFinishRenderTV();
 
 		WHBGfxBeginRenderDRC();
 		WHBGfxClearColor(g_session_active ? 0.05f : 0.1f, base_g, base_b, 1.0f);
+		if(g_session_active)
+			wiiu_video_render(854, 480);
 		if(g_swkbd_visible)
 			nn::swkbd::DrawDRC();
 		WHBGfxFinishRenderDRC();
@@ -1467,6 +1565,8 @@ int main(int argc, char **argv)
 	// -> graficos -> log -> red.
 	if(g_session_active)
 		stop_session();
+	// Sin sesion activa no hay decoder, pero por si acaso (idempotente).
+	wiiu_video_reset();
 	if(g_regist_state == RegistState::Running)
 		chiaki_regist_stop(&g_regist);
 	if(g_regist_state != RegistState::Idle)

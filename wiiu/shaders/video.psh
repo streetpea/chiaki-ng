@@ -1,0 +1,52 @@
+; Pixel shader NV12 (BT.709 rango limitado) -> RGB.
+; t0 = textura Y  (R8,    tamano completo)
+; t1 = textura UV (R8_G8, tamano medio: cada "pixel" es un par U,V)
+; Ambas se muestrean con las mismas coordenadas normalizadas 0..1.
+;
+; Conversion BT.709 rango limitado (16-235 / 16-240) precompuesta:
+;   Y' = Y*1.164384 - 0.073098
+;   U' = U - 0.501961
+;   V' = V - 0.501961
+;   R  = Y' + 1.792741*V'
+;   G  = Y' - 0.213249*U' - 0.532909*V'
+;   B  = Y' + 2.112402*U'
+; A = 1. Se recorta a 0..1 por seguridad.
+
+; $MODE = "UniformRegister"
+
+; $NUM_SPI_PS_INPUT_CNTL = 2
+; v_color R0
+; $SPI_PS_INPUT_CNTL[0].SEMANTIC = 0
+; $SPI_PS_INPUT_CNTL[0].DEFAULT_VAL = 1
+; v_texCoord R1
+; $SPI_PS_INPUT_CNTL[1].SEMANTIC = 1
+; $SPI_PS_INPUT_CNTL[1].DEFAULT_VAL = 1
+
+; $SAMPLER_VARS[0].name = "u_texY"
+; $SAMPLER_VARS[0].type = "SAMPLER2D"
+; $SAMPLER_VARS[0].location = 0
+
+; $SAMPLER_VARS[1].name = "u_texUV"
+; $SAMPLER_VARS[1].type = "SAMPLER2D"
+; $SAMPLER_VARS[1].location = 1
+
+00 TEX: VALID_PIX
+    0  SAMPLE R2, R1.xy0x, t0, s0
+    1  SAMPLE R3, R1.xy0x, t1, s1
+01 ALU:
+    2  x: MULADD R4.x, R2.x, 1.164384, -0.073098
+    3  y: MULADD R4.y, R3.x, 1.0f, -0.501961
+       z: MULADD R4.z, R3.y, 1.0f, -0.501961
+    4  x: MULADD R0.x, R4.z, 1.792741, R4.x
+    5  y: MULADD R5.x, R4.y, -0.213249, R4.x
+       z: MULADD R0.z, R4.y, 2.112402, R4.x
+    6  y: MULADD R0.y, R4.z, -0.532909, R5.x
+    7  x: MAX R0.x, R0.x, 0.0f
+       y: MAX R0.y, R0.y, 0.0f
+       z: MAX R0.z, R0.z, 0.0f
+       w: MOV R0.w, 1.0f
+    8  x: MIN R0.x, R0.x, 1.0f
+       y: MIN R0.y, R0.y, 1.0f
+       z: MIN R0.z, R0.z, 1.0f
+02 EXP_DONE: PIX0, R0
+END_OF_PROGRAM

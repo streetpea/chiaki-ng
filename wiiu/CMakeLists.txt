@@ -9,7 +9,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(chiaki-wiiu
 	src/main.cpp
+	src/video.cpp
 )
+
+# Fase 3a: h264.rpl (H264DEC*) esta resuelto dentro de libwut.a via
+# wut.specs; no hace falta libreria adicional (-lwut implicito).
 
 # libwut.a (via -lwut automatico del toolchain) ya contiene VPAD, WHB, GX2 y
 # nsysnet como imports RPL resueltos por wut.specs; no existen libs separadas
