@@ -117,14 +117,18 @@ static uint8_t *s_disp[3];
 static size_t s_disp_size;
 static int s_disp_ready = -1;
 // Slot que el hilo principal esta SUBIENDO a textura (fuera del lock:
-// ver wiiu_video_render). El decode jamas escribe este slot.
+// ver wiiu_video_upload). El decode jamas escribe este slot.
 static int s_disp_reading = -1;
+// Sello de tiempo (OSGetTime) de cada slot: cuando chiaki entrega la
+// muestra. La diferencia al subirla = edad real del frame (latencia).
+static uint64_t s_disp_stamp[3];
 
 // cola de tramas comprimidas (productor: hilo de chiaki en
 // wiiu_video_sample; consumidor: el hilo interno de decode)
 static OSMutex s_q_lock;
 static uint8_t *s_q_buf[VQ_SLOTS];
 static size_t s_q_len[VQ_SLOTS];
+static uint64_t s_q_stamp[VQ_SLOTS]; // sello por slot (ver arriba)
 static int s_q_head, s_q_tail;
 static OSThread *s_dec_thread; // memalign(16): el OS valida la alineacion
 static uint8_t *s_dec_stack;
@@ -137,15 +141,52 @@ static GX2PixelShader *s_ps;
 static GX2FetchShader s_fetch;
 static void *s_fetch_prog;
 static GX2Sampler s_samp;
-static GX2Texture s_tex_y;
-static GX2Texture s_tex_uv;
+// Pares de texturas NV12 doble-buffer: mientras la GPU dibuja el par
+// DELANTERO, el hilo principal sube al TRASERO. Con un solo par, el
+// Lock/Unlock de GX2R se peleaba con la GPU en dibujo y la subida
+// costaba ~7.8 ms/frame (bucle principal a 21 Hz = ~20 fps visibles).
+// Con 2 pares la subida seguia en ~7.8 ms (gui-44): el par trasero era
+// el que la GPU acababa de dibujar en la vuelta anterior y su Lock
+// esperaba al GPU. Con 3 pares el trasero lleva DOS vueltas dibujado
+// (comandos ya ejecutados) y el Lock vuelve al instante: la subida
+// queda como su mero coste CPU (memcpy + DCFlush).
+#define TEX_PAIRS 3
+static GX2Texture s_tex_y[TEX_PAIRS];
+static GX2Texture s_tex_uv[TEX_PAIRS];
 static GX2RBuffer s_vbuf;
 static bool s_render_ready;
 static bool s_tex_ready;
 static int s_tex_w, s_tex_h;
-static bool s_tex_has_frame;   // ya se subio algun frame (main thread)
+static int s_tex_front = -1;      // par que dibuja la GPU (-1 = ninguno)
 static bool s_init_logged;      // "decoder listo" ya impreso
 static bool s_render_err_logged;
+
+// --- Subida directa a textura (gui-46) -----------------------------------
+// El upload CPU clasico cuesta ~7.8 ms/frame en 720p (mismo ~178 MB/s
+// en 540p: es memcpy de 1.38 MB + DCFlush, pura banda) y es la parte
+// grande de la latencia que queda de lo nuestro: sin caber en la
+// ventana de 16,7 ms del retrace, el bucle se queda en ~50 vueltas/s
+// y algunos frames esperan 33 ms en vez de 16,7.
+//
+// La solucion: cada par de texturas GX2 se crea SOBRE la memoria de un
+// "backing" NV12 completo (h + h/2 filas R8, pitch = align(w,256)) con
+// GX2RCreateSurfaceUserMemory — Y sobre el inicio, UV sobre
+// image + pitch*height, que es EXACTAMENTE donde el decoder HW escribe
+// su NV12. El decoder pega ahi directo y al hilo principal solo le
+// queda invalidar la caché de textura de la GPU y flipear: cero
+// memcpy, cero DCFlush. GX2 NO sale del hilo principal.
+//
+// SEGURIDAD DE PROPIEDAD: a las superficies de memoria de usuario JAMAS
+// se les llama GX2RDestroySurfaceEx (no poseen memoria — la posee el
+// backing, que es una superficie GX2R normal y SI se destruye). Asi el
+// codigo es correcto bajo cualquier semantica de Destroy. Si la
+// creacion falla o el backing trae alineacion < 1024 (lo que usa el
+// decoder) o UV no cae alineado, se cae a la copia CPU clasica con un
+// unico log: sin riesgo, con medible.
+static bool s_tex_usermem;       // los pares son memoria de usuario
+static GX2Texture s_bk[TEX_PAIRS];      // backings NV12 (poseen la mem)
+static bool s_bk_ready[TEX_PAIRS];
+static uint8_t *s_bk_img[TEX_PAIRS];    // image del backing i
 
 static WiiUVideoStats s_stats;
 static bool s_logged_first_frame;
@@ -154,6 +195,9 @@ static int s_logged_err_codes;
 static uint32_t s_exec_us; // EMA de H264DECExecute (µs, 125 ticks = 1 µs)
 static uint32_t s_lock_us; // EMA de espera del mutex de display (µs)
 static uint32_t s_mem_us;  // EMA de la copia NV12 al display (µs)
+static uint32_t s_upload_us; // EMA de la subida CPU a textura GX2 (µs)
+static uint32_t s_age_us;    // EMA de la edad del frame al subirlo (µs)
+static uint64_t s_dec_stamp; // sello del sample en curso (hilo decode)
 
 static const float s_identity[16] = {
 	1.f, 0.f, 0.f, 0.f,
@@ -281,10 +325,32 @@ static void render_free()
 {
 	if(s_tex_ready)
 	{
-		GX2RDestroySurfaceEx(&s_tex_y.surface, GX2R_RESOURCE_BIND_NONE);
-		GX2RDestroySurfaceEx(&s_tex_uv.surface, GX2R_RESOURCE_BIND_NONE);
+		for(int i = 0; i < TEX_PAIRS; i++)
+		{
+			// Pares de memoria de usuario: no poseen nada (su
+			// memoria es del backing) — jamas destruirlos.
+			if(!s_tex_usermem)
+			{
+				GX2RDestroySurfaceEx(&s_tex_y[i].surface,
+						     GX2R_RESOURCE_BIND_NONE);
+				GX2RDestroySurfaceEx(&s_tex_uv[i].surface,
+						     GX2R_RESOURCE_BIND_NONE);
+			}
+		}
 		s_tex_ready = false;
 		s_tex_w = s_tex_h = 0;
+	}
+	// Los backings poseen su memoria SIEMPRE (tanto en modo directo
+	// como si quedaron a medias de un intento fallido).
+	for(int i = 0; i < TEX_PAIRS; i++)
+	{
+		if(s_bk_ready[i])
+		{
+			GX2RDestroySurfaceEx(&s_bk[i].surface,
+					     GX2R_RESOURCE_BIND_NONE);
+			s_bk_ready[i] = false;
+			s_bk_img[i] = NULL;
+		}
 	}
 	if(s_vbuf.buffer)
 	{
@@ -309,7 +375,8 @@ static void render_free()
 		s_fetch_prog = NULL;
 	}
 	s_render_ready = false;
-	s_tex_has_frame = false;
+	s_tex_front = -1;
+	s_tex_usermem = false;
 }
 
 // Solo desde el hilo principal.
@@ -381,18 +448,186 @@ static bool render_init()
 	return true;
 }
 
+// Crea un par de texturas NV12 (Y R8 + UV R8_G8). Con user_y/user_uv
+// no NULL las texturas se crean SOBRE esa memoria (gui-46, ver
+// declaracion de s_tex_usermem): GX2RCreateSurfaceUserMemory y NUNCA
+// destruirlas despues. En fallo destruye lo que hubiera creado de ese
+// par (salvo superficies de usuario, que no poseen nada).
+static bool tex_pair_create(GX2Texture *tex_y, GX2Texture *tex_uv, int w,
+			    int h, GX2RResourceFlags flags,
+			    const uint8_t *user_y, const uint8_t *user_uv)
+{
+	memset(tex_y, 0, sizeof(*tex_y));
+	tex_y->surface.width = w;
+	tex_y->surface.height = h;
+	tex_y->surface.depth = 1;
+	tex_y->surface.dim = GX2_SURFACE_DIM_TEXTURE_2D;
+	tex_y->surface.format = GX2_SURFACE_FORMAT_UNORM_R8;
+	tex_y->surface.tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
+	tex_y->surface.mipLevels = 1;
+	tex_y->viewNumMips = 1;
+	tex_y->viewNumSlices = 1;
+	tex_y->compMap = GX2_COMP_MAP(GX2_SQ_SEL_R, GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_1);
+	GX2CalcSurfaceSizeAndAlignment(&tex_y->surface);
+	GX2InitTextureRegs(tex_y);
+	if(user_y)
+	{
+		// Las alineaciones que pide cada textura tienen que quedar
+		// cubiertas por como caiga la memoria o
+		// GX2RCreateSurfaceUserMemory / la GPU no estarian contentos.
+		if(tex_y->surface.alignment &&
+		   ((uintptr_t)user_y % tex_y->surface.alignment))
+		{
+			vlog("Video HW: memoria Y no alineada (%u) — sin subida directa",
+			     (unsigned)tex_y->surface.alignment);
+			return false;
+		}
+		if(!GX2RCreateSurfaceUserMemory(&tex_y->surface,
+						 (uint8_t *)user_y, NULL,
+						 flags))
+			return false;
+	}
+	else if(!GX2RCreateSurface(&tex_y->surface, flags))
+		return false;
+
+	memset(tex_uv, 0, sizeof(*tex_uv));
+	tex_uv->surface.width = w / 2;
+	tex_uv->surface.height = h / 2;
+	tex_uv->surface.depth = 1;
+	tex_uv->surface.dim = GX2_SURFACE_DIM_TEXTURE_2D;
+	tex_uv->surface.format = GX2_SURFACE_FORMAT_UNORM_R8_G8;
+	tex_uv->surface.tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
+	tex_uv->surface.mipLevels = 1;
+	tex_uv->viewNumMips = 1;
+	tex_uv->viewNumSlices = 1;
+	tex_uv->compMap = GX2_COMP_MAP(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_0, GX2_SQ_SEL_1);
+	GX2CalcSurfaceSizeAndAlignment(&tex_uv->surface);
+	GX2InitTextureRegs(tex_uv);
+	{
+		BOOL ok;
+		if(user_uv)
+		{
+			if(tex_uv->surface.alignment &&
+			   ((uintptr_t)user_uv % tex_uv->surface.alignment))
+			{
+				vlog("Video HW: memoria UV no alineada (%u) — sin subida directa",
+				     (unsigned)tex_uv->surface.alignment);
+				if(!user_y)
+					GX2RDestroySurfaceEx(&tex_y->surface,
+							     GX2R_RESOURCE_BIND_NONE);
+				return false;
+			}
+			ok = GX2RCreateSurfaceUserMemory(&tex_uv->surface,
+							 (uint8_t *)user_uv,
+							 NULL, flags);
+		}
+		else
+			ok = GX2RCreateSurface(&tex_uv->surface, flags);
+		if(!ok)
+		{
+			if(!user_y)
+				GX2RDestroySurfaceEx(&tex_y->surface,
+						     GX2R_RESOURCE_BIND_NONE);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Crea el backing NV12 completo del par idx: una superficie GX2R NORMAL
+// de h + h/2 filas R8 (Y + UV contiguos con el pitch que el decoder
+// tambien usa). De aqui saldra la memoria sobre la que apuntaran las
+// texturas del par y donde pegara el decoder. Devuelve false con el
+// motivo ya logueado.
+static bool backing_create(int idx, int w, int h, GX2RResourceFlags flags)
+{
+	GX2Texture *bk = &s_bk[idx];
+	memset(bk, 0, sizeof(*bk));
+	bk->surface.width = w;
+	bk->surface.height = h + h / 2;
+	bk->surface.depth = 1;
+	bk->surface.dim = GX2_SURFACE_DIM_TEXTURE_2D;
+	bk->surface.format = GX2_SURFACE_FORMAT_UNORM_R8;
+	bk->surface.tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
+	bk->surface.mipLevels = 1;
+	bk->viewNumMips = 1;
+	bk->viewNumSlices = 1;
+	bk->compMap = GX2_COMP_MAP(GX2_SQ_SEL_R, GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_1);
+	GX2CalcSurfaceSizeAndAlignment(&bk->surface);
+	GX2InitTextureRegs(bk);
+	if(!GX2RCreateSurface(&bk->surface, flags))
+	{
+		vlog("Video HW: GX2RCreateSurface del backing fallo");
+		return false;
+	}
+	uint8_t *img =
+		(uint8_t *)GX2RLockSurfaceEx(&bk->surface, 0,
+					     GX2R_RESOURCE_BIND_NONE);
+	if(!img)
+	{
+		GX2RDestroySurfaceEx(&bk->surface, GX2R_RESOURCE_BIND_NONE);
+		vlog("Video HW: Lock del backing fallo");
+		return false;
+	}
+	GX2RUnlockSurfaceEx(&bk->surface, 0, GX2R_RESOURCE_BIND_NONE);
+	// El requisito del GPU (surface.alignment) puede ser 256, pero lo
+	// que tiene que cumplir el DECODER es la alineacion del puntero
+	// que le damos (memalign 1024 en el framebuffer clasico). El pool
+	// GX2R reparte por paginas: el puntero suele venir a 4096 aunque
+	// el requisito sea 256. Se comprueba EL PUNTERO, no el requisito
+	// (gui-46 miro el requisito y desactivo la directa sin motivo).
+	// UV = img + pitch*h siempre queda 1024-alineado detras (pitch
+	// multiplo de 256 y h multiplo de 16 => producto multiplo de
+	// 4096), asi que basta chequear Y.
+	if((uintptr_t)img & 1023u)
+	{
+		vlog("Video HW: backing en %p no alineado a 1024 (lo pide el decoder) — sin subida directa",
+		     img);
+		GX2RDestroySurfaceEx(&bk->surface, GX2R_RESOURCE_BIND_NONE);
+		return false;
+	}
+	s_bk_img[idx] = img;
+	s_bk_ready[idx] = true;
+	return true;
+}
+
 // Solo desde el hilo principal. Crea (o recrea si cambian las
-// dimensiones) las texturas GX2 NV12.
+// dimensiones) LOS DOS pares de texturas GX2 NV12 — o, si se puede,
+// los pares sobre backings NV12 enteros (subida directa, gui-46).
+// En fallo devuelve false con lo que llegara a crearse ya limpiado.
 static bool textures_alloc(int w, int h)
 {
 	if(s_tex_ready && s_tex_w == w && s_tex_h == h)
 		return true;
 	if(s_tex_ready)
 	{
-		GX2RDestroySurfaceEx(&s_tex_y.surface, GX2R_RESOURCE_BIND_NONE);
-		GX2RDestroySurfaceEx(&s_tex_uv.surface, GX2R_RESOURCE_BIND_NONE);
+		for(int i = 0; i < TEX_PAIRS; i++)
+		{
+			// Pares de memoria de usuario: no poseen nada (su
+			// memoria es del backing) — jamas destruirlos.
+			if(!s_tex_usermem)
+			{
+				GX2RDestroySurfaceEx(&s_tex_y[i].surface,
+						     GX2R_RESOURCE_BIND_NONE);
+				GX2RDestroySurfaceEx(&s_tex_uv[i].surface,
+						     GX2R_RESOURCE_BIND_NONE);
+			}
+		}
 		s_tex_ready = false;
 		s_tex_w = s_tex_h = 0;
+	}
+	// Los backings poseen su memoria SIEMPRE: se liberan aqui (y en
+	// render_free) aunque s_tex_ready este a 0.
+	for(int i = 0; i < TEX_PAIRS; i++)
+	{
+		if(s_bk_ready[i])
+		{
+			GX2RDestroySurfaceEx(&s_bk[i].surface,
+					     GX2R_RESOURCE_BIND_NONE);
+			s_bk_ready[i] = false;
+			s_bk_img[i] = NULL;
+		}
 	}
 
 	const GX2RResourceFlags flags =
@@ -403,42 +638,68 @@ static bool textures_alloc(int w, int h)
 		GX2R_RESOURCE_USAGE_GPU_READ |
 		GX2R_RESOURCE_USAGE_FORCE_MEM2;
 
-	memset(&s_tex_y, 0, sizeof(s_tex_y));
-	s_tex_y.surface.width = w;
-	s_tex_y.surface.height = h;
-	s_tex_y.surface.depth = 1;
-	s_tex_y.surface.dim = GX2_SURFACE_DIM_TEXTURE_2D;
-	s_tex_y.surface.format = GX2_SURFACE_FORMAT_UNORM_R8;
-	s_tex_y.surface.tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
-	s_tex_y.surface.mipLevels = 1;
-	s_tex_y.viewNumMips = 1;
-	s_tex_y.viewNumSlices = 1;
-	s_tex_y.compMap = GX2_COMP_MAP(GX2_SQ_SEL_R, GX2_SQ_SEL_0, GX2_SQ_SEL_0, GX2_SQ_SEL_1);
-	GX2CalcSurfaceSizeAndAlignment(&s_tex_y.surface);
-	GX2InitTextureRegs(&s_tex_y);
-	if(!GX2RCreateSurface(&s_tex_y.surface, flags))
-		return false;
-
-	memset(&s_tex_uv, 0, sizeof(s_tex_uv));
-	s_tex_uv.surface.width = w / 2;
-	s_tex_uv.surface.height = h / 2;
-	s_tex_uv.surface.depth = 1;
-	s_tex_uv.surface.dim = GX2_SURFACE_DIM_TEXTURE_2D;
-	s_tex_uv.surface.format = GX2_SURFACE_FORMAT_UNORM_R8_G8;
-	s_tex_uv.surface.tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
-	s_tex_uv.surface.mipLevels = 1;
-	s_tex_uv.viewNumMips = 1;
-	s_tex_uv.viewNumSlices = 1;
-	s_tex_uv.compMap = GX2_COMP_MAP(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_0, GX2_SQ_SEL_1);
-	GX2CalcSurfaceSizeAndAlignment(&s_tex_uv.surface);
-	GX2InitTextureRegs(&s_tex_uv);
-	if(!GX2RCreateSurface(&s_tex_uv.surface, flags))
+	// --- Intento de subida directa (gui-46): 3 backings NV12 y las
+	// texturas del par apuntando a su memoria (Y al inicio, UV tras
+	// pitch*height). Cualquier golpe (alineacion, creacion) cae a la
+	// copia CPU clasica sin mas que un log.
+	bool direct = true;
+	for(int i = 0; direct && i < TEX_PAIRS; i++)
+		direct = backing_create(i, w, h, flags);
+	if(direct)
 	{
-		GX2RDestroySurfaceEx(&s_tex_y.surface, GX2R_RESOURCE_BIND_NONE);
-		return false;
+		for(int i = 0; direct && i < TEX_PAIRS; i++)
+		{
+			const uint8_t *uv =
+				s_bk_img[i] +
+				(size_t)s_bk[i].surface.pitch * (size_t)h;
+			direct = tex_pair_create(&s_tex_y[i], &s_tex_uv[i],
+						 w, h, flags, s_bk_img[i],
+						 uv);
+		}
 	}
-
+	if(direct)
+		vlog("Video HW: subida directa a textura activa (decoder->GX2R, sin memcpy)");
+	if(!direct)
+	{
+		// Limpieza del intento: backings SI (poseen su memoria),
+		// pares de usuario NO; structs a cero para no dejar
+		// superficies a medio crear en pie.
+		for(int i = 0; i < TEX_PAIRS; i++)
+		{
+			memset(&s_tex_y[i], 0, sizeof(s_tex_y[i]));
+			memset(&s_tex_uv[i], 0, sizeof(s_tex_uv[i]));
+			if(s_bk_ready[i])
+			{
+				GX2RDestroySurfaceEx(&s_bk[i].surface,
+						     GX2R_RESOURCE_BIND_NONE);
+				s_bk_ready[i] = false;
+				s_bk_img[i] = NULL;
+			}
+		}
+		for(int i = 0; i < TEX_PAIRS; i++)
+		{
+			if(!tex_pair_create(&s_tex_y[i], &s_tex_uv[i], w, h,
+					    flags, NULL, NULL))
+			{
+				// El par i ya se auto-limpio; libera los previos.
+				for(int j = 0; j < i; j++)
+				{
+					GX2RDestroySurfaceEx(&s_tex_y[j].surface,
+							     GX2R_RESOURCE_BIND_NONE);
+					GX2RDestroySurfaceEx(&s_tex_uv[j].surface,
+							     GX2R_RESOURCE_BIND_NONE);
+				}
+				return false;
+			}
+		}
+	}
+	s_tex_usermem = direct;
+	// Frame pendiente creado con el modo/geometria anterior: se
+	// descarga (sin esto, el primer flip directo mostraria memoria
+	// que el decoder jamas escribio — memoria basura en pantalla).
+	s_disp_ready = -1;
 	s_tex_ready = true;
+	s_tex_front = -1;
 	s_tex_w = w;
 	s_tex_h = h;
 	return true;
@@ -682,16 +943,28 @@ static void decode_sample(uint8_t *buf, size_t buf_size)
 	// completo en la ranura y solo entonces se publica.
 	OSLockMutex(&s_lock);
 	const uint64_t t0 = OSGetTime();
+	// Subida directa: la ranura ES la memoria de la textura del mismo
+	// indice, asi que hay que esquivar ademas a la que dibuja la GPU
+	// (front); con 3 ranuras y solo {front, ready} bloqueando, siempre
+	// sobra una. En modo copia vale la logica clasica (reading/ready).
+	// El predicado es el mismo (y con los mismos campos, bajo este
+	// mismo lock) que el de wiiu_video_upload: ambos lados ven siempre
+	// el mismo modo.
+	const bool direct = s_tex_usermem && s_tex_ready &&
+			    s_tex_w == s_w && s_tex_h == s_h;
 	int idx = 0;
 	for(int i = 0; i < 3; i++)
 	{
-		if(s_disp_reading != i && s_disp_ready != i)
+		const bool busy = direct
+			? (s_tex_front == i || s_disp_ready == i)
+			: (s_disp_reading == i || s_disp_ready == i);
+		if(!busy)
 		{
 			idx = i;
 			break;
 		}
 	}
-	uint8_t *out = s_disp[idx];
+	uint8_t *out = direct ? s_bk_img[idx] : s_disp[idx];
 	OSUnlockMutex(&s_lock);
 	const uint64_t t1 = OSGetTime();
 
@@ -702,6 +975,7 @@ static void decode_sample(uint8_t *buf, size_t buf_size)
 		OSLockMutex(&s_lock);
 		const uint64_t t3 = OSGetTime();
 		s_disp_ready = idx;
+		s_disp_stamp[idx] = s_dec_stamp; // arrastra la edad al publicar
 		OSUnlockMutex(&s_lock);
 
 		// EMA x1/8: casi sin coste y estable entre stats.
@@ -748,13 +1022,15 @@ static int decode_thread_entry(int argc, const char **argv)
 		{
 			slot = s_q_head;
 			len = s_q_len[slot];
+			s_dec_stamp = s_q_stamp[slot];
 		}
 		OSUnlockMutex(&s_q_lock);
 
 		if(slot < 0)
 		{
-			// Vacia: duerme poco para reaccionar rapido al proximo frame.
-			OSSleepTicks(OSMillisecondsToTicks(2));
+			// Vacia: duerme lo justo para reaccionar rapido al
+			// proximo frame (latencia minima del muestreo).
+			OSSleepTicks(OSMillisecondsToTicks(1));
 			continue;
 		}
 
@@ -865,10 +1141,20 @@ bool wiiu_video_sample(uint8_t *buf, size_t buf_size)
 		return true;
 
 	// Copia del bitstream comprimido en la cola (us); el decode va en el
-	// hilo interno. Si la cola esta llena se suelta el frame en vez de
-	// bloquear la red: nunca podemos frenar la recepcion UDP.
+	// hilo interno. Si la cola esta llena se espera ACOTADO (~24 ms) a
+	// que el hilo de decode consuma antes de soltar: descartar un frame
+	// a la primera deja un hueco en las referencias H.264 y el decoder
+	// se queda congelado hasta el proximo IDR. La red se frena solo un
+	// instante y el audio no se entera (el ring AX tiene 170 ms).
 	OSLockMutex(&s_q_lock);
-	const int next = (s_q_tail + 1) % VQ_SLOTS;
+	int next = (s_q_tail + 1) % VQ_SLOTS;
+	for(int tries = 0; next == s_q_head && tries < 24; tries++)
+	{
+		OSUnlockMutex(&s_q_lock);
+		OSSleepTicks(OSMillisecondsToTicks(1));
+		OSLockMutex(&s_q_lock);
+		next = (s_q_tail + 1) % VQ_SLOTS;
+	}
 	if(next == s_q_head)
 	{
 		s_stats.dropped++;
@@ -880,18 +1166,27 @@ bool wiiu_video_sample(uint8_t *buf, size_t buf_size)
 	const size_t n = (buf_size > VQ_SLOT_SZ) ? (size_t)VQ_SLOT_SZ : buf_size;
 	memcpy(s_q_buf[s_q_tail], buf, n);
 	s_q_len[s_q_tail] = n;
+	s_q_stamp[s_q_tail] = OSGetTime(); // origen de la edad del frame
 	s_q_tail = next;
 	OSUnlockMutex(&s_q_lock);
 	return true;
 }
 
-// Solo hilo principal. Init perezoso de GX2 (aqui o en reset) + subida +
-// draw. GX2RLock/Unlock ocurren bajo lock; el draw va fuera porque el
-// hilo de video ya no toca GX2.
-void wiiu_video_render(int viewport_w, int viewport_h)
-{
-	bool draw = false;
+// ---------------------------------------------------------------------------
+// Presentacion (solo hilo principal)
+//
+// wiiu_video_upload() se llama UNA vez por vuelta del bucle y FUERA de
+// los pases WHBGfx: reclama el frame listo del decoder y lo copia al
+// par de texturas TRASERO; al terminar s_tex_front apunta al par nuevo
+// y wiiu_video_render() (dentro de cada pass: TV y DRC) solo dibuja.
+// Hasta gui-40 la subida estaba dentro de cada pass: el pass TV subia
+// uno y, ~7.8 ms despues, el pass DRC subia OTRO (el decoder ya habia
+// publicado el siguiente) => 2 copias por vuelta, bucle principal a
+// 21 Hz y ~20 fps visibles.
+// ---------------------------------------------------------------------------
 
+void wiiu_video_upload()
+{
 	if(!s_lock_inited)
 		return;
 
@@ -915,26 +1210,70 @@ void wiiu_video_render(int viewport_w, int viewport_h)
 	}
 
 	int up = -1;
+	bool direct = false;
 	if(s_render_ready && s_tex_ready && s_disp_ready >= 0)
 	{
-		// Reclamamos el frame y marcamos el slot en lectura ANTES de
-		// soltar el lock: la subida a textura (2.1 MB) sale fuera del
-		// lock para no bloquear al hilo de decode (lock= medido hasta
-		// 3.9 ms/frame); el decode jamas escribe el slot en lectura.
+		// Mismo predicado que en el hilo de decode (bajo este lock):
+		// ambos lados ven el mismo modo siempre. En directo no se
+		// marca lectura — nadie copia nada; en modo copia se marca
+		// ANTES de soltar el lock: el decode jamas escribe el slot
+		// en lectura.
+		direct = s_tex_usermem && s_tex_w == s_w && s_tex_h == s_h;
 		up = s_disp_ready;
 		s_disp_ready = -1;
-		s_disp_reading = up;
+		if(!direct)
+			s_disp_reading = up;
 	}
-	// Retener el ultimo frame: una vez subido a textura se redibuja en
-	// cada pasada; si no, la pantalla volvia al color de clear entre
-	// frames y se veia un parpadeo (el pass DRC ademas "consumia" el
-	// frame que el pass TV ya habia subido y quedaba sin dibujar).
-	draw = s_render_ready && s_tex_ready && (up >= 0 || s_tex_has_frame);
 
 	OSUnlockMutex(&s_lock);
 
-	if(up >= 0)
+	if(up < 0)
+		return;
+
+	if(direct)
 	{
+		// Subida directa (gui-46): el decoder ya pego el frame en
+		// la memoria de estas texturas — aqui solo invalidar la
+		// caché de textura de la GPU (el Unlock, que era quien
+		// invalidaba, no se llama nunca en memoria de usuario) y
+		// flipear. GX2 se toca SOLO en el hilo principal.
+		const uint64_t t_up0 = OSGetTime();
+		// Edad del frame: desde que chiaki lo entrego hasta aqui
+		// (cola + decode + espera al bucle; EMA x1/8).
+		s_age_us = (uint32_t)(((uint64_t)s_age_us * 7u +
+				       (uint32_t)((t_up0 - s_disp_stamp[up]) / 125u)) /
+				      8u);
+		// La GPU podia tener tiles de esta pareja cacheados de su
+		// vez como frontal (hace DOS vueltas); su memoria cambio
+		// por DMA de decoder sin pasar por CPU.
+		GX2RInvalidateSurface(&s_tex_y[up].surface, 0,
+				      GX2R_RESOURCE_BIND_NONE);
+		GX2RInvalidateSurface(&s_tex_uv[up].surface, 0,
+				      GX2R_RESOURCE_BIND_NONE);
+		OSLockMutex(&s_lock);
+		s_tex_front = up;
+		OSUnlockMutex(&s_lock);
+		s_stats.presented++;
+		s_upload_us = (uint32_t)(((uint64_t)s_upload_us * 7u +
+					  (uint32_t)((OSGetTime() - t_up0) / 125u)) /
+					 8u);
+		return;
+	}
+
+	{
+		const uint64_t t_up0 = OSGetTime();
+		// Par trasero: el siguiente al que dibuja la GPU. Con 3
+		// pares ese par fue el frontal hace DOS vueltas. (En
+		// gui-45 se creyó que el Lock esperaba a la GPU y que por
+		// eso costaba 7.8 ms: FALSO — gui-46 midio la misma banda
+		// ~178 MB/s en 540p que en 720p: el coste era la propia
+		// copia + DCFlush. Por eso la subida directa.)
+		const int back = (s_tex_front + 1) % TEX_PAIRS;
+		// Edad del frame: desde que chiaki lo entrego hasta aqui
+		// (cola + decode + espera al bucle; EMA x1/8).
+		s_age_us = (uint32_t)(((uint64_t)s_age_us * 7u +
+				       (uint32_t)((t_up0 - s_disp_stamp[up]) / 125u)) /
+				      8u);
 		const uint8_t *src = s_disp[up];
 		size_t y_bytes = s_pitch * (size_t)s_h;
 		size_t uv_bytes = y_bytes / 2;
@@ -948,10 +1287,11 @@ void wiiu_video_render(int viewport_w, int viewport_h)
 		// textura UV quedaba con la basura inicial de MEM2: croma cero
 		// = tinte verde transparente con la luminancia visible debajo
 		// (exactamente el simptoma observado).
-		const size_t y_dst_pitch = (size_t)s_tex_y.surface.pitch;
-		const size_t uv_dst_pitch = (size_t)s_tex_uv.surface.pitch * 2;
+		const size_t y_dst_pitch = (size_t)s_tex_y[back].surface.pitch;
+		const size_t uv_dst_pitch = (size_t)s_tex_uv[back].surface.pitch * 2;
 
-		void *img = GX2RLockSurfaceEx(&s_tex_y.surface, 0, GX2R_RESOURCE_BIND_NONE);
+		bool up_ok = true;
+		void *img = GX2RLockSurfaceEx(&s_tex_y[back].surface, 0, GX2R_RESOURCE_BIND_NONE);
 		if(img)
 		{
 			if(y_dst_pitch == s_pitch)
@@ -960,13 +1300,16 @@ void wiiu_video_render(int viewport_w, int viewport_h)
 				for(int r = 0; r < s_h; r++)
 					memcpy((uint8_t *)img + (size_t)r * y_dst_pitch,
 					       src + (size_t)r * s_pitch, (size_t)s_w);
-			DCFlushRange(img, s_tex_y.surface.imageSize);
-			GX2RUnlockSurfaceEx(&s_tex_y.surface, 0, GX2R_RESOURCE_BIND_NONE);
+			DCFlushRange(img, s_tex_y[back].surface.imageSize);
+			GX2RUnlockSurfaceEx(&s_tex_y[back].surface, 0, GX2R_RESOURCE_BIND_NONE);
 		}
 		else
+		{
+			up_ok = false;
 			vlog("Video HW: GX2RLock textura Y falla");
+		}
 
-		img = GX2RLockSurfaceEx(&s_tex_uv.surface, 0, GX2R_RESOURCE_BIND_NONE);
+		img = GX2RLockSurfaceEx(&s_tex_uv[back].surface, 0, GX2R_RESOURCE_BIND_NONE);
 		if(img)
 		{
 			if(uv_dst_pitch == s_pitch)
@@ -976,17 +1319,45 @@ void wiiu_video_render(int viewport_w, int viewport_h)
 					memcpy((uint8_t *)img + (size_t)r * uv_dst_pitch,
 					       src + y_bytes + (size_t)r * s_pitch,
 					       (size_t)s_w * 2);
-			DCFlushRange(img, s_tex_uv.surface.imageSize);
-			GX2RUnlockSurfaceEx(&s_tex_uv.surface, 0, GX2R_RESOURCE_BIND_NONE);
+			DCFlushRange(img, s_tex_uv[back].surface.imageSize);
+			GX2RUnlockSurfaceEx(&s_tex_uv[back].surface, 0, GX2R_RESOURCE_BIND_NONE);
 		}
 		else
+		{
+			up_ok = false;
 			vlog("Video HW: GX2RLock textura UV falla");
+		}
+
+		// EMA x1/8 de la subida (memcpy Y+UV + DCFlushRange):
+		// es el coste CPU por frame de tener imagen en pantalla.
+		s_stats.presented++;
+		s_upload_us = (uint32_t)(((uint64_t)s_upload_us * 7u +
+					 (uint32_t)((OSGetTime() - t_up0) / 125u)) /
+					8u);
 
 		OSLockMutex(&s_lock);
 		s_disp_reading = -1;
-		s_tex_has_frame = true;
+		// El par trasero solo pasa a delantero si las dos copias
+		// salieron bien: si no, la GPU dibujaria una textura a
+		// medio escribir.
+		if(up_ok)
+			s_tex_front = back;
 		OSUnlockMutex(&s_lock);
 	}
+}
+
+// Solo hilo principal. Dibuja el ultimo par publicado (quad fullscreen
+// NDC). Llamar dentro de WHBGfxBeginRenderTV/DRC: aqui no hay copias
+// ni esperas, solo draw.
+void wiiu_video_render(int viewport_w, int viewport_h)
+{
+	if(!s_lock_inited)
+		return;
+
+	OSLockMutex(&s_lock);
+	const int front = s_tex_front;
+	const bool draw = s_render_ready && s_tex_ready && front >= 0;
+	OSUnlockMutex(&s_lock);
 
 	if(!draw)
 		return;
@@ -1004,9 +1375,9 @@ void wiiu_video_render(int viewport_w, int viewport_h)
 
 	const uint32_t loc0 = s_ps->samplerVars[0].location;
 	const uint32_t loc1 = s_ps->samplerVars[1].location;
-	GX2SetPixelTexture(&s_tex_y, loc0);
+	GX2SetPixelTexture(&s_tex_y[front], loc0);
 	GX2SetPixelSampler(&s_samp, loc0);
-	GX2SetPixelTexture(&s_tex_uv, loc1);
+	GX2SetPixelTexture(&s_tex_uv[front], loc1);
 	GX2SetPixelSampler(&s_samp, loc1);
 
 	GX2DrawEx(GX2_PRIMITIVE_MODE_QUADS, 4, 0, 1);
@@ -1060,6 +1431,8 @@ WiiUVideoStats wiiu_video_stats()
 	st.exec_us = s_exec_us;
 	st.lock_us = s_lock_us;
 	st.mem_us = s_mem_us;
+	st.upload_us = s_upload_us;
+	st.age_us = s_age_us;
 	OSUnlockMutex(&s_lock);
 	return st;
 }

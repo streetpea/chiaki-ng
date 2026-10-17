@@ -73,6 +73,15 @@
 #define ASSET_DISC_Y 192
 #define ASSET_DISC_S 32            // disco de los chips de boton
 #define ASSET_DISC_X ASSET_LOGO_X
+#define ASSET_OFF_S 32             // icono off (off.svg), junto al disco
+#define ASSET_OFF_X (ASSET_DISC_X + ASSET_DISC_S)
+#define ASSET_OFF_Y ASSET_DISC_Y
+// Superficie del touchpad en la mitad IZQUIERDA: filas 136+ son virgenes
+// (los glifos acaban en la 127 y el bloque blanco ocupa 128-135).
+#define ASSET_TP_X 0
+#define ASSET_TP_Y 136
+#define ASSET_TP_W 128
+#define ASSET_TP_H 64
 
 #define MAX_VERTS 4096 //1024 quads por frame (el menu usa ~500)
 
@@ -277,6 +286,12 @@ static bool font_create(void)
 	for(int r = 0; r < ASSET_DISC_S; r++)
 		memcpy(p + (size_t)(ASSET_DISC_Y + r) * pitch + ASSET_DISC_X,
 		       gui_disc + (size_t)r * ASSET_DISC_S, ASSET_DISC_S);
+	for(int r = 0; r < ASSET_OFF_S; r++)
+		memcpy(p + (size_t)(ASSET_OFF_Y + r) * pitch + ASSET_OFF_X,
+		       gui_off + (size_t)r * ASSET_OFF_S, ASSET_OFF_S);
+	for(int r = 0; r < ASSET_TP_H; r++)
+		memcpy(p + (size_t)(ASSET_TP_Y + r) * pitch + ASSET_TP_X,
+		       gui_touchpad + (size_t)r * ASSET_TP_W, ASSET_TP_W);
 
 	DCFlushRange(img, s_font.surface.imageSize);
 	GX2RUnlockSurfaceEx(&s_font.surface, 0, GX2R_RESOURCE_BIND_NONE);
@@ -555,6 +570,18 @@ void gui_asset_uvs(GuiAsset asset, float *u, float *v, float *w, float *h)
 		*v = (float)ASSET_DISC_Y / ah;
 		*w = (float)ASSET_DISC_S / aw;
 		*h = (float)ASSET_DISC_S / ah;
+		break;
+	case GUI_ASSET_OFF:
+		*u = (float)ASSET_OFF_X / aw;
+		*v = (float)ASSET_OFF_Y / ah;
+		*w = (float)ASSET_OFF_S / aw;
+		*h = (float)ASSET_OFF_S / ah;
+		break;
+	case GUI_ASSET_TOUCHPAD:
+		*u = (float)ASSET_TP_X / aw;
+		*v = (float)ASSET_TP_Y / ah;
+		*w = (float)ASSET_TP_W / aw;
+		*h = (float)ASSET_TP_H / ah;
 		break;
 	}
 }

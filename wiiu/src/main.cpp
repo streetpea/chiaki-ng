@@ -19,7 +19,11 @@
  *   ↑ = registrar consola (ID PSN + PIN de "Enlazar con otro dispositivo")
  *   SELECT = editar el Account ID de PSN en cualquier momento
  *   A = conectar Remote Play (despierta la PS4 si esta en standby)
- *   B = parar la sesion activa
+ *   B = durante la conexion de la sesion, cancela. Con stream activo
+ *       (fase 3c) el mando va al juego: layout por posicion fisica
+ *       (B=cross, A=circulo, Y=cuadrado, X=triangulo; ZL/ZR=L2/R2,
+ *       MINUS=boton PS, PLUS=options) y la sesion se para tocando el
+ *       icono de apagado de la esquina inferior derecha.
  *
  * Los resultados van a la consola cafe (OSReport -> log de Cemu), al
  * UDP 4405 y al archivo de la SD (fs:/vol/external01/wiiu/apps/chiaki/
@@ -50,6 +54,7 @@
 #include <chiaki/session.h>
 #include <chiaki/controller.h>
 #include <chiaki/base64.h>
+#include <chiaki/opusdecoder.h>
 
 #include <cstdarg>
 #include <cstdio>
@@ -59,6 +64,7 @@
 #include "video.h"
 #include "config.h"
 #include "gui.h"
+#include "audio.h"
 
 #define DISCOVERY_PING_MS 500
 #define DISCOVERY_HOSTS_MAX 8
@@ -126,6 +132,51 @@ static volatile uint64_t g_video_frames_lost = 0;
 static volatile uint64_t g_fec_failures = 0;
 static uint64_t g_video_log_ticks = 0;
 static uint64_t g_video_log_frames = 0;
+// Detector de estancamiento del decoder h264 (fase 3b: congelados con
+// wifi 2.4 GHz). Si entran frames pero el hw no decodifica ninguno
+// durante ~0.7 s, las referencias H.264 se perdieron en una rafaga de
+// perdida y se pide un keyframe (IDR) al instante en vez de esperar
+// al siguiente periodico de la PS4.
+static uint64_t g_stall_fed = 0;
+static uint64_t g_stall_decoded = 0;
+static uint64_t g_stall_last_fed_ticks = 0;
+static uint64_t g_stall_last_dec_ticks = 0;
+static uint64_t g_stall_last_idr_ticks = 0;
+static uint64_t g_stall_idr_sent_ticks = 0; // 0 = sin IDR pendiente
+// Vueltas del bucle principal (diagnostico de fps: si presented va por
+// detras de decoded, aqui se ve si el bucle es quien no da abasto).
+static volatile uint64_t g_main_iters = 0;
+static uint64_t g_video_log_presented = 0;
+static uint64_t g_video_log_iters = 0;
+
+// Zona táctil tipo touchpad de la PS4 (esquina superior derecha del
+// DRC). La GamePad solo tiene UN punto táctil, asi que va a un solo
+// contacto: arrastre = deslizar, toque corto y quieto = click del
+// touchpad (tap-to-click). El contacto se reinserta cada frame en
+// session_send_input porque el estado se reconstruye desde reposo.
+#define PS_TP_MAXX 1920 // igual que PS_TOUCHPAD_MAXX del escritorio
+#define PS_TP_MAXY 1079 // igual que PS_TOUCHPAD_MAXY del escritorio
+// Antitemblor: el tactil resistive de la GamePad baila unos px con el
+// dedo quieto y el mapeo al pad lo amplifica; se ignora movimiento de
+// menos de esta distancia (en px de la zona) del punto establecido.
+#define TP_JITTER_PX 3
+static bool g_tp_down = false;      // contacto vigente en la zona
+static uint16_t g_tp_x = 0;         // pos mapeada al pad (x)
+static uint16_t g_tp_y = 0;         // pos mapeada al pad (y)
+static uint8_t g_tp_id = 0;         // id del contacto vigente
+static uint8_t g_tp_id_next = 0;    // ids unicos por contacto (mask 0x7f)
+static bool g_tp_moved = false;     // supero el umbral de tap
+static int g_tp_lx0 = 0;            // pos inicial dentro de la zona (x)
+static int g_tp_ly0 = 0;            // pos inicial dentro de la zona (y)
+static float g_tp_ax = 0.0f;       // punto estable que sigue la salida (x)
+static float g_tp_ay = 0.0f;       // punto estable que sigue la salida (y)
+static uint64_t g_tp_down_ticks = 0; // instante del contacto (tap)
+static uint64_t g_tp_click_ticks = 0; // deadline del pulso de click
+static bool g_tp_diag = false;      // primer contacto de sesion logueado
+// Surface transitorio: visible solo hasta esta deadline (2 s tras el
+// primer frame de stream, y mientras tocas + 2 s tras soltar).
+static uint64_t g_tp_show_until = 0;
+static bool g_tp_stream_seen = false; // ya llego el primer frame de video
 
 // Teclado del sistema (nn::swkbd)
 enum class Prompt { None, IP, PsnId, AccountId, Pin, LoginPin };
@@ -168,27 +219,35 @@ static OSMutex g_log_mutex;
 static OSMutex g_logq_mutex; // solo head/tail; jamas se bloquea con ella
 static bool g_log_ready = false;
 
-// Buffer estatico alineado a 64 (mismo criterio que wut usa en su file.c
-// para los buffers que cruzan IPC hacia el modulo FS). Estatico para no
-// comer la pila del hilo de 4 KB del crash handler.
-#define LOG_LINE_SIZE 0x1200
-static char g_log_line[LOG_LINE_SIZE] __attribute__((aligned(64)));
-
-// Cola de respaldo para quien no puede escribir; la vacia el duenio del
-// mutex. Ambos bloqueos son TryLock: el logger jamas se bloquea en algo
-// que no sea su propia escritura FS (un hilo muerto con el mutex no puede
-// hundir al resto; si la cola esta ocupada, la linea se pierde aqui pero
-// ya esta en UDP/OSReport).
+// Cola de lineas pendientes de volcar a la SD. El handler SOLO encola
+// (microsegundos, jamas FS); la escritura la hace el bucle principal en
+// lotes. Motivo: cada FSWriteFile+FSFlushFile cuesta ~4-5 ms fijos en
+// la SD y los pagaba el hilo que logueaba — en una tormenta de perdidas
+// el hilo de red escribia 8-14 lineas por frame y pasaba 20-70 ms en la
+// SD en vez de recoger paquetes (espiral autoinfligida, gui-42).
+// Buffers alineados a 64 (mismo criterio que wut usa en su file.c para
+// los buffers que cruzan IPC hacia el modulo FS). Estaticos para no
+// comer la pila del hilo de 4 KB del crash handler. Los bloqueos del
+// camino de encolado son TryLock: el logger jamas se bloquea (un hilo
+// muerto con el mutex no puede hundir al resto; si la cola esta
+// ocupada, la linea se pierde aqui pero ya esta en UDP/OSReport).
 #define LOGQ_LINES 32
 #define LOGQ_SIZE 640
 static char g_logq[LOGQ_LINES][LOGQ_SIZE] __attribute__((aligned(64)));
-static uint32_t g_logq_head = 0; // proxima a vaciar (duenio del mutex)
-static uint32_t g_logq_tail = 0; // proxima a encolar (el que no pudo)
+static uint32_t g_logq_head = 0; // proxima a vaciar (dueno del mutex)
+static uint32_t g_logq_tail = 0; // proxima a encolar (el que encola)
+
+// Lote de vuelco: las lineas del lote se copian aqui contiguas y salen
+// en UN FSWriteFile + UN FSFlushFile (coste fijo por llamada).
+#define LOG_BATCH_SIZE 0x2000
+static char g_log_batch[LOG_BATCH_SIZE] __attribute__((aligned(64)));
 
 // Formatea "[t] str\r\n" (con NUL final); devuelve los bytes utiles.
 static int log_line_format(char *dst, size_t dst_size, const char *str)
 {
-	uint64_t ms = OSGetTime() / 125000; // OS_TIMER_CLOCK = 125 MHz
+	// El timer real es busClock/4 (~62.5 MHz); el divisor viejo (125000)
+	// media el tiempo a la mitad del real (se veía en gui-32/33).
+	uint64_t ms = OSTicksToMilliseconds(OSGetTime());
 	int n = snprintf(dst, dst_size, "[%llu.%03llu] ",
 			 (unsigned long long)(ms / 1000),
 			 (unsigned long long)(ms % 1000));
@@ -221,48 +280,54 @@ static void log_line_write(const char *buf, int n)
 	FSFlushFile(g_log_fs_client, g_log_fs_cmd, g_log_fd, FS_ERROR_FLAG_ALL);
 }
 
-// Vuelca la cola pendiente; solo el duenio de g_log_mutex. TryLock en la
-// cola: si alguien esta encolando en este instante, lo dejamos para la
-// proxima linea (nada se bloquea).
-static void logq_drain(void)
+// Extrae lineas de la cola en dst (tantas como quepan, sin romper
+// lineas). TryLock de la cola: si alguien esta encolando ahora mismo,
+// devuelve 0 y probamos en el siguiente pase. Precondicion: el llamante
+// retiene g_log_mutex (unico escritor FS).
+static size_t logq_take_batch(char *dst, size_t dst_size)
 {
-	for(;;)
+	size_t used = 0;
+	if(!OSTryLockMutex(&g_logq_mutex))
+		return 0;
+	while(g_logq_head != g_logq_tail)
 	{
-		if(!OSTryLockMutex(&g_logq_mutex))
-			return;
-		if(g_logq_head == g_logq_tail)
-		{
-			OSUnlockMutex(&g_logq_mutex);
-			return;
-		}
 		uint32_t slot = g_logq_head % LOGQ_LINES;
-		char tmp[LOGQ_SIZE] __attribute__((aligned(64)));
-		int len = (int)strlen(g_logq[slot]);
-		memcpy(tmp, g_logq[slot], (size_t)len + 1);
+		size_t len = strlen(g_logq[slot]);
+		if(used + len > dst_size)
+			break; // no cabe mas en este lote
+		memcpy(dst + used, g_logq[slot], len);
+		used += len;
 		g_logq_head++;
-		OSUnlockMutex(&g_logq_mutex);
-		log_line_write(tmp, len);
 	}
+	OSUnlockMutex(&g_logq_mutex);
+	return used;
 }
 
+// Vuelca un lote a la SD (UN escritura + UN flush). La llama el bucle
+// principal en cada pasada: TryLocks por todas partes, jamas bloquea.
+static void logq_drain_batch(void)
+{
+	if(g_log_fd < 0)
+		return;
+	if(!OSTryLockMutex(&g_log_mutex))
+		return; // otro drenando ahora; al siguiente pase
+	size_t used = logq_take_batch(g_log_batch, sizeof(g_log_batch));
+	if(used)
+		log_line_write(g_log_batch, (int)used);
+	OSUnlockMutex(&g_log_mutex);
+}
+
+// Handler de WHB para el log de la SD: SOLO encolar. La escritura FS la
+// hace el bucle principal en lotes (logq_drain_batch). Contra: un crash
+// duro puede dejar lineas sin volcar a la SD (el vuelco completo sigue
+// saliendo por UDP 4405 y por OSReport en la consola cafe).
 static void log_sd_handler(const char *str)
 {
 	if(!g_log_ready)
 		return;
 
-	if(OSTryLockMutex(&g_log_mutex))
-	{
-		int n = log_line_format(g_log_line, sizeof(g_log_line), str);
-		log_line_write(g_log_line, n);
-		logq_drain();
-		OSUnlockMutex(&g_log_mutex);
-		return;
-	}
-
-	// Otro hilo esta escribiendo (o murio reteniendo el mutex): encolar
-	// y ya. Nunca FS desde aqui — es lo que colgaba el hilo regist.
 	if(!OSTryLockMutex(&g_logq_mutex))
-		return; // cola ocupada un microsegundo: UDP ya la tiene
+		return; // un microsegundo ocupada: se pierde aqui (UDP ya la tiene)
 	char line[LOGQ_SIZE] __attribute__((aligned(64)));
 	int n = log_line_format(line, sizeof(line), str);
 	if(g_logq_tail - g_logq_head >= LOGQ_LINES)
@@ -427,9 +492,16 @@ static void log_file_close()
 {
 	WHBRemoveLogHandler(log_sd_handler);
 	g_log_ready = false;
-	// Unico escritor FS: ahora podemos bloquear con tranquilidad.
+	// Unico escritor FS: ahora podemos bloquear con tranquilidad. Vacia
+	// la cola pendiente por lotes antes de cerrar.
 	OSLockMutex(&g_log_mutex);
-	logq_drain();
+	for(;;)
+	{
+		size_t used = logq_take_batch(g_log_batch, sizeof(g_log_batch));
+		if(!used)
+			break;
+		log_line_write(g_log_batch, (int)used);
+	}
 	if(g_log_fd >= 0)
 	{
 		FSFlushFile(g_log_fs_client, g_log_fs_cmd, g_log_fd, FS_ERROR_FLAG_ALL);
@@ -1195,7 +1267,7 @@ static void session_event_cb(ChiakiEvent *event, void *user)
 		// no veia nada en pantalla).
 		if(event->quit.reason == CHIAKI_QUIT_REASON_STOPPED)
 			snprintf(g_last_session_msg, sizeof(g_last_session_msg),
-				 "Última sesión: detenida (B)");
+				 "Última sesión: detenida");
 		else if(event->quit.reason_str)
 			snprintf(g_last_session_msg, sizeof(g_last_session_msg),
 				 "Última sesión fallida: %s — %s",
@@ -1210,6 +1282,86 @@ static void session_event_cb(ChiakiEvent *event, void *user)
 	default:
 		break;
 	}
+}
+
+// Adaptador: logprintf es varargs y audio_set_log recibe texto ya
+// formateado (los mensajes de audio ya traen su prefijo "Audio:").
+static void audio_log_shim(const char *msg)
+{
+	logprintf("%s", msg);
+}
+
+// Sink de audio (fase 3b): el sink de chiaki entrega OPUS CRUDO (ver
+// audioreceiver.h: "Sink that receives Audio encoded as Opus"), así
+// que entre él y el ring AX va el decoder opus de la propia librería:
+// su callback de salida recibe PCM s16 y lo empujamos al ring.
+// Gui-36 empujaba el opus crudo como PCM => sonido rasposo.
+static ChiakiOpusDecoder g_opus_decoder;
+static uint32_t g_opus_channels = 2;
+
+static void session_opus_settings_cb(uint32_t channels, uint32_t rate,
+				     void *user)
+{
+	(void)user;
+	g_opus_channels = channels;
+	logprintf("Audio: opus decoder listo (ch=%u rate=%u)", channels,
+		  rate);
+}
+
+static void session_opus_pcm_cb(int16_t *buf, size_t samples_count,
+				void *user)
+{
+	(void)user;
+	// samples_count = muestras por canal; el ring AX quiere PCM
+	// entrelazado: bytes = muestras × canales × 2.
+	audio_push((const uint8_t *)buf,
+		   samples_count * g_opus_channels * sizeof(int16_t));
+}
+
+// Presets de calidad de video (fase 4c). La palanca de robustez sobre
+// el enlace 2,4 GHz de la Wii U es el bitrate: en la prueba de hw a
+// 5 Mbps la sesion fue perfecta (cero frames perdidos en 50 s) y a
+// 10 Mbps las ráfagas de interferencia mataban el stream entero. La
+// filosofia (igual que Moonlight Wii U): partir bajo y subir hasta
+// que deje de fallar — el ladder cubre 5M..1.5M ademas de 540p, que
+// es GRATIS aqui (el decoder HW reabre ante cada SPS y las texturas
+// GX2 reallocan solas) y da cuadros mas ligeros de subir.
+// Se eligen con ZL/ZR en el menu, se guardan en el config y se
+// aplican al conectar.
+struct VideoPreset
+{
+	bool fps60;
+	uint16_t width, height;
+	uint16_t bitrate_kbps;
+	const char *label;
+};
+static const VideoPreset g_video_presets[] = {
+	{ true, 1280, 720, 5000, "720p60 5M" },  // 0: validado en hw
+	{ true, 1280, 720, 4000, "720p60 4M" },
+	{ true, 1280, 720, 3000, "720p60 3M" },
+	{ true, 1280, 720, 2500, "720p60 2.5M" },
+	{ true, 1280, 720, 2000, "720p60 2M" },
+	{ true, 1280, 720, 1500, "720p60 1.5M" }, // punto de partida Moonlight
+	{ true, 960, 540, 5000, "540p60 5M" },   // nitidez maxima a 480p fisica
+	{ true, 960, 540, 3000, "540p60 3M" },   // cuadro mas ligero
+	{ true, 960, 540, 2000, "540p60 2M" },   // red de emergencia
+};
+#define VIDEO_PRESET_COUNT \
+	((int)(sizeof(g_video_presets) / sizeof(g_video_presets[0])))
+
+// Indice saneado: el config puede traer basura de una version vieja.
+static int video_preset_cur(void)
+{
+	int idx = g_config.video_preset;
+	return (idx >= 0 && idx < VIDEO_PRESET_COUNT) ? idx : 0;
+}
+
+static const char *video_preset_label(int idx)
+{
+	return g_video_presets[(idx >= 0 && idx < VIDEO_PRESET_COUNT)
+				       ? idx
+				       : 0]
+		.label;
 }
 
 static bool start_session()
@@ -1247,9 +1399,23 @@ static bool start_session()
 	info.host = host;
 	memcpy(info.regist_key, g_regist_key, sizeof(info.regist_key));
 	memcpy(info.morning, g_morning, sizeof(info.morning));
-	chiaki_connect_video_profile_preset(&info.video_profile,
-					     CHIAKI_VIDEO_RESOLUTION_PRESET_720p,
-					     CHIAKI_VIDEO_FPS_PRESET_60);
+	{
+		const VideoPreset *vp = &g_video_presets[video_preset_cur()];
+		// Asignacion directa del perfil (es lo que hace chiaki por
+		// dentro con su preset, pero parametrico para poder llevar
+		// 540p): el pipeline se adapta solo — el decoder HW reabre
+		// ante cada SPS nuevo y las texturas GX2 reallocan.
+		info.video_profile.width = vp->width;
+		info.video_profile.height = vp->height;
+		info.video_profile.max_fps = vp->fps60 ? 60 : 30;
+		info.video_profile.bitrate = vp->bitrate_kbps;
+		info.video_profile.codec = CHIAKI_CODEC_H264;
+		logprintf("Sesion: perfil video %ux%u@%u %u kbps (%s)",
+			  info.video_profile.width,
+			  info.video_profile.height,
+			  info.video_profile.max_fps,
+			  info.video_profile.bitrate, vp->label);
+	}
 	info.video_profile_auto_downgrade = true;
 	info.enable_keyboard = false;
 	info.enable_dualsense = false;
@@ -1275,10 +1441,23 @@ static bool start_session()
 	// Fase 3a: estado de video fresco para cada sesion (si la anterior
 	// dejo el decoder de40 MB, aqui se libera antes del nuevo stream).
 	wiiu_video_reset();
-	// Mando en reposo: la fase 4 conectara VPAD; aqui validamos el canal.
+	// Mando en reposo al arrancar; el bucle principal vuelca VPAD a la
+	// sesion cada frame (fase 3c) y el teclado del sistema lo devuelve
+	// a reposo mientras esta abierto.
 	ChiakiControllerState idle_state;
 	chiaki_controller_state_set_idle(&idle_state);
 	chiaki_session_set_controller_state(&g_session, &idle_state);
+
+	// Fase 3b: sink de audio. El sink de chiaki trae opus crudo, así
+	// que el decoder opus de la librería queda intercalado: chiaki →
+	// opus decoder (PCM) → ring AX. Se fija antes del start.
+	chiaki_opus_decoder_init(&g_opus_decoder, &g_chiaki_log);
+	chiaki_opus_decoder_set_cb(&g_opus_decoder, session_opus_settings_cb,
+				   session_opus_pcm_cb, nullptr);
+	ChiakiAudioSink audio_sink = {};
+	chiaki_opus_decoder_get_sink(&g_opus_decoder, &audio_sink);
+	chiaki_session_set_audio_sink(&g_session, &audio_sink);
+	audio_session_start();
 
 	err = chiaki_session_start(&g_session);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -1292,17 +1471,29 @@ static bool start_session()
 	g_session_quit_received = false;
 	g_session_login_pin_requested = false;
 	g_video_frames = 0;
+	g_tp_stream_seen = false; // el surface se mostrara con el1er frame
+	g_tp_show_until = 0;      // oculto hasta entonces
 	g_video_bytes = 0;
 	g_video_frames_lost = 0;
 	g_fec_failures = 0;
 	g_video_log_ticks = OSGetTime();
 	g_video_log_frames = 0;
+	// Detector de estancamiento del decoder: ventana desde el arranque.
+	{
+		uint64_t now = OSGetTime();
+		g_stall_fed = 0;
+		g_stall_decoded = wiiu_video_stats().decoded;
+		g_stall_last_fed_ticks = now;
+		g_stall_last_dec_ticks = now;
+		g_stall_last_idr_ticks = now;
+		g_stall_idr_sent_ticks = 0;
+	}
 	// Fase 4a: al proximo arranque se preselecciona esta consola.
 	chiaki_mutex_lock(&g_host_mutex);
 	snprintf(g_config.last_host, sizeof(g_config.last_host), "%s", host);
 	chiaki_mutex_unlock(&g_host_mutex);
 	g_config_dirty = true;
-	logprintf("Sesion: thread en marcha (↑ registra | A conecta | B para)");
+	logprintf("Sesion: thread en marcha (↑ registra | A conecta | B cancela al conectar | icono abajo dcha = parar)");
 	return true;
 }
 
@@ -1314,6 +1505,10 @@ static void stop_session(bool shutdown = false)
 	chiaki_session_stop(&g_session);
 	chiaki_session_join(&g_session);
 	chiaki_session_fini(&g_session);
+	// El hilo de sesión ya está unido: nadie entrega más opus. Libera
+	// el decoder (pcm_buf + opus) y silencia la voz AX.
+	chiaki_opus_decoder_fini(&g_opus_decoder);
+	audio_session_stop();
 	// Libera decoder h264 (~40 MB) y buffers; el hilo de video ya esta
 	// unido, asi que nadie llama a wiiu_video_sample ahora. En shutdown
 	// (HOME con stream) no se espera al GPU: ver wiiu_video_reset.
@@ -1321,6 +1516,99 @@ static void stop_session(bool shutdown = false)
 	g_session_active = false;
 	g_session_login_pin_requested = false;
 	logprintf("Sesion finalizada");
+}
+
+// ---------------------------------------------------------------------------
+// Mando -> sesion (fase 3c). VPAD se vuelca a ChiakiControllerState cada
+// frame; la cadencia de red la lleva el feedback sender de chiaki (solo
+// nota cambios), asi que aqui no hay timers. Layout por posicion fisica
+// del GamePad: sur B = cross, este A = circulo, oeste Y = cuadrado,
+// norte X = triangulo (mismos sitios que en un DualShock). ZL/ZR son
+// digitales en el GamePad -> L2/R2 a fondo. HOME lo consume WHBProc
+// (salir de la app). MINUS (SELECT) lleva el boton PS de la PS4: en el
+// menu sigue abriendo el editor de Account ID, con stream activo manda
+// el PS. SHARE queda sin boton por ahora.
+// ---------------------------------------------------------------------------
+static int16_t stick_axis(float v)
+{
+	// Zona muerta del 8% (deriva del stick), reescalando el resto para
+	// seguir llegando a tope.
+	if(v > 1.0f)
+		v = 1.0f;
+	else if(v < -1.0f)
+		v = -1.0f;
+	const float dead = 0.08f;
+	if(v > -dead && v < dead)
+		return 0;
+	v = (v > 0 ? v - dead : v + dead) / (1.0f - dead);
+	return (int16_t)(v * 32767.0f);
+}
+
+static void session_send_input(const VPADStatus &status)
+{
+	ChiakiControllerState st;
+	chiaki_controller_state_set_idle(&st);
+
+	const uint32_t h = status.hold;
+	if(h & VPAD_BUTTON_B)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_CROSS;
+	if(h & VPAD_BUTTON_A)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_MOON;
+	if(h & VPAD_BUTTON_Y)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_BOX;
+	if(h & VPAD_BUTTON_X)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_PYRAMID;
+	if(h & VPAD_BUTTON_LEFT)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT;
+	if(h & VPAD_BUTTON_RIGHT)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
+	if(h & VPAD_BUTTON_UP)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+	if(h & VPAD_BUTTON_DOWN)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
+	if(h & VPAD_BUTTON_L)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_L1;
+	if(h & VPAD_BUTTON_R)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_R1;
+	if(h & VPAD_BUTTON_STICK_L)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_L3;
+	if(h & VPAD_BUTTON_STICK_R)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_R3;
+	if(h & VPAD_BUTTON_MINUS)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_PS;
+	if(h & VPAD_BUTTON_PLUS)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_OPTIONS;
+	st.l2_state = (h & VPAD_BUTTON_ZL) ? 0xff : 0;
+	st.r2_state = (h & VPAD_BUTTON_ZR) ? 0xff : 0;
+
+	// VPAD: +y = arriba; en chiaki (y SDL) arriba es negativo: el
+	// escritorio pasa los ejes SDL tal cual a la PS4.
+	st.left_x = stick_axis(status.leftStick.x);
+	st.left_y = stick_axis(-status.leftStick.y);
+	st.right_x = stick_axis(status.rightStick.x);
+	st.right_y = stick_axis(-status.rightStick.y);
+
+	// Zona touchpad superior derecha: el contacto se reinserta con su
+	// id en el estado fresco (el state nuevo arranca sin toques); el
+	// click es un pulso tras un toque corto y quieto (tap-to-click).
+	if(g_tp_down)
+	{
+		st.touch_id_next = g_tp_id;
+		chiaki_controller_state_start_touch(&st, g_tp_x, g_tp_y);
+	}
+	else if(OSGetTime() < g_tp_click_ticks)
+		st.buttons |= CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+
+	chiaki_session_set_controller_state(&g_session, &st);
+}
+
+// Con el teclado del sistema abierto (PIN/ID): mando en reposo para que
+// ningun boton quede pegado mientras se teclea.
+static void session_send_idle(void)
+{
+	ChiakiControllerState st;
+	chiaki_controller_state_set_idle(&st);
+	chiaki_session_set_controller_state(&g_session, &st);
 }
 
 // Puerta de conexion: con la lista vacia A no conecta NUNCA aunque el
@@ -1672,7 +1960,7 @@ static void swkbd_shutdown()
 // columna de acciones de la fila destacada. Izq/Dcha cambia la seleccion
 // (apply_console vuelca IP+claves a los globals con los que conecta A).
 // ---------------------------------------------------------------------------
-#define APP_BUILD_TAG "gui-17"
+#define APP_BUILD_TAG "gui-49"
 
 // Chip de boton del gamepad: disco (mask en la mitad derecha del atlas)
 // + letra centrada. Colores robustos (gris medio + letra blanca): si en
@@ -1732,6 +2020,89 @@ static void draw_connecting(int w, int h)
 	gui_flush();
 }
 
+// Rect del icono de parada en la resolucion dada: tamano u*4 y margen
+// u*2 (TV: 64 px en la esquina; DRC: 32 px). El toque se evalua contra
+// la caja DRC (854x480), la unica pantalla con tactil.
+static void stop_button_rect(int w, int h, int *x, int *y, int *d)
+{
+	int scale = (w >= 1280) ? 2 : 1;
+	int u = 8 * scale;
+	*d = u * 4;
+	*x = w - u * 2 - *d;
+	*y = h - u * 2 - *d;
+}
+
+// Rect de la zona táctil del touchpad (esquina superior derecha):
+// u*30 x u*15 (aspecto ~2:1, como la superficie del SVG). Con el
+// dedo se maneja bien: 240x120 px en la pantalla del DRC.
+static void touchpad_rect(int w, int h, int *x, int *y, int *rw, int *rh)
+{
+	int scale = (w >= 1280) ? 2 : 1;
+	int u = 8 * scale;
+	*rw = u * 30;
+	*rh = u * 15;
+	*x = w - u * 2 - *rw;
+	*y = u * 2;
+}
+
+// Icono de parada (solo con sesion activa): disco translucido con el
+// glifo de apagado centrado, legible sobre cualquier frame de video.
+// Gui_begin/flush propio como draw_connecting, para poder pintarlo
+// despues del frame de video.
+static void draw_stop_button(int w, int h)
+{
+	int x, y, d;
+	stop_button_rect(w, h, &x, &y, &d);
+
+	float du, dv, dw, dh;
+	gui_asset_uvs(GUI_ASSET_DISC, &du, &dv, &dw, &dh);
+	float ou, ov, ow, oh;
+	gui_asset_uvs(GUI_ASSET_OFF, &ou, &ov, &ow, &oh);
+
+	gui_begin(w, h);
+	gui_image((float)x, (float)y, (float)d, (float)d, du, dv, dw, dh,
+		  GUI_RGBA(0x00, 0x00, 0x00, 0xb3));
+	int g = d - d / 3; // glifo a dos tercios del disco
+	gui_image((float)(x + (d - g) / 2), (float)(y + (d - g) / 2),
+		  (float)g, (float)g, ou, ov, ow, oh,
+		  GUI_RGBA(0xff, 0xff, 0xff, 0xe6));
+	gui_flush();
+}
+
+// Superficie del touchpad (solo en sesion): redondeada (mascara del
+// SVG) y se aclara mientras hay un contacto encima.
+static void draw_touchpad(int w, int h)
+{
+	// Transitorio: visible durante la ventana de 2 s (inicio del
+	// stream o contacto en la zona); al vencer hace un fundido de
+	// salida rapido hasta transparente y ya no se pinta.
+	uint64_t now = OSGetTime();
+	uint64_t fade_ticks = OSMillisecondsToTicks(250);
+	if(now >= g_tp_show_until + fade_ticks)
+		return;
+	float fade = 1.0f;
+	if(now >= g_tp_show_until)
+		fade = 1.0f - (float)(now - g_tp_show_until) /
+				     (float)fade_ticks;
+	int x, y, rw, rh;
+	touchpad_rect(w, h, &x, &y, &rw, &rh);
+	float tu, tv, tw, th;
+	gui_asset_uvs(GUI_ASSET_TOUCHPAD, &tu, &tv, &tw, &th);
+	gui_begin(w, h);
+	// Gris oscuro tipo tarjeta Material: un gris claro translucido
+	// heredaba el celeste del juego por debajo (al 30% de alpha
+	// se veia 70% de juego); con mas cuerpo el celeste pasa a gris
+	// azulado oscuro. Con dedo encima se aclara a gris medio para
+	// localizar el toque. El alpha se multiplica por el fundido de
+	// salida.
+	uint32_t col = g_tp_down ? GUI_RGBA(0x94, 0x94, 0x94, 0)
+				 : GUI_RGBA(0x3d, 0x3d, 0x3d, 0);
+	uint32_t a = (uint32_t)((g_tp_down ? 0xbf : 0x99) * fade + 0.5f);
+	gui_image((float)x, (float)y, (float)rw, (float)rh, tu, tv, tw, th,
+		  col | (a << 24));
+	gui_flush();
+}
+
 static void draw_menu(int w, int h)
 {
 	// Escala2x en TV (>=1280) y1x en DRC: la fuente8x8 queda legible
@@ -1787,11 +2158,17 @@ static void draw_menu(int w, int h)
 		char chip;
 		const char *label;
 	};
-	static const TbSeg tb_segs[] = {
+	// Segmento "Calidad" con el preset vigente a la vista (ZL/ZR lo
+	// cicla; label dinámico, por eso el array no es const).
+	char quality_lbl[40];
+	snprintf(quality_lbl, sizeof(quality_lbl), "Calidad %s",
+		 video_preset_label(video_preset_cur()));
+	const TbSeg tb_segs[] = {
 		{ 0, "Registrar (Arriba)" },
 		{ '-', "ID" },
 		{ 'X', "IP" },
 		{ 'Y', "Buscar" },
+		{ 'Z', quality_lbl },
 		{ '+', "Eliminar" },
 		{ 0, "Salir (HOME)" },
 	};
@@ -2091,16 +2468,26 @@ int main(int argc, char **argv)
 	VPADInit();
 	logprintf("init: FSInit");
 	FSInit();
-	logprintf("init: AXInit");
-	AXInit();
+
+	// Log a la SD: fs:/vol/external01/wiiu/apps/chiaki/log.txt. Antes
+	// del bloque AX/audio: el diagnostico de arranque de la voz (offsets
+	// leidos del DSP, AXCheckVoiceOffsets) debe llegar al archivo.
+	logprintf("init: log SD");
+	log_file_init();
+
+	// Mixer AX a 48 kHz: la PS4 manda PCM a 48k y la voz AX no tiene
+	// SRC propia (la frecuencia es la del mixer).
+	logprintf("init: AXInit48k");
+	AXInitParams ax_params = {};
+	ax_params.renderer = AX_INIT_RENDERER_48KHZ;
+	ax_params.pipeline = AX_INIT_PIPELINE_SINGLE;
+	AXInitWithParams(&ax_params);
+	audio_set_log(audio_log_shim);
+	logprintf("init: audio %s", audio_init() ? "ok" : "FALLO");
 
 	// Teclado del sistema (IP, PSN, PINs).
 	logprintf("init: swkbd");
 	swkbd_init();
-
-	// Log a la SD: fs:/vol/external01/wiiu/apps/chiaki/log.txt
-	logprintf("init: log SD");
-	log_file_init();
 
 	// Tras log_file_init para que el marker llegue a la SD (antes solo
 	// iba a OSReport/UDP y no servia para confirmar el build desplegado).
@@ -2122,13 +2509,20 @@ int main(int argc, char **argv)
 	// el resto de la app sigue funcionando (las primitivas son no-op).
 	logprintf("init: gui %s", gui_init() ? "ok" : "FALLO");
 
-	logprintf("Controles: A=conectar  Izq/Dcha=elegir consola  Arriba=registrar  SELECT=ID  X=IP  Y=broadcast  B=parar sesion");
+	logprintf("Controles: A=conectar  Izq/Dcha=elegir consola  Arriba=registrar  SELECT=ID  X=IP  Y=broadcast  ZL/ZR=calidad  icono abajo dcha (tocar)=parar sesion");
 
 	uint32_t last_hold = 0;
 	VPADTouchData last_touch = {};
+	// Icono de parada táctil: transicion del ultimo toque en la caja.
+	bool stop_touch_prev = false;
 
 	while(WHBProcIsRunning())
 	{
+		g_main_iters++;
+		// Vuelco del log a la SD en lotes (el handler solo encola):
+		// corriendo aqui tambien llegan los logs de arranque y de
+		// menu, y el hilo de red jamas toca FS.
+		logq_drain_batch();
 		// Reabrir el teclado tras una entrada invalida o para encadenar
 		// formularios (ID PSN -> PIN).
 		if(g_swkbd_reopen != Prompt::None && !g_swkbd_visible)
@@ -2188,11 +2582,27 @@ int main(int argc, char **argv)
 			{
 				// Rising edges antes de que log_vpad_changes actualice last_hold.
 				uint32_t rising = status.hold & ~last_hold;
-				log_vpad_changes(status, last_hold, last_touch);
+
+				// Con stream en marcha el mando es SOLO del juego: ni
+				// acciones del menu ni logs por pulso (cada boton de
+				// juego llenaria log.txt). last_hold sigue al dia para
+				// no desencadenar acciones fantasma al volver. Parar es
+				// el icono táctil; mientras dure la conexion (aun sin
+				// frames) manda la tarjeta: B cancela.
+				bool streaming = g_session_active && g_video_frames > 0;
+
+				if(streaming)
+					last_hold = status.hold;
+				else
+					log_vpad_changes(status, last_hold, last_touch);
 
 				// Modal de borrado sin navegacion: A
 				// confirma, B vuelve; el resto se ignora.
-				if(g_confirm_del)
+				if(streaming)
+				{
+					// El menu no consume nada con stream activo.
+				}
+				else if(g_confirm_del)
 				{
 					if(rising & VPAD_BUTTON_B)
 						g_confirm_del = false;
@@ -2321,7 +2731,209 @@ int main(int argc, char **argv)
 						}
 					}
 				}
+				else if(rising & (VPAD_BUTTON_ZL |
+						  VPAD_BUTTON_ZR))
+				{
+					// ZL/ZR: perfil de calidad (fase
+					// 4c). Solo fuera de sesion: se
+					// aplica al reconectar (el perfil
+					// se negocia al abrir stream).
+					if(g_session_active)
+						logprintf(
+							"ZL/ZR: en sesion (B para parar)");
+					else
+					{
+						int cur =
+							video_preset_cur();
+						int dir = (rising &
+							   VPAD_BUTTON_ZR)
+								 ? 1
+								 : -1;
+						g_config.video_preset =
+							(cur + dir +
+							 VIDEO_PRESET_COUNT) %
+							VIDEO_PRESET_COUNT;
+						g_config_dirty = true;
+						logprintf(
+							"Calidad: %s (aplica al reconectar)",
+							video_preset_label(
+								g_config
+									.video_preset));
+					}
+				}
 			}
+		}
+
+		// Toques de sesion: dos zonas en el DRC (la unica pantalla
+		// con tactil). La esquina superior derecha es la superficie
+		// touchpad de la PS4 (arrastre = deslizar, toque corto =
+		// click); la inferior derecha es el icono de parada. El
+		// resto de la pantalla se ignora.
+		if(error == VPAD_READ_SUCCESS && g_session_active &&
+		   !g_swkbd_visible)
+		{
+			VPADTouchData tp = {};
+			VPADGetTPCalibratedPointEx(VPAD_CHAN_0, VPAD_TP_854X480,
+						 &tp, &status.tpNormal);
+			bool touched = tp.touched != 0;
+
+			// Diagnostico unico por sesion: el primer contacto en
+			// cualquier punto deja crudo y calibrado en el log.
+			if(touched && !g_tp_diag)
+			{
+				g_tp_diag = true;
+				logprintf("Touch: crudo(%u,%u) -> cal854(%u,%u)",
+					  (unsigned)status.tpNormal.x,
+					  (unsigned)status.tpNormal.y,
+					  (unsigned)tp.x, (unsigned)tp.y);
+			}
+
+			// --- Zona touchpad (esquina superior derecha) ---
+			int zx, zy, zw, zh;
+			touchpad_rect(854, 480, &zx, &zy, &zw, &zh);
+			if(g_tp_down)
+			{
+				if(touched)
+				{
+					// Arrastre: clamp a la zona y mapeo lineal
+					// al pad completo (1920x1079).
+					int lx = (int)tp.x - zx, ly = (int)tp.y - zy;
+					if(lx < 0)
+						lx = 0;
+					else if(lx >= zw)
+						lx = zw - 1;
+					if(ly < 0)
+						ly = 0;
+					else if(ly >= zh)
+						ly = zh - 1;
+					if(lx - g_tp_lx0 > 12 || g_tp_lx0 - lx > 12 ||
+					   ly - g_tp_ly0 > 12 || g_tp_ly0 - ly > 12)
+						g_tp_moved = true;
+					// Antitemblor + inercia: con el dedo quieto
+					// la pos no cambia (banda de TP_JITTER_PX)
+					// y la PS4 ve el dedo parado. En movimiento
+					// el punto estable no salta al crudo (que
+					// tiembla y se ve erratico): lo sigue con
+					// inercia (0.3 de la distancia por
+					// frame); los gestos rapidos (>12 px por
+					// frame) van directos para no perder
+					// precision.
+					float ex = (float)lx - g_tp_ax;
+					float ey = (float)ly - g_tp_ay;
+					if(ex > TP_JITTER_PX || -ex > TP_JITTER_PX ||
+					   ey > TP_JITTER_PX || -ey > TP_JITTER_PX)
+					{
+						if(ex > 12.0f || ex < -12.0f ||
+						   ey > 12.0f || ey < -12.0f)
+						{
+							g_tp_ax = (float)lx;
+							g_tp_ay = (float)ly;
+						}
+						else
+						{
+							g_tp_ax += ex * 0.3f;
+							g_tp_ay += ey * 0.3f;
+						}
+						unsigned nx =
+							(unsigned)(int)(g_tp_ax + 0.5f);
+						unsigned ny =
+							(unsigned)(int)(g_tp_ay + 0.5f);
+						g_tp_x = (uint16_t)(nx * PS_TP_MAXX /
+							(unsigned)(zw - 1));
+						g_tp_y = (uint16_t)(ny * PS_TP_MAXY /
+							(unsigned)(zh - 1));
+					}
+				}
+				else
+				{
+					// Levantado: toque corto y quieto = click
+					// del touchpad (pulso tras subir el dedo).
+					g_tp_down = false;
+					if(!g_tp_moved &&
+					   OSGetTime() - g_tp_down_ticks <
+						   OSMillisecondsToTicks(300))
+					{
+						g_tp_click_ticks =
+							OSGetTime() +
+							OSMillisecondsToTicks(150);
+						logprintf("Touchpad: click");
+					}
+				}
+			}
+			else if(touched && (int)tp.x >= zx &&
+				(int)tp.x < zx + zw && (int)tp.y >= zy &&
+				(int)tp.y < zy + zh)
+			{
+				// Contacto nuevo dentro de la zona.
+				int lx = (int)tp.x - zx, ly = (int)tp.y - zy;
+				g_tp_down = true;
+				g_tp_moved = false;
+				g_tp_lx0 = lx;
+				g_tp_ly0 = ly;
+				g_tp_ax = (float)lx; // punto estable de partida
+				g_tp_ay = (float)ly;
+				g_tp_id = g_tp_id_next;
+				g_tp_id_next =
+					(uint8_t)((g_tp_id_next + 1) & 0x7f);
+				g_tp_down_ticks = OSGetTime();
+				g_tp_click_ticks = 0; // cancela un pulso previo
+				g_tp_x = (uint16_t)((unsigned)lx * PS_TP_MAXX /
+						     (unsigned)(zw - 1));
+				g_tp_y = (uint16_t)((unsigned)ly * PS_TP_MAXY /
+						     (unsigned)(zh - 1));
+			}
+
+			// Tocar la zona re-muestra el surface: el contacto lo
+			// mantiene visible y al soltar se va2 s despues.
+			if(g_tp_down)
+				g_tp_show_until =
+					OSGetTime() + OSMillisecondsToTicks(2000);
+
+			// --- Icono de parada (esquina inferior derecha) ---
+			// Solo sin contacto del touchpad en curso: un arrastre
+			// que pase por abajo no debe parar la sesion.
+			if(!g_tp_down)
+			{
+				int sx, sy, sd;
+				stop_button_rect(854, 480, &sx, &sy, &sd);
+				const int pad = 16;
+				bool inside =
+					tp.touched && (int)tp.x >= sx - pad &&
+					(int)tp.x < sx + sd + pad &&
+					(int)tp.y >= sy - pad &&
+					(int)tp.y < sy + sd + pad;
+				if(inside && !stop_touch_prev)
+				{
+					logprintf(
+						"Stop: toque en el icono off (%u,%u)",
+						(unsigned)tp.x,
+						(unsigned)tp.y);
+					stop_session();
+				}
+				stop_touch_prev = inside;
+			}
+			else
+				stop_touch_prev = false;
+		}
+		else
+		{
+			// Sin sesion o con teclado abierto: reinicia todo para
+			// que el proximo toque cuente.
+			stop_touch_prev = false;
+			g_tp_down = false;
+			g_tp_diag = false;
+		}
+
+		// VPAD -> sesion (fase 3c): estado fresco cada frame; la
+		// cadencia de red la decide el feedback sender de chiaki. Con
+		// el teclado del sistema abierto se manda reposo para que
+		// ningun boton quede pegado mientras se teclea.
+		if(error == VPAD_READ_SUCCESS && g_session_active)
+		{
+			if(g_swkbd_visible)
+				session_send_idle();
+			else
+				session_send_input(status);
 		}
 
 		// Estadisticas de video (valida que FEC entrega frames enteros).
@@ -2329,15 +2941,95 @@ int main(int argc, char **argv)
 		{
 			uint64_t now = OSGetTime();
 			uint64_t frames = g_video_frames;
+			// Relleno del ring AX por detras del playhead del DSP.
+			audio_update();
+			// Inicio del stream: el surface del touchpad aparece
+			// transparente2 s para situarlo sin tapar el juego.
+			if(!g_tp_stream_seen && frames > 0)
+			{
+				g_tp_stream_seen = true;
+				g_tp_show_until =
+					now + OSMillisecondsToTicks(2000);
+			}
+			// Detector de congelados (wifi 2.4 GHz): frames
+			// entrando pero ninguno decodificable => las
+			// referencias H.264 se perdieron en una rafaga. Pide
+			// keyframe al instante (reintento cada 1.2 s) en vez
+			// de esperar ~5 s al IDR periodico de la PS4.
+			{
+				WiiUVideoStats vs = wiiu_video_stats();
+				if(frames != g_stall_fed)
+				{
+					g_stall_fed = frames;
+					g_stall_last_fed_ticks = now;
+				}
+				if(vs.decoded != g_stall_decoded)
+				{
+					// Si habia un IDR pedido, aqui esta la
+					// recuperacion: se registra cuanto tardo.
+					if(g_stall_idr_sent_ticks)
+					{
+						logprintf(
+							"Sesion: decoder recuperado "
+							"tras IDR en %llu ms",
+							(unsigned long long)(
+								(now - g_stall_idr_sent_ticks) /
+								OSMillisecondsToTicks(1)));
+						g_stall_idr_sent_ticks = 0;
+					}
+					g_stall_decoded = vs.decoded;
+					g_stall_last_dec_ticks = now;
+				}
+				// Armado tras el primer frame decodificado: durante
+				// el arranque de la sesion (decoder subiendose, PS4
+				// mandando su primer IDR) todavia no hay nada que
+				// "estancar" — el detector de gui-38 disparaba un
+				// falso positivo a los 2 s con una peticion inutil.
+				if(frames > 0 &&
+				   vs.decoded > 0 &&
+				   now - g_stall_last_fed_ticks <
+					   OSMillisecondsToTicks(500) &&
+				   now - g_stall_last_dec_ticks >
+					   OSMillisecondsToTicks(700) &&
+				   now - g_stall_last_idr_ticks >
+					   OSMillisecondsToTicks(1200))
+				{
+					uint64_t stall_ms =
+						(now - g_stall_last_dec_ticks) /
+						OSMillisecondsToTicks(1);
+					chiaki_session_request_idr(&g_session);
+					g_stall_last_idr_ticks = now;
+					g_stall_last_dec_ticks = now;
+					g_stall_idr_sent_ticks = now;
+					logprintf("Sesion: decoder estancado "
+							  "%llu ms — pidiendo "
+							  "keyframe (IDR)",
+							  (unsigned long long)stall_ms);
+				}
+			}
 			if(now - g_video_log_ticks > OSSecondsToTicks(3))
 			{
 				if(frames != g_video_log_frames)
 				{
 					WiiUVideoStats vs = wiiu_video_stats();
+					// g_video_log_presented se queda con
+					// la sesion anterior: si vs.presented
+					// volvio a 0 (reset por sesion) el
+					// delta rebose hacia atras y salia
+					// "+6148914691236517071/s". Se trata
+					// como reinicio (delta 0).
+					const unsigned long long dp =
+						(vs.presented >=
+						 g_video_log_presented)
+							? (unsigned long long)(
+								  vs.presented -
+								  g_video_log_presented)
+							: 0;
 					logprintf(
 						"Video: %llu frames (%.2f MB) perdidos=%llu "
 						"FEC_fallos=%llu | hw_dec=%llu err=%llu drop=%llu "
-						"exec=%uus lock=%uus mem=%uus",
+						"exec=%uus lock=%uus mem=%uus | present=%llu "
+						"(+%llu/s) upload=%uus age=%uus loop=%llu (+%llu/s)",
 						(unsigned long long)frames,
 						(double)g_video_bytes / (1024.0 * 1024.0),
 						(unsigned long long)g_video_frames_lost,
@@ -2347,8 +3039,18 @@ int main(int argc, char **argv)
 						(unsigned long long)vs.dropped,
 						(unsigned int)vs.exec_us,
 						(unsigned int)vs.lock_us,
-						(unsigned int)vs.mem_us);
+						(unsigned int)vs.mem_us,
+						(unsigned long long)vs.presented,
+						(unsigned long long)(dp / 3),
+						(unsigned int)vs.upload_us,
+						(unsigned int)vs.age_us,
+						(unsigned long long)g_main_iters,
+						(unsigned long long)((g_main_iters -
+								      g_video_log_iters) /
+							     3));
 					g_video_log_frames = frames;
+					g_video_log_presented = vs.presented;
+					g_video_log_iters = g_main_iters;
 				}
 				g_video_log_ticks = now;
 			}
@@ -2372,6 +3074,13 @@ int main(int argc, char **argv)
 			clear_b = 0.1f;
 		}
 
+		// Subida del frame de video UNA vez por vuelta y FUERA de
+		// los pases WHBGfx: los passes solo dibujan el par ya
+		// subido (gui-40 subia dentro de cada pass => 2 copias
+		// por vuelta, ~15.6 ms y bucle a 21 Hz).
+		if(g_session_active)
+			wiiu_video_upload();
+
 		WHBGfxBeginRender();
 
 		WHBGfxBeginRenderTV();
@@ -2382,6 +3091,9 @@ int main(int argc, char **argv)
 			// Sin muestra de video aun: tarjeta "Conectando".
 			if(g_video_frames == 0)
 				draw_connecting(1920, 1080);
+			draw_stop_button(1920, 1080);
+			// El surface del touchpad es solo en el DRC: la TV no
+			// tiene tactil y no debe tapar el juego.
 		}
 		else
 			draw_menu(1920, 1080);
@@ -2396,6 +3108,8 @@ int main(int argc, char **argv)
 			wiiu_video_render(854, 480);
 			if(g_video_frames == 0)
 				draw_connecting(854, 480);
+			draw_stop_button(854, 480);
+			draw_touchpad(854, 480);
 		}
 		else
 			draw_menu(854, 480);
@@ -2431,6 +3145,7 @@ int main(int argc, char **argv)
 	swkbd_shutdown();
 	FSShutdown();
 	VPADShutdown();
+	audio_quit();
 	AXQuit();
 	WHBGfxShutdown();
 	// Cerrar el socket UDP de log ANTES de desmontar la red de Cafe OS.

@@ -43,6 +43,12 @@ struct Config
 	// Ultima consola conectada: al arrancar se preselecciona su IP,
 	// claves y cuenta para conectar con A sin registrar de nuevo.
 	char last_host[CONFIG_HOST_SIZE];
+	// Perfil de calidad de video (fase 4c): indice de preset, ver
+	// g_video_presets en main.cpp. 0 = 720p60 5 Mbps (validado en
+	// hardware). Ojo: los indices cambiaron en gui-45 (antes 0 era
+	// 10 Mbps) — un config viejo caera en otro preset; re-elegir
+	// con ZL/ZR lo corrige.
+	int video_preset;
 	ConfigConsole consoles[CONFIG_MAX_CONSOLES];
 };
 

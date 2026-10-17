@@ -6,6 +6,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static void hex_encode(char *dst, const uint8_t *src, size_t n)
@@ -150,8 +151,10 @@ size_t config_serialize(const Config *cfg, char *buf, size_t buf_size)
 	if(buf_size < 2)
 		return 0;
 
-	size_t off = (size_t)snprintf(buf, buf_size, "account_id=%s\nlast_host=%s\n",
-				      cfg->account_id_hex, cfg->last_host);
+	size_t off = (size_t)snprintf(buf, buf_size,
+				      "account_id=%s\nlast_host=%s\nvideo_preset=%d\n",
+				      cfg->account_id_hex, cfg->last_host,
+				      cfg->video_preset);
 	if(off >= buf_size)
 		off = buf_size - 1;
 
@@ -254,6 +257,8 @@ void config_parse(Config *cfg, const char *buf, size_t len)
 					field_copy(cfg->last_host,
 						   sizeof(cfg->last_host),
 						   val, line_end);
+				else if(!strcmp(key, "video_preset"))
+					cfg->video_preset = atoi(val);
 				else if(!strcmp(key, "console"))
 					parse_console_line(cfg, val, line_end);
 				// claves desconocidas: se ignoran (compatibilidad

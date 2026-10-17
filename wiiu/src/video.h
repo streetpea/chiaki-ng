@@ -24,6 +24,11 @@ void wiiu_video_set_log(WiiUVideoLogFn fn);
 // del video receiver) y despues cada frame. Devuelve true si se consumo.
 bool wiiu_video_sample(uint8_t *buf, size_t buf_size);
 
+// Sube el frame listo del decoder a las texturas GX2 (par trasero).
+// Una vez por vuelta del bucle principal y FUERA de los pases WHBGfx;
+// wiiu_video_render() solo dibuja dentro de cada pass.
+void wiiu_video_upload();
+
 // Dibuja el ultimo frame disponible a pantalla (quad fullscreen NDC).
 // Llamar dentro de WHBGfxBeginRenderTV/DRC con el tamano del scan buffer.
 void wiiu_video_render(int viewport_w, int viewport_h);
@@ -48,6 +53,18 @@ struct WiiUVideoStats
 	uint32_t exec_us;
 	uint32_t lock_us;
 	uint32_t mem_us;
+	// Presentacion (hilo principal): frames subidos a textura GX2
+	// (los fps REALES en pantalla) y EMA de la subida CPU por frame
+	// (memcpy NV12 + DCFlushRange). Si presented va muy por detras
+	// de decoded, el cuello esta en el bucle principal/GX2.
+	uint64_t presented;
+	uint32_t upload_us;
+	// EMA de la EDAD del frame al presentarse: desde que chiaki
+	// entrega la muestra (wiiu_video_sample) hasta que empieza la
+	// subida a textura. Cubre cola + decode + espera al bucle —
+	// el latencia que CONTROLAMOS nosotros (el vsync de la cadena
+	// de video es ~1 vblank mas).
+	uint32_t age_us;
 };
 
 WiiUVideoStats wiiu_video_stats();

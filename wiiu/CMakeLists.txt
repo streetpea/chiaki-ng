@@ -12,6 +12,8 @@ add_executable(chiaki-wiiu
 	src/video.cpp
 	src/config.cpp
 	src/gui.cpp
+	# Fase 3b: audio de sesion por la voz AX (snd_core2).
+	src/audio.cpp
 )
 
 # Fase 3a: h264.rpl (H264DEC*) esta resuelto dentro de libwut.a via

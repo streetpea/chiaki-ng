@@ -43,6 +43,8 @@ typedef enum GuiAsset {
 	GUI_ASSET_RADAR_ON,  // discovery: consola detectada (discover-24px)
 	GUI_ASSET_RADAR_OFF, // discovery: buscando (discover-off-24px)
 	GUI_ASSET_DISC,      // disco de los chips de boton del gamepad
+	GUI_ASSET_OFF,       // icono de apagado (off.svg): parada táctil
+	GUI_ASSET_TOUCHPAD,  // superficie touchpad (touchpad_surface.svg)
 } GuiAsset;
 void gui_asset_uvs(GuiAsset asset, float *u, float *v, float *w, float *h);
 
