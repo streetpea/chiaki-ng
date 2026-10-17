@@ -205,6 +205,22 @@ CHIAKI_EXPORT void chiaki_frame_processor_report_packet_stats(ChiakiFrameProcess
 
 static ChiakiErrorCode chiaki_frame_processor_fec(ChiakiFrameProcessor *frame_processor)
 {
+	// Sin suficientes ecuaciones (recibidas < source_expected, es decir
+	// mas erasures que paridades) el fallo es matematico y Jerasure solo
+	// cuesta CPU: ~14 ms por intento vacio en la Wii U. En plena
+	// tormenta de perdidas eso saturaba el hilo de red, desbordaba el
+	// buffer del socket y autoalargaba el congelado 2-3 s — en la
+	// prueba gui-42 el 100 % de los intentos eran de este tipo.
+	const uint64_t units_received = frame_processor->units_source_received + frame_processor->units_fec_received;
+	if(units_received < frame_processor->units_source_expected)
+	{
+		CHIAKI_LOGE(frame_processor->log, "FEC imposible: %u+%u de %u unidades — sin reparacion",
+					(unsigned int)frame_processor->units_source_received,
+					(unsigned int)frame_processor->units_fec_received,
+					(unsigned int)frame_processor->units_source_expected);
+		return CHIAKI_ERR_FEC_FAILED;
+	}
+
 	CHIAKI_LOGI(frame_processor->log, "Frame Processor received %u+%u / %u+%u units, attempting FEC",
 				frame_processor->units_source_received, frame_processor->units_fec_received,
 				frame_processor->units_source_expected, frame_processor->units_fec_expected);

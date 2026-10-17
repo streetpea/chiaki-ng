@@ -54,6 +54,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_init(ChiakiVideoReceiver *video_receive
 	chiaki_bitstream_init(&video_receiver->bitstream, video_receiver->log, video_receiver->session->connect_info.video_profile.codec);
 	chiaki_mutex_init(&video_receiver->waiting_for_idr_mutex, false);
 	video_receiver->waiting_for_idr = false;
+	video_receiver->waiting_idr_frames = 0;
 	chiaki_mutex_init(&video_receiver->frames_lost_mutex, false);
 }
 
@@ -69,6 +70,8 @@ CHIAKI_EXPORT void chiaki_video_receiver_fini(ChiakiVideoReceiver *video_receive
 CHIAKI_EXPORT void chiaki_video_receiver_set_waiting_for_idr(ChiakiVideoReceiver *video_receiver, bool waiting_for_idr)
 {
 	chiaki_mutex_lock(&video_receiver->waiting_for_idr_mutex);
+	if(video_receiver->waiting_for_idr != waiting_for_idr)
+		video_receiver->waiting_idr_frames = 0;
 	video_receiver->waiting_for_idr = waiting_for_idr;
 	chiaki_mutex_unlock(&video_receiver->waiting_for_idr_mutex);
 }
@@ -161,16 +164,39 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 		if(chiaki_seq_num_16_gt(frame_index, next_frame_expected)
 			&& !(frame_index == 1 && video_receiver->frame_index_cur < 0)) // ok for frame 1
 		{
-			CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
-			err = stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, frame_index - 1);
-			if(err != CHIAKI_ERR_SUCCESS)
-				CHIAKI_LOGW(video_receiver->log, "Error sending corrupt frame.");
+			// Esperando el keyframe, el hueco lo cubrira el IDR: no
+			// informamos. En una tormenta de perdidas la lluvia de
+			// "corrupt frame" (uno por frame) desbordaba el buffer de
+			// envio de takion (16 slots) y empeoraba la tormenta.
+			if(!chiaki_video_receiver_get_waiting_for_idr(video_receiver))
+			{
+				CHIAKI_LOGW(video_receiver->log, "Detected missing or corrupt frame(s) from %d to %d", next_frame_expected, (int)frame_index);
+				err = stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, frame_index - 1);
+				if(err != CHIAKI_ERR_SUCCESS)
+					CHIAKI_LOGW(video_receiver->log, "Error sending corrupt frame.");
+			}
 		}
 
 		video_receiver->frame_index_cur = frame_index;
 		err = chiaki_frame_processor_alloc_frame(&video_receiver->frame_processor, packet);
 		if(err != CHIAKI_ERR_SUCCESS)
 			CHIAKI_LOGW(video_receiver->log, "Video receiver could not allocate frame for packet.");
+
+		// Espera del keyframe (mantenimiento): si el IDR pedido se
+		// perdio — en plena tormenta se tragaba hasta el propio IDR —
+		// se repite la peticion cada ~60 frames (~1 s). Sin esto la
+		// sesion se quedaba congelada hasta el IDR espontaneo de la
+		// PS4 (~4,6 s en la prueba gui-42; aqui cada tormenta eran
+		// ~2 congelones de ese porte).
+		if(chiaki_video_receiver_get_waiting_for_idr(video_receiver)
+			&& ++video_receiver->waiting_idr_frames >= 60)
+		{
+			video_receiver->waiting_idr_frames = 0;
+			if(stream_connection_send_idr_request(&video_receiver->session->stream_connection) == CHIAKI_ERR_SUCCESS)
+				CHIAKI_LOGI(video_receiver->log, "Still waiting for IDR, re-requesting");
+			else
+				CHIAKI_LOGW(video_receiver->log, "IDR re-request failed");
+		}
 	}
 
 	err = chiaki_frame_processor_put_unit(&video_receiver->frame_processor, packet);
@@ -200,10 +226,14 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		if (flush_result == CHIAKI_FRAME_PROCESSOR_FLUSH_RESULT_FEC_FAILED)
 		{
 			ChiakiSeqNum16 next_frame_expected = (ChiakiSeqNum16)(video_receiver->frame_index_prev_complete + 1);
-			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
+			bool waiting_for_idr = chiaki_video_receiver_get_waiting_for_idr(video_receiver);
+			// Solo el PRIMER fallo informa de huecos: mientras esperamos
+			// el keyframe, el IDR reemplaza todo el rango y la lluvia de
+			// "corrupt frame" desbordaba el buffer de envio de takion.
+			if(!waiting_for_idr)
+				stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
 			if(video_receiver->session->connect_info.enable_idr_on_fec_failure)
 			{
-				bool waiting_for_idr = chiaki_video_receiver_get_waiting_for_idr(video_receiver);
 				bool idr_request_sent = waiting_for_idr;
 				if(!waiting_for_idr)
 				{

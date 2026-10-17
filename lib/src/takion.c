@@ -52,14 +52,20 @@
 
 #define TAKION_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
 #define TAKION_AV_VIDEO_REORDER_QUEUE_SIZE_EXP 6 // => 64 entries
-#define TAKION_AV_REORDER_TIMEOUT_US 16000 // ~1 frame at 60fps
+// Si falta el paquete cabeza se esperan ~2 tramos a 60 fps antes de
+// saltarlo. Con 16 ms (1 tramo) cualquier retransmision WiFi tipica de
+// 2.4 GHz (20-50 ms) dejaba el paquete tarde y se DESCARTABA => hueco
+// => corrupt-frame/IDR => congelado. 33 ms absorbe el jitter de
+// radio; en pérdida real el coste son 17 ms extra antes de saltar.
+#define TAKION_AV_REORDER_TIMEOUT_US 33000
 #define TAKION_SEND_BUFFER_SIZE 16
 
 // nsysnet (Wii U) fija un tope de recepcion por socket (SO_RCVBUF, 4096
 // por defecto): recv() con len mayor devuelve EMSGSIZE y descarta el
-// datagrama (en escritorio recv() trunca en silencio). Takion pone
-// SO_RCVBUF=32768 al conectar, asi que el buffer del loop es 32768 —
-// debe ser <= al tope, no mas.
+// datagrama (en escritorio recv() trunca en silencio). Takion sondea el
+// tope al conectar (ver fallback SO_RCVBUF abajo; 65536 da EINVAL y el
+// maximo aceptado ronda 32768) — el buffer del loop es 0x8000, <= al
+// tope, no mas.
 #define TAKION_RECV_BUF_MAX_SIZE 0x8000
 
 #define TAKION_POSTPONE_PACKETS_SIZE 32
@@ -255,6 +261,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 
 	CHIAKI_LOGI(takion->log, "Takion connecting (version %u)", (unsigned int)info->protocol_version);
 	bool mac_dontfrag = true;
+	(void)mac_dontfrag; // sin uso en Wii u: sus ramas son APPLE/WIN32
 
 	ChiakiErrorCode err = chiaki_stop_pipe_init(&takion->stop_pipe);
 	if(err != CHIAKI_ERR_SUCCESS)
@@ -368,16 +375,52 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 			// El modulo IOS de nsysnet fija un tope de recepcion por
 			// socket (SO_RCVBUF); el por defecto es 4096 y cualquier
 			// recv() con len mayor devuelve EMSGSIZE y descarta el
-			// datagrama entero. 32768 es el mayor valor aceptado
-			// (65536 da EINVAL); con el tope arriba llegan enteros el
-			// ack de senkusha, el bang del stream y los paquetes de
-			// video. No fatal: sin el, la sesion vive pero con datos
-			// truncados (frames corruptos y retransmisiones).
-			const int rcvbuf_final = 0x8000;
-			if(setsockopt(takion->sock, SOL_SOCKET, SO_RCVBUF, (const CHIAKI_SOCKET_BUF_TYPE)&rcvbuf_final, sizeof(rcvbuf_final)) < 0)
-				CHIAKI_LOGE(takion->log, "Takion: setsockopt SO_RCVBUF 32768 fallo: " CHIAKI_SOCKET_ERROR_FMT " (tope sigue en 4096)", CHIAKI_SOCKET_ERROR_VALUE);
+			// datagrama entero. 65536 da EINVAL; se sondea de mayor
+			// a menor y se queda el mayor aceptado (hoy32768
+			// seguro). Buffer mas grande = las ráfagas de wifi
+			// 2.4 GHz (retransmisiones del AP) entran enteras en el
+			// kernel mientras el hilo de red las procesa, en vez de
+			// caer al suelo y romper el frame.
+			// Intentos de 256 KB y 128 KB por si nsysnet los
+			// admite (absorberian hasta ~200 ms de ráfaga tras
+			// una interferencia); si no, el conocido 65535.
+			static const int rcvbuf_try[] = { 0x3FFFF, 0x1FFFF,
+						      0xFFFF, 0xC000,
+						      0xA000, 0x8000 };
+			int rcvbuf_ok = 0;
+			for(size_t i = 0;
+			    i < sizeof(rcvbuf_try) / sizeof(rcvbuf_try[0]);
+			    i++)
+			{
+				if(setsockopt(takion->sock, SOL_SOCKET,
+					      SO_RCVBUF,
+					      (const CHIAKI_SOCKET_BUF_TYPE)
+						      &rcvbuf_try[i],
+					      sizeof(rcvbuf_try[i])) >= 0)
+				{
+					rcvbuf_ok = rcvbuf_try[i];
+					break;
+				}
+			}
+			if(!rcvbuf_ok)
+				CHIAKI_LOGE(takion->log, "Takion: setsockopt SO_RCVBUF fallo en todos los valores (tope sigue en 4096)");
 			else
-				CHIAKI_LOGI(takion->log, "Takion: SO_RCVBUF=32768, tope de recepcion nsysnet subido de 4096");
+			{
+				// Verificar el valor REAL: nsysnet puede
+				// aceptar la llamada y acotar por dentro.
+				CHIAKI_SOCKET_BUF_TYPE rcvbuf_got = 0;
+				socklen_t rcvbuf_got_len = sizeof(rcvbuf_got);
+				if(getsockopt(takion->sock, SOL_SOCKET,
+					      SO_RCVBUF, &rcvbuf_got,
+					      &rcvbuf_got_len) >= 0 &&
+				   (CHIAKI_SOCKET_BUF_TYPE)rcvbuf_ok !=
+					   rcvbuf_got)
+					CHIAKI_LOGI(takion->log, "Takion: SO_RCVBUF=%u pedido, el kernel aplico %d",
+						    (unsigned int)rcvbuf_ok,
+						    (int)rcvbuf_got);
+				else
+					CHIAKI_LOGI(takion->log, "Takion: SO_RCVBUF=%u aceptado (tope de recepcion nsysnet subido de 4096)", (unsigned int)rcvbuf_ok);
+			}
 #else
 			CHIAKI_LOGE(takion->log, "Takion failed to setsockopt SO_RCVBUF: " CHIAKI_SOCKET_ERROR_FMT, CHIAKI_SOCKET_ERROR_VALUE);
 			ret = CHIAKI_ERR_NETWORK;
