@@ -303,6 +303,10 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	const bool keyboard_controller_enabled_setting = settings->GetKeyboardEnabled();
 	this->keyboard_controller_enabled = keyboard_controller_enabled_setting;
 	this->mouse_touch_enabled = settings->GetMouseTouchEnabled();
+	this->mouse_right_stick_enabled = settings->GetMouseRightStickEnabled();
+	this->mouse_stick_horizontal = settings->GetMouseStickHorizontal();
+	this->mouse_stick_vertical = settings->GetMouseStickVertical();
+	this->mouse_stick_deadzone = settings->GetMouseStickDeadzone();
 	this->enable_keyboard = false;
 	this->enable_dualsense = true;
 	this->enable_idr_on_fec_failure = settings->GetIDROnFECFailureEnabled();
@@ -462,6 +466,10 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 #endif
 	audio_buffer_size = connect_info.audio_buffer_size;
 	mouse_touch_enabled = connect_info.mouse_touch_enabled;
+	mouse_right_stick_enabled = connect_info.mouse_right_stick_enabled;
+	mouse_gain_x = connect_info.mouse_stick_horizontal / 100.0f;
+	mouse_gain_y = connect_info.mouse_stick_vertical / 100.0f;
+	mouse_stick_deadzone = connect_info.mouse_stick_deadzone / 100.0f;
 	keyboard_controller_enabled = connect_info.keyboard_controller_enabled;
 	host = connect_info.host;
 	QByteArray host_str = connect_info.host.toUtf8();
@@ -513,6 +521,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	}
 
 	chiaki_controller_state_set_idle(&keyboard_state);
+	chiaki_controller_state_set_idle(&mouse_state);
 	chiaki_controller_state_set_idle(&touch_state);
 	touch_tracker=QMap<int, uint8_t>();
 	mouse_touch_id=-1;
@@ -925,6 +934,98 @@ void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal 
 	SendFeedbackState();
 }
 
+namespace {
+// Mouse -> right stick conversion. Sensitivity and deadzone are user settings (see Settings);
+// these constants only shape how raw mouse speed is turned into stick deflection.
+constexpr float MouseStickFullSpeed = 4000.0f;       // raw mouse speed (counts/s) that pushes the stick fully at 100 % sensitivity
+constexpr float MouseStickStopFraction = 0.0015f;    // below this fraction of full speed the stick returns to center
+constexpr float MouseStickDeadzoneRamp = 0.01f;      // the deadzone is introduced gradually up to this fraction of full speed (lower = slow movements register sooner)
+constexpr float MouseStickActivityFraction = 0.25f;  // fraction of full speed at which smoothing is at its lightest
+constexpr float MouseStickSlowSmoothMs = 60.0f;      // strong smoothing for slow movement (a slow mouse reports isolated pixels, this evens them out)
+constexpr float MouseStickFastSmoothMs = 30.0f;      // light smoothing for fast movement; must span the real tick (~20 ms) so gaps between mouse reports are bridged
+constexpr float MouseStickTickSeconds = 0.008f;      // expected polling interval, used for the first tick
+constexpr float MouseStickMinTickSeconds = 0.001f;   // elapsed time is clamped to this range so a stall
+constexpr float MouseStickMaxTickSeconds = 0.1f;     // or a timer glitch cannot produce a huge stick jump
+}
+
+void StreamSession::HandleMouseDeltaEvent(qreal dx, qreal dy)
+{
+	if(!mouse_right_stick_enabled)
+		return;
+	mouse_accum_x += dx;
+	mouse_accum_y += dy;
+}
+
+void StreamSession::UpdateMouseRightStick()
+{
+	const float full_speed = MouseStickFullSpeed;
+	const float deadzone = mouse_stick_deadzone;
+	const float stop_speed = full_speed * MouseStickStopFraction;
+
+	// time actually elapsed since the last tick
+	float dt = MouseStickTickSeconds;
+	if(mouse_tick_clock.isValid())
+		dt = qBound(MouseStickMinTickSeconds, static_cast<float>(mouse_tick_clock.nsecsElapsed()) / 1.0e9f, MouseStickMaxTickSeconds);
+	mouse_tick_clock.restart();
+
+	// mouse speed during this tick, in pixels per second
+	const float sx = static_cast<float>(mouse_accum_x) / dt * mouse_gain_x;
+	const float sy = static_cast<float>(mouse_accum_y) / dt * mouse_gain_y;
+	mouse_accum_x = 0;
+	mouse_accum_y = 0;
+
+	// adaptive smoothing: strong when the mouse moves slowly, light when it moves fast
+	const float raw_speed = qSqrt(sx * sx + sy * sy);
+	const float prev_speed = qSqrt(static_cast<float>(mouse_smooth_x * mouse_smooth_x + mouse_smooth_y * mouse_smooth_y));
+	const float activity = qMin(qMax(raw_speed, prev_speed) / (full_speed * MouseStickActivityFraction), 1.0f);
+	const float smooth_ms = MouseStickSlowSmoothMs + (MouseStickFastSmoothMs - MouseStickSlowSmoothMs) * activity;
+	const float alpha = 1.0f - qExp(-dt * 1000.0f / smooth_ms);
+	mouse_smooth_x += (sx - mouse_smooth_x) * alpha;
+	mouse_smooth_y += (sy - mouse_smooth_y) * alpha;
+
+	const float speed = qSqrt(static_cast<float>(mouse_smooth_x * mouse_smooth_x + mouse_smooth_y * mouse_smooth_y));
+
+	int16_t nx = 0;
+	int16_t ny = 0;
+	if(speed <= stop_speed)
+	{
+		mouse_smooth_x = 0;
+		mouse_smooth_y = 0;
+	}
+	else
+	{
+		// deadzone applied to the total speed (not per axis) and introduced gradually:
+		// no sudden jump from 0 to the deadzone when the mouse starts moving slowly
+		const float len = qMin(speed / full_speed, 1.0f);
+		const float offset = deadzone * qMin(len / MouseStickDeadzoneRamp, 1.0f);
+		const float out_len = offset + (1.0f - deadzone) * len;
+		const float k = out_len / speed;
+		nx = static_cast<int16_t>(qBound(-1.0f, static_cast<float>(mouse_smooth_x) * k, 1.0f) * 32767.0f);
+		ny = static_cast<int16_t>(qBound(-1.0f, static_cast<float>(mouse_smooth_y) * k, 1.0f) * 32767.0f);
+	}
+
+	if(nx != mouse_state.right_x || ny != mouse_state.right_y)
+	{
+		mouse_state.right_x = nx;
+		mouse_state.right_y = ny;
+		SendFeedbackState();
+	}
+}
+
+void StreamSession::ResetMouseRightStick()
+{
+	mouse_accum_x = 0;
+	mouse_accum_y = 0;
+	mouse_smooth_x = 0;
+	mouse_smooth_y = 0;
+	mouse_tick_clock.invalidate();
+	const bool changed = mouse_state.right_x != 0 || mouse_state.right_y != 0;
+	mouse_state.right_x = 0;
+	mouse_state.right_y = 0;
+	if(changed)
+		SendFeedbackState();
+}
+
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 {
 	if(!keyboard_controller_enabled)
@@ -937,6 +1038,14 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 
 	int button = key_map[Qt::Key(event->key())];
 	bool press_event = event->type() == QEvent::Type::KeyPress;
+
+	// While the mouse drives the right stick, the 4 right-stick axis keys are ignored
+	if(mouse_right_stick_enabled
+		&& (button == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP)
+			|| button == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN)
+			|| button == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP)
+			|| button == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN)))
+		return;
 
 	switch(button)
 	{
@@ -1236,6 +1345,7 @@ void StreamSession::DpadSendFeedbackState()
 #endif
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
+	chiaki_controller_state_or(&state, &state, &mouse_state);
 
 	if(input_block)
 	{
@@ -1292,6 +1402,7 @@ void StreamSession::SendFeedbackState()
 #endif
 	chiaki_controller_state_or(&state, &state, &keyboard_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
+	chiaki_controller_state_or(&state, &state, &mouse_state);
 
 	if(input_block)
 	{

@@ -1002,15 +1002,75 @@ void Settings::SetKeyboardEnabled(bool enabled)
 	settings.setValue("settings/keyboard_enabled", enabled);
 }
 
+MouseInputMode Settings::GetMouseInputMode() const
+{
+	if(!settings.contains("settings/mouse_input_mode"))
+	{
+		if(settings.contains("settings/mouse_touch_enabled"))
+			return settings.value("settings/mouse_touch_enabled").toBool() ? MouseInputMode::Touchpad : MouseInputMode::Disabled;
+		return MouseInputMode::Touchpad;
+	}
+	const int saved_mode = settings.value("settings/mouse_input_mode").toInt();
+	if(saved_mode == static_cast<int>(MouseInputMode::Disabled))
+		return MouseInputMode::Disabled;
+	if(saved_mode == static_cast<int>(MouseInputMode::RightStick))
+		return MouseInputMode::RightStick;
+	return MouseInputMode::Touchpad;
+}
+
+void Settings::SetMouseInputMode(MouseInputMode mode)
+{
+	settings.setValue("settings/mouse_input_mode", static_cast<int>(mode));
+	settings.setValue("settings/mouse_touch_enabled", mode == MouseInputMode::Touchpad);
+}
+
 bool Settings::GetMouseTouchEnabled() const
 {
-	return settings.value("settings/mouse_touch_enabled", true).toBool();
+	return GetMouseInputMode() == MouseInputMode::Touchpad;
 }
 void Settings::SetMouseTouchEnabled(bool enabled)
 {
-	settings.setValue("settings/mouse_touch_enabled", enabled);
+	SetMouseInputMode(enabled ? MouseInputMode::Touchpad : MouseInputMode::Disabled);
 }
 
+bool Settings::GetMouseRightStickEnabled() const
+{
+	return GetMouseInputMode() == MouseInputMode::RightStick;
+}
+
+int Settings::GetMouseStickHorizontal() const
+{
+	return qBound(10, settings.value("settings/mouse_stick_horizontal", 100).toInt(), 400);
+}
+void Settings::SetMouseStickHorizontal(int percent)
+{
+	settings.setValue("settings/mouse_stick_horizontal", qBound(10, percent, 400));
+}
+
+int Settings::GetMouseStickVertical() const
+{
+	return qBound(10, settings.value("settings/mouse_stick_vertical", 100).toInt(), 400);
+}
+void Settings::SetMouseStickVertical(int percent)
+{
+	settings.setValue("settings/mouse_stick_vertical", qBound(10, percent, 400));
+}
+
+int Settings::GetMouseStickDeadzone() const
+{
+	return qBound(0, settings.value("settings/mouse_stick_deadzone", 15).toInt(), 40);
+}
+void Settings::SetMouseStickDeadzone(int percent)
+{
+	settings.setValue("settings/mouse_stick_deadzone", qBound(0, percent, 40));
+}
+
+void Settings::ResetMouseStick()
+{
+	settings.remove("settings/mouse_stick_horizontal");
+	settings.remove("settings/mouse_stick_vertical");
+	settings.remove("settings/mouse_stick_deadzone");
+}
 
 bool Settings::GetDpadTouchEnabled() const
 {

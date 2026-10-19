@@ -59,6 +59,13 @@ enum class Decoder
 	Pi
 };
 
+enum class MouseInputMode
+{
+	Disabled,
+	Touchpad,
+	RightStick
+};
+
 enum class PlaceboPreset {
 	Fast,
 	Default,
@@ -436,8 +443,18 @@ class Settings : public QObject
 		bool GetKeyboardEnabled() const;
 		void SetKeyboardEnabled(bool enabled);
 
+		MouseInputMode GetMouseInputMode() const;
+		void SetMouseInputMode(MouseInputMode mode);
 		bool GetMouseTouchEnabled() const;
 		void SetMouseTouchEnabled(bool enabled);
+		bool GetMouseRightStickEnabled() const;
+		int GetMouseStickHorizontal() const;
+		void SetMouseStickHorizontal(int percent);
+		int GetMouseStickVertical() const;
+		void SetMouseStickVertical(int percent);
+		int GetMouseStickDeadzone() const;
+		void SetMouseStickDeadzone(int percent);
+		void ResetMouseStick();
 
 		bool GetDpadTouchEnabled() const;
 		void SetDpadTouchEnabled(bool enabled);

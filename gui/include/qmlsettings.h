@@ -80,7 +80,11 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAuthToken READ psnAuthToken WRITE setPsnAuthToken NOTIFY psnAuthTokenChanged)
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
+    Q_PROPERTY(int mouseInputMode READ mouseInputMode WRITE setMouseInputMode NOTIFY mouseInputModeChanged)
     Q_PROPERTY(bool mouseTouchEnabled READ mouseTouchEnabled WRITE setMouseTouchEnabled NOTIFY mouseTouchEnabledChanged)
+    Q_PROPERTY(int mouseStickHorizontal READ mouseStickHorizontal WRITE setMouseStickHorizontal NOTIFY mouseStickHorizontalChanged)
+    Q_PROPERTY(int mouseStickVertical READ mouseStickVertical WRITE setMouseStickVertical NOTIFY mouseStickVerticalChanged)
+    Q_PROPERTY(int mouseStickDeadzone READ mouseStickDeadzone WRITE setMouseStickDeadzone NOTIFY mouseStickDeadzoneChanged)
     Q_PROPERTY(bool keyboardEnabled READ keyboardEnabled WRITE setKeyboardEnabled NOTIFY keyboardEnabledChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
     Q_PROPERTY(bool iDROnFECFailureEnabled READ iDROnFECFailureEnabled WRITE setIDROnFECFailureEnabled NOTIFY iDROnFECFailureEnabledChanged)
@@ -544,8 +548,16 @@ public:
     QString psnAccountId() const;
     void setPsnAccountId(const QString &account_id);
 
+    int mouseInputMode() const;
+    void setMouseInputMode(int mode);
     bool mouseTouchEnabled() const;
     void setMouseTouchEnabled(bool enabled);
+    int mouseStickHorizontal() const;
+    void setMouseStickHorizontal(int percent);
+    int mouseStickVertical() const;
+    void setMouseStickVertical(int percent);
+    int mouseStickDeadzone() const;
+    void setMouseStickDeadzone(int percent);
 
     bool keyboardEnabled() const;
     void setKeyboardEnabled(bool enabled);
@@ -680,7 +692,11 @@ signals:
     void psnRefreshTokenChanged();
     void psnAuthTokenExpiryChanged();
     void psnAccountIdChanged();
+    void mouseInputModeChanged();
     void mouseTouchEnabledChanged();
+    void mouseStickHorizontalChanged();
+    void mouseStickVerticalChanged();
+    void mouseStickDeadzoneChanged();
     void keyboardEnabledChanged();
     void dpadTouchEnabledChanged();
     void dpadTouchIncrementChanged();

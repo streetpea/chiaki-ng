@@ -2200,6 +2200,40 @@ DialogView {
                         else if (bottom > contentY + height)
                             contentY = bottom - height;
                     }
+                    function focusItem(item) {
+                        if (!item)
+                            return;
+                        item.forceActiveFocus(Qt.TabFocusReason);
+                        ensureItemVisible(item);
+                    }
+                    // Keyboard / gamepad navigation for the mouse mode radio buttons
+                    function mouseRadioKey(event, radio) {
+                        switch (event.key) {
+                        case Qt.Key_Left:
+                            focusItem(radio.nextItemInFocusChain(false));
+                            event.accepted = true;
+                            break;
+                        case Qt.Key_Right:
+                            focusItem(radio.nextItemInFocusChain());
+                            event.accepted = true;
+                            break;
+                        case Qt.Key_Up:
+                            focusItem(mouseRadioDisabled.nextItemInFocusChain(false));
+                            event.accepted = true;
+                            break;
+                        case Qt.Key_Down:
+                            focusItem(mouseSliderHorizontal.visible
+                                ? mouseSliderHorizontal
+                                : mouseRadioRightStick.nextItemInFocusChain());
+                            event.accepted = true;
+                            break;
+                        case Qt.Key_Return:
+                        case Qt.Key_Enter:
+                            radio.click();
+                            event.accepted = true;
+                            break;
+                        }
+                    }
                     ScrollBar.vertical: ScrollBar {
                         policy: ScrollBar.AlwaysOn
                         visible: keysFlick.contentHeight > keysFlick.height
@@ -2346,66 +2380,109 @@ DialogView {
                                 }
                             }
                         }
-                        CheckBox {
-                            text: qsTr("Enable Mouse Touchpad")
-                            checked: {
-                                Chiaki.settings.mouseTouchEnabled
-                            }
-                            onToggled: Chiaki.settings.mouseTouchEnabled = checked
+                        ColumnLayout {
+                            spacing: 8
                             Layout.alignment: Qt.AlignRight
-                            property bool firstInFocusChain: false
-                            property bool lastInFocusChain: false
-                            Material.roundedScale: Material.SmallScale
-                            Material.background: visualFocus ? Material.accent : undefined
-                            onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
 
-                            Component.onDestruction: {
-                                if (visualFocus) {
-                                    let item = nextItemInFocusChain();
-                                    if (item)
-                                        item.forceActiveFocus(Qt.TabFocusReason);
+                            Label {
+                                text: qsTr("Mouse mode")
+                                Layout.fillWidth: true
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            RowLayout {
+                                spacing: 16
+
+                                RadioButton {
+                                    id: mouseRadioDisabled
+                                    text: qsTr("Disabled")
+                                    checked: Chiaki.settings.mouseInputMode === 0
+                                    onClicked: if (checked) Chiaki.settings.mouseInputMode = 0
+                                    Material.roundedScale: Material.SmallScale
+                                    Material.background: visualFocus ? Material.accent : undefined
+                                    onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+                                    Keys.onPressed: (event) => keysFlick.mouseRadioKey(event, mouseRadioDisabled)
+                                }
+
+                                RadioButton {
+                                    id: mouseRadioTouchpad
+                                    text: qsTr("Touchpad")
+                                    checked: Chiaki.settings.mouseInputMode === 1
+                                    onClicked: if (checked) Chiaki.settings.mouseInputMode = 1
+                                    Material.roundedScale: Material.SmallScale
+                                    Material.background: visualFocus ? Material.accent : undefined
+                                    onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+                                    Keys.onPressed: (event) => keysFlick.mouseRadioKey(event, mouseRadioTouchpad)
+                                }
+
+                                RadioButton {
+                                    id: mouseRadioRightStick
+                                    text: qsTr("Right Stick")
+                                    checked: Chiaki.settings.mouseInputMode === 2
+                                    onClicked: if (checked) Chiaki.settings.mouseInputMode = 2
+                                    Material.roundedScale: Material.SmallScale
+                                    Material.background: visualFocus ? Material.accent : undefined
+                                    onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+                                    Keys.onPressed: (event) => keysFlick.mouseRadioKey(event, mouseRadioRightStick)
                                 }
                             }
-                            Keys.onPressed: (event) => {
-                                switch (event.key) {
-                                    case Qt.Key_Left:
-                                        if (!firstInFocusChain) {
-                                            let item = nextItemInFocusChain(false);
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Down:
-                                        if (!lastInFocusChain) {
-                                            let item = nextItemInFocusChain();
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            for(var i = 0; i < 3; i++)
-                                            {
-                                                let item2 = item.nextItemInFocusChain();
-                                                if (item)
-                                                {
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                    keysFlick.ensureItemVisible(item);
-                                                    item = item2;
-                                                }
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Return:
-                                        if (visualFocus) {
-                                            toggle();
-                                            toggled();
-                                        }
-                                        event.accepted = true;
-                                        break;
-                                }
+                        }
+                        ColumnLayout {
+                            spacing: 2
+                            Layout.alignment: Qt.AlignHCenter
+                            visible: Chiaki.settings.mouseInputMode === 2
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: qsTr("Mouse stick horizontal: %1 %").arg(Chiaki.settings.mouseStickHorizontal)
+                            }
+                            C.Slider {
+                                id: mouseSliderHorizontal
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: 300
+                                from: 10
+                                to: 400
+                                stepSize: 5
+                                value: Chiaki.settings.mouseStickHorizontal
+                                onMoved: Chiaki.settings.mouseStickHorizontal = Math.round(value)
+                                onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+                            }
+                        }
+                        ColumnLayout {
+                            spacing: 2
+                            Layout.alignment: Qt.AlignHCenter
+                            visible: Chiaki.settings.mouseInputMode === 2
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: qsTr("Mouse stick vertical: %1 %").arg(Chiaki.settings.mouseStickVertical)
+                            }
+                            C.Slider {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: 300
+                                from: 10
+                                to: 400
+                                stepSize: 5
+                                value: Chiaki.settings.mouseStickVertical
+                                onMoved: Chiaki.settings.mouseStickVertical = Math.round(value)
+                                onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
+                            }
+                        }
+                        ColumnLayout {
+                            spacing: 2
+                            Layout.alignment: Qt.AlignHCenter
+                            visible: Chiaki.settings.mouseInputMode === 2
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: qsTr("Mouse stick deadzone: %1 %").arg(Chiaki.settings.mouseStickDeadzone)
+                            }
+                            C.Slider {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: 300
+                                from: 0
+                                to: 40
+                                stepSize: 1
+                                value: Chiaki.settings.mouseStickDeadzone
+                                onMoved: Chiaki.settings.mouseStickDeadzone = Math.round(value)
+                                onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
                             }
                         }
                         Repeater {

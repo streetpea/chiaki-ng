@@ -798,6 +798,19 @@ void QmlSettings::setPsnAccountId(const QString &account_id)
     emit psnAccountIdChanged();
 }
 
+int QmlSettings::mouseInputMode() const
+{
+    return static_cast<int>(settings->GetMouseInputMode());
+}
+
+void QmlSettings::setMouseInputMode(int mode)
+{
+    settings->SetMouseInputMode(static_cast<MouseInputMode>(mode));
+    emit controllerMappingChanged();
+    emit mouseInputModeChanged();
+    emit mouseTouchEnabledChanged();
+}
+
 bool QmlSettings::mouseTouchEnabled() const
 {
     return settings->GetMouseTouchEnabled();
@@ -806,7 +819,42 @@ bool QmlSettings::mouseTouchEnabled() const
 void QmlSettings::setMouseTouchEnabled(bool enabled)
 {
     settings->SetMouseTouchEnabled(enabled);
+    emit controllerMappingChanged();
+    emit mouseInputModeChanged();
     emit mouseTouchEnabledChanged();
+}
+
+int QmlSettings::mouseStickHorizontal() const
+{
+    return settings->GetMouseStickHorizontal();
+}
+
+void QmlSettings::setMouseStickHorizontal(int percent)
+{
+    settings->SetMouseStickHorizontal(percent);
+    emit mouseStickHorizontalChanged();
+}
+
+int QmlSettings::mouseStickVertical() const
+{
+    return settings->GetMouseStickVertical();
+}
+
+void QmlSettings::setMouseStickVertical(int percent)
+{
+    settings->SetMouseStickVertical(percent);
+    emit mouseStickVerticalChanged();
+}
+
+int QmlSettings::mouseStickDeadzone() const
+{
+    return settings->GetMouseStickDeadzone();
+}
+
+void QmlSettings::setMouseStickDeadzone(int percent)
+{
+    settings->SetMouseStickDeadzone(percent);
+    emit mouseStickDeadzoneChanged();
 }
 
 bool QmlSettings::keyboardEnabled() const
@@ -1679,7 +1727,11 @@ QString QmlSettings::logDirectory() const
 void QmlSettings::clearKeyMapping()
 {
     settings->ClearKeyMapping();
+    settings->ResetMouseStick();
     emit controllerMappingChanged();
+    emit mouseStickHorizontalChanged();
+    emit mouseStickVerticalChanged();
+    emit mouseStickDeadzoneChanged();
 }
 
 QStringList QmlSettings::availableDecoders() const
@@ -1751,7 +1803,14 @@ QVariantList QmlSettings::controllerMapping() const
 {
     QVariantList out;
     auto key_map = settings->GetControllerMapping();
+    const bool hide_right_stick = settings->GetMouseRightStickEnabled();
     for (auto it = key_map.cbegin(); it != key_map.cend(); ++it) {
+        if (hide_right_stick
+            && (it.key() == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_UP)
+                || it.key() == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X_DOWN)
+                || it.key() == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_UP)
+                || it.key() == static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y_DOWN)))
+            continue;
         QVariantMap m;
         m["buttonName"] = Settings::GetChiakiControllerButtonName(it.key());
         m["buttonValue"] = it.key();
@@ -1945,7 +2004,11 @@ void QmlSettings::refreshAllKeys()
     emit psnRefreshTokenChanged();
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
+    emit mouseInputModeChanged();
     emit mouseTouchEnabledChanged();
+    emit mouseStickHorizontalChanged();
+    emit mouseStickVerticalChanged();
+    emit mouseStickDeadzoneChanged();
     emit keyboardEnabledChanged();
     emit dpadTouchEnabledChanged();
     emit iDROnFECFailureEnabledChanged();
