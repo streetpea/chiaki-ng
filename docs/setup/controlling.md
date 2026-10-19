@@ -425,4 +425,21 @@ The best values depend on the game (in-game camera sensitivity matters a lot), s
 !!! Note "Limitations"
 
     - The mode has no effect on Linux under Wayland, because the cursor cannot be re-centered there. Use an X11 session instead.
-    - In `Right Stick` mode the mouse buttons are not mapped to any controller button yet.
+    - In `Right Stick` mode the mouse buttons and wheel do nothing unless you map them (see [Mapping Mouse Buttons and Wheel](#mapping-mouse-buttons-and-wheel)).
+
+## Mapping Mouse Buttons and Wheel
+
+The left, right and middle mouse buttons and the mouse wheel (up and down) can be mapped to any controller button, including `L2` and `R2`. This works with every mouse mode.
+
+1. Go to Settings->Keys and click on the key field of the controller button you want to change
+
+2. In the `Key Capture` window, click with the mouse button you want to use, or scroll the wheel, inside the box. You can also press a keyboard key as before.
+
+3. To leave the window without changing anything, hold ++shift++ and ++escape++ together (in either order) or click `Close`
+
+!!! Note "Good to know"
+
+    - Each controller button has a single key or mouse input. Mapping a mouse button to `R2`, for example, replaces the keyboard key that was used for `R2`.
+    - A mapped mouse button takes priority over the `Touchpad` mouse mode. If you map the left button, it no longer draws touchpad gestures.
+    - Like the keyboard keys, mouse mappings only work when `Keyboard as controller` is enabled.
+    - A wheel notch presses the mapped button for a very short time.
