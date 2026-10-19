@@ -4,6 +4,7 @@
 #include "settings.h"
 
 #include <QMutex>
+#include <QTimer>
 #include <QAtomicInteger>
 #include <QWindow>
 #include <QQuickWindow>
@@ -264,6 +265,9 @@ private:
     void snapshotPendingFrame();
     bool handleShortcut(QKeyEvent *event);
     bool event(QEvent *event) override;
+    void updateMouseLookCapture();
+    void recenterMouseLookCursor();
+    void pollMouseLook();
     QObject *focusObject() const override;
     void updateQueueDepthAverage(int depth);
     void updatePendingFrameAge(double age);
@@ -305,6 +309,8 @@ private:
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
     int grab_input = 0;
+    bool mouse_look_active = false;
+    QTimer *mouse_look_timer = nullptr;
     int dropped_frames = 0;
     bool is_window_adjustable = false;
     bool is_stream_window_adjustable = false;

@@ -22,6 +22,18 @@ extern "C" {
 
 #include <QByteArray>
 #include <QPointer>
+#include <QCursor>
+#include <QWheelEvent>
+#ifdef Q_OS_MACOS
+#include <ApplicationServices/ApplicationServices.h>
+#include "macMouseLook.h"
+#endif
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 #include <QColor>
 #include <QDebug>
 #include <QThread>
@@ -2742,10 +2754,119 @@ void QmlMainWindow::setKeepVideo(bool keep)
     emit keepVideoChanged();
 }
 
+// Recentering the cursor is only reliable on macOS, Windows and X11.
+// Under Wayland it is ignored and the stick would keep turning, so we do not capture.
+static bool mouseLookSupported()
+{
+#if defined(Q_OS_MACOS) || defined(Q_OS_WIN)
+    return true;
+#else
+    return QGuiApplication::platformName().startsWith("xcb");
+#endif
+}
+
+void QmlMainWindow::updateMouseLookCapture()
+{
+    const bool should_capture = session && session->GetMouseRightStickEnabled()
+        && mouseLookSupported() && has_video && isActive() && grab_input == 0;
+    if (should_capture == mouse_look_active)
+        return;
+
+    mouse_look_active = should_capture;
+    if (mouse_look_active) {
+        setMouseGrabEnabled(true);
+        setCursor(Qt::BlankCursor);
+#ifdef Q_OS_MACOS
+        CGAssociateMouseAndMouseCursorPosition(false);
+        macMouseDeltaStart();
+#endif
+        recenterMouseLookCursor();
+        if (!mouse_look_timer) {
+            mouse_look_timer = new QTimer(this);
+            mouse_look_timer->setTimerType(Qt::PreciseTimer);
+            mouse_look_timer->setInterval(8);
+            connect(mouse_look_timer, &QTimer::timeout, this, &QmlMainWindow::pollMouseLook);
+        }
+        mouse_look_timer->start();
+        if (session)
+            session->ResetMouseRightStick();
+        return;
+    }
+
+    if (mouse_look_timer)
+        mouse_look_timer->stop();
+#ifdef Q_OS_MACOS
+    macMouseDeltaStop();
+    CGAssociateMouseAndMouseCursorPosition(true);
+#endif
+    setMouseGrabEnabled(false);
+    if (session)
+        session->ResetMouseRightStick();
+    if (grab_input == 0 && has_video && settings->GetHideCursor())
+        setCursor(Qt::BlankCursor);
+    else
+        setCursor(Qt::ArrowCursor);
+}
+
+#ifdef Q_OS_WIN
+// Center of the window's client area, in physical screen pixels
+static bool mouseLookWindowCenter(HWND hwnd, POINT *center)
+{
+    RECT rc;
+    if (!hwnd || !GetClientRect(hwnd, &rc))
+        return false;
+    center->x = (rc.right - rc.left) / 2;
+    center->y = (rc.bottom - rc.top) / 2;
+    return ClientToScreen(hwnd, center) != 0;
+}
+#endif
+
+void QmlMainWindow::recenterMouseLookCursor()
+{
+    if (!mouse_look_active || width() <= 0 || height() <= 0)
+        return;
+#if defined(Q_OS_MACOS)
+    // Mac: the cursor is frozen (CGAssociateMouseAndMouseCursorPosition), nothing to recenter
+#elif defined(Q_OS_WIN)
+    POINT center;
+    if (mouseLookWindowCenter(reinterpret_cast<HWND>(winId()), &center))
+        SetCursorPos(center.x, center.y);
+#else
+    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+#endif
+}
+
+void QmlMainWindow::pollMouseLook()
+{
+    if (!mouse_look_active || !session)
+        return;
+#if defined(Q_OS_MACOS)
+    // Mac: total raw mouse movement since the last call
+    double dx = 0, dy = 0;
+    macMouseDeltaTake(&dx, &dy);
+    session->HandleMouseDeltaEvent(dx, dy);
+#elif defined(Q_OS_WIN)
+    // Windows: cursor offset from the center (in physical pixels), then recenter
+    POINT center, pos;
+    if (mouseLookWindowCenter(reinterpret_cast<HWND>(winId()), &center) && GetCursorPos(&pos)) {
+        session->HandleMouseDeltaEvent(pos.x - center.x, pos.y - center.y);
+        SetCursorPos(center.x, center.y);
+    }
+#else
+    // Linux (X11): cursor offset from the center, then recenter
+    const QPoint center = mapToGlobal(QPoint(width() / 2, height() / 2));
+    const QPoint pos = QCursor::pos();
+    session->HandleMouseDeltaEvent(pos.x() - center.x(), pos.y() - center.y());
+    QCursor::setPos(center);
+#endif
+    session->UpdateMouseRightStick();
+}
+
 void QmlMainWindow::grabInput()
 {
     setCursor(Qt::ArrowCursor);
     grab_input++;
+    updateMouseLookCapture();
     if (session)
         session->BlockInput(grab_input);
 }
@@ -2757,6 +2878,7 @@ void QmlMainWindow::releaseInput()
     grab_input--;
     if (!grab_input && has_video && settings->GetHideCursor())
         setCursor(Qt::BlankCursor);
+    updateMouseLookCapture();
     if (session)
         session->BlockInput(grab_input);
 }
@@ -5207,6 +5329,7 @@ renderer_backend_ready:
             }
             scheduleUpdate(true, UpdateRequestReason::SceneChanged);
         }
+        updateMouseLookCapture();
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
 
@@ -5782,6 +5905,7 @@ void QmlMainWindow::completeStartupVideoVisibility(quint64 generation)
     if (!grab_input && settings->GetHideCursor())
         setCursor(Qt::BlankCursor);
     emit hasVideoChanged();
+    updateMouseLookCapture();
     startup_video_visible_refresh_pending.storeRelease(1);
     armQuickNeedSync("completeStartupVideoVisibility");
     quick_need_render.storeRelaxed(1);
@@ -7581,6 +7705,16 @@ bool QmlMainWindow::event(QEvent *event)
         }
         QGuiApplication::sendEvent(quick_window, event);
         break;
+    case QEvent::Wheel:
+        // wheel directions mapped to a controller button are consumed during a stream,
+        // everything else goes to the QML interface
+        if (session && !grab_input) {
+            if (session->HandleMouseWheelEvent(static_cast<QWheelEvent*>(event)))
+                return true;
+        } else {
+            QGuiApplication::sendEvent(quick_window, event);
+        }
+        break;
     case QEvent::MouseButtonDblClick:
         if(!settings->GetFullscreenDoubleClickEnabled())
             break;
@@ -7657,6 +7791,11 @@ bool QmlMainWindow::event(QEvent *event)
         if (isExposed())
             updateSwapchain();
         updateStatsOverlayGeometry();
+        recenterMouseLookCursor();
+        break;
+    case QEvent::WindowActivate:
+    case QEvent::WindowDeactivate:
+        updateMouseLookCapture();
         break;
     default:
         break;

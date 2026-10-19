@@ -398,3 +398,48 @@ Use the dpad touch switch button combo (default is `L1+R1+Dpad Up` but it's user
     - For a swipe from down to up:
 
         First touch dpad down and then hold dpad up for a second or so. This will start you at the bottom of the touchpad and move you across the touchpad in the up direction.
+
+## Using the Mouse as the Right Stick
+
+`chiaki-ng` can turn mouse movement into right stick movement, which is handy for looking around in shooters and other games that use the right stick for the camera. It is available on macOS, Windows and Linux (X11 only).
+
+Go to Settings->Keys and pick one of the three `Mouse mode` options:
+
+| Mode | Behavior |
+|------|----------|
+| `Disabled` | The mouse does nothing in the stream. |
+| `Touchpad` | Default. The mouse simulates the PlayStation touchpad (see [Default `chiaki-ng` Layout Trackpad Mapping](#default-chiaki-ng-layout-trackpad-mapping)). |
+| `Right Stick` | Moving the mouse moves the right stick. The cursor is hidden and kept inside the stream window while the stream is focused. |
+
+When `Right Stick` is selected, three sliders appear:
+
+- `Mouse stick horizontal` and `Mouse stick vertical`: sensitivity of each axis (10 % to 400 %).
+- `Mouse stick deadzone`: the part of the stick travel that the game ignores (0 % to 40 %). If small mouse movements are not picked up by the game, increase it a little; if the camera jerks, lower it.
+
+The best values depend on the game (in-game camera sensitivity matters a lot), so adjust the sliders to your taste. The new values are used the next time you start a stream.
+
+!!! Note "Keyboard right stick keys"
+
+    While `Right Stick` mode is selected, the four keyboard keys mapped to the right stick are hidden from the key mapping list and ignored, so they cannot conflict with the mouse. `Reset All Keys` in Settings->Keys also resets the three mouse sliders.
+
+!!! Note "Limitations"
+
+    - The mode has no effect on Linux under Wayland, because the cursor cannot be re-centered there. Use an X11 session instead.
+    - In `Right Stick` mode the mouse buttons and wheel do nothing unless you map them (see [Mapping Mouse Buttons and Wheel](#mapping-mouse-buttons-and-wheel)).
+
+## Mapping Mouse Buttons and Wheel
+
+The left, right and middle mouse buttons and the mouse wheel (up and down) can be mapped to any controller button, including `L2` and `R2`. This works with every mouse mode.
+
+1. Go to Settings->Keys and click on the key field of the controller button you want to change
+
+2. In the `Key Capture` window, click with the mouse button you want to use, or scroll the wheel, inside the box. You can also press a keyboard key as before.
+
+3. To leave the window without changing anything, hold ++shift++ and ++escape++ together (in either order) or click `Close`
+
+!!! Note "Good to know"
+
+    - Each controller button has a single key or mouse input. Mapping a mouse button to `R2`, for example, replaces the keyboard key that was used for `R2`.
+    - A mapped mouse button takes priority over the `Touchpad` mouse mode. If you map the left button, it no longer draws touchpad gestures.
+    - Like the keyboard keys, mouse mappings only work when `Keyboard as controller` is enabled.
+    - A wheel notch presses the mapped button for a very short time.

@@ -59,6 +59,24 @@ enum class Decoder
 	Pi
 };
 
+enum class MouseInputMode
+{
+	Disabled,
+	Touchpad,
+	RightStick
+};
+
+// Mouse inputs that can be mapped to controller buttons. They are stored in the key map like
+// keyboard keys, using values outside the range Qt uses for real keys.
+enum class MouseKey : int
+{
+	Left = 0x00f00001,
+	Right,
+	Middle,
+	WheelUp,
+	WheelDown
+};
+
 enum class PlaceboPreset {
 	Fast,
 	Default,
@@ -436,8 +454,18 @@ class Settings : public QObject
 		bool GetKeyboardEnabled() const;
 		void SetKeyboardEnabled(bool enabled);
 
+		MouseInputMode GetMouseInputMode() const;
+		void SetMouseInputMode(MouseInputMode mode);
 		bool GetMouseTouchEnabled() const;
 		void SetMouseTouchEnabled(bool enabled);
+		bool GetMouseRightStickEnabled() const;
+		int GetMouseStickHorizontal() const;
+		void SetMouseStickHorizontal(int percent);
+		int GetMouseStickVertical() const;
+		void SetMouseStickVertical(int percent);
+		int GetMouseStickDeadzone() const;
+		void SetMouseStickDeadzone(int percent);
+		void ResetMouseStick();
 
 		bool GetDpadTouchEnabled() const;
 		void SetDpadTouchEnabled(bool enabled);
@@ -728,6 +756,10 @@ class Settings : public QObject
 		void RemoveControllerMapping(const QString &vidpid);
 
 		static QString GetChiakiControllerButtonName(int);
+		static bool IsMouseKey(Qt::Key key);
+		static QString KeyToString(Qt::Key key);
+		static Qt::Key KeyFromString(const QString &str);
+		static QString GetKeyDisplayName(Qt::Key key);
 		void SetControllerButtonMapping(int, Qt::Key);
 		QMap<int, Qt::Key> GetControllerMapping();
 		QMap<Qt::Key, int> GetControllerMappingForDecoding();

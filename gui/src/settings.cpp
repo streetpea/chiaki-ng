@@ -1002,15 +1002,75 @@ void Settings::SetKeyboardEnabled(bool enabled)
 	settings.setValue("settings/keyboard_enabled", enabled);
 }
 
+MouseInputMode Settings::GetMouseInputMode() const
+{
+	if(!settings.contains("settings/mouse_input_mode"))
+	{
+		if(settings.contains("settings/mouse_touch_enabled"))
+			return settings.value("settings/mouse_touch_enabled").toBool() ? MouseInputMode::Touchpad : MouseInputMode::Disabled;
+		return MouseInputMode::Touchpad;
+	}
+	const int saved_mode = settings.value("settings/mouse_input_mode").toInt();
+	if(saved_mode == static_cast<int>(MouseInputMode::Disabled))
+		return MouseInputMode::Disabled;
+	if(saved_mode == static_cast<int>(MouseInputMode::RightStick))
+		return MouseInputMode::RightStick;
+	return MouseInputMode::Touchpad;
+}
+
+void Settings::SetMouseInputMode(MouseInputMode mode)
+{
+	settings.setValue("settings/mouse_input_mode", static_cast<int>(mode));
+	settings.setValue("settings/mouse_touch_enabled", mode == MouseInputMode::Touchpad);
+}
+
 bool Settings::GetMouseTouchEnabled() const
 {
-	return settings.value("settings/mouse_touch_enabled", true).toBool();
+	return GetMouseInputMode() == MouseInputMode::Touchpad;
 }
 void Settings::SetMouseTouchEnabled(bool enabled)
 {
-	settings.setValue("settings/mouse_touch_enabled", enabled);
+	SetMouseInputMode(enabled ? MouseInputMode::Touchpad : MouseInputMode::Disabled);
 }
 
+bool Settings::GetMouseRightStickEnabled() const
+{
+	return GetMouseInputMode() == MouseInputMode::RightStick;
+}
+
+int Settings::GetMouseStickHorizontal() const
+{
+	return qBound(10, settings.value("settings/mouse_stick_horizontal", 100).toInt(), 400);
+}
+void Settings::SetMouseStickHorizontal(int percent)
+{
+	settings.setValue("settings/mouse_stick_horizontal", qBound(10, percent, 400));
+}
+
+int Settings::GetMouseStickVertical() const
+{
+	return qBound(10, settings.value("settings/mouse_stick_vertical", 100).toInt(), 400);
+}
+void Settings::SetMouseStickVertical(int percent)
+{
+	settings.setValue("settings/mouse_stick_vertical", qBound(10, percent, 400));
+}
+
+int Settings::GetMouseStickDeadzone() const
+{
+	return qBound(0, settings.value("settings/mouse_stick_deadzone", 15).toInt(), 40);
+}
+void Settings::SetMouseStickDeadzone(int percent)
+{
+	settings.setValue("settings/mouse_stick_deadzone", qBound(0, percent, 40));
+}
+
+void Settings::ResetMouseStick()
+{
+	settings.remove("settings/mouse_stick_horizontal");
+	settings.remove("settings/mouse_stick_vertical");
+	settings.remove("settings/mouse_stick_deadzone");
+}
 
 bool Settings::GetDpadTouchEnabled() const
 {
@@ -2412,10 +2472,65 @@ QString Settings::GetChiakiControllerButtonName(int button)
 	}
 }
 
+namespace {
+// Stored names of the mappable mouse inputs (not translated, they are saved in the settings)
+struct MouseKeyName
+{
+	MouseKey key;
+	const char *name;
+};
+const MouseKeyName mouse_key_names[] = {
+	{MouseKey::Left, "MouseLeft"},
+	{MouseKey::Right, "MouseRight"},
+	{MouseKey::Middle, "MouseMiddle"},
+	{MouseKey::WheelUp, "MouseWheelUp"},
+	{MouseKey::WheelDown, "MouseWheelDown"}
+};
+}
+
+bool Settings::IsMouseKey(Qt::Key key)
+{
+	return static_cast<int>(key) >= static_cast<int>(MouseKey::Left)
+		&& static_cast<int>(key) <= static_cast<int>(MouseKey::WheelDown);
+}
+
+QString Settings::KeyToString(Qt::Key key)
+{
+	for(const auto &entry : mouse_key_names)
+	{
+		if(static_cast<int>(entry.key) == static_cast<int>(key))
+			return QString::fromLatin1(entry.name);
+	}
+	return QKeySequence(key).toString();
+}
+
+Qt::Key Settings::KeyFromString(const QString &str)
+{
+	for(const auto &entry : mouse_key_names)
+	{
+		if(str == QLatin1String(entry.name))
+			return static_cast<Qt::Key>(static_cast<int>(entry.key));
+	}
+	return QKeySequence(str)[0].key();
+}
+
+QString Settings::GetKeyDisplayName(Qt::Key key)
+{
+	switch(static_cast<int>(key))
+	{
+		case static_cast<int>(MouseKey::Left)      : return tr("Left Click");
+		case static_cast<int>(MouseKey::Right)     : return tr("Right Click");
+		case static_cast<int>(MouseKey::Middle)    : return tr("Middle Click");
+		case static_cast<int>(MouseKey::WheelUp)   : return tr("Wheel Up");
+		case static_cast<int>(MouseKey::WheelDown) : return tr("Wheel Down");
+		default: return QKeySequence(key).toString();
+	}
+}
+
 void Settings::SetControllerButtonMapping(int chiaki_button, Qt::Key key)
 {
 	auto button_name = GetChiakiControllerButtonName(chiaki_button).replace(' ', '_').toLower();
-	settings.setValue("keymap/" + button_name, QKeySequence(key).toString());
+	settings.setValue("keymap/" + button_name, KeyToString(key));
 }
 
 QMap<int, Qt::Key> Settings::GetControllerMapping()
@@ -2457,7 +2572,7 @@ QMap<int, Qt::Key> Settings::GetControllerMapping()
 	{
 		auto button_name = GetChiakiControllerButtonName(chiaki_button).replace(' ', '_').toLower();
 		if(settings.contains("keymap/" + button_name))
-			result[static_cast<int>(chiaki_button)] = QKeySequence(settings.value("keymap/" + button_name).toString())[0].key();
+			result[static_cast<int>(chiaki_button)] = KeyFromString(settings.value("keymap/" + button_name).toString());
 	}
 
 	return result;
