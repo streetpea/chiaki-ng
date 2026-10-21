@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <controllermanager.h>
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
+#include <mcpchiakitools.h>
 #include <QApplication>
 #include <QtTypes>
 
@@ -63,6 +64,8 @@ static const QMap<QString, CLICommand> cli_commands = {
 
 int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info);
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit);
+
+static McpLaunchOptions mcp_launch_options;
 
 int real_main(int argc, char *argv[])
 {
@@ -174,7 +177,34 @@ int real_main(int argc, char *argv[])
 	QCommandLineOption passcode_option("passcode", "Automatically send your PlayStation login passcode (only affects users with a login passcode set on their PlayStation console).", "passcode");
 	parser.addOption(passcode_option);
 
+	QCommandLineOption mcp_option("mcp", "Start the MCP server so AI tools can see and control the app (http://127.0.0.1:9339/mcp by default).");
+	parser.addOption(mcp_option);
+
+	QCommandLineOption mcp_port_option("mcp-port", "Port for the MCP server (implies --mcp).", "port");
+	parser.addOption(mcp_port_option);
+
+	QCommandLineOption mcp_token_option("mcp-token", "Require this bearer token from MCP clients.", "token");
+	parser.addOption(mcp_token_option);
+
 	parser.process(app);
+
+	mcp_launch_options = McpChiakiTools::LaunchOptionsFromEnvironment();
+	if(parser.isSet(mcp_option))
+		mcp_launch_options.enable = true;
+	if(parser.isSet(mcp_port_option))
+	{
+		bool port_ok = false;
+		const int port = parser.value(mcp_port_option).toInt(&port_ok);
+		if(!port_ok || port < 1 || port > 65535)
+		{
+			printf("Invalid --mcp-port %s\n", qPrintable(parser.value(mcp_port_option)));
+			return 1;
+		}
+		mcp_launch_options.port = port;
+		mcp_launch_options.enable = true;
+	}
+	if(parser.isSet(mcp_token_option))
+		mcp_launch_options.token = parser.value(mcp_token_option);
 	QStringList args = parser.positionalArguments();
 
 	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
@@ -318,6 +348,7 @@ int real_main(int argc, char *argv[])
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)
 {
 	QmlMainWindow main_window(settings, exit_app_on_stream_exit);
+	McpChiakiTools mcp(&main_window, mcp_launch_options);
 	main_window.show();
 	return app.exec();
 }
@@ -325,6 +356,7 @@ int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_ex
 int RunStream(QGuiApplication &app, const StreamSessionConnectInfo &connect_info)
 {
 	QmlMainWindow main_window(connect_info);
+	McpChiakiTools mcp(&main_window, mcp_launch_options);
 	main_window.show();
 	return app.exec();
 }

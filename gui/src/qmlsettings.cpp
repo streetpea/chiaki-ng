@@ -100,6 +100,30 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
+bool QmlSettings::mcpServerEnabled() const
+{
+    return settings->GetMcpServerEnabled();
+}
+
+void QmlSettings::setMcpServerEnabled(bool enabled)
+{
+    settings->SetMcpServerEnabled(enabled);
+    emit mcpServerEnabledChanged();
+}
+
+int QmlSettings::mcpServerPort() const
+{
+    return settings->GetMcpServerPort();
+}
+
+void QmlSettings::setMcpServerPort(int port)
+{
+    if (port < 1 || port > 65535)
+        return;
+    settings->SetMcpServerPort(port);
+    emit mcpServerPortChanged();
+}
+
 bool QmlSettings::showStreamStats() const
 {
     return settings->GetShowStreamStats();
@@ -1881,6 +1905,8 @@ void QmlSettings::refreshAllKeys()
     emit remotePlayAskChanged();
     emit addSteamShortcutAskChanged();
     emit hideCursorChanged();
+    emit mcpServerEnabledChanged();
+    emit mcpServerPortChanged();
     emit audioVideoDisabledChanged();
     emit resolutionLocalPS4Changed();
     emit resolutionRemotePS4Changed();

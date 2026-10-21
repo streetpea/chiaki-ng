@@ -221,6 +221,7 @@ class StreamSession : public QObject
 		float PS_TOUCHPAD_MAX_X, PS_TOUCHPAD_MAX_Y;
 		ChiakiControllerState keyboard_state;
 		ChiakiControllerState touch_state;
+		ChiakiControllerState mcp_state;
 		QMap<int, uint8_t> touch_tracker;
 		int8_t mouse_touch_id;
 		ChiakiControllerState dpad_touch_state;
@@ -375,6 +376,11 @@ class StreamSession : public QObject
 		void ReadMic(const QByteArray &micdata);
 
 		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
+		// Virtual controller driven by MCP clients, merged with all physical inputs.
+		void SetMcpControllerState(const ChiakiControllerState &state);
+		ChiakiControllerState GetMcpControllerState() const { return mcp_state; }
+		float GetTouchpadMaxX() const { return PS_TOUCHPAD_MAX_X; }
+		float GetTouchpadMaxY() const { return PS_TOUCHPAD_MAX_Y; }
 
 	signals:
 		void FfmpegFrameAvailable();

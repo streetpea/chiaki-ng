@@ -907,6 +907,54 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
+                        text: qsTr("AI Control (MCP Server):")
+                    }
+
+                    C.CheckBox {
+                        objectName: "mcpServerEnabledCheckBox"
+                        checked: Chiaki.settings.mcpServerEnabled
+                        onToggled: Chiaki.settings.mcpServerEnabled = checked
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Lets AI tools on this computer take screenshots of and control chiaki-ng at http://127.0.0.1:%1/mcp").arg(Chiaki.settings.mcpServerPort)
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(Unchecked)")
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("MCP Server Port:")
+                        visible: Chiaki.settings.mcpServerEnabled
+                    }
+
+                    C.TextField {
+                        objectName: "mcpServerPortField"
+                        Layout.preferredWidth: 400
+                        visible: Chiaki.settings.mcpServerEnabled
+                        text: Chiaki.settings.mcpServerPort
+                        Material.accent: text && !validate() ? Material.Red : undefined
+                        onEditingFinished: {
+                            if (validate())
+                                Chiaki.settings.mcpServerPort = parseInt(text);
+                            else
+                                text = Chiaki.settings.mcpServerPort;
+                        }
+                        function validate() {
+                            var num = parseInt(text);
+                            return num >= 1 && num <= 65535;
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("(9339)")
+                        visible: Chiaki.settings.mcpServerEnabled
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignRight
                         text: qsTr("Vertical Sync:")
                     }
 

@@ -8,8 +8,11 @@
 #include <QWindow>
 #include <QQuickWindow>
 #include <QLoggingCategory>
+#include <QElapsedTimer>
+#include <QImage>
 #include <deque>
 #include <atomic>
+#include <functional>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -41,6 +44,7 @@ class Settings;
 class StreamSession;
 class QmlBackend;
 class QOffscreenSurface;
+class QTimer;
 class QOpenGLContext;
 class QOpenGLFramebufferObject;
 class QWidget;
@@ -156,6 +160,13 @@ public:
     void armVerbosePlaceboQuietWindow();
     bool startupWarmupFrameActive() const { return startup_warmup_frame_active; }
 
+    // Captures the next presented frame (video, UI overlay and letterboxing exactly as
+    // composited into the swapchain) at full swapchain resolution, tone mapped to sRGB.
+    // The callback runs on the GUI thread.
+    using FrameCaptureCallback = std::function<void(const QImage &frame, const QString &error)>;
+    void requestFrameCapture(const FrameCaptureCallback &callback);
+    QQuickWindow *quickWindow() const { return quick_window; }
+
 public slots:
     void resetPlaceboQueue();
     void schedulePlaceboReset();
@@ -234,6 +245,9 @@ private:
     void beginFrame();
     void endFrame();
     void render();
+    void serviceFrameCaptures(const struct pl_frame *image, const struct pl_frame_mix *mix,
+                              const struct pl_frame &target, const struct pl_render_params &params, bool flipped);
+    void failFrameCaptures(const QString &error);
     void handleVulkanDeviceLost(const QString &reason);
     void handleVulkanRendererFallback(const QString &title, const QString &message, const QString &fallback_reason);
     void applyPendingFrame();
@@ -402,6 +416,12 @@ private:
     bool startup_warmup_frame_active = false;
     bool vulkan_deferred_swap_enabled = false;
     bool present_vsync_enabled = true;
+
+    QMutex frame_capture_mutex;
+    QList<FrameCaptureCallback> frame_capture_requests;
+    QAtomicInteger<int> frame_capture_pending = 0;
+    QTimer *frame_capture_timer = nullptr;
+    QElapsedTimer frame_capture_elapsed;
 
     QVulkanInstance *qt_vk_inst = {};
     QOpenGLContext *qt_gl_context = {};

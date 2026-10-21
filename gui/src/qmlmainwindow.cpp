@@ -2766,6 +2766,136 @@ void QmlMainWindow::requestOverlayUpdate()
     scheduleUpdate(true, UpdateRequestReason::Unknown);
 }
 
+void QmlMainWindow::requestFrameCapture(const FrameCaptureCallback &callback)
+{
+    Q_ASSERT(QThread::currentThread() == QGuiApplication::instance()->thread());
+    {
+        QMutexLocker locker(&frame_capture_mutex);
+        frame_capture_requests.append(callback);
+    }
+    frame_capture_pending.storeRelease(1);
+
+    if (!frame_capture_timer) {
+        frame_capture_timer = new QTimer(this);
+        frame_capture_timer->setInterval(50);
+        connect(frame_capture_timer, &QTimer::timeout, this, [this]() {
+            if (frame_capture_pending.loadAcquire() == 0) {
+                frame_capture_timer->stop();
+                return;
+            }
+            if (frame_capture_elapsed.elapsed() > 5000) {
+                frame_capture_timer->stop();
+                failFrameCaptures(isExposed()
+                    ? QStringLiteral("Timed out waiting for the renderer to present a frame")
+                    : QStringLiteral("The window is not exposed (hidden, minimized or covered by a lock screen), so no frame is being rendered"));
+                return;
+            }
+            // Keep nudging the renderer: idle UIs only render on demand.
+            scheduleUpdate(true, UpdateRequestReason::RenderRequested);
+        });
+    }
+    frame_capture_elapsed.start();
+    frame_capture_timer->start();
+    scheduleUpdate(true, UpdateRequestReason::RenderRequested);
+}
+
+void QmlMainWindow::failFrameCaptures(const QString &error)
+{
+    QList<FrameCaptureCallback> requests;
+    {
+        QMutexLocker locker(&frame_capture_mutex);
+        requests.swap(frame_capture_requests);
+        frame_capture_pending.storeRelease(0);
+    }
+    for (const auto &callback : requests)
+        callback(QImage(), error);
+}
+
+void QmlMainWindow::serviceFrameCaptures(const struct pl_frame *image, const struct pl_frame_mix *mix,
+                                         const struct pl_frame &target, const struct pl_render_params &params, bool flipped)
+{
+    if (frame_capture_pending.loadAcquire() == 0)
+        return;
+    QList<FrameCaptureCallback> requests;
+    {
+        QMutexLocker locker(&frame_capture_mutex);
+        requests.swap(frame_capture_requests);
+        frame_capture_pending.storeRelease(0);
+    }
+    if (requests.isEmpty())
+        return;
+
+    QImage captured;
+    QString error;
+    pl_gpu gpu = placeboGpu();
+    const int width = swapchain_size.width();
+    const int height = swapchain_size.height();
+    const enum pl_fmt_caps needed_caps = static_cast<enum pl_fmt_caps>(PL_FMT_CAP_RENDERABLE | PL_FMT_CAP_HOST_READABLE);
+    pl_fmt fmt = gpu ? pl_find_named_fmt(gpu, "rgba8") : nullptr;
+    if (fmt && (fmt->caps & needed_caps) != needed_caps)
+        fmt = nullptr;
+    if (!fmt && gpu)
+        fmt = pl_find_fmt(gpu, PL_FMT_UNORM, 4, 8, 8, needed_caps);
+
+    if (!gpu || width <= 0 || height <= 0) {
+        error = QStringLiteral("Renderer is not ready");
+    } else if (!fmt || fmt->num_components != 4 || fmt->texel_size != 4) {
+        error = QStringLiteral("GPU offers no readable RGBA8 render target");
+    } else {
+        struct pl_tex_params tex_params = {};
+        tex_params.w = width;
+        tex_params.h = height;
+        tex_params.format = fmt;
+        tex_params.renderable = true;
+        tex_params.host_readable = true;
+        pl_tex tex = pl_tex_create(gpu, &tex_params);
+        if (!tex) {
+            error = QStringLiteral("Failed to allocate capture texture");
+        } else {
+            // Same geometry, overlays and render settings as the swapchain frame; only the
+            // output becomes an 8-bit sRGB texture so HDR streams are tone mapped for viewing.
+            struct pl_frame capture = target;
+            capture.num_planes = 1;
+            capture.planes[0] = {};
+            capture.planes[0].texture = tex;
+            capture.planes[0].components = 4;
+            for (int i = 0; i < 4; i++)
+                capture.planes[0].component_mapping[i] = fmt->sample_order[i];
+            capture.repr = pl_color_repr_rgb;
+            capture.color = pl_color_space_srgb;
+            struct pl_render_params capture_params = params;
+            capture_params.background_transparency = 0.0f;
+            const bool rendered = mix
+                ? pl_render_image_mix(placebo_renderer, mix, &capture, &capture_params)
+                : pl_render_image(placebo_renderer, image, &capture, &capture_params);
+            if (!rendered) {
+                error = QStringLiteral("Failed to render the capture frame");
+            } else {
+                // Texel memory order follows the format; BGRA maps to Qt's native RGB32 word.
+                const bool bgra = fmt->sample_order[0] == 2 && fmt->sample_order[1] == 1 && fmt->sample_order[2] == 0;
+                QImage pixels(width, height, bgra && Q_BYTE_ORDER == Q_LITTLE_ENDIAN ? QImage::Format_RGB32 : QImage::Format_RGBX8888);
+                struct pl_tex_transfer_params transfer = {};
+                transfer.tex = tex;
+                transfer.ptr = pixels.bits();
+                transfer.row_pitch = static_cast<size_t>(pixels.bytesPerLine());
+                // Without a callback the download blocks until the data is available.
+                if (!pl_tex_download(gpu, &transfer))
+                    error = QStringLiteral("Failed to read back the capture frame");
+                else
+                    captured = flipped ? pixels.mirrored(false, true) : pixels;
+            }
+            pl_tex_destroy(gpu, &tex);
+        }
+    }
+    if (!error.isEmpty())
+        qCWarning(chiakiGui) << "Frame capture failed:" << error;
+
+    QMetaObject::invokeMethod(this, [requests, captured, error]() {
+        for (const auto &callback : requests)
+            callback(captured, error);
+    }, Qt::QueuedConnection);
+}
+
 void QmlMainWindow::presentStartupWarmupFrame(unsigned width, unsigned height, bool hdr)
 {
     if (has_video || width == 0 || height == 0)
@@ -7347,6 +7477,7 @@ void QmlMainWindow::render()
             schedulePostSwapchainRecreateRefresh();
             return;
         }
+        serviceFrameCaptures(nullptr, nullptr, target_frame, params, sw_frame.flipped);
         const qint64 render_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         if (render_after_us >= render_call_begin_us) {
             logLatencyStats("render_image", render_after_us - render_call_begin_us);
@@ -7485,6 +7616,9 @@ void QmlMainWindow::render()
         schedulePostSwapchainRecreateRefresh();
         return;
     }
+    serviceFrameCaptures(bypass_frame_queue ? &direct_render_frame : nullptr,
+                         bypass_frame_queue ? nullptr : &frame_mix,
+                         target_frame, params, sw_frame.flipped);
     {
         const qint64 render_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         if (render_after_us >= render_call_begin_us) {

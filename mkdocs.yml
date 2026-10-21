@@ -12,6 +12,7 @@ nav:
     - Automation: setup/automation.md
     - Game (Mode) Time: setup/steaming.md
     - Controller Options: setup/controlling.md
+    - AI Control (MCP): setup/aicontrol.md
   - Updates:
     - Updates Overview: updates/index.md
     - Releases: updates/releases.md

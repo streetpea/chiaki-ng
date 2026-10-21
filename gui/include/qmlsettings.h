@@ -8,6 +8,8 @@ class QmlSettings : public QObject
     Q_PROPERTY(bool remotePlayAsk READ remotePlayAsk WRITE setRemotePlayAsk NOTIFY remotePlayAskChanged)
     Q_PROPERTY(bool addSteamShortcutAsk READ addSteamShortcutAsk WRITE setAddSteamShortcutAsk NOTIFY addSteamShortcutAskChanged)
     Q_PROPERTY(bool hideCursor READ hideCursor WRITE setHideCursor NOTIFY hideCursorChanged)
+    Q_PROPERTY(bool mcpServerEnabled READ mcpServerEnabled WRITE setMcpServerEnabled NOTIFY mcpServerEnabledChanged)
+    Q_PROPERTY(int mcpServerPort READ mcpServerPort WRITE setMcpServerPort NOTIFY mcpServerPortChanged)
     Q_PROPERTY(int audioVideoDisabled READ audioVideoDisabled WRITE setAudioVideoDisabled NOTIFY audioVideoDisabledChanged)
     Q_PROPERTY(int resolutionLocalPS4 READ resolutionLocalPS4 WRITE setResolutionLocalPS4 NOTIFY resolutionLocalPS4Changed)
     Q_PROPERTY(int resolutionRemotePS4 READ resolutionRemotePS4 WRITE setResolutionRemotePS4 NOTIFY resolutionRemotePS4Changed)
@@ -252,6 +254,12 @@ public:
 
     bool hideCursor() const;
     void setHideCursor(bool enabled);
+
+    bool mcpServerEnabled() const;
+    void setMcpServerEnabled(bool enabled);
+
+    int mcpServerPort() const;
+    void setMcpServerPort(int port);
 
     float hapticOverride() const;
     void setHapticOverride(float override);
@@ -638,6 +646,8 @@ signals:
     void remotePlayAskChanged();
     void addSteamShortcutAskChanged();
     void hideCursorChanged();
+    void mcpServerEnabledChanged();
+    void mcpServerPortChanged();
     void hapticOverrideChanged();
     void audioVideoDisabledChanged();
     void showStreamStatsChanged();

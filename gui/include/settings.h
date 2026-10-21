@@ -267,6 +267,12 @@ class Settings : public QObject
 		bool GetHideCursor() const				{ return settings.value("settings/hide_cursor", true).toBool(); }
 		void SetHideCursor(bool enabled)		{ settings.setValue("settings/hide_cursor", enabled); }
 
+		bool GetMcpServerEnabled() const		{ return settings.value("settings/mcp_server_enabled", false).toBool(); }
+		void SetMcpServerEnabled(bool enabled)	{ settings.setValue("settings/mcp_server_enabled", enabled); }
+
+		int GetMcpServerPort() const			{ return settings.value("settings/mcp_server_port", 9339).toInt(); }
+		void SetMcpServerPort(int port)			{ settings.setValue("settings/mcp_server_port", port); }
+
 		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
 
