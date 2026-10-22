@@ -232,6 +232,11 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 		goto error_gkcrypt_local_mutex;
 	takion->tag_remote = 0;
 
+	takion->send_buffer_active = false;
+	ret = chiaki_mutex_init(&takion->send_buffer_active_mutex, false);
+	if(ret != CHIAKI_ERR_SUCCESS)
+		goto error_seq_num_local_mutex;
+
 	takion->enable_crypt = info->enable_crypt;
 	takion->postponed_packets = NULL;
 	takion->postponed_packets_size = 0;
@@ -245,7 +250,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_connect(ChiakiTakion *takion, Chiaki
 	if(err != CHIAKI_ERR_SUCCESS)
 	{
 		CHIAKI_LOGE(takion->log, "Takion failed to create stop pipe");
-		goto error_seq_num_local_mutex;
+		goto error_send_buffer_active_mutex;
 	}
 
 	if(sock)
@@ -451,6 +456,8 @@ error_sock:
 	}
 error_pipe:
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
+error_send_buffer_active_mutex:
+	chiaki_mutex_fini(&takion->send_buffer_active_mutex);
 error_seq_num_local_mutex:
 	chiaki_mutex_fini(&takion->seq_num_local_mutex);
 error_gkcrypt_local_mutex:
@@ -463,6 +470,7 @@ CHIAKI_EXPORT void chiaki_takion_close(ChiakiTakion *takion)
 	chiaki_stop_pipe_stop(&takion->stop_pipe);
 	chiaki_thread_join(&takion->thread, NULL);
 	chiaki_stop_pipe_fini(&takion->stop_pipe);
+	chiaki_mutex_fini(&takion->send_buffer_active_mutex);
 	chiaki_mutex_fini(&takion->seq_num_local_mutex);
 	chiaki_mutex_fini(&takion->gkcrypt_local_mutex);
 }
@@ -580,6 +588,29 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send(ChiakiTakion *takion, uint8_t *
 	return chiaki_takion_send_raw(takion, buf, buf_size);
 }
 
+/**
+ * Push into the send buffer unless the Takion thread has already finalized it.
+ * Takes ownership of buf.
+ */
+static ChiakiErrorCode takion_send_buffer_push(ChiakiTakion *takion, ChiakiSeqNum32 seq_num, uint8_t *buf, size_t buf_size)
+{
+	ChiakiErrorCode err = chiaki_mutex_lock(&takion->send_buffer_active_mutex);
+	if(err != CHIAKI_ERR_SUCCESS)
+	{
+		free(buf);
+		return err;
+	}
+	if(takion->send_buffer_active)
+		chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num, buf, buf_size);
+	else
+	{
+		free(buf);
+		err = CHIAKI_ERR_DISCONNECTED;
+	}
+	chiaki_mutex_unlock(&takion->send_buffer_active_mutex);
+	return err;
+}
+
 CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *takion, uint8_t chunk_flags, uint16_t channel, uint8_t *buf, size_t buf_size, ChiakiSeqNum32 *seq_num)
 {
 	// TODO: can we make this more memory-efficient?
@@ -620,7 +651,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data(ChiakiTakion *taki
 		return err;
 	}
 
-	chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num_val, packet_buf, packet_size);
+	err = takion_send_buffer_push(takion, seq_num_val, packet_buf, packet_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
 
 	if(seq_num)
 		*seq_num = seq_num_val;
@@ -667,7 +700,9 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_takion_send_message_data_cont(ChiakiTakion 
 		return err;
 	}
 
-	chiaki_takion_send_buffer_push(&takion->send_buffer, seq_num_val, packet_buf, packet_size);
+	err = takion_send_buffer_push(takion, seq_num_val, packet_buf, packet_size);
+	if(err != CHIAKI_ERR_SUCCESS)
+		return err;
 
 	if(seq_num)
 		*seq_num = seq_num_val;
@@ -1079,6 +1114,9 @@ static void *takion_thread_func(void *user)
 	// The send buffer size MUST be consistent with the acked seqnums array size in takion_handle_packet_message_data_ack()
 	if(chiaki_takion_send_buffer_init(&takion->send_buffer, takion, TAKION_SEND_BUFFER_SIZE) != CHIAKI_ERR_SUCCESS)
 		goto error_reoder_queue;
+	chiaki_mutex_lock(&takion->send_buffer_active_mutex);
+	takion->send_buffer_active = true;
+	chiaki_mutex_unlock(&takion->send_buffer_active_mutex);
 
 
 	if(takion->cb)
@@ -1162,6 +1200,10 @@ static void *takion_thread_func(void *user)
 		takion_handle_packet(takion, resized_buf, received_size);
 	}
 
+	// Other threads (e.g. the heartbeat or an IDR request) may still send data, so stop them from using the send buffer first
+	chiaki_mutex_lock(&takion->send_buffer_active_mutex);
+	takion->send_buffer_active = false;
+	chiaki_mutex_unlock(&takion->send_buffer_active_mutex);
 	chiaki_takion_send_buffer_fini(&takion->send_buffer);
 
 	if(takion->video_queue_initialized)
